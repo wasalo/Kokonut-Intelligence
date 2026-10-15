@@ -1550,7 +1550,7 @@ def test_oidc_operator_can_issue_enrollment_only_with_session_scope_and_csrf(
             f"/operator/api/mobile/locations/{LOCATION_ID}/devices/collector-17/revoke",
             "revoke",
             None,
-            ("collector-17",),
+            ("revoked", "collector-17"),
         ),
     ],
 )
@@ -1601,6 +1601,16 @@ def test_operator_mobile_mutations_set_tenant_context(
             },
         )
     ]
+    if "/devices/" in path:
+        assert "kokonut_security.revoke_mobile_device" in connection.cursor.return_value.execute.call_args.args[0]
+        assert connection.cursor.return_value.execute.call_args.args[1] == (
+            LOCATION_ID,
+            "collector-17",
+            None,
+            None,
+            OPERATOR_ID,
+            "a" * 64,
+        )
     assert connection.commit.call_count == 1
 
 

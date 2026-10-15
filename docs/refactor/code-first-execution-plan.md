@@ -15,8 +15,8 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 320 checked and 19 open items (339 total).
-- The latest pushed implementation batch is `de5bd4e`; at the last recorded
+- The execution checklist has 321 checked and 19 open items (340 total).
+- Before the migration-400 batch, the latest pushed implementation was `de5bd4e`; at the last recorded
   check CI #312 was in progress and Security #36 had passed. The last
   CI-verified head remains `7953afe` (CI #308
   and Security #32 passed).
@@ -57,6 +57,18 @@ MAN-CAP checks open until each has its own retained evidence.
   surfaces and dynamic-heavy modules. This is a review input, not a grant
   allowlist; dynamic statements and indirect ORM/provider paths remain open
   ([inventory](runtime-sql-inventory.json); [check record](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+  Field Collector device revocation now uses a fixed database function that
+  revalidates tenant, location, and exact credential/session scope before
+  clearing a device token. Runtime direct UPDATE is limited to telemetry
+  columns. The role bootstrap repairs private-function ACLs after DB-only
+  restore. Migration 400 restores six restricted function-owner roles, their
+  narrow privileges, SECURITY DEFINER ownership, and runtime/operator-auth
+  schema access. A restored pre-398 clone replayed migrations 398–400; synthetic
+  owner/ACL-loss forced-RLS acceptance passed. The populated-clone role bootstrap
+  did not complete, so full restore acceptance remains open. The candidate has
+  391 applied schemas through 400 and its app is healthy, but still uses the
+  `kokonut` superuser because dedicated runtime credentials are absent;
+  authenticated HTTP under that role remains a human-input gate ([evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)).
   The climate compatibility path stores schema-aligned `latitude_proxy_v1`
   estimates; migrations 392–397 passed ordered PostgreSQL 16 application and
   replay on a restored candidate checkpoint, including migration 397's
@@ -79,16 +91,16 @@ MAN-CAP checks open until each has its own retained evidence.
   required services before writing/restoring data; fake-Compose checks cover
   both ClickHouse-disabled and ClickHouse-enabled paths.
   Focused source/disposable checks pass;
-  remote CI has not run for these newer changes.
+  at this plan snapshot, remote CI had not run for these newer changes.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
-- Candidate migrations 392–397 were applied schema-only after a fresh
-  age-encrypted checkpoint was restore-rehearsed in an isolated `template0`
-  database. The clone and candidate both have 388 applied schemas through 397,
-  one curated seed, zero pending/failed migrations, and no application-table
-  RLS. Only the candidate app was recreated; health returned 200 and anonymous
-  mobile sync-status returned 401. Evidence is retained in
-  [the candidate rollout record](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json).
+- Candidate migrations 392–400 were applied schema-only after encrypted
+  checkpoints and isolated restore/replay work. The current candidate has 391
+  applied schemas through 400, one curated seed, zero pending/failed schema
+  migrations, and no application-table RLS. The migration-400 pre-change
+  checkpoint is retained but not itself restore-rehearsed. The candidate app was
+  not recreated for migration 400; health remains 200 and anonymous protected
+  device revocation returns 401. See [migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json).
   The separate 30-seed candidate rollout remains approval-gated under OFU-17;
   the other 90 sources were not selected.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
@@ -215,8 +227,8 @@ before protected reads and writes, and make direct database access fail closed.
 
 **Acceptance:** disposable PostgreSQL tests cover owner/shared scope, denial,
 revocation, stale context, cleanup, least-privilege grants, worker/CLI behavior,
-and migration replay. The separately gated candidate rollout of migrations
-392–397 is complete; worker, remaining runtime-role, Directus/view, ownership,
+and migration replay. The candidate rollout of migrations
+392–400 is complete; worker, remaining runtime-role, Directus/view, ownership,
 and RLS gates remain open.
 Non-demo location owners and legacy OIDC affiliations are human inputs under
 OFU-01/02; use only the already-confirmed Kokonut Network demo mapping in
@@ -425,8 +437,9 @@ deployment or semantic acceptance:
   bucket/credentials/policy (OFU-08), browser vault and trusted local HTTPS
   certificate when browser acceptance is scheduled (OFU-10/11).
 - **Candidate-only writes:** approval to apply the 30 curated seeds (OFU-17).
-  Migration 392–397 rollout (OFU-18) is complete. The candidate still has only
-  its original curated seed ledger entry; no new seed SQL was applied.
+  Migrations 392–400 are rolled out; runtime credential provisioning remains
+  tracked under OFU-19. The candidate still has only its original curated seed
+  ledger entry; no new seed SQL was applied.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only
 scope and lack of hardware. If the owner later supplies a Pi, add a separate

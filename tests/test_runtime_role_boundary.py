@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from services.migration import runtime_role
 
 
@@ -13,9 +15,6 @@ def test_mobile_credential_columns_are_excluded_from_runtime_reads():
 
 def test_runtime_mobile_writes_match_current_handler_call_sites():
     assert runtime_role._MOBILE_DEVICE_UPDATE_COLUMNS == (
-        "status",
-        "device_token_hash",
-        "revoked_at",
         "updated_at",
         "last_seen_at",
         "last_sync_at",
@@ -29,6 +28,17 @@ def test_runtime_mobile_writes_match_current_handler_call_sites():
         "expires_at",
     )
     assert runtime_role._MOBILE_ENROLLMENT_UPDATE_COLUMNS == ("revoked_at",)
+
+
+def test_runtime_provisioner_rebuilds_operator_function_acl_after_restore():
+    source = (Path(__file__).resolve().parents[1] / "services/migration/runtime_role.py").read_text()
+
+    assert 'REVOKE ALL ON FUNCTION {} FROM PUBLIC' in source
+    assert 'REVOKE ALL ON FUNCTION {} FROM {}' in source
+    assert 'GRANT EXECUTE ON FUNCTION {} TO {}' in source
+    assert "_PRIVATE_RUNTIME_FUNCTIONS" in source
+    assert "aclexplode" in source
+    assert "acl_entry.grantee = 0" in source
 
 
 def test_runtime_api_key_access_is_read_only_and_column_scoped():

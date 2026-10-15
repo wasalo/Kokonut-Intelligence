@@ -26,6 +26,54 @@ _SESSION_FUNCTIONS = (
 _GATEWAY_CONTEXT_FUNCTION = (
     "kokonut_security.set_gateway_tenant_context(text,text,uuid,text,text)"
 )
+_OPERATOR_CONTEXT_FUNCTION = (
+    "kokonut_security.set_operator_tenant_context(text,uuid,uuid,text,text,jsonb)"
+)
+_MOBILE_DEVICE_REVOKE_FUNCTION = (
+    "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
+)
+_SECURITY_DEFINER_OWNERS = (
+    (
+        "kokonut_security.resolve_mobile_device_token(text)",
+        "kokonut_mobile_credential_owner",
+    ),
+    (
+        "kokonut_security.redeem_mobile_enrollment(text,text,text,text,text,text,text,text)",
+        "kokonut_mobile_credential_owner",
+    ),
+    (
+        "kokonut_security.set_mobile_device_context(text,text,uuid)",
+        "kokonut_mobile_context_owner",
+    ),
+    ("kokonut_security.current_tenant_context()", "kokonut_mobile_context_owner"),
+    (
+        "kokonut_security.set_operator_tenant_context(text,uuid,uuid,text,text,jsonb)",
+        "kokonut_operator_context_owner",
+    ),
+    (
+        "kokonut_security.create_operator_session(text,text,text,text,text,text,timestamptz)",
+        "kokonut_operator_auth_owner",
+    ),
+    (
+        "kokonut_security.authenticate_operator_session(text)",
+        "kokonut_operator_auth_owner",
+    ),
+    (
+        "kokonut_security.revoke_operator_session(uuid)",
+        "kokonut_operator_auth_owner",
+    ),
+    (
+        "kokonut_security.set_gateway_tenant_context(text,text,uuid,text,text)",
+        "kokonut_gateway_context_owner",
+    ),
+    (_MOBILE_DEVICE_REVOKE_FUNCTION, "kokonut_mobile_device_revoke_owner"),
+)
+_PRIVATE_RUNTIME_FUNCTIONS = (
+    *_SESSION_FUNCTIONS,
+    _GATEWAY_CONTEXT_FUNCTION,
+    _OPERATOR_CONTEXT_FUNCTION,
+    _MOBILE_DEVICE_REVOKE_FUNCTION,
+)
 _MOBILE_DEVICE_READ_COLUMNS = (
     "id",
     "device_id",
@@ -49,9 +97,6 @@ _MOBILE_DEVICE_READ_COLUMNS = (
     "tenant_organization_id",
 )
 _MOBILE_DEVICE_UPDATE_COLUMNS = (
-    "status",
-    "device_token_hash",
-    "revoked_at",
     "updated_at",
     "last_seen_at",
     "last_sync_at",
@@ -216,6 +261,59 @@ def _verify_no_runtime_default_privileges(
         )
 
 
+def _revoke_public_function_execute(cur, function: str) -> None:
+    cur.execute(
+        sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function))
+    )
+
+
+def _verify_no_public_function_execute(cur, function: str) -> None:
+    cur.execute(
+        """SELECT EXISTS (
+               SELECT 1
+                 FROM pg_proc AS proc
+                 CROSS JOIN LATERAL aclexplode(
+                     COALESCE(proc.proacl, acldefault('f', proc.proowner))
+                 ) AS acl_entry
+                WHERE proc.oid = to_regprocedure(%s)
+                  AND acl_entry.grantee = 0
+                  AND acl_entry.privilege_type = 'EXECUTE'
+           )""",
+        (function,),
+    )
+    if cur.fetchone()[0]:
+        raise RuntimeError(f"PUBLIC can execute a restricted security function: {function.split('.')[-1]}")
+
+
+def _verify_security_definer_owners(cur) -> None:
+    """Fail closed if restored SECURITY DEFINER functions use elevated owners."""
+    for function, expected_owner in _SECURITY_DEFINER_OWNERS:
+        cur.execute("SELECT to_regprocedure(%s)", (function,))
+        if cur.fetchone()[0] is None:
+            continue
+        cur.execute(
+            """SELECT owner.rolname, owner.rolcanlogin, owner.rolsuper,
+                      owner.rolcreatedb, owner.rolcreaterole,
+                      owner.rolreplication, owner.rolbypassrls, owner.rolinherit,
+                      EXISTS (
+                          SELECT 1 FROM pg_auth_members AS membership
+                           WHERE membership.member = owner.oid
+                              OR membership.roleid = owner.oid
+                      )
+                 FROM pg_proc AS function_row
+                 JOIN pg_roles AS owner ON owner.oid = function_row.proowner
+                WHERE function_row.oid = to_regprocedure(%s)""",
+            (function,),
+        )
+        result = cur.fetchone()
+        expected = (expected_owner, False, False, False, False, False, False, False, False)
+        if result != expected:
+            raise RuntimeError(
+                f"{function} must be owned by isolated {expected_owner}; "
+                "apply migration 400 before provisioning runtime roles"
+            )
+
+
 def _apply_mobile_credential_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
     """Replace broad runtime grants on mobile credentials with call-site grants."""
     policies = {
@@ -302,7 +400,10 @@ def _verify_mobile_credential_boundary(cur, role_name: str) -> None:
         ("public.mobile_device", "device_id", "SELECT", True),
         ("public.mobile_device", "device_token_hash", "SELECT", False),
         ("public.mobile_device", "push_token", "SELECT", False),
-        ("public.mobile_device", "device_token_hash", "UPDATE", True),
+        ("public.mobile_device", "device_token_hash", "UPDATE", False),
+        ("public.mobile_device", "status", "UPDATE", False),
+        ("public.mobile_device", "revoked_at", "UPDATE", False),
+        ("public.mobile_device", "last_seen_at", "UPDATE", True),
         ("public.mobile_device", "device_token_hash", "INSERT", False),
         ("public.mobile_device_enrollment", "id", "SELECT", True),
         ("public.mobile_device_enrollment", "code_hash", "SELECT", False),
@@ -476,9 +577,22 @@ def provision_runtime_role(
         )
         if any(procedure is None for procedure in cur.fetchone()):
             raise RuntimeError("migration 395 operator-session functions must be applied before role provisioning")
-        cur.execute("SELECT to_regprocedure(%s)", (_GATEWAY_CONTEXT_FUNCTION,))
-        if cur.fetchone()[0] is None:
-            raise RuntimeError("migration 396 Gateway tenant-context function must be applied before role provisioning")
+        cur.execute(
+            "SELECT to_regprocedure(%s), to_regprocedure(%s), to_regprocedure(%s)",
+            (
+                _GATEWAY_CONTEXT_FUNCTION,
+                _OPERATOR_CONTEXT_FUNCTION,
+                _MOBILE_DEVICE_REVOKE_FUNCTION,
+            ),
+        )
+        if any(procedure is None for procedure in cur.fetchone()):
+            raise RuntimeError(
+                "migrations 394/396 tenant-context and 398 bounded device-revocation "
+                "functions must be applied before role provisioning"
+            )
+
+        for function in _PRIVATE_RUNTIME_FUNCTIONS:
+            _revoke_public_function_execute(cur, function)
 
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
         _ensure_login_role(
@@ -488,8 +602,24 @@ def provision_runtime_role(
             password=operator_auth_password,
         )
         cur.execute(
+            sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident)
+        )
+        cur.execute(
+            sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(auth_ident)
+        )
+        cur.execute(
             sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                 sql.SQL(_GATEWAY_CONTEXT_FUNCTION), runtime_ident
+            )
+        )
+        cur.execute(
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                sql.SQL(_OPERATOR_CONTEXT_FUNCTION), runtime_ident
+            )
+        )
+        cur.execute(
+            sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                sql.SQL(_MOBILE_DEVICE_REVOKE_FUNCTION), runtime_ident
             )
         )
         cur.execute(
@@ -560,6 +690,11 @@ def provision_runtime_role(
                     )
                 )
         for function in _SESSION_FUNCTIONS:
+            cur.execute(
+                sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(
+                    sql.SQL(function)
+                )
+            )
             cur.execute(
                 sql.SQL("REVOKE ALL ON FUNCTION {} FROM {}").format(
                     sql.SQL(function), runtime_ident
@@ -635,11 +770,27 @@ def provision_runtime_role(
             cur, admin_user=admin_user, runtime_user=runtime_user
         )
         cur.execute(
-            "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
-            (runtime_user, _GATEWAY_CONTEXT_FUNCTION),
+            "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
+            "has_function_privilege(%s, %s, 'EXECUTE'), "
+            "has_function_privilege(%s, %s, 'EXECUTE')",
+            (
+                runtime_user, _GATEWAY_CONTEXT_FUNCTION,
+                runtime_user, _OPERATOR_CONTEXT_FUNCTION,
+                runtime_user, _MOBILE_DEVICE_REVOKE_FUNCTION,
+            ),
         )
-        if cur.fetchone()[0] is not True:
-            raise RuntimeError("runtime role is missing the bounded Gateway context function")
+        if cur.fetchone() != (True, True, True):
+            raise RuntimeError("runtime role is missing a bounded Gateway/mobile-device function")
+        cur.execute(
+            "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+            "has_schema_privilege(%s, 'kokonut_security', 'USAGE')",
+            (runtime_user, operator_auth_user),
+        )
+        if cur.fetchone() != (True, True):
+            raise RuntimeError("runtime or operator-auth role is missing usage on kokonut_security")
+        for function in _PRIVATE_RUNTIME_FUNCTIONS:
+            _verify_no_public_function_execute(cur, function)
+        _verify_security_definer_owners(cur)
 
         cur.execute(
             """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -671,15 +822,18 @@ def provision_runtime_role(
         "runtime_future_object_privileges": [],
         "runtime_table_privilege_exceptions": {
             "api_key": "explicit read-only column allowlist; no insert, update, or delete",
-            "mobile_device": "explicit column allowlist; no table-wide INSERT, UPDATE, or DELETE",
+            "mobile_device": "read plus telemetry-only UPDATE columns; revocation uses a bounded function",
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
         },
         "runtime_mobile_credential_privileges": mobile_credential_grants,
         "runtime_api_key_privileges": api_key_grants,
         "operator_session_access": "bounded functions only",
+        "security_definer_owners_verified": True,
         "operator_auth_functions": ["create", "authenticate", "revoke"],
         "runtime_gateway_function": "set_gateway_tenant_context",
+        "runtime_operator_context_function": "set_operator_tenant_context",
+        "runtime_mobile_device_revoke_function": "revoke_mobile_device",
         "runtime_owns_relations": False,
         "operator_auth_owns_relations": False,
     }

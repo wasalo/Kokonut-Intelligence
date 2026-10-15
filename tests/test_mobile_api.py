@@ -1482,7 +1482,7 @@ def test_device_revocation_is_location_scoped_and_clears_token_hash(monkeypatch)
     cursor = connection.cursor.return_value
     events = []
     cursor.execute.side_effect = lambda sql, *_args: events.append(("sql", sql))
-    cursor.fetchone.return_value = ("device-1",)
+    cursor.fetchone.return_value = ("revoked", "device-1")
     monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
     gateway_context = MagicMock(
         side_effect=lambda conn, **kwargs: (
@@ -1510,17 +1510,53 @@ def test_device_revocation_is_location_scoped_and_clears_token_hash(monkeypatch)
     assert response.status_code == 200
     assert response.json()["status"] == "revoked"
     sql = cursor.execute.call_args.args[0].lower()
-    assert "device_token_hash = null" in sql
-    assert "status = 'revoked'" in sql
-    assert cursor.execute.call_args.args[1] == ("device-1", location_id)
+    assert "kokonut_security.revoke_mobile_device" in sql
+    assert cursor.execute.call_args.args[1] == (
+        location_id,
+        "device-1",
+        "api_key",
+        mobile_api._token_hash("revoker-secret"),
+        None,
+        None,
+    )
     connection.commit.assert_called_once()
     context_index = next(index for index, event in enumerate(events) if event[0] == "context")
-    update_index = next(
+    revoke_index = next(
         index for index, event in enumerate(events)
-        if event[0] == "sql" and "UPDATE mobile_device" in event[1]
+        if event[0] == "sql" and "kokonut_security.revoke_mobile_device" in event[1]
     )
     assert events[context_index][1] is connection
-    assert context_index < update_index
+    assert context_index < revoke_index
+
+
+@pytest.mark.parametrize(("database_result", "status"), [("denied", 403), ("not_found", 404)])
+def test_device_revocation_maps_bounded_database_outcomes_and_rolls_back(
+    monkeypatch, database_result, status
+):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = (database_result, None)
+    monkeypatch.setattr(mobile_api, "get_db", lambda: connection)
+    monkeypatch.setattr(
+        mobile_api,
+        "set_gateway_tenant_context",
+        MagicMock(return_value=GatewayTenantContext("tenant-1", location_id, "actor-1")),
+    )
+    monkeypatch.setenv("KOKONUT_API_KEYS", "revoker-secret:field-revoker")
+    monkeypatch.setenv(
+        "KOKONUT_API_KEY_SCOPES",
+        f"field-revoker:mobile_device:revoke:{location_id}",
+    )
+
+    with _client(monkeypatch) as client:
+        response = client.post(
+            f"/api/mobile/locations/{location_id}/devices/device-1/revoke",
+            headers={"x-api-key": "revoker-secret"},
+        )
+
+    assert response.status_code == status
+    connection.rollback.assert_called_once()
+    connection.commit.assert_not_called()
 
 
 def test_invalid_enrollment_code_cannot_create_a_device(monkeypatch):

@@ -180,6 +180,14 @@ plaintext code once in a `no-store` response. The page signs out with a
 double-submit CSRF token, uses same-origin requests, does not put credentials in
 local storage, and renders claims with `textContent`.
 
+Device revocation calls migration 398's bounded PostgreSQL function. The
+function revalidates the active API key/capability or OIDC session grant for the
+same location and action, then revokes only the matching active tenant-bound
+device and clears its token hash. The general runtime role cannot directly
+change device status, token, or revocation time. Disposable forced-RLS checks
+pass; authenticated HTTP under the dedicated runtime login remains open until
+the candidate has separate runtime credentials.
+
 The callback validates OIDC through Authlib discovery, authorization-code
 flow, state/nonce handling, and S256 PKCE. Provider access/ID tokens are not
 stored in browser state or PostgreSQL. Session and CSRF values are random,

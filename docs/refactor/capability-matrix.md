@@ -21,14 +21,11 @@ worker identity, and RLS remain open; this does not accept either MAN-CAP row
 ([evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json)).
 
 **14 October 2026 candidate schema rollout (CAP-047 / CAP-053):** migrations
-392–397 are now applied to the local candidate after a fresh encrypted
-checkpoint and isolated restore rehearsal. The candidate has 388 applied
-schemas through 397, one curated seed, zero pending/failed migrations, and no
-application-table RLS. The candidate app alone was recreated; health returned
-200 and the anonymous protected sync-status route returned 401. This advances
-implementation/deployment tracking only: worker, remaining runtime-role,
-Directus/view, ownership, and all named MAN-CAP checks remain open
-([evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
+392–397 were applied to the local candidate after a fresh encrypted checkpoint
+and isolated restore rehearsal. This historical rollout had 388 applied schemas
+through 397 and no application-table RLS. The later candidate state is recorded
+below; implementation progress does not accept any named MAN-CAP check
+([historical evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
 The companion runtime SQL inventory covers 3,747 direct execution sites across
 802 service modules, includes summaries for 67 packages, and identifies 1,028
@@ -1339,14 +1336,39 @@ now receives an explicit column allowlist on `mobile_device` and
 `mobile_device_enrollment`. It cannot read device-token, push, or enrollment
 hashes, use `SELECT *` across those tables, insert/delete devices, delete
 enrollments, or edit enrollment hashes. Safe handler SQL for device reads,
-enrollment issue/revoke, last-seen updates, and device revocation passed in a
-network-isolated PostgreSQL 16 role check. The runtime login also called the
+enrollment issue/revoke and last-seen updates passed in a network-isolated
+PostgreSQL 16 role check. The runtime login also called the
 bounded token resolver and one-time enrollment redemption successfully. The
   focused mobile/auth/migration set passed 148 tests; Ruff and 507-source
 migration validation passed. This check did not run the HTTP handlers through
 the runtime login and does not close DML on other public tables,
 database-verified Gateway capabilities, workers, Directus/views,
 candidate rollout, or RLS ([policy](runtime-role-policy.md); [evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json)).
+
+**14 October 2026 bounded device revocation (CAP-053):** migration 398 moves
+status/token mutation behind a fixed database function that revalidates the
+exact API-key, capability, or OIDC-session scope under forced RLS. Runtime
+direct UPDATE is limited to telemetry columns. Migration 399 and the bootstrap
+restore narrow security-schema/function access after a DB-only restore. The
+exact pre-398 checkpoint restored, migrations 398–399 replayed, and synthetic
+forced-RLS checks passed owner success, cross-tenant hiding, denial, token
+clearing, and transaction cleanup. At that rollout the candidate had 390 applied schemas
+through 399 and health 200, while application RLS remained disabled. It still
+runs as the `kokonut` superuser because runtime credentials are not provisioned;
+authenticated HTTP under the dedicated role remains open. This does not accept
+CAP-053 or any MAN-CAP check ([evidence](builds/2026-10-14-recovery/candidate-migration-398-399-device-revocation.json)).
+
+**14 October 2026 database-only restore owner repair (CAP-053 implementation
+follow-up):** migration 400 recreates six bounded NOLOGIN function-owner roles,
+restores their exact grants and SECURITY DEFINER ownership, and restores
+runtime/operator-auth security-schema lookup after a database-only restore.
+The runtime bootstrap now fails closed on unexpected function ownership. A
+restored pre-398 clone replayed migrations 398–400; a separate synthetic
+owner/ACL-loss fixture passed forced-RLS revocation and operator-auth checks.
+The populated-clone bootstrap did not complete, so full restore acceptance is
+still open. The local candidate has 391 schemas through 400, health 200, and no
+application-table RLS; it still uses the `kokonut` superuser. No MAN-CAP check
+is accepted ([evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)).
 
 ### CAP-040/047 worker source inspection addendum — 14 October 2026
 

@@ -16,17 +16,17 @@ the signature instead of trusting caller-set labels. Network-isolated
 PostgreSQL 16 acceptance applied and replayed migrations 391–396, forced RLS
 in disposable databases, and passed mobile credential/context, operator
 owner/share, Gateway credential, denial, lock, cleanup, and role-boundary
-checks. Migrations 392–397 have now been applied schema-only to the local
-candidate after a fresh age-encrypted checkpoint and isolated restore
-rehearsal. Only the candidate app was recreated; health and protected-route
+checks. Migrations 392–400 have now been applied schema-only to the local
+candidate after encrypted checkpoint and isolated restore rehearsals. Only the
+candidate app was recreated; health and protected-route
 checks passed. No migration enables application-table RLS, which remains
 disabled. Migration 395 removes runtime-role access to
 `operator_session` and gives OIDC a separate auth login for bounded session
 functions. Runtime provisioning
 now limits `mobile_device` and `mobile_device_enrollment` to explicit column
 grants and denies reads of `device_token_hash`, `push_token`, and `code_hash`.
-The shared runtime identity can still issue enrollment rows and clear a device
-token during revocation; DML on other public tables remains broad. The new
+Enrollment issue/revoke remains column-scoped, and device token clearing now
+runs through a bounded database function; DML on other public tables remains broad. The new
 whole-services SQL inventory is a review aid, not a grant allowlist. Those writes
 and other application roles/callers remain to be bounded. Migration 396 now
 revalidates API-key and capability-token tenant scope for Gateway mobile-device
@@ -41,15 +41,16 @@ RLS until remaining paths and their roles are closed.
 
 | Path | Current scope enforcement | RLS readiness / required work |
 | --- | --- | --- |
-| Device-token resolution: [`_device_for_token`](../../services/mobile/api.py#L353) | Hashes the presented token and calls `kokonut_security.resolve_mobile_device_token`; the function returns only device/user/location identity and whether the stored owner binding is current. It does not return the hash or collection data. | Isolated PostgreSQL acceptance passes for current, legacy-unbound, transferred-owner, and unknown tokens. Through the provisioned runtime login, the bounded resolver succeeds while direct SELECT of `device_token_hash` and `push_token`, hash predicates, and `SELECT *` are denied. A separate bounded device-revocation function and HTTP-under-runtime acceptance remain open. |
-| One-time enrollment redemption: [`register_device`](../../services/mobile/api.py#L834) | Calls `kokonut_security.redeem_mobile_enrollment`, which locks the one-time enrollment, share-locks current owner rows, inserts one owner-bound device, and consumes the code atomically. The function rejects invalid arguments, expiry, stale ownership, and device-ID conflicts without consuming the code. | Isolated PostgreSQL acceptance passes replay, conflict, success/reuse, expiry, owner-transfer, and concurrent redemption checks; two competing requests created exactly one device and consumed the code once. Through the provisioned runtime login, redemption succeeds while direct SELECT of `code_hash` and `SELECT *` are denied. Enrollment issue/revoke SQL remains column-scoped. Migrations 392–397 are now on the local candidate; repeat this race under the final runtime database role/RLS contract. |
-| Device-scoped forms, sync, status, and media-policy reads | After token resolution, these handlers call [`set_mobile_device_tenant_context`](../../services/common/tenant_context.py#L90) on the same connection before protected location/data queries. PostgreSQL validates the token hash and current owner, then signs backend/transaction-bound context; policies must use `kokonut_security.current_tenant_context()`, not the diagnostic GUC labels. | Forced-RLS disposable acceptance passes valid mobile scope, cross-tenant filtering, forged/tampered context denial, invalid-token clearing, and transaction reset. Migrations 392–397 are on the candidate, but every SQL statement must still be reviewed under the final runtime role/RLS contract. Media object storage remains a separate provider boundary. |
+| Device-token resolution: [`_device_for_token`](../../services/mobile/api.py#L353) | Hashes the presented token and calls `kokonut_security.resolve_mobile_device_token`; the function returns only device/user/location identity and whether the stored owner binding is current. It does not return the hash or collection data. | Isolated PostgreSQL acceptance passes for current, legacy-unbound, transferred-owner, and unknown tokens. Through the provisioned runtime login, the bounded resolver succeeds while direct SELECT of `device_token_hash` and `push_token`, hash predicates, and `SELECT *` are denied. |
+| Device revocation: [`_revoke_device`](../../services/mobile/api.py#L1052) | Calls migration 398's bounded function on the same transaction after Gateway or OIDC context validation. The function revalidates exact tenant/location/action, changes one active matching device, and clears its token hash; the runtime role cannot directly UPDATE `status`, `device_token_hash`, or `revoked_at`. | Exact-checkpoint PostgreSQL 16 restore/replay forced RLS on synthetic devices and passed API-key, capability, operator, wrong-action/location, cross-tenant, direct-column-denial, and transaction-reset checks. Candidate anonymous route returns 401. Authenticated HTTP under the dedicated runtime login remains open because the candidate currently uses the database superuser and runtime credentials are not provisioned. |
+| One-time enrollment redemption: [`register_device`](../../services/mobile/api.py#L834) | Calls `kokonut_security.redeem_mobile_enrollment`, which locks the one-time enrollment, share-locks current owner rows, inserts one owner-bound device, and consumes the code atomically. The function rejects invalid arguments, expiry, stale ownership, and device-ID conflicts without consuming the code. | Isolated PostgreSQL acceptance passes replay, conflict, success/reuse, expiry, owner-transfer, and concurrent redemption checks; two competing requests created exactly one device and consumed the code once. Through the provisioned runtime login, redemption succeeds while direct SELECT of `code_hash` and `SELECT *` are denied. Enrollment issue/revoke SQL remains column-scoped. Migrations 392–400 are now on the local candidate; repeat this race under the final runtime database role/RLS contract. |
+| Device-scoped forms, sync, status, and media-policy reads | After token resolution, these handlers call [`set_mobile_device_tenant_context`](../../services/common/tenant_context.py#L90) on the same connection before protected location/data queries. PostgreSQL validates the token hash and current owner, then signs backend/transaction-bound context; policies must use `kokonut_security.current_tenant_context()`, not the diagnostic GUC labels. | Forced-RLS disposable acceptance passes valid mobile scope, cross-tenant filtering, forged/tampered context denial, invalid-token clearing, and transaction reset. Migrations 392–400 are on the candidate, but every SQL statement must still be reviewed under the final runtime role/RLS contract. Media object storage remains a separate provider boundary. |
 | OIDC operator enrollment/revocation: [`_create_enrollment`](../../services/mobile/api.py#L762), `_revoke_enrollment`, `_revoke_device` | Middleware binds the authenticated opaque session hash in request-local context. The service passes it to migration 394's definer function, which validates current session/identity, tenant-qualified grants, membership, owner/share, and all additional scopes, locks the rows, and signs tenant context. Migration 395 moves session creation, lookup, and revocation to the dedicated operator-auth connection; the application role cannot read session hashes. | Migrations 394–395 passed forced-RLS disposable acceptance for owner/shared grants, stale/legacy/cross-tenant denial, cleanup, share revocation, scope-revocation locking, direct runtime-role denial, and bounded session lifecycle. Other runtime data access and non-OIDC paths still need the final role and context contract before RLS. |
 | Capability/API-key enrollment and revocation: [`router.py`](../../services/gateway/router.py#L58) and [`_create_enrollment`](../../services/mobile/api.py#L762) | Gateway middleware authorizes the exact `mobile_device` action/location, hashes the accepted credential, and records only its type and digest in request state. The same write transaction calls migration 396's bounded function, which verifies active credential status, expiry/revocation, exact location/resource/action grant, and current verified owner before signing backend/transaction-bound context. | Migration 396 passes focused source and forced-RLS disposable checks for API keys and capabilities, including denial cleanup and transaction reset. This closes only tenant-bound mobile-device writes. Shared-organization API-key affiliations, matching database records for environment API keys, all other Gateway routes, and application RLS remain open. |
 | Legacy analytics transport CLI: [`mobile_offline.py`](../../services/analytics/mobile_offline.py) | All exported service helpers and historic CLI commands now fail closed before opening a database connection. The module has no in-repository runtime caller. | This unscoped path is closed. Equivalent intake and sync remain available through the authenticated consent-aware Field Collector; device inventory and global queue statistics require a future explicitly authorized operator surface. This does not close other workers, Gateway routes, or RLS. |
 | Tenant preflight: [`collect_inventory`](../../services/mobile/tenant_preflight.py#L557) | Runs a read-only repeatable-read aggregate and emits opaque references/counts; it deliberately examines ownership and grants across locations. It no longer reads mobile credential columns and uses active/revoked state for device counts. | Give it an explicit owner/preflight database role and document who may invoke it. Do not run the aggregate with the ordinary app role once RLS is enabled. |
 | Directus and database views | The archived Directus runtime identity and effective grants have not been verified; OFU-09 tracks the required isolated runtime and fixture. Migration 139 also defines legacy mobile sync/device views. | Not ready. Inspect role grants, view ownership/invoker behavior, hooks, saved queries, and all consumers in a matching isolated Directus runtime before choosing RLS policies or retirement scope. |
-| Recovery fixtures and ordered migrations | Recovery fixture SQL inserts devices into isolated scratch databases. Migration 391 adds owner-binding triggers and indexes; 392 adds credential functions; 393 signs mobile context; 394 signs OIDC operator context and adds dormant definer-role RLS policies; 395 isolates operator sessions behind bounded functions and a dedicated auth login; 396 verifies Gateway credential scope for tenant-bound mobile writes; 397 adds the location-level WorldClim key/view path. None enables application-table RLS. | Migrations 391–397 are applied on the local candidate after a fresh encrypted checkpoint and restore rehearsal; only the app was recreated and protected-route checks passed. Keep fixtures and migration execution on explicit maintenance credentials. Candidate 391 evidence: [rollout](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json); 392–397 rollout: [checkpoint and candidate evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json). Disposable migration 392–393 evidence: [mobile acceptance](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json); migration 394 evidence: [operator acceptance](builds/2026-10-14-recovery/operator-tenant-context-disposable.json); migrations 395–396 evidence: [runtime-role acceptance](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json); migration 396 evidence: [Gateway acceptance](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json). |
+| Recovery fixtures and ordered migrations | Recovery fixture SQL inserts devices into isolated scratch databases. Migration 391 adds owner-binding triggers and indexes; 392 adds credential functions; 393 signs mobile context; 394 signs OIDC operator context and adds dormant definer-role RLS policies; 395 isolates operator sessions behind bounded functions and a dedicated auth login; 396 verifies Gateway credential scope for tenant-bound mobile writes; 397 adds the location-level WorldClim key/view path; 398 bounds device revocation; 399 restores runtime security-schema lookup on DB-only restore; 400 restores restricted function-owner roles, exact SECURITY DEFINER ownership, and narrow grants after role/ACL loss. `scripts/kernel-restore-role-prerequisites.sql` creates and validates the referenced NOLOGIN roles before restoring a database whose RLS policies mention them. None enables application-table RLS. | Migrations 391–400 are applied on the local candidate; the pre-400 encrypted checkpoint is retained but not restore-rehearsed. A restored pre-398 clone replayed migrations 398–400; separate synthetic owner/ACL-loss forced-RLS acceptance passed. The populated-clone role bootstrap did not complete, so full restore acceptance remains open. Candidate schema count is 391 through 400, health 200, anonymous protected route 401, and RLS remains off. Keep fixtures and migration execution on explicit maintenance credentials. Candidate 391 evidence: [rollout](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json); 392–397 rollout: [checkpoint and candidate evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json); 398–399 evidence: [checkpoint, forced-RLS acceptance and candidate rollout](builds/2026-10-14-recovery/candidate-migration-398-399-device-revocation.json); migration 400 evidence: [owner/ACL repair and candidate rollout](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json). Disposable migration 392–393 evidence: [mobile acceptance](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json); migration 394 evidence: [operator acceptance](builds/2026-10-14-recovery/operator-tenant-context-disposable.json); migrations 395–396 evidence: [runtime-role acceptance](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json); migration 396 evidence: [Gateway acceptance](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json). |
 
 ## Context trust boundary
 
@@ -62,9 +63,14 @@ tenant/location/actor labels do not create a valid proof. Migration 395 removes
 direct runtime access to session hashes and limits session operations to a
 separate auth login with three bounded functions. Runtime provisioning removes
 table-wide grants from mobile device/enrollment rows and prevents reading
-device-token, push, and enrollment-code hashes. The shared runtime identity can
-still issue enrollments and revoke devices, and its DML on other public tables
-is broad. Migration 396 verifies the Gateway API-key or capability-token grant
+device-token, push, and enrollment-code hashes. Migration 398 removes direct
+device status/token/revocation updates and exposes one bounded exact-scope
+function. Migration 399 grants schema lookup only to the runtime role when it
+exists. Migration 400 restores six bounded NOLOGIN function-owner roles, exact
+SECURITY DEFINER ownership, and reviewed table/column/function grants; the
+restore prerequisite script creates those role names before `pg_restore` reads
+RLS policies. Runtime bootstrap verifies the expected isolated owners and
+repairs private-function ACLs omitted by DB-only restore. Runtime DML on other public tables remains broad. Migration 396 verifies the Gateway API-key or capability-token grant
 for tenant-bound mobile-device writes and signs the resulting scope. Other
 Gateway routes, workers, and Directus/views remain unresolved. The legacy
 mobile-offline CLI is closed at the source boundary; operator inventory still
@@ -133,14 +139,18 @@ inputs under OFU-16/02.
    tables. Record the database role and whether it bypasses RLS. The source
    trace above confirms that execution allowlists do not create worker
    isolation.
-2. Close the token and enrollment credential lookup paths without weakening
-   token hashing, one-time use, owner-transfer serialization, or revocation.
+2. Close token, enrollment, and device-revocation credential paths without
+   weakening token hashing, one-time use, owner-transfer serialization, or
+   revocation.
    Migrations 392–393 implement bounded credential paths and signed mobile
    context, passing isolated PostgreSQL forced-RLS acceptance. Runtime-role
    provisioning now denies direct reads of token, push, and enrollment hashes
-   and applies declared mobile-table column grants. Candidate migration rollout
-   is complete. Real HTTP-under-runtime checks, a bounded device-revocation
-   function, and final role/RLS acceptance remain open.
+   and applies declared mobile-table column grants. Migration 398 now bounds
+   device revocation and passed synthetic forced-RLS acceptance; 399 and the
+   role bootstrap repair the private security-schema access after DB-only
+   restore. Candidate migration rollout is complete. Authenticated
+   HTTP-under-runtime checks and final role/RLS acceptance remain open because
+   the candidate still uses the database superuser.
 3. Keep Gateway capability/API-key mutation context in the same transaction
    and validate it under forced RLS with the final role model. Migration 394
    adds database-verified OIDC context. Migration 395 moves session creation,
@@ -155,16 +165,17 @@ inputs under OFU-16/02.
    revoked, and concurrently redeemed enrollment codes; owner transfer during
    requests; API-key/OIDC denial; view access; rollback; and transaction reset.
    Migrations 392–396 cover concurrent single-use redemption, expiry, owner
-   transfer, mobile, OIDC, and Gateway signed contexts, and isolated credential
-   role boundaries under disposable forced RLS. Repeat all checks under the
-   final runtime role and add remaining Gateway, view, and worker cases.
+   transfer, mobile, OIDC, and Gateway signed contexts, device revocation, and
+   isolated credential-role boundaries under disposable forced RLS. Repeat all
+   checks under the final runtime role and add remaining Gateway, view, and
+   worker cases.
 6. Before preparing any RLS-enabling candidate migration, close the remaining
    access paths with an encrypted checkpoint and verified restore path. The
-   schema migrations 392–397 have already been rolled out but do not enable RLS.
+   schema migrations 392–400 have already been rolled out but do not enable RLS.
    Keep RLS disabled if any access path or consumer remains unknown.
 
-This audit combines source review, isolated migration-392–396
-acceptance, candidate schema rollout through 397, and PostgreSQL 16 runtime-role
+This audit combines source review, isolated migration-392–400
+acceptance, candidate schema rollout through 400, and PostgreSQL 16 runtime-role
 credential-grant checks. It does not claim Directus parity, worker isolation,
 a shared-organization API-key affiliation, a final app-table role allowlist,
 database-role hardening across consumers, an RLS migration, or live candidate

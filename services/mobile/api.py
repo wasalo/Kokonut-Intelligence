@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 from services.common.database import get_db
 from services.common.tenant_context import (
     TenantContextDenied,
+    current_operator_session_token_hash,
     set_gateway_tenant_context,
     set_mobile_device_tenant_context,
     set_operator_tenant_context,
@@ -110,8 +111,8 @@ def _set_participant_operator_context(conn, request: Request, location_id: str, 
         )
 
 
-def _set_gateway_mobile_device_context(conn, request: Request, location_id: str, action: str):
-    """Bind a Gateway-authenticated mobile-device mutation to its owner tenant."""
+def _gateway_mobile_device_credential(request: Request, location_id: str, action: str):
+    """Return a validated Gateway credential selector for a mobile mutation."""
     authorization = getattr(request.state, "gateway_authorization", None)
     try:
         expected_location = str(UUID(str(location_id)))
@@ -128,11 +129,23 @@ def _set_gateway_mobile_device_context(conn, request: Request, location_id: str,
         or re.fullmatch(r"[0-9a-f]{64}", authorization.get("credential_hash", "")) is None
     ):
         raise TenantContextDenied("database-verifiable Gateway credential is required")
+    return (
+        expected_location,
+        authorization.get("credential_type"),
+        authorization.get("credential_hash"),
+    )
+
+
+def _set_gateway_mobile_device_context(conn, request: Request, location_id: str, action: str):
+    """Bind a Gateway-authenticated mobile-device mutation to its owner tenant."""
+    expected_location, credential_type, credential_hash = _gateway_mobile_device_credential(
+        request, location_id, action
+    )
     try:
         return set_gateway_tenant_context(
             conn,
-            credential_type=authorization.get("credential_type"),
-            credential_hash=authorization.get("credential_hash"),
+            credential_type=credential_type,
+            credential_hash=credential_hash,
             location_id=expected_location,
             resource="mobile_device",
             action=action,
@@ -1054,24 +1067,44 @@ async def _revoke_device(
                 resource="mobile_device",
                 action="revoke",
             )
+            gateway_credential_type = None
+            gateway_credential_hash = None
+            operator_session_token_hash = current_operator_session_token_hash()
+            if (
+                not isinstance(operator_session_token_hash, str)
+                or re.fullmatch(r"[0-9a-f]{64}", operator_session_token_hash) is None
+            ):
+                raise TenantContextDenied("authenticated operator session is required")
         elif request is not None:
+            _, gateway_credential_type, gateway_credential_hash = (
+                _gateway_mobile_device_credential(request, str(location_id), "revoke")
+            )
+            operator_session_token_hash = None
             _set_gateway_mobile_device_context(conn, request, str(location_id), "revoke")
         else:
             raise TenantContextDenied("verified Gateway route authorization is required")
         cur = conn.cursor()
         cur.execute(
-            """
-            UPDATE mobile_device
-            SET status = 'revoked', device_token_hash = NULL,
-                revoked_at = NOW(), updated_at = NOW()
-            WHERE device_id = %s AND location_id = %s AND status = 'active'
-            RETURNING device_id
-            """,
-            (device_id, str(location_id)),
+            """SELECT result, device_id
+                 FROM kokonut_security.revoke_mobile_device(
+                     %s::uuid, %s, %s, %s, %s::uuid, %s
+                 )""",
+            (
+                str(location_id),
+                device_id,
+                gateway_credential_type,
+                gateway_credential_hash,
+                operator_id,
+                operator_session_token_hash,
+            ),
         )
         row = cur.fetchone()
-        if not row:
+        if row is None or row[0] == "denied":
+            raise TenantContextDenied("tenant-qualified revoke permission is no longer active")
+        if row[0] == "not_found":
             raise HTTPException(status_code=404, detail="Active device not found")
+        if row[0] != "revoked" or not row[1]:
+            raise RuntimeError("mobile device revocation returned an invalid database result")
         conn.commit()
         cur.close()
     except HTTPException:
@@ -1087,7 +1120,7 @@ async def _revoke_device(
         ) from exc
     finally:
         conn.close()
-    return {"device_id": row[0], "status": "revoked"}
+    return {"device_id": row[1], "status": "revoked"}
 
 
 def _same_sync_record(

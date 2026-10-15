@@ -1,13 +1,15 @@
 # PostgreSQL runtime-role policy
 
 Status: opt-in application and operator-auth roles are implemented. Operator
-session and mobile credential boundaries passed disposable PostgreSQL 16 role
-checks, including forced RLS for the session functions; the synthetic and
+session, mobile credential, and bounded device-revocation boundaries passed
+disposable PostgreSQL 16 role checks, including forced RLS; the synthetic and
 populated-restore role fixtures use the second credential. Separate Directus, Metabase metadata, and
 analytics-source role boundaries also passed on isolated populated copies. No
-candidate or legacy ACL was changed by these role fixtures. Separately, schema
-migrations 392–397 were applied to the local candidate after a fresh encrypted
-checkpoint and restore rehearsal; its application-table RLS remains disabled.
+candidate or legacy ACL was changed by these role fixtures. Separately,
+migrations 392–400 were applied schema-only to the local candidate after an
+encrypted checkpoint; its application-table RLS remains
+disabled. The candidate still connects as the `kokonut` superuser because
+dedicated runtime credentials are not provisioned.
 Metabase dashboard/source parity and full domain-workflow acceptance remain open; see
 [optional consumer roles](optional-database-roles.md).
 
@@ -151,7 +153,8 @@ internal-only network of the separate recovery project.
 The 14 October mobile credential role acceptance verified that direct
 `SELECT`, `SELECT *`, and hash predicates cannot read device-token, push, or
 enrollment-code credentials; representative last-seen, enrollment issuance,
-enrollment revocation, and device revocation SQL continue to work. The actual
+enrollment revocation and device telemetry SQL continue to work. Device-token
+revocation now uses a bounded database function. The actual
 runtime login also called the existing bounded token resolver and one-time
 enrollment redemption functions successfully. See
 [mobile role evidence](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
@@ -178,3 +181,45 @@ Machine evidence: [synthetic role isolation](builds/2026-10-11-recovery/runtime-
 [operator-session role boundary](builds/2026-10-14-recovery/operator-session-role-disposable.json),
 [mobile credential role boundary](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json),
 [future-object default-deny boundary](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json).
+
+## Bounded device revocation and restore ACL repair — 14 October 2026
+
+Migration 398 removes direct runtime UPDATE on device status, token hash, and
+revocation time. The `kokonut_mobile_device_revoke_owner` function owner has
+only the columns and tenant-context functions it needs, does not log in, and
+cannot bypass RLS. `kokonut_security.revoke_mobile_device` revalidates the
+exact credential/session, tenant, location, resource, and action before
+revoking one active device. The device's token hash is cleared in the same
+transaction. Migration 399 grants the runtime role only schema `USAGE` when it
+already exists; role bootstrap applies that grant and the bounded function
+execute grant for fresh or restored databases.
+
+The exact encrypted checkpoint restore/replay plus forced-RLS synthetic fixture
+passed API-key, capability, operator, wrong-action/location, cross-tenant,
+direct-column-denial, and transaction-reset checks. The candidate is at
+migration 399 with RLS disabled and an anonymous protected-route 401, but still
+uses the `kokonut` superuser. Separate runtime credentials and authenticated
+HTTP-under-runtime acceptance remain open ([evidence](builds/2026-10-14-recovery/candidate-migration-398-399-device-revocation.json)).
+
+## Database-only restore owner repair — migration 400
+
+A custom database archive omits cluster roles and object-level ACLs. Migration
+400 creates or validates six bounded `NOLOGIN`, `NOINHERIT`, non-superuser,
+non-bypass function-owner roles; restores their narrow grants; reassigns the
+protected `SECURITY DEFINER` functions; restores runtime/operator-auth schema
+lookup; and fails if an owner role has unexpected attributes or membership.
+`scripts/kernel-restore-role-prerequisites.sql` must run against the target
+cluster before `pg_restore`, because restored RLS policies can reference these
+role names. It only creates or validates those role names; migration 400
+rebuilds database-local grants and ownership.
+
+The restored pre-398 clone replayed migrations 398–400. A populated-clone role
+bootstrap did not complete because host Docker-port access failed. Separately,
+a private-network synthetic owner/ACL-loss fixture passed the runtime-role
+bootstrap, forced-RLS bounded device revocation, and operator authentication
+without direct session or identity table reads. Treat that as synthetic
+acceptance, not full populated-restore acceptance. The local candidate has
+migration 400 applied and retains its age-encrypted pre-400 checkpoint, but the
+checkpoint itself has not been restore-rehearsed. Candidate runtime credentials
+remain unprovisioned and application-table RLS remains disabled. See the
+[migration 400 record](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json).
