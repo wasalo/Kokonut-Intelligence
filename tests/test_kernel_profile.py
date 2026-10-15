@@ -6,6 +6,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[1]
 PLANNER = ROOT / "scripts" / "kernel-profile.py"
 
@@ -68,8 +70,44 @@ def test_zitadel_option_does_not_duplicate_explicit_proxy_or_oidc_overlays() -> 
     assert result.stdout.count("docker-compose.kernel-zitadel.yml") == 1
 
 
-def test_profile_planner_keeps_unaccepted_arm64_target_blocked() -> None:
+def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:
     result = _run_planner("edge", "--target-platform", "linux/arm64")
 
-    assert result.returncode != 0
-    assert "ARM64 deployment is blocked" in result.stderr
+    assert result.returncode == 0
+    assert "docker-compose.kernel-arm64.yml" in result.stdout
+    assert "kokonut-kernel-candidate-arm64" in result.stdout
+    assert "docker-compose.kernel-edge.yml" in result.stdout
+
+
+def test_standard_arm64_profile_selects_the_arm64_worker_override() -> None:
+    result = _run_planner("standard", "--target-platform", "linux/arm64")
+
+    assert result.returncode == 0
+    assert "docker-compose.kernel-standard.yml" in result.stdout
+    assert "docker-compose.kernel-arm64.yml" in result.stdout
+    assert "docker-compose.kernel-arm64-standard.yml" in result.stdout
+
+
+def test_arm64_planner_rejects_unverified_analytics_and_optional_images() -> None:
+    analytics = _run_planner("analytics", "--target-platform", "linux/arm64")
+    proxy = _run_planner("minimal", "--target-platform", "linux/arm64", "--proxy")
+
+    assert analytics.returncode != 0
+    assert "only minimal, edge, and standard" in analytics.stderr
+    assert proxy.returncode != 0
+    assert "optional service images remain unverified" in proxy.stderr
+
+
+def test_arm64_overlay_pins_platform_package_versions_and_worker_profile() -> None:
+    overlay = yaml.safe_load((ROOT / "docker-compose.kernel-arm64.yml").read_text())
+
+    database = overlay["services"]["database"]
+    assert database["platform"] == "linux/arm64"
+    assert database["build"]["dockerfile"] == "Dockerfile.kernel-postgis"
+    assert database["build"]["platforms"] == ["linux/arm64"]
+    assert database["build"]["args"]["POSTGIS_PACKAGE_VERSION"] == "3.6.4+dfsg-2.pgdg12+1"
+    assert database["build"]["args"]["POSTGIS_SCRIPTS_VERSION"] == "3.6.4+dfsg-2.pgdg12+1"
+    assert overlay["services"]["app"]["build"]["platforms"] == ["linux/arm64"]
+    standard = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-standard.yml").read_text())
+    assert standard["services"]["worker"]["platform"] == "linux/arm64"
+    assert standard["services"]["worker"]["build"]["platforms"] == ["linux/arm64"]

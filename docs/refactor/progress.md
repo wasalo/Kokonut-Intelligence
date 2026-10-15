@@ -261,6 +261,23 @@ provider, database, Prefect server, or durable recovery path
 [inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json);
 [schedule inventory](schedule-ownership-inventory.md)).
 
+### ARM64 candidate profile selection — 15 October 2026
+
+The profile planner now selects the ARM64 app/PostGIS overlay in a separate
+Compose project for minimal, edge, and standard. Standard also receives an
+ARM64 worker override; analytics and optional service overlays remain blocked
+until their images are verified. Nine planner tests, Ruff, and merged Compose
+configuration checks pass, including a distinct database volume. The Docker
+daemon socket denied access during this update, so no current image build or
+runtime check was possible. Prior QEMU evidence covered the minimal app/database
+through migration 386; the current repository has 391 numbered migration files
+through migration 400.
+Repeat ARM64/QEMU bootstrap, health, restart, and restore against the current
+source when Docker is available. Physical Pi behavior remains unverified
+([profile tests](../../tests/test_kernel_profile.py);
+[evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json);
+[profile record](arm64-database.md)).
+
 ### Kernel supervisor source contract — 14 October 2026
 
 Four focused tests now cover the supervisor's graceful shutdown, process-group

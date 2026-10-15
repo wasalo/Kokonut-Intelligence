@@ -12,8 +12,9 @@ the paired PostGIS target was not attempted ([attempt record](builds/2026-10-13-
 
 The passing CI build is build evidence only. It does not certify startup,
 PostGIS extension parity, ARM64 restore, or operation on a 4 GB Raspberry Pi.
-The primary candidate still uses its AMD64-only database image and its planner
-guard remains active.
+The profile planner now selects an explicit ARM64 PostGIS/app overlay in a
+separate project. Current-schema QEMU replay is still needed; see the
+[profile status](arm64-database.md).
 
 The [later public-read refresh](arm64-public-reads.md) records the current ARM64
 local tag with the newer public API contracts. The build below is historical
@@ -57,9 +58,10 @@ transport and analytics builds need separate evidence. No providers, wallets,
 requests, jobs, ingestion operations, database services, or data volumes ran.
 
 Together with the paired PostGIS build, this establishes ARM64 build artifacts,
-not a complete deployment or Raspberry Pi certification. Current Compose still
-uses the original AMD64-only PostGIS image, and the command planner guard remains.
-Prepare an explicitly isolated application/database path before any cutover.
+not a complete deployment or Raspberry Pi certification. The explicit
+ARM64 Compose profile is isolated from the AMD64 candidate, but current schema
+sources through migration 400, startup, recovery, optional workers, and physical
+device limits remain unverified on ARM64.
 Pending gates: schema/extension readiness, startup, governed API/mobile flows,
 worker recovery, encrypted media, shared limiter behavior, backup/restore,
 24-hour operation, and measured 4 GB Pi CPU/memory/storage budgets.

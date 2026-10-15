@@ -9,6 +9,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 BASE = "docker-compose.kernel-candidate.yml"
+ARM64 = "docker-compose.kernel-arm64.yml"
+ARM64_STANDARD = "docker-compose.kernel-arm64-standard.yml"
 PROFILES = {
     "minimal": [],
     "edge": ["docker-compose.kernel-edge.yml"],
@@ -36,8 +38,12 @@ def main() -> None:
         parser.add_argument(f"--{name.replace('_', '-')}", dest=name, action="store_true")
     parser.add_argument("--action", choices=["config", "build", "up", "ps"], default="config")
     args = parser.parse_args()
-    if args.target_platform == "linux/arm64":
-        parser.error("ARM64 deployment is blocked: the pinned PostGIS database manifest is AMD64-only")
+    is_arm64 = args.target_platform == "linux/arm64"
+    if is_arm64 and args.profile not in {"minimal", "edge", "standard"}:
+        parser.error("ARM64 currently supports only minimal, edge, and standard profiles")
+    selected_optional = {name for name in OPTIONAL if getattr(args, name)}
+    if is_arm64 and selected_optional:
+        parser.error("ARM64 optional service images remain unverified; select a base profile without optional overlays")
     if args.profile == "scale":
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
     if args.separate_workers and args.profile != "analytics":
@@ -51,21 +57,25 @@ def main() -> None:
     files.extend(PROFILES[args.profile])
     if args.separate_workers:
         files.append("docker-compose.kernel-standard-analytics.yml")
-    selected_optional = {name for name in OPTIONAL if getattr(args, name)}
     if args.zitadel:
         # The self-hosted provider needs the HTTPS ingress and the Gateway's
         # OIDC client settings. Keep all three opt-in while making one flag
         # produce a complete, ordered stack.
         selected_optional.update({"proxy", "oidc"})
     files.extend(path for name, path in OPTIONAL.items() if name in selected_optional)
+    if is_arm64:
+        files.append(ARM64)
+        if args.profile == "standard":
+            files.append(ARM64_STANDARD)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")
 
     # --env-file prevents Compose implicitly loading a plaintext .env. Export
     # required secrets explicitly before running the printed command.
+    project_name = "kokonut-kernel-candidate-arm64" if is_arm64 else "kokonut-kernel-candidate"
     command = ["docker", "compose", "--project-directory", str(ROOT),
-               "--env-file", "/dev/null", "-p", "kokonut-kernel-candidate"]
+               "--env-file", "/dev/null", "-p", project_name]
     for filename in files:
         command.extend(["-f", str(ROOT / filename)])
     if args.action == "config":

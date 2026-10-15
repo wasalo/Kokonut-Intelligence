@@ -1,0 +1,21 @@
+# ARM64 candidate image selection. The profile planner uses a distinct Compose
+# project so an ARM64 database never reuses the AMD64 candidate volume.
+services:
+  database:
+    platform: linux/arm64
+    image: kokonut-kernel-candidate-postgis:arm64
+    build:
+      context: .
+      dockerfile: Dockerfile.kernel-postgis
+      target: kernel-postgis
+      platforms:
+        - linux/arm64
+      args:
+        POSTGIS_PACKAGE_VERSION: "3.6.4+dfsg-2.pgdg12+1"
+        POSTGIS_SCRIPTS_VERSION: "3.6.4+dfsg-2.pgdg12+1"
+
+  app:
+    platform: linux/arm64
+    build:
+      platforms:
+        - linux/arm64

@@ -77,6 +77,16 @@ accessed. Live retry/recovery, provider outcomes, and MAN-CAP-040/047 remain
 open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
 [inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json)).
 
+**15 October 2026 ARM64 candidate profile (CAP-047):** the planner now selects
+an isolated ARM64 app/PostGIS profile for minimal, edge, and standard; analytics
+and optional service images remain blocked pending architecture verification.
+Planner tests and merged Compose configuration pass, but this host could not
+access the Docker daemon. The previous QEMU acceptance stopped at migration 386
+while the current sources reach migration 400. Repeat current-schema QEMU bootstrap,
+health, restart, and restore before claiming runtime acceptance. Physical Pi
+performance is not claimed ([profile evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json);
+[deployment record](arm64-database.md)).
+
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,
 opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and

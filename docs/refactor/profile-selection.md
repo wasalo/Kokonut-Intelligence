@@ -9,15 +9,21 @@ configuration output containing credentials. The printed command uses
 required values through the encrypted-secrets loader before executing it.
 This POSIX planner is not a Windows deployment entry point.
 
-`--target-platform` declares linux/amd64 (default) or linux/arm64. ARM64 is
-currently rejected because the exact pinned PostGIS image is AMD64-only; see
-the [database blocker](arm64-database.md). The setting does not detect hardware
-or force a Docker platform, and manual Compose commands bypass the guard.
+`--target-platform` declares linux/amd64 (default) or linux/arm64. For ARM64,
+the planner appends `docker-compose.kernel-arm64.yml`, selects the custom
+PostgreSQL/PostGIS 16 image, and uses the distinct project
+`kokonut-kernel-candidate-arm64`; this keeps its database volume separate from
+the AMD64 candidate. The standard profile also appends the ARM64 worker
+override. Current ARM64 command selection supports minimal, edge, and standard.
+Analytics and optional service overlays are rejected until their images receive
+separate architecture verification. This declares build/runtime platforms; it
+does not certify the current full schema or Raspberry Pi hardware. See the
+[ARM64 profile record](arm64-database.md).
 
 | Selection | Services/configuration | Acceptance remaining |
 | --- | --- | --- |
 | minimal | PostgreSQL + combined API/workers | Capability parity and recovery |
-| edge | Minimal + encrypted local media/resource limits | ARM64/Pi hardware and storage recovery |
+| edge | Minimal + encrypted local media/resource limits | Current-schema ARM64/QEMU replay, media/storage recovery and physical-device behavior |
 | standard | PostgreSQL + separate API and worker; PostgreSQL shared limiter by default | Migration 373, role cutover, and worker progress monitoring |
 | analytics | Minimal + private ClickHouse | Schema bootstrap and projection parity |
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
