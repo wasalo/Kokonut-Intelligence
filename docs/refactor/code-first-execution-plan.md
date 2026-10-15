@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
-**Latest pushed head status:** Security #44 passed and CI #320 was last recorded in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Nine later commits are local only; the latest is `564b5e8`, which gates generic data-retention enforcement by default. Hosted CI does not cover these changes yet.
+**Latest pushed head status:** Security #44 passed and CI #320 was last recorded in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Later implementation and documentation commits remain local; implementation commit `564b5e8` gates generic data-retention enforcement by default. Hosted CI does not cover these changes yet.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -127,7 +127,7 @@ MAN-CAP checks open until each has its own retained evidence.
   earlier head. The pushed batch includes EventBus cleanup protection,
   location-scoped Field Collector inventory, source OIDC contract coverage,
   and the provider-aware recovery changes. ZITADEL deployment code is in local
-  commit `761cd6c`; the latest local commit `564b5e8` adds a default-off generic
+  commit `761cd6c`; implementation commit `564b5e8` adds a default-off generic
   retention gate ([evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
@@ -690,9 +690,9 @@ physical acceptance record rather than revising emulation evidence.
 Keep related code changes in local commits and push in reviewable batches, as
 requested. The latest push `4ad4b06` has Security #44 passed and CI #320 in
 progress; CI #318 was cancelled on an earlier head. Local commit `761cd6c`
-adds the selected ZITADEL profile. Nine commits after that pushed head are
-local only; the newest (`564b5e8`) adds the generic retention gate. The current
-pushed CI does not cover these local commits.
+adds the selected ZITADEL profile. Additional implementation and ledger
+commits remain unpushed; the latest implementation batch (`564b5e8`) adds the
+generic retention gate. The current pushed CI does not cover these local commits.
 Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database
