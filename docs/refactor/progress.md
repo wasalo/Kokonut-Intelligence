@@ -5595,3 +5595,15 @@ timeout. With EventBus durability coverage, 20 focused tests pass. Ruff and
 Python compilation pass. No live event database,
 handler, or notification provider was accessed, so process-level event lease
 and delivery recovery remain open. [Evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json).
+
+### KGP indexer reconnects between durable scan cycles — 15 October 2026
+
+The continuous KGP indexer now creates a fresh PostgreSQL connection with a
+five-second connect timeout for each scan/lease cycle, closes it after each
+cycle, and keeps retrying when a database outage also prevents rollback or
+failure-state persistence. The durable lease remains the recovery boundary; a
+lost worker can be reclaimed after expiry. Two focused fault-injection tests
+cover reconnection and invalid poll intervals. The KGP worker/service/reorg set
+passes 14 tests, and Ruff and Python compilation pass. No live RPC or database
+was used; real lease reclaim and provider outage acceptance remain open.
+[Evidence](builds/2026-10-15-recovery/kgp-worker-connection-recovery.json).

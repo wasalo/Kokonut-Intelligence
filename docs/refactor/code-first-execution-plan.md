@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **356 checked and 20 open items (376 total)**,
+- The execution checklist has **357 checked and 20 open items (377 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, retention decisions, external delivery, seed rollout,
@@ -43,6 +43,11 @@ MAN-CAP checks open until each has its own retained evidence.
   compilation; the
   event/notification live restart and delivery checks remain open. This change
   is not part of the latest pushed head yet.
+- A local KGP indexer change now reconnects with a five-second timeout for each
+  scan cycle, preserving lease ownership/reclaim semantics while containing
+  rollback and failure-recording errors on a broken database connection.
+  Fourteen KGP service/indexer tests pass; live database/RPC recovery remains
+  open. This change is also not pushed yet.
 - The capability matrix contains 66 capabilities: 56 baseline-retained, 7
   deployed, and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - The local candidate has 391 applied schemas through migration 400, one
