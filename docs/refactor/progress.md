@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The exact pre-400 checkpoint has now been restore-rehearsed, migration 400 replayed, and runtime/operator-auth role bootstrap accepted on the isolated clone. It restored 1,010 public tables but had zero public location rows, so this is not farm-data parity ([restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `5dc181c20c9c1c5831c2bebff740a8ca761867d2`. Security #41 passed; CI #317 is pending, while CI #316 remains in progress ([CI #317](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548218); [Security #41](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548243)). Full-history Gitleaks 8.30.1 passed on this pushed head. The pushed batch includes actual one-shot CLI exit coverage and a disposable-PostgreSQL ClickHouse outbox fixture; the 28 focused tests, Ruff, compilation, and fixture acceptance are recorded below. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 14 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The exact pre-400 checkpoint has now been restore-rehearsed, migration 400 replayed, and runtime/operator-auth role bootstrap accepted on the isolated clone. It restored 1,010 public tables but had zero public location rows, so this is not farm-data parity ([restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `5dc181c20c9c1c5831c2bebff740a8ca761867d2`. CI #317 and Security #41 passed ([CI #317](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548218); [Security #41](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548243)). Full-history Gitleaks 8.30.1 passed on this pushed head. The pushed batch includes actual one-shot CLI exit coverage and a disposable-PostgreSQL ClickHouse outbox fixture; the 28 focused tests, Ruff, compilation, and fixture acceptance are recorded below. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
@@ -10,7 +10,7 @@ backup/restore, gRPC auth-context lifecycle fixes, focused RPC policy and
 optional-provider inventories, worker import/SQL inventories, exact pre-400
 restore and runtime-role recovery evidence, the Directus fixture preflight,
 supervisor shutdown tests, and outbox unit/evidence updates. Security #41 passed
-on that head; CI #317 is pending while CI #316 remains in progress. The pushed
+on that head; CI #317 and Security #41 passed. The pushed
 disposable PostgreSQL fixture adds real persistence and one-shot CLI exit
 coverage, alongside CLI parser regressions. The focused four-suite set passed
 28 tests; the eight-suite platform-integrity set passed 290 tests on
@@ -5019,6 +5019,28 @@ compilation, and `git diff --check` pass. No RPC listener or database was used.
 Live network transport, tenant isolation, and native Gateway policy parity
 remain open. See
 [`grpc-auth-context-lifecycle.json`](builds/2026-10-14-recovery/grpc-auth-context-lifecycle.json).
+
+### Enabled gRPC loopback transport and protobuf message mapping — 14 October 2026
+
+Extracted optional server construction into `_build_server` so the production
+registrations can be exercised without starting the production listener. An
+ephemeral loopback test generates the repository protos in a temporary
+directory, starts the configured health, Ecocredit, and Data services, and
+calls generated Data and Ecocredit stubs over gRPC. Health remains API-key exempt; missing
+keys return `UNAUTHENTICATED`; a read key cannot call a write method and is
+rejected before service database acquisition; a matching write scope succeeds;
+an Ecocredit read scope returns a nested generated class summary; all
+authentication and service connections are released.
+
+The loopback acceptance exposed that service methods constructed messages from
+the wrong generated modules: service request/response messages live in
+`service_pb2`, while shared domain messages live in `types_pb2`. Both servicers
+now use the correct modules, and a source check verifies every referenced
+generated message across all handlers. The focused gRPC set passes **37 tests**;
+Ruff, Python compilation, and SDK protobuf freshness checks with the pinned
+code-generator environment pass. No candidate/legacy database or Docker
+service was used. TLS, real DB behavior, tenant context, and REST parity remain
+open ([evidence](builds/2026-10-14-recovery/grpc-enabled-loopback-transport.json)).
 
 ### Provider-aware encrypted database checkpoints — 14 October 2026
 

@@ -1,0 +1,40 @@
+{
+  "scope": "enabled optional gRPC loopback transport acceptance",
+  "date": "2026-10-14",
+  "branch": "feat/mobile-offline-acceptance",
+  "transport": {
+    "protocol": "gRPC over HTTP/2",
+    "bind": "127.0.0.1",
+    "port": "ephemeral",
+    "tls": false,
+    "database": "synthetic in-memory factory; no candidate or legacy database"
+  },
+  "protobufs": {
+    "generation": "grpcio-tools 1.82.1 in a temporary directory from repository proto sources",
+    "registered_services": [
+      "grpc.health.v1.Health",
+      "ecocredit.v1.EcocreditService",
+      "data.v1.DataService"
+    ],
+    "handler_message_references": "Every generated request/response/domain message referenced by the two servicers resolves from the correct service_pb2 or types_pb2 module."
+  },
+  "checks": {
+    "health_without_key": "SERVING; bypasses database lookup",
+    "missing_api_key": "UNAUTHENTICATED; bypasses service database acquisition",
+    "wrong_scope": "PERMISSION_DENIED before service database acquisition",
+    "matching_scope": "DataService.GenerateIRI and EcocreditService.Classes succeed over their registered generated stubs and return serialized responses",
+    "connection_cleanup": "Authentication and service connections are released"
+  },
+  "verification": {
+    "command": ".venv/bin/python -m pytest tests/test_grpc.py tests/test_grpc_auth_context_lifecycle.py tests/test_grpc_enabled_transport.py tests/test_grpc_optional_boundary.py tests/test_grpc_rpc_policy_inventory.py -q",
+    "result": "37 passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "sdk_protobuf_freshness": "Verified 10 generated SDK modules using sdk/python/.venv with grpcio-tools 1.68.1 (libprotoc 28.1)."
+  },
+  "limitations": [
+    "No TLS certificate or public ingress was exercised.",
+    "No real API-key database, tenant context, runtime database role, OIDC identity, or REST parity was exercised.",
+    "The protected GenerateIRI handler used a patched domain function and did not mutate a database."
+  ]
+}

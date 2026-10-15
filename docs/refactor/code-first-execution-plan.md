@@ -3,9 +3,7 @@
 **Updated:** 14 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `5dc181c20c9c1c5831c2bebff740a8ca761867d2`
-**Last fully green CI/Security head:** `41412764f8281deea52670bf49de4234aca6e0bd` (CI #313 and Security #37).
-On the latest pushed head, Security #41 passed and CI #317 is pending; CI #316
-remains in progress on the previous head.
+**Latest pushed head status:** `5dc181c20c9c1c5831c2bebff740a8ca761867d2` passed CI #317 and Security #41.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -16,16 +14,15 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 325 checked and 20 open items (345 total).
-- The latest pushed implementation is `5dc181c`. Security #41 passed; CI #317
-  is pending and CI #316 remains in progress on the previous head. The earlier Security #39 SHA-256
+- The execution checklist has 326 checked and 20 open items (346 total).
+- The latest pushed implementation is `5dc181c`. CI #317 and Security #41
+  passed on that head. The earlier Security #39 SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
-  and hosted Security #41. The last fully green CI/Security head is `4141276`
-  (CI #313 and Security #37).
+  and hosted Security #41.
 - The pushed head includes the Directus preflight, supervisor, ClickHouse and
   notification outbox CLI regressions, and a nine-check disposable PostgreSQL
   ClickHouse fixture. Focused unit/runtime checks and full-history Gitleaks pass;
-  the new batch awaits CI #317.
+  CI #317 and Security #41 are green.
 - The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
   gRPC streaming-auth lifecycle fixes, and focused RPC policy and
   optional-provider inventories. Earlier pushed work retires the unscoped
@@ -82,26 +79,29 @@ MAN-CAP checks open until each has its own retained evidence.
   estimates; migrations 392–397 passed ordered PostgreSQL 16 application and
   replay on a restored candidate checkpoint, including migration 397's
   location fallback and duplicate rollback. A clean `template0` bootstrap of
-  all 388 schema sources also passed. The candidate rollout is now complete
-  after a fresh encrypted checkpoint and restore rehearsal; the candidate has
-  388 applied schemas through 397, one curated seed, zero pending migrations,
-  and application-table RLS remains disabled.
+  all 388 schema sources also passed. The candidate later advanced through
+  migrations 398–400 after encrypted checkpoints and restore rehearsal; its
+  current state is 391 applied schemas through 400, one curated seed, zero
+  pending migrations, and application-table RLS remains disabled.
   The registered native and Field Collector API routes now have an exact
   resource/action/public-policy inventory and unknown route/method cases are
   verified protected; broader tenant, OIDC, transport, and SDK parity remain.
   The disabled gRPC adapter now has focused coverage proving `serve()` and
   health checks fail before importing optional gRPC packages or the server;
   a source inventory pins all 55 application RPC methods to their handlers and
-  scopes, with scope checks before database access. Enabled transport, tenant,
-  and native Gateway parity remain open. Streaming RPC auth context now resets
-  before each yielded response and on cancellation/errors, covered in all
+  scopes, with scope checks before database access. An enabled loopback test
+  now starts the registered health, Ecocredit, and Data services, exercises
+  API-key and scope allow/deny decisions, and checks generated-message names
+  across both handlers. The five focused gRPC suites pass 37 tests. TLS, live
+  database, tenant, and native Gateway parity remain open. Streaming RPC auth
+  context now resets before each yielded response and on cancellation/errors, covered in all
   handler cardinalities by the focused gRPC suite. Encrypted checkpoints now
   support a PostgreSQL-only profile, record provider inclusion, and preflight
   required services before writing/restoring data; fake-Compose checks cover
   both ClickHouse-disabled and ClickHouse-enabled paths.
-  Focused source/disposable checks pass. The subsequent pushed head
-  `4141276` passed CI #313 and Security #37; the current unpushed restore
-  fixture/evidence update still needs a later CI run.
+  Focused source/disposable checks pass. The latest pushed head `5dc181c` passed
+  CI #317 and Security #41. The current local gRPC and checklist batch is not
+  pushed yet and will need a fresh hosted run.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–400 were applied schema-only after encrypted
@@ -122,6 +122,23 @@ MAN-CAP checks open until each has its own retained evidence.
   storage, power-loss, network, and on-device restart behavior remain
   unverified; no hardware result is claimed.
 
+## Selected open gates: code batches before owner inputs
+
+The owner selected the remaining open items in `batches.md` on 14 October.
+Work through these code batches first; keep the named human/runtime gates open
+until the relevant inputs or authorization arrive.
+
+| Batch | Selected checklist items | Code work to complete first | Owner or external gate held open |
+|---|---|---|---|
+| API and transport parity | 1, 12, 14 | Finish REST/gRPC method and error parity, authenticated CORS, SDK contract coverage, and synthetic auth/scope checks. The enabled gRPC loopback slice now registers both generated services and exercises key/scope decisions. | Real OIDC, trusted HTTPS certificate, Directus runtime identity/schema, tenant-specific parity, and release authorization. |
+| Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. | Confirm non-demo ownership and legacy operator affiliations; provision runtime identities before enabling RLS. |
+| Recovery and delivery | 1, 4, 6 | Continue provider-off/failure, lease reclaim, retry/idempotency, duplicate prevention, process outage, and rollback checks with fake endpoints or disposable databases. | Production provider state, external delivery destination, schedule/operator inventory, alert/on-call owner, and a 24-hour run window. |
+| Reports and dashboards | 1, 5, 6, 10 | Finish repository-owned query safety and synthetic fixture parity; inventory consumers and document safe migration boundaries. | Accountable owners must choose retained reports, audiences/measures, populated reference fixtures, and external database roles. |
+| Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; retain the mocked-offline limitations. | Real OIDC credentials/test identities, trusted HTTPS browser origin, and human disposition/retention decisions. |
+| Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; add deterministic restart/failover tests where they can run without production. | Physical power/device behavior, certificate trust, replica/public ingress topology, 24-hour availability/resource budget, production schedule owners, and reviewed cutover authorization. |
+| Curated seed write | 8 | Prepare a fresh encrypted migration-400 checkpoint and restore rehearsal procedure; verify the exact 30-file allowlist and rollback command. | Applying the selected seeds is a separate candidate data write and remains gated for explicit approval after the fresh checkpoint/rehearsal. |
+| Retention policy | 2 | Keep the existing no-prune behavior and test that pending/retryable/undisposed records remain protected. | Jurisdiction/product owner must set terminal notification, attempt, and operator-audit retention/archival periods. |
+
 ## Work order
 
 ### Batch A — Close the current CI result
@@ -131,20 +148,16 @@ MAN-CAP checks open until each has its own retained evidence.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI #313 and Security #37 passed on pushed head
-`41412764f8281deea52670bf49de4234aca6e0bd`. Current pushed head
-`5dc181c20c9c1c5831c2bebff740a8ca761867d2` has Security #41 passed and CI
-#317 pending; CI #316 is still running on the previous head. The outbox CLI and
-disposable PostgreSQL acceptance are included in the pushed batch. The Gitleaks
+**Action:** Current pushed head `5dc181c20c9c1c5831c2bebff740a8ca761867d2`
+passed CI #317 and Security #41. The outbox CLI and disposable PostgreSQL
+acceptance are included in that batch. The Gitleaks
 allowlist fix for the earlier Security #39 SHA-256 source-digest false positive
 is included in the pushed head and Security #41 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
 supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
-**Acceptance:** last fully satisfied on pushed head `4141276`: CI #313 and
-Security #37 both passed. Current pushed head `5dc181c` has Security #41 passed
-and CI #317 pending; CI #316 remains in progress on the previous head. The
-focused local outbox checks pass and are included in the latest pushed batch.
+**Acceptance:** current pushed head `5dc181c` passed CI #317 and Security #41.
+The focused local outbox checks pass and are included in that batch.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -312,6 +325,13 @@ Python compilation). This
 does not resolve whether Directus should use that legacy single-location field
 or an explicit grant model; runtime read/write, field, hook, and schedule
 parity remain open ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
+The enabled gRPC loopback acceptance also found and corrected service methods
+that constructed service request/response messages from `types_pb2` instead of
+`service_pb2`. All handler protobuf references now resolve against their
+generated modules; a real ephemeral loopback call verifies API-key rejection,
+scope denial before service DB acquisition, a correctly scoped response, and
+the unauthenticated health exemption. This does not close TLS, real database,
+tenant, or cross-transport parity ([evidence](builds/2026-10-14-recovery/grpc-enabled-loopback-transport.json)).
 
 ### Batch D — Complete code-verifiable capability slices and reporting
 
