@@ -476,6 +476,12 @@ class TestRetentionSweep(unittest.TestCase):
         self.assertEqual(result["policies"][0]["status"], "skipped")
         self.assertEqual(result["policies"][0]["affected"], 0)
         conn.commit.assert_called_once()
+        self.assertFalse(
+            any(
+                "FROM data_retention_policy overlap" in call.args[0]
+                for call in cursor.execute.call_args_list
+            )
+        )
         self.assertTrue(any("data_retention_enforcement_log" in call.args[0] for call in cursor.execute.call_args_list))
 
 

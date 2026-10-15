@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `72ab775e8b9863795b2c4800c59e9f34ff2ae205`
-**Latest pushed head status:** Security #48 passed; CI #324 is in progress on this head. See [Security #48](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691049) and [CI #324](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691151).
+**Latest pushed head status (last recorded):** Security #48 passed; CI #324 was in progress on that head. These checks do not cover the local commits listed below. See [Security #48](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691049) and [CI #324](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691151).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,18 +14,21 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **358 checked and 20 open items (378 total)**,
+- The execution checklist has **362 checked and 20 open items (382 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
-  populated report parity, retention decisions, external delivery, seed rollout,
+  populated report parity, policy activation, external delivery, seed rollout,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress. This batch includes report calculation and scheduler worker
+  in progress at the last recorded check. Six earlier local commits plus this
+  retention implementation batch are being held beyond that pushed head. The
+  local batch includes worker effect, SQL reachability, and JobSpec inventories;
+  CI has not yet evaluated these commits. The pushed batch includes report calculation and scheduler worker
   recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
   permission work. See the relevant evidence below and the current CI status
-  above.
+  above; do not treat it as validation of the local commits.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
   isolated PostgreSQL check pass; the latter proved rejected calculations
@@ -59,8 +62,8 @@ MAN-CAP checks open until each has its own retained evidence.
   slice remains denied; license versus Gateway-only operational access is an
   open product decision. Role/field/relationship and hook-dispatch parity
   remain open. This slice is included in the latest pushed head ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
-- The capability matrix contains 66 capabilities: 56 baseline-retained, 7
-  deployed, and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
+- The capability matrix contains 66 capabilities: 55 baseline-retained, 7
+  deployed, and 4 prepared. None of the 66 named MAN-CAP checks is accepted.
 - The local candidate has 391 applied schemas through migration 400, one
   curated seed, zero pending schema migrations, and application-table RLS is
   disabled. It still uses the `kokonut` superuser because a separate runtime
@@ -69,9 +72,11 @@ MAN-CAP checks open until each has its own retained evidence.
 - The owner selected self-hosted ZITADEL, organization/location authorization,
   Kokonut Network operation of Genesis, Seeds, Adelphi, Terra Viva, and V1,
   reference catalogs only with pilot rows held, USA and Dominican Republic as
-  retention jurisdictions, and a 24-hour recovery target. ZITADEL host/client
-  settings, remaining operator/location mapping, exact retention periods and
-  legal-hold ownership, R2 credentials, and external alert routing remain open.
+  retention jurisdictions, and a 24-hour recovery target. Retention windows and
+  legal-hold rules must be runtime-configurable; no durations are hardcoded or
+  selected now. Policy configuration, approval roles, and hold operations are
+  deployment gates. ZITADEL host/client settings, remaining operator/location
+  mapping, R2 credentials, and external alert routing remain open.
 - ARM64 Buildx/QEMU acceptance covers the current 391 schemas through 400,
   logical restore, health, protected-route denial, database restart, and app
   process recovery. This does not certify physical Raspberry Pi performance,
@@ -187,7 +192,7 @@ database write.
 | Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
 | Curated seed write | 8 | The exact five-file catalog allowlist and recovery sequence are documented above; prepare a fresh encrypted current-candidate checkpoint and restore rehearsal. | The owner selected scope. Applying the five files still needs separate approval after checkpoint evidence is ready. |
-| Retention policy | 2 | Keep the existing no-prune behavior and protect pending/retryable/undisposed records. | USA and Dominican Republic were supplied; category periods, legal holds, archive access, and erasure ownership still need legal/product review. |
+| Retention policy | 2 | Keep no-prune as the default; runtime policy and legal-hold code plus synthetic PostgreSQL acceptance are complete. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, and erasure procedures. |
 
 ## Work order
 
@@ -257,7 +262,13 @@ before protected reads and writes, and make direct database access fail closed.
    modules and five event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
-   open. New module-specific operation schemas validate values and option
+   open. The source-only effect index now records 40 unique direct effect sites
+   (45 operation/site memberships) across 18 worker roots. A separate comparison
+   covers 15 shared JobSpecs: 11 defaults pass validation, sensor/climate
+   defaults fail for missing input/scope, and projection/remote-sensing modules
+   are outside the Kernel allowlist. Neither report inspects persisted tasks or
+   provider state, and neither proves runtime identity or tenant context. New
+   module-specific operation schemas validate values and option
    combinations at activation, run-now, generated job plans, and subprocess
    dispatch; they reject human-review actions, unsafe cleanup, unbounded event
    loops and recurring sensor ingestion without a source. Scheduler and event
@@ -278,11 +289,11 @@ before protected reads and writes, and make direct database access fail closed.
    disposable PostgreSQL 16 role acceptance still passed current-handler SQL
    and proved a table/sequence created after provisioning is inaccessible to
    the runtime login. A new whole-services SQL inventory covers all 804 Python
-   service modules and identifies direct execution sites and candidate relation
-   names without becoming an ACL. Literal query wrappers are unwrapped while
-   parameter values remain unobserved; the report now has 98 unknown statement
-   kinds, 22 `WITH` statements, 313 sites without relation candidates, and 442
-   non-literal sites. The next review classifies API, worker, CLI, and
+   source files and identifies direct execution sites and candidate relation
+   names without becoming an ACL. The current generated inventory covers 3,758
+   SQL execution sites across 804 source files; literal query wrappers are
+   unwrapped while parameter values remain unobserved. The report is static
+   evidence, not an ACL. The next review classifies API, worker, CLI, and
    indirect-query surfaces before deriving explicit grants; worker, Directus,
    and RLS boundaries remain open ([role evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json); [SQL inventory](runtime-sql-inventory.json); [latest inventory check](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json)).
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
@@ -490,18 +501,23 @@ was recreated; candidate health and anonymous route protection passed, and the
 temporary restore project was removed. RLS stayed disabled and no seed SQL ran
 ([restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [clean bootstrap](builds/2026-10-14-recovery/clean-bootstrap-388-migrations.json); [candidate rollout](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
-**Retention gate (15 October 2026):** because USA and Dominican Republic have
-been identified but no category-specific period/legal-hold owner is approved,
-`services.events --cleanup` now fails closed unless
-`KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true` and an explicit `--days` value
-are supplied. The service method enforces the same feature gate before opening
-the database; the previous 30-day CLI default is removed. The query protects
-undisposed dead letters and non-success durable handler deliveries, but does
-not evaluate event-level legal holds, so the flag remains off and pruning is
-not authorized until hold-aware eligibility and a retention schedule are
-approved. One separate source-unit assertion now passes for failed-delivery
-protection without database/provider access; the existing 34-check evidence
-predates this SQL change ([focused evidence](builds/2026-10-15-recovery/event-retention-handler-delivery-guard.json); [prior evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
+**Dynamic retention source implementation (15 October 2026):** migration 401
+adds nullable runtime policy windows, draft/approval state, and an audited,
+append-only record-level legal-hold ledger. Event cleanup no longer accepts a
+caller-selected `--days`; it requires exactly one approved active global
+`event_bus` / `platform_event` policy, checks pending dead letters, unsuccessful
+handler deliveries, and active holds, and remains default-off behind its feature
+gate. Generic data-governance cleanup also requires its independent feature gate,
+approved policy metadata, and no active hold. No periods or schedules have been
+configured, and no fixed duration is proposed. This is not candidate rollout:
+migration 401 has not been applied to the candidate, and disposable
+migration/hold acceptance passed on an isolated synthetic PostgreSQL fixture
+through the ordered migration runner. It verifies the legacy-policy transition,
+policy history, holds and event cleanup protections. The focused source/unit set also
+passes 94 tests plus four subtests. Acceptance caught an undersized history
+action column and the migration was corrected. Candidate and legacy databases
+were untouched; keep pruning disabled until approved policy data and operating
+roles are configured for deployment ([database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json); [source evidence](builds/2026-10-15-recovery/retention-policy-source-checks.json); [migration](../../schemas/postgres/401_dynamic_retention_and_legal_holds.sql); [operations](retention-policy-operations.md)).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and
@@ -577,8 +593,9 @@ deployment or semantic acceptance:
   do not infer legal land title. Other locations stay unassigned. Operator-to-
   organization grants and legacy account reconciliation remain open (OFU-02).
 - **Governance and reporting:** USA and Dominican Republic are the selected
-  retention jurisdictions, but record-specific periods and legal-hold
-  ownership remain open (OFU-03). The owner selected all repository-backed
+  retention jurisdictions. Runtime-configurable policy support is implemented
+  in source; no periods are hardcoded. Approved policy data, accountable
+  approval/hold roles, and deployment verification remain open (OFU-03). The owner selected all repository-backed
   reports and provider jobs for code-first porting; populated reference
   outputs follow the planned farm-data ingestion (OFU-04/14). Directus should
   consume organization/location grants; supported consumers and runtime

@@ -30,6 +30,7 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `verify-platform.sh` | Validate platform definition of done via `tests/test_platform_done.py` | Manual |
 | `verify-ci-toolchain.sh` | Verify all required CI tools are installed (python3, node, npm, forge, slither, aderyn, semgrep, ruff, pip-audit) | CI |
 | `verify-clean-bootstrap.sh` | Create temp database, apply schema-only migrations, drop it. Validates clean bootstrap. Optional `KOKONUT_BOOTSTRAP_COMPOSE_PROJECT` and `KOKONUT_BOOTSTRAP_COMPOSE_FILE` select an isolated Compose target; set `KOKONUT_BOOTSTRAP_START_DATABASE=true` and `KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true` to start and remove a disposable project. | CI (via `ci-check.sh`), isolated acceptance |
+| `check-retention-policy-disposable.py` | Apply migration 401 through the ordered runner to a synthetic pre-migration schema in an internal-only temporary PostgreSQL project; verify policy transitions, audited holds, and hold-aware cleanup. Removes its container, network, and volume; never uses candidate or legacy databases. | Isolated acceptance |
 | `verify-full-test-suite.sh` | Run full pytest suite with unexpected-skip detection | CI |
 | `verify-local-test-suite.sh` | Start local Compose databases, wait for readiness, run full test suite | Manual |
 

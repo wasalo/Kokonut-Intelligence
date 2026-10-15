@@ -1141,6 +1141,9 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
             elif entity_type == "platform_event":
                 status = "skipped"
                 error = "platform_event requires the hold-aware event cleanup workflow"
+            elif legal_hold:
+                status = "skipped"
+                error = "retention policy is on legal hold"
             if status is None and entity_type:
                 cur.execute(
                     """

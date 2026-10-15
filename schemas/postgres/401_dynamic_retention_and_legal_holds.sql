@@ -39,7 +39,7 @@ WHERE approved_by IS NULL
 CREATE TABLE IF NOT EXISTS data_retention_policy_event (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     policy_id       UUID NOT NULL REFERENCES data_retention_policy(id),
-    action          VARCHAR(20) NOT NULL
+    action          VARCHAR(32) NOT NULL
         CHECK (action IN ('draft_created', 'approved', 'retired', 'migration_review_required')),
     actor           VARCHAR(200) NOT NULL CHECK (length(btrim(actor)) > 0),
     reason          TEXT NOT NULL CHECK (length(btrim(reason)) > 0),

@@ -3,6 +3,11 @@
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 Check GitHub Actions for CI and Security status on the current PR head before
 merge; local acceptance evidence is recorded below and linked to its source.
+Six earlier local commits plus this retention implementation batch are being
+held beyond pushed head `72ab775`. The unpushed batch includes runtime-configurable
+retention/legal-hold source contracts and static worker effect/JobSpec
+inventories; CI status on `72ab775` does not cover them. Candidate schema state
+remains through migration 400; migration 401 has not been rolled out.
 The newest commits close the sensor CLI false-success path (`83256be`), verify
 the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
 isolated ARM64 minimal/edge/standard profile selection (`629affd`). Earlier
@@ -20,8 +25,8 @@ because no hardware is available; physical-device acceptance is not claimed.
 Added `scripts/check-capability-matrix.py` and wired it into the fast-fail CI
 checks. It validates the 66 capability IDs and ordering, six-column row shape,
 matching MAN-CAP identifiers, B/D/P status labels, and existence of referenced
-source/test paths. The current matrix passes: 56 baseline-retained, 7 deployed,
-and 3 prepared; no named MAN-CAP check is marked accepted. The check found and
+source/test paths. The current matrix passes: 55 baseline-retained, 7 deployed,
+and 4 prepared; no named MAN-CAP check is marked accepted. The check found and
 fixed a stray pipe in CAP-007 that had made the row unparsable. The owner’s
 five-location Kokonut Network operating-tenant mapping is now recorded as a
 completed data decision; no database ownership or grants were changed. The
@@ -32,8 +37,11 @@ checks also pass. The runtime SQL inventory was stale after adding the
 credit-adjustment scheduled operation; it has been regenerated and now passes
 its freshness check. It covers 3,758 SQL execution sites across 804 source
 files and 18 worker operation roots; 34 worker SQL sites still have no static
-function-path match. These inventories do not establish runtime-role least
-privilege or provider idempotency.
+function-path match. The new effect index records 40 unique direct effect sites
+(45 operation/site memberships), and the JobSpec inventory accepts 11 of 15
+defaults; invalid or unallowlisted defaults remain blocked. These are static
+inventories and do not establish runtime-role least privilege, provider
+idempotency, or active schedule state.
 
 ### Directus rejects malformed explicit tenant scope — 15 October 2026
 
@@ -238,12 +246,19 @@ both generic retention candidates and event cleanup. Event cleanup no longer
 accepts a caller-supplied `--days`; it requires exactly one approved global
 `event_bus` / `platform_event` policy and logs each execution. The default-off
 feature gate remains in place. No periods are configured; notification,
-attempt-history, and operator-audit pruning remain open. Migration 401 is not
-candidate-applied, and no focused migration or acceptance checks have run in
-this slice. The schedule/owner gate therefore remains open
+attempt-history, and operator-audit pruning remain open. The five-suite focused
+source/unit run passes 94 tests and four subtests. It found and fixed a generic
+policy-level hold ordering bug so held policies skip before overlap queries.
+The ordered migration runner and isolated synthetic PostgreSQL checks pass for
+policy demotion, category-default removal, audited immutable holds, generic
+candidate eligibility, and event cleanup protections. This acceptance found
+and fixed an undersized policy-history action column. Migration 401 is not
+candidate-applied; candidate and legacy databases were untouched. The
+policy-configuration gate therefore remains open
 ([migration](../../schemas/postgres/401_dynamic_retention_and_legal_holds.sql);
 [policy interface](../../services/analytics/data_governance.py);
-[event cleanup](../../services/events/bus.py)).
+[event cleanup](../../services/events/bus.py);
+[source evidence](builds/2026-10-15-recovery/retention-policy-source-checks.json)).
 
 ### Directus OIDC principal and tenant grants — 15 October 2026
 
@@ -511,8 +526,8 @@ data/providers; provider retirement and production cutover have not occurred.
 All 66 original IDs/checks remain in the matrix. Current integration progress:
 
 - **7 deployed partial/adjacent integrations:** CAP-001, 007, 014, 031, 039, 047, 053.
-- **3 prepared partial integrations:** CAP-040, 064, 066. CAP-040 now includes one bounded handler-effect and durable-receipt recovery rehearsal; it remains partial.
-- **56 baseline-retained domains:** Kernel access paths and parity still unassessed.
+- **4 prepared partial integrations:** CAP-040, 051, 064, 066. CAP-040 now includes one bounded handler-effect and durable-receipt recovery rehearsal; CAP-051 includes dynamic retention source and disposable acceptance; both remain partial.
+- **55 baseline-retained domains:** Kernel access paths and parity still unassessed.
 - **0 fully accepted Kernel capabilities.** All MAN-CAP gates remain open.
 
 CAP-031's public location roll-up is adjacent API work, not completion of planning
