@@ -126,16 +126,17 @@ Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
 remove runtime grants on this evidence. The first source-level effect pass now
-records 39 unique high-confidence process, filesystem, HTTP, email, and EVM
-call sites across 44 operation/site memberships and 18 operation roots
+records 40 unique high-confidence process, filesystem, HTTP, email, dynamic
+import, and EVM call sites across 45 operation/site memberships and 18 roots
 ([inventory](worker-effect-inventory.json)).
 It intentionally overcounts
 mutually exclusive CLI branches and can miss effects behind callbacks or
 provider adapters; for example, the credit adjustment worker contract rejects
-on-chain transaction calls still visible in the module-wide graph. The
-inventory now traces the EventBus process target through its resolver,
-allowlist validator, dynamic import, and five source-allowlisted handlers;
-runtime dispatch and persisted handler configuration are still unverified.
+on-chain transaction calls still visible in the module-wide graph. The graph
+now follows the EventBus process target into the local child and resolver, and
+the callback inventory traces its validator, dynamic import, and five
+source-allowlisted handlers. Runtime string selection and persisted handler
+configuration remain unverified.
 The actuation helper reachable from a worker only records an approval-gated
 command; it does not publish MQTT. Next
 code-only work is to reconcile each candidate against its exact scheduler

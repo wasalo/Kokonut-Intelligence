@@ -1617,12 +1617,15 @@ counts do not change ([source closure](worker-source-closure.json); [SQL invento
 ### CAP-040/047 worker effect source index — 15 October 2026
 
 A deterministic inventory now scans the current worker function graph for
-high-confidence direct effect calls. It records 39 unique source locations
-across HTTP, email delivery, process lifecycle, EVM RPC/client setup, and
-filesystem boundaries (44 operation/site memberships). The graph overapproximates mutually exclusive CLI branches and can miss provider callbacks; it does not
-establish runtime behavior, authorization, replay safety, or tenant context.
-Its callback trace records the EventBus validator, dynamic import, and five
-allowlisted handlers, but does not verify persisted dispatch configuration.
+high-confidence direct effect calls. It records 40 unique source locations
+across HTTP, email delivery, process lifecycle, EVM RPC/client setup,
+filesystem, and dynamic import boundaries (45 operation/site memberships).
+The graph overapproximates mutually exclusive CLI branches and can miss
+provider callbacks; it does not establish runtime behavior, authorization,
+replay safety, or tenant context. The graph follows the EventBus process target
+to its local resolver; the callback trace records the validator, dynamic
+import, and five allowlisted handlers, but does not verify persisted dispatch
+configuration.
 Worker identity, role/context, and live recovery gates remain open, so no
 MAN-CAP status or count changes ([inventory](worker-effect-inventory.json);
 [worker map](worker-operation-map.md)).

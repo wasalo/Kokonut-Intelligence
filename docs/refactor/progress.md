@@ -5655,15 +5655,16 @@ databases were untouched.
 ### Worker transitive-effect source index — 15 October 2026
 
 Added a deterministic source inventory over the current worker function graph.
-It records 39 unique high-confidence candidate calls across HTTP, email delivery,
-process lifecycle, EVM RPC/client setup, and filesystem boundaries, without argument values or
-payloads (44 operation/site memberships). Its callback trace maps the
-`_handler_process` target through validation, dynamic import, and five
-allowlisted handlers, but does not verify runtime dispatch configuration. The
-reachable actuation helper records an
+It records 40 unique high-confidence candidate calls across HTTP, email delivery,
+process lifecycle, EVM RPC/client setup, filesystem, and dynamic import
+boundaries, without argument values or payloads (45 operation/site
+memberships). The graph follows the EventBus's one statically named process
+callback edge, and the callback trace maps `_handler_process` through
+validation, dynamic import, and five allowlisted handlers; runtime dispatch
+configuration remains unverified. The reachable actuation helper records an
 approval-gated command and does not publish MQTT. Regenerated the
-stale dependency chain: 18 operation roots now reach 364 function memberships
-through 501 direct-call edges; the worker SQL inventory has 244 sites (208
+stale dependency chain: 18 operation roots now reach 367 function memberships
+through 503 direct-call edges and one callback edge; the worker SQL inventory has 244 sites (208
 literal and 36 composed/variable), and 34 sites have no static function match.
 The four additional SQL sites are event-retention policy/hold queries. The inventory is
 deliberately an audit index: the graph includes mutually exclusive CLI

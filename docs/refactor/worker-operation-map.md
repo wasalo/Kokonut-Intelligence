@@ -49,9 +49,11 @@ data effects, and an idempotency/retry note.
   function calls, module aliases, `self`/`cls` methods, and instance methods
   whose candidate types can be inferred locally. The `services.metrics`
   operation also records each of the 20 functions from its literal
-  `CALCULATORS` registry as an explicit registry-dispatch edge. Across 18
-  operation roots, 46 entry functions reach 364 function memberships through
-  501 direct-call edges and 20 registry-dispatch edges, with no unresolved
+  `CALCULATORS` registry as an explicit registry-dispatch edge. A focused
+  callback edge follows the EventBus's statically named multiprocessing target
+  to `_handler_process` and its local resolver. Across 18 operation roots, 46
+  entry functions reach 367 function memberships through 503 direct-call,
+  one callback, and 20 registry-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
@@ -86,19 +88,20 @@ data effects, and an idempotency/retry note.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, object-storage, EVM, notification, cache,
-  and dynamic-import call patterns. The current pass finds 39 unique candidate
-  sites across 44 operation/site memberships: HTTP (8), email delivery (6),
-  process lifecycle (5), EVM RPC (6), EVM client setup (6), and filesystem
-  (8), across 18 operation roots. These are review candidates,
+  and dynamic-import call patterns. The current pass finds 40 unique candidate
+  sites across 45 operation/site memberships: HTTP (8), email delivery (6),
+  process lifecycle (5), EVM RPC (6), EVM client setup (6), filesystem (8),
+  and dynamic import (1), across 18 operation roots. These are review candidates,
   not confirmed runtime effects:
   the module graph conservatively includes mutually exclusive CLI branches,
   so the carbon-credit entry also surfaces on-chain functions that its
   scheduled `--check-adjustments` contract rejects. Absence from the inventory
   is not proof that an operation has no external effect. Its callback section
   traces the EventBus process target through `resolve_handler`, the allowlist
-  validator, dynamic import, and the five code-allowlisted handler names. It
-  does not add runtime handler dispatch to the direct function graph or verify
-  persisted handler configuration. The reachable actuation helper only records
+  validator, dynamic import, and the five code-allowlisted handler names. The
+  graph follows the local child and resolver functions but not the dynamically
+  selected handlers; persisted handler configuration and runtime dispatch are
+  unverified. The reachable actuation helper only records
   a human-approval command; no MQTT publisher is called by the worker paths.
   Rebuild or check it
   with `python3 scripts/worker_effect_inventory.py --output

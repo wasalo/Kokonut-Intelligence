@@ -1,13 +1,14 @@
 {
   "version": 1,
   "generated_by": "scripts/worker_function_reachability.py",
-  "scope": "Direct statically resolved Python calls and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
+  "scope": "Direct statically resolved Python calls, known multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 18,
     "source_files": 73,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 364,
-    "direct_call_edges": 501,
+    "function_memberships": 367,
+    "direct_call_edges": 503,
+    "callback_edges": 1,
     "dynamic_dispatch_edges": 20
   },
   "operations": [
@@ -289,6 +290,7 @@
           "line": 352
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -457,6 +459,22 @@
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
           "line": 267
+        },
+        {
+          "key": "services.events.bus:_handler_process",
+          "module": "services.events.bus",
+          "qualname": "_handler_process",
+          "class_scope": null,
+          "source": "services/events/bus.py",
+          "line": 29
+        },
+        {
+          "key": "services.events.bus:resolve_handler",
+          "module": "services.events.bus",
+          "qualname": "resolve_handler",
+          "class_scope": null,
+          "source": "services/events/bus.py",
+          "line": 20
         },
         {
           "key": "services.events.cli:_get_conn",
@@ -825,6 +843,14 @@
           "class_scope": null,
           "source": "services/events/retention.py",
           "line": 15
+        },
+        {
+          "key": "services.security.execution_allowlist:validate_event_handler",
+          "module": "services.security.execution_allowlist",
+          "qualname": "validate_event_handler",
+          "class_scope": null,
+          "source": "services/security/execution_allowlist.py",
+          "line": 30
         }
       ],
       "direct_call_edges": [
@@ -929,6 +955,18 @@
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
           "line": 270
+        },
+        {
+          "caller": "services.events.bus:_handler_process",
+          "callee": "services.events.bus:resolve_handler",
+          "source": "services/events/bus.py",
+          "line": 32
+        },
+        {
+          "caller": "services.events.bus:resolve_handler",
+          "callee": "services.security.execution_allowlist:validate_event_handler",
+          "source": "services/events/bus.py",
+          "line": 22
         },
         {
           "caller": "services.events.cli:_get_conn",
@@ -1513,6 +1551,15 @@
           "line": 17
         }
       ],
+      "callback_edges": [
+        {
+          "caller": "services.events.bus:EventBus._invoke_handler",
+          "callee": "services.events.bus:_handler_process",
+          "source": "services/events/bus.py",
+          "line": 214,
+          "dispatch": "multiprocessing_process_target"
+        }
+      ],
       "dynamic_dispatch_edges": []
     },
     {
@@ -1684,6 +1731,7 @@
           "line": 51
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -2503,6 +2551,7 @@
           "line": 571
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -2983,6 +3032,7 @@
           "line": 132
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -3232,6 +3282,7 @@
           "line": 393
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -3462,6 +3513,7 @@
           "line": 238
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -3932,6 +3984,7 @@
           "line": 546
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -4124,6 +4177,7 @@
           "line": 456
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -4418,6 +4472,7 @@
           "line": 259
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -5005,6 +5060,7 @@
           "line": 17
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -5257,6 +5313,7 @@
           "line": 200
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -5739,6 +5796,7 @@
           "line": 124
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": [
         {
           "caller": "services.metrics.engine:compute_metric",
@@ -6039,6 +6097,7 @@
           "line": 52
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -6158,6 +6217,7 @@
           "line": 35
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -6254,6 +6314,7 @@
           "line": 176
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -6364,6 +6425,7 @@
           "line": 176
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -6798,6 +6860,7 @@
           "line": 154
         }
       ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     }
   ]

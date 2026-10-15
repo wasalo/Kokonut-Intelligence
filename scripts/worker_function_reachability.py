@@ -431,6 +431,7 @@ class _CallVisitor(ast.NodeVisitor):
         self.contexts = contexts
         self.instance_types = _infer_instance_types(function, definitions, classes, contexts)
         self.edges: list[dict] = []
+        self.callback_edges: list[dict] = []
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         if node is self.function["node"]:
@@ -457,6 +458,45 @@ class _CallVisitor(ast.NodeVisitor):
                     "line": node.lineno,
                 }
             )
+        process_target = next(
+            (
+                keyword.value
+                for keyword in node.keywords
+                if keyword.arg == "target" and isinstance(keyword.value, (ast.Name, ast.Attribute))
+            ),
+            None,
+        )
+        call_name = _dotted_name(node.func)
+        import_context = self.contexts[self.function["module"]]
+        multiprocessing_imported = any(
+            value == "multiprocessing" or value.startswith("multiprocessing.")
+            for value in (*import_context.module_aliases.values(), *import_context.symbol_aliases.values())
+        )
+        if (
+            process_target is not None
+            and call_name
+            and call_name.split(".")[-1] == "Process"
+            and multiprocessing_imported
+        ):
+            target_call = ast.Call(func=process_target, args=[], keywords=[])
+            callback_targets = _resolve_call_targets(
+                self.function,
+                target_call,
+                self.definitions,
+                self.classes,
+                self.contexts,
+                self.instance_types,
+            )
+            for target in callback_targets:
+                self.callback_edges.append(
+                    {
+                        "caller": self.function["key"],
+                        "callee": target,
+                        "source": self.function["source"],
+                        "line": node.lineno,
+                        "dispatch": "multiprocessing_process_target",
+                    }
+                )
         self.generic_visit(node)
 
 
@@ -614,6 +654,7 @@ def _operation_graph(operation: dict) -> dict:
     queue = deque(root["function"] for root in roots)
     visited: set[str] = set()
     edges = set()
+    callback_edges = set()
     reached_registered_edges = set()
     while queue:
         key = queue.popleft()
@@ -626,6 +667,11 @@ def _operation_graph(operation: dict) -> dict:
         for edge in visitor.edges:
             edge_key = (edge["caller"], edge["callee"], edge["source"], edge["line"])
             edges.add(edge_key)
+            if edge["callee"] not in visited:
+                queue.append(edge["callee"])
+        for edge in visitor.callback_edges:
+            edge_key = (edge["caller"], edge["callee"], edge["source"], edge["line"], edge["dispatch"])
+            callback_edges.add(edge_key)
             if edge["callee"] not in visited:
                 queue.append(edge["callee"])
         for edge in registered_by_caller.get(key, []):
@@ -658,6 +704,16 @@ def _operation_graph(operation: dict) -> dict:
         }
         for caller, callee, source, line, dispatch, registry, registry_key in sorted(reached_registered_edges)
     ]
+    ordered_callback_edges = [
+        {
+            "caller": caller,
+            "callee": callee,
+            "source": source,
+            "line": line,
+            "dispatch": dispatch,
+        }
+        for caller, callee, source, line, dispatch in sorted(callback_edges)
+    ]
     ordered_functions = [
         {key: value for key, value in definitions[function].items() if key != "node"} for function in sorted(visited)
     ]
@@ -668,6 +724,7 @@ def _operation_graph(operation: dict) -> dict:
         "entry_functions": roots,
         "reachable_functions": ordered_functions,
         "direct_call_edges": ordered_edges,
+        "callback_edges": ordered_callback_edges,
         "dynamic_dispatch_edges": ordered_registered_edges,
     }
 
@@ -680,7 +737,7 @@ def build_inventory() -> dict:
         "version": 1,
         "generated_by": "scripts/worker_function_reachability.py",
         "scope": (
-            "Direct statically resolved Python calls and known literal metric-calculator registry dispatches from allowlisted operation "
+            "Direct statically resolved Python calls, known multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation "
             "entry functions within their local services.* import closures. Instance method calls are included only when local type "
             "inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on "
             "unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy "
@@ -692,6 +749,7 @@ def build_inventory() -> dict:
             "operations_without_resolved_entry_functions": sum(not item["entry_functions"] for item in operations),
             "function_memberships": sum(len(item["reachable_functions"]) for item in operations),
             "direct_call_edges": sum(len(item["direct_call_edges"]) for item in operations),
+            "callback_edges": sum(len(item["callback_edges"]) for item in operations),
             "dynamic_dispatch_edges": sum(len(item["dynamic_dispatch_edges"]) for item in operations),
         },
         "operations": operations,
