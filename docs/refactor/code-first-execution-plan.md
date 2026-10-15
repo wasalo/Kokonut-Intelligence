@@ -29,6 +29,15 @@ MAN-CAP checks open until each has its own retained evidence.
   self-hosted ZITADEL profile. Security #39's SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
   and hosted Security #41.
+- Two newer Directus implementation commits are local-only: `3f02a53` packages
+  and mounts discoverable Directus 12 hook/endpoint extensions and makes a
+  fresh-checkout hook build part of `make up`; `508661d` maps tenant-reference
+  rejection to typed `400 INVALID_PAYLOAD`. The isolated Directus runtime loaded
+  both extensions, rejected the synthetic write without inserting a row, and
+  was removed. The extension build and 54 tests, six focused Python checks,
+  Ruff, Compose validation, and capability-matrix integrity pass. Directus
+  principal-to-operator mapping, organization/location grants, and broader
+  permission/hook parity remain open. No candidate or legacy database changed.
 - The latest push includes local commits `db37e6a` (preserve pending EventBus
   dead-letter parents during cleanup) and `c2cdbe9` (location-scoped Field
   Collector operator inventory). The inventory requires same-location device

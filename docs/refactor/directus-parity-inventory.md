@@ -34,11 +34,15 @@ collections
 ## Decision boundary
 
 Directus is an optional administrative and compatibility adapter. Its current
-database role has bounded DML access, but that does not make its API permissions,
-field allowlists, row filters, or hooks equivalent to the native Gateway. The
-native implementation should replace a Directus use case only after that
-specific use case has a named contract and accepted parity evidence. This
-inventory is not evidence that the whole Directus surface has been replaced.
+legacy base Compose service still connects as the `kokonut` superuser. A
+separate recovery fixture proved that the pinned image can run under the
+non-owner `kokonut_directus_runtime` DML role, but that identity split is not
+wired into the current deployment profile. Neither a bounded database role nor
+the API permissions, field allowlists, row filters, and hooks alone establish
+parity with the native Gateway. The native implementation should replace a
+Directus use case only after that specific use case has a named contract and
+accepted parity evidence. This inventory is not evidence that the whole
+Directus surface has been replaced.
 
 ## Source surface reviewed
 
