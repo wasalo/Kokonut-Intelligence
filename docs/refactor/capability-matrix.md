@@ -70,16 +70,16 @@ dynamic or indirect paths require review before narrowing runtime grants. The
 report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
 [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
-**Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 is
-at `5dc181c20c9c1c5831c2bebff740a8ca761867d2`; Security run
-[#41](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548243)
-passed and CI run
-[#317](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38669548218)
-is pending. CI #316 remains in progress on the previous head. The earlier
+**Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053), checked 15 October:**
+PR #68 is at `c2cdbe942dd5a2060119a921e065888fa73b1386`. Security run
+[#43](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38676458903)
+passed on this head. CI #318 remains in progress on the prior head
+`f8d90ea0b6af817e91db6758ff293d3c309f29de`; no CI result for `c2cdbe9` was
+visible at the last check. The current batch adds EventBus cleanup protection
+and the location-scoped Field Collector operator inventory. The earlier
 Security #39 source-digest false positive was corrected with a file-scoped
-allowlist; local full-history Gitleaks and hosted Security #41 pass. The latest
-head includes Directus preflight, supervisor, and outbox unit, disposable
-PostgreSQL, and CLI acceptance evidence. The last confirmed fully green head is
+allowlist; local full-history Gitleaks and hosted Security #43 pass. The last
+confirmed fully green head is
 `41412764f8281deea52670bf49de4234aca6e0bd`, where CI #313 and Security #37
 passed. The earlier
 CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32 are

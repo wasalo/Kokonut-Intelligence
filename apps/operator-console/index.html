@@ -279,6 +279,7 @@
       const mobileOperationsStatus = document.querySelector("#mobile-operations-status");
       const mobileOperationsSummary = document.querySelector("#mobile-operations-summary");
       const mobileOperationsDevices = document.querySelector("#mobile-operations-devices");
+      let mobileOperationsRequestVersion = 0;
       const mobileReview = document.querySelector("#mobile-review");
       const mobileReviewLocation = document.querySelector("#mobile-review-location");
       const mobileReviewQueue = document.querySelector("#mobile-review-queue");
@@ -869,6 +870,7 @@
       }
 
       async function loadMobileOperationsInventory() {
+        const requestVersion = ++mobileOperationsRequestVersion;
         mobileOperationsStatus.textContent = "Loading location-scoped device and queue status…";
         mobileOperationsSummary.replaceChildren();
         mobileOperationsDevices.replaceChildren();
@@ -879,11 +881,13 @@
             `/operator/api/mobile/locations/${encodeURIComponent(locationId)}/inventory?${params}`,
             { credentials: "same-origin", headers: { "Accept": "application/json" } }
           );
+          if (requestVersion !== mobileOperationsRequestVersion) return;
           if (response.status === 401 || response.status === 403) {
             throw new Error("Your account is not authorized for both Field Collector grants at this location.");
           }
           if (!response.ok) throw new Error("Field Collector operations inventory is unavailable.");
           const result = await response.json();
+          if (requestVersion !== mobileOperationsRequestVersion) return;
           const summaryLabels = [
             ["Registered devices", "device_count"],
             ["Active devices", "active_device_count"],
@@ -917,6 +921,7 @@
             ? `Showing ${result.devices.length} device(s) for this location.`
             : "No enrolled devices for this location.";
         } catch (error) {
+          if (requestVersion !== mobileOperationsRequestVersion) return;
           mobileOperationsStatus.textContent = error.message;
         }
       }

@@ -160,7 +160,9 @@ references are excluded. The console shows the panel only for locations with
 both grants and renders returned fields with `textContent`. This is a
 location-scoped operations view, not cross-tenant/global statistics. Focused
 route, service-query, and console source checks pass; live OIDC and database
-acceptance remain open.
+acceptance remain open. The client ignores a response or error from an older
+inventory request after the selected location changes; this ordering guard is
+source-tested but has not been exercised with delayed browser network traffic.
 
 For browser requests, prefer serving the console from the Gateway's own origin
 or an explicitly trusted same-site origin. The server should keep provider

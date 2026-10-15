@@ -1,17 +1,20 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The exact pre-400 checkpoint has now been restore-rehearsed, migration 400 replayed, and runtime/operator-auth role bootstrap accepted on the isolated clone. It restored 1,010 public tables but had zero public location rows, so this is not farm-data parity ([restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `f8d90ea0b6af817e91db6758ff293d3c309f29de`. Security #42 passed and CI #318 is in progress ([CI #318](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38674801062); [Security #42](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38674801208)). The pushed batch includes enabled gRPC loopback service acceptance alongside CLI exit coverage and a disposable-PostgreSQL ClickHouse outbox fixture. The new event-cleanup fix is local and unpushed. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 15 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The exact pre-400 checkpoint has now been restore-rehearsed, migration 400 replayed, and runtime/operator-auth role bootstrap accepted on the isolated clone. It restored 1,010 public tables but had zero public location rows, so this is not farm-data parity ([restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `c2cdbe942dd5a2060119a921e065888fa73b1386`. Security #43 passed on that head; CI #318 remains in progress on prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`, and a current-head CI result was not visible at the last check ([CI #318](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38674801062); [Security #43](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38676458903)). The latest pushed batch adds EventBus pending-dead-letter cleanup protection and a location-scoped Field Collector operations inventory. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
 Do not treat earlier CI runs as coverage for commits after their
-verified head. The pushed batch through `f8d90ea` includes provider-aware
+verified head. The preceding pushed batch through `f8d90ea` includes provider-aware
 backup/restore, gRPC auth-context lifecycle fixes and enabled loopback service
 acceptance, focused RPC policy and optional-provider inventories, worker
 import/SQL inventories, exact pre-400 restore and runtime-role recovery
 evidence, the Directus fixture preflight, supervisor shutdown tests, and
-outbox unit/evidence updates. Security #42 passed on that head; CI #318 is in
-progress. The pushed
+outbox unit/evidence updates. Security #42 passed on that earlier head; CI #318
+is still in progress there. The subsequent push through `c2cdbe9` adds EventBus
+dead-letter cleanup protection and the scoped Field Collector operator
+inventory. Security #43 passes on `c2cdbe9`; CI for that head remains open.
+The pushed
 disposable PostgreSQL fixture adds real persistence and one-shot CLI exit
 coverage, alongside CLI parser regressions. The focused four-suite set passed
 28 tests; the eight-suite platform-integrity set passed 290 tests on
@@ -5229,3 +5232,12 @@ four focused operator service, auth, exact-policy, and console suites pass 83
 tests; Ruff, Python compilation, inline JavaScript syntax, and whitespace
 checks pass. No database was accessed. Live OIDC, database-role, populated
 tenant and browser acceptance remain open. [Evidence](builds/2026-10-14-recovery/mobile-operations-inventory-route.json).
+
+### Operator inventory ignores stale location responses — 15 October 2026
+
+The Field Collector operations panel now assigns each inventory request a
+monotonic version and ignores results/errors from earlier requests after the
+operator changes locations. A source-contract assertion pins the guard. The
+83-test focused route/service/auth/console set, Ruff, Python compilation,
+inline JavaScript syntax, and `git diff --check` pass. This source check does
+not simulate delayed requests in a real browser. [Evidence](builds/2026-10-15-recovery/operator-inventory-stale-response-guard.json).

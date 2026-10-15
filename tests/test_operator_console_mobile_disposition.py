@@ -46,6 +46,8 @@ def test_mobile_operations_inventory_requires_both_location_grants_and_uses_safe
     assert "&& /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)" in source
     assert "/operator/api/mobile/locations/${encodeURIComponent(locationId)}/inventory" in inventory_reader
     assert 'credentials: "same-origin"' in inventory_reader
+    assert "const requestVersion = ++mobileOperationsRequestVersion" in inventory_reader
+    assert "requestVersion !== mobileOperationsRequestVersion" in inventory_reader
     assert 'mobileOperations.hidden = false' in source
     assert '"pending_sync_count"' in inventory_reader
     assert '"ineligible_synced_count"' in inventory_reader

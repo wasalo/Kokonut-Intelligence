@@ -1,9 +1,9 @@
 # Code-first refactor execution plan
 
-**Updated:** 14 October 2026
+**Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `f8d90ea0b6af817e91db6758ff293d3c309f29de`
-**Latest pushed head status:** Security #42 passed; CI #318 is in progress.
+**Latest pushed head:** `c2cdbe942dd5a2060119a921e065888fa73b1386`
+**Latest pushed head status:** Security #43 passed; CI #318 remains in progress on the prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`. No CI result for `c2cdbe9` was visible at the last check.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,11 +14,17 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 328 checked and 20 open items (348 total).
-- The latest pushed implementation is `f8d90ea`. Security #42 passed; CI #318
-  is in progress on that head. The earlier Security #39 SHA-256
+- The execution checklist has 329 checked and 20 open items (349 total).
+- The latest pushed implementation is `c2cdbe9`. Security #43 passed on this
+  head; CI #318 is still running on prior head `f8d90ea`, and a CI run for
+  `c2cdbe9` had not appeared at the last check. Security #39's SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
   and hosted Security #41.
+- The latest push includes local commits `db37e6a` (preserve pending EventBus
+  dead-letter parents during cleanup) and `c2cdbe9` (location-scoped Field
+  Collector operator inventory). The inventory requires same-location device
+  and collection-review read grants and returns no tokens or collection content;
+  its focused source/ASGI/console checks pass.
 - The pushed head includes the Directus preflight, supervisor, ClickHouse and
   notification outbox CLI regressions, and a nine-check disposable PostgreSQL
   ClickHouse fixture. Focused unit/runtime checks and full-history Gitleaks pass;
@@ -99,10 +105,11 @@ MAN-CAP checks open until each has its own retained evidence.
   support a PostgreSQL-only profile, record provider inclusion, and preflight
   required services before writing/restoring data; fake-Compose checks cover
   both ClickHouse-disabled and ClickHouse-enabled paths.
-  Focused source/disposable checks pass. The latest pushed head `f8d90ea` has
-  Security #42 passed and CI #318 in progress. The local event-cleanup
-  retention-safety commit and the new scoped Field Collector operator
-  inventory are not pushed yet.
+  Focused source/disposable checks pass. The latest pushed head `c2cdbe9` has
+  Security #43 passed; CI #318 remains in progress on the previous head, and
+  no CI run for `c2cdbe9` was visible at the last check. The EventBus cleanup
+  and scoped Field Collector operator inventory are included in the pushed
+  batch.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–400 were applied schema-only after encrypted
@@ -149,16 +156,20 @@ until the relevant inputs or authorization arrive.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** Current pushed head `f8d90ea0b6af817e91db6758ff293d3c309f29de`
-has Security #42 passed and CI #318 in progress. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
+**Action:** Current pushed head `c2cdbe942dd5a2060119a921e065888fa73b1386`
+has Security #43 passed. CI #318 is still running on the prior head
+`f8d90ea0b6af817e91db6758ff293d3c309f29de`; no CI result for the current head
+was visible at the last check. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
 acceptance are included in that batch. The Gitleaks
 allowlist fix for the earlier Security #39 SHA-256 source-digest false positive
 is included in the pushed head and Security #41 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
 supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
-**Acceptance:** current pushed head `f8d90ea` has Security #42 passed; CI #318 is in progress.
-The focused local outbox checks pass and are included in that batch.
+**Acceptance:** current pushed head `c2cdbe9` has Security #43 passed. CI #318
+is still in progress on the prior head; a current-head CI pass is required.
+The focused local outbox, EventBus cleanup, and Field Collector inventory
+checks pass and are included in the pushed batch.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -218,7 +229,8 @@ before protected reads and writes, and make direct database access fail closed.
    aggregate queue counts only when both `mobile_device:read` and
    `mobile_collection_review:read` apply. Its query sets signed tenant context
    and repeats both grant checks; focused service, route, and console checks
-   pass. Live OIDC/database acceptance remains open.
+   pass. The console ignores responses from older inventory requests after a
+   location switch; live OIDC/database and browser race acceptance remain open.
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.
    **Partial:** the opt-in bootstrap still grants broad DML on existing public
@@ -510,12 +522,12 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The latest push `f8d90ea` has Security #42 passed and CI #318
-in progress. The pushed batch includes enabled gRPC loopback acceptance and
-the earlier ClickHouse/notification CLI regressions with disposable
-PostgreSQL outbox acceptance. The current local batch adds EventBus
-dead-letter cleanup protection and the scoped Field Collector operator
-inventory; focused local checks are passing.
+requested. The latest push `c2cdbe9` has Security #43 passed; CI #318 remains
+in progress on prior head `f8d90ea`, and a current-head CI result was not
+visible at the last check. The pushed batch includes enabled gRPC loopback
+acceptance, disposable PostgreSQL outbox acceptance, EventBus dead-letter
+cleanup protection, and the scoped Field Collector operator inventory. Their
+focused local checks pass.
 Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database
