@@ -26,6 +26,13 @@ unsafe/inapplicable fixture writes; it does not establish Directus permissions
 or accept a named MAN-CAP check
 ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
 
+**15 October 2026 Directus extension host contract (CAP-001 / CAP-047 / CAP-053):**
+the hook package now declares compatibility with the exact pinned Directus
+12.1.1 image, enforced by a source regression check. This fixes manifest drift;
+hook runtime loading, organization/location authorization, and named MAN-CAP
+acceptance remain open
+([test](../../tests/test_directus_extension_compatibility.py); [evidence](builds/2026-10-15-recovery/directus-extension-host-contract.json); [inventory](directus-parity-inventory.md)).
+
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,
 opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and

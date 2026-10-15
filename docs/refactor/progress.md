@@ -33,6 +33,17 @@ TypeScript build passes. This does not bind a Directus principal to
 API parity remains open ([source](../../extensions/kokonut-hooks/src/tenant-validation.ts);
 [inventory](directus-parity-inventory.md)).
 
+### Directus extension host version is pinned accurately — 15 October 2026
+
+The hook package previously advertised Directus `^11.0.0` while Compose pins
+the Directus server at `12.1.1`. Its host declaration now matches that exact
+image, and a source regression check fails if the two drift. This resolves a
+compatibility metadata defect; it does not prove that the extension loads in
+the server or that Directus permissions match Kokonut organization/location
+grants ([test](../../tests/test_directus_extension_compatibility.py);
+[evidence](builds/2026-10-15-recovery/directus-extension-host-contract.json);
+[inventory](directus-parity-inventory.md)).
+
 ### Gateway CORS no longer inherits Directus configuration — 15 October 2026
 
 FastAPI Gateway now reads `KOKONUT_GATEWAY_CORS_ORIGINS`; Directus keeps

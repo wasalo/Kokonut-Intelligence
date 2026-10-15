@@ -4,6 +4,12 @@
 **Status:** source inventory complete; isolated runtime probe completed with a
 fail-closed result; runtime parity remains open.
 
+The hook extension now declares the exact Directus host version pinned by the
+base Compose file. A source regression check keeps the package host metadata
+aligned with that image. This removes the previous Directus 11 versus 12
+compatibility declaration mismatch; it does not establish runtime hook loading
+or permission parity.
+
 ## Decision boundary
 
 Directus is an optional administrative and compatibility adapter. Its current
