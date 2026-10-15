@@ -19,6 +19,9 @@ jurisdiction-specific schedule is approved and legal-hold eligibility is
 enforced for the target records. `--dry-run` remains available while the
 destructive gate is off. This switch does not supply or approve a retention
 period.
+New policies also default to `auto_enforce=false`; retention windows must be
+positive integers and actions must be supported before policy creation writes
+to the database.
 
 ## Modules
 

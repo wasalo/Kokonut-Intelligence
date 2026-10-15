@@ -400,12 +400,27 @@ class TestSetRetentionPolicy(unittest.TestCase):
         self.assertEqual(result["data_category"], "soil")
         self.assertEqual(result["retention_days"], 2555)
         self.assertEqual(result["deletion_method"], "soft_delete")
+        self.assertFalse(result["auto_enforce"])
         self.assertEqual(result["status"], "active")
 
     def test_set_retention_policy_completes(self):
         set_retention_policy(self.conn, "soil", 2555)
         self.conn.commit.assert_called_once()
         self.mock_cursor.close.assert_called_once()
+
+    def test_set_retention_policy_rejects_invalid_windows_before_database_access(self):
+        for retention_days in (0, -1, True, 1.5):
+            with self.subTest(retention_days=retention_days):
+                with self.assertRaisesRegex(ValueError, "positive integer"):
+                    set_retention_policy(self.conn, "soil", retention_days)
+
+        self.conn.cursor.assert_not_called()
+
+    def test_set_retention_policy_rejects_unknown_action_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "unsupported retention action"):
+            set_retention_policy(self.conn, "soil", 30, action="purge_anything")
+
+        self.conn.cursor.assert_not_called()
 
 
 class TestRetentionSweep(unittest.TestCase):

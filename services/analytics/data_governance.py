@@ -725,11 +725,15 @@ def set_retention_policy(
     action: str = "soft_delete",
     entity_type: str = None,
     location_id: str = None,
-    auto_enforce: bool = True,
+    auto_enforce: bool = False,
     policy_owner: str = None,
     metadata: dict = None,
 ) -> dict:
     """Set a data retention policy for a category."""
+    if isinstance(retention_days, bool) or not isinstance(retention_days, int) or retention_days <= 0:
+        raise ValueError("retention_days must be a positive integer")
+    if action not in {"soft_delete", "hard_delete", "anonymize", "archive", "none"}:
+        raise ValueError("unsupported retention action")
     if _requires_reviewed_disposition(entity_type):
         raise ValueError(
             "this entity requires a dedicated reviewed disposition workflow"

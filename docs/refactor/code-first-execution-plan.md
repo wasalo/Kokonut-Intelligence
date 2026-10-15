@@ -14,13 +14,14 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 345 checked and 20 open items (365 total).
+- The execution checklist has 346 checked and 20 open items (366 total).
   The count includes five source/documentation closures in this batch: the
   94-type report registry path, capability-matrix integrity, and the five
   named Kokonut Network location mappings, plus refreshed worker/runtime SQL
-  inventories. The new generic-retention fail-closed gate is also checked;
-  its schedule and legal-hold implementation remain open as owner/runtime
-  gates. Their remaining acceptance is tracked separately.
+  inventories. The generic-retention fail-closed gate and inert-by-default
+  policy creation are also checked; the schedule and legal-hold implementation
+  remain open as owner/runtime gates. Their remaining acceptance is tracked
+  separately.
   Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI

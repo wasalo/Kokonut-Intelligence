@@ -152,9 +152,11 @@ architecture checks pass (34 total), Ruff passes, and no database/provider was a
 The separate `data_retention_policy` sweeper now fails closed before creating
 a database cursor unless `KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT=true`;
 the CLI blocks before opening the connection and leaves help available.
-Dry-run remains available without the switch. Forty focused governance and
-CLI tests pass, including default denial, dry-run, help, no-connection, and
-the legal-hold skip with enforcement explicitly enabled; Ruff and
+Dry-run remains available without the switch. New policy creation now defaults
+to `auto_enforce=false` and rejects invalid windows/actions before database
+access. Forty-two focused governance and CLI tests pass, including default
+denial, dry-run, help, no-connection, validation, and the legal-hold skip with
+enforcement explicitly enabled; Ruff and
 `git diff --check` pass. No database or provider was accessed. The switch is a
 safety guard, not approval: USA/DR category periods, policy ownership, and
 entity-level hold eligibility remain open, so leave it off
