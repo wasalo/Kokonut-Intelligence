@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-15",
+  "check": "shared_job_dispatch_contract",
+  "commands": [
+    "python3 -m pytest tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py -q",
+    "ruff check tests/test_core_jobs_contract.py",
+    "ruff format --check tests/test_core_jobs_contract.py"
+  ],
+  "results": {
+    "pytest_files": 2,
+    "pytest_tests": 68,
+    "pytest_status": "passed",
+    "ruff": "passed",
+    "ruff_format": "passed"
+  },
+  "verified_contracts": [
+    "Catalog operations preserve the current Python interpreter, fixed module and argv, and configured timeout.",
+    "Weather location overrides are appended as a validated UUID; climate requires an explicit location before subprocess launch.",
+    "Nonzero subprocess exits preserve their return code and cap diagnostic output at 500 characters.",
+    "The recurring sensor job rejects its absent source contract before subprocess launch."
+  ],
+  "runtime_scope": "Subprocess execution was mocked. No provider, database, Prefect server, schedule, or candidate/legacy runtime was accessed or changed.",
+  "remaining_gates": [
+    "Prefect runtime retry and dependency-order acceptance",
+    "Climate fan-out failure and connection-cleanup acceptance",
+    "Live provider outcomes and dispatcher recovery",
+    "A real recurring sensor source/input contract"
+  ]
+}

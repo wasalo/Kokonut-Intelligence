@@ -244,6 +244,23 @@ remains open, so no schedule was activated
 [evidence](builds/2026-10-15-recovery/sensor-ingester-explicit-input-contract.json);
 [schedule ownership](schedule-ownership-inventory.md)).
 
+### Shared job dispatcher and SQL inventory — 15 October 2026
+
+Focused checks verify the shared dispatcher uses each catalog operation's
+interpreter, fixed module/arguments, and configured timeout; nonzero exits
+retain their status with diagnostics capped at 500 characters, climate requires
+location scope, and source-less sensor
+work fails before subprocess launch. Sixty-eight dispatcher/command checks and
+Ruff pass with subprocess execution substituted. The runtime SQL snapshot was
+refreshed to 805 service source files; the worker snapshot remains 18 operation
+roots and 240 SQL sites. Comparing the generated records found no new SQL
+fingerprints or worker operations. These source checks do not exercise a live
+provider, database, Prefect server, or durable recovery path
+([tests](../../tests/test_core_jobs_contract.py);
+[dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
+[inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json);
+[schedule inventory](schedule-ownership-inventory.md)).
+
 ### Kernel supervisor source contract — 14 October 2026
 
 Four focused tests now cover the supervisor's graceful shutdown, process-group

@@ -64,6 +64,19 @@ schedule ran. This prevents false success but does not define a recurring
 sensor source or accept MAN-CAP-040/047
 ([evidence](builds/2026-10-15-recovery/sensor-ingester-explicit-input-contract.json); [schedule inventory](schedule-ownership-inventory.md)).
 
+**15 October 2026 shared dispatcher contract (CAP-040 / CAP-047):** focused
+checks confirm each catalog operation uses its fixed interpreter, module,
+arguments, and timeout, retains nonzero exit codes with diagnostics capped at
+500 characters, requires climate location scope, and blocks recurring sensor
+dispatch before process creation. Sixty-eight
+dispatcher/command checks and Ruff pass with subprocesses substituted. The
+runtime SQL inventory now covers 805 service source files, and the worker view
+remains 18 operation roots and 240 SQL sites; inventory fingerprints show no
+new SQL operations. No provider, database, Prefect server, or schedule was
+accessed. Live retry/recovery, provider outcomes, and MAN-CAP-040/047 remain
+open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
+[inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json)).
+
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,
 opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and

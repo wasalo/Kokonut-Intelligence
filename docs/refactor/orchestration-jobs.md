@@ -75,13 +75,19 @@ checkpoint; a flow retry repeats completed locations, so idempotency remains a
 cutover gate. Climate CLI zero exits can still contain skipped provider results;
 the fan-out reports process outcomes, not verified acquisition of every dataset.
 
-## Acceptance gates still pending
+## Acceptance status
 
-1. Contract checks for fixed argv, interpreter, timeouts, nonzero exits, and
-   weather/climate UUID validation, with subprocess execution substituted.
+1. **Source dispatcher contract passed:** focused checks cover fixed interpreter,
+   module/argv, configured timeout argument, nonzero exit reporting, climate's required
+   location, and rejection of source-less sensor dispatch before process launch
+   (`tests/test_core_jobs_contract.py` and
+   `tests/test_scheduled_command_contracts.py`). The subprocess is substituted;
+   no provider or database is contacted.
 2. Prefect runtime checks for parallel submission, task retry settings,
    metrics-before-dependent-work ordering, and failure propagation.
-3. Confirm standalone flow names and deployment schedules resolve unchanged.
+3. Confirm standalone flow names and deployment schedules resolve unchanged in
+   the selected Prefect runtime; current tests inspect the checked-in source and
+   deployment file only.
 4. Check climate UUID conversion, cursor/connection cleanup on read failure,
    partial failure reports, timeouts, remaining-location continuation, and empty
    batches. Reconcile sensor input and climate/remote-sensing provider outcomes
@@ -89,9 +95,10 @@ the fan-out reports process outcomes, not verified acquisition of every dataset.
 5. Rehearse restart, lease expiry, duplicate delivery, and rollback before
    transferring any dispatcher ownership to the PostgreSQL scheduler.
 
-No runtime tests, migrations, deployment activation, or dispatcher cutover were
-performed in this slice. Static lint and provider boundary checks are separate
-from these acceptance gates.
+The new dispatcher checks are source-level and substitute subprocess execution.
+No Prefect server, provider, database, schedule activation, migration, or
+dispatcher cutover was exercised. Static lint and provider-boundary checks do
+not close those runtime gates.
 
 ## Rollback
 

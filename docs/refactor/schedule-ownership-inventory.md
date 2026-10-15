@@ -1,6 +1,6 @@
 # Batch 4 job schedule ownership and cutover inventory
 
-**Reviewed:** 12 October 2026
+**Reviewed:** 15 October 2026
 **Status:** Source-level inventory and target ownership policy; no schedule was
 registered, enabled, paused, or executed by this review.
 
@@ -44,9 +44,9 @@ state remains unknown.
 
 | Declared owner | UTC schedule | Work declared by the flow | Cutover/replay notes |
 | --- | --- | --- | --- |
-| Prefect `scheduled-hourly` | `0 * * * *` | sensors, anomaly detection, freshness | Sensor's shared job currently has no input contract and its CLI no-argument path prints help. Do not transfer sensor scheduling until it accepts a defined source. |
+| Prefect `scheduled-hourly` | `0 * * * *` | sensors, anomaly detection, freshness | Sensor's shared job has no recurring source contract. The CLI now rejects missing input and the shared job runner blocks before subprocess launch; do not transfer hourly sensor scheduling until a real source is defined. |
 | Prefect `scheduled-every-6h` | `0 */6 * * *` | weather, dashboard refresh, remote-sensing flow | Remote sensing has its own durable job claims and provider-level outcomes. Keep one outer trigger and let the internal worker own child attempts; inspect `no_data`, skipped, retryable, and terminal outcomes before replay. |
-| Prefect `scheduled-daily` | `0 6 * * *` | market data, metrics, credit-adjustment check | Metrics create draft, unverified values. The old cron/seed cadence is every four hours, so reconcile the intended cadence and existing output before cutover. Credit adjustment is outside the scheduler module allowlist; retain manual/Prefect ownership until its safety and execution contract is reviewed. |
+| Prefect `scheduled-daily` | `0 6 * * *` | market data, metrics, credit-adjustment check | Metrics create draft, unverified values. The old cron/seed cadence is every four hours, so reconcile the intended cadence and existing output before cutover. Credit adjustment is now allowlisted only for its read-only `--check-adjustments` operation; cadence, output handling, tenant scope, and accountable operator still need review before native registration. |
 | Prefect `scheduled-weekly` | `0 3 * * 0` | climate-data flow | The flow fans out across active locations; each invocation of the climate CLI uses `--all` to select datasets and a required `--location-id`. Native planning currently describes one location per scheduled task, so cutover must preserve the fan-out without duplicate all-location runs. The flow docstring mentions ML retraining, but the flow body does not run it. |
 | Prefect `full-pipeline` | Manual only | ingestion, monitoring, analytics, then remote sensing | Manual runs can overlap scheduled deployments. Require an operator to check current run state or route through a single guarded workflow before enabling native schedules. |
 

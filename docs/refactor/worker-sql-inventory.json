@@ -3694,9 +3694,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:87:12",
+      "id": "services/ingestion/sensor_ingester.py:114:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 87,
+      "line": 114,
       "column": 12,
       "scope": "get_sensor_type_ranges",
       "method": "execute",
@@ -3711,9 +3711,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:100:8",
+      "id": "services/ingestion/sensor_ingester.py:127:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 100,
+      "line": 127,
       "column": 8,
       "scope": "get_active_sensors",
       "method": "execute",
@@ -3729,9 +3729,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:113:8",
+      "id": "services/ingestion/sensor_ingester.py:140:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 113,
+      "line": 140,
       "column": 8,
       "scope": "get_sensor_by_id_or_slug",
       "method": "execute",
@@ -3747,9 +3747,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:132:8",
+      "id": "services/ingestion/sensor_ingester.py:159:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 132,
+      "line": 159,
       "column": 8,
       "scope": "insert_reading",
       "method": "execute",
@@ -3765,9 +3765,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:154:8",
+      "id": "services/ingestion/sensor_ingester.py:181:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 154,
+      "line": 181,
       "column": 8,
       "scope": "insert_reading",
       "method": "execute",
@@ -3782,9 +3782,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:178:12",
+      "id": "services/ingestion/sensor_ingester.py:205:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 178,
+      "line": 205,
       "column": 12,
       "scope": "insert_reading_clickhouse",
       "method": "execute",
@@ -3799,9 +3799,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:465:8",
+      "id": "services/ingestion/sensor_ingester.py:492:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 465,
+      "line": 492,
       "column": 8,
       "scope": "check_calibration_status",
       "method": "execute",
@@ -3818,9 +3818,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:508:12",
+      "id": "services/ingestion/sensor_ingester.py:535:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 508,
+      "line": 535,
       "column": 12,
       "scope": "list_calibration_status",
       "method": "execute",

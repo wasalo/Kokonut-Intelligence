@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-15",
+  "check": "runtime_and_worker_sql_inventory_refresh",
+  "commands": [
+    "python3 scripts/runtime_sql_inventory.py --output docs/refactor/runtime-sql-inventory.json",
+    "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+    "python3 scripts/worker_sql_inventory.py --output docs/refactor/worker-sql-inventory.json",
+    "python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json"
+  ],
+  "results": {
+    "runtime_inventory_check": "passed",
+    "worker_inventory_check": "passed",
+    "runtime_source_files": 805,
+    "runtime_sql_execution_sites": 3758,
+    "worker_operation_roots": 18,
+    "worker_source_files": 73,
+    "worker_sql_execution_sites": 240,
+    "sql_fingerprints_added": 0,
+    "sql_fingerprints_removed": 0
+  },
+  "comparison": "Compared generated records against the prior committed snapshots while ignoring source line/column positions. No SQL fingerprints or worker SQL operations were added or removed; the refresh updates the current source-file count and line locations.",
+  "runtime_scope": "Static source inventory only. No database, provider, worker, candidate, or legacy runtime was accessed or changed.",
+  "limitations": [
+    "Regex-derived relation names are review hints, not an authorization map.",
+    "The inventories do not prove transitive runtime effects, tenant context, least-privilege grants, or RLS safety."
+  ]
+}
