@@ -302,6 +302,20 @@ signed RLS context remain open
 [evidence](builds/2026-10-15-recovery/directus-tenant-authorization-unit.json);
 [parity inventory](directus-parity-inventory.md)).
 
+The optional Kernel Directus overlay was then exercised against a fresh,
+disposable Compose PostgreSQL volume. The check built the hook artifact,
+provisioned the dedicated DML-only login, created the migration-owned schema
+fixture, completed owner-backed metadata bootstrap, and verified Directus
+health and synthetic administrator login (both HTTP 200). PostgreSQL confirmed
+the service used `kokonut_directus_runtime`; the loopback-only project, volume,
+and network were removed afterward. The acceptance did not access candidate
+or legacy data. Sixty-two focused Python tests, Ruff, Python compilation, and
+capability-matrix validation also pass. This validates deployment wiring only;
+Directus API parity and ARM64 runtime acceptance remain open
+([profile](kernel-directus-profile.md);
+[runner](../../scripts/check-directus-profile-disposable.py);
+[evidence](builds/2026-10-15-recovery/directus-profile-disposable.json)).
+
 ### Sensor CLI explicit-input contract — 15 October 2026
 
 The sensor CLI no longer reports success when called without a source. Empty,

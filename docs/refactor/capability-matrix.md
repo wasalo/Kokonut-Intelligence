@@ -80,9 +80,11 @@ database, and keeps Directus out of the default profiles. Focused role-input and
 profile-planner checks pass. The role bootstrap revokes `PUBLIC CONNECT` across
 its dedicated PostgreSQL instance, so it must not run on a shared/legacy
 server. Seventeen focused role/planner tests and internal-only PostgreSQL
-acceptance pass. This closes a deployment identity gap only; Directus API
-role/field/row/relation/hook parity remains open ([profile](kernel-directus-profile.md);
-[role policy](optional-database-roles.md); [role evidence](builds/2026-10-15-recovery/directus-runtime-role-disposable.json)).
+acceptance pass; a fresh-volume run through the actual Compose overlay also
+passed owner bootstrap, runtime health, synthetic admin login, and runtime
+database-identity checks. This closes a deployment identity gap only; Directus
+API role/field/row/relation/hook parity remains open ([profile](kernel-directus-profile.md);
+[role policy](optional-database-roles.md); [role evidence](builds/2026-10-15-recovery/directus-runtime-role-disposable.json); [profile evidence](builds/2026-10-15-recovery/directus-profile-disposable.json)).
 
 **15 October 2026 sensor source contract guard (CAP-040 / CAP-047):** the
 sensor CLI now rejects absent, incomplete, or conflicting operation inputs

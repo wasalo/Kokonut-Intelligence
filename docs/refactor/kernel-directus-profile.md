@@ -20,11 +20,14 @@ make hooks-build
 source scripts/load-secrets.sh
 python3 scripts/kernel-profile.py minimal --directus
 python3 scripts/check-directus-role-disposable.py
+python3 scripts/check-directus-profile-disposable.py
 ```
 
 The profile planner prints a Compose command; it does not execute it. The
 disposable role check creates and removes an internal-only PostgreSQL project
-with synthetic credentials. For repeatable candidate operations, set a
+with synthetic credentials. The profile check exercises the actual overlay,
+including owner bootstrap, runtime health, synthetic admin login, and database
+identity, then removes its volume. For repeatable candidate operations, set a
 project name and use the two explicit manifests:
 
 ```sh

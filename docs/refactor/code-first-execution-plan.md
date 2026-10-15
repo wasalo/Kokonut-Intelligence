@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **363 checked and 20 open items (383 total)**,
+- The execution checklist has **364 checked and 20 open items (384 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery, seed rollout,
@@ -22,9 +22,9 @@ MAN-CAP checks open until each has its own retained evidence.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Eight local commits are now held
+  in progress at the last recorded check. Nine local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
-  role/profile batches. The
+  role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
   CI has not yet evaluated these commits. The pushed batch includes report calculation and scheduler worker
   recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
