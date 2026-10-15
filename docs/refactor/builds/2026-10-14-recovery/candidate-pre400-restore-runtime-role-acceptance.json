@@ -1,0 +1,128 @@
+{
+  "record_type": "candidate_pre400_checkpoint_restore_and_runtime_role_acceptance",
+  "recorded_at": "2026-10-15T01:18:44.049907+00:00",
+  "branch": "feat/mobile-offline-acceptance",
+  "checkout_head_before_batch_commit": "41412764f8281deea52670bf49de4234aca6e0bd",
+  "last_pushed_head_ci": {
+    "commit": "41412764f8281deea52670bf49de4234aca6e0bd",
+    "ci_run": {
+      "number": 313,
+      "id": 38659182539,
+      "conclusion": "success"
+    },
+    "security_run": {
+      "number": 37,
+      "id": 38659182609,
+      "conclusion": "success"
+    },
+    "verified_for_pushed_head_only": true
+  },
+  "checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-400-20261015T000725Z/postgres.dump.age",
+    "sha256": "dbb55a8eff79b4c9f10d5c10f866f872c0d528b8b2b9ddb28ec26a22d926b735",
+    "bytes": 5642916,
+    "age_authentication": "passed; decrypted stream sent directly to pg_restore",
+    "plaintext_archive_written": false,
+    "source_database": "kokonut_intelligence",
+    "source_database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "scope": "single PostgreSQL database; cluster roles and grants excluded"
+  },
+  "restore": {
+    "project": "kokonut-kernel-restore-pre400-20261014",
+    "target_database": "kokonut_restore",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "postgres": "16.4",
+    "postgis": "3.4",
+    "platform": "linux/amd64",
+    "destination_created_from": "template0",
+    "database_only_pre_restore_role_prerequisites": "passed",
+    "pg_restore": "passed with --exit-on-error --single-transaction --no-owner --no-privileges",
+    "restored_public_table_count": 1010,
+    "initial_attempt": "aborted transactionally while the image entrypoint restarted PostgreSQL after temporary pg_isready success; empty target was confirmed before retry",
+    "successful_retry": "waited for Compose health=healthy before replay; completed",
+    "host_ports_published": false,
+    "network_internal": true,
+    "container_after_acceptance": "stopped; recovery volume retained",
+    "domain_data_scope_note": "The exact candidate archive restored 1010 public tables but contained zero public location rows; this proves database/role recovery, not farm-data parity."
+  },
+  "ordered_migrations": {
+    "before": [
+      "schema:400_operator_auth_security_schema_usage.sql"
+    ],
+    "applied": [
+      "schema:400_operator_auth_security_schema_usage.sql"
+    ],
+    "failed": 0,
+    "after_pending": 0,
+    "schema_migration_rows": 392,
+    "checksum_drift": false
+  },
+  "runtime_role_bootstrap": {
+    "fixture": "scripts/fixtures/kernel-db-runtime-role-populated-check.py",
+    "result": "passed",
+    "provisioning_replay": [
+      "provisioned",
+      "provisioned"
+    ],
+    "public_location_projection_query": "passed; zero rows returned; only aggregate count emitted",
+    "postgis_and_srid": "passed; SRID 4326",
+    "synthetic_probe": "SELECT/INSERT/UPDATE/DELETE and sequence usage passed; table removed in finally",
+    "denied_actions": [
+      "persistent table DDL",
+      "CREATE ROLE",
+      "CREATE DATABASE",
+      "SET ROLE admin"
+    ],
+    "direct_mobile_credential_reads_denied": [
+      "device_token_hash",
+      "push_token",
+      "code_hash"
+    ],
+    "unrelated_database_connections_denied": [
+      "postgres",
+      "kokonut_intelligence"
+    ],
+    "runtime_role_privileges": {
+      "superuser": false,
+      "createdb": false,
+      "createrole": false,
+      "replication": false,
+      "bypassrls": false,
+      "inherit": false,
+      "public_schema_create": false
+    },
+    "operator_auth_role_privileges": {
+      "superuser": false,
+      "createdb": false,
+      "createrole": false,
+      "replication": false,
+      "bypassrls": false,
+      "inherit": false,
+      "public_schema_create": false
+    },
+    "synthetic_credentials_printed_or_retained": false,
+    "remaining_synthetic_probe_tables": 0
+  },
+  "isolation": {
+    "candidate_database_changed": false,
+    "legacy_stack_changed": false,
+    "candidate_app_health_after": "healthy",
+    "metabase_changed": false,
+    "seed_sql_run": false,
+    "application_table_rls_enabled": false
+  },
+  "related_forced_rls_acceptance": "Earlier separate synthetic owner/ACL-loss fixture passed forced-RLS device revocation and operator-auth checks; this populated restore check does not enable RLS.",
+  "source_sha256": {
+    "docker-compose.kernel-recovery.yml": "6f4ab683d48947f438f8a11002cf53d8c0389516059620ebd026af2e2a9b609b",
+    "scripts/kernel-restore-role-prerequisites.sql": "ab8fa8cecf77a67791a8031b62f953ce511bcb42369e1c661b8ce211c730497d",
+    "schemas/postgres/400_operator_auth_security_schema_usage.sql": "6292589f8d50a962f6241b9e9be142ab129f22f82e27bc7d56a077b2903fe15f",
+    "services/migration/runtime_role.py": "bcbec6193035ddf261782340cb665dc1e047317d63c0a647334fd1a18eeb0be7",
+    "scripts/fixtures/kernel-db-runtime-role-populated-check.py": "7f03fd8b4121ac9e3e3872014d3bd10bdad629add4301eb879f377945a046999"
+  },
+  "limitations": [
+    "This proves exact checkpoint restore plus migration-400 and runtime-role recovery on the full candidate database archive, which contained zero public location rows; it is not farm-data parity, a production restore, or application-RLS authorization acceptance.",
+    "The local candidate still uses the kokonut superuser; provisioning candidate runtime credentials remains separately gated.",
+    "Directus API policy/hook parity, external provider recovery, and physical Raspberry Pi behavior remain open.",
+    "CI #313 and Security #37 cover the pushed head before this local fixture correction and evidence update; the resulting batch requires its own CI run after push."
+  ]
+}

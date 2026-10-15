@@ -85,7 +85,13 @@ def main() -> int:
                 raise AssertionError("connected database does not match the isolated restore target")
             cur.execute(OPERATOR_SESSION_MIGRATION.read_text())
             cur.execute(GATEWAY_CONTEXT_MIGRATION.read_text())
+            cur.execute(
+                sql.SQL(
+                    "CREATE TABLE public.{} (id BIGSERIAL PRIMARY KEY, payload TEXT NOT NULL)"
+                ).format(sql.Identifier(probe_table))
+            )
         admin.commit()
+        probe_created = True
 
         first = provision_runtime_role(
             admin,
@@ -117,21 +123,6 @@ def main() -> int:
             postgis_version, srid = cur.fetchone()
             cur.execute("SELECT count(*) FROM schema_migration")
             migration_count = cur.fetchone()[0]
-            cur.execute(
-                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relname = %s)",
-                (probe_table,),
-            )
-            if cur.fetchone()[0]:
-                raise AssertionError("synthetic probe table name unexpectedly exists")
-
-        with admin.cursor() as cur:
-            cur.execute(
-                sql.SQL(
-                    "CREATE TABLE public.{} (id BIGSERIAL PRIMARY KEY, payload TEXT NOT NULL)"
-                ).format(sql.Identifier(probe_table))
-            )
-        admin.commit()
-        probe_created = True
 
         with runtime.cursor() as cur:
             cur.execute(

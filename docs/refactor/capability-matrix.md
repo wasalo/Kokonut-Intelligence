@@ -36,20 +36,28 @@ dynamic or indirect paths require review before narrowing runtime grants. The
 report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
 [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
-**Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 was
-pushed through `de5bd4e322d0dbba730568b88a9054be3af0db34`; at the last recorded
-check CI run [#312](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190755)
-was in progress and Security run [#36](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38641190773)
-had passed. The last passing head was `7953afe4d5267b040392a8fe52e1ae38c236cfd4`.
-CI run [#308](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258026)
-and Security run [#32](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38598258017)
-both passed on that earlier head. CI #307 failed because its OIDC Compose test fixture
-did not provide the required test-only operator-auth password before checking
-the missing issuer; commit `7953afe` corrects the fixture. The release CI gate
-passed on `7953afe`; this does not cover the newer `de5bd4e` push. The named
-MAN-CAP checks remain open.
+**Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 is
+pushed through `41412764f8281deea52670bf49de4234aca6e0bd`. CI run
+[#313](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38659182539)
+and Security run
+[#37](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38659182609)
+both passed on that head. The current local restore-fixture and documentation
+batch is not included in those runs and needs CI after its next push. The
+earlier CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32
+are historical, not current-head coverage. The named MAN-CAP checks remain
+open.
 See [the code-first execution plan](code-first-execution-plan.md) for the
 remaining work order and the Raspberry Pi code-only assessment scope.
+
+**14 October 2026 database restore/bootstrap (CAP-047 / CAP-053
+implementation follow-up):** the exact encrypted pre-400 candidate checkpoint
+was restored into an internal-only template0 clone, migration 400 was replayed
+with zero pending/drift, and the runtime/operator-auth bootstrap passed its
+repeatability, grant, denial, and synthetic DML checks. The archive had 1,010
+public tables but zero public location rows; this proves database/role recovery
+and not farm-data parity. The recovery volume is retained with its container
+stopped. It does not provision candidate credentials, enable RLS, or accept
+either named MAN-CAP check ([evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)).
 
 The preceding CI #304 on `8aa33e24f169f15afb249a53ae3d281ed8d843a2`
 completed with five failures, 4,632 passed tests, and 75 passed subtests; its

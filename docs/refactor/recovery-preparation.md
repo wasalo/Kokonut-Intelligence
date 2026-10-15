@@ -139,3 +139,16 @@ with age encryption; logical session/message inventory and archive restore pendi
 Recovery container stopped with volume retained; source deployments unchanged.
 [Retained evidence](builds/2026-10-10-recovery/README.md). No acceptance suites run. Batch 2 stays open
 for complete provider ownership, independent backup copy and populated recovery.
+
+### Candidate pre-400 database restore and role rehearsal — 14 October 2026
+
+The exact encrypted pre-400 candidate database archive was authenticated and
+restored into a new internal-only PostgreSQL 16.4/PostGIS 3.4 `template0`
+clone. Migration 400 was the only pending schema source; it replayed through
+the ordered runner and the follow-up plan had zero pending migrations. The
+runtime/operator-auth role bootstrap passed against this restored database
+copy. The archive restored 1,010 public tables but contained zero public
+location rows; this closes database/role recovery for this checkpoint and does
+not prove farm-data parity or complete legacy/provider recovery. The database
+container is stopped and its recovery volume retained. See the
+[candidate restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json).

@@ -1,14 +1,14 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. The pre-400 checkpoint is retained but not itself restore-rehearsed; a restored pre-398 clone replayed 398–400, while separate synthetic owner/ACL-loss forced-RLS acceptance passed. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `de5bd4e`; at the last recorded remote check CI #312 was in progress and Security #36 had passed. The last CI-verified head is `7953afe4d5267b040392a8fe52e1ae38c236cfd4`, where CI #308 and Security #32 passed. At this progress snapshot, commits and working-tree changes after pushed head `de5bd4e` were queued for the next batch push. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 14 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The exact pre-400 checkpoint has now been restore-rehearsed, migration 400 replayed, and runtime/operator-auth role bootstrap accepted on the isolated clone. It restored 1,010 public tables but had zero public location rows, so this is not farm-data parity ([restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `41412764f8281deea52670bf49de4234aca6e0bd`. CI #313 and Security #37 passed on that pushed head. The local fixture/evidence updates below are not included in those checks and will receive CI after the next batched push. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
-Do not treat CI #308 and Security #32 as coverage for commits after their
-verified head. The pushed batch through `de5bd4e` includes provider-aware
+Do not treat earlier CI runs as coverage for commits after their
+verified head. The pushed batch through `4141276` includes provider-aware
 backup/restore, gRPC auth-context lifecycle fixes, and focused RPC policy and
 optional-provider inventories, plus the worker import closure, SQL inventory,
-dynamic SQL review, and helper-caller trace. CI #312 is in progress and Security #36 passed
+dynamic SQL review, and helper-caller trace. CI #313 and Security #37 passed
 for that batch. The eight-suite platform-integrity set passed 290 tests on
 local commit `238e2ef`. The root implementation plan
 remains intentionally ignored; this ledger and the
@@ -5098,12 +5098,14 @@ the policy-referenced role names before `pg_restore`; the runtime bootstrap now
 fails closed if any protected function has an unexpected or elevated owner.
 
 The encrypted pre-400 candidate checkpoint is retained for rollback. A restored
-pre-398 clone replayed migrations 398–400, but the role bootstrap did not
-complete on that populated clone because host-side Docker port access failed.
-A separate private-network synthetic owner/ACL-loss fixture passed bootstrap,
-forced-RLS bounded device revocation, and operator authentication without
-direct session/identity table reads. The limitation is explicit in the
-[migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json).
+pre-398 clone replayed migrations 398–400, but at rollout time the role
+bootstrap did not complete on that populated clone because host-side Docker
+port access failed. A separate private-network synthetic owner/ACL-loss fixture
+passed bootstrap, forced-RLS bounded device revocation, and operator
+authentication without direct session/identity table reads. The later exact
+pre-400 restore and populated-clone bootstrap are recorded below. The migration
+rollout evidence remains a historical snapshot
+([migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)).
 
 Migration 400 is applied on the candidate: 391 schema migrations through 400,
 zero pending/drift, one seed ledger entry, 120 seed sources pending, RLS still
@@ -5113,3 +5115,23 @@ were not altered. The candidate still uses the `kokonut` superuser until
 separate runtime credentials are provisioned. Focused checks passed 153 tests,
 512 migration sources, Ruff, and `git diff --check`. Raspberry Pi acceptance
 remains code-only.
+
+### Exact pre-400 candidate database restore and role bootstrap — 14 October 2026
+
+The exact age-encrypted pre-400 checkpoint was authenticated and restored
+without writing a plaintext archive into a new internal-only PostgreSQL 16.4 /
+PostGIS 3.4 `template0` clone. Ordered planning found only migration 400
+pending; it applied with zero failures and a second plan reported zero pending.
+The restored-copy role bootstrap passed twice with random synthetic
+credentials. Native DML/sequence access, PostGIS and the public-location
+projection passed; privileged DDL/role/database actions, mobile credential
+column reads, and connections to unrelated databases were denied. The archive
+had 1,010 public tables but zero public location rows; farm-data parity remains
+unproven. Both non-superuser logins had `BYPASSRLS` and inheritance disabled,
+and the synthetic probe table was removed. The container is stopped with its volume retained;
+the candidate remained healthy and unchanged. The first restore attempt raced
+the PostGIS image's initialization restart and rolled back transactionally;
+the successful retry waited for the database healthcheck. Full evidence is in
+[`candidate-pre400-restore-runtime-role-acceptance.json`](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json).
+This does not provision credentials on the candidate, enable application RLS,
+or complete Directus/API runtime parity.

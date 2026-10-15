@@ -2,9 +2,9 @@
 
 **Updated:** 14 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Last CI-verified pushed head:** `7953afe4d5267b040392a8fe52e1ae38c236cfd4`
-**Last passing release checks:** CI #308 and Security #32 passed on pushed head
-`7953afe4d5267b040392a8fe52e1ae38c236cfd4`.
+**Last CI-verified pushed head:** `41412764f8281deea52670bf49de4234aca6e0bd`
+**Last passing release checks:** CI #313 and Security #37 passed on pushed head
+`41412764f8281deea52670bf49de4234aca6e0bd`.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -15,11 +15,10 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 321 checked and 19 open items (340 total).
-- Before the migration-400 batch, the latest pushed implementation was `de5bd4e`; at the last recorded
-  check CI #312 was in progress and Security #36 had passed. The last
-  CI-verified head remains `7953afe` (CI #308
-  and Security #32 passed).
+- The execution checklist has 323 checked and 19 open items (342 total).
+- The latest pushed implementation is `4141276`; CI #313 and Security #37 both
+  passed on this exact commit. The current restore-fixture/evidence batch is
+  local and remains outside those runs until the next push.
 - The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
   gRPC streaming-auth lifecycle fixes, and focused RPC policy and
   optional-provider inventories. Earlier pushed work retires the unscoped
@@ -64,11 +63,14 @@ MAN-CAP checks open until each has its own retained evidence.
   restore. Migration 400 restores six restricted function-owner roles, their
   narrow privileges, SECURITY DEFINER ownership, and runtime/operator-auth
   schema access. A restored pre-398 clone replayed migrations 398–400; synthetic
-  owner/ACL-loss forced-RLS acceptance passed. The populated-clone role bootstrap
-  did not complete, so full restore acceptance remains open. The candidate has
-  391 applied schemas through 400 and its app is healthy, but still uses the
-  `kokonut` superuser because dedicated runtime credentials are absent;
-  authenticated HTTP under that role remains a human-input gate ([evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)).
+  owner/ACL-loss forced-RLS acceptance passed. The exact pre-400 checkpoint is
+  now restore-rehearsed, migration 400 replayed, and runtime/operator-auth role
+  bootstrap accepted on the exact restored database clone. That archive had
+  1,010 public tables but zero public location rows, so farm-data parity remains
+  open. The candidate has 391
+  applied schemas through 400 and its app is healthy, but still uses the
+  `kokonut` superuser because candidate runtime credentials are absent;
+  authenticated HTTP under that role remains an owner-input gate ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json); [restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)).
   The climate compatibility path stores schema-aligned `latitude_proxy_v1`
   estimates; migrations 392–397 passed ordered PostgreSQL 16 application and
   replay on a restored candidate checkpoint, including migration 397's
@@ -90,17 +92,19 @@ MAN-CAP checks open until each has its own retained evidence.
   support a PostgreSQL-only profile, record provider inclusion, and preflight
   required services before writing/restoring data; fake-Compose checks cover
   both ClickHouse-disabled and ClickHouse-enabled paths.
-  Focused source/disposable checks pass;
-  at this plan snapshot, remote CI had not run for these newer changes.
+  Focused source/disposable checks pass. The subsequent pushed head
+  `4141276` passed CI #313 and Security #37; the current unpushed restore
+  fixture/evidence update still needs a later CI run.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–400 were applied schema-only after encrypted
   checkpoints and isolated restore/replay work. The current candidate has 391
   applied schemas through 400, one curated seed, zero pending/failed schema
-  migrations, and no application-table RLS. The migration-400 pre-change
-  checkpoint is retained but not itself restore-rehearsed. The candidate app was
+  migrations, and no application-table RLS. The exact pre-400 checkpoint is
+  retained and restore-rehearsed in an isolated clone; it contained zero
+  public location rows, so farm-data parity remains open. The candidate app was
   not recreated for migration 400; health remains 200 and anonymous protected
-  device revocation returns 401. See [migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json).
+  device revocation returns 401. See [migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json) and [restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json).
   The separate 30-seed candidate rollout remains approval-gated under OFU-17;
   the other 90 sources were not selected.
 - Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
@@ -120,15 +124,15 @@ MAN-CAP checks open until each has its own retained evidence.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI #308 finished successfully on `7953afe`; Security #32 also
-passed on the same commit. The CI #307 OIDC Compose fixture failure was fixed
-before this run by supplying the test-only operator-auth password before
-checking the missing issuer configuration.
+**Action:** CI #313 and Security #37 finished successfully on pushed head
+`41412764f8281deea52670bf49de4234aca6e0bd`. The CI #307 OIDC Compose fixture
+failure was fixed earlier by supplying the test-only operator-auth password
+before checking the missing issuer configuration.
 
-**Acceptance:** satisfied for pushed head `7953afe`: CI #308 and Security #32
+**Acceptance:** satisfied for pushed head `4141276`: CI #313 and Security #37
 both passed. The check status and commit are recorded in this plan,
-`batches.md`, `progress.md`, and the capability-matrix verification note. Do
-not count the earlier CI #307 failure as current-head coverage.
+`batches.md`, `progress.md`, and the capability-matrix verification note. The
+local batch in progress still needs its own CI after push.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -227,9 +231,9 @@ before protected reads and writes, and make direct database access fail closed.
 
 **Acceptance:** disposable PostgreSQL tests cover owner/shared scope, denial,
 revocation, stale context, cleanup, least-privilege grants, worker/CLI behavior,
-and migration replay. The candidate rollout of migrations
-392–400 is complete; worker, remaining runtime-role, Directus/view, ownership,
-and RLS gates remain open.
+and migration replay. The candidate rollout of migrations 392–400 and the
+populated pre-400 restore/runtime-role replay are complete; worker, remaining
+runtime-role, Directus/view, ownership, and RLS gates remain open.
 Non-demo location owners and legacy OIDC affiliations are human inputs under
 OFU-01/02; use only the already-confirmed Kokonut Network demo mapping in
 synthetic tests.
@@ -448,8 +452,8 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. CI #308 passed on pushed head `7953afe`; accumulate the next
-coherent batch before pushing so the repository does not start CI for each
-small commit. Never push directly to `main`. Keep each candidate database
+requested. CI #313 and Security #37 passed on pushed head `4141276`; accumulate
+the next coherent batch before pushing so the repository does not start CI for
+each small commit. Never push directly to `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable
 acceptance are complete.
