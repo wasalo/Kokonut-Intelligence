@@ -138,6 +138,16 @@ entity-level hold model was inferred. The switch must remain off until those
 controls are approved and implemented; MAN-CAP-051 remains open
 ([implementation](../../services/analytics/retention.py); [evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
 
+**15 October 2026 worker reconnect contract (CAP-047):** scheduler ticks now
+use fresh bounded-timeout PostgreSQL connections while keeping a stable worker
+identity; two fault-injection tests prove that connection and tick failures do
+not prevent a later tick from succeeding. Together with the scheduler
+durability suite, 10 tests pass and Ruff is clean. A loopback-only disposable
+PostgreSQL stop/start check also confirms the process survives the outage and
+connects successfully after restart; its scheduler engine was stubbed, so real
+task/lease recovery, provider delivery and long-duration acceptance remain
+open. MAN-CAP-047 is not accepted ([unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json)).
+
 **14 October 2026 supervisor contract (CAP-047):** four focused tests cover
 graceful shutdown, process-group escalation, unexpected zero exit, and
 partial-launch cleanup; one POSIX integration case verifies SIGTERM delivery

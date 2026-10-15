@@ -5566,3 +5566,19 @@ candidate write.
 
 No test suite was added or run for this batch. `git diff --check` passed.
 Candidate databases, the legacy stack, R2, and GitHub were not changed.
+
+### Scheduler worker discards broken database connections — 15 October 2026
+
+The scheduler previously held one PostgreSQL connection for its full process
+lifetime. A broken connection could then fail again in the error handler's
+`rollback()` and prevent the worker from reconnecting. Each tick now opens a
+fresh connection with a bounded five-second connect timeout, retains the same
+worker identity across ticks, and discards the connection after success or
+failure. Two fault-injection tests verify recovery on a later tick after a
+connection or tick error; the scheduler durability suite also passes (10
+focused tests total), and Ruff is clean. A loopback-only disposable PostgreSQL
+stop/start check confirms that the worker process survives the outage and
+connects successfully after restart. The test stubbed scheduler task execution;
+actual task SQL, lease recovery, provider delivery, and long-duration outage
+acceptance remain open. The candidate and legacy databases were not accessed.
+[Unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json).

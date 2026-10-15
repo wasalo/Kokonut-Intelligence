@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import signal
 import time
+import uuid
 
 from services.common.database import get_db
 from services.common.logging import get_logger
@@ -26,34 +27,53 @@ def _shutdown(signum, frame):
 
 def run_worker(tick_interval: int = 30, worker_id: str | None = None):
     """Run the scheduler worker loop."""
+    if tick_interval <= 0:
+        raise ValueError("tick_interval must be positive")
+
     signal.signal(signal.SIGTERM, _shutdown)
     signal.signal(signal.SIGINT, _shutdown)
 
-    conn = get_db()
+    worker_id = worker_id or f"worker-{uuid.uuid4().hex[:8]}"
+    logger.info("Scheduler worker started (tick=%ds, worker=%s)", tick_interval, worker_id)
+
     try:
-        engine = get_scheduler(conn, worker_id=worker_id)
-        logger.info("Scheduler worker started (tick=%ds, worker=%s)", tick_interval, engine.worker_id)
-
         while _running:
-            try:
-                stats = engine.tick()
-                if stats["launched"] > 0 or stats["failed"] > 0:
-                    logger.info(
-                        "Tick complete: launched=%d failed=%d skipped=%d no_resources=%d",
-                        stats["launched"], stats["failed"], stats["skipped"], stats["no_resources"],
-                    )
-            except Exception:
-                conn.rollback()
-                logger.exception("Scheduler tick failed")
+            _run_tick(worker_id)
 
-            # Sleep in small increments so we respond to signals quickly
+            # Sleep in small increments so we respond to signals quickly. A
+            # later tick obtains a new connection after a transient DB outage.
             for _ in range(tick_interval):
                 if not _running:
                     break
                 time.sleep(1.0)
     finally:
         logger.info("Scheduler worker stopped")
-        conn.close()
+
+
+def _run_tick(worker_id: str) -> dict[str, int] | None:
+    """Run one tick with a disposable connection so broken sessions are discarded."""
+    conn = None
+    try:
+        conn = get_db(connect_timeout=5)
+        engine = get_scheduler(conn, worker_id=worker_id)
+        stats = engine.tick()
+        if stats["launched"] > 0 or stats["failed"] > 0:
+            logger.info(
+                "Tick complete: launched=%d failed=%d skipped=%d no_resources=%d",
+                stats["launched"], stats["failed"], stats["skipped"], stats["no_resources"],
+            )
+        return stats
+    except Exception:
+        # Do not call rollback on a connection that may itself have failed. A
+        # close discards the transaction; the next loop iteration reconnects.
+        logger.exception("Scheduler tick failed")
+        return None
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                logger.warning("Failed to close scheduler tick connection", exc_info=True)
 
 
 def main():
