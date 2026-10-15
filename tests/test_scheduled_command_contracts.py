@@ -44,6 +44,8 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
         ("services.analytics.carbon_credits", ["--check-adjustments"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once", "--limit", "100"]),
         (
@@ -76,6 +78,11 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.events", ["--worker"]),
         ("services.events", ["--dispose-dead-letter", "--event-id", str(uuid4())]),
         ("services.analytics.carbon_credits", []),
+        ("services.ingestion.remote_sensing_fetcher", []),
+        ("services.ingestion.remote_sensing_fetcher", ["--list-jobs"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "0"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "11"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--location-id", str(uuid4())]),
         ("services.ingestion.clickhouse_outbox", []),
         ("services.ingestion.clickhouse_outbox", ["--reconcile"]),
         ("services.ingestion.clickhouse_outbox", ["--list-dead-letter"]),
@@ -109,6 +116,14 @@ def test_projection_job_is_scheduler_allowed_but_restricted_to_one_delivery_batc
     assert job.module == "services.ingestion.clickhouse_outbox"
     assert job.scheduler_allowed
     assert validate_scheduled_command(job.module, list(job.arguments)) == ("--run-once", "--limit", "100")
+
+
+def test_remote_sensing_job_defaults_to_one_due_job_batch():
+    job = JOBS["remote_sensing"]
+
+    assert job.module == "services.ingestion.remote_sensing_fetcher"
+    assert job.scheduler_allowed
+    assert validate_scheduled_command(job.module, list(job.arguments)) == ("--run-jobs", "--limit", "1")
 
 
 def test_sensor_job_rejects_missing_source_before_launching_the_noop_cli():

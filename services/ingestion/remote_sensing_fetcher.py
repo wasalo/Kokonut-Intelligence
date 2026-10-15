@@ -20,12 +20,15 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
 from .base import get_db
-from services.common.cli import print_json
+
 logger = get_logger("ingestion.remote_sensing_fetcher")
 
 PROVIDERS = ("gee", "copernicus")
+MAX_RUN_BATCH_SIZE = 10
 RETRYABLE_MESSAGES = re.compile(
     r"(timeout|timed out|temporar|unavailable|connection|rate limit|429|502|503|504|try again)",
     re.IGNORECASE,
@@ -82,7 +85,7 @@ def _query_active_jobs(conn) -> List[Dict[str, Any]]:
 
 
 def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
-    """Claim due jobs atomically so concurrent workers do not fetch twice."""
+    """Claim one due job atomically so queued leases do not expire in a batch."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     worker = f"remote-sensing-{uuid.uuid4()}"
     try:
@@ -95,6 +98,7 @@ def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
               AND (next_run_at IS NULL OR next_run_at <= NOW())
               AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
             ORDER BY next_run_at NULLS FIRST
+            LIMIT 1
             FOR UPDATE SKIP LOCKED
         )
         UPDATE remote_sensing_job j
@@ -352,17 +356,22 @@ def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def run_due_jobs(conn) -> Dict[str, Any]:
-    """Run all due remote sensing fetch jobs."""
-    jobs = _claim_due_jobs(conn)
-    if not jobs:
-        return {"status": "no_jobs_due", "executed": 0}
+def run_due_jobs(conn, limit: int = 1) -> Dict[str, Any]:
+    """Run a bounded number of due jobs, claiming each only when ready."""
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_RUN_BATCH_SIZE:
+        raise ValueError(f"limit must be an integer between 1 and {MAX_RUN_BATCH_SIZE}")
 
     results = []
-    for job in jobs:
+    for _ in range(limit):
+        jobs = _claim_due_jobs(conn)
+        if not jobs:
+            break
+        job = jobs[0]
         logger.info("Running job %s (provider=%s)", str(job["id"])[:8], job.get("provider"))
-        result = fetch_job(conn, job)
-        results.append(result)
+        results.append(fetch_job(conn, job))
+
+    if not results:
+        return {"status": "no_jobs_due", "executed": 0}
 
     success = sum(1 for r in results if r.get("status") == "success")
     return {
@@ -392,7 +401,13 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Remote sensing fetch orchestrator")
-    parser.add_argument("--run-jobs", action="store_true", help="Run all due jobs")
+    parser.add_argument("--run-jobs", action="store_true", help="Run a bounded batch of due jobs")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=1,
+        help=f"Maximum due jobs to run sequentially (1-{MAX_RUN_BATCH_SIZE}; default: 1)",
+    )
     parser.add_argument("--list-jobs", action="store_true", help="List all jobs")
     parser.add_argument("--job-id", help="Run a specific job by ID")
     parser.add_argument("--location-id", help="Location UUID for new job")
@@ -400,10 +415,13 @@ if __name__ == "__main__":
     parser.add_argument("--cadence-days", type=int, default=7)
     args = parser.parse_args()
 
+    if args.run_jobs and not 1 <= args.limit <= MAX_RUN_BATCH_SIZE:
+        parser.error(f"--limit must be between 1 and {MAX_RUN_BATCH_SIZE}")
+
     conn = get_db()
     try:
         if args.run_jobs:
-            result = run_due_jobs(conn)
+            result = run_due_jobs(conn, limit=args.limit)
             print_json(result)
         elif args.list_jobs:
             result = list_jobs(conn)

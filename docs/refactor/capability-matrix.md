@@ -103,11 +103,11 @@ arguments, and timeout, retains nonzero exit codes with diagnostics capped at
 dispatch before process creation. Sixty-eight
 dispatcher/command checks and Ruff pass with subprocesses substituted. The
 runtime SQL inventory now covers 806 service source files. A follow-up worker
-inventory refresh after dynamic-retention and projection-contract changes now
-records 244 SQL sites across 19 roots, including four event-retention queries.
-The source-only JobSpec inventory accepts 12 of 15 defaults; the projection
-job is bounded and optional, while two defaults fail and one module remains
-unallowlisted. No provider, database, Prefect server, or schedule was accessed
+inventory refresh after dynamic-retention, projection, and remote-sensing
+contracts now records 257 SQL sites across 20 roots, including four
+event-retention queries. The source-only JobSpec inventory accepts 13 of 15
+defaults; sensor/climate inputs still fail closed, and both external-provider
+operations are limited to explicit bounded contracts. No provider, database, Prefect server, or schedule was accessed
 for this source refresh. Live retry/recovery, provider outcomes, and
 MAN-CAP-040/047 remain
 open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
@@ -1655,9 +1655,10 @@ counts do not change ([source closure](worker-source-closure.json); [SQL invento
 ### CAP-040/047 worker effect source index — 15 October 2026
 
 A deterministic inventory now scans the current worker function graph for
-high-confidence direct effect calls. It records 40 unique source locations
+high-confidence direct effect calls. It records 43 unique source locations
 across HTTP, email delivery, process lifecycle, EVM RPC/client setup,
-filesystem, and dynamic import boundaries (45 operation/site memberships).
+filesystem, and dynamic import boundaries (49 operation/site memberships)
+across 20 roots.
 The graph overapproximates mutually exclusive CLI branches and can miss
 provider callbacks; it does not establish runtime behavior, authorization,
 replay safety, or tenant context. The graph follows the EventBus process target
@@ -1670,13 +1671,14 @@ MAN-CAP status or count changes ([inventory](worker-effect-inventory.json);
 
 ### CAP-047 scheduler template preflight — 15 October 2026
 
-A source-only comparison covers all 15 shared JobSpecs. Twelve default
+A source-only comparison covers all 15 shared JobSpecs. Thirteen default
 argument lists satisfy the current Kernel command contracts; sensor and
 climate defaults are rejected for missing source/location inputs. Remote
-sensing remains outside the Kernel allowlist. The ClickHouse projection job
-is an optional supported operation limited to `--run-once` with a bounded
-batch limit; manual list, replay, disposal, and reconcile actions are rejected.
-No task or provider was activated. This does not inspect persisted tasks,
-Prefect state, provider outcomes, or grant boundaries, so it is inventory
+sensing is optional and runs one due job at a time, with a validated batch
+limit of 1–10 (the JobSpec defaults to one). ClickHouse projection remains
+limited to one bounded `--run-once` batch; manual list, replay, disposal, and
+reconcile actions are rejected. No task or provider was activated. This does
+not inspect persisted tasks, Prefect state, provider outcomes, or grant boundaries, so it is inventory
 progress and not scheduler acceptance ([JobSpec inventory](worker-job-contract-inventory.json);
-[focused evidence](builds/2026-10-15-recovery/projection-job-contract.json)).
+[projection evidence](builds/2026-10-15-recovery/projection-job-contract.json);
+[remote-sensing evidence](builds/2026-10-15-recovery/remote-sensing-job-contract.json)).

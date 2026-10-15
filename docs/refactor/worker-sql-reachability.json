@@ -3,12 +3,12 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 19,
-    "sql_execution_sites": 244,
-    "statically_reachable_site_memberships": 251,
-    "unique_sites_with_static_operation_path": 210,
-    "sites_without_static_function_match": 34,
-    "unmatched_functions_absent_from_all_worker_graphs": 34,
+    "operation_roots": 20,
+    "sql_execution_sites": 257,
+    "statically_reachable_site_memberships": 264,
+    "unique_sites_with_static_operation_path": 221,
+    "sites_without_static_function_match": 36,
+    "unmatched_functions_absent_from_all_worker_graphs": 36,
     "sites_reached_by_multiple_operations": 29
   },
   "operations": [
@@ -260,6 +260,27 @@
         "services/ingestion/market_data.py:376:8",
         "services/ingestion/market_data.py:393:12",
         "services/ingestion/market_data.py:448:12"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.remote_sensing_fetcher",
+      "operation_ref": "scheduled_module:services.ingestion.remote_sensing_fetcher",
+      "statically_reachable_sql_site_count": 13,
+      "statically_reachable_sql_site_ids": [
+        "services/ingestion/base.py:156:12",
+        "services/ingestion/clickhouse_outbox.py:38:8",
+        "services/ingestion/copernicus_remote_sensing.py:204:4",
+        "services/ingestion/copernicus_remote_sensing.py:227:8",
+        "services/ingestion/gee_remote_sensing.py:282:4",
+        "services/ingestion/gee_remote_sensing.py:321:8",
+        "services/ingestion/remote_sensing_fetcher.py:128:4",
+        "services/ingestion/remote_sensing_fetcher.py:179:4",
+        "services/ingestion/remote_sensing_fetcher.py:198:8",
+        "services/ingestion/remote_sensing_fetcher.py:214:4",
+        "services/ingestion/remote_sensing_fetcher.py:242:4",
+        "services/ingestion/remote_sensing_fetcher.py:389:4",
+        "services/ingestion/remote_sensing_fetcher.py:92:8"
       ]
     },
     {
@@ -1366,6 +1387,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
@@ -1401,6 +1423,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
@@ -1436,6 +1459,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
@@ -3678,6 +3702,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
@@ -3688,6 +3713,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.eas_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
       ],
@@ -3716,6 +3742,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
@@ -3750,6 +3777,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
@@ -3778,6 +3806,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -3785,6 +3814,7 @@
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -3808,6 +3838,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -3834,6 +3865,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -3858,6 +3890,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -3882,6 +3915,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -3909,6 +3943,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -3933,6 +3968,7 @@
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
+        "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather"
@@ -4002,6 +4038,48 @@
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.climate_data"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/copernicus_remote_sensing.py:204:4",
+      "source": "services/ingestion/copernicus_remote_sensing.py",
+      "line": 204,
+      "scope": "_insert_pg",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "remote_sensing_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/copernicus_remote_sensing.py:227:8",
+      "source": "services/ingestion/copernicus_remote_sensing.py",
+      "line": 227,
+      "scope": "_insert_pg",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "remote_sensing_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -4587,6 +4665,48 @@
       "review_status": "linked_to_operation"
     },
     {
+      "id": "services/ingestion/gee_remote_sensing.py:282:4",
+      "source": "services/ingestion/gee_remote_sensing.py",
+      "line": 282,
+      "scope": "_insert_pg",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "remote_sensing_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/gee_remote_sensing.py:321:8",
+      "source": "services/ingestion/gee_remote_sensing.py",
+      "line": 321,
+      "scope": "_insert_pg",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "remote_sensing_observation"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
       "id": "services/ingestion/gnosis_indexer.py:113:8",
       "source": "services/ingestion/gnosis_indexer.py",
       "line": 113,
@@ -4919,6 +5039,195 @@
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:75:4",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 75,
+      "scope": "_query_active_jobs",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "remote_sensing_job"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:92:8",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 92,
+      "scope": "_claim_due_jobs",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "SKIP",
+        "due",
+        "remote_sensing_job"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:128:4",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 128,
+      "scope": "_query_job",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "remote_sensing_job"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:179:4",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 179,
+      "scope": "_update_job_status",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "remote_sensing_job"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:198:8",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 198,
+      "scope": "_resolve_bbox_from_job",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "remote_sensing_job"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:214:4",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 214,
+      "scope": "_resolve_bbox_from_job",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "farm",
+        "plot"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:242:4",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 242,
+      "scope": "_record_provider_attempt",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "remote_sensing_provider_attempt"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:389:4",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 389,
+      "scope": "list_jobs",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location",
+        "remote_sensing_job"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/remote_sensing_fetcher.py:438:12",
+      "source": "services/ingestion/remote_sensing_fetcher.py",
+      "line": 438,
+      "scope": "module",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "remote_sensing_job"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.remote_sensing_fetcher"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",

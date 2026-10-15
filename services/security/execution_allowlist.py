@@ -26,6 +26,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.data_freshness",
         "services.export.dataset_refresh",
         "services.ingestion.climate_data",
+        "services.ingestion.remote_sensing_fetcher",
         "services.ingestion.clickhouse_outbox",
         "services.events",
     }

@@ -49,7 +49,12 @@ JOBS = MappingProxyType(
             "services.analytics.carbon_credits", ("--check-adjustments",), 600, 2, 600, "Credit adjustment check"
         ),
         "remote_sensing": JobSpec(
-            "services.ingestion.remote_sensing_fetcher", ("--run-jobs",), 1800, 2, 600, "Remote sensing fetch"
+            "services.ingestion.remote_sensing_fetcher",
+            ("--run-jobs", "--limit", "1"),
+            1800,
+            2,
+            600,
+            "Remote sensing fetch",
         ),
         "climate": JobSpec("services.ingestion.climate_data", ("--all",), 600, 1, 3600, "Climate data refresh"),
         "projections": JobSpec(

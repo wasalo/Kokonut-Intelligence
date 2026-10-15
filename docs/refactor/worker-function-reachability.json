@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 19,
-    "source_files": 73,
+    "operation_roots": 20,
+    "source_files": 76,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 369,
-    "direct_call_edges": 504,
+    "function_memberships": 399,
+    "direct_call_edges": 537,
     "callback_edges": 1,
     "dynamic_dispatch_edges": 20
   },
@@ -850,7 +850,7 @@
           "qualname": "validate_event_handler",
           "class_scope": null,
           "source": "services/security/execution_allowlist.py",
-          "line": 35
+          "line": 36
         }
       ],
       "direct_call_edges": [
@@ -4227,6 +4227,512 @@
           "callee": "services.ingestion.market_data:run_seed_data",
           "source": "services/ingestion/market_data.py",
           "line": 456
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.remote_sensing_fetcher",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/config.py",
+        "services/ingestion/copernicus_remote_sensing.py",
+        "services/ingestion/gee_remote_sensing.py",
+        "services/ingestion/remote_sensing_fetcher.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.common.cli:print_json",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 425
+        },
+        {
+          "function": "services.common.cli:print_json",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 428
+        },
+        {
+          "function": "services.common.cli:print_json",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 433
+        },
+        {
+          "function": "services.ingestion.base:get_db",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 421
+        },
+        {
+          "function": "services.ingestion.remote_sensing_fetcher:_query_job",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 430
+        },
+        {
+          "function": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 432
+        },
+        {
+          "function": "services.ingestion.remote_sensing_fetcher:list_jobs",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 427
+        },
+        {
+          "function": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 424
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:print_json",
+          "module": "services.common.cli",
+          "qualname": "print_json",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 73
+        },
+        {
+          "key": "services.common.database:get_db",
+          "module": "services.common.database",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/common/database.py",
+          "line": 33
+        },
+        {
+          "key": "services.ingestion.base:_validate_ch_identifiers",
+          "module": "services.ingestion.base",
+          "qualname": "_validate_ch_identifiers",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 69
+        },
+        {
+          "key": "services.ingestion.base:get_db",
+          "module": "services.ingestion.base",
+          "qualname": "get_db",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 50
+        },
+        {
+          "key": "services.ingestion.base:hash_payload",
+          "module": "services.ingestion.base",
+          "qualname": "hash_payload",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 121
+        },
+        {
+          "key": "services.ingestion.base:log_ingestion",
+          "module": "services.ingestion.base",
+          "qualname": "log_ingestion",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 130
+        },
+        {
+          "key": "services.ingestion.base:post_clickhouse_rows",
+          "module": "services.ingestion.base",
+          "qualname": "post_clickhouse_rows",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 95
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:enqueue",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "enqueue",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 25
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "_get_token",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 34
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:_insert_ch",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "_insert_ch",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 236
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:_insert_pg",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "_insert_pg",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 202
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:_resolve_bbox",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "_resolve_bbox",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 195
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "fetch_copernicus",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 87
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_compute_indices",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_compute_indices",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 73
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_get_gee_client",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_get_gee_client",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 44
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_insert_ch",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_insert_ch",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 330
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_insert_pg",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_insert_pg",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 279
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_resolve_bbox",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_resolve_bbox",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 271
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "fetch_gee",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 160
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_claim_due_jobs",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_claim_due_jobs",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 87
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_classify_provider_result",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 38
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_compute_next_run",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_compute_next_run",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 186
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_fallback_provider",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_fallback_provider",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 56
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_query_job",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_query_job",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 125
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_record_provider_attempt",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_record_provider_attempt",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 239
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_resolve_bbox_from_job",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_resolve_bbox_from_job",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 193
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_update_job_status",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_update_job_status",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 134
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "fetch_job",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 266
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:list_jobs",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "list_jobs",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 386
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "run_due_jobs",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 359
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.ingestion.base:get_db",
+          "callee": "services.common.database:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 59
+        },
+        {
+          "caller": "services.ingestion.base:log_ingestion",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 154
+        },
+        {
+          "caller": "services.ingestion.base:post_clickhouse_rows",
+          "callee": "services.ingestion.base:_validate_ch_identifiers",
+          "source": "services/ingestion/base.py",
+          "line": 99
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:_insert_ch",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 247
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:_insert_ch",
+          "callee": "services.ingestion.base:post_clickhouse_rows",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 254
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:_insert_ch",
+          "callee": "services.ingestion.clickhouse_outbox:enqueue",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 248
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 186
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "callee": "services.ingestion.base:log_ingestion",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 179
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "callee": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 101
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "callee": "services.ingestion.copernicus_remote_sensing:_insert_ch",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 177
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "callee": "services.ingestion.copernicus_remote_sensing:_insert_pg",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 174
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "callee": "services.ingestion.copernicus_remote_sensing:_resolve_bbox",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 105
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:_insert_ch",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 345
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:_insert_ch",
+          "callee": "services.ingestion.base:post_clickhouse_rows",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 352
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:_insert_ch",
+          "callee": "services.ingestion.clickhouse_outbox:enqueue",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 346
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 263
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.base:log_ingestion",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 256
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.gee_remote_sensing:_compute_indices",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 226
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.gee_remote_sensing:_get_gee_client",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 170
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.gee_remote_sensing:_insert_ch",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 254
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.gee_remote_sensing:_insert_pg",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 249
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.gee_remote_sensing:_resolve_bbox",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 174
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 295
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 291
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 298
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 302
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.remote_sensing_fetcher:_compute_next_run",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 338
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.remote_sensing_fetcher:_fallback_provider",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 284
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.remote_sensing_fetcher:_record_provider_attempt",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 317
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.remote_sensing_fetcher:_resolve_bbox_from_job",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 276
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "callee": "services.ingestion.remote_sensing_fetcher:_update_job_status",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 329
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
+          "callee": "services.ingestion.remote_sensing_fetcher:_claim_due_jobs",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 366
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_fetcher:run_due_jobs",
+          "callee": "services.ingestion.remote_sensing_fetcher:fetch_job",
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 371
         }
       ],
       "callback_edges": [],

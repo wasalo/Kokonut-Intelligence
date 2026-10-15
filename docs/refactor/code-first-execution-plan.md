@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **365 checked and 20 open items (385 total)**,
+- The execution checklist has **366 checked and 20 open items (386 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery, seed rollout,
@@ -22,7 +22,7 @@ MAN-CAP checks open until each has its own retained evidence.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Ten local commits are now held
+  in progress at the last recorded check. Eleven local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
   role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
@@ -259,16 +259,17 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-  [worker operation map](worker-operation-map.md) inventories all 14 scheduled
+  [worker operation map](worker-operation-map.md) inventories all 15 scheduled
    modules and five event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
-   open. The source-only effect index now records 40 unique direct effect sites
-  (45 operation/site memberships) across 19 worker roots. A separate comparison
-  covers 15 shared JobSpecs: 12 defaults pass validation, sensor/climate
-  defaults fail for missing input/scope, remote sensing remains outside the
-  Kernel allowlist, and the ClickHouse projection job is optional with a
-  bounded run-once contract. No task or provider was activated. Neither report inspects persisted tasks or
+   open. The source-only effect index now records 43 unique direct effect sites
+  (49 operation/site memberships) across 20 worker roots. A separate comparison
+  covers 15 shared JobSpecs: 13 defaults pass validation and sensor/climate
+  defaults fail for missing input/scope. Remote sensing is available only as a
+  bounded sequential batch (1–10 jobs, default one), and ClickHouse projection
+  is limited to a bounded run-once contract. No task or provider was activated.
+  Neither report inspects persisted tasks or
    provider state, and neither proves runtime identity or tenant context. New
    module-specific operation schemas validate values and option
    combinations at activation, run-now, generated job plans, and subprocess
@@ -301,7 +302,7 @@ before protected reads and writes, and make direct database access fail closed.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
-  preflight confirms all 19 allowlisted roots and imports, reports the shared
+  preflight confirms all 20 allowlisted roots and imports, reports the shared
   runtime identity and 34 SQL sites without static function matches,
   and keeps RLS blocked. The complementary aggregate tenant preflight now
   reports pending/current-source checksum drift counts, connected-role

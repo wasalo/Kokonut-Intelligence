@@ -115,7 +115,7 @@ not bind a scheduled module or event handler to a database role or tenant.
   worker side effect but still does not establish signed DB tenant context or
   a worker-specific database role.
 
-The [worker operation map](worker-operation-map.md) now covers all 14
+The [worker operation map](worker-operation-map.md) now covers all 15
 allowlisted scheduled modules and five event-handler pairs, including their
 source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
@@ -130,8 +130,8 @@ Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
 remove runtime grants on this evidence. The first source-level effect pass now
-records 40 unique high-confidence process, filesystem, HTTP, email, dynamic
-import, and EVM call sites across 45 operation/site memberships and 19 roots
+records 43 unique high-confidence process, filesystem, HTTP, email, dynamic
+import, and EVM call sites across 49 operation/site memberships and 20 roots
 ([inventory](worker-effect-inventory.json)).
 It intentionally overcounts
 mutually exclusive CLI branches and can miss effects behind callbacks or
@@ -146,11 +146,12 @@ command; it does not publish MQTT. Next
 code-only work is to reconcile each candidate against its exact scheduler
 command contract, inspect remaining dynamic/provider callbacks and transitive
 effect wrappers, then reconcile persisted task rows with those contracts. The
-source-only JobSpec inventory now identifies 12 accepted default templates,
-two rejected defaults (source-less sensors and unlocated climate), and one
-unallowlisted module (remote sensing). ClickHouse projection is optional and
-limited to a bounded run-once contract; it does not inspect persisted tasks or
-external Prefect state ([inventory](worker-job-contract-inventory.json)). A
+source-only JobSpec inventory now identifies 13 accepted default templates
+and two rejected defaults (source-less sensors and unlocated climate). Remote
+sensing is bounded to sequential `--run-jobs --limit` batches of 1–10 and
+ClickHouse projection to one bounded run-once operation; neither enables a
+provider or inspects persisted tasks or external Prefect state
+([inventory](worker-job-contract-inventory.json)). A
 later role/context change needs a non-forgeable system-worker identity and
 narrow operation grants. Active provider schedules, operational owners, and
 any production identity mapping remain separate owner inputs under OFU-16/02.

@@ -86,6 +86,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--check-adjustments": None,
         "--location-id": "uuid",
     },
+    "services.ingestion.remote_sensing_fetcher": {
+        "--run-jobs": None,
+        "--limit": "small_batch_size",
+    },
     "services.ingestion.clickhouse_outbox": {
         "--run-once": None,
         "--limit": "batch_size",
@@ -129,7 +133,7 @@ def _validate_value(kind: str, value: str) -> None:
     elif kind == "identifier":
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}", value):
             raise _reject("source identifier has an invalid format")
-    elif kind in {"month", "year", "block", "batch_size"}:
+    elif kind in {"month", "year", "block", "batch_size", "small_batch_size"}:
         if not value.isdecimal():
             raise _reject("numeric argument must be a non-negative integer")
         number = int(value)
@@ -138,6 +142,7 @@ def _validate_value(kind: str, value: str) -> None:
             "year": (1900, 2200),
             "block": (0, 2**63 - 1),
             "batch_size": (1, 1000),
+            "small_batch_size": (1, 10),
         }
         lower, upper = limits[kind]
         if not lower <= number <= upper:
@@ -228,6 +233,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     elif module_path == "services.analytics.carbon_credits":
         if "--check-adjustments" not in options:
             raise _reject("scheduled carbon-credit operation must be a read-only adjustment check")
+
+    elif module_path == "services.ingestion.remote_sensing_fetcher":
+        if "--run-jobs" not in options:
+            raise _reject("scheduled remote-sensing operation must run due jobs")
 
     elif module_path == "services.ingestion.clickhouse_outbox":
         if "--run-once" not in options:

@@ -55,15 +55,15 @@ check does not prove capability behavior or close live acceptance.
 The public API SDK generator and all six worker-boundary/reachability inventory
 checks also pass. The runtime SQL inventory was stale after adding the Directus
 role provisioner; it has been regenerated and now passes its freshness check.
-It covers 3,795 SQL execution sites across 806 source files and 19 worker
-operation roots; 34 worker SQL sites still have no static
-function-path match. The new effect index records 40 unique direct effect sites
-(45 operation/site memberships), and the JobSpec inventory accepts 12 of 15
-defaults; invalid or unallowlisted defaults remain blocked. These are static
+It covers 3,795 SQL execution sites across 806 source files and 20 worker
+operation roots; 36 worker SQL sites still have no static
+function-path match. The new effect index records 43 unique direct effect sites
+(49 operation/site memberships), and the JobSpec inventory accepts 13 of 15
+defaults; the sensor and climate defaults still fail closed. These are static
 inventories and do not establish runtime-role least privilege, provider
 idempotency, or active schedule state.
 
-### Optional ClickHouse projection JobSpec contract (15 October 2026)
+### ClickHouse projection JobSpec contract — prior batch snapshot (15 October 2026)
 
 The existing `projections` JobSpec is now supported as an optional bounded
 operation. Its contract accepts only `services.ingestion.clickhouse_outbox
@@ -75,6 +75,20 @@ sensing remains unallowlisted. A focused 116-test worker/scheduler suite and
 generated inventory checks pass. No database, ClickHouse provider, or schedule
 was accessed or activated. Worker database identity and tenant context remain
 open ([evidence](builds/2026-10-15-recovery/projection-job-contract.json);
+[operation map](worker-operation-map.md)).
+
+### Bounded remote-sensing JobSpec contract (15 October 2026)
+
+The existing `remote_sensing` JobSpec now runs only the due-job operation with
+a validated limit from 1 to 10; the shared JobSpec defaults to one. The worker
+claims one due row, processes it, then claims the next, so queued leases do not
+expire while an earlier provider request is running. The operation map now
+covers 15 scheduled modules and five handlers across 20 roots; the worker SQL
+inventory covers 257 sites, and 36 have no static function match. The effect
+index records 43 candidate calls across 49 operation memberships. A focused
+172-test scheduler/worker/remote-sensing suite passes. Provider calls,
+credentials, persisted schedule state, and worker identity were not exercised
+([evidence](builds/2026-10-15-recovery/remote-sensing-job-contract.json);
 [operation map](worker-operation-map.md)).
 
 ### Directus rejects malformed explicit tenant scope — 15 October 2026

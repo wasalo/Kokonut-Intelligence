@@ -166,3 +166,17 @@ def test_climate_worker_map_names_current_schema_and_provider_effects():
     }
     assert "latitude_proxy_v1" in " ".join(climate["external_effects"])
     assert "schemas/postgres/397_worldclim_location_baseline_key.sql" in climate["sources"]
+
+
+def test_remote_sensing_job_is_bounded_and_provider_execution_is_not_claimed():
+    entry = next(
+        item
+        for item in _load_map()["scheduled_modules"]
+        if item["module"] == "services.ingestion.remote_sensing_fetcher"
+    )
+
+    assert "at most --limit jobs sequentially (1-10" in entry["scope"]
+    assert "one 30-minute lease at a time" in entry["idempotency"]
+    assert "Google Earth Engine API requests" in entry["external_effects"]
+    assert "Copernicus Data Space API requests" in entry["external_effects"]
+    assert "public.remote_sensing_provider_attempt" in entry["writes"]

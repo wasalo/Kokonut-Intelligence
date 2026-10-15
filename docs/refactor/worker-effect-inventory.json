@@ -4,16 +4,16 @@
   "reviewed": "2026-10-15",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. Callbacks, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 19,
-    "candidate_effect_sites": 40,
-    "operation_site_memberships": 45,
+    "operation_roots": 20,
+    "candidate_effect_sites": 43,
+    "operation_site_memberships": 49,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 6,
       "evm_client_setup": 6,
       "evm_rpc": 6,
       "filesystem": 8,
-      "http": 8,
+      "http": 11,
       "process": 5
     },
     "operation_memberships_by_category": {
@@ -22,7 +22,7 @@
       "evm_client_setup": 6,
       "evm_rpc": 6,
       "filesystem": 8,
-      "http": 11,
+      "http": 15,
       "process": 5
     }
   },
@@ -402,6 +402,43 @@
       ],
       "category_counts": {
         "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.remote_sensing_fetcher",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/base.py",
+          "line": 106,
+          "function": "services.ingestion.base:post_clickhouse_rows",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 49,
+          "function": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 69,
+          "function": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 132,
+          "function": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 4
       }
     },
     {

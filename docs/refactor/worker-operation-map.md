@@ -7,7 +7,7 @@ local-import closure implemented; runtime effects and authorization boundaries
 remain open.
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 14 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
+the exact 15 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -33,8 +33,8 @@ data effects, and an idempotency/retry note.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  14 scheduled modules and five allowlisted handler modules. It covers 73
-  distinct local source files across 19 operation roots and 451 import edges,
+  15 scheduled modules and five allowlisted handler modules. It covers 76
+  distinct local source files across 20 operation roots and 481 import edges,
   with no unresolved local modules and the EventBus's one dynamic handler-import
   site. That site is dispatched through `validate_event_handler` and the exact
   allowlist. Package `__main__.py` entrypoints are included.
@@ -52,17 +52,17 @@ data effects, and an idempotency/retry note.
   operation also records each of the 20 functions from its literal
   `CALCULATORS` registry as an explicit registry-dispatch edge. A focused
   callback edge follows the EventBus's statically named multiprocessing target
-  to `_handler_process` and its local resolver. Across 19 operation roots, 44
-  entry functions reach 369 function memberships through 504 direct-call,
+  to `_handler_process` and its local resolver. Across 20 operation roots, 52
+  entry functions reach 399 function memberships through 537 direct-call,
   one callback, and 20 registry-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 244
-  Python `.execute` sites in those 73 files. It fingerprints 208 literal
-  statements and flags 36 f-string/composed/variable statements; three
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 257
+  Python `.execute` sites in those 76 files. It fingerprints 220 literal
+  statements and flags 37 f-string/composed/variable statements; three
   generic adapter statements have an unknown leading kind. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -70,9 +70,9 @@ data effects, and an idempotency/retry note.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 244 sites to the operation graph without including SQL text or
-  values. It links 210 sites across 251 operation/site memberships;
-  34 sites have no current static function match, and each belongs to a
+  joins those 257 sites to the operation graph without including SQL text or
+  values. It links 221 sites across 264 operation/site memberships;
+  36 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -80,7 +80,7 @@ data effects, and an idempotency/retry note.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 19 operation roots and local imports, reports the shared runtime
+  confirms all 20 operation roots and local imports, reports the shared runtime
   database identity with no signed tenant context, and keeps RLS blocked. It
   explicitly leaves live grants, migration state, active schedules, and owner
   mappings `not_assessed`; it never connects to PostgreSQL. Use
@@ -89,10 +89,10 @@ data effects, and an idempotency/retry note.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, object-storage, EVM, notification, cache,
-  and dynamic-import call patterns. The current pass finds 40 unique candidate
-  sites across 45 operation/site memberships: HTTP (8), email delivery (6),
+  and dynamic-import call patterns. The current pass finds 43 unique candidate
+  sites across 49 operation/site memberships: HTTP (11), email delivery (6),
   process lifecycle (5), EVM RPC (6), EVM client setup (6), filesystem (8),
-  and dynamic import (1), across 19 operation roots. These are review candidates,
+  and dynamic import (1), across 20 operation roots. These are review candidates,
   not confirmed runtime effects:
   the module graph conservatively includes mutually exclusive CLI branches,
   so the carbon-credit entry also surfaces on-chain functions that its
@@ -156,25 +156,27 @@ data effects, and an idempotency/retry note.
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
   compares all 15 shared job templates with the Kernel module allowlist and
-  command validation. Twelve default argument lists pass, the sensor and
-  climate defaults fail closed, remote sensing is outside the Kernel allowlist,
-  and ClickHouse projections are optional and limited to one bounded
-  `--run-once` delivery batch. Manual list/replay/disposal/reconcile actions are
-  rejected, and no task or provider is activated. This is the source catalog
-  only; it does not
+  command validation. Thirteen default argument lists pass, and the sensor and
+  climate defaults fail closed. Remote sensing is limited to a sequential
+  `--run-jobs --limit` batch of 1–10 due jobs (the default JobSpec runs one),
+  while ClickHouse projections are limited to one bounded `--run-once` delivery
+  batch. The remote-sensing contract rejects other operations; the projection
+  contract rejects manual list/replay/disposal/reconcile actions. No task or
+  provider is activated. This is the source catalog only; it does not
   reconcile persisted tasks or external schedules. Check it with
   `python3 scripts/worker_job_contract_inventory.py --check
   docs/refactor/worker-job-contract-inventory.json`. Keep the two rejected
-  defaults and the one unallowlisted job inactive until source/input, provider,
-  and worker-identity boundaries are reviewed.
+  defaults inactive until their source/input contracts are defined. Provider
+  credentials, tenant context, and worker identity remain separate gates for
+  both provider jobs.
 
 ## What remains open
 
 This map, import closure, SQL inventories, effect candidates, job-template
 comparison, and argument
-schemas are not an ACL, tenant policy, or complete dynamic call graph. All 36 composed/variable sites
+schemas are not an ACL, tenant policy, or complete dynamic call graph. All 37 composed/variable sites
 have source-pattern review; the static call graph follows local instance types
-and the explicit metric registry, but 34 SQL sites still have no direct static
+and the explicit metric registry, but 36 SQL sites still have no direct static
 function match. It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
 also does not prove that external Prefect/host schedules are inactive or that
