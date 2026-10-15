@@ -105,18 +105,19 @@ accessed ([evidence](builds/2026-10-15-recovery/gateway-cors-configuration-bound
 
 ### Report calculations run read-only — 15 October 2026
 
-All single and bulk report generation now runs under PostgreSQL's session-level
-read-only mode. A connection facade blocks psycopg methods that lower that
-mode while preserving the business-plan generator's rollback/autocommit
-handling for best-effort sections. The calculation session is reset before
-`store_snapshot` writes the governed draft. This applies to all 94 registered
-report types. A registry-wide signature check caught and fixed the business-plan
-call mismatch; the adapter supports one or all selected locations. Nineteen
-focused CLI/helper checks pass with Ruff and Python compilation. These use a
-synthetic connection. The application connection remains a writer; this
-session-level setting is a write-safety guard, not database-role isolation.
-Disposable-PostgreSQL runtime acceptance and populated output parity remain
-open ([evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json)).
+All single and bulk report generation runs under PostgreSQL's session-level
+read-only mode. A disposable-database probe found that changing the session
+default, committing, then enabling autocommit allowed a synthetic write. The
+connection facade now rejects autocommit changes and returns itself through
+`cursor.connection`, closing both escape paths while preserving normal
+commit/rollback and read behavior. A real PostgreSQL probe confirmed direct
+DML fails with SQLSTATE `25006`, both autocommit paths are denied, and the
+separate draft write succeeds after calculation. Nine focused unit tests, Ruff,
+Python compilation, and the disposable PostgreSQL check pass. The application
+connection remains a writer, so this guard is not database-role isolation;
+populated output parity remains open
+([unit/runtime evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json);
+[disposable evidence](builds/2026-10-15-recovery/report-generator-readonly-disposable.json)).
 
 ### Native scheduler contract for credit adjustment checks — 15 October 2026
 

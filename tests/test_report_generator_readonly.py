@@ -137,7 +137,7 @@ def test_report_generator_cannot_lower_read_only_session_mode():
     assert not connection.read_only
 
 
-def test_business_plan_autocommit_sections_stay_read_only_and_restore_connection():
+def test_report_generator_cannot_enable_autocommit_and_restores_connection():
     connection = _Connection()
     connection.autocommit = False
 
@@ -145,19 +145,29 @@ def test_business_plan_autocommit_sections_stay_read_only_and_restore_connection
         assert read_only_conn.read_only
         read_only_conn.rollback()
         read_only_conn.autocommit = True
-        assert connection.autocommit
-        with read_only_conn.cursor() as cur:
-            cur.execute("SELECT business plan section")
-        return {"report_type": "business_plan"}
 
-    result = report_generator.generate_report_data_read_only(
-        connection, generator, "location-id", None, None
-    )
-
-    assert result == {"report_type": "business_plan"}
+    with pytest.raises(RuntimeError, match="cannot enable autocommit"):
+        report_generator.generate_report_data_read_only(
+            connection, generator, "location-id", None, None
+        )
     assert connection.session_modes == [True, False]
     assert not connection.read_only
     assert connection.autocommit is False
+
+
+def test_report_cursor_does_not_expose_raw_connection_escape():
+    connection = _Connection()
+
+    def generator(read_only_conn, *_args):
+        with read_only_conn.cursor() as cur:
+            cur.connection.autocommit = True
+
+    with pytest.raises(RuntimeError, match="cannot enable autocommit"):
+        report_generator.generate_report_data_read_only(
+            connection, generator, "location-id", None, None
+        )
+    assert connection.autocommit is False
+    assert connection.session_modes == [True, False]
 
 
 def test_report_generator_write_is_rejected_and_session_mode_is_restored():

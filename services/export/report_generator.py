@@ -183,8 +183,9 @@ def generate_report_data_read_only(conn, generator, location_arg, period_start, 
     """Calculate a report in a read-only PostgreSQL transaction.
 
     Snapshot persistence happens afterward in its own write transaction. The
-    connection's session default keeps every query read-only, including after a
-    generator commits or switches to autocommit for best-effort sections.
+    connection's session default keeps every query read-only after a generator
+    commits. Autocommit is rejected because it would bypass transaction-level
+    read-only enforcement.
     """
     previous_autocommit = conn.autocommit
     conn.set_session(readonly=True)
@@ -213,7 +214,7 @@ class _ReadOnlyReportConnection:
         object.__setattr__(self, "_conn", conn)
 
     def cursor(self, *args, **kwargs):
-        return self._conn.cursor(*args, **kwargs)
+        return _ReadOnlyReportCursor(self._conn.cursor(*args, **kwargs), self)
 
     def __getattr__(self, name):
         if name in self._BLOCKED:
@@ -223,7 +224,29 @@ class _ReadOnlyReportConnection:
     def __setattr__(self, name, value):
         if name in self._BLOCKED:
             raise RuntimeError("report generators cannot lower the read-only database mode")
+        if name == "autocommit" and value:
+            raise RuntimeError("report generators cannot enable autocommit during calculation")
         setattr(self._conn, name, value)
+
+
+class _ReadOnlyReportCursor:
+    """Keep the raw psycopg connection from escaping through ``cursor.connection``."""
+
+    def __init__(self, cursor, connection):
+        object.__setattr__(self, "_cursor", cursor)
+        object.__setattr__(self, "_connection", connection)
+
+    def __enter__(self):
+        self._cursor.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        return self._cursor.__exit__(*args)
+
+    def __getattr__(self, name):
+        if name == "connection":
+            return self._connection
+        return getattr(self._cursor, name)
 
 
 def main():

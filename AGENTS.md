@@ -90,6 +90,7 @@ Commands:
 - Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
 - Check static worker boundary preflight: `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
 - Exercise aggregate tenant-preflight SQL with synthetic roles on disposable PostgreSQL: `python3 scripts/check-tenant-preflight-disposable.py`
+- Verify report-calculation read-only enforcement against a local disposable PostgreSQL target: `REPORT_GENERATOR_TEST_DSN=postgresql://...@127.0.0.1:PORT/postgres python3 scripts/check-report-generator-readonly-disposable.py`
 - Check worker SQL call inventory: `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
 - Check all service SQL execution sites: `python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json`
 - Capture static Kernel inventory: `python3 scripts/kernel-inventory.py --output docs/refactor/repository-inventory.json`
