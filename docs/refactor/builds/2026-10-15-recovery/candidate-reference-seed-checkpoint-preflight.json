@@ -89,6 +89,7 @@
       "103_flow_metrics.sql",
       "027_carbon_framework_seeds.sql"
     ],
-    "status": "Recovery preparation complete; the exact five-file candidate write still requires separate owner approval."
-  }
+    "status": "At this preflight, recovery preparation was complete and no candidate seed SQL had run; separate owner approval was then required."
+  },
+  "subsequent_rollout_evidence": "builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json"
 }

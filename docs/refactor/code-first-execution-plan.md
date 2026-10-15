@@ -14,15 +14,15 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **368 checked and 20 open items (388 total)**,
+- The execution checklist has **369 checked and 19 open items (388 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
-  populated report parity, policy activation, external delivery, seed rollout,
+  populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Fourteen local commits are now held
+  in progress at the last recorded check. Sixteen local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
   role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
@@ -65,11 +65,12 @@ MAN-CAP checks open until each has its own retained evidence.
   remain open. This slice is included in the latest pushed head ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
 - The capability matrix contains 66 capabilities: 55 baseline-retained, 7
   deployed, and 4 prepared. None of the 66 named MAN-CAP checks is accepted.
-- The local candidate has 391 applied schemas through migration 400, one
-  curated seed, zero pending schema migrations, and application-table RLS is
-  disabled. It still uses the `kokonut` superuser because a separate runtime
-  credential is not provisioned. No RLS or candidate seed rollout is approved
-  by this implementation batch.
+- The local candidate has 391 applied schemas through migration 400, six applied
+  seed ledger entries, 117 pending source migrations (all are unselected seeds),
+  zero failed ledger rows, and application-table RLS is disabled. The five
+  owner-approved reference catalogs have been applied; other seed files remain held. It still uses the `kokonut` superuser because a separate runtime
+  credential is not provisioned. The seed approval does not authorize RLS or
+  production import.
 - The owner selected self-hosted ZITADEL, organization/location authorization,
   Kokonut Network operation of Genesis, Seeds, Adelphi, Terra Viva, and V1,
   reference catalogs only with pilot rows held, USA and Dominican Republic as
@@ -186,10 +187,7 @@ remain outside this selection; see the exact [scope and held-file
 rationale](reference-seed-scope.md). The earlier preflight restore checkpoint
 predated migrations 392–400. On 15 October, a fresh checkpoint of the current
 migration-400 candidate was restore-rehearsed in an isolated `template0`
-database; exact archive and parity evidence are in [the 15 October preflight](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json).
-No candidate seed SQL has run. The owner selected scope but did not approve a
-database write, so separate rollout approval remains the only gate before the
-five-file write.
+database, then used as the rollback reference for the separately approved five-file write. Archive and parity details are in [the preflight](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json); applied checksums and resulting counts are in [the rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json). Other curated and pilot seeds remain held.
 
 | Batch | Selected checklist items | Code work to complete first | Owner or external gate held open |
 |---|---|---|---|
@@ -199,7 +197,7 @@ five-file write.
 | Reports and dashboards | 1, 5, 6, 10 | Port all repository-verified Kokonut surfaces, finish query safety and synthetic parity, and document migration boundaries. Do not infer saved-query ownership from the archived Metabase database or represent generic sample-H2 e-commerce cards as Kokonut product reports. | Owner will decide what to keep/remove/improve after port review. Populated semantic fixtures, external/operator-edited consumers, audience/scope, and DB roles follow farm-data ingestion. |
 | Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
-| Curated seed write | 8 | The exact five-file catalog allowlist is documented above; a fresh age-encrypted migration-400 candidate checkpoint and isolated `template0` restore rehearsal now pass with matching migration/extension fingerprints and selected table counts ([evidence](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json)). | The owner selected scope. Applying the five files still needs separate approval; no candidate seed SQL has run. |
+| Curated seed write | 8 | **Complete:** the five owner-approved catalog migrations applied successfully through the explicit candidate Compose target; ledger checksums and resulting counts are recorded ([rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json)). | The owner approved and completed this local reference write. Remaining pilot/curated seed files stay held; production import is not authorized by this operation. |
 | Retention policy | 2 | Keep no-prune as the default; runtime policy, audited holds, optional jurisdiction/purpose codes, and synthetic PostgreSQL acceptance are implemented. Unresolved scoped policies fail closed. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, a scope resolver, and erasure procedures. |
 
 ## Work order
@@ -632,12 +630,11 @@ deployment or semantic acceptance:
   identities for the selected self-hosted ZITADEL provider (OFU-07); R2
   credentials and lifecycle policy (OFU-08); browser vault and trusted local
   HTTPS certificate when browser acceptance is scheduled (OFU-10/11).
-- **Candidate-only writes:** a separate approval to apply the five selected
-  reference catalogs (OFU-17). The earlier 30-file proposal is superseded;
-  pilot rows remain held.
-  Migrations 392–400 are rolled out; runtime credential provisioning remains
-  tracked under OFU-19. The candidate still has only its original curated seed
-  ledger entry; no new seed SQL was applied.
+- **Candidate-only writes:** the five selected reference catalogs (OFU-17) were
+  applied to the local candidate after separate approval. The earlier 30-file
+  proposal is superseded; pilot rows remain held. Migrations 392–400 are rolled
+  out; runtime credential provisioning remains tracked under OFU-19. The
+  candidate has six recorded seed entries; 117 unselected seed sources remain pending.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only
 scope and lack of hardware. If the owner later supplies a Pi, add a separate

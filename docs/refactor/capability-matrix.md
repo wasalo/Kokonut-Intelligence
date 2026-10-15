@@ -384,17 +384,29 @@ inside the seed transaction. A read-only comparison found the candidate's five
 active 1.2.0 forms and five matching active revisions exact, with five retired
 1.1.0 revisions preserved. The follow-up candidate reconciliation then
 recorded `seed:140_mobile_forms.sql` as applied without changing business rows;
-120 other seed files remain pending. See the
+At the 14 October checkpoint, 120 other seed files remained pending. See the
 [preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json)
-and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. The full 31-seed ordered list applied to an isolated checkpoint restore and skipped cleanly on a second invocation. A separate `template0` bootstrap then passed all 382 schemas through 391 and all 31 curated seeds. The candidate remains at one recorded seed; 90 non-curated seeds remain unselected ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json); [snapshot replay](builds/2026-10-14-recovery/curated-seed-disposable-replay.json); [fresh bootstrap](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)). A fresh encrypted checkpoint was restore-rehearsed with matching migration and extension fingerprints and selected form/service counts. The old 30-file rollout proposal was superseded on 15 October: only the five reference catalogs in [the selected scope](reference-seed-scope.md) are prepared for a separate approval-gated rollout; pilot rows stay held. No candidate seed SQL has run.
+and [ledger reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json). A subsequent read-only inventory found 50 empty curated target tables; only the already-tracked mobile forms and base service catalog contain rows. The full 31-seed ordered list applied to an isolated checkpoint restore and skipped cleanly on a second invocation. A separate `template0` bootstrap then passed all 382 schemas through 391 and all 31 curated seeds. At the 14 October checkpoint, the candidate had one recorded seed and 90 non-curated seeds remained unselected ([inventory](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json); [snapshot replay](builds/2026-10-14-recovery/curated-seed-disposable-replay.json); [fresh bootstrap](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json)). A fresh encrypted checkpoint was restore-rehearsed with matching migration and extension fingerprints and selected form/service counts. The old 30-file rollout proposal was superseded on 15 October: only the five reference catalogs in [the selected scope](reference-seed-scope.md) were approved and applied to the local candidate; pilot rows stay held. The separate rollout evidence is linked below.
 
 The current migration-400 checkpoint for that five-file scope was then restored
 transactionally into a fresh isolated `template0` database. Migration and
 extension fingerprints, all 1,010 public tables, the five catalog target
 counts, and selected mobile-form/service counts matched the candidate. The
 checkpoint remains encrypted; the temporary restore container/network were
-removed and its isolated recovery volume is retained. This is recovery evidence, not approval or execution of candidate
-seed SQL ([preflight](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json)).
+removed and its isolated recovery volume is retained. At this preflight stage it was recovery evidence only; owner approval and candidate seed execution
+followed and are recorded below ([preflight](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json)).
+
+**15 October 2026 reference catalog rollout (CAP-001 / CAP-053):** after
+separate owner approval, the exact five selected seeds were applied to the
+local migration-400 candidate through the ordered checksummed runner. All five
+ledger rows are applied with no failed/pending migration rows; target counts
+are 19 expense categories, 20 metric definitions, 19 emission factors, 8
+benchmarks, and 5 protocols. Existing mobile forms, form versions, and service
+catalog counts were preserved. The candidate remains healthy (`/health` 200),
+and an unauthenticated protected review route returns 401. The other curated,
+pilot, and unselected seeds remain held. These are reference definitions/model
+defaults, not farm observations, verified outcomes, report-owner acceptance,
+tenant/RLS acceptance, or a MAN-CAP pass ([rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json); [scope](reference-seed-scope.md)).
 
 **13 October 2026 source update (CAP-001 / CAP-053):** migration 386 and
 current-use filters now cover canonical Field Collector activity reporting,

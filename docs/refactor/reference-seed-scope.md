@@ -1,8 +1,8 @@
 # Reference seed scope
 
-**Owner decision:** 15 October 2026 — prepare reference catalogs only and hold
-pilot rows. This is a scope decision; it does not authorize a candidate or
-production database write.
+**Owner decision:** 15 October 2026 — apply reference catalogs only and hold
+pilot rows. The owner separately approved the local candidate rollout on 15
+October; no production database write was authorized.
 
 ## Explicit catalog-only allowlist
 
@@ -23,6 +23,23 @@ files through the checksummed migration runner. The default `seed.sh` behavior
 is unchanged. The existing `--reference-only` option is retained for
 compatibility and still applies the full curated seed list; it is not the
 owner-selected catalog scope.
+
+## Local candidate rollout — 15 October 2026
+
+The exact five files above were applied to the migration-400 local candidate
+after an explicit owner approval. The runner applied five checksummed
+migrations with zero failures. The resulting counts are 19 expense categories,
+20 metric definitions, 19 emission factors, 8 carbon benchmarks, and 5
+operations protocols. Existing mobile forms (5), form versions (10), and
+service registry rows (63) remained at their preflight counts. The candidate
+health endpoint returned 200 and the unauthenticated mobile review queue
+returned 401. The candidate app, database, Metabase, and proxy were not
+recreated; the legacy stack was not touched.
+
+The other 25 curated seed files, `064-068_impact_network.sql`, the already
+applied `140_mobile_forms.sql`, and 90 unselected source seeds remain untouched.
+No farm measurements or pilot rows were added. See the
+[candidate rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json).
 
 ## Held curated files
 
@@ -47,7 +64,7 @@ not part of the five-file allowlist. `064-068_impact_network.sql` remains
 excluded because it includes pilot upserts and location-owner updates. The
 other 90 unselected seed sources remain untouched.
 
-## Candidate rollout gate
+## Candidate checkpoint and rollback reference
 
 The current migration-400 candidate was checkpointed and that exact
 age-encrypted archive was restore-rehearsed in an isolated PostgreSQL 16.4
@@ -55,7 +72,9 @@ age-encrypted archive was restore-rehearsed in an isolated PostgreSQL 16.4
 `56a08bdf48bce987deffc9a2075e7a4393246d02bfa12bc5f6897d8910e740f1`; restore
 parity evidence is recorded in
 [the candidate seed checkpoint preflight](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json).
-This completes recovery preparation only. Do not run seed SQL until the owner
-separately approves the exact five-file candidate write. If an approved
-multi-file run fails after earlier files commit, restore the verified
-checkpoint rather than rerunning against partial state.
+The checkpoint and isolated restore rehearsal preceded the approved candidate
+write. The encrypted checkpoint remains the rollback reference; if rollback is
+needed, restore into a separately reviewed replacement database and validate
+it before cutover. Do not overwrite the candidate in place or rerun a partially
+applied batch. The checkpoint is on the same local disk and is not an
+independent or production backup.
