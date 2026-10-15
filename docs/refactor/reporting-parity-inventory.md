@@ -31,6 +31,18 @@ owner of calculations, authorization, lifecycle, or evidence.
 | Evidence graph projection | [`services/graph_projection/query.py`](../../services/graph_projection/query.py), [`graph projection README`](../../services/graph_projection/README.md), [`evidence_lineage.py`](../../services/graph_projection/evidence_lineage.py) | A separate bounded lineage graph read with fixed edge types, active generation, public/internal audience, optional location filter, depth cap 5, node cap 500, and statement timeout. | This is evidence navigation, not a report/dashboard engine. Its own projection freshness, completeness, and domain lineage gates remain independent. |
 | ClickHouse rollups | [`analytics-read-views-v2.md`](analytics-read-views-v2.md), [`sensor-projection.md`](sensor-projection.md) | Optional analytical event-store rollups and corrected read views have separate source and consumer contracts. | Known multi-block aggregate defects and unverified saved-query adoption mean ClickHouse parity/scale gates remain open. Do not count ordinary PostgreSQL views or graph projections as ClickHouse parity. |
 
+All 94 report calculations now run with a session-level read-only database
+default, and the CLI ends that session before writing a draft snapshot. The
+read-only mode persists across the business-plan generator's best-effort
+rollback/autocommit handling. The registry-wide invocation check also caught
+and fixed a business-plan signature mismatch; its adapter supports a single or
+explicit all-location scope. Source/helper checks cover single and bulk
+generation. The application connection remains a writer, so the session mode
+is a write-safety guard rather than a database-role boundary.
+Disposable-PostgreSQL enforcement and
+populated report output parity remain open
+([read-only evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json)).
+
 The SQL tree contains hundreds of ordinary view definitions across domain
 migrations. A view's existence does not establish that it is a dashboard
 contract, that its measures are correct for a capability, or that it is safe

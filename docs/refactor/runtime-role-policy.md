@@ -68,11 +68,12 @@ applications.
 
 The [runtime SQL inventory](runtime-sql-inventory.json) records direct
 execution sites across the whole `services/` tree to support that review. It
-contains 3,747 call sites from 802 Python files and 1,028 regex-derived relation
+contains 3,758 call sites from 804 Python files and 1,029 regex-derived relation
 candidates; literal SQLAlchemy `text()` and psycopg `SQL()` wrappers are
-unwrapped. Ninety-two statement kinds remain unknown, 22 statements begin with
-`WITH`, 305 sites have no relation candidate, and 436 use a non-literal query
-expression. Dynamic query construction, `WITH` semantics, ORM/provider code,
+unwrapped. Ninety-eight statement kinds remain unknown, 22 statements begin
+with `WITH`, 313 sites have no relation candidate, and 442 use a non-literal
+query expression. Dynamic query construction, `WITH` semantics, ORM/provider
+code,
 columns, actual request reachability, and external Directus usage remain outside
 its proof. It is a review map, not a grant list; convert no candidate relation
 into an ACL until the call path, runtime principal, and operation are confirmed.

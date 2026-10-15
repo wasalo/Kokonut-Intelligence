@@ -98,14 +98,15 @@ through 397 and no application-table RLS. The later candidate state is recorded
 below; implementation progress does not accept any named MAN-CAP check
 ([historical evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
-The companion runtime SQL inventory covers 3,747 direct execution sites across
-802 service modules, includes summaries for 67 packages, and identifies 1,028
+The current runtime SQL inventory covers 3,758 direct execution sites across
+804 service modules, includes summaries for 67 packages, and identifies 1,029
 regex-derived relation-name candidates. Literal SQLAlchemy `text()` and
-psycopg `SQL()` wrappers are unwrapped; 92 statement kinds, 22 `WITH`
-statements, 305 sites without relation candidates, 436 non-literal sites, and
+psycopg `SQL()` wrappers are unwrapped; 98 statement kinds, 22 `WITH`
+statements, 313 sites without relation candidates, 442 non-literal sites, and
 dynamic or indirect paths require review before narrowing runtime grants. The
 report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
-[evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+[latest evidence](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json);
+[previous evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053), checked 15 October:**
 PR #68 is at `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Security run

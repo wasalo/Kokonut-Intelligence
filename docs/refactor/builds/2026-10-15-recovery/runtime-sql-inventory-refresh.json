@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "static_inventory_check",
+  "scope": "Direct Python SQL execution sites under services/**/*.py; no SQL bodies, parameter values, database connections, or providers",
+  "inventory": "docs/refactor/runtime-sql-inventory.json",
+  "counts": {
+    "service_python_files": 804,
+    "execution_sites": 3758,
+    "relation_name_candidates": 1029,
+    "service_packages": 67,
+    "unknown_statement_kinds": 98,
+    "with_statement_kinds": 22,
+    "sites_without_relation_candidates": 313,
+    "non_literal_query_expression_sites": 442
+  },
+  "check": {
+    "command": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+    "result": "passed",
+    "output": "Runtime SQL inventory is current"
+  },
+  "database_accessed": false,
+  "provider_accessed": false,
+  "scope_limit": "Static source inventory only; it does not establish reachability, ACLs, read/write intent for unknown statements, tenant scope, or runtime behavior."
+}

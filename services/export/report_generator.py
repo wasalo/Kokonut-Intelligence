@@ -179,6 +179,53 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
         parser.error("--location-id is required (or use --all for network-level reports)")
 
 
+def generate_report_data_read_only(conn, generator, location_arg, period_start, period_end):
+    """Calculate a report in a read-only PostgreSQL transaction.
+
+    Snapshot persistence happens afterward in its own write transaction. The
+    connection's session default keeps every query read-only, including after a
+    generator commits or switches to autocommit for best-effort sections.
+    """
+    previous_autocommit = conn.autocommit
+    conn.set_session(readonly=True)
+    try:
+        return generator(
+            _ReadOnlyReportConnection(conn), location_arg, period_start, period_end
+        )
+    finally:
+        # End the calculation transaction before store_snapshot starts its
+        # separate, intentional draft-snapshot write.
+        try:
+            conn.rollback()
+        finally:
+            try:
+                conn.autocommit = previous_autocommit
+            finally:
+                conn.set_session(readonly=False)
+
+
+class _ReadOnlyReportConnection:
+    """Prevent report code from lowering the session's read-only default."""
+
+    _BLOCKED = frozenset({"readonly", "deferrable", "set_session"})
+
+    def __init__(self, conn):
+        object.__setattr__(self, "_conn", conn)
+
+    def cursor(self, *args, **kwargs):
+        return self._conn.cursor(*args, **kwargs)
+
+    def __getattr__(self, name):
+        if name in self._BLOCKED:
+            raise RuntimeError("report generators cannot lower the read-only database mode")
+        return getattr(self._conn, name)
+
+    def __setattr__(self, name, value):
+        if name in self._BLOCKED:
+            raise RuntimeError("report generators cannot lower the read-only database mode")
+        setattr(self._conn, name, value)
+
+
 def main():
     parser = build_parser()
     args = parser.parse_args()
@@ -253,7 +300,9 @@ def main():
             conn.commit()
             try:
                 generator = REPORT_GENERATORS[report_type]
-                report_data = generator(conn, location_arg, args.period_start, args.period_end)
+                report_data = generate_report_data_read_only(
+                    conn, generator, location_arg, args.period_start, args.period_end
+                )
                 _check_report_empty(report_data, report_type)
                 snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
                 snapshot_hash = compute_hash(report_data)
@@ -265,7 +314,7 @@ def main():
                     )
                 conn.commit()
                 success += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - persist this report's failure and continue the batch
                 print(f"  ✗ {report_type}: {e}")
                 conn.rollback()
                 with conn.cursor() as cur:
@@ -293,7 +342,9 @@ def main():
 
     try:
         generator = REPORT_GENERATORS[args.type]
-        report_data = generator(conn, location_arg, args.period_start, args.period_end)
+        report_data = generate_report_data_read_only(
+            conn, generator, location_arg, args.period_start, args.period_end
+        )
 
         snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
         snapshot_hash = compute_hash(report_data)

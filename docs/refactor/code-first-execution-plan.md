@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 336 checked and 20 open items (356 total), after
+- The execution checklist has 337 checked and 20 open items (357 total), after
   adding source-checked ZITADEL profile preparation. Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
@@ -67,14 +67,14 @@ MAN-CAP checks open until each has its own retained evidence.
   open.
   Data-freshness queries use fixed table/timestamp maps, bind location values,
   and report unknown configured sources as errors; 29 focused source tests pass.
-  A new whole-services SQL inventory records 3,747 direct execution sites
-  across 802 Python modules and 1,028 regex-derived relation-name candidates,
+  The current whole-services SQL inventory records 3,758 direct execution sites
+  across 804 Python modules and 1,029 regex-derived relation-name candidates,
   without storing SQL text or runtime values. It safely unwraps literal
-  SQLAlchemy `text()` and psycopg `SQL()` query wrappers; 92 statement kinds
+  SQLAlchemy `text()` and psycopg `SQL()` query wrappers; 98 statement kinds
   remain unknown. Its 67 package summaries isolate the largest service
   surfaces and dynamic-heavy modules. This is a review input, not a grant
   allowlist; dynamic statements and indirect ORM/provider paths remain open
-  ([inventory](runtime-sql-inventory.json); [check record](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+  ([inventory](runtime-sql-inventory.json); [check record](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json)).
   Field Collector device revocation now uses a fixed database function that
   revalidates tenant, location, and exact credential/session scope before
   clearing a device token. Runtime direct UPDATE is limited to telemetry
@@ -362,14 +362,14 @@ before protected reads and writes, and make direct database access fail closed.
    `public`-schema default privileges for future tables and sequences. The
    disposable PostgreSQL 16 role acceptance still passed current-handler SQL
    and proved a table/sequence created after provisioning is inaccessible to
-   the runtime login. A new whole-services SQL inventory covers all 802 Python
+   the runtime login. A new whole-services SQL inventory covers all 804 Python
    service modules and identifies direct execution sites and candidate relation
    names without becoming an ACL. Literal query wrappers are unwrapped while
-   parameter values remain unobserved; the report now has 92 unknown statement
-   kinds, 22 `WITH` statements, 305 sites without relation candidates, and 436
+   parameter values remain unobserved; the report now has 98 unknown statement
+   kinds, 22 `WITH` statements, 313 sites without relation candidates, and 442
    non-literal sites. The next review classifies API, worker, CLI, and
    indirect-query surfaces before deriving explicit grants; worker, Directus,
-   and RLS boundaries remain open ([role evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json); [SQL inventory](runtime-sql-inventory.json); [inventory check](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+   and RLS boundaries remain open ([role evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json); [SQL inventory](runtime-sql-inventory.json); [latest inventory check](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json)).
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
@@ -509,7 +509,7 @@ needs the disposable identity/schema fixture in OFU-09.
 location scope for bulk generation, rejects conflicting selectors before
 opening PostgreSQL, and accepts standalone hash verification. All 94 report
 generator keys remain available. Eleven focused checks and Ruff pass without
-database or provider access ([evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)).
+database or provider access ([evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)). All single and bulk report calculations now use a session-level PostgreSQL read-only default that survives the business-plan generator's rollback/autocommit behavior; draft persistence starts after the calculation session ends. The registry-wide invocation check caught and fixed the business-plan CLI signature; its adapter supports one or all selected locations. Nineteen focused source/CLI tests pass. The application connection remains a writer, so the session mode is a write-safety guard rather than a database-role boundary. Disposable-PostgreSQL enforcement and populated output parity remain open ([evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json)).
 
 **Acceptance:** the slice's source tests pass and its contract/evidence path is
 documented. The matrix remains `B`, `D`, or `P` until its named MAN-CAP
