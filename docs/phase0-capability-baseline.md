@@ -51,7 +51,7 @@ The implementation source is [`services/gateway/router.py`](../services/gateway/
 | `GET /api/mobile/forms` | Public | Cacheable forms; location filter optional. |
 | `POST /api/mobile/register` | Public policy | Issues a device token; registration hardening/abuse controls need review. |
 | `POST /api/mobile/sync`, `GET /api/mobile/sync/status` | Public policy + device token | Token-to-device and registered location checks occur in mobile handler. |
-| `GET /api/locations`, `GET /api/locations/{id}` | Public | Reads are proxied to Directus. Only the single-item route validates UUID syntax locally. |
+| `GET /api/locations`, `GET /api/locations/{id}` | Public | At the baseline, reads were proxied to Directus. On 15 October 2026 both use the bounded native public view; the single-item route validates UUID syntax locally. |
 | `GET /api/metrics/{location_id}` | Public | Read-only governed public view; no computation. |
 | `GET /api/crisp/{location_id}`, `GET /api/analytics/{location_id}/summary` | Public | Service/library reads; endpoint-level contracts need parity tests. |
 | `GET /api/iri/resolve`, `GET /api/federation/nodes`, `GET /api/drivers`, `GET /api/health/services` | Public | Verify whether each is appropriate for external exposure and whether federation data requires filtering. |

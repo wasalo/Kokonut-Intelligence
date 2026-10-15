@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
-**Latest pushed head status:** Security #44 passed and CI #320 remains in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Local commit `761cd6c` adds the optional ZITADEL profile; the next local batch contains report-scope and default-off event-retention changes, which have no hosted CI coverage.
+**Latest pushed head status:** Security #44 passed and CI #320 remains in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Unpushed local changes add the optional ZITADEL profile, explicit report scoping, a default-off event-retention gate, and provider-independent public location reads; hosted CI does not cover them yet.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 334 checked and 20 open items (354 total), after
+- The execution checklist has 335 checked and 20 open items (355 total), after
   adding source-checked ZITADEL profile preparation. Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI

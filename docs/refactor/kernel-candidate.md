@@ -33,7 +33,10 @@ is explicitly disabled; enabled-provider secret validation is preserved.
   runner away from the legacy project. Its default path must not be used here.
 - Validate gateway authentication, lifecycle, mobile sync, public queries, and
   the missing-library behavior of every enabled domain route.
-- Replace Directus-backed location routes before claiming route parity.
+- [x] Replace the public Directus-backed location routes with the native
+  governed projection. The legacy response wrapper remains, and three focused
+  HTTP checks cover provider-independent dispatch and 400/404 behavior
+  ([evidence](builds/2026-10-15-recovery/legacy-public-location-native-route.json)).
 - Add durable scheduler/event worker supervision before claiming a functioning
   two-service Kernel deployment. Feature flags do not start workers.
 - Preserve/configure private media storage and evidence retention.

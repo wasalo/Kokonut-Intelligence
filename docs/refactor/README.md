@@ -198,9 +198,9 @@ assertion after later commits.
 3. services/ingestion/clickhouse_outbox.py already implements a PostgreSQL
    projection outbox. Weather, sensors, EAS, and Gnosis producers enqueue
    there. Audit remaining producers before replacing any paths.
-4. Directus is still critical in services/core/features.py and health.py.
-   Gateway location list/detail routes proxy Directus; public metric queries
-   use PostgreSQL. API independence is incomplete.
+4. Directus is optional behind the provider flag. Public Gateway location
+   list/detail routes now use the governed native view; Directus administrative
+   CRUD, field/row permissions, hooks, and reviewer UI parity remain incomplete.
 5. The checkout has 361 PostgreSQL SQL files through #370, six ClickHouse
    SQL files, and 119 seed SQL files. The plan's older counts are stale.
    Numbering gaps are intentional evidence to preserve, not repair.

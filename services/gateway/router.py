@@ -124,74 +124,43 @@ def _versioned_envelope(response):
 
 @router.get("/locations")
 async def list_locations():
-    """Read public locations through the selected application/provider path."""
+    """Read public locations through the governed native projection."""
+    import json
+
     from starlette.concurrency import run_in_threadpool
 
-    from services.core.features import is_enabled
+    from services.gateway.locations import public_locations
 
-    if not is_enabled("directus"):
-        import json
-
-        from services.gateway.locations import public_locations
-
-        try:
-            rows = await run_in_threadpool(public_locations)
-            return JSONResponse(content={"data": json.dumps({"data": rows})})
-        except Exception as exc:
-            return _internal_error(exc)
-
-    import os
-
-    from services.common.http import http
-
-    directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location?limit=100")
-        resp.raise_for_status()
-        return JSONResponse(content={"data": resp.text})
+        rows = await run_in_threadpool(public_locations)
+        return JSONResponse(content={"data": json.dumps({"data": rows})})
     except Exception as exc:
-        logger.exception("Directus locations request failed", exc_info=exc)
-        return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
+        return _internal_error(exc)
 
 
 @router.get("/locations/{location_id}")
 async def get_location(location_id: str):
-    """Read a public location through the selected application/provider path."""
-    import os
+    """Read one public location through the governed native projection."""
     from uuid import UUID
 
     from starlette.concurrency import run_in_threadpool
-
-    from services.common.http import http
 
     try:
         UUID(location_id)
     except ValueError:
         return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
 
-    from services.core.features import is_enabled
+    import json
 
-    if not is_enabled("directus"):
-        import json
+    from services.gateway.locations import public_locations
 
-        from services.gateway.locations import public_locations
-
-        try:
-            rows = await run_in_threadpool(public_locations, location_id)
-            if not rows:
-                return JSONResponse(status_code=404, content={"error": "Location not found"})
-            return JSONResponse(content={"data": json.dumps({"data": rows[0]})})
-        except Exception as exc:
-            return _internal_error(exc)
-
-    directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location/{location_id}")
-        resp.raise_for_status()
-        return JSONResponse(content={"data": resp.text})
+        rows = await run_in_threadpool(public_locations, location_id)
+        if not rows:
+            return JSONResponse(status_code=404, content={"error": "Location not found"})
+        return JSONResponse(content={"data": json.dumps({"data": rows[0]})})
     except Exception as exc:
-        logger.exception("Directus location request failed", exc_info=exc)
-        return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
+        return _internal_error(exc)
 
 
 @router.get(

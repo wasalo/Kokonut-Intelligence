@@ -288,24 +288,20 @@ best-effort rather than a complete durable audit guarantee.
 | Invalid location UUID | `400`, `Invalid location identifier` |
 | Missing FastAPI query parameter | `422` validation response |
 | IRI not found | `404`, `IRI not found` |
-| Directus proxy failure | `502`, `Upstream service unavailable` |
 | Internal handler failure | `500`, `Gateway request failed` |
 
 The data-stream write handler has limited body validation; malformed input can
 become a generic `500` rather than a structured `400`.
 
-## Directus Proxy
+## Public Location Read Provider
 
-Only these gateway routes proxy Directus:
-
-- `GET /api/locations`
-- `GET /api/locations/{location_id}`
-
-The gateway uses `DIRECTUS_URL`, defaulting to `http://localhost:8055`, and
-creates a new unauthenticated upstream request. It does not forward gateway
-credentials, Directus bearer tokens, caller identity, or general request
-headers. Upstream response bodies are wrapped as `{"data": ...}` rather than
-forwarded with their original parsed status/body contract.
+`GET /api/locations` and `GET /api/locations/{location_id}` always use the
+governed native `v_public_farm_summary` projection, even when the optional
+Directus feature is enabled. The public field set stays limited to ID, name,
+country, region, and status; the historical response wrapper is preserved.
+No Gateway route proxies these public reads to Directus. Directus remains an
+optional administrative and compatibility service with its own permission and
+tenant-parity gate.
 
 ## Deployment Boundaries
 

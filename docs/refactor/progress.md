@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; Security #44 passed and CI #320 is in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). Local commit `761cd6c` adds an optional self-hosted ZITADEL Compose profile. The next local batch adds report CLI scoping and a default-off event cleanup gate; focused checks below are not covered by hosted CI. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; Security #44 passed and CI #320 is in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). Unpushed local changes add the optional self-hosted ZITADEL profile, explicit report scoping, a default-off event cleanup gate, and provider-independent public location reads; hosted CI does not cover them yet. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 ### Self-hosted ZITADEL Compose profile — 15 October 2026
 
@@ -330,17 +330,32 @@ completion percentage until work items and acceptance weights are agreed.
 
 Added strict response envelopes and additive `GET /api/v1/locations` and
 `GET /api/v1/locations/{location_id}` routes. They use the native governed
-`v_public_farm_summary` read path, document schemas through FastAPI OpenAPI, and
-leave the existing unversioned Directus/native response wrappers unchanged.
+`v_public_farm_summary` read path and document schemas through FastAPI OpenAPI.
 Malformed UUIDs return 400; missing and ineligible locations share a 404.
 Added typed location methods to separate Python and JavaScript public API
 clients; the existing Directus clients remain unchanged. Updated the contract
-and capability checklist. This is source implementation only: no runtime
+and capability checklist. The unversioned routes were later moved to the same
+native projection in every profile while retaining their historical wrapper.
+This is source implementation only: no runtime
 payload comparison, grant review or Directus parity check was performed; the
 SDK source has not been generated from OpenAPI or released; the TypeScript package build could not run because `tsc` is unavailable in the local checkout. No test suite was
 added or run. Roll back by reverting the additive routes/models/SDK clients or
 deploying the preceding gateway image; existing clients continue using
 `/api/locations`.
+
+## Public location provider boundary — 15 October 2026
+
+Removed the optional Directus HTTP proxy from the explicitly public legacy
+`/api/locations` list/detail routes. They now use the same governed
+`v_public_farm_summary` projection in every profile, exposing only ID, name,
+country, region, and status while retaining the old serialized wrapper. This
+avoids an unauthenticated provider path whose field/row policy parity was not
+verified. Three focused HTTP checks pass for native dispatch, list/detail
+wrappers, invalid UUID, and missing-location behavior; the combined route-policy
+suite passes eight checks and Ruff. Live candidate/populated response parity is
+still open. Directus remains optional for administrative use, with its runtime
+identity and effective role/field/row/hook parity unverified
+([evidence](builds/2026-10-15-recovery/legacy-public-location-native-route.json)).
 
 The scoped native v1 OpenAPI snapshot is now retained at
 [`native-public-api-v1.openapi.json`](native-public-api-v1.openapi.json); see

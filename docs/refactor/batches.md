@@ -909,6 +909,7 @@ reporting views.
   The first-party legacy refresh runner now has a dedicated view-only reader
   boundary; this does not prove external dashboard roles or tenant scope.
   - [x] Require explicit scope for `--auto` generation across the 94-type report registry, reject contradictory report/scope flags, and allow snapshot verification without a generation type. Eleven focused CLI checks and Ruff pass without database/provider access ([implementation](../../services/export/report_generator.py); [tests](../../tests/test_report_generator_cli.py); [evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)). Populated report parity, report ownership, and external consumer authorization remain open.
+  - [x] Route legacy public location list/detail through the bounded native projection in every profile, preserve their historical wrapper and 400/404 behavior, and remove the unauthenticated Directus proxy. Three focused HTTP checks pass, including with Directus enabled ([implementation](../../services/gateway/router.py); [tests](../../tests/test_gateway_public_locations.py); [evidence](builds/2026-10-15-recovery/legacy-public-location-native-route.json)). Directus administrative role/field/row/hook parity remains open.
 - [x] Source-audit and gate canonical Field Collector use after capture:
   migration 386 adds a current source/form/consent eligibility function and
   blocks ineligible draft edits and forward lifecycle transitions. Reports,
