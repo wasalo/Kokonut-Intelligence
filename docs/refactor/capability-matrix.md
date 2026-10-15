@@ -105,9 +105,11 @@ dispatcher/command checks and Ruff pass with subprocesses substituted. The
 runtime SQL inventory now covers 806 service source files. A follow-up worker
 inventory refresh after dynamic-retention, projection, and remote-sensing
 contracts now records 257 SQL sites across 20 roots, including four
-event-retention queries. The source-only JobSpec inventory accepts 13 of 15
-defaults; sensor/climate inputs still fail closed, and both external-provider
-operations are limited to explicit bounded contracts. No provider, database, Prefect server, or schedule was accessed
+event-retention queries. The source-only JobSpec inventory now distinguishes
+13 accepted default argument lists, climate's required per-schedule location
+input (schema-validated with a synthetic UUID), and the still-missing recurring
+sensor source contract. External-provider operations remain limited to explicit
+bounded contracts. No provider, database, Prefect server, or schedule was accessed
 for this source refresh. Live retry/recovery, provider outcomes, and
 MAN-CAP-040/047 remain
 open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);

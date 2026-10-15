@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 Check GitHub Actions for CI and Security status on the current PR head before
 merge; local acceptance evidence is recorded below and linked to its source.
-Thirteen local commits, including the retention-policy and optional Directus
+Fourteen local commits, including the retention-policy and optional Directus
 runtime-role/profile batches, are held beyond pushed head `72ab775`. The local
 work also includes static worker effect/JobSpec inventories and the latest
 retention scope metadata batch; CI status on `72ab775` does not cover these
@@ -20,6 +20,18 @@ last candidate rollout record is migration 400; verify live candidate status
 and checkpoints again before any rollout. Application-table RLS remains
 unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment
 because no hardware is available; physical-device acceptance is not claimed.
+
+### JobSpec runtime-input classification — 15 October 2026
+
+The static inventory now distinguishes command defaults from required inputs.
+Thirteen default argument lists pass directly. Climate's command schema passes
+when supplied a synthetic UUID solely for validation; each real scheduled
+climate job still requires an explicit location and remains disabled until
+reviewed. Sensor ingestion remains blocked because no recurring source contract
+exists. Eighty-five focused scheduler-contract, dispatch, and inventory checks pass; the
+inventory is regenerated and current. No provider, database, Prefect state, or
+schedule was accessed or changed ([inventory](worker-job-contract-inventory.json);
+[evidence](builds/2026-10-15-recovery/worker-job-input-classification.json)).
 
 ### Dynamic retention policy scope metadata — 15 October 2026
 
@@ -89,8 +101,9 @@ role provisioner; it has been regenerated and now passes its freshness check.
 It covers 3,795 SQL execution sites across 806 source files and 20 worker
 operation roots; 36 worker SQL sites still have no static
 function-path match. The new effect index records 43 unique direct effect sites
-(49 operation/site memberships), and the JobSpec inventory accepts 13 of 15
-defaults; the sensor and climate defaults still fail closed. These are static
+(49 operation/site memberships), and the JobSpec inventory records 13 accepted
+default argument lists, climate's required location input, and the unresolved
+sensor source contract. These are static
 inventories and do not establish runtime-role least privilege, provider
 idempotency, or active schedule state.
 

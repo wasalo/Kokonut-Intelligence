@@ -21,6 +21,7 @@ class JobSpec:
     retries: int
     retry_delay_seconds: int
     label: str
+    required_inputs: tuple[str, ...] = ()
 
     @property
     def scheduler_allowed(self) -> bool:
@@ -56,7 +57,15 @@ JOBS = MappingProxyType(
             600,
             "Remote sensing fetch",
         ),
-        "climate": JobSpec("services.ingestion.climate_data", ("--all",), 600, 1, 3600, "Climate data refresh"),
+        "climate": JobSpec(
+            "services.ingestion.climate_data",
+            ("--all",),
+            600,
+            1,
+            3600,
+            "Climate data refresh",
+            required_inputs=("location_id",),
+        ),
         "projections": JobSpec(
             "services.ingestion.clickhouse_outbox",
             ("--run-once", "--limit", "100"),
@@ -86,10 +95,10 @@ def run_job(job_id: str, *, location_id: str | None = None) -> dict[str, str]:
     """
     spec = JOBS[job_id]
     arguments = list(spec.arguments)
-    if job_id == "climate" and location_id is None:
+    if "location_id" in spec.required_inputs and location_id is None:
         raise ValueError("Climate refresh requires a location")
     if location_id is not None:
-        if job_id not in {"weather", "climate"}:
+        if job_id != "weather" and "location_id" not in spec.required_inputs:
             raise ValueError("Location override is supported only for weather and climate")
         from uuid import UUID
 

@@ -22,7 +22,7 @@ MAN-CAP checks open until each has its own retained evidence.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Thirteen local commits are now held
+  in progress at the last recorded check. Fourteen local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
   role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
@@ -270,8 +270,9 @@ before protected reads and writes, and make direct database access fail closed.
    service/provider calls and existing persisted schedule reconciliation remain
    open. The source-only effect index now records 43 unique direct effect sites
   (49 operation/site memberships) across 20 worker roots. A separate comparison
-  covers 15 shared JobSpecs: 13 defaults pass validation and sensor/climate
-  defaults fail for missing input/scope. Remote sensing is available only as a
+  covers 15 shared JobSpecs: 13 no-input defaults pass, climate requires a
+  schema-validated location per schedule, and recurring sensor ingestion still
+  lacks a source contract. Remote sensing is available only as a
   bounded sequential batch (1–10 jobs, default one), and ClickHouse projection
   is limited to a bounded run-once contract. No task or provider was activated.
   Neither report inspects persisted tasks or

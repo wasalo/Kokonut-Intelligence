@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "61d898b735160c66dfad5a0e23d554913ff167e1",
+  "baseline_commit": "b3f70f40789e501e2116e3e40df4eea85b0292fb",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -4264,6 +4264,7 @@
     "tests/test_work_selection.py",
     "tests/test_worker_boundary_preflight.py",
     "tests/test_worker_function_reachability.py",
+    "tests/test_worker_job_contract_inventory.py",
     "tests/test_worker_operation_map.py",
     "tests/test_worker_source_closure.py",
     "tests/test_worker_sql_inventory.py",

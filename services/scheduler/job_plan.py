@@ -30,10 +30,10 @@ def build_job_plan(job_id: str, cadence: str, *, location_id: str | None = None)
         raise ValueError("Sensor scheduling requires an explicit input contract")
     arguments = list(spec.arguments)
     name = f"kernel-{job_id}-{cadence}"
-    if job_id == "climate" and location_id is None:
+    if "location_id" in spec.required_inputs and location_id is None:
         raise ValueError("Climate schedule planning requires one location")
     if location_id is not None:
-        if job_id not in {"weather", "climate"}:
+        if job_id != "weather" and "location_id" not in spec.required_inputs:
             raise ValueError("Location override is supported only for weather and climate")
         location = str(UUID(str(location_id)))
         arguments.extend(("--location-id", location))

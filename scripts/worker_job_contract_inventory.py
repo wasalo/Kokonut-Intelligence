@@ -23,29 +23,47 @@ from services.security.scheduled_command_contracts import (  # noqa: E402
     validate_scheduled_command,
 )
 
+_INPUT_FIXTURES = {"location_id": ("--location-id", "00000000-0000-4000-8000-000000000001")}
+
 
 def build_inventory() -> dict:
     entries = []
     statuses = Counter()
     for name, job in sorted(JOBS.items()):
+        arguments = list(job.arguments)
+        unsupported_inputs = []
+        for required_input in job.required_inputs:
+            fixture = _INPUT_FIXTURES.get(required_input)
+            if fixture is None:
+                unsupported_inputs.append(required_input)
+            else:
+                arguments.extend(fixture)
         if job.module not in ALLOWED_SCHEDULED_MODULES:
             status = "module_not_allowlisted"
             reason = "JobSpec module is outside the Kernel scheduled-module allowlist"
+        elif unsupported_inputs:
+            status = "required_input_contract_unmodeled"
+            reason = "required runtime input is not modeled by this inventory"
         else:
             try:
-                validate_scheduled_command(job.module, list(job.arguments))
+                validate_scheduled_command(job.module, arguments)
             except ScheduledCommandRejected as exc:
-                status = "default_arguments_rejected"
+                status = "source_contract_missing" if name == "sensors" else "default_arguments_rejected"
                 reason = str(exc)
             else:
-                status = "default_arguments_accepted"
-                reason = None
+                if job.required_inputs:
+                    status = "required_runtime_inputs_validated"
+                    reason = "schema accepts the modeled input; each scheduled instance must provide it"
+                else:
+                    status = "default_arguments_accepted"
+                    reason = None
         statuses[status] += 1
         entries.append(
             {
                 "job": name,
                 "module": job.module,
                 "argument_count": len(job.arguments),
+                "required_inputs": list(job.required_inputs),
                 "status": status,
                 "reason": reason,
             }
@@ -55,7 +73,8 @@ def build_inventory() -> dict:
         "generated_by": "scripts/worker_job_contract_inventory.py",
         "scope": (
             "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. "
-            "It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution."
+            "Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, "
+            "external Prefect schedules, provider state, or runtime execution."
         ),
         "summary": {
             "catalog_jobs": len(entries),
