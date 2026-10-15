@@ -57,12 +57,13 @@ establish live OIDC acceptance.
   header as ZITADEL documents to avoid hanging error responses.
 - Do not add Redis for ZITADEL by default; its cache is optional and disabled
   by default. Add it only after measured need and a separate profile review.
-- The profile currently selects versioned API/Login image tags at ZITADEL
-  v4.20.0 and PostgreSQL 17.10. A registry manifest lookup could not run from
-  this host because registry DNS was unavailable, so OCI digest pinning and
-  ARM64 manifest verification remain release gates. Do not use floating
-  `latest` tags. The Login UI cookie secret must be configured before startup
-  and kept stable across replicas.
+- The profile pins the API and Login images to the published ZITADEL v4.19.4
+  manifest digests. The source release workflow builds both images for
+  `linux/amd64` and `linux/arm64`; the GHCR package page publishes the API's
+  per-platform manifests. A local registry lookup failed because this host
+  could not resolve `ghcr.io`, so actual pull and manifest inspection remain
+  open. Do not use floating `latest` tags. The Login UI cookie secret must be
+  configured before startup and kept stable across replicas. ([release](https://github.com/zitadel/zitadel/releases); [API image](https://github.com/zitadel/zitadel/pkgs/container/zitadel); [Login image](https://github.com/zitadel/zitadel/pkgs/container/zitadel-login); [multi-platform build](https://github.com/zitadel/zitadel/blob/main/.github/workflows/pack.yml))
 - Keep ZITADEL migration/setup and backup/restore separate from Kokonut schema
   migrations. ZITADEL's master key is exactly 32 characters and is durable
   encryption state: losing or replacing it can make encrypted IdP data

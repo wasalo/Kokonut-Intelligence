@@ -2,8 +2,8 @@
 
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `72ab775e8b9863795b2c4800c59e9f34ff2ae205`
-**Latest pushed head status (last recorded):** Security #48 passed; CI #324 was in progress on that head. These checks do not cover the local commits listed below. See [Security #48](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691049) and [CI #324](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38783691151).
+**Latest pushed head:** `d01941abad13c5128fca85acb0f4b5645a4322b4`
+**Latest pushed head status (last recorded):** Security #49 passed; CI #325 was in progress on that head. The current ZITADEL image-pin follow-up is local and is not covered by those runs.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,13 +20,13 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
-  [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
-  on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Seventeen local commits are now held
-  beyond that pushed head, including retention-policy and optional Directus
-  role/profile batches and fresh-volume Directus overlay acceptance. The
-  local batch includes worker effect, SQL reachability, and JobSpec inventories;
-  CI has not yet evaluated these commits. The pushed batch includes report calculation and scheduler worker
+  [`d01941abad13c5128fca85acb0f4b5645a4322b4`](https://github.com/wasalo/Kokonut-Intelligence/commit/d01941abad13c5128fca85acb0f4b5645a4322b4)
+  on `feat/mobile-offline-acceptance`, PR #68. Security #49 passed; CI #325 is
+  in progress at the last recorded check. This push carried the previous 17
+  local commits, including retention-policy and optional Directus role/profile
+  work, fresh-volume Directus overlay acceptance, worker effect and SQL
+  reachability inventories, and the five-seed/retention rollout evidence. The
+  ZITADEL image-pin follow-up is local and CI has not evaluated it. The pushed batch includes report calculation and scheduler worker
   recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
   permission work. See the relevant evidence below and the current CI status
   above; do not treat it as validation of the local commits.
@@ -211,10 +211,8 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** The latest pushed head is `72ab775e8b9863795b2c4800c59e9f34ff2ae205`.
-Security #48 passed and CI #324 is in progress. The pushed head includes the
-report calculation read-only guard, scheduler and EventBus worker recovery,
-KGP worker reconnection, and Directus organization permission work. Continue
+**Action:** The latest pushed head is `d01941abad13c5128fca85acb0f4b5645a4322b4`.
+Security #49 passed and CI #325 is in progress. Continue
 code work while CI runs; inspect any failure against the exact pushed SHA
 before changing the checklist status.
 

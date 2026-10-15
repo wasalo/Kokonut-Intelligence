@@ -95,7 +95,10 @@ def test_zitadel_profile_is_private_and_uses_a_dedicated_non_superuser_database_
     assert "init-db.sh" in " ".join(item["source"] for item in db["volumes"])
 
     api = services["zitadel-api"]
-    assert api["image"] == "ghcr.io/zitadel/zitadel:v4.20.0"
+    assert api["image"] == (
+        "ghcr.io/zitadel/zitadel:v4.19.4@sha256:"
+        "90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b"
+    )
     assert api["command"] == ["start-from-init", "--masterkeyFromEnv", "--tlsMode", "disabled"]
     assert api["environment"]["ZITADEL_DATABASE_POSTGRES_DSN"].startswith(
         "postgresql://zitadel:"
@@ -111,7 +114,10 @@ def test_zitadel_profile_is_private_and_uses_a_dedicated_non_superuser_database_
     assert "kernel" in api["networks"]
 
     login = services["zitadel-login"]
-    assert login["image"] == "ghcr.io/zitadel/zitadel-login:v4.20.0"
+    assert login["image"] == (
+        "ghcr.io/zitadel/zitadel-login:v4.19.4@sha256:"
+        "93ffd1395b827f685ba29c02fa70aee881fc21102519c4e2bbb0b89c0e00f42c"
+    )
     assert login["environment"]["NEXT_PUBLIC_BASE_PATH"] == "/ui/v2/login"
     assert login["environment"]["ZITADEL_SERVICE_USER_TOKEN_FILE"] == "/zitadel/bootstrap/login-client.pat"
 

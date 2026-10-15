@@ -1,13 +1,10 @@
 # Kokonut Kernel implementation progress
 
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
-Check GitHub Actions for CI and Security status on the current PR head before
-merge; local acceptance evidence is recorded below and linked to its source.
-Seventeen local commits, including the retention-policy and optional Directus
-runtime-role/profile batches, are held beyond pushed head `72ab775`. The local
-work also includes static worker effect/JobSpec inventories and the latest
-retention scope metadata batch; CI status on `72ab775` does not cover these
-commits. The candidate now has 393 applied schema migrations through 402, six
+The 17-commit batch was pushed as `d01941abad13c5128fca85acb0f4b5645a4322b4`.
+Security #49 passed and CI #325 was in progress at the last check. A local
+follow-up corrects the optional ZITADEL image pin; it is not part of that pushed
+head. The candidate now has 393 applied schema migrations through 402, six
 recorded seed migrations, zero pending schema migrations, 115 unselected seed
 sources pending, and no failed ledger rows. The five approved reference catalogs
 and configurable retention/legal-hold schema are applied; no retention period,
@@ -17,10 +14,10 @@ Earlier commits close the sensor CLI false-success path (`83256be`), verify
 the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
 isolated ARM64 minimal/edge/standard profile selection (`629affd`). Other
 local work includes default-off retention enforcement and Directus OIDC/operator
-grant checks. The ZITADEL profile has 26 focused Compose/planner checks, Ruff,
+grant checks. The ZITADEL profile has focused Compose/planner checks, Ruff,
 shell syntax, Caddy validation, and isolated database-role evidence; its image
 containers have not been started and credentials were not provisioned. The
-latest schema rollout remains migration 400; the separately approved local
+latest schema rollout is migration 402; the separately approved local
 reference-catalog seed rollout is recorded above. Application-table RLS remains
 unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment
 because no hardware is available; physical-device acceptance is not claimed.
@@ -255,9 +252,10 @@ network-disabled, disposable PostgreSQL 17 container:
 the role is non-superuser/non-createdb/non-createrole, owns only its database,
 and can create a table using its own login
 ([evidence](builds/2026-10-15-recovery/zitadel-compose-profile.json)). Tests
-use synthetic values and do not start an IdP or write secrets. Registry DNS
-was unavailable from the host, so OCI digest and ARM64 manifest verification
-remain open. The identity hostname, live client settings, and encrypted
+use synthetic values and do not start an IdP or write secrets. The API/Login
+defaults now use published v4.19.4 tags with pinned GHCR manifest digests. The
+host still cannot resolve registry DNS, so exact manifest pulls and ARM64
+platform verification remain open ([image evidence](builds/2026-10-15-recovery/zitadel-image-reference-check.json)). The identity hostname, live client settings, and encrypted
 secrets remain needed for browser acceptance. Kokonut Gateway sessions and
 tenant grants remain authoritative.
 
