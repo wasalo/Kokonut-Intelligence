@@ -1239,6 +1239,12 @@ isolated rerun. This closes capacity visibility only; provider acceptance,
 retention-period approval and broader recovery remain open. The scoped sensor
 anomaly event-worker recovery now has separate evidence below. [Policy](notification-outbox-operations.md); [machine evidence](builds/2026-10-11-recovery/notification-outbox-capacity.json).
 
+The general EventBus cleanup path now rejects nonpositive retention windows
+and preserves an aged parent event while its dead-letter disposition remains
+pending. Fifteen focused durability tests pass. This avoids orphaning an
+operator-actionable dead letter; it does not change notification-outbox pruning
+(none is implemented) or close owner-approved retention periods. [Evidence](builds/2026-10-14-recovery/event-cleanup-pending-disposition.json).
+
 ### CAP-047 sensor anomaly crash/replay — 11 October 2026
 
 Migration `376_sensor_anomaly_delivery.sql` adds per-reading/rule effect receipts,

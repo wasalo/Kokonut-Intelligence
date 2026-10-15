@@ -320,11 +320,18 @@ class EventBus:
             return dict(cur.fetchall())
 
     def cleanup_old_events(self, days: int = 30):
+        if isinstance(days, bool) or not isinstance(days, int) or days < 1:
+            raise ValueError("days must be a positive integer")
         conn = self._get_conn()
         with conn.cursor() as cur:
             cur.execute("""DELETE FROM platform_event
                             WHERE created_at < NOW() - (%s * INTERVAL '1 day')
-                              AND status IN ('completed', 'dead_letter')""", (days,))
+                              AND status IN ('completed', 'dead_letter')
+                              AND NOT EXISTS (
+                                  SELECT 1 FROM event_dead_letter dead
+                                  WHERE dead.original_event_id = platform_event.id
+                                    AND dead.disposition = 'pending'
+                              )""", (days,))
             count = cur.rowcount
         conn.commit()
         return count

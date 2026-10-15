@@ -4,7 +4,6 @@ from unittest.mock import MagicMock, patch
 
 from services.events.bus import EventBus, resolve_handler
 
-
 REGISTERED_HANDLERS = (
     ("services.ingestion.anomaly_detector", "handle_sensor_reading"),
     ("services.events.handlers", "handle_stale_data"),
@@ -94,6 +93,32 @@ def test_injected_connection_is_never_closed():
     bus.cleanup_old_events()
     bus.close()
     conn.close.assert_not_called()
+
+
+def test_cleanup_preserves_events_with_undisposed_dead_letters():
+    conn, cursor = _connection()
+
+    EventBus(conn=conn).cleanup_old_events(days=30)
+
+    sql = " ".join(cursor.execute.call_args.args[0].split())
+    assert "dead.disposition = 'pending'" in sql
+    assert "dead.original_event_id = platform_event.id" in sql
+    assert "AND NOT EXISTS ( SELECT 1 FROM event_dead_letter dead" in sql
+    assert "status IN ('completed', 'dead_letter')" in sql
+    assert cursor.execute.call_args.args[1] == (30,)
+
+
+def test_cleanup_rejects_nonpositive_or_boolean_retention_before_database_access():
+    bus = EventBus(conn=MagicMock())
+
+    for days in (0, -1, True, False):
+        try:
+            bus.cleanup_old_events(days=days)
+            assert False, f"invalid retention window {days!r} should fail"
+        except ValueError as exc:
+            assert "positive integer" in str(exc)
+
+    bus._conn.cursor.assert_not_called()
 
 
 def test_claim_query_recovers_expired_processing_lease():

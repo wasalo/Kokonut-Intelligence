@@ -2,8 +2,8 @@
 
 **Updated:** 14 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `5dc181c20c9c1c5831c2bebff740a8ca761867d2`
-**Latest pushed head status:** `5dc181c20c9c1c5831c2bebff740a8ca761867d2` passed CI #317 and Security #41.
+**Latest pushed head:** `f8d90ea0b6af817e91db6758ff293d3c309f29de`
+**Latest pushed head status:** Security #42 passed; CI #318 is in progress.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,9 +14,9 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 326 checked and 20 open items (346 total).
-- The latest pushed implementation is `5dc181c`. CI #317 and Security #41
-  passed on that head. The earlier Security #39 SHA-256
+- The execution checklist has 327 checked and 20 open items (347 total).
+- The latest pushed implementation is `f8d90ea`. Security #42 passed; CI #318
+  is in progress on that head. The earlier Security #39 SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
   and hosted Security #41.
 - The pushed head includes the Directus preflight, supervisor, ClickHouse and
@@ -99,9 +99,9 @@ MAN-CAP checks open until each has its own retained evidence.
   support a PostgreSQL-only profile, record provider inclusion, and preflight
   required services before writing/restoring data; fake-Compose checks cover
   both ClickHouse-disabled and ClickHouse-enabled paths.
-  Focused source/disposable checks pass. The latest pushed head `5dc181c` passed
-  CI #317 and Security #41. The current local gRPC and checklist batch is not
-  pushed yet and will need a fresh hosted run.
+  Focused source/disposable checks pass. The latest pushed head `f8d90ea` has
+  Security #42 passed and CI #318 in progress. The local event-cleanup
+  retention-safety fix and its focused tests are not pushed yet.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–400 were applied schema-only after encrypted
@@ -148,15 +148,15 @@ until the relevant inputs or authorization arrive.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** Current pushed head `5dc181c20c9c1c5831c2bebff740a8ca761867d2`
-passed CI #317 and Security #41. The outbox CLI and disposable PostgreSQL
+**Action:** Current pushed head `f8d90ea0b6af817e91db6758ff293d3c309f29de`
+has Security #42 passed and CI #318 in progress. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
 acceptance are included in that batch. The Gitleaks
 allowlist fix for the earlier Security #39 SHA-256 source-digest false positive
 is included in the pushed head and Security #41 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
 supplying the test-only operator-auth password before checking the missing
 issuer configuration.
 
-**Acceptance:** current pushed head `5dc181c` passed CI #317 and Security #41.
+**Acceptance:** current pushed head `f8d90ea` has Security #42 passed; CI #318 is in progress.
 The focused local outbox checks pass and are included in that batch.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
@@ -504,10 +504,11 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The latest push `5dc181c` has Security #41 passed and CI #317
-pending; CI #316 remains in progress on the previous head. The current batch
-includes ClickHouse/notification CLI regressions and disposable PostgreSQL
-outbox acceptance; focused local checks and full-history Gitleaks pass.
+requested. The latest push `f8d90ea` has Security #42 passed and CI #318
+in progress. The pushed batch includes enabled gRPC loopback acceptance and
+the earlier ClickHouse/notification CLI regressions with disposable
+PostgreSQL outbox acceptance. The current local batch adds EventBus
+dead-letter cleanup protection; focused local checks pass.
 Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database
