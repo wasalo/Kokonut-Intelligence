@@ -1,12 +1,13 @@
 # Kernel worker operation map
 
-**Reviewed:** 14 October 2026  
+**Reviewed:** 15 October 2026
+
 **Status:** entrypoint inventory, scheduler argument contracts, and static
 local-import closure implemented; runtime effects and authorization boundaries
 remain open.
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 13 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
+the exact 14 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -32,8 +33,8 @@ data effects, and an idempotency/retry note.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  13 scheduled modules and five allowlisted handler modules. It covers 73
-  distinct local source files across 18 operation roots and 429 import edges,
+  14 scheduled modules and five allowlisted handler modules. It covers 73
+  distinct local source files across 19 operation roots and 451 import edges,
   with no unresolved local modules and the EventBus's one dynamic handler-import
   site. That site is dispatched through `validate_event_handler` and the exact
   allowlist. Package `__main__.py` entrypoints are included.
@@ -51,8 +52,8 @@ data effects, and an idempotency/retry note.
   operation also records each of the 20 functions from its literal
   `CALCULATORS` registry as an explicit registry-dispatch edge. A focused
   callback edge follows the EventBus's statically named multiprocessing target
-  to `_handler_process` and its local resolver. Across 18 operation roots, 46
-  entry functions reach 367 function memberships through 503 direct-call,
+  to `_handler_process` and its local resolver. Across 19 operation roots, 44
+  entry functions reach 369 function memberships through 504 direct-call,
   one callback, and 20 registry-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
@@ -79,7 +80,7 @@ data effects, and an idempotency/retry note.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 18 operation roots and local imports, reports the shared runtime
+  confirms all 19 operation roots and local imports, reports the shared runtime
   database identity with no signed tenant context, and keeps RLS blocked. It
   explicitly leaves live grants, migration state, active schedules, and owner
   mappings `not_assessed`; it never connects to PostgreSQL. Use
@@ -91,7 +92,7 @@ data effects, and an idempotency/retry note.
   and dynamic-import call patterns. The current pass finds 40 unique candidate
   sites across 45 operation/site memberships: HTTP (8), email delivery (6),
   process lifecycle (5), EVM RPC (6), EVM client setup (6), filesystem (8),
-  and dynamic import (1), across 18 operation roots. These are review candidates,
+  and dynamic import (1), across 19 operation roots. These are review candidates,
   not confirmed runtime effects:
   the module graph conservatively includes mutually exclusive CLI branches,
   so the carbon-credit entry also surfaces on-chain functions that its
@@ -155,13 +156,16 @@ data effects, and an idempotency/retry note.
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
   compares all 15 shared job templates with the Kernel module allowlist and
-  command validation. Eleven default argument lists pass, the sensor and
-  climate defaults fail closed, and the projection/remote-sensing modules are
-  outside the Kernel allowlist. This is the source catalog only; it does not
+  command validation. Twelve default argument lists pass, the sensor and
+  climate defaults fail closed, remote sensing is outside the Kernel allowlist,
+  and ClickHouse projections are optional and limited to one bounded
+  `--run-once` delivery batch. Manual list/replay/disposal/reconcile actions are
+  rejected, and no task or provider is activated. This is the source catalog
+  only; it does not
   reconcile persisted tasks or external schedules. Check it with
   `python3 scripts/worker_job_contract_inventory.py --check
   docs/refactor/worker-job-contract-inventory.json`. Keep the two rejected
-  defaults and two unallowlisted jobs inactive until source/input, provider,
+  defaults and the one unallowlisted job inactive until source/input, provider,
   and worker-identity boundaries are reviewed.
 
 ## What remains open

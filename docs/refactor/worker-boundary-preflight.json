@@ -4,11 +4,11 @@
   "scope": "Static source preflight only. It does not connect to a database or inspect live role grants, applied migrations, enabled schedules, tenant ownership, or external dispatchers.",
   "status": "review_required",
   "operation_coverage": {
-    "scheduled_allowlist_count": 13,
+    "scheduled_allowlist_count": 14,
     "event_handler_allowlist_count": 5,
-    "expected_operation_count": 18,
-    "source_closure_operation_count": 18,
-    "function_graph_operation_count": 18,
+    "expected_operation_count": 19,
+    "source_closure_operation_count": 19,
+    "function_graph_operation_count": 19,
     "missing_source_closure_operations": [],
     "missing_function_graph_operations": [],
     "unresolved_function_roots": 0,
@@ -23,7 +23,7 @@
   "worker_identity": {
     "database_identity": "shared_configured_runtime_identity",
     "signed_tenant_context_established_by_dispatch": false,
-    "unbound_operation_root_count": 18,
+    "unbound_operation_root_count": 19,
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
@@ -84,17 +84,17 @@
       {
         "site": "services/common/database.py:132:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 18
+        "import_closure_operation_count": 19
       },
       {
         "site": "services/common/database.py:71:15",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 18
+        "import_closure_operation_count": 19
       },
       {
         "site": "services/common/database.py:74:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 18
+        "import_closure_operation_count": 19
       },
       {
         "site": "services/credit_class/chain_sync.py:176:12",
@@ -159,32 +159,32 @@
       {
         "site": "services/ingestion/clickhouse_outbox.py:112:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 5
+        "import_closure_operation_count": 6
       },
       {
         "site": "services/ingestion/clickhouse_outbox.py:198:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 5
+        "import_closure_operation_count": 6
       },
       {
         "site": "services/ingestion/clickhouse_outbox.py:219:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 5
+        "import_closure_operation_count": 6
       },
       {
         "site": "services/ingestion/clickhouse_outbox.py:266:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 5
+        "import_closure_operation_count": 6
       },
       {
         "site": "services/ingestion/clickhouse_outbox.py:70:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 5
+        "import_closure_operation_count": 6
       },
       {
         "site": "services/ingestion/clickhouse_outbox.py:88:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 5
+        "import_closure_operation_count": 6
       },
       {
         "site": "services/ingestion/data_freshness.py:114:4",

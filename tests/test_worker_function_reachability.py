@@ -8,6 +8,10 @@ from types import SimpleNamespace
 
 from scripts.worker_function_reachability import (
     ROOT,
+    _CallVisitor,
+    _DefinitionVisitor,
+    _ImportContextVisitor,
+    _infer_instance_types,
     _resolve_call_target,
     _serialize,
     build_inventory,
@@ -128,3 +132,73 @@ def test_direct_call_resolution_tracks_class_scoped_self_methods():
     method_call = ast.parse("self.flush()", mode="eval").body
 
     assert _resolve_call_target(function, method_call, definitions, contexts) == "services.worker:Writer.flush"
+
+
+def _fixture_call_graph(source: str):
+    module = "services.worker_fixture"
+    source_path = "services/worker_fixture.py"
+    tree = ast.parse(source)
+    definitions_visitor = _DefinitionVisitor(module, source_path)
+    definitions_visitor.visit(tree)
+    context = _ImportContextVisitor(
+        module,
+        source_path,
+        {module},
+        definitions_visitor.definitions,
+        definitions_visitor.classes,
+    )
+    context.visit(tree)
+    return definitions_visitor, {module: context}
+
+
+def test_graph_tracks_types_yielded_by_connection_context_managers():
+    definitions, contexts = _fixture_call_graph(
+        """
+class DatabaseConnection:
+    def execute(self, sql):
+        pass
+
+def get_connection():
+    return DatabaseConnection()
+
+def worker():
+    with get_connection() as connection:
+        connection.execute('SELECT 1')
+"""
+    )
+    function = definitions.definitions["services.worker_fixture:worker"]
+    instance_types = _infer_instance_types(
+        function,
+        definitions.definitions,
+        definitions.classes,
+        contexts,
+    )
+
+    assert instance_types["connection"] == {"services.worker_fixture:DatabaseConnection"}
+
+
+def test_graph_narrows_receiver_inside_positive_isinstance_branch_only():
+    definitions, contexts = _fixture_call_graph(
+        """
+class DatabaseConnection:
+    def execute(self, sql):
+        pass
+
+def query(connection):
+    if isinstance(connection, DatabaseConnection):
+        connection.execute('SELECT 1')
+
+def unsafe_query(connection, enabled):
+    if isinstance(connection, DatabaseConnection) or enabled:
+        connection.execute('SELECT 1')
+"""
+    )
+    query = definitions.definitions["services.worker_fixture:query"]
+    query_graph = _CallVisitor(query, definitions.definitions, definitions.classes, contexts)
+    query_graph.visit(query["node"])
+    unsafe_query = definitions.definitions["services.worker_fixture:unsafe_query"]
+    unsafe_graph = _CallVisitor(unsafe_query, definitions.definitions, definitions.classes, contexts)
+    unsafe_graph.visit(unsafe_query["node"])
+
+    assert {edge["callee"] for edge in query_graph.edges} == {"services.worker_fixture:DatabaseConnection.execute"}
+    assert unsafe_graph.edges == []

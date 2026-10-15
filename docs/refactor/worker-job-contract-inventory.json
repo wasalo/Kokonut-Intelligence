@@ -4,11 +4,11 @@
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
     "catalog_jobs": 15,
-    "allowlisted_modules": 13,
+    "allowlisted_modules": 14,
     "outcomes": {
-      "default_arguments_accepted": 11,
+      "default_arguments_accepted": 12,
       "default_arguments_rejected": 2,
-      "module_not_allowlisted": 2
+      "module_not_allowlisted": 1
     }
   },
   "jobs": [
@@ -86,8 +86,8 @@
       "job": "projections",
       "module": "services.ingestion.clickhouse_outbox",
       "argument_count": 3,
-      "status": "module_not_allowlisted",
-      "reason": "JobSpec module is outside the Kernel scheduled-module allowlist"
+      "status": "default_arguments_accepted",
+      "reason": null
     },
     {
       "job": "remote_sensing",

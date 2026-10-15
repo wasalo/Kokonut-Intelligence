@@ -3,7 +3,7 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 18,
+    "operation_roots": 19,
     "sql_execution_sites": 244,
     "statically_reachable_site_memberships": 251,
     "unique_sites_with_static_operation_path": 210,
@@ -167,6 +167,13 @@
         "services/ingestion/ml_anomaly_detector.py:563:8",
         "services/ingestion/mqtt_actuator.py:104:4"
       ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.clickhouse_outbox",
+      "operation_ref": "scheduled_module:services.ingestion.clickhouse_outbox",
+      "statically_reachable_sql_site_count": 0,
+      "statically_reachable_sql_site_ids": []
     },
     {
       "kind": "scheduled_module",
@@ -1353,6 +1360,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -1387,6 +1395,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -1421,6 +1430,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -3662,6 +3672,7 @@
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -3699,6 +3710,7 @@
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -3732,6 +3744,7 @@
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -3762,6 +3775,7 @@
         "clickhouse_outbox"
       ],
       "import_closure_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3791,6 +3805,7 @@
         "clickhouse_outbox"
       ],
       "import_closure_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3816,6 +3831,7 @@
         "clickhouse_outbox"
       ],
       "import_closure_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3839,6 +3855,7 @@
         "clickhouse_outbox"
       ],
       "import_closure_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3862,6 +3879,7 @@
         "clickhouse_outbox"
       ],
       "import_closure_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3888,6 +3906,7 @@
         "transitioned"
       ],
       "import_closure_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -3911,6 +3930,7 @@
         "clickhouse_outbox"
       ],
       "import_closure_operations": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",

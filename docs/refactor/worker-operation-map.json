@@ -228,6 +228,16 @@
       "idempotency": "The check recomputes from current verified source rows and does not write credit adjustments, retirement state, or review decisions. Repeating it has no database side effects.",
       "retry_boundary": "Retry repeats bounded database reads and reports current differences. --adjust, issuance, retirement, and retirement-review flags are rejected by the scheduled command contract.",
       "sources": ["services/analytics/carbon_credits.py", "services/analytics/carbon_balance.py", "services/common/database.py"]
+    },
+    {
+      "module": "services.ingestion.clickhouse_outbox",
+      "scope": "Global projection queue; the supported scheduled operation is --run-once with a bounded batch (the current JobSpec fixes --limit 100). Operator list, replay, disposal, and manual reconciliation commands are excluded from scheduled arguments.",
+      "reads": ["public.clickhouse_outbox"],
+      "writes": ["public.clickhouse_outbox", "public.clickhouse_outbox_operator_audit"],
+      "external_effects": ["When ClickHouse is enabled, writes allowlisted projection rows to the optional ClickHouse provider; when disabled, leaves queue rows untouched."],
+      "idempotency": "Stable event keys and payload hashes suppress duplicate enqueue; lease tokens guard completion. External ClickHouse delivery is at-least-once across a crash after the provider write and before PostgreSQL completion.",
+      "retry_boundary": "Expired claims are recovered and delivery retries are bounded at eight attempts before dead-lettering; every batch is capped at 1000 rows and the scheduled JobSpec requests 100.",
+      "sources": ["services/ingestion/clickhouse_outbox.py", "services/core/jobs.py", "services/security/scheduled_command_contracts.py", "schemas/postgres/335_clickhouse_outbox.sql", "schemas/postgres/374_clickhouse_outbox_operator_audit.sql"]
     }
   ],
   "event_handlers": [

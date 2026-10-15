@@ -68,10 +68,10 @@ applications.
 
 The [runtime SQL inventory](runtime-sql-inventory.json) records direct
 execution sites across the whole `services/` tree to support that review. It
-contains 3,758 call sites from 804 Python files and 1,029 regex-derived relation
+contains 3,795 call sites from 806 Python files and 1,033 regex-derived relation
 candidates; literal SQLAlchemy `text()` and psycopg `SQL()` wrappers are
-unwrapped. Ninety-eight statement kinds remain unknown, 22 statements begin
-with `WITH`, 313 sites have no relation candidate, and 442 use a non-literal
+unwrapped. 111 statement kinds remain unknown, 23 statements begin
+with `WITH`, 333 sites have no relation candidate, and 456 use a non-literal
 query expression. Dynamic query construction, `WITH` semantics, ORM/provider
 code,
 columns, actual request reachability, and external Directus usage remain outside

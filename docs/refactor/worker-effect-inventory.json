@@ -4,7 +4,7 @@
   "reviewed": "2026-10-15",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. Callbacks, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 18,
+    "operation_roots": 19,
     "candidate_effect_sites": 40,
     "operation_site_memberships": 45,
     "unique_sites_by_category": {
@@ -260,6 +260,12 @@
         "filesystem": 6,
         "http": 1
       }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.clickhouse_outbox",
+      "candidate_effect_sites": [],
+      "category_counts": {}
     },
     {
       "kind": "scheduled_module",

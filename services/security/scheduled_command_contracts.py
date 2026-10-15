@@ -86,6 +86,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--check-adjustments": None,
         "--location-id": "uuid",
     },
+    "services.ingestion.clickhouse_outbox": {
+        "--run-once": None,
+        "--limit": "batch_size",
+    },
 }
 
 if frozenset(_OPTIONS) != ALLOWED_SCHEDULED_MODULES:
@@ -224,6 +228,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     elif module_path == "services.analytics.carbon_credits":
         if "--check-adjustments" not in options:
             raise _reject("scheduled carbon-credit operation must be a read-only adjustment check")
+
+    elif module_path == "services.ingestion.clickhouse_outbox":
+        if "--run-once" not in options:
+            raise _reject("scheduled projection operation must use one bounded delivery batch")
 
 
 def validate_scheduled_command(module_path: str, command_args: object) -> tuple[str, ...]:

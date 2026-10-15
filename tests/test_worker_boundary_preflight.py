@@ -7,6 +7,8 @@ import json
 import pytest
 
 from scripts.worker_boundary_preflight import ROOT, _serialize, build_preflight
+from scripts.worker_sql_reachability import build_inventory as build_sql_reachability
+from services.security.execution_allowlist import ALLOWED_EVENT_HANDLERS, ALLOWED_SCHEDULED_MODULES
 
 REPORT_PATH = ROOT / "docs" / "refactor" / "worker-boundary-preflight.json"
 
@@ -25,9 +27,9 @@ def test_saved_worker_boundary_preflight_matches_current_sources(report):
 def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(report):
     coverage = report["operation_coverage"]
 
-    assert coverage["scheduled_allowlist_count"] == 12
-    assert coverage["event_handler_allowlist_count"] == 5
-    assert coverage["expected_operation_count"] == 17
+    assert coverage["scheduled_allowlist_count"] == len(ALLOWED_SCHEDULED_MODULES)
+    assert coverage["event_handler_allowlist_count"] == len(ALLOWED_EVENT_HANDLERS)
+    assert coverage["expected_operation_count"] == len(ALLOWED_SCHEDULED_MODULES) + len(ALLOWED_EVENT_HANDLERS)
     assert coverage["missing_source_closure_operations"] == []
     assert coverage["missing_function_graph_operations"] == []
     assert coverage["unresolved_function_roots"] == 0
@@ -35,7 +37,7 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     assert report["source_closure"]["known_allowlisted_dynamic_import_site_count"] == 1
     assert report["source_closure"]["passed"] is True
     assert report["worker_identity"]["signed_tenant_context_established_by_dispatch"] is False
-    assert report["worker_identity"]["unbound_operation_root_count"] == 17
+    assert report["worker_identity"]["unbound_operation_root_count"] == coverage["expected_operation_count"]
     assert report["worker_identity"]["status"] == "not_tenant_bound"
     assert report["status"] == "review_required"
 
@@ -43,9 +45,10 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
 def test_preflight_lists_unmatched_sql_without_query_text_or_database_claims(report):
     sql = report["sql_reachability"]
 
-    assert sql["execution_site_count"] == 196
-    assert sql["sites_with_static_operation_path"] == 175
-    assert sql["sites_without_static_function_match"] == 21
+    summary = build_sql_reachability()["summary"]
+    assert sql["execution_site_count"] == summary["sql_execution_sites"]
+    assert sql["sites_with_static_operation_path"] == summary["unique_sites_with_static_operation_path"]
+    assert sql["sites_without_static_function_match"] == summary["sites_without_static_function_match"]
     assert sql["static_effects_complete"] is False
     assert all(
         site["review_status"] == "function_not_reached_by_any_static_worker_root"

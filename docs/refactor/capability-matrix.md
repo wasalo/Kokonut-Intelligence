@@ -102,11 +102,14 @@ arguments, and timeout, retains nonzero exit codes with diagnostics capped at
 500 characters, requires climate location scope, and blocks recurring sensor
 dispatch before process creation. Sixty-eight
 dispatcher/command checks and Ruff pass with subprocesses substituted. The
-runtime SQL inventory now covers 805 service source files. A follow-up worker
-inventory refresh after dynamic-retention changes now records 244 SQL sites
-across 18 roots, including four event-retention queries. No provider, database,
-Prefect server, or schedule was accessed for this source refresh. Live
-retry/recovery, provider outcomes, and MAN-CAP-040/047 remain
+runtime SQL inventory now covers 806 service source files. A follow-up worker
+inventory refresh after dynamic-retention and projection-contract changes now
+records 244 SQL sites across 19 roots, including four event-retention queries.
+The source-only JobSpec inventory accepts 12 of 15 defaults; the projection
+job is bounded and optional, while two defaults fail and one module remains
+unallowlisted. No provider, database, Prefect server, or schedule was accessed
+for this source refresh. Live retry/recovery, provider outcomes, and
+MAN-CAP-040/047 remain
 open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
 [inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json)).
 
@@ -234,11 +237,11 @@ through 397 and no application-table RLS. The later candidate state is recorded
 below; implementation progress does not accept any named MAN-CAP check
 ([historical evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
-The current runtime SQL inventory covers 3,758 direct execution sites across
-804 service modules, includes summaries for 67 packages, and identifies 1,029
+The current runtime SQL inventory covers 3,795 direct execution sites across
+806 service modules, includes summaries for 67 packages, and identifies 1,033
 regex-derived relation-name candidates. Literal SQLAlchemy `text()` and
-psycopg `SQL()` wrappers are unwrapped; 98 statement kinds, 22 `WITH`
-statements, 313 sites without relation candidates, 442 non-literal sites, and
+psycopg `SQL()` wrappers are unwrapped; 111 statement kinds, 23 `WITH`
+statements, 333 sites without relation candidates, 456 non-literal sites, and
 dynamic or indirect paths require review before narrowing runtime grants. The
 report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
 [latest evidence](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json);
@@ -1667,10 +1670,13 @@ MAN-CAP status or count changes ([inventory](worker-effect-inventory.json);
 
 ### CAP-047 scheduler template preflight — 15 October 2026
 
-A source-only comparison covers all 15 shared JobSpecs. Eleven default
+A source-only comparison covers all 15 shared JobSpecs. Twelve default
 argument lists satisfy the current Kernel command contracts; sensor and
-climate defaults are rejected for missing source/location inputs, while
-ClickHouse projection and remote sensing are outside the Kernel allowlist.
-This does not inspect persisted tasks, Prefect state, provider outcomes, or
-grant boundaries, so it is inventory progress and not scheduler acceptance
-([JobSpec inventory](worker-job-contract-inventory.json)).
+climate defaults are rejected for missing source/location inputs. Remote
+sensing remains outside the Kernel allowlist. The ClickHouse projection job
+is an optional supported operation limited to `--run-once` with a bounded
+batch limit; manual list, replay, disposal, and reconcile actions are rejected.
+No task or provider was activated. This does not inspect persisted tasks,
+Prefect state, provider outcomes, or grant boundaries, so it is inventory
+progress and not scheduler acceptance ([JobSpec inventory](worker-job-contract-inventory.json);
+[focused evidence](builds/2026-10-15-recovery/projection-job-contract.json)).

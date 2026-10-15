@@ -3,7 +3,7 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 18,
+    "operation_roots": 19,
     "source_files": 73,
     "execution_sites": 244,
     "static_literal_sites": 208,
@@ -795,6 +795,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -827,6 +828,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -859,6 +861,7 @@
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -2710,6 +2713,7 @@
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -2738,6 +2742,7 @@
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -2765,6 +2770,7 @@
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -2791,6 +2797,7 @@
       ],
       "static_sql_sha256": "3177423aa157fcfb92b5d570c0d24f0dc36a66127c0069ee371a5cc306248744",
       "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -2812,6 +2819,7 @@
       ],
       "static_sql_sha256": "863a3e35fe1af473f4de2565c69e4d36bf297f52d49bfd9467e810653543f68d",
       "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -2835,6 +2843,7 @@
       ],
       "static_sql_sha256": "cd04922371cb25521ef167ec8d9898db76466a7699f7b66ef95a883eaf1aed75",
       "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -2856,6 +2865,7 @@
       ],
       "static_sql_sha256": "84587898747db18b356ea1b216b98a26387d408c03975a6de7728198a50c6930",
       "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -2877,6 +2887,7 @@
       ],
       "static_sql_sha256": "4d83c0935af23f9ff9d3c2f2277576f9a9d365d0548755d98512b3570409c3a9",
       "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -2901,6 +2912,7 @@
       ],
       "static_sql_sha256": "b75a4dd07b6fae3efdaee44bc699616c96e2b734fbd1137ae77d75e2a9cbb80c",
       "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",
@@ -2922,6 +2934,7 @@
       ],
       "static_sql_sha256": "a89fc52ad6fa8a45c4fd03f04ec741d8abc2f17ec8f35d038a9cdf8391e1e6ab",
       "operation_refs": [
+        "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.rpc_indexer",

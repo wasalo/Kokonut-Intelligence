@@ -53,15 +53,29 @@ completed data decision; no database ownership or grants were changed. The
 check does not prove capability behavior or close live acceptance.
 
 The public API SDK generator and all six worker-boundary/reachability inventory
-checks also pass. The runtime SQL inventory was stale after adding the
-credit-adjustment scheduled operation; it has been regenerated and now passes
-its freshness check. It covers 3,758 SQL execution sites across 804 source
-files and 18 worker operation roots; 34 worker SQL sites still have no static
+checks also pass. The runtime SQL inventory was stale after adding the Directus
+role provisioner; it has been regenerated and now passes its freshness check.
+It covers 3,795 SQL execution sites across 806 source files and 19 worker
+operation roots; 34 worker SQL sites still have no static
 function-path match. The new effect index records 40 unique direct effect sites
-(45 operation/site memberships), and the JobSpec inventory accepts 11 of 15
+(45 operation/site memberships), and the JobSpec inventory accepts 12 of 15
 defaults; invalid or unallowlisted defaults remain blocked. These are static
 inventories and do not establish runtime-role least privilege, provider
 idempotency, or active schedule state.
+
+### Optional ClickHouse projection JobSpec contract (15 October 2026)
+
+The existing `projections` JobSpec is now supported as an optional bounded
+operation. Its contract accepts only `services.ingestion.clickhouse_outbox
+--run-once` with a validated limit from 1 to 1000 and rejects manual list,
+replay, disposal, and reconciliation actions. The allowlist and source maps now
+cover 14 scheduled modules and five handlers across 19 operation roots; 12 of
+15 JobSpec defaults validate, two fail closed for missing inputs, and remote
+sensing remains unallowlisted. A focused 116-test worker/scheduler suite and
+generated inventory checks pass. No database, ClickHouse provider, or schedule
+was accessed or activated. Worker database identity and tenant context remain
+open ([evidence](builds/2026-10-15-recovery/projection-job-contract.json);
+[operation map](worker-operation-map.md)).
 
 ### Directus rejects malformed explicit tenant scope — 15 October 2026
 
@@ -155,7 +169,7 @@ rejects automatic adjustment and retirement review/confirmation flags. This
 check reads verified/published credit and carbon-balance inputs and reports
 differences; no schedule was registered or activated. Worker source closure,
 function reachability, SQL reachability, and the aggregate preflight now cover
-13 scheduled modules and five event handlers. The remaining worker identity
+14 scheduled modules and five event handlers. The remaining worker identity
 and tenant boundary stay open. All 76 focused command/worker tests pass, as do
 Ruff, Python compilation, generated-inventory checks, and `pip check`. No
 database or provider was accessed ([evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json);
@@ -420,8 +434,8 @@ identity and authorization are still open ([source closure](worker-source-closur
 checks and keeps the RLS gate closed; live grants, migration state, active
 schedules, and owner mappings remain unassessed ([evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
 
-The runtime-role work now has a reproducible direct-SQL inventory over 804
-Python service modules: 3,758 execution sites, 1,029 regex-derived relation
+The runtime-role work now has a reproducible direct-SQL inventory over 806
+Python service modules: 3,795 execution sites, 1,033 regex-derived relation
 candidates, worker-closure references for 196 sites, and summaries for 67
 service packages. Analytics has the most sites. Literal SQLAlchemy
 `text()` and psycopg `SQL()` query wrappers are unwrapped without reading
@@ -511,7 +525,7 @@ remote CI confirmation
 | --- | --- | --- | --- |
 | 0 — Baseline | Inventory delivered; closure partial | 66 capability owners/checks, frozen source/dependency inventory and local container/volume counts; [baseline](README.md), [storage](local-data-inventory.md) | Collection/consumer refinement, logical Redis/BI/broker/private-media state, selected legacy logical records restored; complete provider/media/role recovery and broader ownership pending |
 | 1 — Ports/providers | Implemented in selected paths; acceptance open | Typed provider settings/health; analytics/cache/events/scheduler ports; lazy vendor adapters; static check passes at 17 vendor sites; services/core/, services/common/, services/analytics/ | Contract/import/config and legacy behavior acceptance; storage/remaining domain construction audit; reviewed dependency lock |
-| 2 — Minimal runtime | Fresh AMD64 runtime exercised; workflow acceptance open | Dockerfile.kernel, standalone candidate/portability manifests, supervisor and split roles; portability DB/API/worker had run, then returned to stopped/exited state after recovery probes; latest portability app image includes audit CLI; active candidate app/database are healthy with a current-source image, five active 1.2.0 forms plus five retired 1.1.0 snapshots, 391 applied schema migrations through 400 and zero pending; one curated seed is ledgered and 120 seed files remain pending; five forms and ten revisions are present; migrations 392–400 are applied after encrypted checkpoint and restore/replay work; no app recreation was needed for migration 400, health is 200, and anonymous protected sync-status returns 401; bounded device revocation and synthetic restore-owner repair passed forced-RLS disposable acceptance; application RLS remains disabled [rollout](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json); the current whole-services SQL inventory maps 3,758 direct execution sites across 804 modules in 67 packages, with dynamic-heavy packages flagged but no ACL inferred; strict JSON Schema validation and earlier isolated mobile/farm-activity rollouts remain recorded; sensor anomaly alert/claim/outbox/actuation approval effects share a transaction and an actual EventBus crash/retry completed on attempt two without duplicate effects; [runtime](portability-runtime.md), [sensor entrypoint](sensor-entrypoint-recovery.md), [sensor delivery](sensor-anomaly-delivery.md) | Governed farm write/submit/independent review/publish, PostgreSQL metric/report acceptance, mobile sync and accepted-work recovery; no seeded pilot fixture yet; external provider acceptance and broader event/runtime recovery remain open |
+| 2 — Minimal runtime | Fresh AMD64 runtime exercised; workflow acceptance open | Dockerfile.kernel, standalone candidate/portability manifests, supervisor and split roles; portability DB/API/worker had run, then returned to stopped/exited state after recovery probes; latest portability app image includes audit CLI; active candidate app/database are healthy with a current-source image, five active 1.2.0 forms plus five retired 1.1.0 snapshots, 391 applied schema migrations through 400 and zero pending; one curated seed is ledgered and 120 seed files remain pending; five forms and ten revisions are present; migrations 392–400 are applied after encrypted checkpoint and restore/replay work; no app recreation was needed for migration 400, health is 200, and anonymous protected sync-status returns 401; bounded device revocation and synthetic restore-owner repair passed forced-RLS disposable acceptance; application RLS remains disabled [rollout](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json); the current whole-services SQL inventory maps 3,795 direct execution sites across 806 modules in 67 packages, with dynamic-heavy packages flagged but no ACL inferred; strict JSON Schema validation and earlier isolated mobile/farm-activity rollouts remain recorded; sensor anomaly alert/claim/outbox/actuation approval effects share a transaction and an actual EventBus crash/retry completed on attempt two without duplicate effects; [runtime](portability-runtime.md), [sensor entrypoint](sensor-entrypoint-recovery.md), [sensor delivery](sensor-anomaly-delivery.md) | Governed farm write/submit/independent review/publish, PostgreSQL metric/report acceptance, mobile sync and accepted-work recovery; no seeded pilot fixture yet; external provider acceptance and broader event/runtime recovery remain open |
 | 3 — Optional analytics/BI | Partial | PG metric catalog/public roll-up; optional ClickHouse driver/overlay; sensor source/event/outbox paths exercised against raw ClickHouse and v3 daily summary; Directus, Metabase metadata, and analytics-source roles verified on isolated copies; pinned Directus bootstrap/runtime and Metabase populated-metadata startup healthy; sample board classified as generic e-commerce demo; source-aligned scratch applied all 369 migrations through 378, zero pending, and passed actual-view grants and rollback-only reporting probes; transactional replay validated all 369 current schema checksums and rollback of injected DDL plus ledger state (`0|0`); a separate clone accepted the 25 pending archived migrations with zero pending and unchanged original-column fingerprints across 16 populated tables; migration-354 SAFE addresses, owners, thresholds, versions, and nonces matched read-only Gnosis Chain calls; independent NOI recomputation matched the view on six cycles, exposing six stale snapshots and a missing upsert key; migration 379 plus native reconciliation SQL and Directus-hook alignment brought six snapshots into parity on a separate network-disabled clone; [NOI reconciliation](noi-snapshot-reconciliation.md), [evidence](builds/2026-10-11-recovery/noi-snapshot-parity.json), [consumer role policy](optional-database-roles.md), [report contract](metabase-reporting-contract.md), [populated parity](builds/2026-10-11-recovery/populated-report-view-parity.json), [candidate preflight](builds/2026-10-11-recovery/candidate-migration-preflight.json), [compatibility review](pending-migration-compatibility-review.md), [reporting migration](../../schemas/postgres/377_kokonut_reporting_contract.sql), [NOI index migration](../../schemas/postgres/379_noi_snapshot_crop_cycle_key.sql), [reporting evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json), [transaction evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json), [populated clone evidence](builds/2026-10-11-recovery/application-migration-populated-clone-replay.json), [checksum triage](migration-checksum-drift.md), [startup evidence](builds/2026-10-11-recovery/metabase-populated-startup.json) | Archived application clone remains unchanged with 25 pending migrations. The candidate's exact historical checksum was repaired through the audited path; migrations 371–379 applied transactionally and the exact-target plan reports zero pending across 372 applied schema files. Its checkpoint restored successfully in isolation. The reporting views and NOI unique index exist. The candidate analytics login is provisioned and verified with no unreviewed application relation access; the optional Metabase profile is healthy with its separate H2 demo and Kokonut source/cards; populated saved-card SQL matches independent farm, attestation and synthetic metric references, including publication and date-window filters. Populated farm-summary and Celo-attestation view parity passed; synthetic nonempty metric period/method probe passed while the populated source has zero published policies; ClickHouse dataset/report parity and rebuild lineage; replay/outage acceptance; DuckDB/Parquet path and owned dashboard UI |
 | 4 — Owned orchestration | Partial; source-level schedule ownership inventory delivered; local candidate reports zero scheduled tasks | 15 JobSpecs, legacy flow delegation, scheduler planning/graph audit/guarded activation and same-window migration 371; per-job Prefect/cron/seed/event-worker mapping and cutover/replay policy; the new daily `noi_snapshots` job is prepared but disabled; services/core/jobs.py, services/scheduler/, services/flows/ | Reconcile active provider state and accountable owners; resolve source/input/cadence gaps and per-job idempotency; transfer one job at a time with output parity, retries, and rollback; no task activation or shadow comparison performed |
 | 5 — Optional Redis | Partial; local runtime/restart and isolated PostgreSQL shared-consumption, lock-timeout, and direct and ASGI multi-process plus two-container network HTTP checks passed; provider selection remains open | Existing PG computation cache retained; local limiter concurrency/LRU/process reset and candidate app restart verified; in the migration-373 portability DB, two backend instances admitted 121/140 concurrent checks within the refill-aware bound, denied an over-capacity request, returned retry 10, and isolated a distinct caller; a held synthetic row lock raised SQLSTATE 55P03 after 2.124 seconds and its bucket was removed; network-disabled source ASGI checks selected PostgresRateLimiter and returned 503/Retry-After 30 on an unreachable DB; GatewayAudit now has a bounded SQLite queue, idempotent startup replay, a status/checkpoint/restore CLI, and process-exit/checkpoint/restore recovery evidence; four OS processes shared one bucket across 160 direct calls (114 allowed, 46 denied in 1.653 seconds), then four gateway processes handled 160 ASGI requests (121 returned 200, 39 returned 429 with Retry-After) within the refill-aware bound; two private-network API containers then handled 160 HTTP requests through the shared database (119 returned 200, 41 returned 429 with Retry-After); PostgreSQL adapter remains opt-in and candidate stays local; [local runtime](builds/2026-10-10-recovery/gateway-rate-limit-runtime.json), [local contract](builds/2026-10-11-recovery/gateway-rate-limit-local-contract.json), [process reset](builds/2026-10-11-recovery/gateway-rate-limit-process-reset.json), [app restart](builds/2026-10-11-recovery/gateway-rate-limit-app-restart.json), [PG shared check](builds/2026-10-11-recovery/postgres-rate-limiter-concurrency.json), [lock timeout](builds/2026-10-11-recovery/postgres-rate-limit-lock-timeout.json), [multi-process check](builds/2026-10-11-recovery/postgres-rate-limit-multiprocess.json), [ASGI multi-process](builds/2026-10-11-recovery/postgres-rate-limit-asgi-multiprocess.json), [two-container HTTP](builds/2026-10-11-recovery/postgres-rate-limit-two-api-http.json), [audit outage/replay](builds/2026-10-11-recovery/gateway-audit-spool-recovery.json), [checkpoint recovery](builds/2026-10-11-recovery/gateway-audit-spool-backup-restore.json), [audit write guard](builds/2026-10-11-recovery/gateway-audit-spool-write-guard.json) | Volume/host/device loss, external alert delivery and production retention owner; auth/revocation/cache/TTL and identity-abuse acceptance; production/public ingress, multi-host failover, replica restart and scale acceptance; scale remains unavailable |
@@ -5726,16 +5740,16 @@ and RLS remain open. No candidate or legacy database was accessed, and no
 tests or candidate rollout were run.
 ([inventory](worker-effect-inventory.json); [generator](../../scripts/worker_effect_inventory.py)).
 
-### Shared JobSpec default contract inventory — 15 October 2026
+### Initial shared JobSpec default contract inventory — 15 October 2026
 
 Added a source-only comparison for all 15 entries in `services.core.jobs.JOBS`.
-Eleven default command lines pass Kernel module allowlisting and argument
-validation; the sensor default is rejected because it declares no input
-source, and climate is rejected because it supplies `--all` without the
-required location. The projection and remote-sensing modules are not on the
-Kernel scheduled-module allowlist. This report stores only argument counts and
-generic rejection reasons. It does not query task rows, Prefect, databases, or
-providers, and it does not enable or change a schedule. The source/input for
-the two rejected defaults and operation/tenant boundaries for the two
-unallowlisted jobs remain open.
+At initial inventory, eleven default command lines passed Kernel module
+allowlisting and argument validation; the sensor and climate defaults failed
+for missing source/location inputs, and projection plus remote sensing were
+outside the allowlist. The later bounded projection contract is recorded in
+[the follow-up](#optional-clickhouse-projection-jobspec-contract-15-october-2026).
+The inventory stores only argument counts and generic rejection reasons. It
+does not query task rows, Prefect, databases, or providers, and does not enable
+or change a schedule. Sensor input and remote-sensing operation/tenant
+boundaries remain open.
 ([inventory](worker-job-contract-inventory.json); [generator](../../scripts/worker_job_contract_inventory.py)).

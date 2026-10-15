@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **364 checked and 20 open items (384 total)**,
+- The execution checklist has **365 checked and 20 open items (385 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery, seed rollout,
@@ -22,7 +22,7 @@ MAN-CAP checks open until each has its own retained evidence.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Nine local commits are now held
+  in progress at the last recorded check. Ten local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
   role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
@@ -259,15 +259,16 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-   [worker operation map](worker-operation-map.md) inventories all 13 scheduled
+  [worker operation map](worker-operation-map.md) inventories all 14 scheduled
    modules and five event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
    open. The source-only effect index now records 40 unique direct effect sites
-   (45 operation/site memberships) across 18 worker roots. A separate comparison
-   covers 15 shared JobSpecs: 11 defaults pass validation, sensor/climate
-   defaults fail for missing input/scope, and projection/remote-sensing modules
-   are outside the Kernel allowlist. Neither report inspects persisted tasks or
+  (45 operation/site memberships) across 19 worker roots. A separate comparison
+  covers 15 shared JobSpecs: 12 defaults pass validation, sensor/climate
+  defaults fail for missing input/scope, remote sensing remains outside the
+  Kernel allowlist, and the ClickHouse projection job is optional with a
+  bounded run-once contract. No task or provider was activated. Neither report inspects persisted tasks or
    provider state, and neither proves runtime identity or tenant context. New
    module-specific operation schemas validate values and option
    combinations at activation, run-now, generated job plans, and subprocess
@@ -289,10 +290,10 @@ before protected reads and writes, and make direct database access fail closed.
    `public`-schema default privileges for future tables and sequences. The
    disposable PostgreSQL 16 role acceptance still passed current-handler SQL
    and proved a table/sequence created after provisioning is inaccessible to
-   the runtime login. A new whole-services SQL inventory covers all 804 Python
+   the runtime login. A new whole-services SQL inventory covers all 806 Python
    source files and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The current generated inventory covers 3,758
-   SQL execution sites across 804 source files; literal query wrappers are
+   names without becoming an ACL. The current generated inventory covers 3,795
+   SQL execution sites across 806 source files; literal query wrappers are
    unwrapped while parameter values remain unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and
    indirect-query surfaces before deriving explicit grants; worker, Directus,
@@ -300,7 +301,7 @@ before protected reads and writes, and make direct database access fail closed.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
-  preflight confirms all 18 allowlisted roots and imports, reports the shared
+  preflight confirms all 19 allowlisted roots and imports, reports the shared
   runtime identity and 34 SQL sites without static function matches,
   and keeps RLS blocked. The complementary aggregate tenant preflight now
   reports pending/current-source checksum drift counts, connected-role

@@ -1,6 +1,6 @@
 # Field Collector tenant and RLS call-site audit
 
-Updated: 14 October 2026
+Updated: 15 October 2026
 
 ## Finding
 
@@ -32,10 +32,14 @@ and other application roles/callers remain to be bounded. Migration 396 now
 revalidates API-key and capability-token tenant scope for Gateway mobile-device
 writes, signs context in the same transaction, and gives the ordinary runtime
 role read-only access to reviewed API-key authentication columns. Gateway
-routes beyond those mobile writes, the preflight CLI, worker jobs, and
-unverified Directus consumers still need explicit database access designs. The
-legacy mobile-offline CLI is now closed before database access. Do not enable
-RLS until remaining paths and their roles are closed.
+routes beyond those mobile writes, the preflight CLI, and worker jobs still
+need explicit database access designs. The optional Kernel Directus profile
+now has a dedicated DML-only `kokonut_directus_runtime` identity. Fresh-volume
+Compose acceptance verified owner bootstrap, health, synthetic admin login,
+runtime database identity, and cleanup; it does not establish Directus
+collection/field/row parity or view access. The legacy mobile-offline CLI is
+now closed before database access. Do not enable RLS until remaining paths
+and their roles are closed.
 
 ## Access-path inventory
 
@@ -49,7 +53,7 @@ RLS until remaining paths and their roles are closed.
 | Capability/API-key enrollment and revocation: [`router.py`](../../services/gateway/router.py#L58) and [`_create_enrollment`](../../services/mobile/api.py#L762) | Gateway middleware authorizes the exact `mobile_device` action/location, hashes the accepted credential, and records only its type and digest in request state. The same write transaction calls migration 396's bounded function, which verifies active credential status, expiry/revocation, exact location/resource/action grant, and current verified owner before signing backend/transaction-bound context. | Migration 396 passes focused source and forced-RLS disposable checks for API keys and capabilities, including denial cleanup and transaction reset. This closes only tenant-bound mobile-device writes. Shared-organization API-key affiliations, matching database records for environment API keys, all other Gateway routes, and application RLS remain open. |
 | Legacy analytics transport CLI: [`mobile_offline.py`](../../services/analytics/mobile_offline.py) | All exported service helpers and historic CLI commands now fail closed before opening a database connection. The module has no in-repository runtime caller. | This unscoped path is closed. Equivalent intake and sync remain available through the authenticated consent-aware Field Collector. A location-scoped OIDC console endpoint now provides device inventory and content-free queue counts under both `mobile_device:read` and `mobile_collection_review:read`; focused source/ASGI checks pass. Live OIDC/database acceptance and other worker/Gateway/RLS paths remain open. |
 | Tenant preflight: [`collect_inventory`](../../services/mobile/tenant_preflight.py#L557) | Runs a read-only repeatable-read aggregate and emits opaque references/counts; it deliberately examines ownership and grants across locations. It no longer reads mobile credential columns and uses active/revoked state for device counts. | Give it an explicit owner/preflight database role and document who may invoke it. Do not run the aggregate with the ordinary app role once RLS is enabled. |
-| Directus and database views | The archived Directus runtime identity and effective grants have not been verified; OFU-09 tracks the required isolated runtime and fixture. Migration 139 also defines legacy mobile sync/device views. | Not ready. Inspect role grants, view ownership/invoker behavior, hooks, saved queries, and all consumers in a matching isolated Directus runtime before choosing RLS policies or retirement scope. |
+| Directus and database views | The optional Kernel profile now uses a dedicated DML-only `kokonut_directus_runtime` identity. Fresh-volume Compose acceptance verifies owner bootstrap, runtime health/login, and that Directus connects as that role; disposable PostgreSQL role checks cover DML, DDL/ownership denial, future-object grants, stale ACL removal, and database isolation ([role evidence](builds/2026-10-15-recovery/directus-runtime-role-disposable.json); [profile evidence](builds/2026-10-15-recovery/directus-profile-disposable.json)). This does not verify the archived service identity, view behavior, collection/field/row parity, or schedules. Migration 139 also defines legacy mobile sync/device views. | Not ready. Inspect view ownership/invoker behavior, hooks, saved queries, and every consumer in a matching isolated Directus runtime before choosing RLS policies or retirement scope. Keep the optional Kernel profile bound to a dedicated PostgreSQL instance because its bootstrap revokes `PUBLIC CONNECT` instance-wide. |
 | Recovery fixtures and ordered migrations | Recovery fixture SQL inserts devices into isolated scratch databases. Migration 391 adds owner-binding triggers and indexes; 392 adds credential functions; 393 signs mobile context; 394 signs OIDC operator context and adds dormant definer-role RLS policies; 395 isolates operator sessions behind bounded functions and a dedicated auth login; 396 verifies Gateway credential scope for tenant-bound mobile writes; 397 adds the location-level WorldClim key/view path; 398 bounds device revocation; 399 restores runtime security-schema lookup on DB-only restore; 400 restores restricted function-owner roles, exact SECURITY DEFINER ownership, and narrow grants after role/ACL loss. `scripts/kernel-restore-role-prerequisites.sql` creates and validates the referenced NOLOGIN roles before restoring a database whose RLS policies mention them. None enables application-table RLS. | Migrations 391–400 are applied on the local candidate; the exact pre-400 encrypted checkpoint has been restored into an internal-only template0 clone, migration 400 replayed, and runtime/operator-auth role bootstrap accepted. That candidate archive restored 1,010 public tables but had zero public location rows, so this is database/role recovery evidence, not farm-data parity. The separate synthetic owner/ACL-loss forced-RLS acceptance passed. Candidate schema count is 391 through 400, health 200, anonymous protected route 401, and RLS remains off. Keep fixtures and migration execution on explicit maintenance credentials. Candidate 391 evidence: [rollout](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json); 392–397 rollout: [checkpoint and candidate evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json); 398–399 evidence: [checkpoint, forced-RLS acceptance and candidate rollout](builds/2026-10-14-recovery/candidate-migration-398-399-device-revocation.json); migration 400 evidence: [owner/ACL repair and candidate rollout](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json); exact pre-400 restore: [database/role recovery](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json). Disposable migration 392–393 evidence: [mobile acceptance](builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json); migration 394 evidence: [operator acceptance](builds/2026-10-14-recovery/operator-tenant-context-disposable.json); migrations 395–396 evidence: [runtime-role acceptance](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json); migration 396 evidence: [Gateway acceptance](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json). |
 
 ## Context trust boundary
@@ -111,7 +115,7 @@ not bind a scheduled module or event handler to a database role or tenant.
   worker side effect but still does not establish signed DB tenant context or
   a worker-specific database role.
 
-The [worker operation map](worker-operation-map.md) now covers all 13
+The [worker operation map](worker-operation-map.md) now covers all 14
 allowlisted scheduled modules and five event-handler pairs, including their
 source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
@@ -127,7 +131,7 @@ dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
 remove runtime grants on this evidence. The first source-level effect pass now
 records 40 unique high-confidence process, filesystem, HTTP, email, dynamic
-import, and EVM call sites across 45 operation/site memberships and 18 roots
+import, and EVM call sites across 45 operation/site memberships and 19 roots
 ([inventory](worker-effect-inventory.json)).
 It intentionally overcounts
 mutually exclusive CLI branches and can miss effects behind callbacks or
@@ -142,9 +146,10 @@ command; it does not publish MQTT. Next
 code-only work is to reconcile each candidate against its exact scheduler
 command contract, inspect remaining dynamic/provider callbacks and transitive
 effect wrappers, then reconcile persisted task rows with those contracts. The
-source-only JobSpec inventory now identifies 11 accepted default templates,
-two rejected defaults (source-less sensors and unlocated climate), and two
-modules outside the Kernel allowlist; it does not inspect persisted tasks or
+source-only JobSpec inventory now identifies 12 accepted default templates,
+two rejected defaults (source-less sensors and unlocated climate), and one
+unallowlisted module (remote sensing). ClickHouse projection is optional and
+limited to a bounded run-once contract; it does not inspect persisted tasks or
 external Prefect state ([inventory](worker-job-contract-inventory.json)). A
 later role/context change needs a non-forgeable system-worker identity and
 narrow operation grants. Active provider schedules, operational owners, and

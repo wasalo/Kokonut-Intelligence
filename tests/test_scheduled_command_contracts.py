@@ -44,6 +44,8 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
         ("services.analytics.carbon_credits", ["--check-adjustments"]),
+        ("services.ingestion.clickhouse_outbox", ["--run-once"]),
+        ("services.ingestion.clickhouse_outbox", ["--run-once", "--limit", "100"]),
         (
             "services.analytics.carbon_credits",
             ["--check-adjustments", "--location-id", str(uuid4())],
@@ -74,6 +76,11 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.events", ["--worker"]),
         ("services.events", ["--dispose-dead-letter", "--event-id", str(uuid4())]),
         ("services.analytics.carbon_credits", []),
+        ("services.ingestion.clickhouse_outbox", []),
+        ("services.ingestion.clickhouse_outbox", ["--reconcile"]),
+        ("services.ingestion.clickhouse_outbox", ["--list-dead-letter"]),
+        ("services.ingestion.clickhouse_outbox", ["--replay-dead-letter", str(uuid4())]),
+        ("services.ingestion.clickhouse_outbox", ["--dispose-dead-letter", str(uuid4())]),
         ("services.analytics.carbon_credits", ["--adjust", "--location-id", str(uuid4())]),
         (
             "services.analytics.carbon_credits",
@@ -94,6 +101,14 @@ def test_credit_adjustment_job_is_scheduler_allowed_but_restricted_to_check():
     assert job.module == "services.analytics.carbon_credits"
     assert job.scheduler_allowed
     assert validate_scheduled_command(job.module, list(job.arguments)) == ("--check-adjustments",)
+
+
+def test_projection_job_is_scheduler_allowed_but_restricted_to_one_delivery_batch():
+    job = JOBS["projections"]
+
+    assert job.module == "services.ingestion.clickhouse_outbox"
+    assert job.scheduler_allowed
+    assert validate_scheduled_command(job.module, list(job.arguments)) == ("--run-once", "--limit", "100")
 
 
 def test_sensor_job_rejects_missing_source_before_launching_the_noop_cli():

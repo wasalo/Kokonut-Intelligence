@@ -330,6 +330,10 @@ def _infer_instance_types(
                 local_types[node.target.id] = annotation_types
             if node.value is not None:
                 assignments[node.target.id].append(node.value)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if isinstance(item.optional_vars, ast.Name):
+                    assignments[item.optional_vars.id].append(item.context_expr)
         pending.extend(ast.iter_child_nodes(node))
 
     for _ in range(len(assignments) + 1):
@@ -499,6 +503,24 @@ class _CallVisitor(ast.NodeVisitor):
                 )
         self.generic_visit(node)
 
+    def visit_If(self, node: ast.If) -> None:
+        self.visit(node.test)
+        previous = self.instance_types
+        narrowed = {name: set(types) for name, types in previous.items()}
+        for name, targets in _positive_isinstance_narrowing(
+            node.test,
+            self.function,
+            self.classes,
+            self.contexts,
+        ).items():
+            narrowed.setdefault(name, set()).update(targets)
+        self.instance_types = narrowed
+        for statement in node.body:
+            self.visit(statement)
+        self.instance_types = previous
+        for statement in node.orelse:
+            self.visit(statement)
+
 
 def _is_main_guard(test: ast.expr) -> bool:
     return isinstance(test, ast.Compare) and (
@@ -508,6 +530,27 @@ def _is_main_guard(test: ast.expr) -> bool:
             isinstance(comparator, ast.Constant) and comparator.value == "__main__" for comparator in test.comparators
         )
     )
+
+
+def _positive_isinstance_narrowing(
+    test: ast.expr,
+    function: dict,
+    classes: dict[str, dict],
+    contexts: dict[str, _ImportContextVisitor],
+) -> dict[str, set[str]]:
+    """Return safe positive type facts implied by an if-test expression."""
+    calls = [test]
+    if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And):
+        calls = list(test.values)
+
+    narrowed: dict[str, set[str]] = defaultdict(set)
+    for candidate in calls:
+        if not isinstance(candidate, ast.Call) or _dotted_name(candidate.func) != "isinstance":
+            continue
+        if len(candidate.args) != 2 or not isinstance(candidate.args[0], ast.Name):
+            continue
+        narrowed[candidate.args[0].id].update(_annotation_class_targets(candidate.args[1], function, classes, contexts))
+    return dict(narrowed)
 
 
 class _RootCallVisitor(ast.NodeVisitor):

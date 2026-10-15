@@ -72,6 +72,7 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     metrics = scheduled["services.metrics"]
     events = scheduled["services.events"]
     credit_adjustments = scheduled["services.analytics.carbon_credits"]
+    projections = scheduled["services.ingestion.clickhouse_outbox"]
 
     assert "public.noi_snapshot" in metrics["writes"]
     assert "public.v_crop_cycle_noi" in metrics["reads"]
@@ -87,6 +88,14 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert credit_adjustments["writes"] == []
     assert credit_adjustments["external_effects"] == []
     assert "--check-adjustments" in credit_adjustments["scope"]
+    assert set(projections["reads"]) == {"public.clickhouse_outbox"}
+    assert set(projections["writes"]) == {
+        "public.clickhouse_outbox",
+        "public.clickhouse_outbox_operator_audit",
+    }
+    assert "ClickHouse" in " ".join(projections["external_effects"])
+    assert "--run-once" in projections["scope"]
+    assert "--limit 100" in projections["scope"]
 
 
 def test_metrics_worker_map_tracks_registered_calculator_sources():

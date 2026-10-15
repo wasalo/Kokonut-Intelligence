@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 18,
+    "operation_roots": 19,
     "source_files": 73,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 367,
-    "direct_call_edges": 503,
+    "function_memberships": 369,
+    "direct_call_edges": 504,
     "callback_edges": 1,
     "dynamic_dispatch_edges": 20
   },
@@ -850,7 +850,7 @@
           "qualname": "validate_event_handler",
           "class_scope": null,
           "source": "services/security/execution_allowlist.py",
-          "line": 30
+          "line": 35
         }
       ],
       "direct_call_edges": [
@@ -2549,6 +2549,58 @@
           "callee": "services.ingestion.ml_anomaly_detector:fit_prophet",
           "source": "services/ingestion/ml_anomaly_detector.py",
           "line": 571
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.clickhouse_outbox",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/config.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.ingestion.clickhouse_outbox:main",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 320
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 78
+        },
+        {
+          "key": "services.ingestion.clickhouse_outbox:main",
+          "module": "services.ingestion.clickhouse_outbox",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 301
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.ingestion.clickhouse_outbox:main",
+          "callee": "services.common.cli:run",
+          "source": "services/ingestion/clickhouse_outbox.py",
+          "line": 316
         }
       ],
       "callback_edges": [],
