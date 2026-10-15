@@ -2,8 +2,9 @@
 
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 The 17-commit batch was pushed as `d01941abad13c5128fca85acb0f4b5645a4322b4`.
-The ZITADEL image digest correction is committed locally as `f56bb44` and is
-not pushed. The current report-review tenant-context test slice is also local.
+Three local follow-ups are ahead of the remote branch and are not pushed:
+ZITADEL image pinning, report-review tenant-context coverage, and an inventory
+of all 94 report generators.
 Security #49 passed and CI #325 was in progress at the last check. A local
 follow-up corrects the optional ZITADEL image pin; it is not part of that pushed
 head. The candidate now has 393 applied schema migrations through 402, six
@@ -5865,3 +5866,16 @@ synthetic, so signed PostgreSQL context behavior, live OIDC, populated report
 parity, runtime roles, and application RLS remain open. No candidate or legacy
 database was accessed
 ([source evidence](builds/2026-10-15-recovery/operator-report-review-tenant-context-source.json)).
+
+### Report generator source inventory — 15 October 2026
+
+Added an AST-only registry walk that maps each of the 94 report keys to its
+defining callable, file/line, and declared inputs across 15 source modules.
+All signatures name `location_id`; 93 name a period boundary. The inventory
+does not claim those parameters constrain every query, and it does not inspect
+semantic outputs. Two focused tests cover full registry/source resolution and
+deterministic output/staleness detection; Ruff, Python compilation, artifact
+freshness, and matrix validation pass. The implementation avoids importing
+service modules, so SOPS configuration is not loaded. No reports or stored SQL
+were executed, and no database/provider was accessed
+([inventory](report-generator-source-inventory.json); [evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).

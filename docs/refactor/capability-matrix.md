@@ -1741,3 +1741,14 @@ functions. Live identity/database-role behavior, populated report parity,
 application RLS, and all named MAN-CAP acceptances remain open; capability
 status and counts do not change
 ([evidence](builds/2026-10-15-recovery/operator-report-review-tenant-context-source.json)).
+
+### CAP-001/047 registered report source map — 15 October 2026
+
+The source inventory links all 94 registered report types to their defining
+callable, source line, and declared inputs across 15 modules. All declare a
+`location_id` parameter and 93 declare a period boundary, but this does not
+prove those values constrain every query or that output measures match domain
+expectations. The AST-only inventory and freshness checks pass without
+executing report code. Populated output parity and owner selection remain open;
+capability status and counts do not change
+([inventory](report-generator-source-inventory.json); [evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).

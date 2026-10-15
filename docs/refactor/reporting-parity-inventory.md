@@ -44,6 +44,15 @@ a writer, so this guard is not database-role isolation. Populated report output
 parity remains open ([source evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json);
 [disposable evidence](builds/2026-10-15-recovery/report-generator-readonly-disposable.json)).
 
+The source-only [generator inventory](report-generator-source-inventory.json)
+now resolves all 94 registered report keys to their defining callable, source
+file/line, and declared input names across 15 modules. All 94 signatures name a
+`location_id` parameter and 93 name a period boundary. This is useful for
+assigning later report fixtures, but a declared parameter does not prove the
+calculation filters every query by that location. The AST-only generator and
+its two focused tests pass without importing service modules or loading SOPS
+configuration ([evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).
+
 The SQL tree contains hundreds of ordinary view definitions across domain
 migrations. A view's existence does not establish that it is a dashboard
 contract, that its measures are correct for a capability, or that it is safe
@@ -131,10 +140,10 @@ can be generated together, and all snapshots begin as drafts.
 ## Current disposition
 
 The three-card public reporting slice has bounded copied-fixture evidence.
-Source mapping distinguishes it from the 94 report types, the single typed
+The source inventory distinguishes it from the 94 report types, the single typed
 public analytics query, the separate evidence graph, ClickHouse rollups, and
 the legacy dynamic-SQL dashboard dataset mechanism. The archive review queried
-only aggregate metadata in a read-only transaction. No test suite ran, stored
-SQL was executed, report was generated, or source database was changed.
+only aggregate metadata in a read-only transaction. No stored SQL was executed,
+report generated, or source database changed for that archive review.
 Reporting and projection parity remains open until retained capabilities are
 selected by owners and accepted against scoped populated fixtures.
