@@ -54,6 +54,16 @@ still uses the database superuser, and this does not establish signed tenant
 context or RLS. MAN-CAP checks remain unaccepted
 ([unit evidence](builds/2026-10-15-recovery/directus-tenant-authorization-unit.json); [inventory](directus-parity-inventory.md)).
 
+**15 October 2026 sensor source contract guard (CAP-040 / CAP-047):** the
+sensor CLI now rejects absent, incomplete, or conflicting operation inputs
+before loading database/SOPS configuration, and `--help` remains available
+without secrets. The shared `sensors` scheduled command already rejects the
+missing recurring source contract before launching the legacy no-op CLI. Sixty-
+nine focused source/command checks and Ruff pass. No sensor provider or
+schedule ran. This prevents false success but does not define a recurring
+sensor source or accept MAN-CAP-040/047
+([evidence](builds/2026-10-15-recovery/sensor-ingester-explicit-input-contract.json); [schedule inventory](schedule-ownership-inventory.md)).
+
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,
 opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and

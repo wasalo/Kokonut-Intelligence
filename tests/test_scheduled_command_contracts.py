@@ -96,6 +96,14 @@ def test_credit_adjustment_job_is_scheduler_allowed_but_restricted_to_check():
     assert validate_scheduled_command(job.module, list(job.arguments)) == ("--check-adjustments",)
 
 
+def test_sensor_job_rejects_missing_source_before_launching_the_noop_cli():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ScheduledCommandRejected, match="no recurring source contract"):
+            run_job("sensors")
+
+    run.assert_not_called()
+
+
 @pytest.mark.parametrize("arguments", [None, "--process", {"--process": True}, ["--process", 3]])
 def test_command_args_must_be_a_json_string_array(arguments):
     with pytest.raises(ScheduledCommandRejected):

@@ -25,7 +25,6 @@ import sys
 from datetime import datetime, timezone
 
 from ..common.logging import get_logger
-from .base import get_db, hash_payload, insert_clickhouse_rows, log_ingestion
 from .field_validation import parse_reading_timestamp, validate_sensor_reading
 
 # Lazy event bus — initialized on first publish to avoid import-time side effects
@@ -40,6 +39,34 @@ def _get_event_bus(conn=None):
     return _event_bus
 
 logger = get_logger("ingestion.sensor")
+
+
+def get_db():
+    """Load database configuration only for an operation that uses the DB."""
+    from .base import get_db as get_ingestion_db
+
+    return get_ingestion_db()
+
+
+def hash_payload(data):
+    """Load shared ingestion helpers only when a source operation needs them."""
+    from .base import hash_payload as hash_ingestion_payload
+
+    return hash_ingestion_payload(data)
+
+
+def insert_clickhouse_rows(table, columns, rows):
+    """Load the optional ClickHouse adapter only when projecting a reading."""
+    from .base import insert_clickhouse_rows as insert_rows
+
+    return insert_rows(table, columns, rows)
+
+
+def log_ingestion(**kwargs):
+    """Load persistence helpers only while recording an ingestion attempt."""
+    from .base import log_ingestion as log_ingestion_attempt
+
+    return log_ingestion_attempt(**kwargs)
 
 # Validation patterns
 _UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
@@ -539,7 +566,8 @@ def list_calibration_status():
         db.close()
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
+    """Run one explicit sensor operation; never treat missing input as success."""
     parser = argparse.ArgumentParser(description="Sensor data ingestion")
     parser.add_argument("--file", help="CSV file path for batch ingestion")
     parser.add_argument("--sensor", help="Sensor UUID or slug for single reading")
@@ -548,7 +576,21 @@ if __name__ == "__main__":
     parser.add_argument("--time", help="Reading time HH:MM:SS (with --sensor)")
     parser.add_argument("--list", action="store_true", help="List active sensors")
     parser.add_argument("--calibration", action="store_true", help="List calibration status")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+
+    operations = [args.file is not None, args.sensor is not None, args.list, args.calibration]
+    if sum(operations) != 1:
+        parser.error("choose exactly one of --file, --sensor, --list, or --calibration")
+    if args.file is not None and not args.file.strip():
+        parser.error("--file requires a non-empty path")
+    if args.sensor is not None and not args.sensor.strip():
+        parser.error("--sensor requires a non-empty UUID or slug")
+    if args.sensor is not None and args.value is None:
+        parser.error("--sensor requires --value")
+    if args.value is not None and args.sensor is None:
+        parser.error("--value requires --sensor")
+    if args.sensor is None and (args.date is not None or args.time is not None):
+        parser.error("--date and --time require --sensor and --value")
 
     if args.list:
         list_sensors()
@@ -558,5 +600,7 @@ if __name__ == "__main__":
         run_csv(args.file)
     elif args.sensor and args.value is not None:
         run_single(args.sensor, args.value, args.date, args.time)
-    else:
-        parser.print_help()
+
+
+if __name__ == "__main__":
+    main()

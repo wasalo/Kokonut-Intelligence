@@ -229,6 +229,21 @@ signed RLS context remain open
 [evidence](builds/2026-10-15-recovery/directus-tenant-authorization-unit.json);
 [parity inventory](directus-parity-inventory.md)).
 
+### Sensor CLI explicit-input contract — 15 October 2026
+
+The sensor CLI no longer reports success when called without a source. Empty,
+incomplete, and conflicting inputs exit with argparse error before database
+configuration; `--help` also works without decrypting SOPS. CSV,
+single-reading, list, and calibration modes retain their current dispatch. The
+shared `sensors` JobSpec rejects the source-less recurring operation before
+subprocess launch. Sixty-nine focused sensor/scheduler tests and Ruff pass; no
+database, provider, or schedule was accessed. The recurring source contract
+remains open, so no schedule was activated
+([implementation](../../services/ingestion/sensor_ingester.py);
+[tests](../../tests/test_sensor_ingester_cli_contract.py);
+[evidence](builds/2026-10-15-recovery/sensor-ingester-explicit-input-contract.json);
+[schedule ownership](schedule-ownership-inventory.md)).
+
 ### Kernel supervisor source contract — 14 October 2026
 
 Four focused tests now cover the supervisor's graceful shutdown, process-group

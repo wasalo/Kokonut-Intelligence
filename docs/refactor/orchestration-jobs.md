@@ -45,10 +45,15 @@ weekly, and manual deployment definitions have not changed.
 
 Metrics still compute draft values; independent human verification is required.
 Credit operations use `--check-adjustments`; this does not confirm retirements.
-Sensor invocation preserves the baseline no-argument command, which prints
-help and exits successfully rather than ingesting readings. Select an explicit
-source/input contract before certifying automated ingestion; do not treat its
-current zero exit code as evidence of sensor work.
+Sensor scheduling remains rejected because there is no recurring source
+contract. The CLI now rejects missing, incomplete, and conflicting input modes
+instead of printing help and exiting successfully; its help and validation
+paths also avoid loading SOPS/database configuration. Explicit CSV,
+single-reading, list, and calibration operations retain their dispatch. The
+shared `sensors` JobSpec fails before subprocess launch, so the Prefect wrapper
+cannot report a successful no-op. This closes false-success reporting only; a
+source/input contract is still required before hourly sensor scheduling can be
+ported.
 
 Remote sensing now delegates to the shared job catalog without changing its
 internal durable job claims or retry state. It remains outside the scheduler
