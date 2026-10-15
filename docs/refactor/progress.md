@@ -3,16 +3,16 @@
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 Check GitHub Actions for CI and Security status on the current PR head before
 merge; local acceptance evidence is recorded below and linked to its source.
-Sixteen local commits, including the retention-policy and optional Directus
+Seventeen local commits, including the retention-policy and optional Directus
 runtime-role/profile batches, are held beyond pushed head `72ab775`. The local
 work also includes static worker effect/JobSpec inventories and the latest
 retention scope metadata batch; CI status on `72ab775` does not cover these
-commits. Candidate schema state remains through migration 400; migrations 401
-and 402 have not been rolled out. The five owner-approved reference catalogs
-were applied through the ordered seed runner on 15 October. The candidate now
-has six recorded seed migrations and no failed ledger rows; its app, database,
-and Metabase remain healthy and `/health` returns 200. Other curated and pilot
-seeds remain held ([rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json)).
+commits. The candidate now has 393 applied schema migrations through 402, six
+recorded seed migrations, zero pending schema migrations, 115 unselected seed
+sources pending, and no failed ledger rows. The five approved reference catalogs
+and configurable retention/legal-hold schema are applied; no retention period,
+policy, or hold was configured. The app, database, and Metabase remain healthy
+and `/health` returns 200. Other curated and pilot seeds remain held ([seed evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json); [retention rollout](builds/2026-10-15-recovery/candidate-retention-401-402-rollout.json)).
 Earlier commits close the sensor CLI false-success path (`83256be`), verify
 the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
 isolated ARM64 minimal/edge/standard profile selection (`629affd`). Other
@@ -45,7 +45,7 @@ snapshots preserve the codes; scoped automatic enforcement fails closed until
 a resolver exists. Event cleanup requires one unambiguous global policy and
 locks that lookup. Sixty-two focused tests and four subtests pass, Ruff and
 static inventories are current, and migrations 401/402 pass on a temporary
-internal-only PostgreSQL fixture. The candidate remains at migration 400; no
+internal-only PostgreSQL fixture. Migrations 401 and 402 are now applied on the candidate; no
 policy periods or scoped policies were configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
 [source evidence](builds/2026-10-15-recovery/retention-policy-scope-source-checks.json);
 [database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
@@ -5605,9 +5605,10 @@ pre-400 restore and populated-clone bootstrap are recorded below. The migration
 rollout evidence remains a historical snapshot
 ([migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)).
 
-Migration 400 is applied on the candidate: 391 schema migrations through 400,
+At the migration-400 rollout checkpoint, the candidate had 391 schema migrations through 400,
 zero pending/drift, one seed ledger entry, 120 seed sources pending, RLS still
-disabled, health 200, and anonymous protected device revocation 401. The app
+disabled, health 200, and anonymous protected device revocation 401. The later
+current state is recorded in the 15 October reference-seed and retention rollout evidence. The app
 was not recreated for this schema-only change; legacy services and Metabase
 were not altered. The candidate still uses the `kokonut` superuser until
 separate runtime credentials are provisioned. Focused checks passed 153 tests,

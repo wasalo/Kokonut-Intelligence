@@ -22,7 +22,7 @@ MAN-CAP checks open until each has its own retained evidence.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Sixteen local commits are now held
+  in progress at the last recorded check. Seventeen local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
   role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
@@ -65,12 +65,13 @@ MAN-CAP checks open until each has its own retained evidence.
   remain open. This slice is included in the latest pushed head ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
 - The capability matrix contains 66 capabilities: 55 baseline-retained, 7
   deployed, and 4 prepared. None of the 66 named MAN-CAP checks is accepted.
-- The local candidate has 391 applied schemas through migration 400, six applied
-  seed ledger entries, 117 pending source migrations (all are unselected seeds),
+- The local candidate has 393 applied schemas through migration 402, six applied
+  seed ledger entries, 115 pending source migrations (all are unselected seeds),
   zero failed ledger rows, and application-table RLS is disabled. The five
-  owner-approved reference catalogs have been applied; other seed files remain held. It still uses the `kokonut` superuser because a separate runtime
-  credential is not provisioned. The seed approval does not authorize RLS or
-  production import.
+  owner-approved reference catalogs and migrations 401–402 are applied; other
+  seed files remain held. It still uses the `kokonut` superuser because a separate
+  runtime credential is not provisioned. The seed approval does not authorize
+  RLS or production import.
 - The owner selected self-hosted ZITADEL, organization/location authorization,
   Kokonut Network operation of Genesis, Seeds, Adelphi, Terra Viva, and V1,
   reference catalogs only with pilot rows held, USA and Dominican Republic as
@@ -79,10 +80,11 @@ MAN-CAP checks open until each has its own retained evidence.
   selected now. Policy configuration, approval roles, and hold operations are
   deployment gates. ZITADEL host/client settings, remaining operator/location
   mapping, R2 credentials, and external alert routing remain open.
-- ARM64 Buildx/QEMU acceptance covers the current 391 schemas through 400,
-  logical restore, health, protected-route denial, database restart, and app
-  process recovery. This does not certify physical Raspberry Pi performance,
-  power/storage/network failure, or production failover.
+- ARM64 Buildx/QEMU acceptance exercised 391 schema migrations through 400,
+  with logical restore, health, protected-route denial, database restart, and app
+  process recovery. The candidate has since advanced through migration 402; the
+  QEMU run does not certify physical Raspberry Pi performance, power/storage/
+  network failure, or production failover.
 - Encrypted checkpoints now authenticate their manifests and have an optional
   S3/R2-compatible transfer CLI. Fake-store checks cover staged byte verification,
   create-only completion, idempotency, tamper rejection, and private no-overwrite
@@ -198,7 +200,7 @@ database, then used as the rollback reference for the separately approved five-f
 | Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
 | Curated seed write | 8 | **Complete:** the five owner-approved catalog migrations applied successfully through the explicit candidate Compose target; ledger checksums and resulting counts are recorded ([rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json)). | The owner approved and completed this local reference write. Remaining pilot/curated seed files stay held; production import is not authorized by this operation. |
-| Retention policy | 2 | Keep no-prune as the default; runtime policy, audited holds, optional jurisdiction/purpose codes, and synthetic PostgreSQL acceptance are implemented. Unresolved scoped policies fail closed. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, a scope resolver, and erasure procedures. |
+| Retention policy | 2 | Keep no-prune as the default; runtime policy, audited holds, optional jurisdiction/purpose codes, synthetic PostgreSQL acceptance, and candidate migrations 401–402 are complete. Unresolved scoped policies fail closed. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, a scope resolver, and erasure procedures. |
 
 ## Work order
 
@@ -518,15 +520,15 @@ caller-selected `--days`; it requires exactly one approved active global
 handler deliveries, and active holds, and remains default-off behind its feature
 gate. Generic data-governance cleanup also requires its independent feature gate,
 approved policy metadata, and no active hold. No periods or schedules have been
-configured, and no fixed duration is proposed. This is not candidate rollout:
-migration 401 has not been applied to the candidate, and disposable
-migration/hold acceptance passed on an isolated synthetic PostgreSQL fixture
-through the ordered migration runner. It verifies the legacy-policy transition,
+configured, and no fixed duration is proposed. The candidate has now applied migrations 401 and 402 after a fresh checkpoint
+and restore rehearsal of its post-seed state. Disposable migration/hold
+acceptance also passed on an isolated synthetic PostgreSQL fixture through the
+ordered migration runner. It verifies the legacy-policy transition,
 policy history, holds and event cleanup protections. The focused source/unit set also
 passes 94 tests plus four subtests. Acceptance caught an undersized history
-action column and the migration was corrected. Candidate and legacy databases
-were untouched; keep pruning disabled until approved policy data and operating
-roles are configured for deployment ([database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json); [source evidence](builds/2026-10-15-recovery/retention-policy-source-checks.json); [migration](../../schemas/postgres/401_dynamic_retention_and_legal_holds.sql); [operations](retention-policy-operations.md)).
+action column and the migration was corrected. No policy was configured and
+cleanup remains disabled; deployment still needs approved policy data and
+accountable operating roles ([database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json); [source evidence](builds/2026-10-15-recovery/retention-policy-source-checks.json); [migration](../../schemas/postgres/401_dynamic_retention_and_legal_holds.sql); [operations](retention-policy-operations.md)).
 
 **Dynamic retention scope metadata (15 October 2026):** migration 402 adds
 nullable owner-defined jurisdiction and purpose codes without defaults or
@@ -534,9 +536,8 @@ hardcoded legal meaning. The CLI and audited policy snapshots preserve these
 codes. Auto-enforcement is rejected for unresolved codes, the generic sweeper
 skips scoped policies, and EventBus cleanup rejects ambiguous active policy
 state. Sixty-two focused source tests and four subtests pass; migrations 401
-and 402 pass against an isolated synthetic PostgreSQL fixture. Candidate and
-legacy databases remain untouched; no retention values or policies were
-configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
+and 402 pass against an isolated synthetic PostgreSQL fixture. The candidate now includes these schema changes; no retention values or
+policies were configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
 [scope evidence](builds/2026-10-15-recovery/retention-policy-scope-source-checks.json);
 [database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
 

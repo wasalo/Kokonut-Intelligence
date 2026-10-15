@@ -8,8 +8,16 @@
     "failed": 0
   },
   "regression_found_and_fixed": "Policy-level legal holds now skip before generic-retention overlap/candidate queries.",
-  "candidate_or_legacy_database_touched": false,
-  "migration_401_applied_to_candidate": false,
   "retention_cleanup_enabled_in_repository": false,
-  "disposable_database_acceptance": "passed; see retention-policy-disposable.json"
+  "disposable_database_acceptance": "passed; see retention-policy-disposable.json",
+  "candidate_or_legacy_database_touched_during_source_checks": false,
+  "migration_401_applied_to_candidate_at_source_check_time": false,
+  "subsequent_candidate_rollout": {
+    "migration_ids": [
+      "schema:401_dynamic_retention_and_legal_holds.sql",
+      "schema:402_retention_policy_scope_codes.sql"
+    ],
+    "result": "applied after a fresh checkpoint and isolated restore rehearsal",
+    "evidence": "candidate-retention-401-402-rollout.json"
+  }
 }
