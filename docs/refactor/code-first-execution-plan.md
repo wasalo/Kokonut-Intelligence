@@ -15,10 +15,12 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 323 checked and 19 open items (342 total).
-- The latest pushed implementation is `4141276`; CI #313 and Security #37 both
-  passed on this exact commit. The current restore-fixture/evidence batch is
-  local and remains outside those runs until the next push.
+- The execution checklist has 324 checked and 20 open items (344 total).
+- The latest pushed implementation is `35f7750`; CI #314 is still running and
+  Security #38 passed. The last fully green head is `4141276` (CI #313 and
+  Security #37).
+  The current Directus fixture-preflight and supervisor source-test changes are
+  local and remain outside both CI heads until the next push.
 - The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
   gRPC streaming-auth lifecycle fixes, and focused RPC policy and
   optional-provider inventories. Earlier pushed work retires the unscoped
@@ -124,15 +126,17 @@ MAN-CAP checks open until each has its own retained evidence.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI #313 and Security #37 finished successfully on pushed head
-`41412764f8281deea52670bf49de4234aca6e0bd`. The CI #307 OIDC Compose fixture
-failure was fixed earlier by supplying the test-only operator-auth password
-before checking the missing issuer configuration.
+**Action:** CI #313 and Security #37 passed on pushed head
+`41412764f8281deea52670bf49de4234aca6e0bd`. The latest push,
+`35f7750eef7681cc020a565e3ea35d29e2b4f6f3`, has CI #314 running and Security
+#38 passed. The CI #307 OIDC Compose fixture failure was fixed earlier by
+supplying the test-only operator-auth password before checking the missing
+issuer configuration.
 
-**Acceptance:** satisfied for pushed head `4141276`: CI #313 and Security #37
-both passed. The check status and commit are recorded in this plan,
-`batches.md`, `progress.md`, and the capability-matrix verification note. The
-local batch in progress still needs its own CI after push.
+**Acceptance:** last satisfied on pushed head `4141276`: CI #313 and Security
+#37 both passed. The newer pushed restore batch is awaiting CI #314; Security
+#38 passed. The local Directus preflight batch still needs its own CI after
+push.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -292,6 +296,14 @@ The operator console's cookie-authenticated draft edit now passes both its
 credentialed CORS preflight and successful-response checks; PATCH was added to
 the explicit CORS method allowlist. Browser/runtime ingress acceptance remains
 open ([CORS evidence](builds/2026-10-14-recovery/gateway-cors-patch-preflight.json)).
+The Directus parity fixture also checks its required identity-scope column
+before creating synthetic users or activity rows. A missing
+`directus_users.location_id` now returns a blocked precondition with no fixture
+writes (three source checks and one fake-schema execution pass, with Ruff and
+Python compilation). This
+does not resolve whether Directus should use that legacy single-location field
+or an explicit grant model; runtime read/write, field, hook, and schedule
+parity remain open ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
 
 ### Batch D — Complete code-verifiable capability slices and reporting
 
@@ -354,6 +366,12 @@ uses statement/lock timeouts, counts results without fetching them, and refuses
 to write stale refresh metadata if the saved SQL changed during execution. The
 disposable PostgreSQL proof and focused checks are retained in
 [`saved-reporting-reader-disposable.json`](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json).
+
+**Supervisor tests (14 October 2026):** four focused tests cover graceful
+shutdown, signal escalation, unexpected clean child exit, and cleanup after a
+partial launch. One POSIX integration case verifies SIGTERM reaches a child
+and grandchild; database outage and lease recovery remain open
+([evidence](builds/2026-10-14-recovery/kernel-supervisor-unit-contract.json)).
 
 **Provider-aware recovery (14 October 2026):** encrypted Compose checkpoints now
 declare their PostgreSQL and ClickHouse contents. PostgreSQL-only backup and
@@ -452,8 +470,9 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. CI #313 and Security #37 passed on pushed head `4141276`; accumulate
-the next coherent batch before pushing so the repository does not start CI for
-each small commit. Never push directly to `main`. Keep each candidate database
+requested. CI #313 and Security #37 passed on pushed head `4141276`; the latest
+push `35f7750` is awaiting CI #314, while Security #38 passed. Accumulate the next
+coherent batch before pushing so the repository does not start CI for each
+small commit. Never push directly to `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable
 acceptance are complete.

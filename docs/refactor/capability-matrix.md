@@ -11,6 +11,22 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
+**14 October 2026 Directus parity preflight (CAP-001 / CAP-047 / CAP-053):**
+the disposable Directus parity fixture now stops before synthetic user or farm
+activity writes when the configured `$CURRENT_USER.location_id` scope cannot
+exist in the cloned `directus_users` schema. Three source checks and one
+fake-schema preflight execution pass, but this guard only avoids
+unsafe/inapplicable fixture writes; it does not establish
+Directus permissions or accept a named MAN-CAP check
+([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
+
+**14 October 2026 supervisor contract (CAP-047):** four focused tests cover
+graceful shutdown, process-group escalation, unexpected zero exit, and
+partial-launch cleanup; one POSIX integration case verifies SIGTERM delivery
+to a child and grandchild. Database-outage and lease-recovery acceptance remain
+open, and MAN-CAP-047 is not accepted
+([evidence](builds/2026-10-14-recovery/kernel-supervisor-unit-contract.json)).
+
 **14 October 2026 runtime default-privilege boundary (CAP-047 / CAP-053):**
 the opt-in runtime bootstrap now removes default table and sequence privileges
 for future public objects while retaining existing-table behavior. The
@@ -37,15 +53,15 @@ report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sq
 [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053):** PR #68 is
-pushed through `41412764f8281deea52670bf49de4234aca6e0bd`. CI run
-[#313](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38659182539)
-and Security run
-[#37](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38659182609)
-both passed on that head. The current local restore-fixture and documentation
-batch is not included in those runs and needs CI after its next push. The
-earlier CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32
-are historical, not current-head coverage. The named MAN-CAP checks remain
-open.
+pushed through `35f7750eef7681cc020a565e3ea35d29e2b4f6f3`; CI run
+[#314](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38665357085)
+is still running; Security run
+[#38](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38665357141)
+passed. The last fully green head is `41412764f8281deea52670bf49de4234aca6e0bd`,
+where CI #313 and Security #37 passed. The local Directus preflight change is
+not included in either pushed head and needs CI after its next push. The earlier
+CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32 are
+historical, not current-head coverage. The named MAN-CAP checks remain open.
 See [the code-first execution plan](code-first-execution-plan.md) for the
 remaining work order and the Raspberry Pi code-only assessment scope.
 

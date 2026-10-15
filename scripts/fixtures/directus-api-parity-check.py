@@ -131,6 +131,21 @@ def main() -> int:
             )
             location_column_present = bool(cur.fetchone()[0])
             evidence["directus_user_location_column"] = location_column_present
+            if not location_column_present:
+                evidence["tenant_scope_testable"] = False
+                evidence["result"] = "blocked"
+                evidence["reason"] = (
+                    "Directus user schema has no location_id field required by "
+                    "the configured current-user row filters"
+                )
+                evidence["probe_skipped"] = [
+                    "synthetic Directus user creation",
+                    "synthetic farm-activity row insertion",
+                    "user-scoped API reads and writes",
+                ]
+                exit_code = 2
+                raise StopCheck
+
             cur.execute("SELECT id::text FROM public.location ORDER BY id LIMIT 2")
             locations = [row[0] for row in cur.fetchall()]
             evidence["synthetic_location_count_available"] = len(locations)

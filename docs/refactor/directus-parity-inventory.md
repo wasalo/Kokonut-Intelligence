@@ -115,3 +115,15 @@ scheduled-job parity still need separate checks. Keep Directus optional and
 retain its archived state until each retained use case has accepted evidence.
 The public native location read remains conservative and is not a substitute
 for the full Directus role surface.
+
+## Parity fixture preflight guard — 14 October 2026
+
+The acceptance script previously discovered the missing
+`directus_users.location_id` after creating temporary Field Worker identities
+and farm-activity rows. It now stops as soon as the database schema check finds
+that required field missing, before those API/database writes. Three source
+checks plus a fake-schema execution pass; the execution confirms the blocked
+result without synthetic write requests. It does not claim any runtime
+permission result. Do not resume API parity until the identity
+location attribute or an explicit grant model is provided by the selected
+Directus schema ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).

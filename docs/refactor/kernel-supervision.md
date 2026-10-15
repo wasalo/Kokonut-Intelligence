@@ -34,8 +34,12 @@ Inspect jobs and registered handlers before enabling workers on populated data.
 
 This is Linux/POSIX supervision, not certified Windows support. Liveness remains
 the gateway's `/health`; child existence does not prove worker progress or DB
-readiness. Restart/shutdown/lease-recovery suites and workload parity remain
-pending. Lint, dependency-boundary, and whitespace checks passed. The candidate
+readiness. Four focused tests cover graceful signal handling, process-group
+escalation, an unexpected zero exit, and partial-launch cleanup; one POSIX
+integration case verifies SIGTERM reaches both a child and grandchild process
+([evidence](builds/2026-10-14-recovery/kernel-supervisor-unit-contract.json)).
+Database-outage, lease-recovery, and workload-parity acceptance remain open. Lint,
+dependency-boundary, and whitespace checks passed. The candidate
 has now been rebuilt and started with this entry point. Logs show API, scheduler,
 and event processes launched, scheduler startup completed, and API liveness 200.
 This does not establish job execution or event-delivery parity.
