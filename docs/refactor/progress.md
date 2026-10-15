@@ -2,6 +2,26 @@
 
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). Seven local commits are not pushed; the latest rejects malformed explicit Directus tenant scopes and the extension TypeScript build passes. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
+### Capability matrix integrity and owner mapping — 15 October 2026
+
+Added `scripts/check-capability-matrix.py` and wired it into the fast-fail CI
+checks. It validates the 66 capability IDs and ordering, six-column row shape,
+matching MAN-CAP identifiers, B/D/P status labels, and existence of referenced
+source/test paths. The current matrix passes: 56 baseline-retained, 7 deployed,
+and 3 prepared; no named MAN-CAP check is marked accepted. The check found and
+fixed a stray pipe in CAP-007 that had made the row unparsable. The owner’s
+five-location Kokonut Network operating-tenant mapping is now recorded as a
+completed data decision; no database ownership or grants were changed. The
+check does not prove capability behavior or close live acceptance.
+
+The public API SDK generator and all six worker-boundary/reachability inventory
+checks also pass. The runtime SQL inventory was stale after adding the
+credit-adjustment scheduled operation; it has been regenerated and now passes
+its freshness check. It covers 3,758 SQL execution sites across 804 source
+files and 18 worker operation roots; 34 worker SQL sites still have no static
+function-path match. These inventories do not establish runtime-role least
+privilege or provider idempotency.
+
 ### Directus rejects malformed explicit tenant scope — 15 October 2026
 
 The create-time tenant-reference hook now rejects a supplied `location_id`

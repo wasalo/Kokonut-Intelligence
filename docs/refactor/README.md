@@ -146,7 +146,10 @@ assertion after later commits.
 - [Provider configuration](provider-configuration.md): first Phase 1 settings
   and health reporting slice, with remaining runtime validation gates.
 - [Capability matrix](capability-matrix.md): all 66 README capabilities, owning
-  code area, candidate tests, and named manual parity checks.
+  code area, candidate tests, implementation status, and named manual parity
+  checks. `python3 scripts/check-capability-matrix.py` validates row coverage,
+  status labels, and referenced source/test paths; fast-fail CI runs the same
+  check.
 - [Sensor anomaly delivery](sensor-anomaly-delivery.md): exact source-reading
   evaluation, per-reading/rule receipts, atomic alert/claim/outbox/approval
   records, and synthetic crash/replay evidence; provider and overall Batch 2
