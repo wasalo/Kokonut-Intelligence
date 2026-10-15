@@ -34,6 +34,13 @@ cleanup. They mock the database and ClickHouse client; actual lease recovery and
 process/outage behavior remain open. This does not accept either named MAN-CAP
 check ([evidence](builds/2026-10-14-recovery/clickhouse-outbox-failure-injection.json)).
 
+**14 October 2026 notification delivery failure boundaries (CAP-047):** five
+focused mocked tests cover exception-class-only provider failure recording,
+independent batch progress, completion database failure propagation, stale
+lease accounting, and SMTP idempotency headers/closure. No real provider or
+database was used; this does not accept MAN-CAP-047 or provider availability
+([evidence](builds/2026-10-14-recovery/notification-outbox-failure-injection.json)).
+
 **14 October 2026 runtime default-privilege boundary (CAP-047 / CAP-053):**
 the opt-in runtime bootstrap now removes default table and sequence privileges
 for future public objects while retaining existing-table behavior. The
@@ -66,12 +73,15 @@ is still running on the previous head `35f7750`; Security run
 [#38](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38665357141)
 passed. For the current head, CI run
 [#315](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38666505364)
-is pending and Security run
+is still running and Security run
 [#39](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38666505418)
-is running. The last fully green head is `41412764f8281deea52670bf49de4234aca6e0bd`,
+failed on a one-way SHA-256 source digest in the Directus evidence JSON, falsely
+detected as a generic API key. A file-specific digest allowlist is local and
+awaits a later push. The last fully green head is `41412764f8281deea52670bf49de4234aca6e0bd`,
 where CI #313 and Security #37 passed. The Directus preflight and supervisor
 tests are included in the current head; the ClickHouse outbox failure-injection
-tests remain local until a later push. The earlier
+tests remain local until a later push. The new notification outbox failure
+tests are also local. The earlier
 CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32 are
 historical, not current-head coverage. The named MAN-CAP checks remain open.
 See [the code-first execution plan](code-first-execution-plan.md) for the

@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 14 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The exact pre-400 checkpoint has now been restore-rehearsed, migration 400 replayed, and runtime/operator-auth role bootstrap accepted on the isolated clone. It restored 1,010 public tables but had zero public location rows, so this is not farm-data parity ([restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `b6117e92a5eed68bd71bcf73356c3aa1640e203e`. CI #315 is pending and Security #39 is running on that pushed head. CI #314 is still running and Security #38 passed on the preceding head. The Directus preflight and supervisor tests are included in the current pushed batch. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 14 October 2026. **Candidate:** 391 applied schemas through migration 400, zero pending schemas or checksum drift, one curated seed ledger entry with 120 seed files pending; application-table RLS remains disabled. Migration 400 was applied schema-only after a fresh age-encrypted pre-migration checkpoint; no app recreation was needed, health is 200, and anonymous protected device revocation returns 401 ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)). The exact pre-400 checkpoint has now been restore-rehearsed, migration 400 replayed, and runtime/operator-auth role bootstrap accepted on the isolated clone. It restored 1,010 public tables but had zero public location rows, so this is not farm-data parity ([restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)). The candidate still runs as the `kokonut` superuser because dedicated runtime credentials are not provisioned. **Branch:** `feat/mobile-offline-acceptance`; PR #68 is open at pushed head `b6117e92a5eed68bd71bcf73356c3aa1640e203e`. CI #315 is still running; Security #39 failed because Gitleaks matched a SHA-256 source digest in the Directus preflight evidence. A narrowly scoped evidence-file digest allowlist is local, along with ClickHouse and notification outbox failure-injection coverage. CI #314 is still running and Security #38 passed on the preceding head. The Directus preflight and supervisor tests are included in the current pushed batch. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 Implementation began on `feat/kernel-architecture-refactor`; current Field
 Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
@@ -9,7 +9,10 @@ verified head. The pushed batch through `b6117e9` includes provider-aware
 backup/restore, gRPC auth-context lifecycle fixes, focused RPC policy and
 optional-provider inventories, worker import/SQL inventories, exact pre-400
 restore and runtime-role recovery evidence, the Directus fixture preflight,
-and supervisor shutdown tests. CI #315 is pending and Security #39 is running;
+and supervisor shutdown tests. CI #315 is still running; Security #39 failed
+on a source-digest false positive in the new Directus evidence. The local
+Gitleaks allowlist fix and ClickHouse/notification outbox unit coverage are not
+yet included in a push;
 CI #314 remains in progress on the prior head. The ClickHouse outbox failure
 injection tests are local and not included in those runs. The eight-suite
 platform-integrity set passed 290 tests on
@@ -37,6 +40,16 @@ outbox. PostgreSQL and ClickHouse operations are mocked; the tests do not claim
 real lease or process recovery ([test](../../tests/test_clickhouse_outbox.py);
 [failure boundaries](projection-failure-boundaries.md);
 [evidence](builds/2026-10-14-recovery/clickhouse-outbox-failure-injection.json)).
+
+### Notification delivery failure contract — 14 October 2026
+
+Five focused mocked tests now cover sanitized provider exceptions, progress on
+other rows after a delivery failure, propagation of completion database errors,
+separate stale-lease accounting, and SMTP idempotency headers/connection
+closure. No provider was contacted and no database claim/finish SQL was run;
+existing PostgreSQL fixture recovery evidence remains separate
+([tests](../../tests/test_notification_outbox.py);
+[evidence](builds/2026-10-14-recovery/notification-outbox-failure-injection.json)).
 
 The worker source reachability inventory adds conservative statement-kind inference,
 instance-method resolution where every candidate type is statically known, and
