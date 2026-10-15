@@ -78,6 +78,65 @@ def _function_calls(node: ast.AST) -> list[ast.Call]:
     return calls
 
 
+def _event_process_dispatch(graph: dict, function_nodes: dict[str, dict[str, ast.AST]]) -> list[dict]:
+    """Describe the statically named EventBus child callback and allowlist path."""
+    source = "services/events/bus.py"
+    nodes = function_nodes.get(source, {})
+    invoke = nodes.get("EventBus._invoke_handler")
+    child = nodes.get("_handler_process")
+    resolver = nodes.get("resolve_handler")
+    if not invoke or not child or not resolver:
+        return []
+
+    invoke_calls = _function_calls(invoke)
+    child_calls = _function_calls(child)
+    resolver_calls = _function_calls(resolver)
+    process_call = next(
+        (
+            call
+            for call in invoke_calls
+            if (_dotted(call.func) or "").split(".")[-1] == "Process"
+            and any(
+                keyword.arg == "target"
+                and isinstance(keyword.value, ast.Name)
+                and keyword.value.id == "_handler_process"
+                for keyword in call.keywords
+            )
+        ),
+        None,
+    )
+    resolve_call = next((call for call in child_calls if _dotted(call.func) == "resolve_handler"), None)
+    validate_call = next(
+        (call for call in resolver_calls if (_dotted(call.func) or "").endswith("validate_event_handler")), None
+    )
+    import_call = next((call for call in resolver_calls if (_dotted(call.func) or "").endswith("import_module")), None)
+    handler_calls = [call for call in child_calls if _dotted(call.func) == "handler"]
+    required = (process_call, resolve_call, validate_call, import_call)
+    if not all(required) or not handler_calls:
+        return []
+
+    allowed_handlers = sorted(
+        operation["name"] for operation in graph["operations"] if operation["kind"] == "event_handler"
+    )
+    return [
+        {
+            "dispatcher": "services.events.bus:EventBus._invoke_handler",
+            "source": source,
+            "process_creation_line": process_call.lineno,
+            "process_callback": "services.events.bus:_handler_process",
+            "callback_resolver": "services.events.bus:resolve_handler",
+            "resolver_call_line": resolve_call.lineno,
+            "allowlist_validator": "services.security.execution_allowlist.validate_event_handler",
+            "allowlist_validation_line": validate_call.lineno,
+            "dynamic_import_line": import_call.lineno,
+            "dynamic_handler_invocation_lines": sorted(call.lineno for call in handler_calls),
+            "allowlisted_handler_targets": allowed_handlers,
+            "validation_precedes_dynamic_import": validate_call.lineno < import_call.lineno,
+            "runtime_dispatch_verified": False,
+        }
+    ]
+
+
 def _classify(call_name: str, aliases: dict[str, str], source: str) -> tuple[str, str] | None:
     parts = call_name.split(".")
     normalized = ".".join([aliases.get(parts[0], parts[0]), *parts[1:]])
@@ -215,6 +274,7 @@ def build_effect_inventory() -> dict:
             }
         )
 
+    callback_dispatches = _event_process_dispatch(graph, function_nodes)
     return {
         "version": 1,
         "generated_by": "scripts/worker_effect_inventory.py",
@@ -233,6 +293,7 @@ def build_effect_inventory() -> dict:
             "unique_sites_by_category": dict(sorted(Counter(unique_sites.values()).items())),
             "operation_memberships_by_category": dict(sorted(total.items())),
         },
+        "callback_dispatches": callback_dispatches,
         "operations": operations,
     }
 

@@ -132,10 +132,12 @@ call sites across 44 operation/site memberships and 18 operation roots
 It intentionally overcounts
 mutually exclusive CLI branches and can miss effects behind callbacks or
 provider adapters; for example, the credit adjustment worker contract rejects
-on-chain transaction calls still visible in the module-wide graph. It records
-the event process target `_handler_process`, but does not expand its dynamic
-handler resolution. The actuation helper reachable from a worker only records
-an approval-gated command; it does not publish MQTT. Next
+on-chain transaction calls still visible in the module-wide graph. The
+inventory now traces the EventBus process target through its resolver,
+allowlist validator, dynamic import, and five source-allowlisted handlers;
+runtime dispatch and persisted handler configuration are still unverified.
+The actuation helper reachable from a worker only records an approval-gated
+command; it does not publish MQTT. Next
 code-only work is to reconcile each candidate against its exact scheduler
 command contract, inspect remaining dynamic/provider callbacks and transitive
 effect wrappers, then reconcile persisted task rows with those contracts. A

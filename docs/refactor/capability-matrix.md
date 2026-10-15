@@ -1621,6 +1621,8 @@ high-confidence direct effect calls. It records 39 unique source locations
 across HTTP, email delivery, process lifecycle, EVM RPC/client setup, and
 filesystem boundaries (44 operation/site memberships). The graph overapproximates mutually exclusive CLI branches and can miss provider callbacks; it does not
 establish runtime behavior, authorization, replay safety, or tenant context.
+Its callback trace records the EventBus validator, dynamic import, and five
+allowlisted handlers, but does not verify persisted dispatch configuration.
 Worker identity, role/context, and live recovery gates remain open, so no
 MAN-CAP status or count changes ([inventory](worker-effect-inventory.json);
 [worker map](worker-operation-map.md)).

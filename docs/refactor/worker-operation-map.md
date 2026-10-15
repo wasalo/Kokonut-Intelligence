@@ -94,11 +94,13 @@ data effects, and an idempotency/retry note.
   the module graph conservatively includes mutually exclusive CLI branches,
   so the carbon-credit entry also surfaces on-chain functions that its
   scheduled `--check-adjustments` contract rejects. Absence from the inventory
-  is not proof that an operation has no external effect. The process record
-  names the `_handler_process` callback target, but its dynamic allowlisted
-  handler resolution is not expanded. The reachable actuation helper only
-  records a human-approval command; no MQTT publisher is called by the worker
-  paths. Rebuild or check it
+  is not proof that an operation has no external effect. Its callback section
+  traces the EventBus process target through `resolve_handler`, the allowlist
+  validator, dynamic import, and the five code-allowlisted handler names. It
+  does not add runtime handler dispatch to the direct function graph or verify
+  persisted handler configuration. The reachable actuation helper only records
+  a human-approval command; no MQTT publisher is called by the worker paths.
+  Rebuild or check it
   with `python3 scripts/worker_effect_inventory.py --output
   docs/refactor/worker-effect-inventory.json` or
   `python3 scripts/worker_effect_inventory.py --check

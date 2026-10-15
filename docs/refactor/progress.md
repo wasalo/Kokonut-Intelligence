@@ -5657,9 +5657,10 @@ databases were untouched.
 Added a deterministic source inventory over the current worker function graph.
 It records 39 unique high-confidence candidate calls across HTTP, email delivery,
 process lifecycle, EVM RPC/client setup, and filesystem boundaries, without argument values or
-payloads (44 operation/site memberships). The process entry names
-`_handler_process` but does not follow its
-dynamic handler resolution; the reachable actuation helper records an
+payloads (44 operation/site memberships). Its callback trace maps the
+`_handler_process` target through validation, dynamic import, and five
+allowlisted handlers, but does not verify runtime dispatch configuration. The
+reachable actuation helper records an
 approval-gated command and does not publish MQTT. Regenerated the
 stale dependency chain: 18 operation roots now reach 364 function memberships
 through 501 direct-call edges; the worker SQL inventory has 244 sites (208

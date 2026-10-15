@@ -24,6 +24,32 @@
       "process": 5
     }
   },
+  "callback_dispatches": [
+    {
+      "dispatcher": "services.events.bus:EventBus._invoke_handler",
+      "source": "services/events/bus.py",
+      "process_creation_line": 214,
+      "process_callback": "services.events.bus:_handler_process",
+      "callback_resolver": "services.events.bus:resolve_handler",
+      "resolver_call_line": 32,
+      "allowlist_validator": "services.security.execution_allowlist.validate_event_handler",
+      "allowlist_validation_line": 22,
+      "dynamic_import_line": 23,
+      "dynamic_handler_invocation_lines": [
+        34,
+        36
+      ],
+      "allowlisted_handler_targets": [
+        "services.cache.events.handle_crisp_scored",
+        "services.cache.events.handle_metric_computed",
+        "services.events.handlers.handle_alert_notification",
+        "services.events.handlers.handle_stale_data",
+        "services.ingestion.anomaly_detector.handle_sensor_reading"
+      ],
+      "validation_precedes_dynamic_import": true,
+      "runtime_dispatch_verified": false
+    }
+  ],
   "operations": [
     {
       "kind": "scheduled_module",
