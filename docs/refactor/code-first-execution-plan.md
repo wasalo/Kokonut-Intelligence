@@ -2,8 +2,8 @@
 
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
-**Latest pushed head status:** Security #44 passed and CI #320 was last recorded in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Later implementation and documentation commits remain local; implementation commit `564b5e8` gates generic data-retention enforcement by default. Hosted CI does not cover these changes yet.
+**Latest pushed head:** `8c43ac96c129a1d827b4bc9f6cd7263fd734adf8`
+**Latest pushed head status:** Security #47 passed; CI #323 was pending at the last check on this head. See [Security #47](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38768451054) and [CI #323](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38768451180).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,173 +14,46 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 354 checked and 20 open items (374 total),
-  counting nested implementation subtasks. Open work includes the live-provider,
-  digest, current-schema ARM64, browser, tenant-boundary, populated-report,
-  retention, runtime-recovery, and release gates. The generic-retention
-  fail-closed gate and inert-by-default policy creation are checked; schedule
-  and legal-hold implementation remain open as owner/runtime gates.
-- The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
-  #320 was last recorded in progress on this head. Multiple local commits are
-  ahead and hosted CI does not cover them; the newest are `83256be`
-  (source-less sensor rejection), `2606ee5` (shared dispatcher contract and
-  SQL inventory refresh), and `629affd` (isolated ARM64 profile selection).
-  Earlier local commit `761cd6c` adds the optional self-hosted ZITADEL profile.
-  Security #39's SHA-256
-  false-positive fix is included and passes both local full-history Gitleaks
-  and hosted Security #41.
-- Two newer Directus implementation commits are local-only: `3f02a53` packages
-  and mounts discoverable Directus 12 hook/endpoint extensions and makes a
-  fresh-checkout hook build part of `make up`; `508661d` maps tenant-reference
-  rejection to typed `400 INVALID_PAYLOAD`. The isolated Directus runtime loaded
-  both extensions, rejected the synthetic write without inserting a row, and
-  was removed. The extension build and 54 tests, six focused Python checks,
-  Ruff, Compose validation, and capability-matrix integrity pass. Directus
-  principal-to-operator mapping, organization/location grants, and broader
-  permission/hook parity remain open. No candidate or legacy database changed.
-- The latest push includes local commits `db37e6a` (preserve pending EventBus
-  dead-letter parents during cleanup) and `c2cdbe9` (location-scoped Field
-  Collector operator inventory). The inventory requires same-location device
-  and collection-review read grants and returns no tokens or collection content;
-  its focused source/ASGI/console checks pass.
-- The three previously unpushed commits for stale inventory response handling,
-  fake-provider OIDC route coverage, and invalid OIDC claim rejection are now
-  included in the pushed branch. The adapter contract pins its discovery URL,
-  requested scopes, and S256 PKCE setting without network calls. The combined
-  focused operator/mobile/event set passes 105 tests; Ruff and Python
-  compilation pass for the OIDC changes. Real OIDC, browser, database-role,
-  and tenant acceptance remain open.
-- The pushed head includes the Directus preflight, supervisor, ClickHouse and
-  notification outbox CLI regressions, and a nine-check disposable PostgreSQL
-  ClickHouse fixture. Focused unit/runtime checks and full-history Gitleaks pass;
-  CI #317 and Security #41 are green.
-- The latest pushed batch adds provider-aware PostgreSQL-only backup/restore,
-  gRPC streaming-auth lifecycle fixes, and focused RPC policy and
-  optional-provider inventories. Earlier pushed work retires the unscoped
-  legacy mobile-offline CLI, tenant-binds protected Data Stream creation, and
-  rejects unscoped cache invalidation from event handlers. A separate reporting
-  slice now runs opt-in saved SQL through
-  an ACL-verified, read-only reader role. The worker operation inventory covers
-  every current scheduled/event allowlist entry. Module-specific scheduler
-  argument contracts now fail closed at activation and dispatch; the
-  `credit_adjustment` JobSpec permits only a read-only `--check-adjustments`
-  operation, optionally scoped to one location UUID. It does not activate the
-  job. Static local-import closure covers all 18 operation roots and 73 source
-  files with 429 imports. The SQL inventory identifies 240 execution sites
-  (204 literal, 36 composed/variable, and three with unknown statement kind).
-  All 36 dynamic sites have source-pattern review; two imported `query()`
-  helpers are explicitly listed, and the only direct
-  `DatabaseConnection.execute()` call is the literal metrics reconciliation
-  query. The worker graph connects 46 entry functions to 359 function
-  memberships across 18 operations, with 495 direct calls and 20 explicit
-  metric-registry dispatches. A companion report links 206 of 240 SQL sites to
-  a static operation path; the remaining 34 have no static function match and
-  are not labeled dead code. Other dynamic dispatch,
-  callbacks, external calls, enabled legacy rows, and worker identity/context
-  remain open.
-  The metrics entry now references all 20 registered calculator modules with a
-  registry-parity test and records direct query tables and composed calculator
-  calls. The freshness operation's seven source tables are also tied to its
-  fixed query map; broader helper/provider effects and worker identity remain
-  open.
-  Data-freshness queries use fixed table/timestamp maps, bind location values,
-  and report unknown configured sources as errors; 29 focused source tests pass.
-  The current whole-services SQL inventory records 3,758 direct execution sites
-  across 804 Python modules and 1,029 regex-derived relation-name candidates,
-  without storing SQL text or runtime values. It safely unwraps literal
-  SQLAlchemy `text()` and psycopg `SQL()` query wrappers; 98 statement kinds
-  remain unknown. Its 67 package summaries isolate the largest service
-  surfaces and dynamic-heavy modules. This is a review input, not a grant
-  allowlist; dynamic statements and indirect ORM/provider paths remain open
-  ([inventory](runtime-sql-inventory.json); [check record](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json)).
-  Field Collector device revocation now uses a fixed database function that
-  revalidates tenant, location, and exact credential/session scope before
-  clearing a device token. Runtime direct UPDATE is limited to telemetry
-  columns. The role bootstrap repairs private-function ACLs after DB-only
-  restore. Migration 400 restores six restricted function-owner roles, their
-  narrow privileges, SECURITY DEFINER ownership, and runtime/operator-auth
-  schema access. A restored pre-398 clone replayed migrations 398–400; synthetic
-  owner/ACL-loss forced-RLS acceptance passed. The exact pre-400 checkpoint is
-  now restore-rehearsed, migration 400 replayed, and runtime/operator-auth role
-  bootstrap accepted on the exact restored database clone. That archive had
-  1,010 public tables but zero public location rows, so farm-data parity remains
-  open. The candidate has 391
-  applied schemas through 400 and its app is healthy, but still uses the
-  `kokonut` superuser because candidate runtime credentials are absent;
-  authenticated HTTP under that role remains an owner-input gate ([rollout evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json); [restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json)).
-  The climate compatibility path stores schema-aligned `latitude_proxy_v1`
-  estimates; migrations 392–397 passed ordered PostgreSQL 16 application and
-  replay on a restored candidate checkpoint, including migration 397's
-  location fallback and duplicate rollback. A clean `template0` bootstrap of
-  all 388 schema sources also passed. The candidate later advanced through
-  migrations 398–400 after encrypted checkpoints and restore rehearsal; its
-  current state is 391 applied schemas through 400, one curated seed, zero
-  pending migrations, and application-table RLS remains disabled.
-  The registered native and Field Collector API routes now have an exact
-  resource/action/public-policy inventory and unknown route/method cases are
-  verified protected; broader tenant, OIDC, transport, and SDK parity remain.
-  The disabled gRPC adapter now has focused coverage proving `serve()` and
-  health checks fail before importing optional gRPC packages or the server;
-  a source inventory pins all 55 application RPC methods to their handlers and
-  scopes, with scope checks before database access. An enabled loopback test
-  now starts the registered health, Ecocredit, and Data services, exercises
-  API-key and scope allow/deny decisions, and checks generated-message names
-  across both handlers. The five focused gRPC suites pass 37 tests. TLS, live
-  database, tenant, and native Gateway parity remain open. Streaming RPC auth
-  context now resets before each yielded response and on cancellation/errors, covered in all
-  handler cardinalities by the focused gRPC suite. Encrypted checkpoints now
-  support a PostgreSQL-only profile, record provider inclusion, and preflight
-  required services before writing/restoring data; fake-Compose checks cover
-  both ClickHouse-disabled and ClickHouse-enabled paths.
-  Focused source/disposable checks pass. The latest pushed head `4ad4b06` has
-  Security #44 passed and CI #320 is in progress; CI #318 was cancelled on an
-  earlier head. The pushed batch includes EventBus cleanup protection,
-  location-scoped Field Collector inventory, source OIDC contract coverage,
-  and the provider-aware recovery changes. ZITADEL deployment code is in local
-  commit `761cd6c`; implementation commit `564b5e8` adds a default-off generic
-  retention gate ([evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
-- The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
-  and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
-- Candidate migrations 392–400 were applied schema-only after encrypted
-  checkpoints and isolated restore/replay work. The current candidate has 391
-  applied schemas through 400, one curated seed, zero pending/failed schema
-  migrations, and no application-table RLS. The exact pre-400 checkpoint is
-  retained and restore-rehearsed in an isolated clone; it contained zero
-  public location rows, so farm-data parity remains open. The candidate app was
-  not recreated for migration 400; health remains 200 and anonymous protected
-  device revocation returns 401. See [migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json) and [restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json).
-  The owner selected five reference catalogs from the 30-file curated batch;
-  applying those five remains separately gated under OFU-17. The other 25
-  curated files and 90 other seed sources were not selected.
-- On 15 October the owner selected self-hosted ZITADEL, reference-catalog-only
-  seed scope (pilot rows held), and USA plus Dominican Republic as retention
-  jurisdictions. The ZITADEL deployment boundary and identity-host requirement
-  are recorded in [the provider plan](zitadel-provider.md). Its identity hostname, non-secret client/issuer
-  configuration and test identities remain to be supplied; credentials will
-  be provisioned through SOPS. The identity choice does not replace Kokonut's
-  Gateway sessions, organization/location grants, or authorization checks.
-  Retention periods remain category-specific and unapproved, so no-prune stays
-  in force. Both event and generic data-governance retention enforcement now
-  require explicit feature switches; the generic switch also blocks before
-  CLI database connection and direct service cursor creation. This does not
-  approve a schedule or provide entity-level legal-hold checks. Seed scope is
-  not seed-write approval. The legacy
-  `scripts/seed.sh --reference-only` behavior still applies the full curated
-  seed set; the distinct `--catalog-only` path now applies the documented
-  five-file allowlist. Candidate rollout remains separately gated.
-- Gateway CORS now reads the dedicated, empty-by-default
-  `KOKONUT_GATEWAY_CORS_ORIGINS`; Directus retains `CORS_ORIGIN`. The legacy
-  Directus origin can no longer silently enable cross-origin Gateway access.
-  Focused source checks cover explicit, empty, wildcard, and legacy-only
-  configuration. Real-browser successful credentialed-request acceptance is
-  still open.
-- Seeded demo ownership for Kokonut Adelphi and Kokonut Genesis is already
-  confirmed as exclusive to Kokonut Network. Do not ask for that mapping again.
-- There is no Raspberry Pi available. The code-only ARM64 assessment passed
-  Buildx/QEMU build, constrained-container startup, bootstrap, restore,
-  migration, health, and restart checks. Physical performance, thermal,
-  storage, power-loss, network, and on-device restart behavior remain
-  unverified; no hardware result is claimed.
+- The execution checklist has **355 checked and 20 open items (375 total)**,
+  counting nested implementation subtasks. The open items cover live provider
+  setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
+  populated report parity, retention decisions, external delivery, seed rollout,
+  long-duration recovery, and release/cutover gates.
+- The latest pushed head is
+  [`8c43ac96c129a1d827b4bc9f6cd7263fd734adf8`](https://github.com/wasalo/Kokonut-Intelligence/commit/8c43ac96c129a1d827b4bc9f6cd7263fd734adf8)
+  on `feat/mobile-offline-acceptance`, PR #68. Security #47 passed; CI #323 was
+  pending at the last check. The latest batch adds a fail-closed report
+  calculation connection and scheduler worker reconnection after PostgreSQL
+  outages. See the report guard evidence and the scheduler unit/runtime
+  recovery evidence below.
+- The report generator now rejects read-only escapes through transaction
+  settings, autocommit, and `cursor.connection`. Nine focused tests and an
+  isolated PostgreSQL check pass; the latter proved rejected calculations
+  leave no rows and the approved writer can still create the draft afterward.
+  The database role remains capable of writes outside this guarded path, and
+  populated report output parity remains open.
+- The scheduler now obtains a fresh bounded-timeout connection for each tick
+  while preserving one worker ID. Ten focused scheduler tests pass. A
+  loopback-only disposable PostgreSQL stop/start check proves the worker process
+  survives the outage and reconnects; the scheduler engine was stubbed, so real
+  task SQL, lease recovery, delivery, and long-duration recovery remain open.
+- The capability matrix contains 66 capabilities: 56 baseline-retained, 7
+  deployed, and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
+- The local candidate has 391 applied schemas through migration 400, one
+  curated seed, zero pending schema migrations, and application-table RLS is
+  disabled. It still uses the `kokonut` superuser because a separate runtime
+  credential is not provisioned. No RLS or candidate seed rollout is approved
+  by this implementation batch.
+- The owner selected self-hosted ZITADEL, organization/location authorization,
+  Kokonut Network operation of Genesis, Seeds, Adelphi, Terra Viva, and V1,
+  reference catalogs only with pilot rows held, USA and Dominican Republic as
+  retention jurisdictions, and a 24-hour recovery target. ZITADEL host/client
+  settings, remaining operator/location mapping, exact retention periods and
+  legal-hold ownership, R2 credentials, and external alert routing remain open.
+- ARM64 Buildx/QEMU acceptance covers the current 391 schemas through 400,
+  logical restore, health, protected-route denial, database restart, and app
+  process recovery. This does not certify physical Raspberry Pi performance,
+  power/storage/network failure, or production failover.
 
 ## Selected open gates: code batches before owner inputs
 
@@ -303,21 +176,16 @@ database write.
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** Current pushed head `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
-has Security #44 passed and CI #320 in progress. CI #318 was cancelled on an
-earlier head. The gRPC loopback fix, outbox CLI and disposable PostgreSQL
-acceptance are included in the pushed batches. The Gitleaks
-allowlist fix for the earlier Security #39 SHA-256 source-digest false positive
-is included in the pushed head and Security #41 passes. The CI #307 OIDC Compose fixture failure was fixed earlier by
-supplying the test-only operator-auth password before checking the missing
-issuer configuration.
+**Action:** The latest pushed head is `8c43ac96c129a1d827b4bc9f6cd7263fd734adf8`.
+Security #47 passed and CI #323 was pending at the last check. The pushed head
+includes the report calculation read-only guard and scheduler connection
+recovery fix. Continue code work while CI runs; inspect any failure against the
+exact pushed SHA before changing the checklist status.
 
-**Acceptance:** current pushed head `4ad4b06` has Security #44 passed and CI
-#320 in progress; a current-head CI pass is required. Local commits, including
-the ZITADEL profile, report CLI scope, and retention gate, are not covered by
-that run.
-The focused local outbox, EventBus cleanup, and Field Collector inventory
-checks pass and are included in prior pushed batches.
+**Acceptance:** require passing CI and Security on the current PR head before
+merging. The scheduler runtime acceptance is source/disposable evidence only;
+the report guard disposable database does not establish populated output
+parity or least-privilege role behavior outside that integration.
 
 ### Batch B — Finish software tenant boundaries before considering RLS
 
@@ -711,13 +579,10 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The latest push `4ad4b06` has Security #44 passed and CI #320 in
-progress; CI #318 was cancelled on an earlier head. Local commit `761cd6c`
-adds the selected ZITADEL profile. Additional implementation and ledger
-commits remain unpushed; the latest implementation batch (`564b5e8`) adds the
-generic retention gate. The current pushed CI does not cover these local commits.
-Accumulate the next coherent
-batch before pushing so the repository does not start CI for each
-small commit. Never push directly to `main`. Keep each candidate database
-rollout separately gated even when the corresponding migration and disposable
-acceptance are complete.
+requested. The current push is `8c43ac9`; Security #47 passed and CI #323 was
+pending at the last check. The latest push includes two commits: report
+calculation read-only enforcement and scheduler worker reconnection after a
+database outage. Accumulate the next coherent batch before pushing so the
+repository does not start CI for each small commit. Never push directly to
+`main`. Keep each candidate database rollout separately gated even when the
+corresponding migration and disposable acceptance are complete.
