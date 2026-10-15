@@ -8,7 +8,8 @@ import pytest
 from services.events import cli
 
 
-def test_cleanup_cli_requires_explicit_retention_window(monkeypatch):
+def test_cleanup_cli_requires_enabled_policy_gate(monkeypatch):
+    monkeypatch.delenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", raising=False)
     monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup"])
 
     with pytest.raises(SystemExit) as exc_info:
@@ -17,10 +18,9 @@ def test_cleanup_cli_requires_explicit_retention_window(monkeypatch):
     assert exc_info.value.code == 2
 
 
-@pytest.mark.parametrize("days", ["0", "-1"])
-def test_cleanup_cli_rejects_nonpositive_retention_before_event_store(monkeypatch, days):
+def test_cleanup_cli_rejects_caller_supplied_window(monkeypatch):
     monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
-    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--days", days])
+    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--days", "30"])
     store_factory = MagicMock()
     monkeypatch.setattr("services.events.backend.get_event_store", store_factory)
 
@@ -33,7 +33,7 @@ def test_cleanup_cli_rejects_nonpositive_retention_before_event_store(monkeypatc
 
 def test_disabled_cleanup_cli_stops_before_opening_event_store(monkeypatch, capsys):
     monkeypatch.delenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", raising=False)
-    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--days", "30"])
+    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup"])
     store_factory = MagicMock()
     monkeypatch.setattr("services.events.backend.get_event_store", store_factory)
 
@@ -45,9 +45,9 @@ def test_disabled_cleanup_cli_stops_before_opening_event_store(monkeypatch, caps
     store_factory.assert_not_called()
 
 
-def test_enabled_cleanup_cli_uses_only_the_explicit_window(monkeypatch):
+def test_enabled_cleanup_cli_uses_the_approved_policy_and_records_actor(monkeypatch):
     monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
-    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--days", "90"])
+    monkeypatch.setattr(sys, "argv", ["services.events", "--cleanup", "--actor", "operator"])
     bus = MagicMock()
     bus.cleanup_old_events.return_value = 2
     monkeypatch.setattr("services.events.backend.get_event_store", lambda: bus)
@@ -56,5 +56,5 @@ def test_enabled_cleanup_cli_uses_only_the_explicit_window(monkeypatch):
         cli.main()
 
     assert exc_info.value.code == 0
-    bus.cleanup_old_events.assert_called_once_with(days=90)
+    bus.cleanup_old_events.assert_called_once_with(actor="operator")
     bus.close.assert_called_once()

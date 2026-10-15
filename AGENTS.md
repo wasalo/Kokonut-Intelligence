@@ -122,7 +122,7 @@ Commands:
 - List metrics: `python3 -m services.metrics --list`
 - Event bus process: `python3 -m services.events --process`
 - Event bus stats: `python3 -m services.events --stats`
-- Event bus cleanup (disabled until an approved retention schedule is configured): `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true python3 -m services.events --cleanup --days APPROVED_RETENTION_DAYS`
+- Event bus cleanup (disabled until an approved dynamic retention policy is configured): `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true python3 -m services.events --cleanup --actor OPERATOR`
 - Event bus handlers: `python3 -m services.events --list-handlers`
 - Event bus dead letter: `python3 -m services.events --list-dead-letter`
 - Event bus replay dead letter: `python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR`
@@ -427,7 +427,9 @@ Commands:
 - Data governance portability requests: `python3 -m services.analytics.data_governance portability-requests --farmer-id F001`
 - Data governance create agreement: `python3 -m services.analytics.data_governance create-agreement --provider-id F001 --consumer-id ORG001 --data-categories soil,yield --purpose "research"`
 - Data governance sharing agreements: `python3 -m services.analytics.data_governance sharing-agreements --farmer-id F001`
-- Data governance set retention: `python3 -m services.analytics.data_governance set-retention --data-category soil --retention-days 2555 --action soft_delete`
+- Data governance create a draft retention policy (period omitted until approved): `python3 -m services.analytics.data_governance set-retention --data-category soil --entity-type soil_sample --policy-owner OWNER --actor OPERATOR --reason "draft for review"`
+- Data governance approve/retire a configured policy: `python3 -m services.analytics.data_governance approve-retention --policy-id UUID --approved-by OPERATOR --reason "reviewed schedule"`; `retire-retention --policy-id UUID --actor OPERATOR --reason "schedule replaced"`
+- Data governance place/release an audited legal hold: `python3 -m services.analytics.data_governance place-retention-hold --entity-type platform_event --entity-id UUID --actor OPERATOR --reason "reason"`; `release-retention-hold --hold-id UUID --actor OPERATOR --reason "reason"`
 - Data governance summary: `python3 -m services.analytics.data_governance governance-summary --location-id UUID`
 - Yield monitoring tests: `python3 -m tests.test_yield_monitoring`
 - Digital twin tests: `python3 -m tests.test_digital_twin`

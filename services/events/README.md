@@ -23,22 +23,25 @@ python3 -m services.events.cli --help
 ## Event retention cleanup
 
 Deleting completed events is disabled by default. No event-retention schedule
-or legal-hold process has been approved, and this cleanup query does not yet
-evaluate event-level legal holds. Keep
-`KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP` disabled until the schedule is
-approved and hold enforcement is implemented. When enabled, the operator must
-also provide an explicit positive `--days` value:
+or jurisdiction-specific period has been configured. Retention windows live in
+approved `data_retention_policy` rows; there is no code or CLI default. New
+policies remain drafts until an operator approves them. Record-level legal
+holds are audited and event cleanup checks active holds. Keep
+`KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP` disabled until the applicable policy
+is configured and deployment acceptance is complete:
 
 ```bash
 KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true \
-  python3 -m services.events --cleanup --days APPROVED_RETENTION_DAYS
+  python3 -m services.events --cleanup --actor OPERATOR
 ```
 
-This operation only considers completed or dead-letter events older than the
-specified window and preserves events with an undisposed dead letter. It does
-not yet preserve other event-level holds, and no notification outbox,
-attempt-history, or operator-audit pruning operation is provided. The feature
-flag is a default-off switch, not a substitute for the missing hold check.
+Cleanup requires exactly one approved, active, auto-enforced global
+`event_bus` / `platform_event` hard-delete policy with an accountable owner, derives its period from that
+row, and rejects missing or ambiguous policy. It considers only completed or
+dead-letter events, preserving pending dead letters, non-success handler
+deliveries, and active legal holds. The operation records its actor and result.
+No notification outbox, attempt-history, or operator-audit pruning operation
+is provided. The feature flag is a default-off switch, not policy approval.
 
 ## Notification delivery
 

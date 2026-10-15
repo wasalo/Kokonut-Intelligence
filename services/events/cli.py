@@ -3,7 +3,7 @@
 Usage:
     python3 -m services.events --process [--batch-size N] [--worker-id ID]
     python3 -m services.events --stats
-    python3 -m services.events --cleanup --days N
+    python3 -m services.events --cleanup [--actor OPERATOR]
     python3 -m services.events --list-handlers
     python3 -m services.events --list-dead-letter
     python3 -m services.events --fork-opportunities [--location-id UUID]
@@ -116,7 +116,10 @@ def cmd_cleanup(args):
 
     bus = get_event_store()
     try:
-        deleted = bus.cleanup_old_events(days=args.days)
+        deleted = bus.cleanup_old_events(actor=args.actor)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     finally:
         bus.close()
     print(f"Cleaned up {deleted} old events")
@@ -307,7 +310,6 @@ def main():
     parser.add_argument("--worker-id", default=os.environ.get("HOSTNAME", "cli"), help="Worker identifier")
     parser.add_argument("--poll-interval", type=float, default=2.0)
     parser.add_argument("--lease-seconds", type=int, default=300)
-    parser.add_argument("--days", type=int, help="Approved event-retention window in days")
     parser.add_argument("--limit", type=int, default=20, help="Max dead letter entries")
     parser.add_argument("--event-id", help="Original event UUID")
     parser.add_argument("--notification-id", help="Notification outbox UUID")
@@ -325,11 +327,6 @@ def main():
     parser.add_argument("--event-data", default="{}", help="JSON event payload for --process-event")
 
     args = parser.parse_args()
-
-    if args.cleanup and args.days is None:
-        parser.error("--days is required for cleanup; no default retention window is approved")
-    if args.cleanup and args.days < 1:
-        parser.error("--days must be a positive integer for cleanup")
 
     if args.process:
         rc = cmd_process(args)

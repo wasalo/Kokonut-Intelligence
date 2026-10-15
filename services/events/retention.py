@@ -18,6 +18,6 @@ def require_event_retention_cleanup() -> None:
         raise RuntimeError(
             "Event retention cleanup is disabled. Set "
             f"{EVENT_RETENTION_CLEANUP_ENV}=true only after retention and "
-            "legal-hold policy is approved and event-level hold enforcement "
-            "has been implemented."
+            "legal-hold policy is approved and the event_bus/platform_event "
+            "policy and record-level hold controls are configured."
         )

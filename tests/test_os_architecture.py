@@ -97,11 +97,13 @@ class TestEventBus:
         mock_conn = MagicMock()
         mock_cursor = MagicMock()
         mock_cursor.rowcount = 5
+        mock_cursor.fetchall.return_value = [("policy", 30)]
+        mock_cursor.fetchone.return_value = (5,)
         mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
         mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
 
         bus = EventBus(conn=mock_conn)
-        deleted = bus.cleanup_old_events(days=30)
+        deleted = bus.cleanup_old_events(actor="operator")
         assert deleted == 5
 
     def test_get_stats(self):

@@ -322,27 +322,97 @@ class EventBus:
                             WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY status""")
             return dict(cur.fetchall())
 
-    def cleanup_old_events(self, days: int):
-        if isinstance(days, bool) or not isinstance(days, int) or days < 1:
-            raise ValueError("days must be a positive integer")
+    def cleanup_old_events(self, actor: str = "cli"):
+        if not isinstance(actor, str) or not actor.strip():
+            raise ValueError("actor is required for retention audit")
         from services.events.retention import require_event_retention_cleanup
 
         require_event_retention_cleanup()
         conn = self._get_conn()
-        with conn.cursor() as cur:
-            cur.execute("""DELETE FROM platform_event
-                            WHERE created_at < NOW() - (%s * INTERVAL '1 day')
-                              AND status IN ('completed', 'dead_letter')
-                              AND NOT EXISTS (
-                                  SELECT 1 FROM event_dead_letter dead
-                                  WHERE dead.original_event_id = platform_event.id
-                                    AND dead.disposition = 'pending'
-                              )
-                              AND NOT EXISTS (
-                                  SELECT 1 FROM event_handler_delivery delivery
-                                  WHERE delivery.event_id = platform_event.id
-                                    AND delivery.status <> 'success'
-                              )""", (days,))
-            count = cur.rowcount
-        conn.commit()
-        return count
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext('kokonut.retention.legal_hold'))"
+                )
+                cur.execute(
+                    """
+                    SELECT id, retention_days
+                    FROM data_retention_policy
+                    WHERE data_category = 'event_bus'
+                      AND entity_type = 'platform_event'
+                      AND location_id IS NULL
+                      AND retention_days > 0
+                      AND deletion_method = 'hard_delete'
+                      AND legal_hold = FALSE
+                      AND auto_enforce = TRUE
+                      AND enforcement_status = 'active'
+                      AND NULLIF(BTRIM(approved_by), '') IS NOT NULL
+                      AND NULLIF(BTRIM(policy_owner), '') IS NOT NULL
+                      AND approval_date IS NOT NULL
+                      AND status = 'active'
+                    FOR SHARE
+                    """
+                )
+                policies = cur.fetchall()
+                if len(policies) != 1:
+                    raise RuntimeError(
+                        "Event cleanup requires exactly one approved, active "
+                        "event_bus/platform_event hard-delete policy; no pruning was performed."
+                    )
+                policy_id, days = policies[0]
+                if isinstance(days, bool) or not isinstance(days, int) or days < 1:
+                    raise RuntimeError(
+                        "The approved event retention policy has no valid window; "
+                        "no pruning was performed."
+                    )
+
+                cur.execute(
+                    """
+                    WITH removed AS (
+                        DELETE FROM platform_event
+                        WHERE created_at < NOW() - make_interval(days => %s)
+                          AND status IN ('completed', 'dead_letter')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM event_dead_letter dead
+                              WHERE dead.original_event_id = platform_event.id
+                                AND dead.disposition = 'pending'
+                          )
+                          AND NOT EXISTS (
+                              SELECT 1 FROM event_handler_delivery delivery
+                              WHERE delivery.event_id = platform_event.id
+                                AND delivery.status <> 'success'
+                          )
+                          AND NOT EXISTS (
+                              SELECT 1 FROM data_retention_legal_hold hold
+                              WHERE hold.entity_type = 'platform_event'
+                                AND hold.entity_id = platform_event.id
+                                AND hold.released_at IS NULL
+                          )
+                        RETURNING id
+                    )
+                    SELECT COUNT(*) FROM removed
+                    """,
+                    (days,),
+                )
+                count = int(cur.fetchone()[0])
+                cur.execute(
+                    """
+                    INSERT INTO data_retention_enforcement_log
+                        (policy_id, actor, dry_run, status, candidates, affected)
+                    VALUES (%s, %s, FALSE, 'completed', %s, %s)
+                    """,
+                    (policy_id, actor.strip(), count, count),
+                )
+                cur.execute(
+                    """
+                    UPDATE data_retention_policy
+                    SET last_enforced_at = NOW(), updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (policy_id,),
+                )
+            conn.commit()
+            return count
+        except Exception:
+            conn.rollback()
+            raise

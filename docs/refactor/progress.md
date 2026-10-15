@@ -203,9 +203,9 @@ check the feature before connecting to PostgreSQL. Removed the 30-day default
 and preserved the cleanup query's undisposed-dead-letter guard. The query now
 also excludes events with any durable handler delivery whose status is not
 `success`. One focused source-unit regression passes without database or
-provider access. The query still does not evaluate event-level legal holds, so
-cleanup remains disabled pending hold-aware eligibility and an approved
-schedule. The existing 34-check evidence predates this SQL change; the separate
+provider access. At that point the query did not evaluate event-level legal
+holds; the later dynamic policy/hold update below supersedes that limitation.
+The existing 34-check evidence predates this SQL change; the separate
 single-test record is retained ([focused evidence](builds/2026-10-15-recovery/event-retention-handler-delivery-guard.json); [prior feature-gate evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
 
 ### Generic data-governance retention gate — 15 October 2026
@@ -224,6 +224,26 @@ entity-level hold eligibility remain open, so leave it off
 ([implementation](../../services/analytics/retention.py);
 [test](../../tests/test_data_governance.py);
 [evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
+
+### Dynamic retention configuration and audited legal holds — 15 October 2026
+
+The owner confirmed that retention windows and legal-hold rules must be
+runtime-configurable; no fixed period should be selected or embedded now. New
+retention schedules are draft records with nullable windows and enforcement
+off by default. An explicit approval step records the approver and date before
+activation. Migration 401 removes the legacy category reference periods and
+demotes policies that lack approval metadata. A legal-hold ledger requires an
+actor and reason, records placement/release in append-only history, and blocks
+both generic retention candidates and event cleanup. Event cleanup no longer
+accepts a caller-supplied `--days`; it requires exactly one approved global
+`event_bus` / `platform_event` policy and logs each execution. The default-off
+feature gate remains in place. No periods are configured; notification,
+attempt-history, and operator-audit pruning remain open. Migration 401 is not
+candidate-applied, and no focused migration or acceptance checks have run in
+this slice. The schedule/owner gate therefore remains open
+([migration](../../schemas/postgres/401_dynamic_retention_and_legal_holds.sql);
+[policy interface](../../services/analytics/data_governance.py);
+[event cleanup](../../services/events/bus.py)).
 
 ### Directus OIDC principal and tenant grants — 15 October 2026
 

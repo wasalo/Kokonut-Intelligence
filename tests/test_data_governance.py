@@ -394,17 +394,21 @@ class TestSetRetentionPolicy(unittest.TestCase):
 
     def test_set_retention_policy_creates_policy(self):
         result = set_retention_policy(
-            self.conn, "soil", 2555, action="soft_delete",
+            self.conn, "soil", 42, action="soft_delete",
+            actor="operator-1", reason="draft for review",
         )
         self.assertIn("policy_id", result)
         self.assertEqual(result["data_category"], "soil")
-        self.assertEqual(result["retention_days"], 2555)
+        self.assertEqual(result["retention_days"], 42)
         self.assertEqual(result["deletion_method"], "soft_delete")
         self.assertFalse(result["auto_enforce"])
-        self.assertEqual(result["status"], "active")
+        self.assertEqual(result["status"], "draft")
 
     def test_set_retention_policy_completes(self):
-        set_retention_policy(self.conn, "soil", 2555)
+        set_retention_policy(
+            self.conn, "soil", 42,
+            actor="operator-1", reason="draft for review",
+        )
         self.conn.commit.assert_called_once()
         self.mock_cursor.close.assert_called_once()
 
@@ -412,13 +416,19 @@ class TestSetRetentionPolicy(unittest.TestCase):
         for retention_days in (0, -1, True, 1.5):
             with self.subTest(retention_days=retention_days):
                 with self.assertRaisesRegex(ValueError, "positive integer"):
-                    set_retention_policy(self.conn, "soil", retention_days)
+                    set_retention_policy(
+                        self.conn, "soil", retention_days,
+                        actor="operator-1", reason="draft for review",
+                    )
 
         self.conn.cursor.assert_not_called()
 
     def test_set_retention_policy_rejects_unknown_action_before_database_access(self):
         with self.assertRaisesRegex(ValueError, "unsupported retention action"):
-            set_retention_policy(self.conn, "soil", 30, action="purge_anything")
+            set_retention_policy(
+                self.conn, "soil", 30, action="purge_anything",
+                actor="operator-1", reason="draft for review",
+            )
 
         self.conn.cursor.assert_not_called()
 
@@ -454,7 +464,10 @@ class TestRetentionSweep(unittest.TestCase):
         cursor = MagicMock()
         conn.cursor.return_value = cursor
         cursor.fetchall.return_value = [
-            ("pol-001", "soil", "soil_sample", None, 2555, "soft_delete", True, True, "active"),
+            (
+                "pol-001", "soil", "soil_sample", None, 42, "soft_delete",
+                True, True, "active", "reviewer-1", date(2026, 10, 15), "owner-1",
+            ),
         ]
 
         result = enforce_retention_policies(conn, "operator-1")

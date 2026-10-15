@@ -100,41 +100,43 @@ def test_replay_preserves_successful_handler_delivery_state():
 
 def test_injected_connection_is_never_closed(monkeypatch):
     monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
-    conn, _ = _connection()
+    conn, _ = _connection(fetchall=[("policy", 30)], fetchone=(0,))
     bus = EventBus(conn=conn)
     bus.get_stats()
-    bus.cleanup_old_events(days=30)
+    bus.cleanup_old_events(actor="operator")
     bus.close()
     conn.close.assert_not_called()
 
 
 def test_cleanup_preserves_events_with_pending_disposition_or_failed_delivery(monkeypatch):
     monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
-    conn, cursor = _connection()
+    conn, cursor = _connection(fetchall=[("policy", 30)], fetchone=(2,))
 
-    EventBus(conn=conn).cleanup_old_events(days=30)
+    EventBus(conn=conn).cleanup_old_events(actor="operator")
 
-    sql = " ".join(cursor.execute.call_args.args[0].split())
+    sql = " ".join(cursor.execute.call_args_list[2].args[0].split())
     assert "dead.disposition = 'pending'" in sql
     assert "dead.original_event_id = platform_event.id" in sql
     assert "AND NOT EXISTS ( SELECT 1 FROM event_dead_letter dead" in sql
     assert "AND NOT EXISTS ( SELECT 1 FROM event_handler_delivery delivery" in sql
     assert "delivery.status <> 'success'" in sql
+    assert "data_retention_legal_hold hold" in sql
+    assert "hold.released_at IS NULL" in sql
     assert "status IN ('completed', 'dead_letter')" in sql
-    assert cursor.execute.call_args.args[1] == (30,)
+    assert cursor.execute.call_args_list[2].args[1] == (30,)
 
 
-def test_cleanup_rejects_nonpositive_or_boolean_retention_before_database_access():
-    bus = EventBus(conn=MagicMock())
+def test_cleanup_fails_closed_without_one_approved_policy(monkeypatch):
+    import pytest
 
-    for days in (0, -1, True, False):
-        try:
-            bus.cleanup_old_events(days=days)
-            assert False, f"invalid retention window {days!r} should fail"
-        except ValueError as exc:
-            assert "positive integer" in str(exc)
+    monkeypatch.setenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "true")
+    conn, _ = _connection()
+    bus = EventBus(conn=conn)
 
-    bus._conn.cursor.assert_not_called()
+    with pytest.raises(RuntimeError, match="exactly one approved"):
+        bus.cleanup_old_events(actor="operator")
+
+    conn.rollback.assert_called_once()
 
 
 def test_cleanup_fails_closed_without_approved_retention_feature(monkeypatch):
@@ -144,7 +146,7 @@ def test_cleanup_fails_closed_without_approved_retention_feature(monkeypatch):
     bus = EventBus(conn=MagicMock())
 
     with pytest.raises(RuntimeError, match="KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true"):
-        bus.cleanup_old_events(days=30)
+        bus.cleanup_old_events(actor="operator")
 
     bus._conn.cursor.assert_not_called()
 

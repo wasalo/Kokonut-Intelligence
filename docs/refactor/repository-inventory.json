@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "ad806f504bfef15cba41446d777cb22f6bd8fe6a",
+  "baseline_commit": "ae14103bd97e564d04877ee8155bef81ff84220f",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -891,115 +891,301 @@
   "format_version": 1,
   "http_routes": [
     {
-      "line": 230,
+      "line": 394,
       "method": "GET",
       "path": "/health",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 243,
+      "line": 408,
       "method": "GET",
       "path": "/",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 253,
+      "line": 418,
       "method": "GET",
       "path": "/mobile",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 254,
+      "line": 425,
       "method": "GET",
       "path": "/mobile/",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 263,
+      "line": 434,
       "method": "GET",
       "path": "/field-collector-vault.js",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 272,
+      "line": 443,
+      "method": "GET",
+      "path": "/field-collector-service-worker.js",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 452,
       "method": "GET",
       "path": "/mobile/field-collector-vault.js",
       "source": "services/gateway/app.py"
     },
     {
-      "line": 81,
+      "line": 461,
+      "method": "GET",
+      "path": "/mobile/field-collector-service-worker.js",
+      "source": "services/gateway/app.py"
+    },
+    {
+      "line": 713,
+      "method": "GET",
+      "path": "/operator/",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 728,
+      "method": "GET",
+      "path": "/operator/auth/login",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 737,
+      "method": "GET",
+      "path": "/operator/auth/callback",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 795,
+      "method": "GET",
+      "path": "/operator/auth/session",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 823,
+      "method": "GET",
+      "path": "/operator/api/report-review-queue",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 863,
+      "method": "GET",
+      "path": "/operator/api/report-review-queue/{report_id}",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 914,
+      "method": "GET",
+      "path": "/operator/api/mobile-collection-review-queue",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 954,
+      "method": "GET",
+      "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1007,
+      "method": "GET",
+      "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1067,
+      "method": "POST",
+      "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1122,
+      "method": "GET",
+      "path": "/operator/api/farm-activity-intake-queue",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1166,
+      "method": "GET",
+      "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1227,
+      "method": "POST",
+      "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1310,
+      "method": "POST",
+      "path": "/operator/api/farm-activities/{activity_id}/{action}",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1403,
+      "method": "GET",
+      "path": "/operator/api/farm-activities",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1451,
+      "method": "GET",
+      "path": "/operator/api/farm-activities/{activity_id}",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1505,
+      "method": "PATCH",
+      "path": "/operator/api/farm-activities/{activity_id}/draft",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1594,
+      "method": "POST",
+      "path": "/operator/api/mobile/locations/{location_id}/participants",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1614,
+      "method": "POST",
+      "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1634,
+      "method": "POST",
+      "path": "/operator/api/mobile/locations/{location_id}/enrollments",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1670,
+      "method": "DELETE",
+      "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1698,
+      "method": "POST",
+      "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1726,
+      "method": "GET",
+      "path": "/operator/api/mobile/locations/{location_id}/inventory",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 1769,
+      "method": "POST",
+      "path": "/operator/auth/logout",
+      "source": "services/gateway/operator_auth.py"
+    },
+    {
+      "line": 125,
       "method": "GET",
       "path": "/locations",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 98,
+      "line": 141,
       "method": "GET",
       "path": "/locations/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 121,
+      "line": 166,
+      "method": "GET",
+      "path": "/v1/locations",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 185,
+      "method": "GET",
+      "path": "/v1/locations/{location_id}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 213,
       "method": "GET",
       "path": "/metrics/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 162,
+      "line": 247,
       "method": "GET",
       "path": "/crisp/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 174,
+      "line": 271,
       "method": "GET",
       "path": "/analytics/{location_id}/summary",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 186,
+      "line": 295,
+      "method": "GET",
+      "path": "/v1/metrics/{location_id}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 305,
+      "method": "GET",
+      "path": "/v1/crisp/{location_id}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 316,
+      "method": "GET",
+      "path": "/v1/analytics/{location_id}/summary",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 327,
       "method": "POST",
       "path": "/data-stream/post",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 204,
+      "line": 352,
       "method": "GET",
       "path": "/iri/resolve",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 217,
+      "line": 365,
       "method": "GET",
       "path": "/federation/nodes",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 229,
+      "line": 377,
       "method": "GET",
       "path": "/drivers",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 241,
+      "line": 389,
       "method": "GET",
       "path": "/health/services",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 203,
+      "line": 264,
       "method": "POST",
       "path": "/api/v1/sensors/{device_id}/readings",
       "source": "services/ingestion/http_sensor_receiver.py"
     },
     {
-      "line": 226,
+      "line": 289,
       "method": "POST",
       "path": "/api/v1/sensors/{device_id}/readings/batch",
       "source": "services/ingestion/http_sensor_receiver.py"
     },
     {
-      "line": 251,
+      "line": 316,
       "method": "GET",
       "path": "/api/v1/health",
       "source": "services/ingestion/http_sensor_receiver.py"
@@ -1047,61 +1233,79 @@
       "source": "services/metadata_api/app.py"
     },
     {
-      "line": 108,
+      "line": 429,
       "method": "GET",
       "path": "/app",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 114,
+      "line": 435,
       "method": "GET",
       "path": "/field-collector-vault.js",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 127,
+      "line": 441,
+      "method": "GET",
+      "path": "/field-collector-service-worker.js",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 454,
       "method": "POST",
       "path": "/media/uploads",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 222,
+      "line": 595,
       "method": "GET",
       "path": "/forms",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 276,
+      "line": 671,
+      "method": "POST",
+      "path": "/locations/{location_id}/participants",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 738,
+      "method": "POST",
+      "path": "/locations/{location_id}/participants/revoke",
+      "source": "services/mobile/api.py"
+    },
+    {
+      "line": 787,
       "method": "POST",
       "path": "/locations/{location_id}/enrollments",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 317,
+      "line": 897,
       "method": "POST",
       "path": "/register",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 390,
+      "line": 949,
       "method": "DELETE",
       "path": "/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 419,
+      "line": 1029,
       "method": "POST",
       "path": "/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 474,
+      "line": 1164,
       "method": "POST",
       "path": "/sync",
       "source": "services/mobile/api.py"
     },
     {
-      "line": 655,
+      "line": 1459,
       "method": "GET",
       "path": "/sync/status",
       "source": "services/mobile/api.py"
@@ -1120,7 +1324,11 @@
       "schemas/clickhouse/003_sensor_views.sql",
       "schemas/clickhouse/004_remote_sensing_and_attestations.sql",
       "schemas/clickhouse/005_portfolio_views.sql",
-      "schemas/clickhouse/006_telemetry_sync.sql"
+      "schemas/clickhouse/006_telemetry_sync.sql",
+      "schemas/clickhouse/007_sensor_rollups_v2.sql",
+      "schemas/clickhouse/008_analytics_read_views_v2.sql",
+      "schemas/clickhouse/009_outbox_deduplication_windows.sql",
+      "schemas/clickhouse/010_sensor_raw_read_views_v3.sql"
     ],
     "postgres": [
       "schemas/postgres/000_extensions.sql",
@@ -1483,7 +1691,38 @@
       "schemas/postgres/366_crop_category_extensions.sql",
       "schemas/postgres/367_external_grant_tranche.sql",
       "schemas/postgres/369_baserow_activity_source_options.sql",
-      "schemas/postgres/370_baserow_expense_fields.sql"
+      "schemas/postgres/370_baserow_expense_fields.sql",
+      "schemas/postgres/371_scheduler_run_windows.sql",
+      "schemas/postgres/372_mqtt_delivery_records.sql",
+      "schemas/postgres/373_gateway_rate_buckets.sql",
+      "schemas/postgres/374_clickhouse_outbox_operator_audit.sql",
+      "schemas/postgres/375_notification_outbox.sql",
+      "schemas/postgres/376_sensor_anomaly_delivery.sql",
+      "schemas/postgres/377_kokonut_reporting_contract.sql",
+      "schemas/postgres/378_optional_extensions.sql",
+      "schemas/postgres/379_noi_snapshot_crop_cycle_key.sql",
+      "schemas/postgres/380_operator_identity_sessions.sql",
+      "schemas/postgres/381_mobile_consent_form_revisions.sql",
+      "schemas/postgres/382_mobile_collection_review_events.sql",
+      "schemas/postgres/383_farm_activity_workflow_events.sql",
+      "schemas/postgres/384_farm_activity_lifecycle_guards.sql",
+      "schemas/postgres/385_farm_activity_draft_edit_events.sql",
+      "schemas/postgres/386_farm_activity_consent_use_gate.sql",
+      "schemas/postgres/387_kokonut_network_tenant_ownership.sql",
+      "schemas/postgres/388_tenant_aware_operator_grants.sql",
+      "schemas/postgres/389_tenant_aware_field_collector_write_guards.sql",
+      "schemas/postgres/390_audited_location_tenant_transfers.sql",
+      "schemas/postgres/391_mobile_device_tenant_binding.sql",
+      "schemas/postgres/392_mobile_credential_functions.sql",
+      "schemas/postgres/393_mobile_tenant_context_proof.sql",
+      "schemas/postgres/394_signed_operator_tenant_context.sql",
+      "schemas/postgres/395_operator_session_auth_boundary.sql",
+      "schemas/postgres/396_signed_gateway_credential_tenant_context.sql",
+      "schemas/postgres/397_worldclim_location_baseline_key.sql",
+      "schemas/postgres/398_bounded_mobile_device_revocation.sql",
+      "schemas/postgres/399_runtime_security_schema_usage.sql",
+      "schemas/postgres/400_operator_auth_security_schema_usage.sql",
+      "schemas/postgres/401_dynamic_retention_and_legal_holds.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -1604,6 +1843,8 @@
       "schemas/seeds/114_state_of_kokonut_funding.sql",
       "schemas/seeds/115_strategic_reserve.sql",
       "schemas/seeds/116_pilot_celo_data_post_uid.sql",
+      "schemas/seeds/120_kokonut_network_ownership.sql",
+      "schemas/seeds/121_kokonut_network_tenant_owner_verification.sql",
       "schemas/seeds/140_mobile_forms.sql"
     ]
   },
@@ -1690,13 +1931,23 @@
       ]
     },
     "analytics": {
-      "environment_names": [],
+      "environment_names": [
+        "KOKONUT_ANALYTICS_PASSWORD",
+        "KOKONUT_ANALYTICS_USER",
+        "PG_DB",
+        "PG_HOST",
+        "PG_PASSWORD",
+        "PG_PORT",
+        "PG_USER",
+        "POSTGRES_PASSWORD"
+      ],
       "modules": [
         "services/analytics/__init__.py",
         "services/analytics/__main__.py",
         "services/analytics/advantage_assessment.py",
         "services/analytics/advantage_outcomes.py",
         "services/analytics/advisor.py",
+        "services/analytics/backend.py",
         "services/analytics/business_model_canvas.py",
         "services/analytics/capability_map.py",
         "services/analytics/capacity_utilization.py",
@@ -1810,10 +2061,14 @@
         "services/analytics/process_simulation.py",
         "services/analytics/procurement.py",
         "services/analytics/promotion_ladder.py",
+        "services/analytics/public_summary.py",
         "services/analytics/publics.py",
+        "services/analytics/queries.py",
         "services/analytics/regional_readiness.py",
         "services/analytics/reporting_cadence.py",
+        "services/analytics/reporting_reader.py",
         "services/analytics/resource_efficiency.py",
+        "services/analytics/retention.py",
         "services/analytics/revenue_model.py",
         "services/analytics/reward_calibration.py",
         "services/analytics/sample_plot_generator.py",
@@ -1883,6 +2138,7 @@
         "tests/test_customer_value.py",
         "tests/test_data_governance.py",
         "tests/test_data_quality.py",
+        "tests/test_data_retention_gate.py",
         "tests/test_demand_analysis.py",
         "tests/test_digital_finance.py",
         "tests/test_digital_twin.py",
@@ -1899,6 +2155,7 @@
         "tests/test_farmer_identity.py",
         "tests/test_financial_sustainability.py",
         "tests/test_gap_closures.py",
+        "tests/test_gateway_public_metrics.py",
         "tests/test_geostatistics.py",
         "tests/test_governance_integration.py",
         "tests/test_governance_links.py",
@@ -1939,6 +2196,7 @@
         "tests/test_publics.py",
         "tests/test_regional_readiness.py",
         "tests/test_remaining_gaps.py",
+        "tests/test_reporting_reader.py",
         "tests/test_revenue_model.py",
         "tests/test_sample_plot_generator.py",
         "tests/test_sequential_integration.py",
@@ -2026,8 +2284,10 @@
       "environment_names": [],
       "modules": [
         "services/cache/__init__.py",
+        "services/cache/backend.py",
         "services/cache/cache.py",
-        "services/cache/events.py"
+        "services/cache/events.py",
+        "services/cache/ports.py"
       ],
       "test_references": [
         "tests/test_cache_cache.py",
@@ -2067,11 +2327,14 @@
         "CH_HOST",
         "CH_PORT",
         "CH_USER",
+        "CLICKHOUSE_PASSWORD",
         "KOKONUT_ALLOW_PLAINTEXT_ENV",
         "KOKONUT_ENV",
+        "KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT",
         "KOKONUT_LOG_LEVEL",
         "PG_DB",
         "PG_HOST",
+        "PG_PASSWORD",
         "PG_PORT",
         "PG_USER"
       ],
@@ -2084,6 +2347,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/tenant_context.py",
         "services/common/utils.py"
       ],
       "test_references": [
@@ -2094,7 +2358,15 @@
         "tests/test_common_database.py",
         "tests/test_common_env.py",
         "tests/test_common_http.py",
-        "tests/test_common_logging.py"
+        "tests/test_common_logging.py",
+        "tests/test_gateway_auth.py",
+        "tests/test_gateway_data_stream.py",
+        "tests/test_gateway_public_locations.py",
+        "tests/test_mobile_api.py",
+        "tests/test_notification_outbox.py",
+        "tests/test_operator_auth.py",
+        "tests/test_operator_mobile_review.py",
+        "tests/test_tenant_context.py"
       ]
     },
     "compliance": {
@@ -2112,21 +2384,39 @@
         "KOKONUT_FEATURE_AGENTS",
         "KOKONUT_FEATURE_CRISP",
         "KOKONUT_FEATURE_EVENT_BUS",
-        "KOKONUT_FEATURE_GRPC",
-        "KOKONUT_FEATURE_METABASE",
-        "KOKONUT_FEATURE_MQTT",
-        "KOKONUT_FEATURE_PREFECT",
+        "KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP",
         "KOKONUT_FEATURE_REPORTS",
         "KOKONUT_FEATURE_SCHEDULER"
       ],
       "modules": [
         "services/core/__init__.py",
+        "services/core/adapters/__init__.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/adapters/grpc.py",
+        "services/core/adapters/mqtt.py",
+        "services/core/adapters/postgres_analytics.py",
+        "services/core/adapters/prefect.py",
+        "services/core/cli.py",
+        "services/core/climate_jobs.py",
         "services/core/features.py",
-        "services/core/health.py"
+        "services/core/health.py",
+        "services/core/image_manifest.py",
+        "services/core/jobs.py",
+        "services/core/mqtt_state.py",
+        "services/core/ports.py",
+        "services/core/providers.py",
+        "services/core/runtime.py",
+        "services/core/schema_readiness.py"
       ],
       "test_references": [
+        "tests/test_clickhouse_outbox.py",
         "tests/test_core_features.py",
-        "tests/test_driver_registry.py"
+        "tests/test_core_jobs_contract.py",
+        "tests/test_driver_registry.py",
+        "tests/test_grpc_optional_boundary.py",
+        "tests/test_kernel_runtime_supervisor.py",
+        "tests/test_prefect_workflow.py",
+        "tests/test_scheduled_command_contracts.py"
       ]
     },
     "credit_class": {
@@ -2179,6 +2469,7 @@
         "services/crisp/models.py",
         "services/crisp/normalization.py",
         "services/crisp/policy_risk.py",
+        "services/crisp/public_api.py",
         "services/crisp/scoring_engine.py"
       ],
       "test_references": [
@@ -2273,23 +2564,38 @@
     },
     "events": {
       "environment_names": [
+        "ALERT_EMAIL_FROM",
+        "ALERT_EMAIL_TO",
+        "ALERT_SMTP_HOST",
+        "ALERT_SMTP_PASSWORD",
+        "ALERT_SMTP_PORT",
+        "ALERT_SMTP_USER",
         "ALERT_WEBHOOK_URL",
         "DIRECTUS_ADMIN_TOKEN",
         "DIRECTUS_URL",
-        "HOSTNAME"
+        "HOSTNAME",
+        "KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES",
+        "KOKONUT_NOTIFICATION_OUTBOX_WARN_BYTES"
       ],
       "modules": [
         "services/events/__init__.py",
         "services/events/__main__.py",
+        "services/events/backend.py",
         "services/events/bus.py",
         "services/events/cli.py",
         "services/events/fork_detector.py",
         "services/events/handlers.py",
-        "services/events/insight_transfer.py"
+        "services/events/insight_transfer.py",
+        "services/events/notification_outbox.py",
+        "services/events/ports.py",
+        "services/events/retention.py"
       ],
       "test_references": [
         "tests/test_event_bus_durability.py",
+        "tests/test_event_retention_cleanup_gate.py",
+        "tests/test_event_worker_recovery.py",
         "tests/test_insight_transfer.py",
+        "tests/test_notification_outbox.py",
         "tests/test_os_architecture.py",
         "tests/test_tactical_layer.py"
       ]
@@ -2306,6 +2612,7 @@
         "services/export/kokonut_graphs.py",
         "services/export/report_generator.py",
         "services/export/reports/__init__.py",
+        "services/export/reports/business_plan.py",
         "services/export/reports/common.py",
         "services/export/reports/commons/__init__.py",
         "services/export/reports/commons/bio_factory.py",
@@ -2333,12 +2640,15 @@
         "tests/test_commons_liberation.py",
         "tests/test_comprehensive_status.py",
         "tests/test_coordination_end_to_end.py",
+        "tests/test_core_features.py",
         "tests/test_dao_proposal_history.py",
         "tests/test_data_stream.py",
+        "tests/test_dataset_refresh_readonly.py",
         "tests/test_ebf_csv_import.py",
         "tests/test_ecological_modeling.py",
         "tests/test_ecological_modeling_v2.py",
         "tests/test_export_reliability.py",
+        "tests/test_farm_activity_summary_report.py",
         "tests/test_financial_resilience.py",
         "tests/test_gnh_alignment.py",
         "tests/test_governance_integration.py",
@@ -2349,6 +2659,8 @@
         "tests/test_process_health.py",
         "tests/test_regenerative_outcomes.py",
         "tests/test_remaining_gaps.py",
+        "tests/test_report_generator_cli.py",
+        "tests/test_report_generator_readonly.py",
         "tests/test_report_governance.py",
         "tests/test_smoke.py",
         "tests/test_spatial_export.py",
@@ -2426,7 +2738,9 @@
         "services/flows/sensors.py",
         "services/flows/weather.py"
       ],
-      "test_references": []
+      "test_references": [
+        "tests/test_prefect_workflow.py"
+      ]
     },
     "forecast": {
       "environment_names": [
@@ -2468,28 +2782,59 @@
     },
     "gateway": {
       "environment_names": [
-        "CORS_ORIGIN",
         "DIRECTUS_ADMIN_TOKEN",
-        "DIRECTUS_URL",
         "GRPC_API_KEY",
         "KOKONUT_API_KEYS",
         "KOKONUT_API_KEY_SCOPES",
-        "KOKONUT_STRICT_LOCATION_SCOPE"
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_ALERT_THRESHOLD",
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS",
+        "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH",
+        "KOKONUT_GATEWAY_CORS_ORIGINS",
+        "KOKONUT_OPERATOR_OIDC_ENABLED",
+        "KOKONUT_OPERATOR_SESSION_TTL_SECONDS",
+        "KOKONUT_RATE_LIMIT_PROVIDER",
+        "KOKONUT_STRICT_LOCATION_SCOPE",
+        "XDG_STATE_HOME"
       ],
       "modules": [
         "services/gateway/__init__.py",
         "services/gateway/app.py",
         "services/gateway/audit.py",
+        "services/gateway/audit_spool.py",
+        "services/gateway/audit_spool_cli.py",
         "services/gateway/auth.py",
         "services/gateway/cli.py",
+        "services/gateway/data_stream.py",
+        "services/gateway/farm_activity_lifecycle.py",
+        "services/gateway/farm_activity_workflow.py",
+        "services/gateway/locations.py",
+        "services/gateway/operator_auth.py",
+        "services/gateway/operator_cli.py",
+        "services/gateway/operator_mobile_review.py",
+        "services/gateway/operator_review.py",
+        "services/gateway/postgres_rate_limiter.py",
+        "services/gateway/public_models.py",
+        "services/gateway/rate_limit_backend.py",
+        "services/gateway/rate_limit_cli.py",
         "services/gateway/rate_limiter.py",
         "services/gateway/router.py"
       ],
       "test_references": [
+        "tests/test_farm_activity_lifecycle.py",
+        "tests/test_farm_activity_workflow.py",
         "tests/test_gateway_audit.py",
         "tests/test_gateway_auth.py",
+        "tests/test_gateway_data_stream.py",
+        "tests/test_gateway_lifespan.py",
+        "tests/test_gateway_public_locations.py",
         "tests/test_gateway_public_metrics.py",
+        "tests/test_gateway_route_policy_inventory.py",
         "tests/test_mobile_api.py",
+        "tests/test_operator_auth.py",
+        "tests/test_operator_auth_session_db_boundary.py",
+        "tests/test_operator_mobile_review.py",
+        "tests/test_operator_oidc_provider_contract.py",
+        "tests/test_operator_route_policy_inventory.py",
         "tests/test_phase3_4.py"
       ]
     },
@@ -2564,12 +2909,15 @@
         "services/grpc/cli.py",
         "services/grpc/credit_class_service.py",
         "services/grpc/data_service.py",
+        "services/grpc/database.py",
         "services/grpc/health.py",
         "services/grpc/interceptors.py",
         "services/grpc/server.py"
       ],
       "test_references": [
-        "tests/test_grpc.py"
+        "tests/test_grpc.py",
+        "tests/test_grpc_auth_context_lifecycle.py",
+        "tests/test_grpc_enabled_transport.py"
       ]
     },
     "guilds": {
@@ -2621,15 +2969,19 @@
         "INGESTION_BACKOFF",
         "INGESTION_JITTER",
         "INGESTION_MAX_RETRIES",
+        "KOKONUT_SENSOR_TIMESTAMP_MODE",
         "ML_MODEL_DIR",
         "MQTT_BROKER",
         "MQTT_BROKER_HOST",
         "MQTT_BROKER_PORT",
         "MQTT_CA_CERT",
         "MQTT_CLIENT_CERT",
+        "MQTT_CLIENT_ID",
         "MQTT_CLIENT_KEY",
+        "MQTT_DELIVERY_MODE",
         "MQTT_PASSWORD",
         "MQTT_PORT",
+        "MQTT_STATE_FILE",
         "MQTT_USERNAME",
         "OPENWEATHERMAP_API_KEY",
         "OPTIMISM_RPC_URL",
@@ -2667,12 +3019,15 @@
         "services/ingestion/gis_import.py",
         "services/ingestion/gnosis_indexer.py",
         "services/ingestion/harvest_manager.py",
+        "services/ingestion/http_sensor_limits.py",
         "services/ingestion/http_sensor_receiver.py",
         "services/ingestion/kml_import.py",
         "services/ingestion/market_data.py",
         "services/ingestion/ml_anomaly_detector.py",
         "services/ingestion/mock_sensors.py",
         "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/mqtt_delivery.py",
+        "services/ingestion/mqtt_delivery_cli.py",
         "services/ingestion/mqtt_subscriber.py",
         "services/ingestion/oracle_aggregator.py",
         "services/ingestion/oracle_price_sync.py",
@@ -2682,6 +3037,7 @@
         "services/ingestion/remote_sensing_fetcher.py",
         "services/ingestion/rpc_indexer.py",
         "services/ingestion/sensor_ingester.py",
+        "services/ingestion/sensor_projection.py",
         "services/ingestion/shapefile_import.py",
         "services/ingestion/status.py",
         "services/ingestion/subgraph_indexer.py",
@@ -2769,6 +3125,7 @@
         "tests/test_runtime_import_regressions.py",
         "tests/test_sandop.py",
         "tests/test_sensor_ingester.py",
+        "tests/test_sensor_ingester_cli_contract.py",
         "tests/test_sequential_evidence.py",
         "tests/test_sequential_integration.py",
         "tests/test_smoke.py",
@@ -2809,7 +3166,8 @@
         "tests/test_value_stream_defs.py",
         "tests/test_vision_mission.py",
         "tests/test_weather_forecast.py",
-        "tests/test_work_selection.py"
+        "tests/test_work_selection.py",
+        "tests/test_worker_operation_map.py"
       ]
     },
     "innovation": {
@@ -2933,19 +3291,43 @@
         "services/metrics/engine.py"
       ],
       "test_references": [
+        "tests/test_farm_activity_metrics.py",
         "tests/test_flow_metrics.py",
-        "tests/test_metrics.py"
+        "tests/test_metrics.py",
+        "tests/test_worker_operation_map.py"
       ]
     },
     "migration": {
-      "environment_names": [],
+      "environment_names": [
+        "KOKONUT_ANALYTICS_PASSWORD",
+        "KOKONUT_ANALYTICS_ROLE_DEDICATED_INSTANCE",
+        "KOKONUT_ANALYTICS_USER",
+        "KOKONUT_DB_ADMIN_PASSWORD",
+        "KOKONUT_DB_ADMIN_USER",
+        "KOKONUT_METABASE_ROLE_DEDICATED_INSTANCE",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD",
+        "KOKONUT_OPERATOR_AUTH_USER",
+        "KOKONUT_RUNTIME_PASSWORD",
+        "KOKONUT_RUNTIME_USER",
+        "MB_DB_DBNAME",
+        "MB_DB_PASS",
+        "MB_DB_USER",
+        "PG_APP_DB",
+        "PG_DB",
+        "PG_HOST",
+        "PG_PORT"
+      ],
       "modules": [
         "services/migration/__init__.py",
         "services/migration/__main__.py",
-        "services/migration/cli.py"
+        "services/migration/analytics_role.py",
+        "services/migration/cli.py",
+        "services/migration/metabase_role.py",
+        "services/migration/runtime_role.py"
       ],
       "test_references": [
-        "tests/test_migration.py"
+        "tests/test_migration.py",
+        "tests/test_runtime_role_boundary.py"
       ]
     },
     "mobile": {
@@ -2953,11 +3335,26 @@
       "modules": [
         "services/mobile/__init__.py",
         "services/mobile/api.py",
-        "services/mobile/media_storage.py"
+        "services/mobile/form_validation.py",
+        "services/mobile/forms_cli.py",
+        "services/mobile/local_media.py",
+        "services/mobile/media_cleanup.py",
+        "services/mobile/media_reconcile.py",
+        "services/mobile/media_storage.py",
+        "services/mobile/tenant_preflight.py"
       ],
       "test_references": [
+        "tests/test_gateway_route_policy_inventory.py",
         "tests/test_mobile_api.py",
-        "tests/test_mobile_media_storage.py"
+        "tests/test_mobile_form_validation.py",
+        "tests/test_mobile_forms_cli.py",
+        "tests/test_mobile_media_cleanup.py",
+        "tests/test_mobile_media_reconcile.py",
+        "tests/test_mobile_media_storage.py",
+        "tests/test_mobile_tenant_binding.py",
+        "tests/test_mobile_tenant_database_readiness.py",
+        "tests/test_mobile_tenant_operator_preflight.py",
+        "tests/test_operator_auth.py"
       ]
     },
     "office": {
@@ -3099,15 +3496,22 @@
       "environment_names": [],
       "modules": [
         "services/scheduler/__init__.py",
+        "services/scheduler/activation.py",
+        "services/scheduler/backend.py",
         "services/scheduler/cli.py",
         "services/scheduler/engine.py",
+        "services/scheduler/graph.py",
+        "services/scheduler/job_plan.py",
         "services/scheduler/parser.py",
+        "services/scheduler/ports.py",
         "services/scheduler/resources.py",
         "services/scheduler/worker.py"
       ],
       "test_references": [
         "tests/test_os_architecture.py",
-        "tests/test_scheduler_durability.py"
+        "tests/test_scheduled_command_contracts.py",
+        "tests/test_scheduler_durability.py",
+        "tests/test_scheduler_worker.py"
       ]
     },
     "schema_introspection": {
@@ -3171,14 +3575,20 @@
         "services/security/capabilities.py",
         "services/security/cli.py",
         "services/security/execution_allowlist.py",
-        "services/security/interceptor.py"
+        "services/security/interceptor.py",
+        "services/security/scheduled_command_contracts.py"
       ],
       "test_references": [
+        "tests/test_core_jobs_contract.py",
         "tests/test_phase3_4.py",
+        "tests/test_scheduled_command_contracts.py",
         "tests/test_security_allowlist.py",
         "tests/test_security_audit.py",
         "tests/test_security_capabilities.py",
-        "tests/test_security_interceptor.py"
+        "tests/test_security_interceptor.py",
+        "tests/test_worker_function_reachability.py",
+        "tests/test_worker_operation_map.py",
+        "tests/test_worker_source_closure.py"
       ]
     },
     "simulation": {
@@ -3429,6 +3839,7 @@
     "tests/test_ba_integration.py",
     "tests/test_backcast_dag.py",
     "tests/test_backcasting_enhancements.py",
+    "tests/test_backup_optional_providers.py",
     "tests/test_baserow_activity_mapping_schema.py",
     "tests/test_baserow_activity_metrics_mapping.py",
     "tests/test_baserow_activity_type_mapping.py",
@@ -3477,6 +3888,7 @@
     "tests/test_clickhouse_failure_injection.py",
     "tests/test_clickhouse_outbox.py",
     "tests/test_climate_data.py",
+    "tests/test_common_cli_lazy_database.py",
     "tests/test_common_commands.py",
     "tests/test_common_database.py",
     "tests/test_common_env.py",
@@ -3487,6 +3899,7 @@
     "tests/test_competitive_landscape.py",
     "tests/test_competitive_report.py",
     "tests/test_compose_metabase_profile.py",
+    "tests/test_compose_zitadel_profile.py",
     "tests/test_comprehensive_status.py",
     "tests/test_configurable_containers.py",
     "tests/test_consent_append_only.py",
@@ -3500,6 +3913,7 @@
     "tests/test_coordination_market_cycles.py",
     "tests/test_coordination_strategy.py",
     "tests/test_core_features.py",
+    "tests/test_core_jobs_contract.py",
     "tests/test_credit_balance.py",
     "tests/test_credit_basket.py",
     "tests/test_credit_batch_manager.py",
@@ -3516,13 +3930,16 @@
     "tests/test_data_governance.py",
     "tests/test_data_module_all.py",
     "tests/test_data_quality.py",
+    "tests/test_data_retention_gate.py",
     "tests/test_data_stream.py",
+    "tests/test_dataset_refresh_readonly.py",
     "tests/test_decision_policy.py",
     "tests/test_delphi.py",
     "tests/test_demand_analysis.py",
     "tests/test_device_manager.py",
     "tests/test_digital_finance.py",
     "tests/test_digital_twin.py",
+    "tests/test_directus_extension_compatibility.py",
     "tests/test_directus_metadata.py",
     "tests/test_directus_tenant_permissions.py",
     "tests/test_documentation_consistency.py",
@@ -3561,9 +3978,16 @@
     "tests/test_evaluator_reputation.py",
     "tests/test_evapotranspiration.py",
     "tests/test_event_bus_durability.py",
+    "tests/test_event_retention_cleanup_gate.py",
+    "tests/test_event_worker_recovery.py",
     "tests/test_evidence_lineage_integrity.py",
     "tests/test_export_reliability.py",
     "tests/test_extension.py",
+    "tests/test_farm_activity_lifecycle.py",
+    "tests/test_farm_activity_metrics.py",
+    "tests/test_farm_activity_summary_report.py",
+    "tests/test_farm_activity_use_gate.py",
+    "tests/test_farm_activity_workflow.py",
     "tests/test_farmer_identity.py",
     "tests/test_feedback_automation.py",
     "tests/test_feedback_controller.py",
@@ -3578,7 +4002,11 @@
     "tests/test_gap_closures.py",
     "tests/test_gateway_audit.py",
     "tests/test_gateway_auth.py",
+    "tests/test_gateway_data_stream.py",
+    "tests/test_gateway_lifespan.py",
+    "tests/test_gateway_public_locations.py",
     "tests/test_gateway_public_metrics.py",
+    "tests/test_gateway_route_policy_inventory.py",
     "tests/test_geostatistics.py",
     "tests/test_gis_import.py",
     "tests/test_gnh_alignment.py",
@@ -3595,6 +4023,10 @@
     "tests/test_graph_projection.py",
     "tests/test_growth_curve.py",
     "tests/test_grpc.py",
+    "tests/test_grpc_auth_context_lifecycle.py",
+    "tests/test_grpc_enabled_transport.py",
+    "tests/test_grpc_optional_boundary.py",
+    "tests/test_grpc_rpc_policy_inventory.py",
     "tests/test_guild_reorg.py",
     "tests/test_guild_services.py",
     "tests/test_harvest_url_safety.py",
@@ -3609,6 +4041,8 @@
     "tests/test_insight_transfer.py",
     "tests/test_iot_sensor_push.py",
     "tests/test_iri_synchronization.py",
+    "tests/test_kernel_profile.py",
+    "tests/test_kernel_runtime_supervisor.py",
     "tests/test_kgp_service.py",
     "tests/test_kgp_worker_durability.py",
     "tests/test_kokonut_commons_governance.py",
@@ -3630,10 +4064,20 @@
     "tests/test_ml_model_loading_security.py",
     "tests/test_ml_retraining.py",
     "tests/test_mobile_api.py",
+    "tests/test_mobile_credential_functions.py",
+    "tests/test_mobile_device_revocation.py",
+    "tests/test_mobile_form_validation.py",
+    "tests/test_mobile_forms_cli.py",
+    "tests/test_mobile_media_cleanup.py",
+    "tests/test_mobile_media_reconcile.py",
     "tests/test_mobile_media_storage.py",
     "tests/test_mobile_offline.py",
+    "tests/test_mobile_tenant_binding.py",
+    "tests/test_mobile_tenant_database_readiness.py",
+    "tests/test_mobile_tenant_operator_preflight.py",
     "tests/test_mobile_vault.py",
     "tests/test_network_trust.py",
+    "tests/test_notification_outbox.py",
     "tests/test_nutrient_budget.py",
     "tests/test_objective_performance.py",
     "tests/test_odds_engine.py",
@@ -3641,6 +4085,13 @@
     "tests/test_open_source_capitalist_scaling.py",
     "tests/test_operating_pilot.py",
     "tests/test_operating_support.py",
+    "tests/test_operator_auth.py",
+    "tests/test_operator_auth_session_db_boundary.py",
+    "tests/test_operator_console_farm_activity.py",
+    "tests/test_operator_console_mobile_disposition.py",
+    "tests/test_operator_mobile_review.py",
+    "tests/test_operator_oidc_provider_contract.py",
+    "tests/test_operator_route_policy_inventory.py",
     "tests/test_oracle_infrastructure.py",
     "tests/test_organic_certification.py",
     "tests/test_orientation.py",
@@ -3678,6 +4129,7 @@
     "tests/test_process_model_sync.py",
     "tests/test_process_simulation.py",
     "tests/test_program_portfolio.py",
+    "tests/test_public_api_sdk.py",
     "tests/test_publics.py",
     "tests/test_rdf_graph.py",
     "tests/test_reference_class.py",
@@ -3688,16 +4140,23 @@
     "tests/test_relationship_reference_policy.py",
     "tests/test_remaining_gaps.py",
     "tests/test_remote_sensing_automation.py",
+    "tests/test_report_generator_cli.py",
+    "tests/test_report_generator_readonly.py",
     "tests/test_report_governance.py",
+    "tests/test_reporting_reader.py",
     "tests/test_responsibility_assignment.py",
     "tests/test_revenue_model.py",
     "tests/test_revenue_multiplier.py",
     "tests/test_runtime_import_regressions.py",
+    "tests/test_runtime_role_boundary.py",
+    "tests/test_runtime_sql_inventory.py",
     "tests/test_safe_settlement.py",
     "tests/test_sample_plot_generator.py",
     "tests/test_sandop.py",
     "tests/test_scenario_parameters.py",
+    "tests/test_scheduled_command_contracts.py",
     "tests/test_scheduler_durability.py",
+    "tests/test_scheduler_worker.py",
     "tests/test_schema_introspection.py",
     "tests/test_schema_introspection_risks.py",
     "tests/test_scoring_normalization.py",
@@ -3709,6 +4168,7 @@
     "tests/test_security_interceptor.py",
     "tests/test_seed_idempotency.py",
     "tests/test_sensor_ingester.py",
+    "tests/test_sensor_ingester_cli_contract.py",
     "tests/test_sequential_evidence.py",
     "tests/test_sequential_integration.py",
     "tests/test_service_catalog.py",
@@ -3767,6 +4227,7 @@
     "tests/test_technology_roadmap.py",
     "tests/test_telemetry_freshness.py",
     "tests/test_temporal_integrity.py",
+    "tests/test_tenant_context.py",
     "tests/test_threatcasting.py",
     "tests/test_threatcasting_cli_compat.py",
     "tests/test_token_dao_multifarm.py",
@@ -3791,277 +4252,67 @@
     "tests/test_waste_management.py",
     "tests/test_weather_forecast.py",
     "tests/test_work_selection.py",
+    "tests/test_worker_boundary_preflight.py",
+    "tests/test_worker_function_reachability.py",
+    "tests/test_worker_operation_map.py",
+    "tests/test_worker_source_closure.py",
+    "tests/test_worker_sql_inventory.py",
+    "tests/test_worker_sql_reachability.py",
     "tests/test_workflow_spec_conformance.py",
     "tests/test_workflow_specs.py",
     "tests/test_yield_monitoring.py"
   ],
   "vendor_import_edges": [
     {
-      "line": 131,
+      "line": 19,
       "module": "clickhouse_connect",
-      "path": "services/export/exporter.py",
+      "path": "services/core/adapters/clickhouse.py",
       "provider": "clickhouse"
     },
     {
-      "line": 7,
+      "line": 23,
+      "module": "grpc",
+      "path": "services/core/adapters/grpc.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 24,
+      "module": "grpc_health.v1",
+      "path": "services/core/adapters/grpc.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 24,
+      "module": "grpc_health.v1.health_pb2",
+      "path": "services/core/adapters/grpc.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 24,
+      "module": "grpc_health.v1.health_pb2_grpc",
+      "path": "services/core/adapters/grpc.py",
+      "provider": "grpc"
+    },
+    {
+      "line": 19,
+      "module": "paho.mqtt.client",
+      "path": "services/core/adapters/mqtt.py",
+      "provider": "mqtt"
+    },
+    {
+      "line": 18,
       "module": "prefect",
-      "path": "services/flows/__init__.py",
+      "path": "services/core/adapters/prefect.py",
       "provider": "prefect"
     },
     {
-      "line": 7,
-      "module": "prefect.flow",
-      "path": "services/flows/__init__.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 7,
-      "module": "prefect.task",
-      "path": "services/flows/__init__.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/anomaly_detection.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/anomaly_detection.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/climate_data.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/climate_data.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/credit_adjustment.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/credit_adjustment.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/dashboards.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/dashboards.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/eas_indexer.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/eas_indexer.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/freshness.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/freshness.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/gnosis_indexer.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/gnosis_indexer.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/health_check.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/health_check.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/market_data.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/market_data.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/metrics.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/metrics.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 6,
-      "module": "prefect",
-      "path": "services/flows/pipelines.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 6,
-      "module": "prefect.flow",
-      "path": "services/flows/pipelines.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 6,
-      "module": "prefect.task",
-      "path": "services/flows/pipelines.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 7,
-      "module": "prefect.tasks",
-      "path": "services/flows/pipelines.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 7,
-      "module": "prefect.tasks.task_input_hash",
-      "path": "services/flows/pipelines.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/price_feed.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/price_feed.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/remote_sensing.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/remote_sensing.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/rpc_indexer.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/rpc_indexer.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/sensors.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/sensors.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect",
-      "path": "services/flows/weather.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 3,
-      "module": "prefect.flow",
-      "path": "services/flows/weather.py",
-      "provider": "prefect"
-    },
-    {
-      "line": 10,
+      "line": 9,
       "module": "grpc",
       "path": "services/grpc/auth.py",
       "provider": "grpc"
     },
     {
-      "line": 15,
-      "module": "grpc",
-      "path": "services/grpc/cli.py",
-      "provider": "grpc"
-    },
-    {
-      "line": 16,
-      "module": "grpc_health.v1",
-      "path": "services/grpc/cli.py",
-      "provider": "grpc"
-    },
-    {
-      "line": 16,
-      "module": "grpc_health.v1.health_pb2",
-      "path": "services/grpc/cli.py",
-      "provider": "grpc"
-    },
-    {
-      "line": 16,
-      "module": "grpc_health.v1.health_pb2_grpc",
-      "path": "services/grpc/cli.py",
-      "provider": "grpc"
-    },
-    {
-      "line": 9,
+      "line": 7,
       "module": "grpc",
       "path": "services/grpc/credit_class_service.py",
       "provider": "grpc"
@@ -4127,52 +4378,34 @@
       "provider": "grpc"
     },
     {
-      "line": 10,
+      "line": 9,
       "module": "grpc",
       "path": "services/grpc/server.py",
       "provider": "grpc"
     },
     {
-      "line": 11,
+      "line": 10,
       "module": "grpc_health.v1",
       "path": "services/grpc/server.py",
       "provider": "grpc"
     },
     {
-      "line": 11,
+      "line": 10,
       "module": "grpc_health.v1.health_pb2_grpc",
       "path": "services/grpc/server.py",
       "provider": "grpc"
     },
     {
-      "line": 12,
+      "line": 11,
       "module": "grpc_reflection.v1alpha",
       "path": "services/grpc/server.py",
       "provider": "grpc"
     },
     {
-      "line": 12,
+      "line": 11,
       "module": "grpc_reflection.v1alpha.reflection",
       "path": "services/grpc/server.py",
       "provider": "grpc"
-    },
-    {
-      "line": 64,
-      "module": "clickhouse_connect",
-      "path": "services/ingestion/base.py",
-      "provider": "clickhouse"
-    },
-    {
-      "line": 178,
-      "module": "paho.mqtt.client",
-      "path": "services/ingestion/mqtt_actuator.py",
-      "provider": "mqtt"
-    },
-    {
-      "line": 310,
-      "module": "paho.mqtt.client",
-      "path": "services/ingestion/mqtt_subscriber.py",
-      "provider": "mqtt"
     },
     {
       "line": 5,
