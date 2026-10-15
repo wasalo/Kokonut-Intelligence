@@ -166,6 +166,9 @@ reviewed execution policy exists.
 - `cli` — Discover, track, and apply PostgreSQL schema and seed migrations.
 - `runtime_role` — Provision the Kernel app role and separate bounded
   operator-auth login; isolate browser-session table access.
+- `directus_role` — Provision the optional Directus DML-only login on a
+  dedicated Kernel PostgreSQL instance. It revokes `PUBLIC CONNECT` across
+  that instance and restores access only through explicit role grants.
 - `analytics_role` — Provision and verify the optional curated reporting-source login.
 - `metabase_role` — Provision and verify the isolated optional Metabase metadata database/login.
 

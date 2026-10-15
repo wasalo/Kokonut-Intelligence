@@ -39,9 +39,9 @@ collections
 
 Directus is an optional administrative and compatibility adapter. Its current
 legacy base Compose service still connects as the `kokonut` superuser. A
-separate recovery fixture proved that the pinned image can run under the
-non-owner `kokonut_directus_runtime` DML role, but that identity split is not
-wired into the current deployment profile. Neither a bounded database role nor
+separate optional Kernel profile now runs the pinned image under
+`kokonut_directus_runtime`; role provisioning and owner-backed metadata
+bootstrap are separate one-shot operations. Neither a bounded database role nor
 the API permissions, field allowlists, row filters, and hooks alone establish
 parity with the native Gateway. The native implementation should replace a
 Directus use case only after that specific use case has a named contract and
@@ -93,15 +93,17 @@ parity is reconciled. No provider, operator, or Directus grant has been
 configured.
 
 This is a top-level source guard, not a completed tenant boundary: expanded
-relations and field allowlists need separate effective-API checks, Directus
-still runs as a database superuser in the legacy Compose file, and the code
-does not establish the signed transaction context required for PostgreSQL
-RLS. A grant/share/owner revocation race also remains outside this hook's
-proof. Do not enable RLS or claim Directus parity from unit/source checks. The
+relations and field allowlists need separate effective-API checks, the legacy
+Compose service still runs as a database superuser, and the code does not
+establish the signed transaction context required for PostgreSQL RLS. The new
+candidate role acceptance covers DML, DDL denial, stale explicit ACL removal,
+future-object defaults, and database isolation only. A grant/share/owner
+revocation race also remains outside this hook's proof. Do not enable RLS or
+claim Directus parity from unit/source checks. The
 hooks use Directus's documented `items.query` and `items.read` filter events
 with request transaction/accountability context; confirm those semantics under
 the pinned image in isolated runtime acceptance
-([Directus hook event docs](https://docs.directus.io/extensions/hooks)).
+([Directus hook event docs](https://docs.directus.io/extensions/hooks); [role evidence](builds/2026-10-15-recovery/directus-runtime-role-disposable.json)).
 
 The Directus create-time reference validator rejects malformed explicit
 `location_id` values and checks referenced plots/cycles/harvests against the

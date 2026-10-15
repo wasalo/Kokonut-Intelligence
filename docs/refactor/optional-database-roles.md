@@ -85,19 +85,34 @@ to that internal service identity. It is not an analytics connection and must
 not be shared with Metabase. Keep Directus user/policy/field permissions and
 the existing authorization tests as the user-facing access boundary.
 
-Directus remains a separate future profile. Likely touchpoints are:
+Directus now has an explicit optional Kernel profile in
+[`docker-compose.kernel-directus.yml`](../../docker-compose.kernel-directus.yml).
+The long-running service starts with `cli.js start` under
+`kokonut_directus_runtime`; a separate one-shot owner-backed bootstrap runs
+`cli.js bootstrap`. The isolated role setup is implemented in
+[`services/migration/directus_role.py`](../../services/migration/directus_role.py)
+and is never part of default startup. The legacy `docker-compose.yml` remains
+untouched. The profile binds its API to loopback port 18055 by default and
+disables Redis-backed caching, so Directus does not add a Redis requirement to
+the Kernel.
 
-- `docker-compose.yml`: remove `DB_USER=kokonut` from the legacy Directus
-  service and use explicit Directus admin/runtime credentials.
-- New `docker-compose.kernel-directus.yml`: optional service plus a separately
-  invoked bootstrap profile; its app command must not run bootstrap as the
-  runtime user.
-- `services/migration/runtime_role.py`: keep the native Kernel DML role
-  separate; do not extend it to Directus or Metabase.
-- `tests/test_directus_metadata.py`, `tests/test_gateway_auth.py`, and the
-  Directus permission SQL in `config/directus/permissions.sql`: preserve the
-  independent API permission boundary and verify access after changing DB
-  identities.
+Before using the profile, build the ignored extension artifact, prepare the
+candidate schema, then run the role bootstrap and owner-backed Directus
+bootstrap as separate one-shots. The role provisioner revokes `PUBLIC CONNECT`
+across the dedicated Kernel PostgreSQL instance, strips stale explicit
+Directus grants, and restores access only to the application database. It
+grants DML on existing and future `public`/`kokonut` objects, denies DDL and
+ownership, and fails if role attributes or database access do not match. This
+changes database-connect policy across the whole PostgreSQL instance; do not
+run it against a shared or legacy server. Review service-role bootstrap order
+when combining optional profiles.
+
+This closes a deployment identity gap, not Directus permission parity. Tenant
+hooks still require a configured issuer and operator grants; the unlicensed
+API still hides Field Worker's custom `farm_activity` rules. Role/field/relation
+checks, all collection/action behavior, and operator-facing workflow
+acceptance remain open. Keep operations behind the Gateway until those gates
+are closed or a valid Directus permission license is configured.
 
 ## Metabase metadata and source access
 

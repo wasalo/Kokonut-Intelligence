@@ -23,6 +23,7 @@ OPTIONAL = {
     "grpc": "docker-compose.kernel-grpc.yml",
     "mqtt": "docker-compose.kernel-mqtt.yml",
     "http_sensors": "docker-compose.kernel-http-sensors.yml",
+    "directus": "docker-compose.kernel-directus.yml",
     "zitadel": "docker-compose.kernel-zitadel.yml",
 }
 

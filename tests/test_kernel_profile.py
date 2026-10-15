@@ -70,6 +70,22 @@ def test_zitadel_option_does_not_duplicate_explicit_proxy_or_oidc_overlays() -> 
     assert result.stdout.count("docker-compose.kernel-zitadel.yml") == 1
 
 
+def test_directus_option_selects_only_the_optional_directus_overlay() -> None:
+    result = _run_planner("minimal", "--directus")
+
+    assert result.returncode == 0
+    assert "docker-compose.kernel-directus.yml" in result.stdout
+    assert "docker-compose.kernel-proxy.yml" not in result.stdout
+    assert "docker-compose.kernel-zitadel.yml" not in result.stdout
+
+
+def test_directus_option_is_rejected_for_unverified_arm64_optional_images() -> None:
+    result = _run_planner("minimal", "--target-platform", "linux/arm64", "--directus")
+
+    assert result.returncode != 0
+    assert "optional service images remain unverified" in result.stderr
+
+
 def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:
     result = _run_planner("edge", "--target-platform", "linux/arm64")
 

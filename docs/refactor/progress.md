@@ -3,11 +3,11 @@
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 Check GitHub Actions for CI and Security status on the current PR head before
 merge; local acceptance evidence is recorded below and linked to its source.
-Six earlier local commits plus this retention implementation batch are being
-held beyond pushed head `72ab775`. The unpushed batch includes runtime-configurable
-retention/legal-hold source contracts and static worker effect/JobSpec
-inventories; CI status on `72ab775` does not cover them. Candidate schema state
-remains through migration 400; migration 401 has not been rolled out.
+Eight local commits, including the retention-policy and optional Directus
+runtime-role/profile batches, are held beyond pushed head `72ab775`. The local
+work also includes static worker effect/JobSpec inventories; CI status on
+`72ab775` does not cover these commits. Candidate schema state remains through
+migration 400; migration 401 has not been rolled out.
 The newest commits close the sensor CLI false-success path (`83256be`), verify
 the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
 isolated ARM64 minimal/edge/standard profile selection (`629affd`). Earlier
@@ -19,6 +19,26 @@ last candidate rollout record is migration 400; verify live candidate status
 and checkpoints again before any rollout. Application-table RLS remains
 unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment
 because no hardware is available; physical-device acceptance is not claimed.
+
+### Optional Directus runtime identity and candidate profile — 15 October 2026
+
+The standalone Kernel candidate now has an explicit, opt-in Directus Compose
+overlay. It binds to loopback port 18055, disables Redis-backed caching, and
+starts the pinned service with `cli.js start` under
+`kokonut_directus_runtime`. A separate owner-backed one-shot initializes
+Directus metadata; the legacy Compose service and its superuser configuration
+are unchanged.
+
+The new role provisioner is idempotent and grants DML on existing and future
+`public`/`kokonut` objects while denying DDL, ownership, and connections to
+other databases. Its database-connect revocation is cluster-wide, so the
+one-shot is limited to the isolated Kernel PostgreSQL instance. Seventeen
+focused planner/role tests, Ruff, Python compilation, Compose validation, and
+the internal-only disposable PostgreSQL replay pass. That acceptance leaves
+the candidate and legacy databases untouched. It does not solve Directus
+role/field/row/relation parity: `farm_activity` remains denied by the
+unlicensed permission layer, and live OIDC/grants and hook parity remain open
+([profile](kernel-directus-profile.md); [evidence](builds/2026-10-15-recovery/directus-runtime-role-disposable.json)).
 
 ### Capability matrix integrity and owner mapping — 15 October 2026
 

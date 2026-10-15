@@ -58,8 +58,8 @@ context or RLS. MAN-CAP checks remain unaccepted
 the seed no longer depends on the nonexistent `directus_users.location_id`;
 it removes only the obsolete filter and create validation, preserves other
 business predicates, and aborts on an unexpected legacy shape. The grant hook
-now covers all 11 tenant-scoped collections, including `revenue_event`. Four
-Five focused Python checks, 61 extension tests, the TypeScript build, and a
+now covers all 11 tenant-scoped collections, including `revenue_event`. Five
+focused Python checks, 61 extension tests, the TypeScript build, and a
 network-disabled PostgreSQL 16 seed-repair/replay check pass. The isolated
 Directus 12.1.1 API check confirms that the loaded hook allows an own-location
 Field Note read and hides a cross-location row. It also confirms the Field
@@ -70,6 +70,19 @@ probe. Operational Directus use now requires either a valid custom-permission
 license or routing operations through the Kokonut Gateway with Directus kept
 optional. Role/field/relation parity and all named MAN-CAP checks remain
 unaccepted ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json); [inventory](directus-parity-inventory.md)).
+
+**15 October 2026 optional Directus database identity (CAP-001 / CAP-047 / CAP-053):**
+the candidate now has an opt-in Directus overlay with a loopback-only
+`cli.js start` runtime, separate owner-backed metadata bootstrap, extension
+mounts, and a DML-only `kokonut_directus_runtime` provisioner. It denies
+database/schema ownership and DDL, limits the login to the dedicated candidate
+database, and keeps Directus out of the default profiles. Focused role-input and
+profile-planner checks pass. The role bootstrap revokes `PUBLIC CONNECT` across
+its dedicated PostgreSQL instance, so it must not run on a shared/legacy
+server. Seventeen focused role/planner tests and internal-only PostgreSQL
+acceptance pass. This closes a deployment identity gap only; Directus API
+role/field/row/relation/hook parity remains open ([profile](kernel-directus-profile.md);
+[role policy](optional-database-roles.md); [role evidence](builds/2026-10-15-recovery/directus-runtime-role-disposable.json)).
 
 **15 October 2026 sensor source contract guard (CAP-040 / CAP-047):** the
 sensor CLI now rejects absent, incomplete, or conflicting operation inputs
