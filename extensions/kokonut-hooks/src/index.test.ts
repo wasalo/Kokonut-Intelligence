@@ -24,6 +24,11 @@ describe('Directus hook event registration', () => {
     expect(events).toContain('farm_activity.items.delete');
     expect(events).toContain('harvest_event.items.create');
     expect(events).toContain('harvest_event.items.update');
+    expect(events).toContain('revenue_event.items.query');
+    expect(events).toContain('revenue_event.items.read');
+    expect(events).toContain('revenue_event.items.create');
+    expect(events).toContain('revenue_event.items.update');
+    expect(events).toContain('revenue_event.items.delete');
   });
 
   it('wires the pre-read tenant filter to request accountability, issuer, and transaction', async () => {

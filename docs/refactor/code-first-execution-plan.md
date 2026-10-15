@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **357 checked and 20 open items (377 total)**,
+- The execution checklist has **358 checked and 20 open items (378 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, retention decisions, external delivery, seed rollout,
@@ -47,7 +47,18 @@ MAN-CAP checks open until each has its own retained evidence.
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
   Fourteen KGP service/indexer tests pass; live database/RPC recovery remains
-  open. This change is also not pushed yet.
+  open. It is committed locally as `fb7ec7b` and is not pushed yet.
+- Directus source permissions now align with organization/location grants: the
+  seed removes its obsolete user-level location filter while preserving other
+  predicates, the grant hook covers `revenue_event`, and the isolated API
+  fixture prepares a synthetic mapped operator. Five focused Python checks,
+  61 extension tests, the TypeScript build, and a disposable PostgreSQL 16 SQL
+  replay/fail-closed check pass. Pinned-image Field Note own/cross reads pass
+  through the loaded tenant hook. Field Worker `farm_activity` permissions are
+  hidden by the unlicensed Directus custom-permission boundary, so that API
+  slice remains denied; license versus Gateway-only operational access is an
+  open product decision. Role/field/relationship and hook-dispatch parity
+  remain open. This slice is local and unpushed ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
 - The capability matrix contains 66 capabilities: 56 baseline-retained, 7
   deployed, and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - The local candidate has 391 applied schemas through migration 400, one

@@ -5607,3 +5607,25 @@ cover reconnection and invalid poll intervals. The KGP worker/service/reorg set
 passes 14 tests, and Ruff and Python compilation pass. No live RPC or database
 was used; real lease reclaim and provider outage acceptance remain open.
 [Evidence](builds/2026-10-15-recovery/kgp-worker-connection-recovery.json).
+
+### Directus grants replace stale user-level location filters — 15 October 2026
+
+Directus staff permission filters referenced a `directus_users.location_id`
+column that is absent from the archive. The seed now removes only that stale
+predicate and its matching create validation while preserving other business
+filters; an unexpected old filter shape stops the seed. The grant hook now
+covers all 11 collections from the prior row-scope repair, including
+`revenue_event`. The isolated API fixture now creates a synthetic operator,
+organization membership, and one-location grants rather than inventing a
+user-level location field. Five focused Python checks, 61 extension tests, the
+TypeScript build, Ruff and compilation pass. A network-disabled PostgreSQL 16
+check confirmed filter preservation, replay idempotency, and fail-closed
+handling. The pinned Directus 12.1.1 API check confirms the loaded hook allows
+an own-location Field Note read and hides a cross-location Field Note. Its
+Field Worker `farm_activity` permissions remain hidden because the unlicensed
+API filters stored custom permission rules; own and cross requests both return
+403. No permissions were broadened. Licensed Directus versus Gateway-only
+operational access, field/relation parity, mutations, and schedules remain
+open. Synthetic rows and identities were cleaned; candidate and legacy
+databases were untouched.
+[Evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json).

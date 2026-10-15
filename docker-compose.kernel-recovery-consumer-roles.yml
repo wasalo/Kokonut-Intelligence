@@ -98,6 +98,8 @@ services:
     command: ["cli.js", "bootstrap"]
     environment:
       SECRET: ${DIRECTUS_SECRET:?Supply a synthetic Directus secret}
+      ADMIN_EMAIL: ${DIRECTUS_PARITY_ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${DIRECTUS_PARITY_ADMIN_PASSWORD:-}
       DB_CLIENT: pg
       DB_HOST: database
       DB_PORT: "5432"
@@ -130,6 +132,9 @@ services:
       CACHE_ENABLED: "false"
       RATE_LIMITER_ENABLED: "false"
       LOG_LEVEL: error
+      KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:-https://directus-parity.invalid/issuer}
+    volumes:
+      - ./extensions/kokonut-hooks:/directus/extensions/directus-extension-kokonut-hooks:ro
     depends_on:
       database:
         condition: service_healthy
@@ -164,6 +169,8 @@ services:
       PG_DB: ${APP_DATABASE:-kokonut_intelligence}
       KOKONUT_DB_ADMIN_USER: kokonut
       KOKONUT_DB_ADMIN_PASSWORD: ${POSTGRES_PASSWORD:?Supply the fixture admin password}
+      DIRECTUS_ROLE_PASSWORD: ${DIRECTUS_ROLE_PASSWORD:?Supply the Directus runtime password}
+      KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:-https://directus-parity.invalid/issuer}
     volumes:
       - ./scripts/fixtures/directus-api-parity-check.py:/workspace/scripts/fixtures/directus-api-parity-check.py:ro
     networks: [consumer-role-recovery]

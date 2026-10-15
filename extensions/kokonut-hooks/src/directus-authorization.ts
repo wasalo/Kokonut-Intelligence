@@ -8,6 +8,7 @@ export const TENANT_SCOPED_COLLECTIONS = [
   'loss_event',
   'labor_event',
   'field_note',
+  'revenue_event',
   'stakeholder_feedback',
   'metric_proposal',
   'mrv_claim',

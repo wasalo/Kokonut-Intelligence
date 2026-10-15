@@ -54,6 +54,23 @@ still uses the database superuser, and this does not establish signed tenant
 context or RLS. MAN-CAP checks remain unaccepted
 ([unit evidence](builds/2026-10-15-recovery/directus-tenant-authorization-unit.json); [inventory](directus-parity-inventory.md)).
 
+**15 October 2026 Directus permission seed repair (CAP-001 / CAP-047 / CAP-053):**
+the seed no longer depends on the nonexistent `directus_users.location_id`;
+it removes only the obsolete filter and create validation, preserves other
+business predicates, and aborts on an unexpected legacy shape. The grant hook
+now covers all 11 tenant-scoped collections, including `revenue_event`. Four
+Five focused Python checks, 61 extension tests, the TypeScript build, and a
+network-disabled PostgreSQL 16 seed-repair/replay check pass. The isolated
+Directus 12.1.1 API check confirms that the loaded hook allows an own-location
+Field Note read and hides a cross-location row. It also confirms the Field
+Worker's `farm_activity` read/create/update requests remain denied: those
+stored rules include custom source filters, field limits, or lifecycle filters
+that the unlicensed Directus API hides. Do not broaden them to get a passing
+probe. Operational Directus use now requires either a valid custom-permission
+license or routing operations through the Kokonut Gateway with Directus kept
+optional. Role/field/relation parity and all named MAN-CAP checks remain
+unaccepted ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json); [inventory](directus-parity-inventory.md)).
+
 **15 October 2026 sensor source contract guard (CAP-040 / CAP-047):** the
 sensor CLI now rejects absent, incomplete, or conflicting operation inputs
 before loading database/SOPS configuration, and `--help` remains available

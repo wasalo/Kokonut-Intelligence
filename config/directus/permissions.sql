@@ -125,7 +125,7 @@ END IF;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('stakeholder_feedback', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('stakeholder_feedback', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -139,7 +139,7 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'metric_proposal' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('metric_proposal', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('metric_proposal', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -193,14 +193,14 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'farm_activity' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'farm_activity' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
+        ('farm_activity', 'update', '{"status":{"_eq":"draft"}}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -215,14 +215,14 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'harvest_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('harvest_event', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'harvest_event' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('harvest_event', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
+        ('harvest_event', 'update', '{"status":{"_eq":"draft"}}', '{}', 'harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -237,14 +237,14 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'expense_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('expense_event', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'expense_event' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('expense_event', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
+        ('expense_event', 'update', '{"status":{"_eq":"draft"}}', '{}', 'expense_date,category,subcategory,description,vendor,amount,currency,is_capex,allocation_method,allocation_weight,evidence_urls,invoice_number,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -259,14 +259,14 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'sales_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('sales_event', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('sales_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'sales_event' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('sales_event', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'sale_date,buyer,buyer_type,quantity,unit,price_per_unit,total_amount,currency,payment_status,payment_date,payment_method,invoice_number,return_amount,discount_amount,evidence_urls,notes,harvest_id,crop_cycle_id,partner_id', 'b1000000-0000-0000-0000-000000000001');
+        ('sales_event', 'update', '{"status":{"_eq":"draft"}}', '{}', 'sale_date,buyer,buyer_type,quantity,unit,price_per_unit,total_amount,currency,payment_status,payment_date,payment_method,invoice_number,return_amount,discount_amount,evidence_urls,notes,harvest_id,crop_cycle_id,partner_id', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -281,14 +281,14 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'loss_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('loss_event', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('loss_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'loss_event' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('loss_event', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'loss_date,loss_type,quantity,unit,estimated_value,cause,impact_description,mitigation,severity,evidence_urls,notes,crop_cycle_id,harvest_id,plot_id', 'b1000000-0000-0000-0000-000000000001');
+        ('loss_event', 'update', '{"status":{"_eq":"draft"}}', '{}', 'loss_date,loss_type,quantity,unit,estimated_value,cause,impact_description,mitigation,severity,evidence_urls,notes,crop_cycle_id,harvest_id,plot_id', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -303,14 +303,14 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'labor_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('labor_event', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('labor_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'labor_event' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('labor_event', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'staff_id,worker_name,work_date,hours_worked,hourly_rate,total_cost,role,activity_description,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
+        ('labor_event', 'update', '{"status":{"_eq":"draft"}}', '{}', 'staff_id,worker_name,work_date,hours_worked,hourly_rate,total_cost,role,activity_description,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -325,14 +325,14 @@ END $$;
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'field_note' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('field_note', 'read', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}}]}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
+        ('field_note', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
 DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'field_note' AND action = 'update') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('field_note', 'update', '{"_and":[{"location_id":{"_eq":"$CURRENT_USER.location_id"}},{"status":{"_eq":"draft"}}]}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
+        ('field_note', 'update', '{"status":{"_eq":"draft"}}', '{}', 'note_date,note_type,title,content,images,tags,plot_id,crop_cycle_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -626,47 +626,67 @@ END IF;
 END $$;
 
 -- ============================================================
--- 11. Tenant-scope correction for existing permission rows
+-- 11. Replace the legacy per-user location filter with organization/location
+-- grants enforced by the required tenant authorization hooks.
 -- ============================================================
--- Permission rows may already exist from an earlier seed. Always repair the
--- scope instead of relying on the insert-only blocks above.
 DO $$
 DECLARE
-    policy_id UUID;
-    collection_name TEXT;
+    legacy_permission RECORD;
+    legacy_location_clause JSONB := '{"location_id":{"_eq":"$CURRENT_USER.location_id"}}'::JSONB;
+    remaining_terms JSONB;
+    next_filter JSONB;
 BEGIN
-    FOREACH policy_id IN ARRAY ARRAY[
-        'b1000000-0000-0000-0000-000000000002'::UUID,
-        'b1000000-0000-0000-0000-000000000003'::UUID,
-        'b1000000-0000-0000-0000-000000000004'::UUID,
-        'b1000000-0000-0000-0000-000000000005'::UUID,
-        'b1000000-0000-0000-0000-000000000009'::UUID
-    ] LOOP
-        FOREACH collection_name IN ARRAY ARRAY[
-            'farm_activity', 'harvest_event', 'expense_event', 'sales_event',
-            'loss_event', 'labor_event', 'field_note', 'revenue_event',
-            'stakeholder_feedback', 'metric_proposal'
-        ] LOOP
-            UPDATE directus_permissions AS dp
-            SET permissions = json_build_object(
-                '_and', json_build_array(
-                    json_build_object(
-                        'location_id', json_build_object('_eq', '$CURRENT_USER.location_id')
-                    ),
-                    COALESCE(dp.permissions, '{}'::json)
-                )
-            )
-            WHERE dp.policy = policy_id
-              AND dp.collection = collection_name
-              AND COALESCE(dp.permissions, '{}'::json)::text NOT LIKE '%$CURRENT_USER.location_id%';
-        END LOOP;
+    -- Earlier permission seeds wrapped existing business filters in a top-level
+    -- _and with this exact stale clause. Preserve every other predicate (for
+    -- example draft-only updates), and fail the bootstrap if an unknown shape
+    -- appears instead of broadening permissions silently.
+    FOR legacy_permission IN
+        SELECT id, permissions::JSONB AS permission_filter
+          FROM directus_permissions
+         WHERE COALESCE(permissions, '{}'::JSON)::TEXT LIKE '%$CURRENT_USER.location_id%'
+    LOOP
+        IF jsonb_typeof(legacy_permission.permission_filter->'_and') = 'array'
+           AND legacy_permission.permission_filter->'_and' @> jsonb_build_array(legacy_location_clause)
+        THEN
+            SELECT COALESCE(
+                       jsonb_agg(term ORDER BY ordinal_position),
+                       '[]'::JSONB
+                   )
+              INTO remaining_terms
+              FROM jsonb_array_elements(legacy_permission.permission_filter->'_and')
+                   WITH ORDINALITY AS terms(term, ordinal_position)
+             WHERE term <> legacy_location_clause
+               AND term <> '{}'::JSONB;
+
+            IF jsonb_array_length(remaining_terms) = 0 THEN
+                next_filter := '{}'::JSONB;
+            ELSIF jsonb_array_length(remaining_terms) = 1 THEN
+                next_filter := remaining_terms->0;
+            ELSE
+                next_filter := jsonb_build_object('_and', remaining_terms);
+            END IF;
+
+            UPDATE directus_permissions
+               SET permissions = next_filter::JSON
+             WHERE id = legacy_permission.id;
+        ELSIF legacy_permission.permission_filter = legacy_location_clause THEN
+            UPDATE directus_permissions
+               SET permissions = '{}'::JSON
+             WHERE id = legacy_permission.id;
+        ELSE
+            RAISE EXCEPTION 'Unexpected legacy Directus location permission filter shape for permission %',
+                legacy_permission.id;
+        END IF;
     END LOOP;
 
+    -- The tenant hook checks the submitted location against explicit grants.
+    -- Do not depend on a synthetic location field on directus_users.
     UPDATE directus_permissions
-    SET validation = '{"location_id":{"_eq":"$CURRENT_USER.location_id"}}'::json
+       SET validation = '{}'::JSON
     WHERE policy = 'b1000000-0000-0000-0000-000000000001'
       AND action = 'create'
-      AND collection IN ('farm_activity', 'harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal');
+      AND collection IN ('farm_activity', 'harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal')
+      AND validation::JSONB = '{"location_id":{"_eq":"$CURRENT_USER.location_id"}}'::JSONB;
 END $$;
 
 -- Directus cannot express Field Collector's cross-table source, revision, and
