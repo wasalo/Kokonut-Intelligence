@@ -8,16 +8,24 @@ if [ -z "$CHECKPOINT" ] || [ ! -f "$CHECKPOINT/manifest.json" ]; then
     exit 2
 fi
 
-python3 - "$CHECKPOINT" <<'PY'
+PYTHONPATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib${PYTHONPATH:+:$PYTHONPATH}" python3 - "$CHECKPOINT" <<'PY'
 import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
+from backup_manifest import verify_manifest_signature
 
 checkpoint = Path(sys.argv[1])
 checkpoint_root = checkpoint.resolve()
 manifest = json.loads((checkpoint / "manifest.json").read_text(encoding="utf-8"))
+if not isinstance(manifest, dict):
+    raise SystemExit("Invalid checkpoint manifest")
+try:
+    verify_manifest_signature(manifest, os.environ.get("BACKUP_ENCRYPTION_KEY", ""))
+except ValueError as error:
+    raise SystemExit(str(error)) from error
 records = manifest.get("files")
 if not isinstance(records, list):
     raise SystemExit("Missing checkpoint file inventory")

@@ -176,6 +176,7 @@ def test_checkpoint_including_clickhouse_restores_its_encrypted_archives(tmp_pat
     assert any("clickhouse-client" in command for command in _commands(env["FAKE_DOCKER_LOG"]))
 
     manifest.pop("providers")
+    manifest.pop("integrity")
     (checkpoint / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     legacy_preflight = _run(project, env, "restore.sh", "--checkpoint", str(checkpoint), "--preflight")
     assert legacy_preflight.returncode == 0, legacy_preflight.stderr

@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **367 checked and 20 open items (387 total)**,
+- The execution checklist has **368 checked and 20 open items (388 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery, seed rollout,
@@ -22,7 +22,7 @@ MAN-CAP checks open until each has its own retained evidence.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Twelve local commits are now held
+  in progress at the last recorded check. Thirteen local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
   role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
@@ -82,6 +82,11 @@ MAN-CAP checks open until each has its own retained evidence.
   logical restore, health, protected-route denial, database restart, and app
   process recovery. This does not certify physical Raspberry Pi performance,
   power/storage/network failure, or production failover.
+- Encrypted checkpoints now authenticate their manifests and have an optional
+  S3/R2-compatible transfer CLI. Fake-store checks cover staged byte verification,
+  create-only completion, idempotency, tamper rejection, and private no-overwrite
+  restore. No live credentials or remote objects were used; R2 acceptance remains
+  open ([contract](backup-object-storage.md); [offline evidence](builds/2026-10-15-recovery/backup-object-transport-offline.json)).
 
 ## Selected open gates: code batches before owner inputs
 

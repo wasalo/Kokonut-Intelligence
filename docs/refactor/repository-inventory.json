@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "70b32c59cf7339cf56371f9afedb07cfdd5acd0c",
+  "baseline_commit": "61d898b735160c66dfad5a0e23d554913ff167e1",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3847,6 +3847,7 @@
     "tests/test_backcast_dag.py",
     "tests/test_backcasting_enhancements.py",
     "tests/test_backup_optional_providers.py",
+    "tests/test_backup_remote.py",
     "tests/test_baserow_activity_mapping_schema.py",
     "tests/test_baserow_activity_metrics_mapping.py",
     "tests/test_baserow_activity_type_mapping.py",

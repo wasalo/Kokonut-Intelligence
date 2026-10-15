@@ -152,11 +152,13 @@ fi
 
 git_sha="$(git -C "$PROJECT_DIR" rev-parse HEAD 2>/dev/null || printf 'unknown')"
 version="$(tr -d '[:space:]' < "$PROJECT_DIR/VERSION" 2>/dev/null || printf 'unknown')"
-python3 - "$CHECKPOINT" "$BACKUP_ID" "$git_sha" "$version" "$PG_DATABASES" "$CLICKHOUSE_ENABLED" "$CLICKHOUSE_DATABASE" <<'PY'
+PYTHONPATH="$SCRIPT_DIR/lib${PYTHONPATH:+:$PYTHONPATH}" python3 - "$CHECKPOINT" "$BACKUP_ID" "$git_sha" "$version" "$PG_DATABASES" "$CLICKHOUSE_ENABLED" "$CLICKHOUSE_DATABASE" <<'PY'
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
+from backup_manifest import sign_manifest
 
 checkpoint = Path(sys.argv[1])
 backup_id, git_sha, version, database_list, clickhouse_enabled, clickhouse_database = sys.argv[2:]
@@ -181,6 +183,7 @@ manifest = {
     },
     "files": files,
 }
+manifest = sign_manifest(manifest, os.environ["BACKUP_ENCRYPTION_KEY"])
 (checkpoint / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 PY
 

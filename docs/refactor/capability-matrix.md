@@ -1695,3 +1695,15 @@ not inspect persisted tasks, Prefect state, provider outcomes, or grant boundari
 progress and not scheduler acceptance ([JobSpec inventory](worker-job-contract-inventory.json);
 [projection evidence](builds/2026-10-15-recovery/projection-job-contract.json);
 [remote-sensing evidence](builds/2026-10-15-recovery/remote-sensing-job-contract.json)).
+
+### CAP-047 authenticated backup object transport — 15 October 2026
+
+Local encrypted checkpoint manifests are now authenticated with a
+PBKDF2-derived HMAC. The optional S3/R2 transport stages objects under a unique
+prefix, verifies remote bytes, and uses a conditional create-only manifest as
+the completion marker. Downloads verify the authenticated manifest and
+artifact hashes into a new private directory. Twenty-eight focused tests use
+fake Compose and object-store adapters; no R2 credentials or objects were
+accessed, and no remote delete or lifecycle action is implemented. This is
+recovery tooling evidence only; provider backup/restore and MAN-CAP-047 remain
+open ([contract](backup-object-storage.md); [tests](../../tests/test_backup_remote.py); [offline evidence](builds/2026-10-15-recovery/backup-object-transport-offline.json)).

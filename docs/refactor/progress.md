@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 Check GitHub Actions for CI and Security status on the current PR head before
 merge; local acceptance evidence is recorded below and linked to its source.
-Twelve local commits, including the retention-policy and optional Directus
+Thirteen local commits, including the retention-policy and optional Directus
 runtime-role/profile batches, are held beyond pushed head `72ab775`. The local
 work also includes static worker effect/JobSpec inventories and the latest
 retention scope metadata batch; CI status on `72ab775` does not cover these
@@ -33,6 +33,23 @@ internal-only PostgreSQL fixture. The candidate remains at migration 400; no
 policy periods or scoped policies were configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
 [source evidence](builds/2026-10-15-recovery/retention-policy-scope-source-checks.json);
 [database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
+
+### Authenticated backup manifest and optional object-storage transport — 15 October 2026
+
+New local checkpoints now authenticate their artifact inventory with a
+PBKDF2-derived HMAC key from the existing backup secret. Unsigned historical
+checkpoints remain locally readable, while remote upload requires a signed
+manifest. The optional `scripts/backup_remote.py` command provides dry-run-first
+S3/R2 upload and download: objects use a unique staging prefix, uploaded bytes
+are read back and checked, and a conditional manifest marker publishes the
+checkpoint only after all artifacts verify. Restore downloads to a new private
+directory and validates the signed inventory before exposing it. The command
+does not list or delete remote data and has no lifecycle behavior. Twenty-eight
+focused backup tests pass using fake Compose/S3 adapters; shell syntax, matrix,
+provider-boundary checks, and boto3's pinned `PutObject.IfNoneMatch` API check
+pass. No R2 credentials or objects were accessed. Production upload/restore,
+orphan inventory/disposition, and dynamic lifecycle policy remain open
+([contract](backup-object-storage.md); [tests](../../tests/test_backup_remote.py)).
 
 ### Optional Directus runtime identity and candidate profile — 15 October 2026
 
