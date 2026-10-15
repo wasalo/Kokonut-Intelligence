@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **371 checked and 19 open items (390 total)**,
+- The execution checklist has **372 checked and 19 open items (391 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -25,10 +25,11 @@ MAN-CAP checks open until each has its own retained evidence.
   in progress at the last recorded check. This push carried the previous 17
   local commits, including retention-policy and optional Directus role/profile
   work, fresh-volume Directus overlay acceptance, worker effect and SQL
-  reachability inventories, and the five-seed/retention rollout evidence. The
-  Three local commits sit above that pushed head and have not been evaluated
-  by CI. They pin ZITADEL images, add report-review context tests, and inventory
-  all 94 report generators. The pushed batch
+  reachability inventories, and the five-seed/retention rollout evidence.
+  Four local commits sit above that pushed head and have not been evaluated
+  by CI. They pin ZITADEL images, add report-review context tests, inventory
+  all 94 report generators, and map visible location scope across direct report
+  query sites. The pushed batch
   includes report calculation and scheduler worker
   recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
   permission work. See the relevant evidence below and the current CI status
@@ -39,8 +40,11 @@ MAN-CAP checks open until each has its own retained evidence.
   leave no rows and the approved writer can still create the draft afterward.
   The database role remains capable of writes outside this guarded path, and
   populated report output parity remains open. An AST-only inventory now maps
-  all 94 registered generators to source locations and declared inputs; it does
-  not prove query-level location filtering. Direct queue/detail service tests
+  all 94 registered generators to source locations and declared inputs. A
+  second inventory maps 177 direct query sites: 125 show a bound location-scope
+  signal, while conditional, mixed, no-signal, and helper-only report paths
+  still need scope-contract review. Neither inventory proves tenant isolation
+  or semantic parity. Direct queue/detail service tests
   also verify the OIDC report-review tenant-context and cleanup contract.
 - The scheduler now obtains a fresh bounded-timeout connection for each tick
   while preserving one worker ID. Ten focused scheduler tests pass. A

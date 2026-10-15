@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-15",
+  "scope": "Source-only AST inventory of direct registered report query calls; no runtime or authorization claims.",
+  "result": "passed",
+  "inventory_path": "docs/refactor/report-generator-query-scope-inventory.json",
+  "inventory_sha256": "3ca8ae7a8d154b4073ef0b8d3b27d6645e76df76bf44466bab6cc3d4a3252d18",
+  "counts": {
+    "registered_report_types": 94,
+    "direct_query_sites": 177,
+    "query_sites_with_bound_location_scope_signal": 125,
+    "conditional_scope_query_sites": 5,
+    "unresolved_query_sites": 0,
+    "classification_counts": {
+      "all_direct_queries_show_bound_location_scope": 33,
+      "conditional_direct_query_scope": 3,
+      "helper_or_computed_without_direct_query": 28,
+      "mixed_direct_query_scope": 17,
+      "no_bound_location_scope_visible": 13
+    }
+  },
+  "checks": {
+    "focused_report_inventory_tests": "8 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "query_scope_inventory_freshness": "passed",
+    "source_inventory_freshness": "passed",
+    "capability_matrix": "66 rows valid; MAN-CAP checks remain separately gated",
+    "ci_freshness_checks": "added for both report inventories",
+    "persisted_sql_text": false,
+    "database_or_provider_access": false
+  },
+  "limitations": [
+    "AST evidence does not prove query authorization, tenant isolation, or semantic report parity.",
+    "Helper behavior and database view lineage require separate review.",
+    "Conditional filters, global references, and network-level outputs require an owner scope contract."
+  ]
+}

@@ -5879,3 +5879,23 @@ freshness, and matrix validation pass. The implementation avoids importing
 service modules, so SOPS configuration is not loaded. No reports or stored SQL
 were executed, and no database/provider was accessed
 ([inventory](report-generator-source-inventory.json); [evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).
+
+### Report query-scope source scan — 15 October 2026
+
+Added a conservative AST-only inventory for the direct database calls inside
+the 94 registered report generators. It records 177 `execute`/`query` sites;
+125 contain a bound location predicate, a bound `location.id` lookup, or a
+recognized indirect location key. Thirty-three report functions show this
+signal on all direct queries, 3 add it conditionally across 5 query sites when
+a location is supplied, 17 mix signal and no-scope queries, 13 show no bound location scope
+in their direct SQL, and 28 have no direct query in the registered function.
+Twelve queries allow null-location records. All direct query strings resolved
+under the scanner's supported literal, f-string, string-join, and augmented-
+string patterns. These are review categories, not vulnerability or isolation
+findings: global reference data, network-level reports, conditional paths, and
+helper calls need their intended audience and scope checked. All query text is
+omitted; relation names and source lines are retained. Four synthetic
+classifier tests, two scanner registry/freshness tests, and two existing
+source-inventory tests pass. No service module, database,
+stored SQL, provider, or secret was accessed. The report-owner and populated-output gates stay open ([inventory](report-generator-query-scope-inventory.json);
+[evidence](builds/2026-10-15-recovery/report-generator-query-scope-inventory.json)).

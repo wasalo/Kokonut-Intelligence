@@ -53,6 +53,27 @@ calculation filters every query by that location. The AST-only generator and
 its two focused tests pass without importing service modules or loading SOPS
 configuration ([evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).
 
+A second AST-only [query-scope inventory](report-generator-query-scope-inventory.json)
+now maps the direct `execute`/`query` calls in those generators. It finds 177
+query sites: 125 show a bound location predicate, a `location.id` lookup, or
+one of the recognized indirect location keys. Across report types, 33 have
+that signal for every direct query, 3 add it conditionally when a location is
+supplied across 5 query sites, 17 mix scoped and no-scope direct queries, 13
+have no bound location scope visible in their direct SQL, and 28 issue no
+direct query from the registered function. Twelve queries allow
+`location_id IS NULL`, which may intentionally include shared reference rows.
+The no-scope and mixed groups include possible network-level
+reports, reference-data lookups, conditional fallbacks, and helper-mediated
+reads; the scan cannot distinguish intended behavior from a scope defect.
+All current direct query sites were resolved by the bounded literal, f-string,
+string-join, and augmented-string rules. It records relation names and source
+lines without retaining SQL text. Four synthetic classifier tests, two scanner
+registry/freshness tests, and the two existing source-inventory tests pass without
+importing report services or loading SOPS. This is a review map, not an
+authorization or RLS proof; helper call paths, view lineage, audience, and
+populated semantic parity still need review against owner-approved contracts
+and fixtures ([evidence](builds/2026-10-15-recovery/report-generator-query-scope-inventory.json)).
+
 The SQL tree contains hundreds of ordinary view definitions across domain
 migrations. A view's existence does not establish that it is a dashboard
 contract, that its measures are correct for a capability, or that it is safe

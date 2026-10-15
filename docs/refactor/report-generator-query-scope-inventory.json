@@ -1,0 +1,4268 @@
+{
+  "version": 1,
+  "generated_by": "scripts/report_generator_query_scope_inventory.py",
+  "scope": "Conservative AST inventory of direct execute/query calls in registered report functions. A visible location predicate or bound location_id expression is only a source signal; it does not prove correct authorization, tenant isolation, view lineage, or semantic filtering. Helper behavior, database policies, dynamic SQL, and runtime inputs may change effective scope. No report is run, no query is executed, and no database, provider, saved query, or secret is accessed.",
+  "summary": {
+    "registered_report_types": 94,
+    "direct_query_sites": 177,
+    "query_sites_with_bound_location_scope_signal": 125,
+    "conditional_scope_query_sites": 5,
+    "unresolved_query_sites": 0,
+    "classification_counts": {
+      "all_direct_queries_show_bound_location_scope": 33,
+      "conditional_direct_query_scope": 3,
+      "helper_or_computed_without_direct_query": 28,
+      "mixed_direct_query_scope": 17,
+      "no_bound_location_scope_visible": 13
+    }
+  },
+  "reports": [
+    {
+      "report_type": "adaptive_stewardship",
+      "callable": "generate_adaptive_stewardship",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 131,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 134,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 136,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_adaptive_stewardship_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "adoption_barriers",
+      "callable": "generate_adoption_barriers",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 67,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 71,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_adoption_barrier_assessment"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 83,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_adoption_barrier_assessment"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "algorithmic_redistribution",
+      "callable": "generate_algorithmic_redistribution",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 103,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "anti_capture_governance",
+      "callable": "generate_anti_capture_governance",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 35,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "bio_factory_batch",
+      "callable": "generate_bio_factory_batch",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 13,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 16,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 18,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_bio_factory_batch_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "bio_input_provenance",
+      "callable": "generate_bio_input_provenance",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 51,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 54,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 56,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_bio_input_provenance_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "bio_quality_test",
+      "callable": "generate_bio_quality_test",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 150,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 153,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 155,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_bio_factory_quality_test_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "bio_recipe_library",
+      "callable": "generate_bio_recipe_library",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 104,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 110,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_bio_recipe_library_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 120,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_bio_recipe_library_summary"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "bio_regional_input",
+      "callable": "generate_bio_regional_input",
+      "source_file": "services/export/reports/commons/bio_factory.py",
+      "source_line": 189,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 193,
+          "method": "query",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_bio_regional_input_summary"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "business_model_canvas",
+      "callable": "generate_business_model_canvas",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 64,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "compute_health",
+          "line": 79,
+          "location_id_name_visible_in_arguments": false
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "business_plan",
+      "callable": "generate_business_plan_report",
+      "source_file": "services/export/reports/business_plan.py",
+      "source_line": 6,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "generate_business_plan",
+          "line": 35,
+          "location_id_name_visible_in_arguments": false
+        }
+      ],
+      "queries": [
+        {
+          "line": 25,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "capability_assessment",
+      "callable": "generate_capability_assessment",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 170,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "get_capability_dashboard",
+          "line": 174,
+          "location_id_name_visible_in_arguments": false
+        },
+        {
+          "callable": "get_coverage_analysis",
+          "line": 175,
+          "location_id_name_visible_in_arguments": false
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "capability_dashboard",
+      "callable": "generate_capability_dashboard",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 125,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "get_capability_dashboard",
+          "line": 129,
+          "location_id_name_visible_in_arguments": false
+        },
+        {
+          "callable": "get_coverage_analysis",
+          "line": 130,
+          "location_id_name_visible_in_arguments": false
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "capital_accounting",
+      "callable": "generate_capital_accounting",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 796,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "accounting_report.build_capital_accounting",
+          "line": 814,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "capital_alignment",
+      "callable": "generate_capital_alignment",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 46,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 49,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 51,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_capital_alignment_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "capital_efficiency",
+      "callable": "generate_capital_efficiency",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 260,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 263,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 265,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_capital_efficiency_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 277,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_regenerative_efficiency_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "capital_provider_utility",
+      "callable": "generate_capital_provider_utility",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 446,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 449,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 451,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_capital_provider_utility_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "climate_impact",
+      "callable": "generate_climate_impact",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 427,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 4,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "compute_carbon_balance",
+          "line": 489,
+          "location_id_name_visible_in_arguments": true
+        },
+        {
+          "callable": "compute_ghg_emissions",
+          "line": 490,
+          "location_id_name_visible_in_arguments": true
+        },
+        {
+          "callable": "compute_regenerative_score",
+          "line": 492,
+          "location_id_name_visible_in_arguments": true
+        },
+        {
+          "callable": "compute_tree_carbon",
+          "line": 491,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": [
+        {
+          "line": 447,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 452,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "climate_impact_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 463,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "framework_phase"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 475,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "operations_protocol"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "community_governance",
+      "callable": "generate_community_governance",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 46,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 52,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_community_governance_mechanism"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 62,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_community_governance_mechanism"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "comprehensive_status",
+      "callable": "generate_comprehensive_status",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 273,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "generate_capital_accounting",
+          "line": 309,
+          "location_id_name_visible_in_arguments": false
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "coordination_cockpit",
+      "callable": "generate_coordination_cockpit",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 496,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 499,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_coordination_cockpit_internal"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 501,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_coordination_alliance"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "crop_noi",
+      "callable": "generate_crop_noi",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 174,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 178,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "crop",
+            "crop_cycle",
+            "plot"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 205,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "crop_cost_allocation"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "cultural_preservation",
+      "callable": "generate_cultural_preservation",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 47,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 50,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 52,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_cultural_preservation_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "dao_proposal_history",
+      "callable": "generate_dao_proposal_history",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 352,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 362,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "governance_event"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 392,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "governance_event",
+            "wallet_profile"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "data_stream_summary",
+      "callable": "generate_data_stream_summary",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 10,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 25,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "data_stream_post"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "ebf_scorecard",
+      "callable": "generate_ebf_scorecard",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 13,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 16,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_ebf_scorecard_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 32,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_ebf_scorecard"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "ecological_modeling",
+      "callable": "generate_ecological_modeling",
+      "source_file": "services/export/reports/commons/ecological.py",
+      "source_line": 11,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 6,
+      "queries_with_bound_location_scope_signal": 6,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 14,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 16,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_ecological_interaction_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 24,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_ecological_model_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 35,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_population_dynamics_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 46,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_energy_flow_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 57,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_soil_input_retention"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "env_scan_report",
+      "callable": "generate_env_scan_report",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 633,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "environmental",
+      "callable": "generate_environmental",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 261,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 4,
+      "queries_with_bound_location_scope_signal": 4,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 266,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "soil_carbon_measurement"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 278,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "species_observation"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 290,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "remote_sensing_observation"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 302,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "loss_event"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "farm_summary",
+      "callable": "generate_farm_summary",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 15,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 9,
+      "queries_with_bound_location_scope_signal": 8,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 20,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 26,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "farm"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 30,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "farm",
+            "plot"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 41,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "crop",
+            "crop_cycle",
+            "plot"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 54,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "harvest_event"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 71,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "financial_transaction"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 88,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "expense_event"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 100,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "attestation_record"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 116,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "farm_activity"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "federation_mutual_aid",
+      "callable": "generate_federation_mutual_aid",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 81,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "financial_sustainability",
+      "callable": "generate_financial_sustainability",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 129,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 132,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 134,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_financial_sustainability_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "forecast",
+      "callable": "generate_forecast_summary",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 349,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 354,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "forecast_scenario"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 365,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "forecast_output",
+            "forecast_scenario"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 411,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "fork_opportunities",
+      "callable": "generate_fork_opportunities",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 663,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "foundational_wellbeing",
+      "callable": "generate_foundational_wellbeing",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 151,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 154,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 156,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_foundational_wellbeing_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "gnh_alignment",
+      "callable": "generate_gnh_alignment",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 11,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 14,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 16,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_gnh_alignment_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "governance_coordination_health",
+      "callable": "generate_governance_coordination_health",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 517,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 5,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 520,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_governance_cockpit_internal"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 522,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_governance_cockpit_public"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 524,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_governance_tension_health"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 526,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_governance_proposal_lineage"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 528,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_governance_circle_links"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "governance_inclusion",
+      "callable": "generate_governance_inclusion",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 82,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 88,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_governance_inclusion_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 100,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_governance_inclusion_summary"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "governance_throughput",
+      "callable": "generate_governance_throughput",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 305,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 311,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_governance_throughput_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 323,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_governance_throughput_summary"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "green_paper_publication_status",
+      "callable": "generate_green_paper_publication_status",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 234,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 239,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_green_paper_publication_status"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "holistic_wellbeing",
+      "callable": "generate_holistic_wellbeing",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 60,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 4,
+      "queries_with_bound_location_scope_signal": 4,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 63,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 67,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_cultural_context_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 79,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_wellbeing_metric_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 94,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_participatory_governance_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "land_stewardship",
+      "callable": "generate_land_stewardship",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 130,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 133,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 135,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_land_stewardship_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "livestock_feed",
+      "callable": "generate_livestock_feed",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 222,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 225,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 227,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_livestock_feed_intake"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 235,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "livestock_group"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "model_validation",
+      "callable": "generate_model_validation",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 173,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 176,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 178,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_prediction_accuracy"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 186,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_feature_importance"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "open_source_impact",
+      "callable": "generate_open_source_impact",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 163,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 167,
+          "method": "query",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_open_source_impact_artifact"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "organic_certification_readiness",
+      "callable": "generate_organic_certification_readiness",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 382,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 5,
+      "queries_with_bound_location_scope_signal": 5,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 387,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 389,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_organic_readiness"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 397,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_organic_transition"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 405,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_organic_certifications"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 413,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_organic_compliance_dashboard"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "organic_input_audit",
+      "callable": "generate_organic_input_audit",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 498,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 501,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 503,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_organic_input_audit"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 512,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_harvest_segregation"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "organic_transition_progress",
+      "callable": "generate_organic_transition_progress",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 448,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 453,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 455,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_organic_transition"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 463,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_prohibited_substance_audit"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "participatory_signal",
+      "callable": "generate_participatory_signal",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 130,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "perpetual_value_stress",
+      "callable": "generate_perpetual_value_stress",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 112,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 118,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_perpetual_value_stress_test"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 130,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_perpetual_value_stress_test"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "pest_management",
+      "callable": "generate_pest_management",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 13,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "get_pest_management_report",
+          "line": 21,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "pestel_assessment",
+      "callable": "generate_pestel_assessment",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 552,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "pin_dependency",
+      "callable": "generate_pin_dependency",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 682,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "pitch_deck",
+      "callable": "generate_pitch_deck",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 100,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "generate_pitch",
+          "line": 103,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "process_health",
+      "callable": "generate_process_health",
+      "source_file": "services/analytics/process_health.py",
+      "source_line": 117,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "build_health",
+          "line": 124,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "promotion_ladder",
+      "callable": "generate_promotion_ladder",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 700,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "compute_promotion_ladder",
+          "line": 704,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "publics_market_landscape",
+      "callable": "generate_publics_market_landscape",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 604,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "redistribution_policy",
+      "callable": "generate_redistribution_policy",
+      "source_file": "services/export/reports/commons/kokonut.py",
+      "source_line": 58,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "regenerative_outcomes",
+      "callable": "generate_regenerative_outcomes",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 11,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 14,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 16,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_regenerative_outcome_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "regional_readiness",
+      "callable": "generate_regional_readiness",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 578,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "renewable_energy",
+      "callable": "generate_renewable_energy",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 81,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 84,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 86,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_renewable_energy_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "replication_readiness",
+      "callable": "generate_replication_readiness",
+      "source_file": "services/export/reports/commons/stewardship.py",
+      "source_line": 86,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 92,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_replication_readiness_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 104,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_replication_readiness_summary"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "resource_efficiency",
+      "callable": "generate_resource_efficiency",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 29,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 32,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 34,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_resource_efficiency"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 45,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "harvest_event"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "revenue_multiplier",
+      "callable": "generate_revenue_multiplier",
+      "source_file": "services/export/reports/core.py",
+      "source_line": 331,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "revenue_streams",
+      "callable": "generate_revenue_streams",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 135,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 138,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 140,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_revenue_streams"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "reward_calibration",
+      "callable": "generate_reward_calibration",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 322,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 325,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 327,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_reward_calibration"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 335,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "token_reward_distribution"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "risk_mitigation",
+      "callable": "generate_risk_mitigation",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 161,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 164,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 166,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_risk_mitigation_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "scaling_economics",
+      "callable": "generate_scaling_economics",
+      "source_file": "services/export/reports/commons/scaling.py",
+      "source_line": 13,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 17,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_farm_launch_unit_economics"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 27,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_farm_launch_unit_economics"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 30,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_network_scaling_target"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "scaling_roadmap",
+      "callable": "generate_scaling_roadmap",
+      "source_file": "services/export/reports/wellbeing.py",
+      "source_line": 193,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 197,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_scaling_roadmap_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": true,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 209,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_scaling_roadmap_summary"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "simulation_wargame",
+      "callable": "generate_simulation_wargame",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 755,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "stakeholder_cockpit",
+      "callable": "generate_stakeholder_cockpit",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 476,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 479,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_cockpit_internal"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 481,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_stakeholder_cockpit"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_decision_lineage",
+      "callable": "generate_stakeholder_decision_lineage",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 338,
+      "classification": "conditional_direct_query_scope",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 1,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 347,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_decision_lineage"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": true,
+          "location_scope_conditionally_added": true,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_ecosystem",
+      "callable": "generate_stakeholder_ecosystem",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 363,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 4,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 366,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_cockpit_internal"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 368,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_landscape"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 370,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "relationship_risk_indicator"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 372,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_party_relationship_recommendations"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_engagement",
+      "callable": "generate_stakeholder_engagement",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 259,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 1,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 268,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_engagement_summary"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": true,
+          "location_scope_conditionally_added": true,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 272,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_commitment_health"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_grievance",
+      "callable": "generate_stakeholder_grievance",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 291,
+      "classification": "conditional_direct_query_scope",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 1,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 300,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_grievance_health"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": true,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_landscape",
+      "callable": "generate_stakeholder_landscape",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 235,
+      "classification": "conditional_direct_query_scope",
+      "direct_query_count": 1,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 1,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 244,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "party_identifier",
+            "v_stakeholder_landscape"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": true,
+          "location_scope_conditionally_added": true,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_outcomes",
+      "callable": "generate_stakeholder_outcomes",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 390,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 1,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 399,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "stakeholder_outcome"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": true,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 401,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_capability_value_stream"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_representation",
+      "callable": "generate_stakeholder_representation",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 316,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 319,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_stakeholder_representation"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 321,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_equity_distribution"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_trust",
+      "callable": "generate_stakeholder_trust",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 417,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 4,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 420,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_party_trust_profile"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 422,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_market_dispute_performance"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 424,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "relationship_risk_indicator"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 428,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_party_financing_eligibility_inputs"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "stakeholder_value_streams",
+      "callable": "generate_stakeholder_value_streams",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 446,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 4,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 449,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_stakeholder_capability_value_stream"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 451,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_value_stream_performance"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 453,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "stakeholder_bottleneck_priority"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 457,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "technology_alternative_stakeholder_outcome"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "state_of_kokonut",
+      "callable": "generate_state_of_kokonut",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 153,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "state_of_kokonut_graphs",
+      "callable": "generate_state_of_kokonut_graphs",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 220,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "build_all",
+          "line": 233,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "statement_of_work",
+      "callable": "generate_statement_of_work",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 551,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 13,
+      "queries_with_bound_location_scope_signal": 10,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 560,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 564,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "statement_of_work"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 574,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "objective"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 587,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "farm_task"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 600,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "development_phase"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 612,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "framework_step"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 624,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "department",
+            "job_role",
+            "staff"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 637,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "partner"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 648,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "forecast_output"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 661,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "financial_sustainability_plan"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 678,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "sow_deliverable"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 681,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "sow_payment_schedule"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 684,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "sow_change_request"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "strategic_reserve",
+      "callable": "generate_strategic_reserve",
+      "source_file": "services/export/reports/state.py",
+      "source_line": 361,
+      "classification": "mixed_direct_query_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 1,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 386,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 391,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "strategy_execution",
+      "callable": "generate_strategy_execution",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 145,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "get_perspective_summary",
+          "line": 152,
+          "location_id_name_visible_in_arguments": false
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "tactical_layer",
+      "callable": "generate_tactical_layer",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 717,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "compute_promotion_ladder",
+          "line": 729,
+          "location_id_name_visible_in_arguments": true
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "technology_roadmap",
+      "callable": "generate_technology_roadmap",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 205,
+      "classification": "no_bound_location_scope_visible",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 208,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_technology_roadmap_overview"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 211,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "technology_roadmap_requirement"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        },
+        {
+          "line": 217,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "technology_alternative",
+            "technology_area",
+            "technology_driver"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": false,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": false
+        }
+      ]
+    },
+    {
+      "report_type": "time_liberation",
+      "callable": "generate_time_liberation",
+      "source_file": "services/export/reports/commons/liberation.py",
+      "source_line": 11,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 14,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 16,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_time_liberation_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "token_rewards",
+      "callable": "generate_token_rewards",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 271,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 3,
+      "queries_with_bound_location_scope_signal": 3,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 274,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 276,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_token_reward_distribution"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 284,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_reward_calibration"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "training_impact",
+      "callable": "generate_training_impact",
+      "source_file": "services/export/reports/operations.py",
+      "source_line": 95,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 98,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 100,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_training_impact"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "trophic_pyramid",
+      "callable": "generate_trophic_pyramid",
+      "source_file": "services/export/reports/commons/ecological.py",
+      "source_line": 101,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 4,
+      "queries_with_bound_location_scope_signal": 4,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 104,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 106,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_energy_flow_efficiency"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 114,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "ecological_interaction"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 125,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "population_dynamics_record"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    },
+    {
+      "report_type": "value_stream_formal",
+      "callable": "generate_value_stream_formal",
+      "source_file": "services/export/reports/strategy.py",
+      "source_line": 191,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [
+        {
+          "callable": "get_stream_summary",
+          "line": 195,
+          "location_id_name_visible_in_arguments": false
+        }
+      ],
+      "queries": []
+    },
+    {
+      "report_type": "value_stream_map",
+      "callable": "generate_value_stream_map",
+      "source_file": "services/analytics/value_stream.py",
+      "source_line": 217,
+      "classification": "helper_or_computed_without_direct_query",
+      "direct_query_count": 0,
+      "queries_with_bound_location_scope_signal": 0,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": []
+    },
+    {
+      "report_type": "vulnerable_access",
+      "callable": "generate_vulnerable_access",
+      "source_file": "services/export/reports/commons/wellbeing.py",
+      "source_line": 117,
+      "classification": "all_direct_queries_show_bound_location_scope",
+      "direct_query_count": 2,
+      "queries_with_bound_location_scope_signal": 2,
+      "conditional_scope_query_count": 0,
+      "unresolved_query_count": 0,
+      "helper_calls": [],
+      "queries": [
+        {
+          "line": 120,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "location"
+          ],
+          "location_id_reference": false,
+          "location_predicate_visible": false,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": true,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        },
+        {
+          "line": 122,
+          "method": "execute",
+          "sql_source": "static_or_resolved",
+          "relations": [
+            "v_public_vulnerable_access_summary"
+          ],
+          "location_id_reference": true,
+          "location_predicate_visible": true,
+          "global_null_rows_allowed": false,
+          "location_id_in_bound_expression": true,
+          "location_row_lookup_by_id": false,
+          "indirect_location_scope_visible": false,
+          "location_scope_conditionally_added": false,
+          "bound_location_scope_signal": true
+        }
+      ]
+    }
+  ]
+}
