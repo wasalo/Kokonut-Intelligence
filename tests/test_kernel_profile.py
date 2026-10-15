@@ -47,6 +47,27 @@ def test_oidc_profile_plans_candidate_proxy_and_oidc_manifests() -> None:
     assert "up -d" not in result.stdout
 
 
+def test_zitadel_option_selects_provider_client_and_https_proxy_together() -> None:
+    result = _run_planner("minimal", "--zitadel")
+
+    assert result.returncode == 0
+    assert "docker-compose.kernel-proxy.yml" in result.stdout
+    assert "docker-compose.kernel-oidc.yml" in result.stdout
+    assert "docker-compose.kernel-zitadel.yml" in result.stdout
+    assert result.stdout.index("docker-compose.kernel-proxy.yml") < result.stdout.index(
+        "docker-compose.kernel-zitadel.yml"
+    )
+
+
+def test_zitadel_option_does_not_duplicate_explicit_proxy_or_oidc_overlays() -> None:
+    result = _run_planner("minimal", "--proxy", "--oidc", "--zitadel")
+
+    assert result.returncode == 0
+    assert result.stdout.count("docker-compose.kernel-proxy.yml") == 1
+    assert result.stdout.count("docker-compose.kernel-oidc.yml") == 1
+    assert result.stdout.count("docker-compose.kernel-zitadel.yml") == 1
+
+
 def test_profile_planner_keeps_unaccepted_arm64_target_blocked() -> None:
     result = _run_planner("edge", "--target-platform", "linux/arm64")
 

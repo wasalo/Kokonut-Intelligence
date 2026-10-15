@@ -9,8 +9,11 @@ ZITADEL will prove the operator's identity. Kokonut's Gateway continues to own
 opaque browser sessions, CSRF checks, operator identity mapping, organization
 membership, location grants, tenant context, and resource/action authorization.
 ZITADEL organization or role claims do not grant Kokonut access. The optional
-`docker-compose.kernel-oidc.yml` currently configures the Gateway client only;
-it does not start an identity provider.
+`docker-compose.kernel-oidc.yml` configures the Gateway OIDC client. The
+separate `docker-compose.kernel-zitadel.yml` overlay starts the optional
+self-hosted provider. Use `python3 scripts/kernel-profile.py minimal
+--zitadel` to select the complete candidate, HTTPS proxy, OIDC client, and
+ZITADEL deployment set.
 
 ```text
 Browser ── HTTPS ── Caddy ──┬── hub.kokonut.network ── Kernel Gateway
@@ -24,6 +27,18 @@ DNS name is provided. The OIDC callback remains on the app origin at
 `/operator/auth/callback`.
 
 ## Optional deployment shape
+
+The code-first ZITADEL profile is now implemented as an opt-in Compose overlay.
+It runs the API and Login V2 images behind the existing Caddy service, with a
+dedicated PostgreSQL service and a non-superuser `zitadel` database owner on an
+internal-only data network. The database, provider API, and Login UI publish no
+host ports. Caddy routes `/ui/v2/login/*` to Login V2 and other identity-host
+traffic to ZITADEL over h2c with the upstream `TE` header removed. The profile
+sets Login V2 base/login/logout URLs from the configured identity hostname and
+the same HTTPS port used by Caddy. Compose/planner checks validate the merged service topology,
+Caddy validates the proxy configuration, and the database bootstrap passed in
+an isolated PostgreSQL 17 container; these checks do not start ZITADEL or
+establish live OIDC acceptance.
 
 - Keep the IdP outside the `minimal` and `edge` profiles. The Kernel API can use
   a reachable self-hosted issuer, while an edge device stays focused on
@@ -42,10 +57,12 @@ DNS name is provided. The OIDC callback remains on the app origin at
   header as ZITADEL documents to avoid hanging error responses.
 - Do not add Redis for ZITADEL by default; its cache is optional and disabled
   by default. Add it only after measured need and a separate profile review.
-- Pin the API and Login images to a reviewed release and OCI digests. The
-  ZITADEL v4.19.4 release was published 1 October 2026; it includes a Login V2
-  session-cookie security fix in v4.19.2, so the Login UI cookie secret must be
-  configured before startup and kept stable across replicas.
+- The profile currently selects versioned API/Login image tags at ZITADEL
+  v4.20.0 and PostgreSQL 17.10. A registry manifest lookup could not run from
+  this host because registry DNS was unavailable, so OCI digest pinning and
+  ARM64 manifest verification remain release gates. Do not use floating
+  `latest` tags. The Login UI cookie secret must be configured before startup
+  and kept stable across replicas.
 - Keep ZITADEL migration/setup and backup/restore separate from Kokonut schema
   migrations. ZITADEL's master key is exactly 32 characters and is durable
   encryption state: losing or replacing it can make encrypted IdP data
@@ -58,6 +75,11 @@ following through SOPS: ZITADEL database credentials, 32-character master
 key, first-admin credential, Login V2 session-cookie secret (at least 32
 characters), and Kokonut OIDC client secret/state secret. Keep values out of
 this document and chat.
+
+For the database DSN's URL-safe password, generate a 32-byte hexadecimal
+value (for example, with `openssl rand -hex 32`) and store it only in the
+encrypted secret file. Compose config uses synthetic values in tests; the
+profile does not generate or provision production/local secrets automatically.
 
 Then configure the non-secret issuer, client ID, HTTPS callback, and logout
 redirect; create synthetic operator accounts; and verify discovery, PKCE,
@@ -72,4 +94,4 @@ parity.
 - [ZITADEL Caddy reverse proxy](https://zitadel.com/docs/self-hosting/manage/reverseproxy/caddy)
 - [ZITADEL requirements](https://zitadel.com/docs/self-hosting/manage/requirements)
 - [ZITADEL database configuration](https://zitadel.com/docs/self-hosting/manage/database)
-- [ZITADEL v4.19.4 release](https://github.com/zitadel/zitadel/releases/tag/v4.19.4)
+- [ZITADEL release history](https://github.com/zitadel/zitadel/releases)

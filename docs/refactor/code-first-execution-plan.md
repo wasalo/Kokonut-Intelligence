@@ -2,8 +2,8 @@
 
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `c2cdbe942dd5a2060119a921e065888fa73b1386`
-**Latest pushed head status:** Security #43 passed and CI #319 is in progress on `c2cdbe942dd5a2060119a921e065888fa73b1386`. CI #318 was cancelled on prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`.
+**Latest pushed head:** `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
+**Latest pushed head status:** Security #44 passed and CI #320 is in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. The new ZITADEL profile batch is local and not yet pushed.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,10 +14,11 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 331 checked and 20 open items (351 total).
-- The latest pushed implementation is `c2cdbe9`. Security #43 passed and CI
-  #319 is in progress on this head; CI #318 was cancelled on prior head
-  `f8d90ea`. Security #39's SHA-256
+- The execution checklist has 332 checked and 20 open items (352 total), after
+  adding source-checked ZITADEL profile preparation. Live-provider, digest,
+  ARM64, and browser acceptance remain open.
+- The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
+  #320 is in progress on this head. Security #39's SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
   and hosted Security #41.
 - The latest push includes local commits `db37e6a` (preserve pending EventBus
@@ -25,16 +26,13 @@ MAN-CAP checks open until each has its own retained evidence.
   Collector operator inventory). The inventory requires same-location device
   and collection-review read grants and returns no tokens or collection content;
   its focused source/ASGI/console checks pass.
-- Three additional local commits are ready for the next batch but remain
-  unpushed: `adecedd` ignores stale operations-inventory responses after a
-  location switch; `c05cf8a` adds fake-provider OIDC login/session/logout
-  route-contract coverage; and `6a1ea69` rejects invalid issuer/subject claims
-  before opening the operator-auth database. The OIDC adapter contract also
-  pins its discovery URL, requested scopes, and S256 PKCE setting without
-  network calls. The combined focused operator/mobile/event set passes 105
-  tests; Ruff and Python compilation pass for the OIDC change. These are
-  source/in-process checks;
-  real OIDC, browser, database-role, and tenant acceptance remain open.
+- The three previously unpushed commits for stale inventory response handling,
+  fake-provider OIDC route coverage, and invalid OIDC claim rejection are now
+  included in the pushed branch. The adapter contract pins its discovery URL,
+  requested scopes, and S256 PKCE setting without network calls. The combined
+  focused operator/mobile/event set passes 105 tests; Ruff and Python
+  compilation pass for the OIDC changes. Real OIDC, browser, database-role,
+  and tenant acceptance remain open.
 - The pushed head includes the Directus preflight, supervisor, ClickHouse and
   notification outbox CLI regressions, and a nine-check disposable PostgreSQL
   ClickHouse fixture. Focused unit/runtime checks and full-history Gitleaks pass;

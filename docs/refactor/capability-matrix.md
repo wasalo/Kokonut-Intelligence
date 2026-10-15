@@ -28,6 +28,15 @@ This pins route wiring and a pre-database claim guard only; Authlib/provider ver
 real grants, browser acceptance, and the named MAN-CAP checks remain open
 ([evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json)).
 
+**15 October 2026 self-hosted ZITADEL deployment contract (CAP-001 / CAP-047 /
+CAP-053):** an opt-in Compose selection now combines the Gateway OIDC client,
+HTTPS Caddy ingress, ZITADEL API and Login V2, and a dedicated PostgreSQL
+service with a bounded non-superuser role. Compose/planner source checks pass
+26 tests, and the database bootstrap was exercised against an isolated,
+network-disabled PostgreSQL 17 container. No IdP container, secret, operator
+identity, grant, or browser session was created; all three named MAN-CAP checks remain open
+([profile](zitadel-provider.md); [evidence](builds/2026-10-15-recovery/zitadel-compose-profile.json)).
+
 **14 October 2026 supervisor contract (CAP-047):** four focused tests cover
 graceful shutdown, process-group escalation, unexpected zero exit, and
 partial-launch cleanup; one POSIX integration case verifies SIGTERM delivery
@@ -79,16 +88,15 @@ report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sq
 [evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053), checked 15 October:**
-PR #68 is at `c2cdbe942dd5a2060119a921e065888fa73b1386`. Security run
-[#43](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38676458903)
-passed on this head. CI #319 is in progress on `c2cdbe9`; CI #318 was cancelled
-on the prior head `f8d90ea0b6af817e91db6758ff293d3c309f29de`. The current batch adds EventBus cleanup protection
-and the location-scoped Field Collector operator inventory. The earlier
-Security #39 source-digest false positive was corrected with a file-scoped
-allowlist; local full-history Gitleaks and hosted Security #43 pass. The last
-confirmed fully green head is
-`41412764f8281deea52670bf49de4234aca6e0bd`, where CI #313 and Security #37
-passed. The earlier
+PR #68 is at `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Security run
+[#44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)
+passed on this head. CI #320
+([run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999))
+is in progress. This head adds reference-only seed scope, the selected
+self-hosted ZITADEL provider contract, and code-first mapping of remaining
+gates. The earlier Security #39 source-digest false positive was corrected
+with a file-scoped allowlist; local full-history Gitleaks and hosted Security
+#44 pass. The earlier
 CI #307 OIDC fixture failure was corrected in `7953afe`; runs #308/#32 are
 historical, not current-head coverage. The named MAN-CAP checks remain open.
 See [the code-first execution plan](code-first-execution-plan.md) for the

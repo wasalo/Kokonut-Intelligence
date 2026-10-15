@@ -21,6 +21,7 @@ OPTIONAL = {
     "grpc": "docker-compose.kernel-grpc.yml",
     "mqtt": "docker-compose.kernel-mqtt.yml",
     "http_sensors": "docker-compose.kernel-http-sensors.yml",
+    "zitadel": "docker-compose.kernel-zitadel.yml",
 }
 
 
@@ -41,7 +42,7 @@ def main() -> None:
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
     if args.separate_workers and args.profile != "analytics":
         parser.error("--separate-workers applies only to analytics; standard already separates roles")
-    if args.oidc and not args.proxy:
+    if args.oidc and not args.proxy and not args.zitadel:
         parser.error("--oidc requires --proxy so operator session cookies use the HTTPS origin")
 
     files = [BASE]
@@ -50,7 +51,13 @@ def main() -> None:
     files.extend(PROFILES[args.profile])
     if args.separate_workers:
         files.append("docker-compose.kernel-standard-analytics.yml")
-    files.extend(path for name, path in OPTIONAL.items() if getattr(args, name))
+    selected_optional = {name for name in OPTIONAL if getattr(args, name)}
+    if args.zitadel:
+        # The self-hosted provider needs the HTTPS ingress and the Gateway's
+        # OIDC client settings. Keep all three opt-in while making one flag
+        # produce a complete, ordered stack.
+        selected_optional.update({"proxy", "oidc"})
+    files.extend(path for name, path in OPTIONAL.items() if name in selected_optional)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")

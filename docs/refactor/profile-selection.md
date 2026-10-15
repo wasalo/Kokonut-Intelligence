@@ -23,10 +23,14 @@ or force a Docker platform, and manual Compose commands bypass the guard.
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
 | scale | Rejected with an explanation | Multi-host failover, replica concurrency, recovery and measured sizing |
 
-Add `--proxy`, `--oidc`, `--grpc`, `--mqtt`, or `--http-sensors` explicitly for the corresponding optional
-overlay. `--oidc` requires `--proxy` so Secure operator-session cookies use the
-HTTPS origin. These options do not enable providers in unrelated services or
-promise transport capability parity. OIDC also requires provider values in the
+Add `--proxy`, `--oidc`, `--zitadel`, `--grpc`, `--mqtt`, or `--http-sensors`
+explicitly for the corresponding optional overlay. `--oidc` requires `--proxy`
+so Secure operator-session cookies use the HTTPS origin. `--zitadel` selects
+the proxy, Gateway OIDC client, and self-hosted ZITADEL overlays together. It
+uses a separate private PostgreSQL service and exposes its HTTP/2 API and
+Login V2 UI only through Caddy. ZITADEL remains absent from minimal and edge
+unless selected. These options do not enable providers in unrelated services
+or promise capability parity. OIDC and ZITADEL require provider values in the
 SOPS-loaded environment; the planner only prints the command and does not read
 or expose them. MQTT requires separately provisioned credentials,
 certificates, persistent client identity, and migration 372. Standard/current
@@ -41,6 +45,7 @@ python3 scripts/kernel-profile.py standard --proxy --action build
 python3 scripts/kernel-profile.py analytics --separate-workers --action config
 python3 scripts/kernel-profile.py edge --mqtt --action up
 python3 scripts/kernel-profile.py minimal --proxy --oidc --action config
+python3 scripts/kernel-profile.py minimal --zitadel --action config
 ```
 
 Review the printed command, load encrypted secrets, and execute it separately
@@ -54,8 +59,8 @@ stop them explicitly before cutover, allowing active leases to settle. Preserve
 database, broker, certificate, and private-media volumes. Keep legacy services
 stopped; the planner never selects legacy manifests or legacy project names.
 
-Four planner contract checks and fourteen Compose-profile checks pass across
-minimal, edge, standard, analytics, portability, and OIDC selections. Ruff,
-Python compilation, and whitespace checks pass. The planner only builds a
-command string; no deployment, secret read, or profile cutover was performed.
-Runtime acceptance remains separate from command selection.
+Planner and Compose profile contract checks include minimal, edge, standard,
+analytics, portability, external OIDC, and optional self-hosted ZITADEL
+selections. The planner only builds a command string; no deployment, secret
+read, or profile cutover is performed. Runtime acceptance remains separate
+from command selection.
