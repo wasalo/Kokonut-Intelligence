@@ -22,6 +22,9 @@ import sys
 import time
 
 from services.common.cli import print_json
+from services.common.logging import get_logger
+
+logger = get_logger("events.cli")
 
 
 def cmd_process(args):
@@ -44,12 +47,38 @@ def cmd_worker(args):
     from services.events.backend import get_event_store
     from services.events.notification_outbox import deliver_batch
 
-    bus = get_event_store(lease_seconds=args.lease_seconds)
+    if args.poll_interval <= 0:
+        raise ValueError("poll_interval must be positive")
+
     try:
         while True:
-            result = bus.process_pending(args.batch_size, args.worker_id)
-            with get_connection() as conn:
-                notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+            bus = None
+            iteration_failed = False
+            result = {"processed": 0, "failed": 0}
+            notifications = {"claimed": 0}
+            try:
+                bus = get_event_store(lease_seconds=args.lease_seconds)
+                result = bus.process_pending(args.batch_size, args.worker_id)
+                with get_connection() as conn:
+                    notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+            except KeyboardInterrupt:
+                return 0
+            except Exception:
+                # A dead connection is discarded with this iteration's bus;
+                # the next poll gets a fresh event and notification connection.
+                logger.exception("Event worker iteration failed")
+                iteration_failed = True
+            finally:
+                if bus is not None:
+                    try:
+                        bus.close()
+                    except Exception:
+                        logger.warning("Failed to close event worker bus", exc_info=True)
+
+            if iteration_failed:
+                time.sleep(args.poll_interval)
+                continue
+
             # Lease loss means another worker owns the event; this worker has
             # no immediate event work. Notification failures also have a
             # durable backoff, so an empty claim can safely sleep.
@@ -58,8 +87,6 @@ def cmd_worker(args):
                 time.sleep(args.poll_interval)
     except KeyboardInterrupt:
         return 0
-    finally:
-        bus.close()
 
 
 def cmd_stats(args):

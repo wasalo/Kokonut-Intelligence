@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-15",
+  "scope": "EventBus worker database-connection lifecycle and retry behavior",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_event_worker_recovery.py tests/test_event_bus_durability.py -q",
+      "result": "passed",
+      "passed": 19
+    },
+    "ruff": {
+      "command": "ruff check services/events/cli.py tests/test_event_worker_recovery.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m py_compile services/events/cli.py tests/test_event_worker_recovery.py",
+      "result": "passed"
+    }
+  },
+  "verified": [
+    "A new EventBus is constructed for each worker iteration and closed afterward.",
+    "A failed event-store connection is logged and a later poll obtains a new bus.",
+    "A notification database failure closes the current bus and retries with fresh connections.",
+    "Nonpositive polling intervals fail before opening the event store."
+  ],
+  "implementation": [
+    "services/events/cli.py",
+    "tests/test_event_worker_recovery.py"
+  ],
+  "limitations": [
+    "Checks use fault injection; no event or notification PostgreSQL restart was run.",
+    "Handler lease recovery, idempotent external delivery, and provider outage acceptance remain open.",
+    "Candidate and legacy databases were not accessed."
+  ]
+}

@@ -78,7 +78,7 @@ Commands:
 - Scheduler claims, run state, event delivery, notification delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
 - Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
 - Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
-- Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
+- Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_worker_recovery.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
 
 ## Local Commands
 

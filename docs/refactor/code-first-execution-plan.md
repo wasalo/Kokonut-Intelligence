@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **355 checked and 20 open items (375 total)**,
+- The execution checklist has **356 checked and 20 open items (376 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, retention decisions, external delivery, seed rollout,
@@ -37,6 +37,11 @@ MAN-CAP checks open until each has its own retained evidence.
   loopback-only disposable PostgreSQL stop/start check proves the worker process
   survives the outage and reconnects; the scheduler engine was stubbed, so real
   task SQL, lease recovery, delivery, and long-duration recovery remain open.
+- A local EventBus worker slice now creates and closes its bus per iteration,
+  recreates notification connections, and retries logged failures. Nineteen
+  focused event-worker/EventBus tests pass with Ruff and compilation; the
+  event/notification live restart and delivery checks remain open. This change
+  is not part of the latest pushed head yet.
 - The capability matrix contains 66 capabilities: 56 baseline-retained, 7
   deployed, and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - The local candidate has 391 applied schemas through migration 400, one
@@ -526,8 +531,11 @@ migration fingerprints and zero pending migrations, and passed HTTP health,
 anonymous protected-write denial, database restart, and app SIGKILL recovery.
 Spatial and manually enabled raster functions also passed. The database
 restart caused the scheduler child to exit on a closed connection; the Kernel
-supervisor restarted the app processes and health recovered. Repeated/long
-provider outage behavior and physical Pi limits remain open. The earlier
+supervisor restarted the app processes and health recovered. The scheduler
+source now opens a fresh connection per tick; a separate loopback-only
+disposable PostgreSQL stop/start check confirmed its worker process reconnects
+after database recovery, with the task engine stubbed. Repeated/long provider
+outage behavior, lease recovery, and physical Pi limits remain open. The earlier
 restricted command shell could not access the Docker Desktop socket; host-
 authorized access reached the healthy daemon and completed this check
 ([current evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
@@ -580,9 +588,10 @@ physical acceptance record rather than revising emulation evidence.
 
 Keep related code changes in local commits and push in reviewable batches, as
 requested. The current push is `8c43ac9`; Security #47 passed and CI #323 was
-pending at the last check. The latest push includes two commits: report
-calculation read-only enforcement and scheduler worker reconnection after a
-database outage. Accumulate the next coherent batch before pushing so the
-repository does not start CI for each small commit. Never push directly to
-`main`. Keep each candidate database rollout separately gated even when the
-corresponding migration and disposable acceptance are complete.
+pending at the last check. The latest push includes report calculation
+read-only enforcement and scheduler worker reconnection. Local follow-on work
+adds EventBus worker retry/reconnection coverage; accumulate it with the next
+coherent code batch before pushing so the repository does not start CI for each
+small commit. Never push directly to `main`. Keep each candidate database
+rollout separately gated even when the corresponding migration and disposable
+acceptance are complete.

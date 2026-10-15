@@ -141,12 +141,15 @@ controls are approved and implemented; MAN-CAP-051 remains open
 **15 October 2026 worker reconnect contract (CAP-047):** scheduler ticks now
 use fresh bounded-timeout PostgreSQL connections while keeping a stable worker
 identity; two fault-injection tests prove that connection and tick failures do
-not prevent a later tick from succeeding. Together with the scheduler
-durability suite, 10 tests pass and Ruff is clean. A loopback-only disposable
-PostgreSQL stop/start check also confirms the process survives the outage and
-connects successfully after restart; its scheduler engine was stubbed, so real
-task/lease recovery, provider delivery and long-duration acceptance remain
-open. MAN-CAP-047 is not accepted ([unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json)).
+not prevent a later tick from succeeding. The EventBus worker now recreates its
+event bus and notification database connection for each iteration and retries
+logged failures; 10 scheduler tests and 19 event-worker/EventBus tests pass,
+with Ruff clean. A loopback-only disposable PostgreSQL stop/start check confirms
+the scheduler process survives the outage and reconnects; the engine was
+stubbed, and the event worker has source/unit checks only. Real task/lease
+recovery, event/notification process restart, provider delivery and
+long-duration acceptance remain open. MAN-CAP-047 is not accepted
+([scheduler unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [scheduler runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json); [event worker evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json)).
 
 **14 October 2026 supervisor contract (CAP-047):** four focused tests cover
 graceful shutdown, process-group escalation, unexpected zero exit, and

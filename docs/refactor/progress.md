@@ -5582,3 +5582,15 @@ connects successfully after restart. The test stubbed scheduler task execution;
 actual task SQL, lease recovery, provider delivery, and long-duration outage
 acceptance remain open. The candidate and legacy databases were not accessed.
 [Unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json).
+
+### Event worker discards broken database sessions — 15 October 2026
+
+The EventBus worker previously reused one bus for its full process lifetime and
+let database errors escape its polling loop. It now creates and closes an
+EventBus each iteration, obtains notification connections inside that same
+iteration, logs failures, and retries after the configured poll interval. Three
+new fault-injection tests cover event-store failure, notification connection
+failure, and invalid poll intervals; with EventBus durability coverage, 19
+focused tests pass. Ruff and Python compilation pass. No live event database,
+handler, or notification provider was accessed, so process-level event lease
+and delivery recovery remain open. [Evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json).
