@@ -23,10 +23,12 @@ Directus 12.1.1 database. Directus logged both extensions as loaded; the Field
 Collector endpoint returned HTTP 302 to its configured static route; admin
 login succeeded; and a synthetic `farm_activity` collection accepted the
 schema setup. A malformed `location_id` create was rejected and the collection
-remained empty. The raw hook error surfaced as HTTP 500, so client-error
-mapping is still needed. This run proves extension discovery and one actual
-hook dispatch only; it does not prove account-to-operator mapping, grants,
-field privacy, or parity across collections
+remained empty. The hook now throws a typed Directus `INVALID_PAYLOAD` error,
+and the request returned HTTP 400. Unit and isolated API checks cover the
+status, error code, and absence of an inserted row. This run proves extension
+discovery and one actual hook dispatch only; it does not prove
+account-to-operator mapping, grants, field privacy, or parity across
+collections
 ([evidence](builds/2026-10-15-recovery/directus-extension-runtime.json)).
 
 ## Decision boundary

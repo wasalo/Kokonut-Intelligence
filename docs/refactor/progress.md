@@ -54,11 +54,12 @@ Field Collector companion is a declared endpoint package. A fresh isolated
 Directus 12.1.1 database loaded both extensions. Authenticated admin login and
 the endpoint redirect passed. A synthetic `farm_activity.location_id` text
 field allowed the runtime test to prove an invalid value was rejected and no
-row was inserted. The API returned 500 because the existing hook throws a
-plain error; changing this to a typed 400 requires `@directus/errors`, but npm
-registry DNS failed during installation, so the lockfile was left untouched.
-All temporary containers and volumes were removed. This is narrow dispatch
-evidence, not tenant authorization parity ([evidence](builds/2026-10-15-recovery/directus-extension-runtime.json);
+row was inserted. The first runtime pass exposed HTTP 500 from a plain
+exception; the hook now uses pinned `@directus/errors` 2.3.1 and returned
+`400 INVALID_PAYLOAD` in a fresh isolated runtime. The extension suite now
+passes 54 tests. All temporary containers and volumes were removed. This is
+narrow dispatch evidence, not tenant authorization parity
+([evidence](builds/2026-10-15-recovery/directus-extension-runtime.json);
 [inventory](directus-parity-inventory.md)).
 
 Fresh-checkout startup is now covered too: `make up` builds the ignored hook

@@ -16,7 +16,7 @@
       "command": "npm test",
       "result": "passed",
       "test_files_passed": 4,
-      "tests_passed": 53
+      "tests_passed": 54
     },
     "compose_discovery_contract": {
       "command": "python3 -m pytest tests/test_directus_extension_compatibility.py -q",
@@ -36,7 +36,8 @@
     "malformed_scope_create": {
       "collection": "farm_activity",
       "result": "rejected",
-      "http_status": 500,
+      "http_status": 400,
+      "directus_error_code": "INVALID_PAYLOAD",
       "message_contains": "Invalid location_id",
       "rows_after_attempt": 0
     }
@@ -45,11 +46,16 @@
   "legacy_database_touched": false,
   "disposable_containers_volumes_and_network_removed": true,
   "tenant_identity_or_grant_parity_claimed": false,
+  "typed_validation_error": {
+    "package": "@directus/errors",
+    "version": "2.3.1",
+    "result": "passed in unit and isolated runtime checks"
+  },
   "remaining": [
     "Map authenticated Directus users to Kokonut operator_identity",
     "Apply current organization/location/resource/action grants",
-    "Map invalid hook payloads to client-error status instead of HTTP 500",
+    "Review other hook validation paths and assign appropriate client-error classes",
     "Verify row/field permissions and hook effects across retained collections"
   ],
-  "dependency_note": "Installing @directus/errors 2.3.1 was attempted but npm registry DNS was unavailable; no partial dependency or lockfile change was kept."
+  "dependency_note": "@directus/errors 2.3.1 is pinned as a direct dependency."
 }

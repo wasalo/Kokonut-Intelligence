@@ -31,13 +31,13 @@ the hook package now declares compatibility with the exact pinned Directus
 12.1.1 image, enforced by a source regression check. Collection listeners now
 use the documented `collection.items.create` / `collection.items.update`
 event names; a registration test invokes the extension and checks all
-registered item events. The 53-test extension suite and TypeScript build pass.
+registered item events. The 54-test extension suite and TypeScript build pass.
 This is source evidence only; runtime hook dispatch, organization/location
 authorization, and named MAN-CAP acceptance remain open. A fresh isolated
 Directus 12.1.1 runtime loaded both discoverable extensions, returned the
 Field Collector endpoint redirect, and rejected a malformed location create
-without inserting a row. The plain validation error currently returns HTTP
-500; Kokonut identity/grant and full permission parity remain open
+with `400 INVALID_PAYLOAD` without inserting a row. Kokonut identity/grant and
+full permission parity remain open
 ([host evidence](builds/2026-10-15-recovery/directus-extension-host-contract.json); [event evidence](builds/2026-10-15-recovery/directus-hook-event-registration.json); [runtime evidence](builds/2026-10-15-recovery/directus-extension-runtime.json); [inventory](directus-parity-inventory.md)).
 
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**

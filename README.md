@@ -388,7 +388,7 @@ CI and security checks run through GitHub Actions on pull requests to `main` and
    - Unified CLI smoke test (`python3 -m services.cli --help`)
 3. **Infrastructure**: Docker Compose brings up PostgreSQL 16, ClickHouse 25.8, Redis 7, cache, and Directus. Database is seeded and metrics are computed.
 4. **Version verification**: Reads `VERSION` file and compares to `services.__version__` and `KOKONUT_GIT_SHA` in running containers.
-5. **Full test suite**: 4,034+ Python tests, 62 Solidity tests, 53 Directus hook tests via `verify-full-test-suite.sh` (fails closed on any skip).
+5. **Full test suite**: 4,034+ Python tests, 62 Solidity tests, 54 Directus hook tests via `verify-full-test-suite.sh` (fails closed on any skip).
 6. **Static analysis**: Slither (Solidity), Aderyn (Solidity), and Semgrep (`python.lang.security` + `python.lang.correctness`).
 7. **Solidity**: `forge fmt --check`, `forge build --sizes`, `forge test`.
 8. **Directus hooks**: `npm ci`, `npm run build`, `npm test`.
