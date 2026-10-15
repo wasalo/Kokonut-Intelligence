@@ -1,0 +1,94 @@
+{
+  "record_type": "candidate_reference_seed_checkpoint_restore_preflight",
+  "recorded_at": "2026-10-15T21:28:46Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "head_before_documentation_updates": "35acd7d2f97a298d99f877ca438b905468265312",
+  "operation": "Fresh candidate checkpoint and isolated restore rehearsal for the owner-selected five reference catalogs; no candidate seed SQL executed.",
+  "checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-five-reference-seeds-20261015T211905Z/postgres.dump.age",
+    "age_encrypted": true,
+    "bytes": 5724326,
+    "sha256": "56a08bdf48bce987deffc9a2075e7a4393246d02bfa12bc5f6897d8910e740f1",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "scope": "Single PostgreSQL database; ownership/grants excluded. No roles, other databases, volumes or external media.",
+    "candidate_health_at_capture": "healthy"
+  },
+  "candidate_state": {
+    "schema_migrations_applied": 391,
+    "latest_schema_migration": "schema:400_operator_auth_security_schema_usage.sql",
+    "applied_seed_migrations": [
+      "seed:140_mobile_forms.sql"
+    ],
+    "non_applied_migration_rows": 0,
+    "migration_fingerprint": "bdaa5b6547510b4d0fa91c5016788213",
+    "extension_fingerprint": "0a75be12303b838e6f699b49234ee624",
+    "public_tables": 1010,
+    "catalog_target_rows": {
+      "expense_category": 0,
+      "metric_definition": 0,
+      "ghg_emission_factor": 0,
+      "carbon_benchmark": 0,
+      "operations_protocol": 0
+    },
+    "selected_existing_domain_rows": {
+      "mobile_form": 5,
+      "mobile_form_version": 10,
+      "service_registry": 63
+    }
+  },
+  "restore_rehearsal": {
+    "compose_project": "kokonut-seed-restore-20261015t211905z",
+    "target_database": "kokonut_restore",
+    "target_created_from": "template0",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_role_prerequisites": "scripts/kernel-restore-role-prerequisites.sql applied and validated in the isolated cluster before restore",
+    "method": "Age decryption streamed directly to pg_restore; --exit-on-error --single-transaction --no-owner --no-privileges; no plaintext dump written.",
+    "result": "passed",
+    "failed_initial_attempt": {
+      "cause": "The archive includes RLS policies that reference cluster roles, while database-only pg_dump excludes those global roles.",
+      "rollback": "The single-transaction restore rolled back; the target was verified to contain zero public tables before retry.",
+      "resolution": "Created/validated the repository-defined NOLOGIN role prerequisites in the isolated cluster, then restored successfully."
+    },
+    "candidate_and_restore_match": {
+      "schema_migrations_applied": 391,
+      "latest_schema_migration": "schema:400_operator_auth_security_schema_usage.sql",
+      "applied_seed_migrations": [
+        "seed:140_mobile_forms.sql"
+      ],
+      "non_applied_migration_rows": 0,
+      "migration_fingerprint": "bdaa5b6547510b4d0fa91c5016788213",
+      "extension_fingerprint": "0a75be12303b838e6f699b49234ee624",
+      "public_tables": 1010,
+      "catalog_target_rows": {
+        "expense_category": 0,
+        "metric_definition": 0,
+        "ghg_emission_factor": 0,
+        "carbon_benchmark": 0,
+        "operations_protocol": 0
+      },
+      "selected_existing_domain_rows": {
+        "mobile_form": 5,
+        "mobile_form_version": 10,
+        "service_registry": 63
+      }
+    },
+    "container_state_after_rehearsal": "removed after successful restore",
+    "recovery_volume_retained": true,
+    "network_state_after_rehearsal": "removed"
+  },
+  "scope": {
+    "candidate_seed_sql_executed": false,
+    "candidate_database_modified": false,
+    "legacy_stack_modified": false,
+    "r2_contacted": false,
+    "selected_seed_files": [
+      "000_expense_categories.sql",
+      "000_metric_definitions.sql",
+      "022_metric_governance.sql",
+      "103_flow_metrics.sql",
+      "027_carbon_framework_seeds.sql"
+    ],
+    "status": "Recovery preparation complete; the exact five-file candidate write still requires separate owner approval."
+  }
+}

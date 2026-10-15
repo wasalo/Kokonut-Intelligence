@@ -49,11 +49,13 @@ other 90 unselected seed sources remain untouched.
 
 ## Candidate rollout gate
 
-Before asking for approval to apply the five catalogs to the local candidate,
-take a new age-encrypted checkpoint of its current migration-400 state and
-restore-rehearse that exact checkpoint in an isolated database. Then provide
-the owner with the exact five-file manifest, checkpoint fingerprint, and
-restore evidence for a separate rollout decision. Do not run seed SQL as part
-of scope preparation. If an approved multi-file run fails after earlier files
-commit, restore the verified checkpoint rather than rerunning against partial
-state.
+The current migration-400 candidate was checkpointed and that exact
+age-encrypted archive was restore-rehearsed in an isolated PostgreSQL 16.4
+`template0` database on 15 October. Its SHA-256 is
+`56a08bdf48bce987deffc9a2075e7a4393246d02bfa12bc5f6897d8910e740f1`; restore
+parity evidence is recorded in
+[the candidate seed checkpoint preflight](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json).
+This completes recovery preparation only. Do not run seed SQL until the owner
+separately approves the exact five-file candidate write. If an approved
+multi-file run fails after earlier files commit, restore the verified
+checkpoint rather than rerunning against partial state.

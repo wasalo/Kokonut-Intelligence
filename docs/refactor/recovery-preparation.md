@@ -68,9 +68,20 @@ corruption evidence; age authentication supplies ciphertext integrity.
 
 4. Wait for DB health. The PostGIS image installs extension objects into its
    configured `POSTGRES_DB`; do not restore into that initialized database because
-   `pg_restore` will correctly reject the pre-existing PostGIS schemas. Create a
-   separate empty database from PostgreSQL's `template0` and verify that it has
-   no user tables before restoring:
+   `pg_restore` will correctly reject the pre-existing PostGIS schemas. The
+   database-only archive preserves RLS policies but excludes cluster-global
+   roles, so install and validate the narrow NOLOGIN role prerequisites in this
+   fresh scratch cluster before restoring:
+
+   ```bash
+   docker compose --env-file /dev/null -p kokonut-kernel-recovery \
+     -f docker-compose.kernel-recovery.yml exec -T database \
+     psql -v ON_ERROR_STOP=1 -U kokonut -d postgres \
+     < scripts/kernel-restore-role-prerequisites.sql
+   ```
+
+   Then create a separate empty database from PostgreSQL's `template0` and
+   verify that it has no user tables before restoring:
 
    ```bash
    docker compose --env-file /dev/null -p kokonut-kernel-recovery \

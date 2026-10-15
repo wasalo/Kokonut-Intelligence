@@ -183,11 +183,13 @@ metric definitions and governance metadata, flow metrics, and carbon reference
 factors/benchmarks/protocols. Dashboard records marked published/verified,
 business assumptions, mixed framework/organization seeds, and pilot records
 remain outside this selection; see the exact [scope and held-file
-rationale](reference-seed-scope.md). The prior preflight restore checkpoint
-predates migrations 392–400, so any later approved candidate data write still
-requires a fresh encrypted checkpoint and isolated restore rehearsal. No
-candidate seed SQL has run; the owner selected scope but did not approve a
-database write.
+rationale](reference-seed-scope.md). The earlier preflight restore checkpoint
+predated migrations 392–400. On 15 October, a fresh checkpoint of the current
+migration-400 candidate was restore-rehearsed in an isolated `template0`
+database; exact archive and parity evidence are in [the 15 October preflight](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json).
+No candidate seed SQL has run. The owner selected scope but did not approve a
+database write, so separate rollout approval remains the only gate before the
+five-file write.
 
 | Batch | Selected checklist items | Code work to complete first | Owner or external gate held open |
 |---|---|---|---|
@@ -197,7 +199,7 @@ database write.
 | Reports and dashboards | 1, 5, 6, 10 | Port all repository-verified Kokonut surfaces, finish query safety and synthetic parity, and document migration boundaries. Do not infer saved-query ownership from the archived Metabase database or represent generic sample-H2 e-commerce cards as Kokonut product reports. | Owner will decide what to keep/remove/improve after port review. Populated semantic fixtures, external/operator-edited consumers, audience/scope, and DB roles follow farm-data ingestion. |
 | Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
-| Curated seed write | 8 | The exact five-file catalog allowlist and recovery sequence are documented above; prepare a fresh encrypted current-candidate checkpoint and restore rehearsal. | The owner selected scope. Applying the five files still needs separate approval after checkpoint evidence is ready. |
+| Curated seed write | 8 | The exact five-file catalog allowlist is documented above; a fresh age-encrypted migration-400 candidate checkpoint and isolated `template0` restore rehearsal now pass with matching migration/extension fingerprints and selected table counts ([evidence](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json)). | The owner selected scope. Applying the five files still needs separate approval; no candidate seed SQL has run. |
 | Retention policy | 2 | Keep no-prune as the default; runtime policy, audited holds, optional jurisdiction/purpose codes, and synthetic PostgreSQL acceptance are implemented. Unresolved scoped policies fail closed. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, a scope resolver, and erasure procedures. |
 
 ## Work order

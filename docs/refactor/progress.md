@@ -5811,3 +5811,36 @@ does not query task rows, Prefect, databases, or providers, and does not enable
 or change a schedule. Sensor input and remote-sensing operation/tenant
 boundaries remain open.
 ([inventory](worker-job-contract-inventory.json); [generator](../../scripts/worker_job_contract_inventory.py)).
+
+### Five-reference-catalog checkpoint and restore preflight — 15 October 2026
+
+Created a fresh age-encrypted checkpoint of the healthy local candidate at
+migration 400 for the owner-selected five reference catalogs. The 5,724,326
+byte archive is `backups/kernel-candidate-pre-five-reference-seeds-20261015T211905Z/postgres.dump.age`
+with SHA-256
+`56a08bdf48bce987deffc9a2075e7a4393246d02bfa12bc5f6897d8910e740f1`. Its
+manifest now records successful restore rehearsal. The archive is scoped to
+the `kokonut_intelligence` database; it excludes global roles, grants, other
+databases, external media and provider state, and this local copy is not an
+independent off-device backup.
+
+Age decryption streamed directly into a transactional `pg_restore` in a fresh
+internal-only PostgreSQL 16.4 `template0` database using the exact source image.
+The first attempt correctly rolled back when an RLS policy referenced a global
+role absent from the database-only archive. Applying
+`scripts/kernel-restore-role-prerequisites.sql` to the scratch cluster resolved
+the dependency; the retry passed. The candidate and restored archive match on
+391 applied schema migrations through migration 400, one existing seed
+(`seed:140_mobile_forms.sql`), zero non-applied ledger rows, migration and
+extension fingerprints, 1,010 public tables, all five empty catalog targets,
+five active forms, ten form revisions and 63 service-catalog rows. The
+temporary restore container/network were removed; its volume is retained. No candidate seed SQL ran; the
+candidate, legacy stack and R2 were not modified. Applying the exact five-file
+allowlist still needs separate owner approval.
+
+Updated [the recovery runbook](recovery-preparation.md) with the missing
+cluster-role prerequisite and linked the current evidence from the seed scope,
+checklist, capability matrix, and owner follow-up. This improves the DB-only
+restore procedure; it does not establish role/grant parity, external backup
+availability, or candidate seed rollout.
+([checkpoint and restore evidence](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json)).
