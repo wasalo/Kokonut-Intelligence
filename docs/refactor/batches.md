@@ -762,6 +762,14 @@ reporting views.
   review is still open.
   - [x] Add this operations overview with exact dual-grant route policy, same-transaction signed tenant context, SQL scope rechecks, and a content-free queue summary. The 83-test service/route/console check passes; live OIDC, database-role, and browser acceptance remain open ([console contract](kernel-operations-console.md); [evidence](builds/2026-10-14-recovery/mobile-operations-inventory-route.json)).
   - [x] Ignore stale inventory responses and errors after the operator changes locations, so an older request cannot replace the selected location's view ([evidence](builds/2026-10-15-recovery/operator-inventory-stale-response-guard.json)).
+  - [x] Add direct service regressions for the OIDC report-review queue/detail
+    reads: tenant context is set on the same connection before each scoped
+    `SELECT`, SQL retains location-qualified grant rechecks, legacy/unqualified
+    denial issues no report query and rolls back/closes, and oversized detail
+    is rejected. Five focused tests, Ruff, Python compilation, and diff checks
+    pass using synthetic connections only; live database, identity, populated
+    report parity, and RLS remain open
+    ([evidence](builds/2026-10-15-recovery/operator-report-review-tenant-context-source.json)).
   The source audit identified pre-context mobile credential lookups, now
   closed by migration 392's bounded functions. Migration 394 and its
   network-disabled PostgreSQL 16 forced-RLS acceptance now establish signed

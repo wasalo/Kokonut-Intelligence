@@ -1729,3 +1729,15 @@ fake Compose and object-store adapters; no R2 credentials or objects were
 accessed, and no remote delete or lifecycle action is implemented. This is
 recovery tooling evidence only; provider backup/restore and MAN-CAP-047 remain
 open ([contract](backup-object-storage.md); [tests](../../tests/test_backup_remote.py); [offline evidence](builds/2026-10-15-recovery/backup-object-transport-offline.json)).
+
+### CAP-001/047 operator report-review tenant-context regression — 15 October 2026
+
+Five direct service tests now verify that the report queue and detail readers
+establish operator tenant context on the same connection before their scoped
+queries, retain location-qualified grant rechecks, stop before querying when
+tenant context is denied, and roll back/close on denial or oversized payload.
+These use synthetic connections and do not execute PostgreSQL's signed context
+functions. Live identity/database-role behavior, populated report parity,
+application RLS, and all named MAN-CAP acceptances remain open; capability
+status and counts do not change
+([evidence](builds/2026-10-15-recovery/operator-report-review-tenant-context-source.json)).

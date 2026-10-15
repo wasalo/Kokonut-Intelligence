@@ -2,6 +2,8 @@
 
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 The 17-commit batch was pushed as `d01941abad13c5128fca85acb0f4b5645a4322b4`.
+The ZITADEL image digest correction is committed locally as `f56bb44` and is
+not pushed. The current report-review tenant-context test slice is also local.
 Security #49 passed and CI #325 was in progress at the last check. A local
 follow-up corrects the optional ZITADEL image pin; it is not part of that pushed
 head. The candidate now has 393 applied schema migrations through 402, six
@@ -5848,3 +5850,18 @@ checklist, capability matrix, and owner follow-up. This improves the DB-only
 restore procedure; it does not establish role/grant parity, external backup
 availability, or candidate seed rollout.
 ([checkpoint and restore evidence](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json)).
+
+### Operator report-review tenant-context source checks — 15 October 2026
+
+Added direct service regressions for the OIDC report-review queue and detail
+readers. Five focused tests verify that tenant context is established on the
+same connection before each scoped `SELECT`, SQL keeps location-qualified
+grant rechecks, denied legacy/unqualified context runs no report query, and
+denial or an oversized detail rolls back and closes the connection. Ruff,
+Python compilation, `git diff --check`, and the capability-matrix validator
+pass; the matrix still has 66 rows (55 baseline-retained, 7 deployed, 4
+prepared), with MAN-CAP acceptance separately gated. Connections were
+synthetic, so signed PostgreSQL context behavior, live OIDC, populated report
+parity, runtime roles, and application RLS remain open. No candidate or legacy
+database was accessed
+([source evidence](builds/2026-10-15-recovery/operator-report-review-tenant-context-source.json)).

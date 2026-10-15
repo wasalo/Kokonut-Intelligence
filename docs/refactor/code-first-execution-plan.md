@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **369 checked and 19 open items (388 total)**,
+- The execution checklist has **370 checked and 19 open items (389 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -26,7 +26,8 @@ MAN-CAP checks open until each has its own retained evidence.
   local commits, including retention-policy and optional Directus role/profile
   work, fresh-volume Directus overlay acceptance, worker effect and SQL
   reachability inventories, and the five-seed/retention rollout evidence. The
-  ZITADEL image-pin follow-up is local and CI has not evaluated it. The pushed batch includes report calculation and scheduler worker
+  ZITADEL image-pin follow-up is local commit `f56bb44` and CI has not evaluated
+  it. The pushed batch includes report calculation and scheduler worker
   recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
   permission work. See the relevant evidence below and the current CI status
   above; do not treat it as validation of the local commits.
@@ -290,6 +291,11 @@ before protected reads and writes, and make direct database access fail closed.
    and repeats both grant checks; focused service, route, and console checks
    pass. The console ignores responses from older inventory requests after a
    location switch; live OIDC/database and browser race acceptance remain open.
+   The report-review queue/detail services now also have five direct source
+   regressions for same-connection context-before-query, repeated location
+   grants, legacy-context denial, rollback/close, and the detail-size bound.
+   Synthetic connections do not verify the PostgreSQL signing functions or
+   final database role ([evidence](builds/2026-10-15-recovery/operator-report-review-tenant-context-source.json)).
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.
    **Partial:** the opt-in bootstrap still grants broad DML on existing public
