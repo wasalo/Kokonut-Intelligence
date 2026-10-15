@@ -73,6 +73,23 @@
             <p id="enrollment-expiration" class="muted"></p>
           </section>
         </section>
+        <section id="mobile-operations" hidden aria-labelledby="mobile-operations-heading">
+          <h2 id="mobile-operations-heading">Field Collector operations</h2>
+          <p class="muted">View enrolled device status and content-free collection counts for a location where you have both device-read and collection-review access. Tokens and collection payloads are never returned.</p>
+          <div class="toolbar">
+            <label for="mobile-operations-location">Granted location</label>
+            <select id="mobile-operations-location"></select>
+            <button id="mobile-operations-refresh" type="button">Refresh inventory</button>
+          </div>
+          <p id="mobile-operations-status" class="muted" role="status"></p>
+          <dl id="mobile-operations-summary"></dl>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Device ID</th><th>Status</th><th>Last seen</th><th>Last sync</th></tr></thead>
+              <tbody id="mobile-operations-devices"></tbody>
+            </table>
+          </div>
+        </section>
         <section id="review" hidden aria-labelledby="review-heading">
           <h2 id="review-heading">Submitted report review</h2>
           <p class="muted">Read submitted report snapshots for locations explicitly granted to your account. This console does not verify, reject, or publish reports.</p>
@@ -257,6 +274,11 @@
       const mobileEnrollmentResult = document.querySelector("#mobile-enrollment-result");
       const enrollmentCode = document.querySelector("#enrollment-code");
       const enrollmentExpiration = document.querySelector("#enrollment-expiration");
+      const mobileOperations = document.querySelector("#mobile-operations");
+      const mobileOperationsLocation = document.querySelector("#mobile-operations-location");
+      const mobileOperationsStatus = document.querySelector("#mobile-operations-status");
+      const mobileOperationsSummary = document.querySelector("#mobile-operations-summary");
+      const mobileOperationsDevices = document.querySelector("#mobile-operations-devices");
       const mobileReview = document.querySelector("#mobile-review");
       const mobileReviewLocation = document.querySelector("#mobile-review-location");
       const mobileReviewQueue = document.querySelector("#mobile-review-queue");
@@ -322,6 +344,13 @@
           const mobileReviewLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "mobile_collection_review" && scope.action === "read")
             .map((scope) => scope.location_id))];
+          const mobileDeviceReadLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_device" && scope.action === "read")
+            .map((scope) => scope.location_id));
+          const mobileOperationsLocations = [...mobileDeviceReadLocations]
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)
+              && mobileReviewLocations.includes(locationId));
           const farmActivityLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "farm_activity" && scope.action === "read")
             .map((scope) => scope.location_id))];
@@ -369,6 +398,17 @@
               mobileLocation.append(option);
             }
             mobileEnrollment.hidden = false;
+            hasAuthorizedSurface = true;
+          }
+          if (mobileOperationsLocations.length) {
+            for (const locationId of mobileOperationsLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              mobileOperationsLocation.append(option);
+            }
+            mobileOperations.hidden = false;
+            await loadMobileOperationsInventory();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -828,6 +868,59 @@
         }
       }
 
+      async function loadMobileOperationsInventory() {
+        mobileOperationsStatus.textContent = "Loading location-scoped device and queue status…";
+        mobileOperationsSummary.replaceChildren();
+        mobileOperationsDevices.replaceChildren();
+        const locationId = mobileOperationsLocation.value;
+        const params = new URLSearchParams({ device_limit: "50" });
+        try {
+          const response = await fetch(
+            `/operator/api/mobile/locations/${encodeURIComponent(locationId)}/inventory?${params}`,
+            { credentials: "same-origin", headers: { "Accept": "application/json" } }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your account is not authorized for both Field Collector grants at this location.");
+          }
+          if (!response.ok) throw new Error("Field Collector operations inventory is unavailable.");
+          const result = await response.json();
+          const summaryLabels = [
+            ["Registered devices", "device_count"],
+            ["Active devices", "active_device_count"],
+            ["Pending sync records", "pending_sync_count"],
+            ["Synced records", "synced_record_count"],
+            ["Form review required", "form_review_required_count"],
+            ["Ineligible synced records", "ineligible_synced_count"]
+          ];
+          for (const [label, key] of summaryLabels) {
+            const term = document.createElement("dt");
+            const value = document.createElement("dd");
+            term.textContent = label;
+            value.textContent = String(result.queue_summary?.[key] ?? 0);
+            mobileOperationsSummary.append(term, value);
+          }
+          for (const device of result.devices || []) {
+            const row = document.createElement("tr");
+            for (const value of [
+              device.device_id,
+              device.status,
+              device.last_seen_at,
+              device.last_sync_at
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = value ? String(value) : "—";
+              row.append(cell);
+            }
+            mobileOperationsDevices.append(row);
+          }
+          mobileOperationsStatus.textContent = result.devices?.length
+            ? `Showing ${result.devices.length} device(s) for this location.`
+            : "No enrolled devices for this location.";
+        } catch (error) {
+          mobileOperationsStatus.textContent = error.message;
+        }
+      }
+
       async function loadMobileQueue() {
         mobileReviewQueue.replaceChildren();
         mobileReviewDetail.hidden = true;
@@ -1011,6 +1104,8 @@
       });
       document.querySelector("#mobile-review-refresh").addEventListener("click", loadMobileQueue);
       mobileReviewLocation.addEventListener("change", loadMobileQueue);
+      document.querySelector("#mobile-operations-refresh").addEventListener("click", loadMobileOperationsInventory);
+      mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

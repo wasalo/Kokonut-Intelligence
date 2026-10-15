@@ -168,9 +168,12 @@ re-enrollment remains open and RLS remains disabled
 closed before database access because the legacy path has no authenticated
 tenant identity and bypasses form/consent policy. Enrollment, capture and sync
 continue through the consent-aware Gateway. Focused boundary tests cover every
-helper and command and verify no connection is opened. Device inventory and
-global queue statistics still need an authorized operator surface. This source
-change does not accept the named capability check.
+helper and command and verify no connection is opened. The OIDC console now
+provides a location-scoped device inventory and content-free queue summary;
+both device-read and collection-review grants for that location are required.
+The 83-test focused route/service/console run passes, but live OIDC and database
+acceptance remain open. Worker and other CLI review also remain open. This
+source change does not accept the named capability check.
 MAN-CAP-053 stays partial pending live OIDC and reconnect, human disposition,
 database-role-backed tenant isolation, and retention acceptance. The source-only
 [tenant/RLS call-site audit](mobile-tenant-rls-callsite-audit.md) records why

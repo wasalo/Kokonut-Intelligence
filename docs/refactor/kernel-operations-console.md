@@ -149,6 +149,19 @@ rechecks both grants and location in SQL. It is read-only and covers direct
 database lineage only; it cannot decide or execute retention, erasure, or
 de-identification.
 
+The Field Collector operations overview is available at
+`GET /operator/api/mobile/locations/{location_id}/inventory?device_limit=50`.
+It requires both `mobile_device:read` and `mobile_collection_review:read` for
+the same location. The query establishes signed operator tenant context on its
+read-only transaction and rechecks both grants against that location. It
+returns bounded device IDs/status/timestamps and aggregate sync/review counts;
+device tokens, push tokens, collection payloads, participant IDs, and media
+references are excluded. The console shows the panel only for locations with
+both grants and renders returned fields with `textContent`. This is a
+location-scoped operations view, not cross-tenant/global statistics. Focused
+route, service-query, and console source checks pass; live OIDC and database
+acceptance remain open.
+
 For browser requests, prefer serving the console from the Gateway's own origin
 or an explicitly trusted same-site origin. The server should keep provider
 tokens out of JavaScript and use a short-lived, `HttpOnly`, `Secure`,

@@ -13,6 +13,7 @@ from services.gateway.operator_mobile_review import (
     MobileReviewEventInvalid,
     get_mobile_collection,
     get_mobile_collection_disposition_inventory,
+    get_mobile_operations_inventory,
     list_mobile_collections,
     record_mobile_review_event,
 )
@@ -43,6 +44,9 @@ class FakeCursor:
         if "SELECT event.id, event.actor_operator_id" in sql:
             self.result_rows = self.event_rows
             self.description = [SimpleNamespace(name=name) for name in self.event_rows[0]] if self.event_rows else []
+        elif "WITH scoped_devices AS" in sql:
+            self.result_rows = self.rows
+            self.description = [SimpleNamespace(name=name) for name in self.rows[0]] if self.rows else []
         elif "SELECT oc.id" in sql:
             self.result_rows = self.rows
             self.description = [SimpleNamespace(name=name) for name in self.rows[0]] if self.rows else []
@@ -145,8 +149,104 @@ def test_mobile_collection_list_is_bounded_scoped_and_minimized(_tenant_context_
         if "FROM offline_collection AS oc" in sql
     )
     assert statements.index(("SET TRANSACTION READ ONLY", ())) < context_index < protected_query_index
+    assert any("SET TRANSACTION READ ONLY" in sql for sql, _params in statements)
     assert connection.rolled_back and connection.closed
-    assert any("SET TRANSACTION READ ONLY" in sql for sql, _params in connection.cursor_instance.statements)
+
+
+def test_mobile_operations_inventory_is_location_scoped_and_content_free(
+    _tenant_context_spy,
+):
+    inventory_row = {
+        "devices": [
+            {
+                "device_id": "field-phone-7",
+                "status": "active",
+                "last_seen_at": "2026-10-14T10:00:00+00:00",
+                "last_sync_at": "2026-10-14T09:00:00+00:00",
+            }
+        ],
+        "queue_summary": {
+            "device_count": 2,
+            "active_device_count": 1,
+            "pending_sync_count": 3,
+            "synced_record_count": 8,
+            "form_review_required_count": 2,
+            "ineligible_synced_count": 1,
+        },
+    }
+    connection = FakeConnection([inventory_row])
+
+    result = get_mobile_operations_inventory(
+        OPERATOR_ID,
+        LOCATION_ID,
+        25,
+        connection_factory=lambda: connection,
+    )
+
+    assert result["location_id"] == LOCATION_ID
+    assert result["devices"][0]["device_id"] == "field-phone-7"
+    assert result["queue_summary"]["pending_sync_count"] == 3
+    query, params = connection.cursor_instance.statements[-1]
+    assert params == (
+        LOCATION_ID,
+        OPERATOR_ID,
+        25,
+        LOCATION_ID,
+        OPERATOR_ID,
+        LOCATION_ID,
+        OPERATOR_ID,
+    )
+    assert "device.location_id = %s::uuid" in query
+    assert "collection.location_id = %s::uuid" in query
+    assert "grant_row.resource = 'mobile_device'" in query
+    assert "grant_row.action = 'read'" in query
+    assert "grant_row.resource = 'mobile_collection_review'" in query
+    assert "grant_row.action = 'read'" in query
+    assert "v_mobile_collection_use_eligibility" in query
+    assert "LEFT JOIN scoped_collections AS collection ON TRUE" in query
+    assert "push_token" not in query
+    assert "device_token_hash" not in query
+    assert "collection.payload" not in query
+    assert "participant_link_id" not in query
+    assert _tenant_context_spy == [
+        (
+            connection,
+            {
+                "operator_id": OPERATOR_ID,
+                "location_id": LOCATION_ID,
+                "resource": "mobile_device",
+                "action": "read",
+                "required_scopes": (("mobile_collection_review", "read"),),
+            },
+        )
+    ]
+    assert any("SET TRANSACTION READ ONLY" in sql for sql, _ in connection.cursor_instance.statements)
+    assert connection.rolled_back and connection.closed
+
+
+def test_mobile_operations_inventory_rejects_invalid_location_or_limit_before_connecting():
+    connections = []
+
+    def connection_factory():
+        connections.append(True)
+        return FakeConnection([])
+
+    for location_id, limit in (
+        (LOCATION_ID, 0),
+        (LOCATION_ID, 101),
+        (LOCATION_ID, True),
+        (LOCATION_ID, 1.5),
+        ("invalid", 10),
+    ):
+        with pytest.raises(ValueError):
+            get_mobile_operations_inventory(
+                OPERATOR_ID,
+                location_id,
+                limit,
+                connection_factory=connection_factory,
+            )
+
+    assert connections == []
 
 
 def test_mobile_collection_list_rejects_invalid_bounds_before_connection():

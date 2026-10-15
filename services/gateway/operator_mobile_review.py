@@ -84,6 +84,147 @@ def _isoformat(row: dict, fields: tuple[str, ...]) -> dict:
     return row
 
 
+def get_mobile_operations_inventory(
+    operator_id: str,
+    location_id: str,
+    device_limit: int = 50,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return a location-scoped device list and content-free queue counts."""
+    operator_id, location_id = _normalize_ids(operator_id, location_id)
+    if (
+        isinstance(device_limit, bool)
+        or not isinstance(device_limit, int)
+        or not 1 <= device_limit <= 100
+    ):
+        raise ValueError("device_limit must be an integer between 1 and 100")
+
+    conn = (connection_factory or _connection_factory())()
+    try:
+        rows = _read_rows(
+            conn,
+            """WITH scoped_devices AS (
+                       SELECT device.device_id, device.status,
+                              device.last_seen_at, device.last_sync_at
+                         FROM mobile_device AS device
+                        WHERE device.location_id = %s::uuid
+                          AND EXISTS (
+                              SELECT 1 FROM operator_scope_grant AS grant_row
+                               WHERE grant_row.operator_id = %s::uuid
+                                 AND grant_row.resource = 'mobile_device'
+                                 AND grant_row.action = 'read'
+                                 AND grant_row.location_id = device.location_id
+                                 AND operator_scope_grant_allows(
+                                     grant_row.operator_id, grant_row.resource,
+                                     grant_row.action, grant_row.location_id
+                                 )
+                                 AND grant_row.revoked_at IS NULL
+                          )
+                        ORDER BY device.last_seen_at DESC NULLS LAST,
+                                 device.created_at DESC, device.device_id
+                        LIMIT %s
+                   ), scoped_device_counts AS (
+                       SELECT COUNT(*)::int AS device_count,
+                              COUNT(*) FILTER (WHERE device.status = 'active')::int
+                                  AS active_device_count
+                         FROM mobile_device AS device
+                        WHERE device.location_id = %s::uuid
+                          AND EXISTS (
+                              SELECT 1 FROM operator_scope_grant AS grant_row
+                               WHERE grant_row.operator_id = %s::uuid
+                                 AND grant_row.resource = 'mobile_device'
+                                 AND grant_row.action = 'read'
+                                 AND grant_row.location_id = device.location_id
+                                 AND operator_scope_grant_allows(
+                                     grant_row.operator_id, grant_row.resource,
+                                     grant_row.action, grant_row.location_id
+                                 )
+                                 AND grant_row.revoked_at IS NULL
+                          )
+                   ), scoped_collections AS (
+                       SELECT collection.sync_status,
+                              collection.form_review_required,
+                              COALESCE(eligibility.eligible_for_use, FALSE)
+                                  AS eligible_for_use
+                         FROM offline_collection AS collection
+                         LEFT JOIN v_mobile_collection_use_eligibility AS eligibility
+                           ON eligibility.collection_id = collection.id
+                        WHERE collection.location_id = %s::uuid
+                          AND EXISTS (
+                              SELECT 1 FROM operator_scope_grant AS grant_row
+                               WHERE grant_row.operator_id = %s::uuid
+                                 AND grant_row.resource = 'mobile_collection_review'
+                                 AND grant_row.action = 'read'
+                                 AND grant_row.location_id = collection.location_id
+                                 AND operator_scope_grant_allows(
+                                     grant_row.operator_id, grant_row.resource,
+                                     grant_row.action, grant_row.location_id
+                                 )
+                                 AND grant_row.revoked_at IS NULL
+                          )
+                   )
+                   SELECT COALESCE(
+                              (SELECT jsonb_agg(
+                                          jsonb_build_object(
+                                              'device_id', device_id,
+                                              'status', status,
+                                              'last_seen_at', last_seen_at,
+                                              'last_sync_at', last_sync_at
+                                          ) ORDER BY last_seen_at DESC NULLS LAST,
+                                                      device_id
+                                      )
+                                 FROM scoped_devices),
+                              '[]'::jsonb
+                          ) AS devices,
+                          (SELECT jsonb_build_object(
+                                      'device_count', device_counts.device_count,
+                                      'active_device_count', device_counts.active_device_count,
+                                      'pending_sync_count', COUNT(*) FILTER (
+                                          WHERE collection.sync_status = 'pending'
+                                      ),
+                                      'synced_record_count', COUNT(*) FILTER (
+                                          WHERE collection.sync_status = 'synced'
+                                      ),
+                                      'form_review_required_count', COUNT(*) FILTER (
+                                          WHERE collection.form_review_required
+                                      ),
+                                      'ineligible_synced_count', COUNT(*) FILTER (
+                                          WHERE collection.sync_status = 'synced'
+                                            AND NOT collection.eligible_for_use
+                                      )
+                                  )
+                             FROM scoped_device_counts AS device_counts
+                             LEFT JOIN scoped_collections AS collection ON TRUE
+                            GROUP BY device_counts.device_count,
+                                     device_counts.active_device_count
+                          ) AS queue_summary""",
+            (
+                location_id,
+                operator_id,
+                device_limit,
+                location_id,
+                operator_id,
+                location_id,
+                operator_id,
+            ),
+            tenant_scope=(operator_id, location_id, "mobile_device", "read"),
+            required_tenant_scopes=(("mobile_collection_review", "read"),),
+        )
+        if not rows:
+            return {"location_id": location_id, "devices": [], "queue_summary": {}}
+        return {
+            "location_id": location_id,
+            "devices": rows[0]["devices"],
+            "queue_summary": rows[0]["queue_summary"],
+        }
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
 def list_mobile_collections(
     operator_id: str,
     location_id: str,

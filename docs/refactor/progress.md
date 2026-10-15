@@ -5215,3 +5215,17 @@ suite passes 15 tests; Ruff and `git diff --check` pass. This is source/unit
 evidence only; notification/attempt/operator-audit retention periods and live
 database cleanup acceptance remain open. No candidate or legacy database was
 accessed. [Evidence](builds/2026-10-14-recovery/event-cleanup-pending-disposition.json).
+
+### Location-scoped Field Collector operator inventory — 14 October 2026
+
+Added `GET /operator/api/mobile/locations/{location_id}/inventory`, protected
+by same-location `mobile_device:read` and `mobile_collection_review:read`
+grants. The single read-only query establishes signed operator tenant context,
+rechecks both grants, and returns bounded device identifiers/status/times
+plus aggregate queue counts. It omits device/push tokens, collection payloads,
+participant IDs, and media references. The console renders the overview only
+for locations with both grants and uses text nodes for returned values. The
+four focused operator service, auth, exact-policy, and console suites pass 83
+tests; Ruff, Python compilation, inline JavaScript syntax, and whitespace
+checks pass. No database was accessed. Live OIDC, database-role, populated
+tenant and browser acceptance remain open. [Evidence](builds/2026-10-14-recovery/mobile-operations-inventory-route.json).

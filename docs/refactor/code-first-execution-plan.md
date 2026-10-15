@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 327 checked and 20 open items (347 total).
+- The execution checklist has 328 checked and 20 open items (348 total).
 - The latest pushed implementation is `f8d90ea`. Security #42 passed; CI #318
   is in progress on that head. The earlier Security #39 SHA-256
   false-positive fix is included and passes both local full-history Gitleaks
@@ -101,7 +101,8 @@ MAN-CAP checks open until each has its own retained evidence.
   both ClickHouse-disabled and ClickHouse-enabled paths.
   Focused source/disposable checks pass. The latest pushed head `f8d90ea` has
   Security #42 passed and CI #318 in progress. The local event-cleanup
-  retention-safety fix and its focused tests are not pushed yet.
+  retention-safety commit and the new scoped Field Collector operator
+  inventory are not pushed yet.
 - The capability matrix has 66 capabilities: 56 baseline-retained, 7 partial,
   and 3 prepared. None of the 66 named MAN-CAP checks is accepted.
 - Candidate migrations 392–400 were applied schema-only after encrypted
@@ -212,7 +213,12 @@ before protected reads and writes, and make direct database access fail closed.
    loops and recurring sensor ingestion without a source. Scheduler and event
    allowlists still inherit the shared runtime environment; they are not
    DB-identity or RLS boundaries. The broader code trace is recorded in
-   [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md).
+   [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md). A new
+   location-scoped OIDC operations overview supplies device inventory and
+   aggregate queue counts only when both `mobile_device:read` and
+   `mobile_collection_review:read` apply. Its query sets signed tenant context
+   and repeats both grant checks; focused service, route, and console checks
+   pass. Live OIDC/database acceptance remains open.
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.
    **Partial:** the opt-in bootstrap still grants broad DML on existing public
@@ -309,10 +315,10 @@ The native and Field Collector routers now also have a pinned full method/path
 policy inventory. A 27-test focused Gateway run confirms exact resource/action/
 public policy coverage, 401 for every registered private route when anonymous,
 and 401 for unknown routes, wrong methods, and near-miss paths ([route inventory evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json)).
-The OIDC operator router now has a separate exact inventory for all 28 registered
+The OIDC operator router now has a separate exact inventory for all 29 registered
 method/path policies, including scoped grants, secondary grants, public login
 endpoints, and six governed farm-activity actions. Unknown operator paths and
-method mismatches return 401 in the source test ([evidence](builds/2026-10-14-recovery/operator-route-policy-inventory.json)).
+method mismatches return 401 in the source test ([evidence](builds/2026-10-14-recovery/operator-route-policy-inventory.json)). The new location-scoped Field Collector overview requires both device-read and collection-review grants and returns no tokens or payloads; focused route, query, and console checks pass.
 The operator console's cookie-authenticated draft edit now passes both its
 credentialed CORS preflight and successful-response checks; PATCH was added to
 the explicit CORS method allowlist. Browser/runtime ingress acceptance remains
@@ -508,7 +514,8 @@ requested. The latest push `f8d90ea` has Security #42 passed and CI #318
 in progress. The pushed batch includes enabled gRPC loopback acceptance and
 the earlier ClickHouse/notification CLI regressions with disposable
 PostgreSQL outbox acceptance. The current local batch adds EventBus
-dead-letter cleanup protection; focused local checks pass.
+dead-letter cleanup protection and the scoped Field Collector operator
+inventory; focused local checks are passing.
 Accumulate the next coherent
 batch before pushing so the repository does not start CI for each
 small commit. Never push directly to `main`. Keep each candidate database

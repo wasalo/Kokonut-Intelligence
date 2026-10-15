@@ -3,7 +3,7 @@
   "date": "2026-10-14",
   "result": "passed",
   "scope": {
-    "registered_operator_method_path_policies": 28,
+    "registered_operator_method_path_policies": 29,
     "all_routes_have_explicit_oidc_policy": true,
     "policy_tuples_pin_resource_action_public_scope_location_and_secondary_grants": true,
     "farm_activity_lifecycle_actions_expanded": [
@@ -14,6 +14,12 @@
       "publish",
       "close-exception"
     ],
+    "mobile_operations_inventory": {
+      "route": "GET /operator/api/mobile/locations/{location_id}/inventory",
+      "primary_scope": "mobile_device:read",
+      "additional_scope": "mobile_collection_review:read",
+      "location_scoped": true
+    },
     "unknown_operator_path_and_wrong_method_return_401": true,
     "candidate_or_legacy_database_touched": false
   },

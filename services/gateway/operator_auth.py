@@ -415,6 +415,22 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    mobile_inventory_match = re.fullmatch(
+        r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/inventory",
+        path,
+    )
+    if mobile_inventory_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "mobile_device",
+            "action": "read",
+            "additional_scopes": [
+                {"resource": "mobile_collection_review", "action": "read"}
+            ],
+            "public": False,
+            "location_id": mobile_inventory_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
     participant_match = re.fullmatch(
         r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/participants(?:/(revoke))?",
         path,
@@ -1705,6 +1721,49 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         return JSONResponse(
             content=result,
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+        )
+
+    @router.get("/operator/api/mobile/locations/{location_id}/inventory")
+    async def operator_mobile_inventory(
+        location_id: UUID, request: Request, device_limit: int = 50
+    ):
+        """Read a location-scoped device inventory and collection queue summary."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.operator_mobile_review import get_mobile_operations_inventory
+
+        try:
+            result = await run_in_threadpool(
+                get_mobile_operations_inventory,
+                request.state.operator_session.operator.operator_id,
+                str(location_id),
+                device_limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile operations inventory unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile operations inventory unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            jsonable_encoder(result),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
     @router.post("/operator/auth/logout")

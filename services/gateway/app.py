@@ -302,6 +302,7 @@ def create_app(*, rate_limiter: RateLimitBackend | None = None):
             return JSONResponse(
                 status_code=denial_status,
                 content={"error": "Unauthorized", "reason": auth_result.get("reason")},
+                headers={"Cache-Control": "no-store"},
             )
 
         request.state.caller = auth_result.get("caller", "anonymous")

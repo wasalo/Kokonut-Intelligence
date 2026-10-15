@@ -130,6 +130,20 @@ def test_operator_mobile_routes_require_location_scoped_actions():
     ) is None
 
 
+def test_operator_mobile_inventory_requires_device_and_collection_read_grants():
+    path = f"/operator/api/mobile/locations/{LOCATION_ID}/inventory"
+    policy = operator_auth.auth_route_policy("GET", path, enabled=True)
+
+    assert policy["resource"] == "mobile_device"
+    assert policy["action"] == "read"
+    assert policy["location_id"] == LOCATION_ID
+    assert policy["additional_scopes"] == [
+        {"resource": "mobile_collection_review", "action": "read"}
+    ]
+    assert operator_auth.auth_route_policy("POST", path, enabled=True) is None
+    assert operator_auth.auth_route_policy("GET", path, enabled=False) is None
+
+
 def test_operator_participant_routes_require_location_scoped_actions():
     create_policy = operator_auth.auth_route_policy(
         "POST",
@@ -1091,6 +1105,79 @@ def test_mobile_collection_queue_uses_location_scope_and_returns_no_store(monkey
     ]
     assert audit_records[-1]["caller"] == f"operator:{OPERATOR_ID}"
     assert audit_records[-1]["location_id"] == LOCATION_ID
+
+
+def test_mobile_operations_inventory_requires_both_grants_and_returns_no_store(monkeypatch):
+    monkeypatch.setenv("CORS_ORIGIN", "https://operator.example")
+    provider = _DispositionProvider(
+        allowed_scopes={
+            ("mobile_device", "read"),
+            ("mobile_collection_review", "read"),
+        }
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    inventory = {
+        "location_id": LOCATION_ID,
+        "devices": [{"device_id": "collector-7", "status": "active"}],
+        "queue_summary": {"pending_sync_count": 2},
+    }
+    reader = MagicMock(return_value=inventory)
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_operations_inventory",
+        reader,
+    )
+
+    with TestClient(create_app(), base_url="https://operator.example") as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            f"/operator/api/mobile/locations/{LOCATION_ID}/inventory",
+            params={"device_limit": 7},
+            headers={"Origin": "https://operator.example"},
+        )
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.json() == inventory
+    assert reader.call_args.args == (OPERATOR_ID, LOCATION_ID, 7)
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_device", "read", LOCATION_ID),
+        (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID),
+    ]
+
+
+def test_mobile_operations_inventory_denies_missing_secondary_grant_before_query(monkeypatch):
+    provider = _DispositionProvider(
+        allowed_scopes={("mobile_device", "read")}
+    )
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr(
+        "services.gateway.audit.GatewayAudit.log",
+        lambda *_args, **_kwargs: None,
+    )
+    reader = MagicMock()
+    monkeypatch.setattr(
+        "services.gateway.operator_mobile_review.get_mobile_operations_inventory",
+        reader,
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(
+            f"/operator/api/mobile/locations/{LOCATION_ID}/inventory"
+        )
+
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
+    assert provider.scopes_seen == [
+        (OPERATOR_ID, "mobile_device", "read", LOCATION_ID),
+        (OPERATOR_ID, "mobile_collection_review", "read", LOCATION_ID),
+    ]
+    reader.assert_not_called()
 
 
 def test_mobile_collection_detail_does_not_accept_list_read_grant(monkeypatch):
