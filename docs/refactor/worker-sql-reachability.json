@@ -70,9 +70,9 @@
         "services/events/bus.py:321:12",
         "services/events/bus.py:334:16",
         "services/events/bus.py:337:16",
-        "services/events/bus.py:369:16",
-        "services/events/bus.py:398:16",
-        "services/events/bus.py:406:16",
+        "services/events/bus.py:378:16",
+        "services/events/bus.py:407:16",
+        "services/events/bus.py:415:16",
         "services/events/bus.py:95:12",
         "services/events/cli.py:135:12",
         "services/events/cli.py:164:12",
@@ -2193,9 +2193,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:369:16",
+      "id": "services/events/bus.py:378:16",
       "source": "services/events/bus.py",
-      "line": 369,
+      "line": 378,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2222,9 +2222,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:398:16",
+      "id": "services/events/bus.py:407:16",
       "source": "services/events/bus.py",
-      "line": 398,
+      "line": 407,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2247,9 +2247,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:406:16",
+      "id": "services/events/bus.py:415:16",
       "source": "services/events/bus.py",
-      "line": 406,
+      "line": 415,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",

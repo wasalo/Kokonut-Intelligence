@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "ae14103bd97e564d04877ee8155bef81ff84220f",
+  "baseline_commit": "70b32c59cf7339cf56371f9afedb07cfdd5acd0c",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1722,7 +1722,8 @@
       "schemas/postgres/398_bounded_mobile_device_revocation.sql",
       "schemas/postgres/399_runtime_security_schema_usage.sql",
       "schemas/postgres/400_operator_auth_security_schema_usage.sql",
-      "schemas/postgres/401_dynamic_retention_and_legal_holds.sql"
+      "schemas/postgres/401_dynamic_retention_and_legal_holds.sql",
+      "schemas/postgres/402_retention_policy_scope_codes.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3119,6 +3120,7 @@
         "tests/test_reference_class.py",
         "tests/test_regional_readiness.py",
         "tests/test_remote_sensing_automation.py",
+        "tests/test_remote_sensing_scheduler_contract.py",
         "tests/test_responsibility_assignment.py",
         "tests/test_revenue_model.py",
         "tests/test_revenue_multiplier.py",
@@ -3304,6 +3306,8 @@
         "KOKONUT_ANALYTICS_USER",
         "KOKONUT_DB_ADMIN_PASSWORD",
         "KOKONUT_DB_ADMIN_USER",
+        "KOKONUT_DIRECTUS_RUNTIME_PASSWORD",
+        "KOKONUT_DIRECTUS_RUNTIME_USER",
         "KOKONUT_METABASE_ROLE_DEDICATED_INSTANCE",
         "KOKONUT_OPERATOR_AUTH_PASSWORD",
         "KOKONUT_OPERATOR_AUTH_USER",
@@ -3322,10 +3326,12 @@
         "services/migration/__main__.py",
         "services/migration/analytics_role.py",
         "services/migration/cli.py",
+        "services/migration/directus_role.py",
         "services/migration/metabase_role.py",
         "services/migration/runtime_role.py"
       ],
       "test_references": [
+        "tests/test_directus_runtime_role.py",
         "tests/test_migration.py",
         "tests/test_runtime_role_boundary.py"
       ]
@@ -3586,6 +3592,7 @@
         "tests/test_security_audit.py",
         "tests/test_security_capabilities.py",
         "tests/test_security_interceptor.py",
+        "tests/test_worker_boundary_preflight.py",
         "tests/test_worker_function_reachability.py",
         "tests/test_worker_operation_map.py",
         "tests/test_worker_source_closure.py"
@@ -3941,6 +3948,7 @@
     "tests/test_digital_twin.py",
     "tests/test_directus_extension_compatibility.py",
     "tests/test_directus_metadata.py",
+    "tests/test_directus_runtime_role.py",
     "tests/test_directus_tenant_permissions.py",
     "tests/test_documentation_consistency.py",
     "tests/test_driver_registry.py",
@@ -4140,6 +4148,7 @@
     "tests/test_relationship_reference_policy.py",
     "tests/test_remaining_gaps.py",
     "tests/test_remote_sensing_automation.py",
+    "tests/test_remote_sensing_scheduler_contract.py",
     "tests/test_report_generator_cli.py",
     "tests/test_report_generator_readonly.py",
     "tests/test_report_governance.py",

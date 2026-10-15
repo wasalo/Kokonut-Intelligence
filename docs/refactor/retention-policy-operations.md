@@ -7,20 +7,34 @@ interpret legal requirements for the United States or Dominican Republic.
 ## Policy lifecycle
 
 Retention windows are policy data, not application constants. A policy is
-scoped by data category, entity type, and optional location, and may have an
-unset `retention_days` while it is being drafted. The migration removes the
-legacy category default windows and clears those reference values. No missing
-period is inferred.
+scoped by data category, entity type, optional location, and optional
+owner-defined jurisdiction and purpose codes. It may have an unset
+`retention_days` while it is being drafted. The migration removes the legacy
+category default windows and clears those reference values. No missing period
+is inferred.
 
 Create an inert draft. The period can be omitted while the accountable owner
-reviews the applicable purpose and jurisdiction:
+reviews the applicable purpose and jurisdiction; optional opaque codes can be
+recorded without selecting a duration:
 
 ```bash
 python3 -m services.analytics.data_governance set-retention \
   --data-category soil --entity-type soil_sample \
+  --jurisdiction-code us --purpose-code research \
   --policy-owner ACCOUNTABLE_OWNER \
   --actor OPERATOR --reason "Drafted for policy review"
 ```
+
+These codes are normalized, owner-defined identifiers rather than an
+enumerated legal registry. They have no defaults, do not validate a legal
+interpretation, and do not imply a retention window. Until a reviewed resolver
+maps these scopes to records, the generic sweeper skips policies containing
+either code, and approval reports
+`jurisdiction_purpose_scope_resolved: false`. Such a policy cannot
+enable auto-enforcement. An
+unscoped policy cannot be approved alongside an overlapping scoped policy.
+Event cleanup also refuses to run when another active policy for `event_bus` /
+`platform_event` could make its global scope ambiguous.
 
 To prepare a fully configured draft, supply its reviewed window and action.
 Approval is a separate action and records the approver, date, reason, and
@@ -78,25 +92,26 @@ Each successful run is recorded with its operator and outcome.
 
 The generic sweeper remains a default-off soft-delete path for explicitly
 approved tables with `created_at`, `id`, and `deleted_at` semantics. It excludes
-protected lifecycle entities, detects overlapping active policy scopes, and
-checks active holds. Policy actor fields currently provide attribution, not
+protected lifecycle entities and unresolved jurisdiction/purpose scopes,
+detects overlapping active policy scopes, and checks active holds. Policy actor fields currently provide attribution, not
 authenticated administrative authorization. It is not a general erasure executor. Notification
 outbox, handler attempt history, operator-audit records, media, exports,
 backups, and Field Collector disposition do not have automatic pruning paths.
 
-No periods have been configured. Migration 401 and the source changes are not
-yet applied to the local candidate, and focused migration/hold acceptance has
-not run. Keep both `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP` and
+No periods have been configured. Migrations 401 and 402 and the source changes
+are not yet applied to the local candidate. Keep both
+`KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP` and
 `KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT` disabled. Do not add a recurring
 cleanup schedule until an accountable owner configures the applicable policy
 data and the target passes acceptance.
 
 ## Migration and rollback
 
-Migration 401 is additive for hold/audit structures and changes the retention
-model to allow unset periods. It clears the old category-reference periods and
-demotes policy rows that lack approval metadata; it does not delete operational
-records. Before applying it to a candidate or production database, take and
+Migration 401 adds hold/audit structures and changes the retention model to
+allow unset periods. Migration 402 adds nullable scope-code fields with no
+defaults. Migration 401 clears the old category-reference periods and demotes
+policy rows that lack approval metadata; neither migration deletes operational
+records. Before applying them to a candidate or production database, take and
 restore-rehearse a fresh encrypted checkpoint. A code-only revert does not
 restore cleared reference values or re-enable demoted policies; restoring the
 pre-migration checkpoint is the complete rollback. Never turn on either

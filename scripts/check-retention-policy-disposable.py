@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply migration 401 and verify hold-aware cleanup on isolated PostgreSQL."""
+"""Apply migrations 401/402 and verify retention scope on isolated PostgreSQL."""
 
 from __future__ import annotations
 
@@ -11,11 +11,15 @@ import secrets
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION_ID = "schema:401_dynamic_retention_and_legal_holds.sql"
+MIGRATION_IDS = (
+    "schema:401_dynamic_retention_and_legal_holds.sql",
+    "schema:402_retention_policy_scope_codes.sql",
+)
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-15-recovery/retention-policy-disposable.json"
 
 
@@ -67,6 +71,24 @@ def psql(compose: list[str], statement: str) -> str:
         ],
         input_text=statement,
     )
+
+
+def wait_for_stable_postgres(compose: list[str]) -> None:
+    """Wait through the PostGIS image's temporary bootstrap-server restart."""
+    deadline = time.monotonic() + 60
+    consecutive_successes = 0
+    while time.monotonic() < deadline:
+        try:
+            if psql(compose, "SELECT 1;") == "1":
+                consecutive_successes += 1
+                if consecutive_successes == 3:
+                    return
+            else:
+                consecutive_successes = 0
+        except RuntimeError:
+            consecutive_successes = 0
+        time.sleep(1)
+    raise RuntimeError("disposable PostgreSQL did not remain ready for three checks")
 
 
 def pre_migration_fixture() -> str:
@@ -196,6 +218,38 @@ BEGIN
           AND column_name = 'action') < length('migration_review_required') THEN
         RAISE EXCEPTION 'policy action column cannot store migration review action';
     END IF;
+    IF (SELECT is_nullable FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'data_retention_policy'
+          AND column_name = 'jurisdiction_code') <> 'YES'
+       OR (SELECT column_default FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'data_retention_policy'
+          AND column_name = 'purpose_code') IS NOT NULL THEN
+        RAISE EXCEPTION 'scope codes must remain nullable and have no default';
+    END IF;
+END;
+$$;
+
+INSERT INTO data_retention_policy
+    (id, data_category, entity_type, jurisdiction_code, purpose_code,
+     retention_days, deletion_method, auto_enforce, status)
+VALUES ('a0000000-0000-0000-0000-000000000403', 'scope_fixture',
+        'retention_fixture', 'us-ca', 'research', 42,
+        'soft_delete', FALSE, 'draft');
+DO $$
+BEGIN
+    BEGIN
+        UPDATE data_retention_policy SET jurisdiction_code = 'US/CA'
+        WHERE id = 'a0000000-0000-0000-0000-000000000403';
+        RAISE EXCEPTION 'invalid jurisdiction scope code was accepted';
+    EXCEPTION WHEN check_violation THEN
+        NULL;
+    END;
+    IF (SELECT jurisdiction_code FROM data_retention_policy
+        WHERE id = 'a0000000-0000-0000-0000-000000000403') <> 'us-ca'
+       OR (SELECT purpose_code FROM data_retention_policy
+        WHERE id = 'a0000000-0000-0000-0000-000000000403') <> 'research' THEN
+        RAISE EXCEPTION 'retention scope code values were not preserved';
+    END IF;
 END;
 $$;
 
@@ -291,6 +345,61 @@ INSERT INTO data_retention_policy
 VALUES ('a0000000-0000-0000-0000-000000000421', 'event_bus',
         'platform_event', 1, 'hard_delete', TRUE, 'active',
         'fixture-owner', 'fixture-reviewer', CURRENT_DATE, 'active');
+INSERT INTO data_retention_policy
+    (id, data_category, entity_type, jurisdiction_code, purpose_code,
+     retention_days, deletion_method, auto_enforce, enforcement_status,
+     policy_owner, approved_by, approval_date, status)
+VALUES ('a0000000-0000-0000-0000-000000000422', 'event_bus',
+        'platform_event', 'us', 'research', 30, 'hard_delete', TRUE, 'active',
+        'fixture-owner', 'fixture-reviewer', CURRENT_DATE, 'active');
+DO $$
+DECLARE policy_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO policy_count FROM data_retention_policy
+    WHERE data_category = 'event_bus'
+      AND entity_type = 'platform_event'
+      AND location_id IS NULL
+      AND jurisdiction_code IS NULL
+      AND purpose_code IS NULL
+      AND status = 'active'
+      AND NOT EXISTS (
+          SELECT 1 FROM data_retention_policy overlap
+          WHERE overlap.id <> data_retention_policy.id
+            AND overlap.data_category = 'event_bus'
+            AND overlap.entity_type = 'platform_event'
+            AND overlap.status = 'active'
+      );
+    IF policy_count <> 0 THEN
+        RAISE EXCEPTION 'global event policy ignored an additional scoped policy';
+    END IF;
+END;
+$$;
+DELETE FROM data_retention_policy
+WHERE id = 'a0000000-0000-0000-0000-000000000422';
+SELECT id, retention_days
+FROM data_retention_policy
+WHERE data_category = 'event_bus'
+  AND entity_type = 'platform_event'
+  AND location_id IS NULL
+  AND jurisdiction_code IS NULL
+  AND purpose_code IS NULL
+  AND retention_days > 0
+  AND deletion_method = 'hard_delete'
+  AND legal_hold = FALSE
+  AND auto_enforce = TRUE
+  AND enforcement_status = 'active'
+  AND NULLIF(BTRIM(approved_by), '') IS NOT NULL
+  AND NULLIF(BTRIM(policy_owner), '') IS NOT NULL
+  AND approval_date IS NOT NULL
+  AND status = 'active'
+  AND NOT EXISTS (
+      SELECT 1 FROM data_retention_policy overlap
+      WHERE overlap.id <> data_retention_policy.id
+        AND overlap.data_category = 'event_bus'
+        AND overlap.entity_type = 'platform_event'
+        AND overlap.status = 'active'
+  )
+FOR SHARE;
 INSERT INTO platform_event (id, status, created_at) VALUES
     ('a0000000-0000-0000-0000-000000000431', 'completed', NOW() - INTERVAL '10 days'),
     ('a0000000-0000-0000-0000-000000000432', 'completed', NOW() - INTERVAL '10 days'),
@@ -317,6 +426,8 @@ BEGIN
     WHERE data_category = 'event_bus'
       AND entity_type = 'platform_event'
       AND location_id IS NULL
+      AND jurisdiction_code IS NULL
+      AND purpose_code IS NULL
       AND retention_days > 0
       AND deletion_method = 'hard_delete'
       AND legal_hold = FALSE
@@ -436,7 +547,7 @@ def main() -> None:
     result = {
         "date": "2026-10-15",
         "kind": "disposable-postgresql-migration-and-retention-acceptance",
-        "migration_id": MIGRATION_ID,
+        "migration_ids": list(MIGRATION_IDS),
         "docker_image": image,
         "network": "internal-only; no host ports published",
         "checks": [],
@@ -466,6 +577,7 @@ def main() -> None:
         compose = compose_args(project, compose_file)
         try:
             run([*compose, "up", "--pull", "never", "-d", "--wait", "database"])
+            wait_for_stable_postgres(compose)
             psql(compose, pre_migration_fixture())
             env = os.environ.copy()
             env.update(
@@ -490,8 +602,7 @@ def main() -> None:
                     project,
                     "--compose-file",
                     str(compose_file),
-                    "--only-migration",
-                    MIGRATION_ID,
+                    *[argument for migration_id in MIGRATION_IDS for argument in ("--only-migration", migration_id)],
                 ],
                 cwd=ROOT,
                 env=env,
@@ -503,8 +614,10 @@ def main() -> None:
                 details = "\n".join(part for part in (migration.stdout, migration.stderr) if part)
                 raise RuntimeError(f"ordered migration runner failed:\n{details}")
             result["checks"] = [
-                "ordered migration runner applied migration 401 to a synthetic pre-migration fixture",
+                "ordered migration runner applied migrations 401 and 402 to a synthetic pre-migration fixture",
                 "legacy policies lacking approval were demoted; explicit approvals and dynamic default removal verified",
+                "nullable jurisdiction/purpose codes, no implied defaults, format constraints, and scoped-policy overlap blocking verified",
+                "event cleanup global-policy lookup with overlap guard and FOR SHARE lock executed against PostgreSQL",
                 "legal-hold placement/release audit, active-hold uniqueness, and append-only history verified",
                 "generic retention candidate selection excludes active holds and resumes after release",
                 "event cleanup selects one approved window and preserves legal holds, pending dead letters, unsuccessful deliveries, and processing events",

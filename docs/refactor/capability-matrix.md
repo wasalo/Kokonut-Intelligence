@@ -177,7 +177,7 @@ entity-level hold model was inferred. The switch must remain off until those
 controls are approved and implemented; MAN-CAP-051 remains open
 ([implementation](../../services/analytics/retention.py); [evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
 
-**15 October 2026 dynamic retention policy and legal-hold model (CAP-047 / CAP-051):** migration 401 removes period defaults from policy/category reference data, permits an unset window, and demotes policies lacking explicit approval. New schedules are drafts; an operator must approve a positive configured window before activation, and auto-enforcement plus the independent feature flag remain separate gates. Record-level holds require an actor and reason, retain append-only placement/release history, and are checked by the generic sweeper and event cleanup. Event cleanup derives the window only from exactly one approved global `event_bus` / `platform_event` policy and fails closed on none or ambiguity. CLI actor and approver fields provide attribution but do not authenticate or authorize the caller. No period has been configured, migration 401 has not been applied to the candidate, focused acceptance has not run, and notification/attempt/operator-audit pruning remains unimplemented. This prepares a dynamic policy path; it does not select legal periods or accept MAN-CAP-047/051. [Operations](retention-policy-operations.md)
+**15 October 2026 dynamic retention policy and legal-hold model (CAP-047 / CAP-051):** migration 401 removes period defaults from policy/category reference data, permits an unset window, and demotes policies lacking explicit approval. New schedules are drafts; an operator must approve a positive configured window before activation, and auto-enforcement plus the independent feature flag remain separate gates. Record-level holds require an actor and reason, retain append-only placement/release history, and are checked by the generic sweeper and event cleanup. Event cleanup derives the window only from exactly one approved global `event_bus` / `platform_event` policy and fails closed on none or ambiguity. CLI actor and approver fields provide attribution but do not authenticate or authorize the caller. No period has been configured; migrations 401/402 are not on the candidate, but focused ordered migration/hold acceptance passed on an isolated fixture. Notification/attempt/operator-audit pruning remains unimplemented. This prepares a dynamic policy path; it does not select legal periods or accept MAN-CAP-047/051. [Operations](retention-policy-operations.md)
 
 **15 October 2026 worker reconnect contract (CAP-047):** scheduler ticks now
 use fresh bounded-timeout PostgreSQL connections while keeping a stable worker
@@ -1454,6 +1454,19 @@ and preserves an aged parent event while its dead-letter disposition remains
 pending. Fifteen focused durability tests pass. This avoids orphaning an
 operator-actionable dead letter; it does not change notification-outbox pruning
 (none is implemented) or close owner-approved retention periods. [Evidence](builds/2026-10-14-recovery/event-cleanup-pending-disposition.json).
+
+**15 October 2026 retention scope metadata (CAP-047):** migration 402 adds
+optional owner-defined jurisdiction and purpose codes with no defaults or
+legal interpretation. Approval cannot enable auto-enforcement for unresolved
+scope; the generic sweeper skips scoped policies, rejects overlapping active
+scopes, and event cleanup refuses ambiguous global policy state. Sixty-two
+focused data-governance/EventBus tests and four subtests pass. The ordered
+migration acceptance for 401 and 402 passes on an internal-only synthetic
+PostgreSQL fixture. No periods or scoped policies are active, the candidate
+remains through migration 400, and named MAN-CAP checks remain unaccepted
+([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
+[operations](retention-policy-operations.md);
+[evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
 
 ### CAP-047 sensor anomaly crash/replay — 11 October 2026
 

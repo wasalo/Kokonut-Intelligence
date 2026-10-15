@@ -114,6 +114,10 @@ def test_cleanup_preserves_events_with_pending_disposition_or_failed_delivery(mo
 
     EventBus(conn=conn).cleanup_old_events(actor="operator")
 
+    policy_sql = " ".join(cursor.execute.call_args_list[1].args[0].split())
+    assert "jurisdiction_code IS NULL" in policy_sql
+    assert "purpose_code IS NULL" in policy_sql
+    assert "FROM data_retention_policy overlap" in policy_sql
     sql = " ".join(cursor.execute.call_args_list[2].args[0].split())
     assert "dead.disposition = 'pending'" in sql
     assert "dead.original_event_id = platform_event.id" in sql

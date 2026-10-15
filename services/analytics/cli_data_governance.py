@@ -101,6 +101,7 @@ def _cmd_set_retention(db, a):
         action=a.action, entity_type=a.entity_type,
         location_id=a.location_id, policy_owner=a.policy_owner,
         actor=a.actor, reason=a.reason,
+        jurisdiction_code=a.jurisdiction_code, purpose_code=a.purpose_code,
     )
 
 
@@ -241,6 +242,10 @@ cli.subcommand("set-retention", "Set retention policy") \
          choices=["soft_delete", "hard_delete", "anonymize", "archive", "none"]) \
     .add("--entity-type") \
     .add("--location-id") \
+    .add("--jurisdiction-code",
+         help="Owner-defined scope code; does not select a legal period") \
+    .add("--purpose-code",
+         help="Owner-defined scope code; enforcement needs a resolver") \
     .add("--policy-owner") \
     .add("--actor", required=True) \
     .add("--reason", required=True) \

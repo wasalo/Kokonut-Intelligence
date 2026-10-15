@@ -3,6 +3,7 @@
 Tests for Data Governance & Interoperability
 """
 
+import json
 import os
 import sys
 
@@ -13,6 +14,7 @@ from datetime import date, datetime, timezone
 from unittest.mock import MagicMock, patch
 
 from services.analytics.data_governance import (
+    approve_retention_policy,
     check_consent,
     create_sharing_agreement,
     enforce_retention_policies,
@@ -432,6 +434,78 @@ class TestSetRetentionPolicy(unittest.TestCase):
 
         self.conn.cursor.assert_not_called()
 
+    def test_set_retention_policy_records_normalized_scope_codes(self):
+        result = set_retention_policy(
+            self.conn, "soil", 42, actor="operator-1", reason="draft for review",
+            jurisdiction_code=" US-CA ", purpose_code="Research",
+        )
+
+        self.assertEqual(result["jurisdiction_code"], "us-ca")
+        self.assertEqual(result["purpose_code"], "research")
+        insert_params = self.mock_cursor.execute.call_args_list[0].args[1]
+        self.assertEqual(insert_params[4:6], ("us-ca", "research"))
+        snapshot = json.loads(self.mock_cursor.execute.call_args_list[1].args[1][3])
+        self.assertEqual(snapshot["jurisdiction_code"], "us-ca")
+        self.assertEqual(snapshot["purpose_code"], "research")
+
+    def test_set_retention_policy_rejects_invalid_scope_code_before_database_access(self):
+        with self.assertRaisesRegex(ValueError, "jurisdiction_code"):
+            set_retention_policy(
+                self.conn, "soil", 42,
+                actor="operator-1", reason="draft for review",
+                jurisdiction_code="US/CA",
+            )
+
+        self.conn.cursor.assert_not_called()
+
+
+class TestApproveRetentionPolicy(unittest.TestCase):
+    def test_approval_preserves_scope_and_marks_resolver_requirement(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = (
+            "a0000000-0000-0000-0000-000000000402", "soil", "soil_sample",
+            None, "us-ca", "research", 42, "soft_delete", False,
+            "reviewer", date(2026, 10, 15), "owner",
+        )
+
+        result = approve_retention_policy(
+            conn,
+            "a0000000-0000-0000-0000-000000000402",
+            "reviewer",
+            reason="approved proposal",
+        )
+
+        self.assertTrue(result["approved"])
+        self.assertFalse(result["jurisdiction_purpose_scope_resolved"])
+        self.assertEqual(result["jurisdiction_code"], "us-ca")
+        self.assertEqual(result["purpose_code"], "research")
+        snapshot = json.loads(cursor.execute.call_args_list[3].args[1][3])
+        self.assertEqual(snapshot["jurisdiction_code"], "us-ca")
+        self.assertEqual(snapshot["purpose_code"], "research")
+
+    def test_scoped_policy_cannot_enable_auto_enforcement(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = None
+
+        result = approve_retention_policy(
+            conn,
+            "a0000000-0000-0000-0000-000000000402",
+            "reviewer",
+            auto_enforce=True,
+            reason="approved proposal",
+        )
+
+        self.assertFalse(result["approved"])
+        self.assertIn("scoped auto-enforcement has no resolver", result["reason"])
+        self.assertEqual(cursor.execute.call_args_list[2].args[1], (
+            "reviewer", True, True,
+            "a0000000-0000-0000-0000-000000000402",
+        ))
+
 
 class TestRetentionSweep(unittest.TestCase):
     def test_sweep_fails_closed_by_default_before_opening_cursor(self):
@@ -465,7 +539,8 @@ class TestRetentionSweep(unittest.TestCase):
         conn.cursor.return_value = cursor
         cursor.fetchall.return_value = [
             (
-                "pol-001", "soil", "soil_sample", None, 42, "soft_delete",
+                "pol-001", "soil", "soil_sample", None, None, None,
+                42, "soft_delete",
                 True, True, "active", "reviewer-1", date(2026, 10, 15), "owner-1",
             ),
         ]
@@ -483,6 +558,30 @@ class TestRetentionSweep(unittest.TestCase):
             )
         )
         self.assertTrue(any("data_retention_enforcement_log" in call.args[0] for call in cursor.execute.call_args_list))
+
+    @patch.dict(os.environ, {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"})
+    def test_sweep_skips_jurisdiction_or_purpose_scope_without_resolver(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            (
+                "pol-002", "soil", "soil_sample", None, "us", "research",
+                42, "soft_delete", False, True, "active", "reviewer-1",
+                date(2026, 10, 15), "owner-1",
+            ),
+        ]
+
+        result = enforce_retention_policies(conn, "operator-1")
+
+        self.assertEqual(result["policies"][0]["status"], "skipped")
+        self.assertIn("requires a configured scope resolver", result["policies"][0]["error"])
+        self.assertFalse(
+            any(
+                "FROM data_retention_policy overlap" in call.args[0]
+                for call in cursor.execute.call_args_list
+            )
+        )
 
 
 class TestGetGovernanceSummary(unittest.TestCase):

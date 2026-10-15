@@ -1480,7 +1480,7 @@
       "candidate_relations": [
         "data_retention_policy"
       ],
-      "static_sql_sha256": "f4077db984a1ca6c1c55afc51c14fe28d4d3721ba7cd2f3d0b58fc529dd0c981",
+      "static_sql_sha256": "78ac1d3cecbdb8e5eb189c273be9fe18bb766fad99140bd9e73136f517106f4e",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
@@ -1490,9 +1490,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:369:16",
+      "id": "services/events/bus.py:378:16",
       "source": "services/events/bus.py",
-      "line": 369,
+      "line": 378,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1515,9 +1515,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:398:16",
+      "id": "services/events/bus.py:407:16",
       "source": "services/events/bus.py",
-      "line": 398,
+      "line": 407,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1536,9 +1536,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:406:16",
+      "id": "services/events/bus.py:415:16",
       "source": "services/events/bus.py",
-      "line": 406,
+      "line": 415,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",

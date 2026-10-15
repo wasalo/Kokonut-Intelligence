@@ -3,14 +3,15 @@
 **Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 Check GitHub Actions for CI and Security status on the current PR head before
 merge; local acceptance evidence is recorded below and linked to its source.
-Eight local commits, including the retention-policy and optional Directus
+Twelve local commits, including the retention-policy and optional Directus
 runtime-role/profile batches, are held beyond pushed head `72ab775`. The local
-work also includes static worker effect/JobSpec inventories; CI status on
-`72ab775` does not cover these commits. Candidate schema state remains through
-migration 400; migration 401 has not been rolled out.
-The newest commits close the sensor CLI false-success path (`83256be`), verify
+work also includes static worker effect/JobSpec inventories and the latest
+retention scope metadata batch; CI status on `72ab775` does not cover these
+commits. Candidate schema state remains through migration 400; migrations 401
+and 402 have not been rolled out.
+Earlier commits close the sensor CLI false-success path (`83256be`), verify
 the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
-isolated ARM64 minimal/edge/standard profile selection (`629affd`). Earlier
+isolated ARM64 minimal/edge/standard profile selection (`629affd`). Other
 local work includes default-off retention enforcement and Directus OIDC/operator
 grant checks. The ZITADEL profile has 26 focused Compose/planner checks, Ruff,
 shell syntax, Caddy validation, and isolated database-role evidence; its image
@@ -19,6 +20,19 @@ last candidate rollout record is migration 400; verify live candidate status
 and checkpoints again before any rollout. Application-table RLS remains
 unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment
 because no hardware is available; physical-device acceptance is not claimed.
+
+### Dynamic retention policy scope metadata — 15 October 2026
+
+Migration 402 adds optional owner-defined jurisdiction and purpose codes with
+no defaults or hardcoded legal interpretation. The CLI and append-only policy
+snapshots preserve the codes; scoped automatic enforcement fails closed until
+a resolver exists. Event cleanup requires one unambiguous global policy and
+locks that lookup. Sixty-two focused tests and four subtests pass, Ruff and
+static inventories are current, and migrations 401/402 pass on a temporary
+internal-only PostgreSQL fixture. The candidate remains at migration 400; no
+policy periods or scoped policies were configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
+[source evidence](builds/2026-10-15-recovery/retention-policy-scope-source-checks.json);
+[database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
 
 ### Optional Directus runtime identity and candidate profile — 15 October 2026
 

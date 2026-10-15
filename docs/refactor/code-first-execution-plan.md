@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **366 checked and 20 open items (386 total)**,
+- The execution checklist has **367 checked and 20 open items (387 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery, seed rollout,
@@ -22,7 +22,7 @@ MAN-CAP checks open until each has its own retained evidence.
 - The latest pushed head is
   [`72ab775e8b9863795b2c4800c59e9f34ff2ae205`](https://github.com/wasalo/Kokonut-Intelligence/commit/72ab775e8b9863795b2c4800c59e9f34ff2ae205)
   on `feat/mobile-offline-acceptance`, PR #68. Security #48 passed; CI #324 is
-  in progress at the last recorded check. Eleven local commits are now held
+  in progress at the last recorded check. Twelve local commits are now held
   beyond that pushed head, including retention-policy and optional Directus
   role/profile batches and fresh-volume Directus overlay acceptance. The
   local batch includes worker effect, SQL reachability, and JobSpec inventories;
@@ -193,7 +193,7 @@ database write.
 | Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
 | Curated seed write | 8 | The exact five-file catalog allowlist and recovery sequence are documented above; prepare a fresh encrypted current-candidate checkpoint and restore rehearsal. | The owner selected scope. Applying the five files still needs separate approval after checkpoint evidence is ready. |
-| Retention policy | 2 | Keep no-prune as the default; runtime policy and legal-hold code plus synthetic PostgreSQL acceptance are complete. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, and erasure procedures. |
+| Retention policy | 2 | Keep no-prune as the default; runtime policy, audited holds, optional jurisdiction/purpose codes, and synthetic PostgreSQL acceptance are implemented. Unresolved scoped policies fail closed. | USA and Dominican Republic were supplied. Periods are deliberately runtime-configured, not hardcoded; deployment still needs approved policy data, accountable approval/hold roles, archive access, a scope resolver, and erasure procedures. |
 
 ## Work order
 
@@ -521,6 +521,18 @@ passes 94 tests plus four subtests. Acceptance caught an undersized history
 action column and the migration was corrected. Candidate and legacy databases
 were untouched; keep pruning disabled until approved policy data and operating
 roles are configured for deployment ([database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json); [source evidence](builds/2026-10-15-recovery/retention-policy-source-checks.json); [migration](../../schemas/postgres/401_dynamic_retention_and_legal_holds.sql); [operations](retention-policy-operations.md)).
+
+**Dynamic retention scope metadata (15 October 2026):** migration 402 adds
+nullable owner-defined jurisdiction and purpose codes without defaults or
+hardcoded legal meaning. The CLI and audited policy snapshots preserve these
+codes. Auto-enforcement is rejected for unresolved codes, the generic sweeper
+skips scoped policies, and EventBus cleanup rejects ambiguous active policy
+state. Sixty-two focused source tests and four subtests pass; migrations 401
+and 402 pass against an isolated synthetic PostgreSQL fixture. Candidate and
+legacy databases remain untouched; no retention values or policies were
+configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
+[scope evidence](builds/2026-10-15-recovery/retention-policy-scope-source-checks.json);
+[database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and

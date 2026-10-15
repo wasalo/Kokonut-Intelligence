@@ -341,6 +341,8 @@ class EventBus:
                     WHERE data_category = 'event_bus'
                       AND entity_type = 'platform_event'
                       AND location_id IS NULL
+                      AND jurisdiction_code IS NULL
+                      AND purpose_code IS NULL
                       AND retention_days > 0
                       AND deletion_method = 'hard_delete'
                       AND legal_hold = FALSE
@@ -350,6 +352,13 @@ class EventBus:
                       AND NULLIF(BTRIM(policy_owner), '') IS NOT NULL
                       AND approval_date IS NOT NULL
                       AND status = 'active'
+                      AND NOT EXISTS (
+                          SELECT 1 FROM data_retention_policy overlap
+                          WHERE overlap.id <> data_retention_policy.id
+                            AND overlap.data_category = 'event_bus'
+                            AND overlap.entity_type = 'platform_event'
+                            AND overlap.status = 'active'
+                      )
                     FOR SHARE
                     """
                 )

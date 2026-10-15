@@ -56,6 +56,20 @@ def _requires_reviewed_disposition(entity_type: str | None) -> bool:
     )
 
 
+def _normalize_retention_scope_code(value: str | None, field_name: str) -> str | None:
+    """Normalize an owner-defined retention scope code without assigning meaning."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    normalized = value.strip().lower()
+    if not re.fullmatch(r"[a-z0-9][a-z0-9._:-]{0,99}", normalized):
+        raise ValueError(
+            f"{field_name} must be a 1-100 character code using letters, numbers, '.', '_', ':', or '-'"
+        )
+    return normalized
+
+
 # ============================================================
 # Consent Management
 # ============================================================
@@ -732,6 +746,8 @@ def set_retention_policy(
     metadata: dict = None,
     actor: str = None,
     reason: str = None,
+    jurisdiction_code: str = None,
+    purpose_code: str = None,
 ) -> dict:
     """Create an inert draft retention policy, optionally with a proposed window."""
     if not isinstance(data_category, str) or not data_category.strip():
@@ -754,6 +770,10 @@ def set_retention_policy(
         raise ValueError(
             "this entity requires a dedicated reviewed disposition workflow"
         )
+    jurisdiction_code = _normalize_retention_scope_code(
+        jurisdiction_code, "jurisdiction_code",
+    )
+    purpose_code = _normalize_retention_scope_code(purpose_code, "purpose_code")
     cur = conn.cursor()
     policy_id = str(uuid.uuid4())
 
@@ -762,14 +782,16 @@ def set_retention_policy(
             """
             INSERT INTO data_retention_policy
                 (id, data_category, entity_type, location_id,
+                 jurisdiction_code, purpose_code,
                  retention_days, deletion_method, auto_enforce,
                  policy_owner, status, metadata)
-            VALUES (%s, %s, %s, %s, %s, %s, FALSE, %s, 'draft', %s::jsonb)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE, %s, 'draft', %s::jsonb)
             ON CONFLICT DO NOTHING
             RETURNING id, created_at
             """,
             (
                 policy_id, data_category, entity_type, location_id,
+                jurisdiction_code, purpose_code,
                 retention_days, action, policy_owner,
                 json.dumps(metadata or {}),
             ),
@@ -792,6 +814,8 @@ def set_retention_policy(
                     "data_category": data_category.strip(),
                     "entity_type": entity_type,
                     "location_id": location_id,
+                    "jurisdiction_code": jurisdiction_code,
+                    "purpose_code": purpose_code,
                     "policy_owner": policy_owner,
                     "retention_days": retention_days,
                     "deletion_method": action,
@@ -807,6 +831,8 @@ def set_retention_policy(
             "data_category": data_category,
             "retention_days": retention_days,
             "deletion_method": action,
+            "jurisdiction_code": jurisdiction_code,
+            "purpose_code": purpose_code,
             "auto_enforce": False,
             "status": "draft",
             "created_at": row[1].isoformat() if row else None,
@@ -839,6 +865,7 @@ def approve_retention_policy(
 
     cur = conn.cursor()
     try:
+        cur.execute("SELECT pg_advisory_xact_lock(hashtext('kokonut.retention.legal_hold'))")
         cur.execute("SELECT pg_advisory_xact_lock(hashtext('data_retention_policy_approval'))")
         cur.execute(
             """
@@ -853,11 +880,25 @@ def approve_retention_policy(
               AND policy_owner IS NOT NULL
               AND length(btrim(policy_owner)) > 0
               AND deletion_method <> 'none'
+              AND (
+                  NOT %s
+                  OR (jurisdiction_code IS NULL AND purpose_code IS NULL)
+              )
               AND NOT EXISTS (
                   SELECT 1 FROM data_retention_policy active
                   WHERE active.id <> data_retention_policy.id
                     AND active.data_category = data_retention_policy.data_category
                     AND active.entity_type IS NOT DISTINCT FROM data_retention_policy.entity_type
+                    AND (
+                        active.jurisdiction_code IS NULL
+                        OR data_retention_policy.jurisdiction_code IS NULL
+                        OR active.jurisdiction_code = data_retention_policy.jurisdiction_code
+                    )
+                    AND (
+                        active.purpose_code IS NULL
+                        OR data_retention_policy.purpose_code IS NULL
+                        OR active.purpose_code = data_retention_policy.purpose_code
+                    )
                     AND (
                         active.location_id IS NULL
                         OR data_retention_policy.location_id IS NULL
@@ -865,11 +906,12 @@ def approve_retention_policy(
                     )
                     AND active.status = 'active'
               )
-            RETURNING id, data_category, entity_type, retention_days,
+            RETURNING id, data_category, entity_type, location_id,
+                      jurisdiction_code, purpose_code, retention_days,
                       deletion_method, auto_enforce, approved_by, approval_date,
                       policy_owner
             """,
-            (approved_by.strip(), auto_enforce, normalized_policy_id),
+            (approved_by.strip(), auto_enforce, auto_enforce, normalized_policy_id),
         )
         row = cur.fetchone()
         if row is not None:
@@ -886,12 +928,15 @@ def approve_retention_policy(
                     json.dumps({
                         "data_category": row[1],
                         "entity_type": row[2],
-                        "retention_days": row[3],
-                        "deletion_method": row[4],
-                        "auto_enforce": row[5],
-                        "approved_by": row[6],
-                        "approval_date": row[7].isoformat() if row[7] else None,
-                        "policy_owner": row[8],
+                        "location_id": str(row[3]) if row[3] else None,
+                        "jurisdiction_code": row[4],
+                        "purpose_code": row[5],
+                        "retention_days": row[6],
+                        "deletion_method": row[7],
+                        "auto_enforce": row[8],
+                        "approved_by": row[9],
+                        "approval_date": row[10].isoformat() if row[10] else None,
+                        "policy_owner": row[11],
                         "status": "active",
                     }),
                 ),
@@ -901,19 +946,26 @@ def approve_retention_policy(
             return {
                 "approved": False,
                 "policy_id": normalized_policy_id,
-                "reason": "draft is incomplete or overlaps an active policy",
+                "reason": (
+                    "draft is incomplete, scoped auto-enforcement has no resolver, "
+                    "or the policy overlaps an active policy"
+                ),
             }
         return {
             "approved": True,
             "policy_id": str(row[0]),
             "data_category": row[1],
             "entity_type": row[2],
-            "retention_days": row[3],
-            "deletion_method": row[4],
-            "auto_enforce": row[5],
-            "approved_by": row[6],
-            "approval_date": row[7].isoformat() if row[7] else None,
-            "policy_owner": row[8],
+            "location_id": str(row[3]) if row[3] else None,
+            "jurisdiction_code": row[4],
+            "purpose_code": row[5],
+            "retention_days": row[6],
+            "deletion_method": row[7],
+            "auto_enforce": row[8],
+            "approved_by": row[9],
+            "approval_date": row[10].isoformat() if row[10] else None,
+            "policy_owner": row[11],
+            "jurisdiction_purpose_scope_resolved": row[4] is None and row[5] is None,
         }
     except Exception:
         conn.rollback()
@@ -940,13 +992,15 @@ def retire_retention_policy(
 
     cur = conn.cursor()
     try:
+        cur.execute("SELECT pg_advisory_xact_lock(hashtext('kokonut.retention.legal_hold'))")
         cur.execute(
             """
             UPDATE data_retention_policy
             SET status = 'inactive', auto_enforce = FALSE,
                 override_reason = %s, updated_at = NOW()
             WHERE id = %s AND status = 'active'
-            RETURNING id, data_category, entity_type, location_id, retention_days,
+            RETURNING id, data_category, entity_type, location_id,
+                      jurisdiction_code, purpose_code, retention_days,
                       deletion_method, approved_by, approval_date, policy_owner
             """,
             (reason.strip(), normalized_policy_id),
@@ -969,11 +1023,13 @@ def retire_retention_policy(
                     "data_category": row[1],
                     "entity_type": row[2],
                     "location_id": str(row[3]) if row[3] else None,
-                    "retention_days": row[4],
-                    "deletion_method": row[5],
-                    "approved_by": row[6],
-                    "approval_date": row[7].isoformat() if row[7] else None,
-                    "policy_owner": row[8],
+                    "jurisdiction_code": row[4],
+                    "purpose_code": row[5],
+                    "retention_days": row[6],
+                    "deletion_method": row[7],
+                    "approved_by": row[8],
+                    "approval_date": row[9].isoformat() if row[9] else None,
+                    "policy_owner": row[10],
                     "status": "inactive",
                     "auto_enforce": False,
                 }),
@@ -1125,7 +1181,8 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
         if not dry_run:
             cur.execute("SELECT pg_advisory_xact_lock(hashtext('kokonut.retention.legal_hold'))")
         cur.execute("""
-            SELECT id, data_category, entity_type, location_id, retention_days,
+            SELECT id, data_category, entity_type, location_id,
+                   jurisdiction_code, purpose_code, retention_days,
                    deletion_method, legal_hold, auto_enforce, enforcement_status,
                    approved_by, approval_date, policy_owner
             FROM data_retention_policy
@@ -1133,11 +1190,14 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
             ORDER BY priority DESC, created_at
         """)
         policies = cur.fetchall()
-        for policy_id, category, entity_type, location_id, days, method, legal_hold, auto_enforce, enforcement_status, approved_by, approval_date, policy_owner in policies:
+        for policy_id, category, entity_type, location_id, jurisdiction_code, purpose_code, days, method, legal_hold, auto_enforce, enforcement_status, approved_by, approval_date, policy_owner in policies:
             status, candidates, affected, error = None, 0, 0, None
             if _requires_reviewed_disposition(entity_type):
                 status = "skipped"
                 error = "protected entity requires a dedicated reviewed disposition workflow"
+            elif jurisdiction_code is not None or purpose_code is not None:
+                status = "skipped"
+                error = "jurisdiction or purpose scope requires a configured scope resolver"
             elif entity_type == "platform_event":
                 status = "skipped"
                 error = "platform_event requires the hold-aware event cleanup workflow"
@@ -1154,12 +1214,27 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
                       AND overlap.entity_type = %s
                       AND overlap.status = 'active'
                       AND (
+                          overlap.jurisdiction_code IS NULL
+                          OR %s IS NULL
+                          OR overlap.jurisdiction_code = %s
+                      )
+                      AND (
+                          overlap.purpose_code IS NULL
+                          OR %s IS NULL
+                          OR overlap.purpose_code = %s
+                      )
+                      AND (
                           overlap.location_id IS NULL
                           OR %s IS NULL
                           OR overlap.location_id = %s
                       )
                     """,
-                    (policy_id, category, entity_type, location_id, location_id),
+                    (
+                        policy_id, category, entity_type,
+                        jurisdiction_code, jurisdiction_code,
+                        purpose_code, purpose_code,
+                        location_id, location_id,
+                    ),
                 )
                 if cur.fetchone()[0] > 0:
                     status = "skipped"
