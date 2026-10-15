@@ -34,12 +34,18 @@ class EventWorkerRecoveryTests(TestCase):
         ):
             self.assertEqual(cmd_worker(_args()), 0)
 
-        self.assertEqual(get_bus.call_args_list, [call(lease_seconds=30), call(lease_seconds=30)])
+        self.assertEqual(
+            get_bus.call_args_list,
+            [
+                call(lease_seconds=30, connect_timeout=5),
+                call(lease_seconds=30, connect_timeout=5),
+            ],
+        )
         failed_bus.close.assert_called_once()
         recovered_bus.close.assert_called_once()
         failed_bus.process_pending.assert_called_once_with(10, "event-worker-test")
         recovered_bus.process_pending.assert_called_once_with(10, "event-worker-test")
-        get_conn.assert_called_once_with()
+        get_conn.assert_called_once_with(connect_timeout=5)
         deliver.assert_called_once_with(notification_conn, "event-worker-test", 10)
         log_exception.assert_called_once_with("Event worker iteration failed")
 
@@ -64,9 +70,17 @@ class EventWorkerRecoveryTests(TestCase):
             self.assertEqual(cmd_worker(_args()), 0)
 
         self.assertEqual(get_bus.call_count, 2)
+        self.assertEqual(
+            get_bus.call_args_list,
+            [
+                call(lease_seconds=30, connect_timeout=5),
+                call(lease_seconds=30, connect_timeout=5),
+            ],
+        )
         first_bus.close.assert_called_once()
         second_bus.close.assert_called_once()
         self.assertEqual(get_conn.call_count, 2)
+        self.assertEqual(get_conn.call_args_list, [call(connect_timeout=5), call(connect_timeout=5)])
         deliver.assert_called_once_with(notification_conn, "event-worker-test", 10)
         log_exception.assert_called_once_with("Event worker iteration failed")
 

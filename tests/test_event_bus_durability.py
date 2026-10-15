@@ -18,6 +18,18 @@ def test_every_registered_handler_resolves_to_a_callable():
         assert callable(resolve_handler(module_path, function_name))
 
 
+def test_lazy_event_bus_connection_uses_configured_timeout():
+    connection = MagicMock()
+    with patch("services.common.database.get_db", return_value=connection) as get_db:
+        bus = EventBus(connect_timeout=5)
+
+        assert bus._get_conn() is connection
+
+    get_db.assert_called_once_with(connect_timeout=5)
+    bus.close()
+    connection.close.assert_called_once()
+
+
 def test_unregistered_event_handler_is_rejected_before_import():
     with patch("services.events.bus.importlib.import_module") as importer:
         try:

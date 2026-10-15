@@ -57,9 +57,9 @@ def cmd_worker(args):
             result = {"processed": 0, "failed": 0}
             notifications = {"claimed": 0}
             try:
-                bus = get_event_store(lease_seconds=args.lease_seconds)
+                bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
                 result = bus.process_pending(args.batch_size, args.worker_id)
-                with get_connection() as conn:
+                with get_connection(connect_timeout=5) as conn:
                     notifications = deliver_batch(conn, args.worker_id, args.batch_size)
             except KeyboardInterrupt:
                 return 0

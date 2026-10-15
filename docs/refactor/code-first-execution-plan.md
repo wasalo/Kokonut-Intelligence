@@ -38,8 +38,9 @@ MAN-CAP checks open until each has its own retained evidence.
   survives the outage and reconnects; the scheduler engine was stubbed, so real
   task SQL, lease recovery, delivery, and long-duration recovery remain open.
 - A local EventBus worker slice now creates and closes its bus per iteration,
-  recreates notification connections, and retries logged failures. Nineteen
-  focused event-worker/EventBus tests pass with Ruff and compilation; the
+  recreates bounded-timeout notification connections, and retries logged
+  failures. Twenty focused event-worker/EventBus tests pass with Ruff and
+  compilation; the
   event/notification live restart and delivery checks remain open. This change
   is not part of the latest pushed head yet.
 - The capability matrix contains 66 capabilities: 56 baseline-retained, 7

@@ -5,7 +5,7 @@
     "pytest": {
       "command": "python3 -m pytest tests/test_event_worker_recovery.py tests/test_event_bus_durability.py -q",
       "result": "passed",
-      "passed": 19
+      "passed": 20
     },
     "ruff": {
       "command": "ruff check services/events/cli.py tests/test_event_worker_recovery.py",
@@ -18,8 +18,9 @@
   },
   "verified": [
     "A new EventBus is constructed for each worker iteration and closed afterward.",
+    "Event-store and notification database connections use a five-second connection timeout.",
     "A failed event-store connection is logged and a later poll obtains a new bus.",
-    "A notification database failure closes the current bus and retries with fresh connections.",
+    "A notification database failure closes the current bus and retries with fresh bounded-timeout connections.",
     "Nonpositive polling intervals fail before opening the event store."
   ],
   "implementation": [

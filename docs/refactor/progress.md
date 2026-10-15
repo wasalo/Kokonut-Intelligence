@@ -5588,9 +5588,10 @@ acceptance remain open. The candidate and legacy databases were not accessed.
 The EventBus worker previously reused one bus for its full process lifetime and
 let database errors escape its polling loop. It now creates and closes an
 EventBus each iteration, obtains notification connections inside that same
-iteration, logs failures, and retries after the configured poll interval. Three
+iteration with a five-second connect timeout, logs failures, and retries after the configured poll interval. Three
 new fault-injection tests cover event-store failure, notification connection
-failure, and invalid poll intervals; with EventBus durability coverage, 19
-focused tests pass. Ruff and Python compilation pass. No live event database,
+failure, and invalid poll intervals; a lazy-connection regression pins the
+timeout. With EventBus durability coverage, 20 focused tests pass. Ruff and
+Python compilation pass. No live event database,
 handler, or notification provider was accessed, so process-level event lease
 and delivery recovery remain open. [Evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json).

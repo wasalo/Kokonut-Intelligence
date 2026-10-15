@@ -143,7 +143,8 @@ use fresh bounded-timeout PostgreSQL connections while keeping a stable worker
 identity; two fault-injection tests prove that connection and tick failures do
 not prevent a later tick from succeeding. The EventBus worker now recreates its
 event bus and notification database connection for each iteration and retries
-logged failures; 10 scheduler tests and 19 event-worker/EventBus tests pass,
+logged failures with a five-second connection timeout; 10 scheduler tests and
+20 event-worker/EventBus tests pass,
 with Ruff clean. A loopback-only disposable PostgreSQL stop/start check confirms
 the scheduler process survives the outage and reconnects; the engine was
 stubbed, and the event worker has source/unit checks only. Real task/lease

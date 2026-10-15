@@ -42,15 +42,18 @@ def _handler_process(result_queue, module_path, function_name, event_type, paylo
 class EventBus:
     """Publish and deliver events with leases and per-handler idempotency."""
 
-    def __init__(self, conn=None, lease_seconds: int = 300):
+    def __init__(self, conn=None, lease_seconds: int = 300, connect_timeout: int | None = None):
         self._conn = conn
         self._owns_conn = conn is None
         self.lease_seconds = lease_seconds
+        self.connect_timeout = connect_timeout
 
     def _get_conn(self):
         if self._conn is None:
             from services.common.database import get_db
-            self._conn = get_db()
+            self._conn = (
+                get_db() if self.connect_timeout is None else get_db(connect_timeout=self.connect_timeout)
+            )
         return self._conn
 
     def close(self):
