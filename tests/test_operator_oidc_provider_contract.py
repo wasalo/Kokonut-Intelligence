@@ -16,6 +16,7 @@ from starlette.responses import RedirectResponse  # noqa: E402
 from services.gateway.operator_auth import (  # noqa: E402
     CSRF_COOKIE,
     SESSION_COOKIE,
+    OIDCOperatorProvider,
     OperatorPrincipal,
     OperatorSession,
 )
@@ -240,3 +241,24 @@ def test_oidc_logout_rejects_missing_csrf_without_revoking_session(monkeypatch, 
     assert response.status_code == 403
     assert response.json()["reason"] == "csrf_validation_failed"
     assert provider.revoked_sessions == []
+
+
+def test_actual_oidc_adapter_rejects_invalid_identity_claims_before_database(
+    monkeypatch,
+):
+    import services.gateway.operator_auth as operator_auth
+
+    provider = object.__new__(OIDCOperatorProvider)
+    provider.settings = SimpleNamespace(issuer="https://identity.example.test")
+
+    def unexpected_database_access(_settings):
+        pytest.fail("invalid OIDC claims must be rejected before database access")
+
+    monkeypatch.setattr(operator_auth, "_get_operator_auth_db", unexpected_database_access)
+    for claims in (
+        {"iss": "https://untrusted.example.test", "sub": "operator-1"},
+        {"iss": "https://identity.example.test"},
+        {"iss": "https://identity.example.test", "sub": ""},
+        {"iss": "https://identity.example.test", "sub": "x" * 256},
+    ):
+        assert provider.create_session(claims) is None

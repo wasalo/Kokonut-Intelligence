@@ -5244,9 +5244,10 @@ not simulate delayed requests in a real browser. [Evidence](builds/2026-10-15-re
 
 ### Fake-provider operator OIDC route contract — 15 October 2026
 
-Added five in-process checks for login state handoff, callback rejection of
-missing or unprovisioned identities, opaque session/CSRF cookie issuance,
-no-store active-scope response, and CSRF-gated logout/revocation. The fake
-adapter made no network or database calls. Ruff passes. Real Authlib discovery,
-PKCE/token verification, provider credentials, identity/session SQL, and browser
-acceptance remain open. [Evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json).
+Added six focused checks for login state handoff, callback rejection of missing
+or unprovisioned identities, opaque session/CSRF cookie issuance, no-store
+active-scope response, CSRF-gated logout/revocation, and actual-adapter rejection
+of invalid issuer/subject claims before opening the auth database connection.
+The fake provider made no network or database calls. Ruff passes. Real Authlib
+discovery, PKCE/token verification, provider credentials, valid identity/session
+SQL, and browser acceptance remain open. [Evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json).

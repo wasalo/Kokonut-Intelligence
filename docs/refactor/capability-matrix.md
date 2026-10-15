@@ -21,9 +21,10 @@ Directus permissions or accept a named MAN-CAP check
 ([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
 
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
-five no-network tests cover OIDC login state handoff, callback rejection,
-opaque session/CSRF cookie issuance, scope response, and CSRF-gated logout.
-This pins route wiring only; Authlib/provider verification, identity/session SQL,
+six no-network tests cover OIDC login state handoff, callback rejection,
+opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and
+actual-adapter rejection of invalid issuer/subject claims before database access.
+This pins route wiring and a pre-database claim guard only; Authlib/provider verification, identity/session SQL,
 real grants, browser acceptance, and the named MAN-CAP checks remain open
 ([evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json)).
 
