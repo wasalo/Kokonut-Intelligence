@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). The local branch includes later report, CORS, scheduler, Directus, inventory, and capability-matrix work; the latest local batch also adds default-off generic retention enforcement. These commits remain unpushed. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). The local branch includes later report, CORS, scheduler, Directus, inventory, and capability-matrix work; the latest local batch adds default-off generic retention enforcement and source-level Directus OIDC/operator-grant enforcement. These commits remain unpushed. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 ### Capability matrix integrity and owner mapping — 15 October 2026
 
@@ -208,6 +208,26 @@ entity-level hold eligibility remain open, so leave it off
 ([implementation](../../services/analytics/retention.py);
 [test](../../tests/test_data_governance.py);
 [evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
+
+### Directus OIDC principal and tenant grants — 15 October 2026
+
+The Directus hook now binds the authenticated Directus user through its
+`external_identifier` to an enabled Kokonut operator with an exact
+`KOKONUT_OPERATOR_OIDC_ISSUER` match shared with the Gateway. For ten
+location-scoped collections, `items.query` adds an
+organization-qualified read-grant location filter, `items.read` checks returned
+IDs against stored tenant locations, and create/update/delete require the
+corresponding scoped grant. Bulk writes fail as a whole and location changes
+are rejected. Focused package tests pass (61 across five files); the pinned
+Directus extension bundle and TypeScript check pass. No database or provider
+was accessed. The local Docker socket denied access, so pinned-image requests
+could not be run. Directus role/field/expanded-relation parity, runtime-role
+deployment, real provider/operator provisioning, concurrent revocation, and
+signed RLS context remain open
+([implementation](../../extensions/kokonut-hooks/src/directus-authorization.ts);
+[tests](../../extensions/kokonut-hooks/src/directus-authorization.test.ts);
+[evidence](builds/2026-10-15-recovery/directus-tenant-authorization-unit.json);
+[parity inventory](directus-parity-inventory.md)).
 
 ### Kernel supervisor source contract — 14 October 2026
 

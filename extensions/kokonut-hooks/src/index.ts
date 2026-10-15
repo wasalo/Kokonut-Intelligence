@@ -45,6 +45,14 @@ import {
   STAKEHOLDER_HUMAN_REVIEW_COLLECTIONS,
 } from './agent-safety.js';
 import { validateTenantReferences } from './tenant-validation.js';
+import {
+  authorizeDirectusCreate,
+  authorizeDirectusRead,
+  authorizeDirectusReadResult,
+  authorizeDirectusRows,
+  createDirectusTenantStore,
+  TENANT_SCOPED_COLLECTIONS,
+} from './directus-authorization.js';
 import { z } from 'zod';
 import {
   validateAgentTaskCreate,
@@ -94,16 +102,87 @@ const WORKFLOW_ONLY_COLLECTIONS = LIFECYCLE_COLLECTIONS.filter(
     ].includes(c)
 );
 
-export default defineHook(({ filter, action, schedule }, { database }) => {
+export default defineHook(({ filter, action, schedule }, { database, env }) => {
   setDb(database);
 
-  for (const collection of [
-    'farm_activity', 'harvest_event', 'expense_event', 'sales_event',
-    'loss_event', 'labor_event', 'field_note', 'stakeholder_feedback',
-    'metric_proposal', 'mrv_claim',
-  ]) {
-    filter(`${collection}.items.create`, async (payload: Record<string, any>) => {
-      return await validateTenantReferences(database, collection, payload);
+  for (const collection of TENANT_SCOPED_COLLECTIONS) {
+    filter(`${collection}.items.query`, async (
+      query: Record<string, any>,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const requestDatabase = context?.database || database;
+      return await authorizeDirectusRead(
+        createDirectusTenantStore(requestDatabase),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        query,
+      );
+    });
+
+    filter(`${collection}.items.read`, async (
+      items: unknown,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      return await authorizeDirectusReadResult(
+        createDirectusTenantStore(context?.database || database),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        items,
+      );
+    });
+
+    filter(`${collection}.items.create`, async (
+      payload: Record<string, any>,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      const requestDatabase = context?.database || database;
+      const tenantStore = createDirectusTenantStore(requestDatabase);
+      await authorizeDirectusCreate(
+        tenantStore,
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        payload,
+      );
+      return await validateTenantReferences(requestDatabase, collection, payload);
+    });
+
+    filter(`${collection}.items.update`, async (
+      payload: Record<string, any>,
+      meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      await authorizeDirectusRows(
+        createDirectusTenantStore(context?.database || database),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        'update',
+        meta?.keys,
+        payload,
+      );
+      return payload;
+    });
+
+    filter(`${collection}.items.delete`, async (
+      keys: string[] | string,
+      _meta: Record<string, any>,
+      context: Record<string, any>,
+    ) => {
+      await authorizeDirectusRows(
+        createDirectusTenantStore(context?.database || database),
+        context?.accountability,
+        env.KOKONUT_OPERATOR_OIDC_ISSUER,
+        collection,
+        'delete',
+        keys,
+      );
+      return keys;
     });
   }
 

@@ -1,23 +1,11 @@
 import { createError } from '@directus/errors';
+import { TENANT_SCOPED_COLLECTIONS } from './directus-authorization.js';
 
 const REFERENCE_TABLES: Record<string, string[]> = {
   plot_id: ['plot'],
   crop_cycle_id: ['crop_cycle'],
   harvest_id: ['harvest_event'],
 };
-
-const TENANT_SCOPED_COLLECTIONS = [
-  'farm_activity',
-  'harvest_event',
-  'expense_event',
-  'sales_event',
-  'loss_event',
-  'labor_event',
-  'field_note',
-  'stakeholder_feedback',
-  'metric_proposal',
-  'mrv_claim',
-];
 
 const InvalidTenantPayloadError = createError<{ message: string }>(
   'INVALID_PAYLOAD',
@@ -40,11 +28,11 @@ export async function validateTenantReferences(
   collection: string,
   payload: Record<string, any>
 ): Promise<Record<string, any>> {
-  if (!TENANT_SCOPED_COLLECTIONS.includes(collection)) return payload;
+  if (!(TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) return payload;
 
   const locationId = payload.location_id;
-  // A missing/null location is still handled by the collection's schema and
-  // Directus permission policy (some legacy collections allow global rows).
+  // The request-level authorization hook rejects missing/null tenant scope;
+  // this helper validates only the explicit scope and its foreign references.
   // An explicitly supplied but malformed scope must never skip validation.
   if (locationId !== undefined && locationId !== null && !isUuid(locationId)) {
     throw invalidTenantPayload('Invalid location_id');

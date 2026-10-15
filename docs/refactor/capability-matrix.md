@@ -40,6 +40,20 @@ with `400 INVALID_PAYLOAD` without inserting a row. Kokonut identity/grant and
 full permission parity remain open
 ([host evidence](builds/2026-10-15-recovery/directus-extension-host-contract.json); [event evidence](builds/2026-10-15-recovery/directus-hook-event-registration.json); [runtime evidence](builds/2026-10-15-recovery/directus-extension-runtime.json); [inventory](directus-parity-inventory.md)).
 
+**15 October 2026 Directus principal/grant guard (CAP-001 / CAP-047 / CAP-053):**
+the hook now resolves an authenticated Directus user's OIDC subject only under
+the exact configured issuer, maps it to an enabled `operator_identity`, applies
+the current organization-qualified collection/action/location grant to list
+reads and returned read records plus each create, update, or delete target,
+excludes legacy grants without organization scope, and rejects bulk partial
+access and row moves. Focused
+extension tests and the TypeScript build pass. This is source-level protection
+only: the issuer/operator/grants are not provisioned, Directus role/field and
+expanded-relation behavior is not yet accepted, the legacy Directus service
+still uses the database superuser, and this does not establish signed tenant
+context or RLS. MAN-CAP checks remain unaccepted
+([unit evidence](builds/2026-10-15-recovery/directus-tenant-authorization-unit.json); [inventory](directus-parity-inventory.md)).
+
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,
 opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and
