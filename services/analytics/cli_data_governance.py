@@ -6,8 +6,10 @@ queries/business logic. Reachable via:
     python -m services.analytics.cli_data_governance --help
 """
 
+import sys
 from datetime import datetime
 
+from ..common.cli import run
 from ..common.commands import CommandLine
 from .data_governance import (
     check_consent,
@@ -227,7 +229,18 @@ cli.subcommand("governance-summary", "Aggregated governance metrics") \
 
 
 def main(argv=None):
-    cli.run(argv)
+    tokens = list(sys.argv[1:] if argv is None else argv)
+    if (
+        tokens
+        and tokens[0] == "enforce-retention"
+        and "--dry-run" not in tokens
+        and "-h" not in tokens
+        and "--help" not in tokens
+    ):
+        from .retention import require_data_retention_enforcement
+
+        run(require_data_retention_enforcement)
+    run(cli.main, tokens)
 
 
 if __name__ == "__main__":

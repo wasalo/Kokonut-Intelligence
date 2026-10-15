@@ -11,6 +11,15 @@ python3 -m services.analytics
 python3 -m services.analytics.cli --help
 ```
 
+## Retention enforcement
+
+The generic `enforce-retention` command is destructive and is disabled by
+default. Set `KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT=true` only after the
+jurisdiction-specific schedule is approved and legal-hold eligibility is
+enforced for the target records. `--dry-run` remains available while the
+destructive gate is off. This switch does not supply or approve a retention
+period.
+
 ## Modules
 
 - `advantage_assessment` — VRIO-style defensible advantage assessments.

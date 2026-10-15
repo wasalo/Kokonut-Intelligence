@@ -777,6 +777,11 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
     checking it against PostgreSQL metadata. Policies without a target table,
     legal holds, paused policies, and ``none`` actions are recorded as skipped.
     """
+    if not dry_run:
+        from .retention import require_data_retention_enforcement
+
+        require_data_retention_enforcement()
+
     cur = conn.cursor()
     results = []
     try:

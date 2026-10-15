@@ -3,29 +3,30 @@
 Tests for Data Governance & Interoperability
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import unittest
+from datetime import date, datetime, timezone
 from unittest.mock import MagicMock, patch
-from datetime import date, datetime, timezone, timedelta
 
 from services.analytics.data_governance import (
-    record_consent,
-    withdraw_consent,
-    get_consent_status,
     check_consent,
-    log_access,
-    get_access_audit,
-    request_portability,
-    fulfill_portability,
-    get_portability_requests,
     create_sharing_agreement,
-    get_sharing_agreements,
-    set_retention_policy,
     enforce_retention_policies,
+    fulfill_portability,
+    get_access_audit,
+    get_consent_status,
     get_governance_summary,
+    get_portability_requests,
+    get_sharing_agreements,
+    log_access,
+    record_consent,
+    request_portability,
+    set_retention_policy,
+    withdraw_consent,
 )
 
 
@@ -408,6 +409,31 @@ class TestSetRetentionPolicy(unittest.TestCase):
 
 
 class TestRetentionSweep(unittest.TestCase):
+    def test_sweep_fails_closed_by_default_before_opening_cursor(self):
+        conn = MagicMock()
+
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaisesRegex(
+                RuntimeError,
+                "KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT=true",
+            ):
+                enforce_retention_policies(conn, "operator-1")
+
+        conn.cursor.assert_not_called()
+
+    def test_dry_run_remains_available_without_destructive_gate(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = []
+
+        with patch.dict(os.environ, {}, clear=True):
+            result = enforce_retention_policies(conn, "operator-1", dry_run=True)
+
+        self.assertEqual(result["total"], 0)
+        conn.commit.assert_called_once()
+
+    @patch.dict(os.environ, {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"})
     def test_sweep_records_legal_hold_as_skipped(self):
         conn = MagicMock()
         cursor = MagicMock()
