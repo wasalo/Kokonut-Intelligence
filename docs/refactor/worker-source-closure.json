@@ -242,7 +242,7 @@
         },
         {
           "source": "services/events/backend.py",
-          "line": 9,
+          "line": 13,
           "target": "services.events.bus",
           "kind": "from"
         },
@@ -260,13 +260,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 52,
+          "line": 53,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 325,
+          "line": 328,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -278,104 +278,74 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 28,
+          "line": 25,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 31,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 43,
+          "line": 46,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 44,
+          "line": 47,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 45,
+          "line": 48,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 66,
+          "line": 93,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 80,
+          "line": 107,
           "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 88,
+          "line": 115,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 100,
+          "line": 130,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 129,
+          "line": 159,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 161,
+          "line": 191,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 173,
+          "line": 203,
           "target": "services.events.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 187,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 188,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 197,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 198,
-          "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 207,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 208,
-          "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
@@ -392,55 +362,91 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 229,
+          "line": 227,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 230,
+          "line": 228,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 370,
-          "target": "services.events.fork_detector",
+          "line": 237,
+          "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 378,
-          "target": "services.events.fork_detector",
+          "line": 238,
+          "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 390,
-          "target": "services.events.insight_transfer",
+          "line": 247,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 248,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 259,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 260,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 394,
+          "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
           "line": 402,
+          "target": "services.events.fork_detector",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 414,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 411,
+          "line": 426,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 420,
+          "line": 435,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 431,
+          "line": 444,
+          "target": "services.events.insight_transfer",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 455,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -688,13 +694,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 52,
+          "line": 53,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 325,
+          "line": 328,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -1919,13 +1925,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 52,
+          "line": 53,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 325,
+          "line": 328,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -1998,24 +2004,42 @@
         {
           "source": "services/ingestion/sensor_ingester.py",
           "line": 28,
-          "target": "services.ingestion.base",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 29,
           "target": "services.ingestion.field_validation",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 38,
+          "line": 37,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 175,
+          "line": 46,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 53,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 60,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 67,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 202,
           "target": "services.ingestion.sensor_projection",
           "kind": "from"
         },
@@ -2366,13 +2390,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 52,
+          "line": 53,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 325,
+          "line": 328,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -3187,13 +3211,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 52,
+          "line": 53,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 325,
+          "line": 328,
           "target": "services.events.retention",
           "kind": "from"
         },

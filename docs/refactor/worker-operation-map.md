@@ -50,15 +50,15 @@ data effects, and an idempotency/retry note.
   whose candidate types can be inferred locally. The `services.metrics`
   operation also records each of the 20 functions from its literal
   `CALCULATORS` registry as an explicit registry-dispatch edge. Across 18
-  operation roots, 46 entry functions reach 359 function memberships through
-  495 direct-call edges and 20 registry-dispatch edges, with no unresolved
+  operation roots, 46 entry functions reach 364 function memberships through
+  501 direct-call edges and 20 registry-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 240
-  Python `.execute` sites in those 73 files. It fingerprints 204 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 244
+  Python `.execute` sites in those 73 files. It fingerprints 208 literal
   statements and flags 36 f-string/composed/variable statements; three
   generic adapter statements have an unknown leading kind. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
@@ -67,8 +67,8 @@ data effects, and an idempotency/retry note.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 240 sites to the operation graph without including SQL text or
-  values. It links 206 sites across 247 operation/site memberships;
+  joins those 244 sites to the operation graph without including SQL text or
+  values. It links 210 sites across 251 operation/site memberships;
   34 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
@@ -83,6 +83,28 @@ data effects, and an idempotency/retry note.
   mappings `not_assessed`; it never connects to PostgreSQL. Use
   `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
   to verify the generated summary.
+- A generated [worker effect inventory](worker-effect-inventory.json) scans
+  functions in the current reachability graph for high-confidence direct
+  process, filesystem, HTTP, email, object-storage, EVM, notification, cache,
+  and dynamic-import call patterns. The current pass finds 39 unique candidate
+  sites across 44 operation/site memberships: HTTP (8), email delivery (6),
+  process lifecycle (5), EVM RPC (6), EVM client setup (6), and filesystem
+  (8), across 18 operation roots. These are review candidates,
+  not confirmed runtime effects:
+  the module graph conservatively includes mutually exclusive CLI branches,
+  so the carbon-credit entry also surfaces on-chain functions that its
+  scheduled `--check-adjustments` contract rejects. Absence from the inventory
+  is not proof that an operation has no external effect. The process record
+  names the `_handler_process` callback target, but its dynamic allowlisted
+  handler resolution is not expanded. The reachable actuation helper only
+  records a human-approval command; no MQTT publisher is called by the worker
+  paths. Rebuild or check it
+  with `python3 scripts/worker_effect_inventory.py --output
+  docs/refactor/worker-effect-inventory.json` or
+  `python3 scripts/worker_effect_inventory.py --check
+  docs/refactor/worker-effect-inventory.json`. The inventory does not inspect
+  provider internals, arbitrary callbacks, database-side effects, or establish
+  replay safety, tenant context, or database grants.
 - Source-pattern review now covers all 36 dynamic/composed sites. The original
   30-site review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
@@ -129,8 +151,8 @@ data effects, and an idempotency/retry note.
 
 ## What remains open
 
-This map, import closure, SQL inventories, and argument schemas are not an ACL,
-tenant policy, or complete dynamic call graph. All 36 composed/variable sites
+This map, import closure, SQL inventories, effect candidates, and argument
+schemas are not an ACL, tenant policy, or complete dynamic call graph. All 36 composed/variable sites
 have source-pattern review; the static call graph follows local instance types
 and the explicit metric registry, but 34 SQL sites still have no direct static
 function match. It does not account for all callback/provider dispatch,

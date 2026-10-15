@@ -5,8 +5,8 @@
   "summary": {
     "operation_roots": 18,
     "source_files": 73,
-    "execution_sites": 240,
-    "static_literal_sites": 204,
+    "execution_sites": 244,
+    "static_literal_sites": 208,
     "composed_or_variable_sites": 36
   },
   "execution_sites": [
@@ -1444,20 +1444,16 @@
       ]
     },
     {
-      "id": "services/events/bus.py:333:12",
+      "id": "services/events/bus.py:334:16",
       "source": "services/events/bus.py",
-      "line": 333,
-      "column": 12,
+      "line": 334,
+      "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
-      "statement_kind": "DELETE",
-      "candidate_relations": [
-        "event_dead_letter",
-        "event_handler_delivery",
-        "platform_event"
-      ],
-      "static_sql_sha256": "99c428f6705ceda6a03bfa943f507f7315b8f0459d681463272dccf78c4b77a3",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "a5fd8d7d91677a54eabbf356a1656d590d9d391d3137e1b420988faabb527802",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.events",
@@ -1467,9 +1463,97 @@
       ]
     },
     {
-      "id": "services/events/cli.py:132:12",
+      "id": "services/events/bus.py:337:16",
+      "source": "services/events/bus.py",
+      "line": 337,
+      "column": 16,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "data_retention_policy"
+      ],
+      "static_sql_sha256": "f4077db984a1ca6c1c55afc51c14fe28d4d3721ba7cd2f3d0b58fc529dd0c981",
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/events/bus.py:369:16",
+      "source": "services/events/bus.py",
+      "line": 369,
+      "column": 16,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "data_retention_legal_hold",
+        "event_dead_letter",
+        "event_handler_delivery",
+        "platform_event",
+        "removed"
+      ],
+      "static_sql_sha256": "48aa0f1a2f220ca1387a7baafec204a26b97d3218b7f880e4e8334c0253a5084",
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/events/bus.py:398:16",
+      "source": "services/events/bus.py",
+      "line": 398,
+      "column": 16,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "data_retention_enforcement_log"
+      ],
+      "static_sql_sha256": "2d8ba37546412a7eb5809484ef9f3dc2987a77af29570c514f7cf0bf47b08cd8",
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/events/bus.py:406:16",
+      "source": "services/events/bus.py",
+      "line": 406,
+      "column": 16,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "data_retention_policy"
+      ],
+      "static_sql_sha256": "b2908e848d8d246b25e48166ede02e64bcf7bc44395a9901dc83862ebbf023d2",
+      "operation_refs": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/events/cli.py:135:12",
       "source": "services/events/cli.py",
-      "line": 132,
+      "line": 135,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -1484,9 +1568,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:161:12",
+      "id": "services/events/cli.py:164:12",
       "source": "services/events/cli.py",
-      "line": 161,
+      "line": 164,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",

@@ -4,9 +4,9 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 18,
-    "sql_execution_sites": 240,
-    "statically_reachable_site_memberships": 247,
-    "unique_sites_with_static_operation_path": 206,
+    "sql_execution_sites": 244,
+    "statically_reachable_site_memberships": 251,
+    "unique_sites_with_static_operation_path": 210,
     "sites_without_static_function_match": 34,
     "unmatched_functions_absent_from_all_worker_graphs": 34,
     "sites_reached_by_multiple_operations": 29
@@ -55,7 +55,7 @@
       "kind": "scheduled_module",
       "name": "services.events",
       "operation_ref": "scheduled_module:services.events",
-      "statically_reachable_sql_site_count": 40,
+      "statically_reachable_sql_site_count": 44,
       "statically_reachable_sql_site_ids": [
         "services/events/bus.py:145:12",
         "services/events/bus.py:164:16",
@@ -68,10 +68,14 @@
         "services/events/bus.py:272:12",
         "services/events/bus.py:309:12",
         "services/events/bus.py:321:12",
-        "services/events/bus.py:333:12",
+        "services/events/bus.py:334:16",
+        "services/events/bus.py:337:16",
+        "services/events/bus.py:369:16",
+        "services/events/bus.py:398:16",
+        "services/events/bus.py:406:16",
         "services/events/bus.py:95:12",
-        "services/events/cli.py:132:12",
-        "services/events/cli.py:161:12",
+        "services/events/cli.py:135:12",
+        "services/events/cli.py:164:12",
         "services/events/fork_detector.py:133:12",
         "services/events/fork_detector.py:36:8",
         "services/events/fork_detector.py:59:8",
@@ -2107,17 +2111,38 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:333:12",
+      "id": "services/events/bus.py:334:16",
       "source": "services/events/bus.py",
-      "line": 333,
+      "line": 334,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
-      "statement_kind": "DELETE",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/events/bus.py:337:16",
+      "source": "services/events/bus.py",
+      "line": 337,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
       "candidate_relations": [
-        "event_dead_letter",
-        "event_handler_delivery",
-        "platform_event"
+        "data_retention_policy"
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
@@ -2134,9 +2159,88 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:132:12",
+      "id": "services/events/bus.py:369:16",
+      "source": "services/events/bus.py",
+      "line": 369,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "WITH",
+      "candidate_relations": [
+        "data_retention_legal_hold",
+        "event_dead_letter",
+        "event_handler_delivery",
+        "platform_event",
+        "removed"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/events/bus.py:398:16",
+      "source": "services/events/bus.py",
+      "line": 398,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "data_retention_enforcement_log"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/events/bus.py:406:16",
+      "source": "services/events/bus.py",
+      "line": 406,
+      "scope": "EventBus.cleanup_old_events",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "data_retention_policy"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.metrics"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/events/cli.py:135:12",
       "source": "services/events/cli.py",
-      "line": 132,
+      "line": 135,
       "scope": "cmd_list_handlers",
       "method": "execute",
       "expression_kind": "literal",
@@ -2155,9 +2259,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:161:12",
+      "id": "services/events/cli.py:164:12",
       "source": "services/events/cli.py",
-      "line": 161,
+      "line": 164,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
       "expression_kind": "literal",

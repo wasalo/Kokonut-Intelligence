@@ -111,7 +111,7 @@ not bind a scheduled module or event handler to a database role or tenant.
   worker side effect but still does not establish signed DB tenant context or
   a worker-specific database role.
 
-The [worker operation map](worker-operation-map.md) now covers all 12
+The [worker operation map](worker-operation-map.md) now covers all 13
 allowlisted scheduled modules and five event-handler pairs, including their
 source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
@@ -125,12 +125,23 @@ the map must not be used as a worker grant list.
 Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
-remove runtime grants on this evidence. The next code-only step is to complete
-the transitive query/effect audit and reconcile existing persisted tasks with
-the new argument contracts. A later role/context change needs a non-forgeable
-system-worker identity and narrow operation grants. Active provider schedules,
-operational owners, and any production identity mapping remain separate owner
-inputs under OFU-16/02.
+remove runtime grants on this evidence. The first source-level effect pass now
+records 39 unique high-confidence process, filesystem, HTTP, email, and EVM
+call sites across 44 operation/site memberships and 18 operation roots
+([inventory](worker-effect-inventory.json)).
+It intentionally overcounts
+mutually exclusive CLI branches and can miss effects behind callbacks or
+provider adapters; for example, the credit adjustment worker contract rejects
+on-chain transaction calls still visible in the module-wide graph. It records
+the event process target `_handler_process`, but does not expand its dynamic
+handler resolution. The actuation helper reachable from a worker only records
+an approval-gated command; it does not publish MQTT. Next
+code-only work is to reconcile each candidate against its exact scheduler
+command contract, inspect remaining dynamic/provider callbacks and transitive
+effect wrappers, then reconcile persisted task rows with those contracts. A
+later role/context change needs a non-forgeable system-worker identity and
+narrow operation grants. Active provider schedules, operational owners, and
+any production identity mapping remain separate owner inputs under OFU-16/02.
 
 ## Required sequence before RLS
 

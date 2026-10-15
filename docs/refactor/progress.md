@@ -5651,3 +5651,26 @@ operational access, field/relation parity, mutations, and schedules remain
 open. Synthetic rows and identities were cleaned; candidate and legacy
 databases were untouched.
 [Evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json).
+
+### Worker transitive-effect source index — 15 October 2026
+
+Added a deterministic source inventory over the current worker function graph.
+It records 39 unique high-confidence candidate calls across HTTP, email delivery,
+process lifecycle, EVM RPC/client setup, and filesystem boundaries, without argument values or
+payloads (44 operation/site memberships). The process entry names
+`_handler_process` but does not follow its
+dynamic handler resolution; the reachable actuation helper records an
+approval-gated command and does not publish MQTT. Regenerated the
+stale dependency chain: 18 operation roots now reach 364 function memberships
+through 501 direct-call edges; the worker SQL inventory has 244 sites (208
+literal and 36 composed/variable), and 34 sites have no static function match.
+The four additional SQL sites are event-retention policy/hold queries. The inventory is
+deliberately an audit index: the graph includes mutually exclusive CLI
+branches, so it surfaces on-chain calls outside the scheduled credit
+adjustment contract; callbacks and provider internals can also be missed.
+Updated the worker operation map, tenant/RLS call-site audit, checklist, and
+capability-matrix notes. This advances source review only; persisted schedule
+reconciliation, provider effect review, worker identity/context, runtime grants,
+and RLS remain open. No candidate or legacy database was accessed, and no
+tests or candidate rollout were run.
+([inventory](worker-effect-inventory.json); [generator](../../scripts/worker_effect_inventory.py)).

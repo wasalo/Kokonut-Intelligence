@@ -87,10 +87,11 @@ arguments, and timeout, retains nonzero exit codes with diagnostics capped at
 500 characters, requires climate location scope, and blocks recurring sensor
 dispatch before process creation. Sixty-eight
 dispatcher/command checks and Ruff pass with subprocesses substituted. The
-runtime SQL inventory now covers 805 service source files, and the worker view
-remains 18 operation roots and 240 SQL sites; inventory fingerprints show no
-new SQL operations. No provider, database, Prefect server, or schedule was
-accessed. Live retry/recovery, provider outcomes, and MAN-CAP-040/047 remain
+runtime SQL inventory now covers 805 service source files. A follow-up worker
+inventory refresh after dynamic-retention changes now records 244 SQL sites
+across 18 roots, including four event-retention queries. No provider, database,
+Prefect server, or schedule was accessed for this source refresh. Live
+retry/recovery, provider outcomes, and MAN-CAP-040/047 remain
 open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
 [inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json)).
 
@@ -1612,3 +1613,14 @@ the generic wrappers currently used by the worker closure. It does not
 establish full function reachability, complete effects, worker identity,
 grants, or tenant isolation. CAP-040 and CAP-047 remain partial and capability
 counts do not change ([source closure](worker-source-closure.json); [SQL inventory](worker-sql-inventory.json); [evidence](builds/2026-10-14-recovery/worker-sql-inventory-check.json)).
+
+### CAP-040/047 worker effect source index — 15 October 2026
+
+A deterministic inventory now scans the current worker function graph for
+high-confidence direct effect calls. It records 39 unique source locations
+across HTTP, email delivery, process lifecycle, EVM RPC/client setup, and
+filesystem boundaries (44 operation/site memberships). The graph overapproximates mutually exclusive CLI branches and can miss provider callbacks; it does not
+establish runtime behavior, authorization, replay safety, or tenant context.
+Worker identity, role/context, and live recovery gates remain open, so no
+MAN-CAP status or count changes ([inventory](worker-effect-inventory.json);
+[worker map](worker-operation-map.md)).
