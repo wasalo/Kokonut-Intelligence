@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "reviewed": "2026-10-14",
+  "reviewed": "2026-10-15",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
     "database_identity": "Kernel worker and spawned children inherit the configured runtime PG_USER and PG_PASSWORD.",
@@ -218,6 +218,16 @@
       "idempotency": "Per-event/per-handler receipts suppress already-successful handlers. Outbox enqueue uses stable source/channel/destination keys. Event and provider delivery remain at-least-once across lease expiry or a crash after an external effect.",
       "retry_boundary": "Event and notification queues use durable leases and bounded retries. Dead-letter replay/disposal and event cleanup are excluded from scheduled operation contracts; cleanup retention remains an owner decision.",
       "sources": ["services/events/bus.py", "services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+    },
+    {
+      "module": "services.analytics.carbon_credits",
+      "scope": "The only scheduled operation is --check-adjustments; it can scan all verified/published credits or filter to one --location-id.",
+      "reads": ["public.carbon_credit", "public.climate_impact_summary", "public.tree_inventory", "public.soil_carbon_measurement", "public.ghg_emissions_inventory"],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "The check recomputes from current verified source rows and does not write credit adjustments, retirement state, or review decisions. Repeating it has no database side effects.",
+      "retry_boundary": "Retry repeats bounded database reads and reports current differences. --adjust, issuance, retirement, and retirement-review flags are rejected by the scheduled command contract.",
+      "sources": ["services/analytics/carbon_credits.py", "services/analytics/carbon_balance.py", "services/common/database.py"]
     }
   ],
   "event_handlers": [

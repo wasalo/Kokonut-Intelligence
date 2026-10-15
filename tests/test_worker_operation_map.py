@@ -71,11 +71,22 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     scheduled = {entry["module"]: entry for entry in _load_map()["scheduled_modules"]}
     metrics = scheduled["services.metrics"]
     events = scheduled["services.events"]
+    credit_adjustments = scheduled["services.analytics.carbon_credits"]
 
     assert "public.noi_snapshot" in metrics["writes"]
     assert "public.v_crop_cycle_noi" in metrics["reads"]
     assert "public.notification_outbox" in events["reads"]
     assert "public.notification_outbox_attempt" in events["writes"]
+    assert set(credit_adjustments["reads"]) == {
+        "public.carbon_credit",
+        "public.climate_impact_summary",
+        "public.tree_inventory",
+        "public.soil_carbon_measurement",
+        "public.ghg_emissions_inventory",
+    }
+    assert credit_adjustments["writes"] == []
+    assert credit_adjustments["external_effects"] == []
+    assert "--check-adjustments" in credit_adjustments["scope"]
 
 
 def test_metrics_worker_map_tracks_registered_calculator_sources():

@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_unit",
+  "feature": "scheduled_credit_adjustment_read_only_contract",
+  "job_spec": "credit_adjustment",
+  "allowed_operation": {
+    "module": "services.analytics.carbon_credits",
+    "flags": ["--check-adjustments"],
+    "optional_scope": "one --location-id UUID"
+  },
+  "rejected_operations": [
+    "empty argument list",
+    "automatic --adjust",
+    "retirement confirmation, rejection, or cancellation"
+  ],
+  "read_relations": [
+    "public.carbon_credit",
+    "public.climate_impact_summary",
+    "public.tree_inventory",
+    "public.soil_carbon_measurement",
+    "public.ghg_emissions_inventory"
+  ],
+  "writes": [],
+  "external_effects": [],
+  "worker_inventory": {
+    "scheduled_modules": 13,
+    "event_handlers": 5,
+    "operation_roots": 18,
+    "source_files": 73,
+    "import_edges": 429,
+    "sql_sites": 240,
+    "literal_sql_sites": 204,
+    "composed_or_variable_sql_sites": 36,
+    "sql_sites_without_static_function_match": 34
+  },
+  "focused_tests": 76,
+  "test_command": "python3 -m pytest tests/test_scheduled_command_contracts.py tests/test_worker_operation_map.py tests/test_worker_source_closure.py tests/test_worker_function_reachability.py tests/test_worker_sql_inventory.py -q --tb=short",
+  "ruff": "passed",
+  "python_compile": "passed",
+  "generated_inventory_checks": "passed",
+  "python_requirements_install": "passed",
+  "pip_check": "passed",
+  "database_accessed": false,
+  "provider_accessed": false,
+  "schedule_registered_or_activated": false,
+  "candidate_or_legacy_data_changed": false,
+  "worker_tenant_context": "not established; RLS and grant reduction remain blocked"
+}

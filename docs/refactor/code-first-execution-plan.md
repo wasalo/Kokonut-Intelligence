@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`
-**Latest pushed head status:** Security #44 passed and CI #320 remains in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Unpushed local changes add the optional ZITADEL profile, explicit report scoping, a default-off event-retention gate, and provider-independent public location reads; hosted CI does not cover them yet.
+**Latest pushed head status:** Security #44 passed and CI #320 was last recorded in progress on `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`. Six later commits are local only; the newest adds the read-only credit-adjustment scheduler contract. Hosted CI does not cover these changes yet.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,8 +14,8 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has 337 checked and 20 open items (357 total), after
-  adding source-checked ZITADEL profile preparation. Live-provider, digest,
+- The execution checklist has 338 checked and 20 open items (358 total).
+  Live-provider, digest,
   ARM64, and browser acceptance remain open.
 - The latest pushed implementation is `4ad4b06`. Security #44 passed and CI
   #320 is in progress on this head. Local commit `761cd6c` adds the optional
@@ -46,18 +46,20 @@ MAN-CAP checks open until each has its own retained evidence.
   slice now runs opt-in saved SQL through
   an ACL-verified, read-only reader role. The worker operation inventory covers
   every current scheduled/event allowlist entry. Module-specific scheduler
-  argument contracts now fail closed at activation and dispatch; a static local
-  import closure now covers each allowlisted operation, and a direct-SQL
-  inventory identifies 196 execution sites (30 composed/variable and three
-  with unknown statement kind after conservative local-prefix inference). The dynamic sites have source-pattern review;
-  `query()`/`query_one()` have no direct operation callers, and the only direct
+  argument contracts now fail closed at activation and dispatch; the
+  `credit_adjustment` JobSpec permits only a read-only `--check-adjustments`
+  operation, optionally scoped to one location UUID. It does not activate the
+  job. Static local-import closure covers all 18 operation roots and 73 source
+  files with 429 imports. The SQL inventory identifies 240 execution sites
+  (204 literal, 36 composed/variable, and three with unknown statement kind).
+  All 36 dynamic sites have source-pattern review; two imported `query()`
+  helpers are explicitly listed, and the only direct
   `DatabaseConnection.execute()` call is the literal metrics reconciliation
-  query. The worker graph now connects 31 executed/allowlisted entry functions
-  to 341 function memberships across the same 17 operations, with 483 direct
-  calls and 20 explicit metric-registry dispatches. A companion report links
-  175 of 196 SQL sites to a static operation path; the remaining 21 belong to
-  functions absent from all current worker-root graphs and are not labeled dead
-  code. Other dynamic dispatch,
+  query. The worker graph connects 46 entry functions to 359 function
+  memberships across 18 operations, with 495 direct calls and 20 explicit
+  metric-registry dispatches. A companion report links 206 of 240 SQL sites to
+  a static operation path; the remaining 34 have no static function match and
+  are not labeled dead code. Other dynamic dispatch,
   callbacks, external calls, enabled legacy rows, and worker identity/context
   remain open.
   The metrics entry now references all 20 registered calculator modules with a
@@ -338,7 +340,7 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-   [worker operation map](worker-operation-map.md) inventories all 12 scheduled
+   [worker operation map](worker-operation-map.md) inventories all 13 scheduled
    modules and five event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
@@ -373,8 +375,8 @@ before protected reads and writes, and make direct database access fail closed.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
-  preflight confirms all 17 allowlisted roots and imports, reports the shared
-  runtime identity and 21 SQL functions outside current worker-root graphs,
+  preflight confirms all 18 allowlisted roots and imports, reports the shared
+  runtime identity and 34 SQL sites without static function matches,
   and keeps RLS blocked. The complementary aggregate tenant preflight now
   reports pending/current-source checksum drift counts, connected-role
   superuser/BYPASSRLS and public DML/RLS indicators, and enabled scheduler

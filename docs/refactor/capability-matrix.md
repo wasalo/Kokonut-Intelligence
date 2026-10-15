@@ -404,6 +404,18 @@ This narrows the repository-owned runner boundary; external dashboard roles,
 report ownership/reference fixtures, and tenant scope remain open. No
 MAN-CAP status or acceptance count changes ([evidence](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json)).
 
+**15 October 2026 bounded carbon-credit scheduler operation (CAP-040 / CAP-047):**
+the existing `credit_adjustment` job is now eligible only with
+`--check-adjustments` and an optional location UUID. Automatic adjustment and
+retirement review actions remain rejected. The check reads verified/published
+credit and carbon-balance inputs and performs no writes; no job was registered
+or activated. The 76 focused command/worker tests and generated static
+inventories pass. This adds a source-level operation contract only: workers
+still inherit the shared runtime identity without signed tenant context, RLS
+remains blocked, and no MAN-CAP status or acceptance count changes
+([evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json);
+[operation map](worker-operation-map.json)).
+
 **14 October 2026 worker boundary update:** a machine-readable inventory now
 matches the scheduler and event-handler allowlists and records their
 source-visible data effects, scopes, providers, and replay limits. A regression

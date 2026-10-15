@@ -1,6 +1,6 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). Four local commits are not pushed: `761cd6c` adds optional self-hosted ZITADEL, `ecdec3a` scopes report generation and gates event cleanup, `a80700f` serves public location reads from native views, and `c285360` isolates Gateway CORS from Directus. The current working tree adds read-only report calculation; hosted CI does not cover local commits. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
+**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68. The latest pushed head is `4ad4b06ed19629f1ec71c25c47ef78597fdf2322`; at the last recorded check Security #44 passed and CI #320 was in progress ([CI #320](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693999); [Security #44](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38681693883)). Six local commits are not pushed; the latest adds the read-only credit-adjustment scheduler contract. The ZITADEL profile has 26 focused Compose/planner checks, Ruff, shell syntax, Caddy validation, and isolated database-role evidence; its image containers have not been started and credentials were not provisioned. The last candidate rollout record is migration 400; verify live candidate status and checkpoints again before any rollout. Application-table RLS remains unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment because no hardware is available; physical-device acceptance is not claimed.
 
 ### Gateway CORS no longer inherits Directus configuration — 15 October 2026
 
@@ -17,7 +17,7 @@ accessed ([evidence](builds/2026-10-15-recovery/gateway-cors-configuration-bound
 ### Report calculations run read-only — 15 October 2026
 
 All single and bulk report generation now runs under PostgreSQL's session-level
-read-only mode. A connection facade prevents generators from lowering that
+read-only mode. A connection facade blocks psycopg methods that lower that
 mode while preserving the business-plan generator's rollback/autocommit
 handling for best-effort sections. The calculation session is reset before
 `store_snapshot` writes the governed draft. This applies to all 94 registered
@@ -28,6 +28,20 @@ synthetic connection. The application connection remains a writer; this
 session-level setting is a write-safety guard, not database-role isolation.
 Disposable-PostgreSQL runtime acceptance and populated output parity remain
 open ([evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json)).
+
+### Native scheduler contract for credit adjustment checks — 15 October 2026
+
+The existing `credit_adjustment` JobSpec is now allowlisted only for
+`--check-adjustments`, optionally scoped to one location UUID. The contract
+rejects automatic adjustment and retirement review/confirmation flags. This
+check reads verified/published credit and carbon-balance inputs and reports
+differences; no schedule was registered or activated. Worker source closure,
+function reachability, SQL reachability, and the aggregate preflight now cover
+13 scheduled modules and five event handlers. The remaining worker identity
+and tenant boundary stay open. All 76 focused command/worker tests pass, as do
+Ruff, Python compilation, generated-inventory checks, and `pip check`. No
+database or provider was accessed ([evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json);
+[operation map](worker-operation-map.json); [schedule inventory](schedule-ownership-inventory.md)).
 
 ### Self-hosted ZITADEL Compose profile — 15 October 2026
 
@@ -137,10 +151,10 @@ existing PostgreSQL fixture recovery evidence remains separate
 The worker source reachability inventory adds conservative statement-kind inference,
 instance-method resolution where every candidate type is statically known, and
 an explicit graph for the 20 functions in the literal metrics calculator
-registry. Across 17 operations it resolves 31 entry functions, 341 function
-memberships, 483 direct-call edges and 20 registry-dispatch edges over 69
-source files. The companion SQL reachability report links 175 unique SQL sites
-across 216 operation/site memberships; the other 21 belong to functions absent
+registry. Across 18 operations it resolves 46 entry functions, 359 function
+memberships, 495 direct-call edges and 20 registry-dispatch edges over 73
+source files. The companion SQL reachability report links 206 SQL sites
+across 247 operation/site memberships; the other 34 belong to functions absent
 from all current worker graphs and are marked `no_static_function_match`, not
 dead code. The focused worker source/graph/map
 suite passes 31 tests, with Ruff checks passing. Remaining dynamic callbacks,

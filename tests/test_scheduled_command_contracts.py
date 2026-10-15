@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from services.core.jobs import run_job
+from services.core.jobs import JOBS, run_job
 from services.scheduler.graph import audit_graph
 from services.scheduler.job_plan import build_job_plan
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
@@ -43,6 +43,11 @@ def test_every_scheduled_module_has_a_command_contract():
         ),
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
+        ("services.analytics.carbon_credits", ["--check-adjustments"]),
+        (
+            "services.analytics.carbon_credits",
+            ["--check-adjustments", "--location-id", str(uuid4())],
+        ),
     ],
 )
 def test_supported_operations_accept_valid_argv(module, arguments):
@@ -68,6 +73,12 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.events", ["--cleanup"]),
         ("services.events", ["--worker"]),
         ("services.events", ["--dispose-dead-letter", "--event-id", str(uuid4())]),
+        ("services.analytics.carbon_credits", []),
+        ("services.analytics.carbon_credits", ["--adjust", "--location-id", str(uuid4())]),
+        (
+            "services.analytics.carbon_credits",
+            ["--confirm-retirement", "--retirement-id", str(uuid4()), "--reviewer-id", str(uuid4())],
+        ),
         ("services.export.dataset_refresh", []),
         ("services.export.dataset_refresh", ["--all", "--dataset-id", str(uuid4())]),
     ],
@@ -75,6 +86,14 @@ def test_supported_operations_accept_valid_argv(module, arguments):
 def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):
     with pytest.raises(ScheduledCommandRejected):
         validate_scheduled_command(module, arguments)
+
+
+def test_credit_adjustment_job_is_scheduler_allowed_but_restricted_to_check():
+    job = JOBS["credit_adjustment"]
+
+    assert job.module == "services.analytics.carbon_credits"
+    assert job.scheduler_allowed
+    assert validate_scheduled_command(job.module, list(job.arguments)) == ("--check-adjustments",)
 
 
 @pytest.mark.parametrize("arguments", [None, "--process", {"--process": True}, ["--process", 3]])

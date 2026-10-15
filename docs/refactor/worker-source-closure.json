@@ -5,6 +5,137 @@
   "operations": [
     {
       "kind": "scheduled_module",
+      "name": "services.analytics.carbon_credits",
+      "root_modules": [
+        "services.analytics.carbon_credits"
+      ],
+      "modules": [
+        "services.analytics.carbon_balance",
+        "services.analytics.carbon_credits",
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.logging",
+        "services.core.providers",
+        "services.credit_class.chain_sync",
+        "services.ingestion.config"
+      ],
+      "source_files": [
+        "services/analytics/carbon_balance.py",
+        "services/analytics/carbon_credits.py",
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/logging.py",
+        "services/core/providers.py",
+        "services/credit_class/chain_sync.py",
+        "services/ingestion/config.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/analytics/carbon_balance.py",
+          "line": 13,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credits.py",
+          "line": 25,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credits.py",
+          "line": 26,
+          "target": "services.analytics.carbon_balance",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credits.py",
+          "line": 27,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credits.py",
+          "line": 420,
+          "target": "services.credit_class.chain_sync",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credits.py",
+          "line": 514,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 23,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 7,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 9,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 177,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/credit_class/chain_sync.py",
+          "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/credit_class/chain_sync.py",
+          "line": 106,
+          "target": "services.ingestion.config",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/config.py",
+          "line": 9,
+          "target": "services.common.db",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.events",
       "root_modules": [
         "services.events"
@@ -25,6 +156,7 @@
         "services.events.insight_transfer",
         "services.events.notification_outbox",
         "services.events.ports",
+        "services.events.retention",
         "services.security.execution_allowlist"
       ],
       "source_files": [
@@ -44,6 +176,7 @@
         "services/events/insight_transfer.py",
         "services/events/notification_outbox.py",
         "services/events/ports.py",
+        "services/events/retention.py",
         "services/security/execution_allowlist.py"
       ],
       "local_import_edges": [
@@ -132,81 +265,81 @@
           "kind": "from"
         },
         {
+          "source": "services/events/bus.py",
+          "line": 325,
+          "target": "services.events.retention",
+          "kind": "from"
+        },
+        {
           "source": "services/events/cli.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 26,
+          "line": 28,
           "target": "services.events.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 41,
-          "target": "services.events.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 42,
-          "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
           "line": 43,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 44,
+          "target": "services.events.backend",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 45,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 64,
+          "line": 66,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 78,
+          "line": 80,
+          "target": "services.events.retention",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 88,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 90,
+          "line": 100,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 119,
+          "line": 129,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 151,
+          "line": 161,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 163,
+          "line": 173,
           "target": "services.events.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 177,
-          "target": "services.common.database",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 178,
-          "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
@@ -247,55 +380,67 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 219,
+          "line": 217,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 220,
+          "line": 218,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 355,
+          "line": 229,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 230,
+          "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 370,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 363,
+          "line": 378,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 375,
+          "line": 390,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 387,
+          "line": 402,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 396,
+          "line": 411,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 405,
+          "line": 420,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 416,
+          "line": 431,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -446,6 +591,7 @@
         "services.core.providers",
         "services.events.bus",
         "services.events.notification_outbox",
+        "services.events.retention",
         "services.ingestion.anomaly_detector",
         "services.ingestion.base",
         "services.ingestion.config",
@@ -465,6 +611,7 @@
         "services/core/providers.py",
         "services/events/bus.py",
         "services/events/notification_outbox.py",
+        "services/events/retention.py",
         "services/ingestion/anomaly_detector.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
@@ -543,6 +690,12 @@
           "source": "services/events/bus.py",
           "line": 52,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 325,
+          "target": "services.events.retention",
           "kind": "from"
         },
         {
@@ -1675,6 +1828,7 @@
         "services.core.adapters.clickhouse",
         "services.core.providers",
         "services.events.bus",
+        "services.events.retention",
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
         "services.ingestion.config",
@@ -1693,6 +1847,7 @@
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/events/bus.py",
+        "services/events/retention.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
         "services/ingestion/config.py",
@@ -1766,6 +1921,12 @@
           "source": "services/events/bus.py",
           "line": 52,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 325,
+          "target": "services.events.retention",
           "kind": "from"
         },
         {
@@ -2073,6 +2234,7 @@
         "services.core.adapters.clickhouse",
         "services.core.providers",
         "services.events.bus",
+        "services.events.retention",
         "services.ingestion.base",
         "services.ingestion.config",
         "services.metrics",
@@ -2111,6 +2273,7 @@
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/events/bus.py",
+        "services/events/retention.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
         "services/metrics/__init__.py",
@@ -2205,6 +2368,12 @@
           "source": "services/events/bus.py",
           "line": 52,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 325,
+          "target": "services.events.retention",
           "kind": "from"
         },
         {
@@ -2921,6 +3090,7 @@
         "services.core.providers",
         "services.events.bus",
         "services.events.notification_outbox",
+        "services.events.retention",
         "services.ingestion.anomaly_detector",
         "services.ingestion.base",
         "services.ingestion.config",
@@ -2940,6 +3110,7 @@
         "services/core/providers.py",
         "services/events/bus.py",
         "services/events/notification_outbox.py",
+        "services/events/retention.py",
         "services/ingestion/anomaly_detector.py",
         "services/ingestion/base.py",
         "services/ingestion/config.py",
@@ -3018,6 +3189,12 @@
           "source": "services/events/bus.py",
           "line": 52,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 325,
+          "target": "services.events.retention",
           "kind": "from"
         },
         {

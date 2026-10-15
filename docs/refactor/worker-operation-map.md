@@ -6,7 +6,7 @@ local-import closure implemented; runtime effects and authorization boundaries
 remain open.
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 12 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
+the exact 13 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -32,9 +32,9 @@ data effects, and an idempotency/retry note.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  12 scheduled modules and five allowlisted handler modules. It covers 69
-  distinct local source files across 17 operation roots, with 407 import edges,
-  no unresolved local modules, and the EventBus's one dynamic handler-import
+  13 scheduled modules and five allowlisted handler modules. It covers 73
+  distinct local source files across 18 operation roots and 429 import edges,
+  with no unresolved local modules and the EventBus's one dynamic handler-import
   site. That site is dispatched through `validate_event_handler` and the exact
   allowlist. Package `__main__.py` entrypoints are included.
 - Regenerate or verify the source closure with
@@ -49,17 +49,17 @@ data effects, and an idempotency/retry note.
   function calls, module aliases, `self`/`cls` methods, and instance methods
   whose candidate types can be inferred locally. The `services.metrics`
   operation also records each of the 20 functions from its literal
-  `CALCULATORS` registry as an explicit registry-dispatch edge. Across 17
-  operation roots, 31 entry functions reach 341 function memberships through
-  483 direct-call edges and 20 registry-dispatch edges, with no unresolved
+  `CALCULATORS` registry as an explicit registry-dispatch edge. Across 18
+  operation roots, 46 entry functions reach 359 function memberships through
+  495 direct-call edges and 20 registry-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 196
-  Python `.execute` sites in those 69 files. It fingerprints 166 literal
-  statements and flags 30 f-string/composed/variable statements; three
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 240
+  Python `.execute` sites in those 73 files. It fingerprints 204 literal
+  statements and flags 36 f-string/composed/variable statements; three
   generic adapter statements have an unknown leading kind. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -67,9 +67,9 @@ data effects, and an idempotency/retry note.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 196 sites to the operation graph without including SQL text or
-  values. It links 175 unique sites across 216 operation/site memberships;
-  21 sites have no current static function match, and each belongs to a
+  joins those 240 sites to the operation graph without including SQL text or
+  values. It links 206 sites across 247 operation/site memberships;
+  34 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -77,23 +77,28 @@ data effects, and an idempotency/retry note.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 17 operation roots and local imports, reports the shared runtime
+  confirms all 18 operation roots and local imports, reports the shared runtime
   database identity with no signed tenant context, and keeps RLS blocked. It
   explicitly leaves live grants, migration state, active schedules, and owner
   mappings `not_assessed`; it never connects to PostgreSQL. Use
   `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
   to verify the generated summary.
-- A source review grouped those 30 dynamic/composed sites: 21 use fixed
+- Source-pattern review now covers all 36 dynamic/composed sites. The original
+  30-site review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
   table names from the fixed freshness-source map; one adds fixed optional
   predicates to the anomaly query; and one wraps saved dashboard SQL through
   the separately restricted read-only analytics reader. A worker-source check
-  found no direct `query()` or `query_one()` calls in the operation closure;
-  the only direct `DatabaseConnection.execute()` call is the static SQL
-  reconciliation statement in `services.metrics.cli`. The regression pins
-  those callsites. No user-derived SQL identifier interpolation was found in
-  the reviewed source-built fragments.
+  found two imported `query()` callsites in `services.analytics.carbon_balance`
+  outside the bounded adjustment-check call path, plus no direct
+  `DatabaseConnection.execute()` callers beyond the static SQL reconciliation
+  statement in `services.metrics.cli`. Six newly reachable inventory sites
+  are also reviewed: carbon-balance queries use fixed SQL strings; the credit
+  listing/check queries append only fixed predicates and bind values; and the
+  retirement-review f-string selects only fixed timestamp fragments. The
+  scheduler contract exposes only the read-only adjustment check. No
+  user-derived SQL identifier interpolation was found in these fragments.
 - The `services.events` operation entry includes the optional notification
   processor's outbox/attempt writes; the `services.metrics` entry includes the
   code-owned NOI snapshot reconciliation view and natural-key upsert. It now
@@ -109,6 +114,12 @@ data effects, and an idempotency/retry note.
   Earth Engine. The proxy upsert and location fallback have focused source,
   migration-discovery, and PostgreSQL restored-checkpoint replay coverage; live
   provider acceptance remains open.
+- The carbon-credit job now has a bounded command contract for the existing
+  `credit_adjustment` JobSpec: only read-only `--check-adjustments` is accepted,
+  optionally scoped to one location. It does not schedule or enable the Prefect
+  flow. Mutation and retirement-review flags remain outside the scheduler
+  contract; cadence, tenant identity, output handling, and owner acceptance stay
+  open.
 - The legacy schedule seed contains known mismatches: the sensor task has no
   declared input source, and its empty argument list does not create a sensor
   reading; the climate CLI requires one `--location-id`, while the old seed
@@ -119,9 +130,9 @@ data effects, and an idempotency/retry note.
 ## What remains open
 
 This map, import closure, SQL inventories, and argument schemas are not an ACL,
-tenant policy, or complete dynamic call graph. The 30 composed/variable sites
+tenant policy, or complete dynamic call graph. All 36 composed/variable sites
 have source-pattern review; the static call graph follows local instance types
-and the explicit metric registry, but 21 SQL sites still have no direct static
+and the explicit metric registry, but 34 SQL sites still have no direct static
 function match. It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
 also does not prove that external Prefect/host schedules are inactive or that

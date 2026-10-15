@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 ALLOWED_EVENT_HANDLERS = frozenset({
     ("services.ingestion.anomaly_detector", "handle_sensor_reading"),
     ("services.events.handlers", "handle_stale_data"),
@@ -12,6 +11,7 @@ ALLOWED_EVENT_HANDLERS = frozenset({
 })
 
 ALLOWED_SCHEDULED_MODULES = frozenset({
+    "services.analytics.carbon_credits",
     "services.ingestion.weather",
     "services.ingestion.market_data",
     "services.ingestion.eas_indexer",

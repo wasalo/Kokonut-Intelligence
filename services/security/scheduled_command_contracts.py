@@ -80,6 +80,12 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--notification-process": None,
         "--batch-size": "batch_size",
     },
+    # This command only recomputes and reports differences. Mutating credit
+    # adjustments and retirement review remain human-controlled operations.
+    "services.analytics.carbon_credits": {
+        "--check-adjustments": None,
+        "--location-id": "uuid",
+    },
 }
 
 if frozenset(_OPTIONS) != ALLOWED_SCHEDULED_MODULES:
@@ -214,6 +220,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         operations = options & {"--process", "--notification-process"}
         if len(operations) != 1:
             raise _reject("scheduled event command must select --process or --notification-process")
+
+    elif module_path == "services.analytics.carbon_credits":
+        if "--check-adjustments" not in options:
+            raise _reject("scheduled carbon-credit operation must be a read-only adjustment check")
 
 
 def validate_scheduled_command(module_path: str, command_args: object) -> tuple[str, ...]:
