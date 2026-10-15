@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **372 checked and 19 open items (391 total)**,
+- The execution checklist has **373 checked and 19 open items (392 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -206,7 +206,7 @@ database, then used as the rollback reference for the separately approved five-f
 | API and transport parity | 1, 3, 12, 14 | Finish REST/gRPC method and error parity, authenticated CORS, SDK contract coverage, and synthetic auth/scope checks. The enabled gRPC loopback slice now registers both generated services and exercises key/scope decisions; the Directus fixture preflight now blocks without writes when its required identity field is absent. | Real OIDC, trusted HTTPS certificate, Directus runtime identity/schema and effective permissions, tenant-specific parity, and release authorization. |
 | Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. | Known five-location owner mapping is now supplied. Map legacy operator affiliations and any additional/shared locations; provision runtime identities before enabling RLS. |
 | Recovery and delivery | 1, 4, 6 | Continue provider-off/failure, lease reclaim, retry/idempotency, duplicate prevention, process outage, and rollback checks with fake endpoints or disposable databases. | Production provider state, external delivery destination, schedule/operator inventory, alert/on-call owner, and a 24-hour run window. |
-| Reports and dashboards | 1, 5, 6, 10 | Port all repository-verified Kokonut surfaces, finish query safety and synthetic parity, and document migration boundaries. Do not infer saved-query ownership from the archived Metabase database or represent generic sample-H2 e-commerce cards as Kokonut product reports. | Owner will decide what to keep/remove/improve after port review. Populated semantic fixtures, external/operator-edited consumers, audience/scope, and DB roles follow farm-data ingestion. |
+| Reports and dashboards | 1, 5, 6, 10 | Port all repository-verified Kokonut surfaces, finish query safety and synthetic parity, and document migration boundaries. Do not infer saved-query ownership from the archived Metabase database or represent generic sample-H2 e-commerce cards as Kokonut product reports. | The owner supplied the common cross-lifecycle review audience: liquidity providers, DAO members, guild members, and the wider community. This does not grant blanket report access. Per-report visibility/scope, populated semantic fixtures, external/operator-edited consumers, and DB roles follow farm-data ingestion. |
 | Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
 | Deployment and cutover | 1, 7, 15, 16 | Keep ARM64 code assessment and local profile/route checks current; complete non-disruptive restart/recovery checks. | 24-hour recovery target and conditional cutover approval are supplied. Schedule/resource budget, public ingress/TLS/trusted proxies, physical power/device behavior, production replicas/failover, and production schedule owners remain open or deferred. |
 | Curated seed write | 8 | **Complete:** the five owner-approved catalog migrations applied successfully through the explicit candidate Compose target; ledger checksums and resulting counts are recorded ([rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json)). | The owner approved and completed this local reference write. Remaining pilot/curated seed files stay held; production import is not authorized by this operation. |
@@ -449,9 +449,11 @@ Work by domain family and keep each change narrow:
 For each slice, identify the canonical data contract, optional provider
 boundary, lifecycle/human-review boundary, minimum-dependency execution path,
 and source tests before changing code. Add synthetic fixtures for behavior
-that can be decided from the repository. Do not invent expected report
-measures, audiences, owner scopes, or production semantics: those need the
-report owners and reference data in OFU-04/14. Directus source and permission
+that can be decided from the repository. Use the owner-supplied stakeholder
+review audience (liquidity providers, DAO members, guild members, and wider
+community), but do not infer per-report visibility, owner scopes, measures,
+or production semantics; those require report-owner review and reference data
+in OFU-04/14. Directus source and permission
 contracts can be improved locally, but supported-version runtime-role parity
 needs the disposable identity/schema fixture in OFU-09.
 

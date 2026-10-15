@@ -1,6 +1,6 @@
 # Native reporting and projection parity inventory
 
-**Review date:** 13 October 2026  
+**Review date:** 15 October 2026
 **Status:** source inventory complete; domain, dashboard, and runtime parity remain open.
 
 ## Scope and decision
@@ -11,6 +11,32 @@ declare every legacy report or SQL view a product requirement. The capability
 owner must decide which outputs remain supported, who may see them, and what
 reference fixture defines their behavior before a replacement or provider
 retirement is accepted.
+
+## Stakeholder review audience
+
+The owner identified the common cross-lifecycle stakeholder review audience
+for farms and natural assets as **liquidity providers, DAO members, guild
+members, and the wider community**. Use these groups when organizing report
+review and eliciting needs across design, financing, governance, operations,
+verification, and stewardship.
+
+This is a review-audience direction, not an access grant or a blanket public
+classification. The 94 repository-registered report types remain in the
+source inventory; the existing query-scope inventory is a review aid only.
+For each report/dashboard, owners must still decide intended distribution,
+organization/location scope, lifecycle and verification filters, measures and
+time grain, redaction needs, and an accepted reference output. No report should
+be exposed to a stakeholder group merely because that group belongs to the
+common review audience. Populated reference outputs are deferred until the
+owner's planned farm-data ingestion.
+
+When review begins, capture one contract per retained report/dashboard with:
+owner; lifecycle stage and decision supported; consulted stakeholder groups;
+permitted viewers and tenant/location scope; source lifecycle/verification
+filters; measures, units, and time grain; sensitive-field/redaction rules;
+fixture identity and expected output; and human verification/publication
+boundary. Keep the public curated aggregate API and its explicit allowlist as a
+separate contract.
 
 PostgreSQL remains canonical for governed records. The three curated
 `kokonut_reporting` views and their three first-party Metabase cards are a
