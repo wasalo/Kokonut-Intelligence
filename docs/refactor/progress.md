@@ -204,10 +204,9 @@ health both pass; Metabase, proxy, and the legacy stack were not changed
 ([overlay](../../docker-compose.kernel-local-db.yml);
 [evidence](builds/2026-10-16-recovery/kernel-local-db-port.json)).
 
-The pushed PR head is
-`8c7a053eeda37d42e229eacf4c18ec6e7943c9d6`: CI #337 and Security #61 are in
-progress. This batch extends KGP projection coverage to governance target,
-selector, and guild-scope policy events, then verifies simulated reorg rebuild
+At the earlier `8c7a053` checkpoint, CI #337 and Security #61 were in
+progress. That batch extended KGP projection coverage to governance target,
+selector, and guild-scope policy events, then verified simulated reorg rebuild
 and worker recovery. A fresh encrypted candidate checkpoint was
 restore-rehearsed before migration 403 was applied; the candidate now has 394
 applied schemas and zero pending, health 200, and protected-route 401. Its app
@@ -217,7 +216,7 @@ event-type parity, live-chain/provider, post-effect, or long-duration acceptance
 The preceding Dockerfile digest correction and local 14-test repair are recorded separately
 ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
-The local, unpushed code-first batch adds a dedicated read-only scheduler
+An earlier code-first batch added a dedicated read-only scheduler
 entrypoint for carbon-credit adjustment checks, removes the interactive
 credit-management CLI from the scheduler allowlist, and extends the shared
 database connection helper with read-only transaction mode. The function graph
@@ -6713,3 +6712,17 @@ closes the source/disposable acceptance slice only; MAN-CAP status, candidate
 rollout, production identity provisioning, and application-wide RLS do not
 change. The checklist now records 410 complete items and 19 open; the validated
 capability matrix remains at 66 rows, with MAN-CAP acceptance separately gated.
+
+### Notification handler location lineage — 16 October 2026
+
+The registered `data_stale` and `threshold_breached` handlers now forward an
+optional payload `location_id` to `notification_outbox`. The outbox validates
+UUID format before cursor use, preserves stable duplicate enqueue behavior, and
+can fill previously NULL lineage on a matching retry. Fourteen focused mocked
+tests pass, covering location forwarding, malformed-scope rejection, the
+no-destination/no-event path, and idempotency. Ruff, Python compilation, and
+diff checks pass ([evidence](builds/2026-10-16-recovery/notification-handler-location-lineage-unit.json)).
+This value is non-authoritative event-payload lineage: it does not authorize
+tenant access or establish signed worker context. No database or provider was
+contacted; the capability matrix and MAN-CAP statuses are unchanged. The
+checklist now records 411 complete items and 19 open.

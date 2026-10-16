@@ -59,6 +59,12 @@ Directus feature to be enabled and `DIRECTUS_ADMIN_TOKEN`; webhook enqueueing
 requires `ALERT_WEBHOOK_URL`. An unconfigured channel is skipped, matching the
 legacy optional-provider behavior.
 
+When a `data_stale` or `threshold_breached` event payload includes a valid
+`location_id`, its handler records that value in `notification_outbox` as
+optional lineage. The value comes from the event payload and is not verified
+against an authoritative source record; it does not grant tenant access or
+establish signed worker context. Events without a location remain unassigned.
+
 ```bash
 python3 -m services.events --notification-process --batch-size 50
 python3 -m services.events --notification-stats

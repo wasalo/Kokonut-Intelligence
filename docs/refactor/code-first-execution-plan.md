@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Batch base head:** `6d07c231929323c288dc9a4b79f72807e6a4dc06` on PR #68; Security #87 is running and CI #363 is pending.
-**Current local batch:** Reconciled worker acceptance documentation and refreshed the static runtime SQL inventory after tenant-preflight changes. All six worker/source/SQL inventory checks pass; the current report records 3,862 sites across 815 service files, including 267 worker-linked sites. Migrations 405–414 and the signed anomaly handler remain the verified scope. Real deployment login/secret/grant, candidate migration rollout, external delivery, control-plane separation, and other worker scopes remain open. No application code or candidate database changed.
+**Batch base head:** `2d27f57a65c6d3fc384a2e3081d88b5b4d532fb3` on PR #68; Security is green and CI is in progress.
+**Current local batch:** Migration 415 and the signed, default-off EventBus cache invalidation path are pushed. Seventy-four focused cache/EventBus tests and six network-isolated PostgreSQL 16 checks pass; all worker/source/SQL inventory checks are current. The local notification-lineage follow-up now passes 14 focused mocked tests, Ruff, and compilation. The 411 checked / 19 open checklist and 66-row capability matrix are updated. No cache worker credential or active location grant is provisioned, the candidate has not received migration 415, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No database or migration changed. Real worker identity, generic outbox authorization, provider delivery, and other worker scopes remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,13 +14,12 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **408 checked and 19 open items (427 total)**,
+- The execution checklist has **411 checked and 19 open items (430 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
-- The pushed PR head for this batch is `4d46800`; Security #86 passed and CI
-  #362 remains in progress. This local slice makes the owner-selected
+- An earlier batch at `4d46800` made the owner-selected
   Gateway-only farm-activity boundary explicit in the optional Directus role
   seed. Twenty-four focused tests and fresh Directus 12.1.1 runtime apply,
   replay, health, and login checks pass; zero of the nine managed policies
@@ -765,9 +764,10 @@ deployment or semantic acceptance:
   HTTPS certificate when browser acceptance is scheduled (OFU-10/11).
 - **Candidate-only writes:** the five selected reference catalogs (OFU-17) were
   applied to the local candidate after separate approval. The earlier 30-file
-  proposal is superseded; pilot rows remain held. Migrations 392–400 are rolled
-  out; runtime credential provisioning remains tracked under OFU-19. The
-  candidate has six recorded seed entries; 115 unselected seed sources remain pending.
+  proposal is superseded; pilot rows remain held. Migrations 392–403 are rolled
+  out; migrations 404 onward have not been applied. Runtime credential
+  provisioning remains tracked under OFU-19. The candidate has six recorded
+  seed entries; 115 unselected seed sources remain pending.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only
 scope and lack of hardware. If the owner later supplies a Pi, add a separate
@@ -776,7 +776,9 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related changes in local commits and push reviewable batches, as
-requested. Directus permission retirement is pushed as `6d07c23`; Security #87
-is running and CI #363 is pending. Continue code-first work while CI runs.
+requested. The latest pushed batch is `2d27f57`; Security #38964945498 passed
+and CI #38964945460 is running. The notification-lineage change described at
+the top of this plan is locally verified but not yet committed or pushed.
+Continue independent code-first work while CI runs.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.

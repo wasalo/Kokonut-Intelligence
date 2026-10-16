@@ -27,7 +27,11 @@ def handle_alert_notification(event_type: str, payload: dict, *, event_id: str |
 
     with get_connection() as conn:
         queued = enqueue_event_notification(
-            conn, event_id=event_id, event_type=event_type, payload=payload
+            conn,
+            event_id=event_id,
+            event_type=event_type,
+            payload=payload,
+            location_id=payload.get("location_id"),
         )
     logger.info("Queued %d alert notification deliveries for event %s", queued, event_id)
 

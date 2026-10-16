@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.events import notification_outbox
+from services.events import handlers, notification_outbox
 
 
 def _row(row_id: str, channel: str = "webhook") -> dict:
@@ -64,7 +64,7 @@ def test_completion_database_failure_propagates_without_processing_next_row(monk
     )
 
 
-def test_notification_intent_persists_canonical_location_scope():
+def test_notification_intent_persists_optional_location_lineage():
     conn = MagicMock()
     cursor = conn.cursor.return_value.__enter__.return_value
     cursor.fetchone.return_value = ("outbox-row",)
@@ -89,6 +89,103 @@ def test_notification_intent_persists_canonical_location_scope():
     statement, parameters = cursor.execute.call_args.args
     assert "payload, location_id)" in statement
     assert parameters[-1] == location_id.lower()
+
+
+def test_alert_handler_forwards_payload_location_to_outbox(monkeypatch):
+    conn = MagicMock()
+    conn.cursor.return_value.__enter__.return_value.fetchone.return_value = ("outbox-row",)
+    connection = MagicMock()
+    connection.__enter__.return_value = conn
+    monkeypatch.setattr(
+        notification_outbox,
+        "_notification_payloads",
+        lambda *_args, **_kwargs: [("webhook", "primary", {"message": "Synthetic alert"})],
+    )
+    monkeypatch.setattr("services.common.database.get_connection", lambda: connection)
+    event_id = "a0000000-0000-0000-0000-000000000002"
+    location_id = "A0000000-0000-0000-0000-000000000001"
+
+    handlers.handle_alert_notification(
+        "threshold_breached",
+        {"message": "Synthetic alert", "location_id": location_id},
+        event_id=event_id,
+    )
+
+    statement, parameters = conn.cursor.return_value.__enter__.return_value.execute.call_args.args
+    assert "payload, location_id)" in statement
+    assert parameters[0] == event_id
+    assert parameters[-1] == location_id.lower()
+    connection.__enter__.assert_called_once()
+    connection.__exit__.assert_called_once()
+
+
+def test_alert_handler_rejects_malformed_location_before_database_write(monkeypatch):
+    conn = MagicMock()
+    connection = MagicMock()
+    connection.__enter__.return_value = conn
+    monkeypatch.setattr(
+        notification_outbox,
+        "_notification_payloads",
+        lambda *_args, **_kwargs: [("webhook", "primary", {"message": "Synthetic alert"})],
+    )
+    get_connection = MagicMock(return_value=connection)
+    monkeypatch.setattr("services.common.database.get_connection", get_connection)
+
+    with pytest.raises(ValueError, match="location_id must be a valid UUID"):
+        handlers.handle_alert_notification(
+            "threshold_breached",
+            {"message": "Synthetic alert", "location_id": "not-a-location"},
+            event_id="a0000000-0000-0000-0000-000000000002",
+        )
+
+    get_connection.assert_called_once()
+    conn.cursor.assert_not_called()
+    connection.__exit__.assert_called_once()
+
+
+def test_alert_handler_without_destination_and_event_id_does_not_connect(monkeypatch):
+    monkeypatch.setattr(notification_outbox, "_notification_payloads", lambda *_args, **_kwargs: [])
+    get_connection = MagicMock()
+    monkeypatch.setattr("services.common.database.get_connection", get_connection)
+
+    handlers.handle_alert_notification("threshold_breached", {"message": "No destination"})
+
+    get_connection.assert_not_called()
+
+
+def test_notification_retry_with_same_content_and_location_is_idempotent():
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.side_effect = [
+        None,
+        (
+            "threshold_breached",
+            {"message": "Synthetic alert"},
+            "a0000000-0000-0000-0000-000000000001",
+        ),
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    event_id = "a0000000-0000-0000-0000-000000000002"
+    message = {"message": "Synthetic alert"}
+    with patch.object(
+        notification_outbox,
+        "_notification_payloads",
+        return_value=[("webhook", "primary", message)],
+    ):
+        inserted = notification_outbox.enqueue_event_notification(
+            conn,
+            event_id=event_id,
+            event_type="threshold_breached",
+            payload=message,
+            location_id=location_id,
+        )
+
+    assert inserted == 0
+    assert cursor.execute.call_count == 2
+    assert "ON CONFLICT (source_event_id, channel, destination_key) DO NOTHING" in (
+        cursor.execute.call_args_list[0].args[0]
+    )
+    assert "FOR UPDATE" in cursor.execute.call_args_list[1].args[0]
 
 
 def test_notification_retry_fills_missing_location_lineage_and_rejects_conflict():

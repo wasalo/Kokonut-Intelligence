@@ -266,12 +266,12 @@
       "module": "services.events.handlers",
       "function": "handle_stale_data",
       "event_type": "data_stale",
-      "scope": "Global freshness alert identity; notification payload may contain location-scoped details.",
+      "scope": "Global freshness notification identity; persist payload-supplied location_id as optional, non-authoritative outbox lineage when present. Missing location remains NULL; this value does not establish tenant authorization or signed worker context.",
       "reads": ["public.notification_outbox"],
       "writes": ["public.notification_outbox"],
       "idempotency": "Stable source-event/channel/destination outbox key; remote delivery remains at-least-once unless the receiver honors the idempotency key.",
       "retry_boundary": "Event retry repeats durable enqueue, which conflicts on the stable event/channel/destination identity; provider sending and operator replay happen in the separate outbox worker.",
-      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql", "docs/refactor/event-handler-concurrency.md"]
     },
     {
       "module": "services.cache.events",
@@ -299,12 +299,12 @@
       "module": "services.events.handlers",
       "function": "handle_alert_notification",
       "event_type": "threshold_breached",
-      "scope": "Global notification outbox identity; payload content may reference a location.",
+      "scope": "Global notification outbox identity; persist payload-supplied location_id as optional, non-authoritative outbox lineage when present. Missing location remains NULL; this value does not establish tenant authorization or signed worker context.",
       "reads": ["public.notification_outbox"],
       "writes": ["public.notification_outbox"],
       "idempotency": "Stable source-event/channel/destination outbox key; remote delivery remains at-least-once unless the receiver honors the idempotency key.",
       "retry_boundary": "Event retry repeats durable enqueue, which conflicts on the stable event/channel/destination identity; provider sending and operator replay happen in the separate outbox worker.",
-      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql", "docs/refactor/event-handler-concurrency.md"]
     }
   ],
   "known_open_items": [
