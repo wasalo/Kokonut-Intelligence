@@ -6,14 +6,15 @@ Fetches current weather data for all active locations and inserts into
 weather_observation (PostgreSQL) and weather_events (ClickHouse).
 
 Usage:
-    python -m services.ingestion.weather
     python -m services.ingestion.weather --location-id <uuid>
+    python -m services.ingestion.weather --all-locations
 """
 
 import argparse
 import json
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 
 from services.common.http import http
@@ -163,8 +164,18 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
         logger.warning("ClickHouse insert failed: %s", e)
 
 
-def run(location_id: str = None):
+def run(location_id: str = None, *, all_locations: bool = False):
     """Main ingestion entry point."""
+    if all_locations and location_id is not None:
+        raise ValueError("choose one location or the explicit all-locations mode")
+    if not all_locations and location_id is None:
+        raise ValueError("provide --location-id or explicitly select all locations")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (ValueError, AttributeError, TypeError):
+            raise ValueError("location_id must be a UUID") from None
+
     if not OPENWEATHERMAP_API_KEY:
         logger.error("OpenWeatherMap_API_KEY not set in .env")
         sys.exit(1)
@@ -173,7 +184,7 @@ def run(location_id: str = None):
     with db.cursor() as cur:
         if location_id:
             cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE id = %s AND status = 'active'",
+                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
                 (location_id,),
             )
         else:
@@ -184,6 +195,7 @@ def run(location_id: str = None):
 
     if not locations:
         logger.info("No active locations with coordinates found.")
+        db.close()
         return
 
     logger.info("Fetching weather for %d locations...", len(locations))
@@ -240,8 +252,26 @@ def run(location_id: str = None):
     logger.info("Done: %d success, %d errors", success, errors)
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Weather data ingestion")
-    parser.add_argument("--location-id", help="Specific location UUID to fetch")
-    args = parser.parse_args()
-    run(location_id=args.location_id)
+    location = parser.add_mutually_exclusive_group()
+    location.add_argument("--location-id", help="Specific location UUID to fetch")
+    location.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Fetch weather for every active location (explicit aggregate operation)",
+    )
+    args = parser.parse_args(argv)
+
+    if args.location_id is None and not args.all_locations:
+        parser.print_help()
+        return
+
+    try:
+        run(location_id=args.location_id, all_locations=args.all_locations)
+    except ValueError as exc:
+        parser.error(str(exc))
+
+
+if __name__ == "__main__":
+    main()

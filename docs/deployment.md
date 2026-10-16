@@ -288,7 +288,7 @@ Example cron entries for host-based scheduling (adjust paths and timezone as nee
 
 ```cron
 # Weather — every 6 hours
-0 */6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.weather >> /var/log/kokonut/weather.log 2>&1
+0 */6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.weather --all-locations >> /var/log/kokonut/weather.log 2>&1
 
 # Market data — daily at 06:00 UTC
 0 6 * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.market_data >> /var/log/kokonut/market.log 2>&1

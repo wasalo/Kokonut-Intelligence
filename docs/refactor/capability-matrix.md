@@ -817,6 +817,16 @@ and MAN-CAP acceptance remain open; the capability status is unchanged
 ([source evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-scope.json);
 [operation map](worker-operation-map.json); [JobSpec inventory](worker-job-contract-inventory.json)).
 
+**16 October 2026 explicit manual weather scope (CAP-040 / CAP-047):** manual
+weather calls now require one canonical `--location-id` or deliberate
+`--all-locations`; omitted scope prints offline help and invalid UUIDs fail
+before database access. The aggregate query is explicit, and the Kernel
+scheduler continues to reject aggregate mode. Eighty-six focused mocked
+weather/scheduler checks pass. This is a CLI/query contract only: it does not
+establish operator authorization, signed worker context, provider success,
+persisted schedule state, or RLS. No MAN-CAP acceptance is implied
+([evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json)).
+
 **14 October 2026 worker boundary update:** a machine-readable inventory now
 matches the scheduler and event-handler allowlists and records their
 source-visible data effects, scopes, providers, and replay limits. A regression

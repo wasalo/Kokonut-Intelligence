@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Explicit manual weather-ingestion scope — 16 October 2026
+
+Manual weather ingestion now requires either one canonical `--location-id` or
+the explicit `--all-locations` aggregate flag. An invocation without scope
+prints offline help, malformed UUIDs fail before database access, and the
+single-location query also requires coordinates. Deprecated cron examples
+select aggregate mode explicitly; the Kernel scheduler continues to require
+one location and rejects aggregate mode. Eighty-six focused weather and
+scheduled-command checks pass, along with Ruff, compilation, the capability
+validator, and refreshed source/SQL inventories. The query selector is not
+tenant authorization or signed worker context. No provider, database, or
+schedule was contacted or changed
+([evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json);
+[implementation](../../services/ingestion/weather.py)). Checklist accounting
+remains 414 complete / 19 open; no MAN-CAP status changes.
+
 ### Remote-sensing CLI and queue location scope — 16 October 2026
 
 Required a canonical `--location-id` for every remote-sensing CLI operation and

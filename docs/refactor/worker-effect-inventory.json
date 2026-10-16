@@ -424,7 +424,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/weather.py",
-          "line": 35,
+          "line": 36,
           "function": "services.ingestion.weather:fetch_weather",
           "category": "http",
           "call": "services.common.http.http.get"

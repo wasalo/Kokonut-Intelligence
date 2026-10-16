@@ -4416,9 +4416,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:86:8",
+      "id": "services/ingestion/weather.py:87:8",
       "source": "services/ingestion/weather.py",
-      "line": 86,
+      "line": 87,
       "column": 8,
       "scope": "insert_weather",
       "method": "execute",
@@ -4433,9 +4433,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:175:12",
+      "id": "services/ingestion/weather.py:186:12",
       "source": "services/ingestion/weather.py",
-      "line": 175,
+      "line": 186,
       "column": 12,
       "scope": "run",
       "method": "execute",
@@ -4444,15 +4444,15 @@
       "candidate_relations": [
         "location"
       ],
-      "static_sql_sha256": "ab0178c6c86cfcd0a8ebde2bfdff3be1a040bc20955eff8fe1cc26c1a5f32714",
+      "static_sql_sha256": "3b7adcf5ec40077b7f03cf2d547211c636f2344f64b37f9f2eca4dfba69c4a65",
       "operation_refs": [
         "scheduled_module:services.ingestion.weather"
       ]
     },
     {
-      "id": "services/ingestion/weather.py:180:12",
+      "id": "services/ingestion/weather.py:191:12",
       "source": "services/ingestion/weather.py",
-      "line": 180,
+      "line": 191,
       "column": 12,
       "scope": "run",
       "method": "execute",

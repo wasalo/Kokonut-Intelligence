@@ -298,9 +298,9 @@
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
-        "services/ingestion/weather.py:175:12",
-        "services/ingestion/weather.py:180:12",
-        "services/ingestion/weather.py:86:8"
+        "services/ingestion/weather.py:186:12",
+        "services/ingestion/weather.py:191:12",
+        "services/ingestion/weather.py:87:8"
       ]
     },
     {
@@ -5698,9 +5698,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather.py:86:8",
+      "id": "services/ingestion/weather.py:87:8",
       "source": "services/ingestion/weather.py",
-      "line": 86,
+      "line": 87,
       "scope": "insert_weather",
       "method": "execute",
       "expression_kind": "literal",
@@ -5719,9 +5719,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather.py:175:12",
+      "id": "services/ingestion/weather.py:186:12",
       "source": "services/ingestion/weather.py",
-      "line": 175,
+      "line": 186,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -5740,9 +5740,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather.py:180:12",
+      "id": "services/ingestion/weather.py:191:12",
       "source": "services/ingestion/weather.py",
-      "line": 180,
+      "line": 191,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",

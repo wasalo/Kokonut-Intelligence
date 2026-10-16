@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "b228d007ccc3e3d4dcf3433086aeab239402bc2a",
+  "baseline_commit": "c718395d6d5fc5ac54e4d5706060b7df3a9be27e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3282,6 +3282,7 @@
         "tests/test_value_stream.py",
         "tests/test_value_stream_defs.py",
         "tests/test_vision_mission.py",
+        "tests/test_weather_cli_scope.py",
         "tests/test_weather_forecast.py",
         "tests/test_work_selection.py",
         "tests/test_worker_operation_map.py"
@@ -4392,6 +4393,7 @@
     "tests/test_velocity_tracker.py",
     "tests/test_vision_mission.py",
     "tests/test_waste_management.py",
+    "tests/test_weather_cli_scope.py",
     "tests/test_weather_forecast.py",
     "tests/test_work_selection.py",
     "tests/test_worker_boundary_preflight.py",

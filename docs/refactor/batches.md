@@ -841,6 +841,12 @@ reporting views.
   already assigned elsewhere instead of moving it. Sixty-one device/IoT tests
   pass with refreshed whole-service SQL/source inventories
   ([evidence](builds/2026-10-16-recovery/device-manager-location-scope.json)).
+  Manual weather ingestion now requires either one canonical `--location-id`
+  or explicit `--all-locations`; no-argument help and invalid UUID validation
+  stay offline, and the location query excludes rows without coordinates.
+  Deprecated cron examples opt into aggregate mode, while the scheduler
+  contract rejects it. Eighty-six focused mocked weather/scheduler checks pass
+  ([evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json)).
   The UUID is only a query filter and does not authenticate the operator or
   establish signed context/RLS; recurring sensor ingestion remains disabled
   until a real source contract exists.

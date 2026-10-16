@@ -11,7 +11,7 @@
   "scheduled_modules": [
     {
       "module": "services.ingestion.weather",
-      "scope": "The scheduled contract requires one explicit --location-id; it cannot scan all active locations. The standalone CLI retains its legacy all-location mode, which is outside the Kernel scheduled command contract.",
+      "scope": "The scheduled contract requires one explicit --location-id and rejects the explicit --all-locations mode. Manual CLI calls must select one location or explicitly choose --all-locations; an omitted selection only prints help. The all-location query remains a code-level aggregate operation, not tenant authorization.",
       "reads": ["public.location"],
       "writes": ["public.weather_observation", "public.ingestion_log", "public.clickhouse_outbox"],
       "external_effects": ["OpenWeatherMap HTTP requests"],

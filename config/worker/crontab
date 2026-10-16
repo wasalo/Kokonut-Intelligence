@@ -21,7 +21,7 @@
 # ── Jobs below are deprecated — managed by DB scheduler ──────────────
 # Uncomment only if the DB scheduler is not running.
 # Weather ingestion — every 6 hours
-# 0 */6 * * * cd /app && python3 -m services.ingestion.weather >> /var/log/cron.log 2>&1
+# 0 */6 * * * cd /app && python3 -m services.ingestion.weather --all-locations >> /var/log/cron.log 2>&1
 
 # Market data — daily at 06:00 UTC
 # 0 6 * * * cd /app && python3 -m services.ingestion.market_data --source world_bank >> /var/log/cron.log 2>&1

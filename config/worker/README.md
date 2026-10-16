@@ -28,7 +28,7 @@ docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile work
 
 | Job | Schedule | Command |
 |---|---|---|
-| Weather ingestion | Every 6 hours | `python3 -m services.ingestion.weather` |
+| Weather ingestion | Every 6 hours | `python3 -m services.ingestion.weather --all-locations` |
 | Market data | Daily 06:00 UTC | `python3 -m services.ingestion.market_data --source world_bank` |
 | EAS indexer | Every 15 minutes | `python3 -m services.ingestion.eas_indexer` |
 | RPC wallet indexer | Every 30 minutes | `python3 -m services.ingestion.rpc_indexer` |
