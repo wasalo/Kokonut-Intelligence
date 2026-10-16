@@ -1501,7 +1501,9 @@ and named MAN-CAP checks remain unaccepted. The generic sweeper now explicitly
 skips the notification outbox, attempts, and operator audit until an
 archive/idempotency workflow exists; dry runs do not mark policies as enforced
 ([source evidence](builds/2026-10-16-recovery/retention-notification-sweeper-guard.json)).
-This source guard does not enable pruning or change capability status
+Retention enforcement also rejects missing, oversized, or non-string actors and
+non-boolean dry-run modes before opening PostgreSQL. This source guard does not
+enable pruning or change capability status
 ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
 [operations](retention-policy-operations.md);
 [evidence](builds/2026-10-15-recovery/retention-policy-disposable.json);

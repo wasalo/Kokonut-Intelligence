@@ -508,6 +508,20 @@ class TestApproveRetentionPolicy(unittest.TestCase):
 
 
 class TestRetentionSweep(unittest.TestCase):
+    def test_sweep_rejects_invalid_audit_identity_and_mode_before_opening_cursor(self):
+        invalid_inputs = (
+            (None, True, "actor is required"),
+            ("   ", True, "actor is required"),
+            ("x" * 201, True, "actor must be at most 200 characters"),
+            ("operator-1", "false", "dry_run must be a boolean"),
+        )
+        for actor, dry_run, message in invalid_inputs:
+            with self.subTest(actor=actor, dry_run=dry_run):
+                conn = MagicMock()
+                with self.assertRaisesRegex(ValueError, message):
+                    enforce_retention_policies(conn, actor, dry_run=dry_run)
+                conn.cursor.assert_not_called()
+
     def test_sweep_fails_closed_by_default_before_opening_cursor(self):
         conn = MagicMock()
 

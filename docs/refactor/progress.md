@@ -20,9 +20,11 @@ release-input gate and 14 Kernel profile/startup tests pass locally
 The current local slice also closes a generic-retention preview hazard: the
 outbox, attempt, and operator-audit tables now skip before row inspection in
 both preview and enforcement until archive/idempotency handling exists. Dry
-runs and skipped policies no longer refresh `last_enforced_at`. The focused
-data-governance suite passes 47 tests and 10 subtests with Ruff/compile checks;
-this source guard does not configure or execute pruning
+runs and skipped policies no longer refresh `last_enforced_at`. Retention
+enforcement rejects missing, oversized, or non-string actors and non-boolean
+dry-run modes before opening a cursor. The focused data-governance suite passes
+48 tests and 14 subtests with Ruff/compile checks; this source guard does not
+configure or execute pruning
 ([evidence](builds/2026-10-16-recovery/retention-notification-sweeper-guard.json)).
 The candidate now has 393 applied schema migrations through 402, six
 recorded seed migrations, zero pending schema migrations, 115 unselected seed

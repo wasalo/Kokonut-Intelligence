@@ -1185,6 +1185,14 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
     checking it against PostgreSQL metadata. Policies without a target table,
     legal holds, paused policies, and ``none`` actions are recorded as skipped.
     """
+    if not isinstance(actor, str) or not actor.strip():
+        raise ValueError("actor is required")
+    normalized_actor = actor.strip()
+    if len(normalized_actor) > 200:
+        raise ValueError("actor must be at most 200 characters")
+    if not isinstance(dry_run, bool):
+        raise ValueError("dry_run must be a boolean")
+
     if not dry_run:
         from .retention import require_data_retention_enforcement
 
@@ -1341,7 +1349,7 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
                 INSERT INTO data_retention_enforcement_log
                     (policy_id, actor, dry_run, status, candidates, affected, error)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (policy_id, actor, dry_run, status, candidates, affected, error))
+            """, (policy_id, normalized_actor, dry_run, status, candidates, affected, error))
             if status == "completed" and not dry_run:
                 cur.execute(
                     "UPDATE data_retention_policy "
@@ -1350,7 +1358,7 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
                 )
             results.append({"policy_id": str(policy_id), "status": status, "candidates": candidates, "affected": affected, "error": error})
         conn.commit()
-        return {"actor": actor, "dry_run": dry_run, "policies": results, "total": len(results)}
+        return {"actor": normalized_actor, "dry_run": dry_run, "policies": results, "total": len(results)}
     except Exception:
         conn.rollback()
         raise
