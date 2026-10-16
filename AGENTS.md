@@ -185,9 +185,9 @@ Commands:
 - Sensor ingestion (single): `python3 -m services.ingestion.sensor_ingester --sensor UUID --value 25.3 --location-id UUID`
 - Sensor list: `python3 -m services.ingestion.sensor_ingester --list --location-id UUID`
 - Sensor calibration: `python3 -m services.ingestion.sensor_ingester --calibration --location-id UUID`
-- Anomaly detection: `python3 -m services.ingestion.anomaly_detector`
-- Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --sensor UUID`
-- Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check`
+- Anomaly detection (all locations): `python3 -m services.ingestion.anomaly_detector --all-locations`
+- Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --location-id UUID --sensor UUID`
+- Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations`
 - Alert rules list: `python3 -m services.ingestion.anomaly_detector --list-rules`
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined`
 - AI summary (store draft): `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined --store`

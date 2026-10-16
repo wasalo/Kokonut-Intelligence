@@ -104,6 +104,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.export.dataset_refresh", []),
         ("services.export.dataset_refresh", ["--all", "--dataset-id", str(uuid4())]),
         ("services.ingestion.weather", ["--all-locations"]),
+        ("services.ingestion.anomaly_detector", ["--all-locations"]),
     ],
 )
 def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):

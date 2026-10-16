@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### Explicit manual anomaly CLI scope — 16 October 2026
+
+The standalone anomaly detector now prints help when called without an
+operation/scope. Manual anomaly, baseline, and ML-check modes require one
+canonical `--location-id` or explicit `--all-locations`; model training stays
+single-location and rule listing remains an explicit global read. The
+location-required scheduler command and source-scoped event handler are
+unchanged. Ninety-five focused mocked CLI/scheduler checks pass, along with
+Ruff, compilation, and refreshed worker/runtime inventories. The CLI UUID is a
+query selector only, not authorization or RLS. No provider, database, or
+schedule was contacted or changed
+([evidence](builds/2026-10-16-recovery/anomaly-cli-location-scope.json);
+[implementation](../../services/ingestion/anomaly_detector.py)). Checklist
+accounting remains 414 complete / 19 open; no MAN-CAP status changes.
+
 ### Explicit manual weather-ingestion scope — 16 October 2026
 
 Manual weather ingestion now requires either one canonical `--location-id` or

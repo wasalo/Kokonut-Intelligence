@@ -874,13 +874,13 @@
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1187,
+          "line": 1208,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1188,
+          "line": 1209,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
@@ -4233,13 +4233,13 @@
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1187,
+          "line": 1208,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1188,
+          "line": 1209,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },

@@ -7,17 +7,17 @@ Triggers sensor_alert records and optionally creates mrv_claim records.
 Sends email and Directus real-time notifications for triggered alerts.
 
 Usage:
-    # Check all recent readings for anomalies
-    python3 -m services.ingestion.anomaly_detector
+    # Check all recent readings for anomalies (explicit aggregate operation)
+    python3 -m services.ingestion.anomaly_detector --all-locations
 
-    # Check readings for a specific sensor
-    python3 -m services.ingestion.anomaly_detector --sensor <uuid>
+    # Check readings for a specific sensor at a location
+    python3 -m services.ingestion.anomaly_detector --location-id <uuid> --sensor <uuid>
 
-    # Check readings since a specific time
-    python3 -m services.ingestion.anomaly_detector --since "2026-06-11 00:00:00"
+    # Check readings since a specific time across all locations
+    python3 -m services.ingestion.anomaly_detector --all-locations --since "2026-06-11 00:00:00"
 
     # Create alerts from baseline deviations
-    python3 -m services.ingestion.anomaly_detector --baseline-check
+    python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations
 
     # List active alert rules
     python3 -m services.ingestion.anomaly_detector --list-rules
@@ -1168,7 +1168,7 @@ def list_rules():
         db.close()
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Sensor anomaly detection")
     parser.add_argument("--sensor", help="Check readings for specific sensor UUID")
     parser.add_argument("--since", help="Check readings since datetime (YYYY-MM-DD HH:MM:SS)")
@@ -1176,14 +1176,35 @@ if __name__ == "__main__":
     parser.add_argument("--list-rules", action="store_true", help="List configured alert rules")
     parser.add_argument("--ml-check", action="store_true", help="Run ML anomaly detection")
     parser.add_argument("--ml-train", action="store_true", help="Train and save ML models")
-    parser.add_argument("--location-id", help="Location UUID for ML and scoped anomaly operations")
-    args = parser.parse_args()
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument("--location-id", help="Limit this operation to one location UUID")
+    scope.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Explicitly run an aggregate operation across all locations",
+    )
+    args = parser.parse_args(argv)
+
+    if args.location_id is not None:
+        try:
+            args.location_id = str(uuid.UUID(str(args.location_id)))
+        except (TypeError, ValueError, AttributeError):
+            parser.error("--location-id must be a valid UUID")
 
     if args.list_rules:
+        if args.location_id is not None or args.all_locations:
+            parser.error("--list-rules does not accept a location selector")
         list_rules()
     elif args.baseline_check:
+        if args.location_id is None and not args.all_locations:
+            parser.error("--baseline-check requires --location-id or --all-locations")
         run_baseline_check(location_id=args.location_id)
     elif args.ml_check or args.ml_train:
+        if args.ml_train and (args.location_id is None or args.all_locations):
+            parser.error("--ml-train requires --location-id and cannot use --all-locations")
+        if args.ml_check and args.location_id is None and not args.all_locations:
+            parser.error("--ml-check requires --location-id or --all-locations")
+
         from .base import get_db
         from .ml_anomaly_detector import run_ml_check, save_models
 
@@ -1200,4 +1221,13 @@ if __name__ == "__main__":
         finally:
             conn.close()
     else:
+        if args.location_id is None and not args.all_locations:
+            if args.sensor or args.since:
+                parser.error("anomaly checks require --location-id or --all-locations")
+            parser.print_help()
+            return
         run_check(sensor_id=args.sensor, since=args.since, location_id=args.location_id)
+
+
+if __name__ == "__main__":
+    main()

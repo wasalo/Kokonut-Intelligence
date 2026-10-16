@@ -33,7 +33,7 @@ docker compose -f docker-compose.yml -f docker-compose.worker.yml --profile work
 | EAS indexer | Every 15 minutes | `python3 -m services.ingestion.eas_indexer` |
 | RPC wallet indexer | Every 30 minutes | `python3 -m services.ingestion.rpc_indexer` |
 | Gnosis Chain indexer | Every 2 hours | `python3 -m services.ingestion.gnosis_indexer` |
-| Anomaly detection | Every hour | `python3 -m services.ingestion.anomaly_detector` |
+| Anomaly detection | Every hour | `python3 -m services.ingestion.anomaly_detector --all-locations` |
 | Metrics computation | Every 4 hours | `python3 -m services.metrics --compute --all-locations` |
 | Health check + alerting | Every 5 minutes | `bash scripts/health-alert.sh` |
 | Dashboard dataset refresh | Every 6 hours | `python3 -m services.export.dataset_refresh --all` |

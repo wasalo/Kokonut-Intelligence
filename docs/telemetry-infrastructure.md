@@ -210,9 +210,9 @@ Rule-based detection and ML detection are separate paths.
 Rule and baseline checks:
 
 ```bash
-python3 -m services.ingestion.anomaly_detector
-python3 -m services.ingestion.anomaly_detector --sensor SENSOR_UUID
-python3 -m services.ingestion.anomaly_detector --baseline-check
+python3 -m services.ingestion.anomaly_detector --all-locations
+python3 -m services.ingestion.anomaly_detector --location-id LOCATION_UUID --sensor SENSOR_UUID
+python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations
 python3 -m services.ingestion.anomaly_detector --list-rules
 ```
 

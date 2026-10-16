@@ -71,7 +71,7 @@
     },
     {
       "module": "services.ingestion.anomaly_detector",
-      "scope": "Scheduled JobSpec execution requires one explicit --location-id; recent sensor readings and baseline rows are filtered to it, and cooldown/alert/ingestion-lineage operations retain that location. The hourly Prefect adapter fans out over active Kokonut Network locations. Scoped runs do not bootstrap shared alert-rule reference rows. The standalone CLI remains unscoped when no location is provided; the event handler is source-reading scoped.",
+      "scope": "Scheduled JobSpec execution requires one explicit --location-id; recent sensor readings and baseline rows are filtered to it, and cooldown/alert/ingestion-lineage operations retain that location. The hourly Prefect adapter fans out over active Kokonut Network locations. Scoped runs do not bootstrap shared alert-rule reference rows. Manual anomaly, baseline, and ML-check operations require --location-id or explicit --all-locations; no-argument invocation prints help. ML training requires one location, and --list-rules remains an explicit global read. The event handler is source-reading scoped.",
       "reads": ["public.alert_rule", "public.sensor_reading", "public.sensor_device", "public.sensor_type", "public.environmental_baseline", "public.platform_event"],
       "writes": ["public.sensor_anomaly_effect", "public.sensor_alert", "public.mrv_claim", "public.ingestion_log", "public.platform_event", "public.notification_outbox", "public.actuation_log"],
       "external_effects": ["Scheduled CLI mode can send email and Directus notifications; event mode queues notifications durably. Actuation is recorded for later approval/execution in PostgreSQL; this module does not publish MQTT commands."],

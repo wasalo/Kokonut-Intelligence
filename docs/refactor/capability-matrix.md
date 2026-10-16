@@ -827,6 +827,16 @@ establish operator authorization, signed worker context, provider success,
 persisted schedule state, or RLS. No MAN-CAP acceptance is implied
 ([evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json)).
 
+**16 October 2026 explicit manual anomaly scope (CAP-040 / CAP-047):** the
+standalone anomaly CLI now prints help without scope; anomaly, baseline, and ML
+checks require one `--location-id` or explicit `--all-locations`, while model
+training requires one location and `--list-rules` remains an explicit global
+read. Ninety-five focused mocked CLI/scheduler checks pass. Scheduled execution
+still requires one location, and the signed event handler is unchanged. This
+is a CLI/query contract only; worker authorization, provider delivery, schedule
+reconciliation, and RLS remain open. No MAN-CAP status changed
+([evidence](builds/2026-10-16-recovery/anomaly-cli-location-scope.json)).
+
 **14 October 2026 worker boundary update:** a machine-readable inventory now
 matches the scheduler and event-handler allowlists and records their
 source-visible data effects, scopes, providers, and replay limits. A regression

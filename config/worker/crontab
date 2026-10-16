@@ -39,7 +39,7 @@
 # 0 */2 * * * cd /app && python3 -m services.ingestion.gnosis_indexer >> /var/log/cron.log 2>&1
 
 # Anomaly detection — every hour
-# 0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector >> /var/log/cron.log 2>&1
+# 0 * * * * cd /app && python3 -m services.ingestion.anomaly_detector --all-locations >> /var/log/cron.log 2>&1
 
 # Metrics computation — every 4 hours (draft values for independent review)
 # 0 */4 * * * cd /app && python3 -m services.metrics --compute --all-locations >> /var/log/cron.log 2>&1
