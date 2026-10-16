@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-16",
+  "slice": "Remote-sensing CSV location and plot-lineage scope",
+  "implementation": {
+    "entrypoint": "services.ingestion.remote_sensing",
+    "accepted_manual_modes": [
+      "--file <csv> --location-id <canonical UUID>",
+      "--file <csv> --all-locations"
+    ],
+    "single_location": "Loads only plot UUIDs present in the CSV whose farm belongs to the selected location; unknown/out-of-scope plots are rejected before insertion.",
+    "aggregate_mode": "Preserves multi-location CSV import only when --all-locations is explicitly selected and limits the plot lookup to IDs present in the CSV.",
+    "row_lineage": "Plot and optional CSV location UUIDs are canonicalized; an optional row location must match the plot's farm-derived location.",
+    "idempotency": "Source digest uses canonical plot/location lineage for accepted rows."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_remote_sensing_csv_location_scope.py tests/test_ingestion_outbox_producers.py tests/test_smoke.py tests/test_remote_sensing_automation.py -q",
+      "result": "passed",
+      "tests": 55
+    },
+    "ruff": "passed",
+    "compileall": "passed",
+    "repository_inventory": "66 capabilities, 66 service groups, 464 test files, 0 parse errors",
+    "runtime_sql_inventory": "refreshed",
+    "capability_matrix": "66 rows; MAN-CAP statuses unchanged",
+    "whitespace": "git diff --check passed"
+  },
+  "limitations": [
+    "Tests use mocked database/provider boundaries and synthetic CSV files; no PostgreSQL or external provider was contacted.",
+    "Location selectors and plot/farm checks do not authenticate an operator or establish database-level tenant isolation/RLS.",
+    "No candidate or legacy database, persisted schedule, or live deployment was accessed."
+  ]
+}

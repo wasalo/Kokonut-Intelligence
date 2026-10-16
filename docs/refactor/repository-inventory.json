@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "ea68a8f58b139dcfc75c92a750a1f2f49615d118",
+  "baseline_commit": "1710ec5fcdd540f179b0e70311f848425e33ee5c",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3237,6 +3237,7 @@
         "tests/test_reference_class.py",
         "tests/test_regional_readiness.py",
         "tests/test_remote_sensing_automation.py",
+        "tests/test_remote_sensing_csv_location_scope.py",
         "tests/test_remote_sensing_scheduler_contract.py",
         "tests/test_responsibility_assignment.py",
         "tests/test_revenue_model.py",
@@ -4284,6 +4285,7 @@
     "tests/test_relationship_reference_policy.py",
     "tests/test_remaining_gaps.py",
     "tests/test_remote_sensing_automation.py",
+    "tests/test_remote_sensing_csv_location_scope.py",
     "tests/test_remote_sensing_scheduler_contract.py",
     "tests/test_report_generator_cli.py",
     "tests/test_report_generator_helper_scope_inventory.py",

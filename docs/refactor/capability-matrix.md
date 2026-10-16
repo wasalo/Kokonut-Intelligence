@@ -828,11 +828,15 @@ summary helpers remain unchanged. Climate-data ingestion also canonicalizes
 its required location UUID and rejects conflicting dataset modes before DB
 access; 116 focused climate/CLI/scheduler/import checks pass. These are
 CLI/query contracts only: they do not establish operator authorization, signed
-worker context, provider success, persisted schedule state, or RLS. No MAN-CAP
-acceptance is implied
+worker context, provider success, persisted schedule state, or RLS. Remote-
+sensing CSV imports now require one location or explicit aggregate mode, use
+plot/farm lineage checks, and preserve multi-location input behind that explicit
+selector. Fifty-five focused ingestion, smoke, and remote-sensing checks pass.
+No MAN-CAP acceptance is implied
 ([current-weather evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json);
 [forecast evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json);
-[climate evidence](builds/2026-10-16-recovery/climate-cli-location-preflight.json)).
+[climate evidence](builds/2026-10-16-recovery/climate-cli-location-preflight.json);
+[remote-sensing CSV evidence](builds/2026-10-16-recovery/remote-sensing-csv-location-scope.json)).
 
 **16 October 2026 explicit manual anomaly scope (CAP-040 / CAP-047):** the
 standalone anomaly CLI now prints help without scope; anomaly, baseline, and ML

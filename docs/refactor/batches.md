@@ -857,6 +857,12 @@ reporting views.
   before database access. One hundred sixteen focused climate, CLI, scheduler,
   and import checks pass
   ([evidence](builds/2026-10-16-recovery/climate-cli-location-preflight.json)).
+  Remote-sensing CSV import now requires a single location or explicit
+  `--all-locations`; single-location plot lookup is location-qualified, and
+  optional row location IDs must match plot/farm lineage. The aggregate mode
+  retains multi-location imports while rejecting unknown plots and mismatched
+  locations. Focused scope, outbox, smoke, and remote-sensing checks pass
+  ([evidence](builds/2026-10-16-recovery/remote-sensing-csv-location-scope.json)).
   The UUID is only a query filter and does not authenticate the operator or
   establish signed context/RLS; recurring sensor ingestion remains disabled
   until a real source contract exists.

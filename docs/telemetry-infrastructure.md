@@ -162,6 +162,21 @@ Listing, creating, querying, and running fetch jobs all require one explicit
 location. This argument scopes SQL selection; it is not an authenticated tenant
 grant and does not establish database-level isolation or application RLS.
 
+Import preprocessed satellite or drone CSV observations with either one
+location or the explicit aggregate option:
+
+```bash
+python3 -m services.ingestion.remote_sensing --file observations.csv --location-id LOCATION_UUID
+python3 -m services.ingestion.remote_sensing --file observations.csv --all-locations
+```
+
+Single-location imports query plots only within the selected location. Every
+row must reference a plot mapped to a farm; an optional CSV `location_id` must
+match that plot's farm. Multi-location imports preserve their prior capability
+only when `--all-locations` is explicit, and row locations are still checked
+against plot/farm lineage. These selectors do not authenticate the operator or
+establish tenant isolation.
+
 Jobs select one provider and cadence. Supported job providers include `gee`,
 `copernicus`, and schema-level `manual`; the CLI exposes the automated GEE and
 Copernicus paths. A failed GEE job is not automatically retried through

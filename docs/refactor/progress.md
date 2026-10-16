@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Remote-sensing CSV location and lineage scope — 16 October 2026
+
+Manual CSV import now requires either a canonical `--location-id` or explicit
+`--all-locations`. Single-location imports query only plots for that location;
+aggregate imports retain their prior multi-location capability. Both paths
+derive location from plot/farm, reject unmapped plots, and reject any supplied
+CSV location that disagrees with the plot's farm. The file is parsed and scope
+selector validation occurs before PostgreSQL opens; plot lineage is checked
+through the bounded query before any row write. Fifty-five focused ingestion,
+outbox, smoke, and remote-sensing checks pass, along with Ruff, compilation,
+generated inventories, and capability validation pass. No database or provider
+was accessed. Scope does not establish authenticated tenant access or RLS
+([evidence](builds/2026-10-16-recovery/remote-sensing-csv-location-scope.json);
+[implementation](../../services/ingestion/remote_sensing.py)). Checklist stays
+414 complete / 19 open; MAN-CAP status is unchanged.
+
 ### Climate-data CLI location preflight — 16 October 2026
 
 The climate-data CLI already required one location; it now canonicalizes the

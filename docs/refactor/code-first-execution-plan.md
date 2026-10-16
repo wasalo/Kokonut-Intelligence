@@ -14,6 +14,13 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
+- The manual remote-sensing CSV path now requires a canonical location UUID or
+  explicit `--all-locations`. Single-location SQL reads plots only within the
+  selected location; every row must match plot/farm lineage, and accepted-row
+  idempotency hashes use canonical IDs. Multi-location imports remain available
+  behind the explicit aggregate selector. Fifty-five focused scope, outbox,
+  smoke, and remote-sensing checks pass. This remains CLI/query-level scope,
+  not operator authorization or RLS ([evidence](builds/2026-10-16-recovery/remote-sensing-csv-location-scope.json)).
 - The execution checklist has **414 checked and 19 open items (433 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
