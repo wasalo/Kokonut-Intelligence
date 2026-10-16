@@ -10,11 +10,12 @@ vi.mock('@directus/sdk', () => {
   const mockCreateItems = vi.fn(() => ({}));
   const mockUpdateItem = vi.fn(() => ({}));
   const mockDeleteItem = vi.fn(() => ({}));
-  const mockSetToken = vi.fn();
+  const mockSetToken = vi.fn(() => Promise.resolve());
   const mockLogin = vi.fn(() => ({ access_token: 'test-token', refresh_token: 'test-refresh' }));
   const mockLogout = vi.fn();
 
   const mockDirectus = {
+    with: vi.fn(() => mockDirectus),
     request: mockRequest,
     readItems: mockReadItems,
     readItem: mockReadItem,

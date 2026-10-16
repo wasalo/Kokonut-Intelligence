@@ -10,12 +10,12 @@ from urllib.parse import quote
 import requests
 
 from .generated_public_api import (
+    PUBLIC_API_PATHS_V1,
     ApiPublicCrispAssessment,
     ApiPublicLocation,
     ApiPublicLocationSummary,
     ApiPublicMetric,
     ApiPublicMetricSummary,
-    PUBLIC_API_PATHS_V1,
 )
 
 
@@ -171,11 +171,14 @@ class PublicLocationMethods:
 
     def list(self) -> list[PublicLocation]:
         path = PUBLIC_API_PATHS_V1["listPublicLocationsV1"]
-        return [PublicLocation.from_payload(row) for row in self._client._get(path)["data"]]
+        return [
+            PublicLocation.from_payload(row)
+            for row in self._client._get(path, data_shape="array")["data"]
+        ]
 
     def get(self, location_id: str) -> PublicLocation:
         path = self._client._path("getPublicLocationV1", location_id=location_id)
-        payload = self._client._get(path)["data"]
+        payload = self._client._get(path, data_shape="object")["data"]
         return PublicLocation.from_payload(payload)
 
 
@@ -185,7 +188,7 @@ class PublicMetricMethods:
 
     def get(self, location_id: str) -> PublicMetricSummary:
         path = self._client._path("getPublicMetricSummaryV1", location_id=location_id)
-        payload = self._client._get(path)["data"]
+        payload = self._client._get(path, data_shape="object")["data"]
         return PublicMetricSummary.from_payload(payload)
 
 
@@ -195,7 +198,7 @@ class PublicCrispMethods:
 
     def get(self, location_id: str) -> PublicCrispAssessment:
         path = self._client._path("getPublicCrispAssessmentV1", location_id=location_id)
-        payload = self._client._get(path)["data"]
+        payload = self._client._get(path, data_shape="object")["data"]
         return PublicCrispAssessment.from_payload(payload)
 
 
@@ -205,7 +208,7 @@ class PublicAnalyticsMethods:
 
     def get_summary(self, location_id: str) -> PublicLocationSummary:
         path = self._client._path("getPublicLocationSummaryV1", location_id=location_id)
-        payload = self._client._get(path)["data"]
+        payload = self._client._get(path, data_shape="object")["data"]
         return PublicLocationSummary.from_payload(payload)
 
 
@@ -245,7 +248,12 @@ class KokonutPublicApiClient:
         }
         return template.format(**encoded_params)
 
-    def _get(self, path: str) -> dict[str, Any]:
+    def _get(
+        self,
+        path: str,
+        *,
+        data_shape: Literal["array", "object"],
+    ) -> dict[str, Any]:
         response = self.session.get(f"{self.base_url}{path}", timeout=self.timeout)
         if not response.ok:
             try:
@@ -266,6 +274,10 @@ class KokonutPublicApiClient:
                 response.status_code,
                 response,
             ) from exc
-        if not isinstance(body, dict) or not isinstance(body.get("data"), (dict, list)):
+        if not isinstance(body, dict):
+            raise PublicApiError("Invalid public API response envelope", response.status_code, response)
+        data = body.get("data")
+        valid_data = isinstance(data, list) if data_shape == "array" else isinstance(data, dict)
+        if not valid_data:
             raise PublicApiError("Invalid public API response envelope", response.status_code, response)
         return body

@@ -482,8 +482,12 @@ under OFU-07 and OFU-10.
 **Progress:** the five generated native v1 reads now have durable Python and
 TypeScript fake-transport regression tests for method/path parity, encoded path
 segments, API-key/accept headers, typed payloads, and normalized failure cases.
-Those checks passed offline. Gateway route/auth and tenant-scope parity remain
-open; see the [acceptance record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
+Those checks passed offline. A response-shape follow-up now requires array data
+for list reads and object data for detail reads in both clients; malformed
+shapes produce the same normalized envelope error. Two new focused regressions
+per language pass, as does the complete 11-test JavaScript SDK suite and its
+TypeScript build. Gateway route/auth and tenant-scope parity remain open; see
+the [acceptance record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
 The gRPC adapter now also has focused tests for the disabled-provider boundary:
 both server startup and health checks return the explicit disabled error before
 loading optional gRPC dependencies. This does not establish enabled transport

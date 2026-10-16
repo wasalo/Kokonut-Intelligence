@@ -123,4 +123,19 @@ describe('KokonutPublicApiClient', () => {
       statusCode: status,
     } satisfies Partial<PublicApiError>);
   });
+
+  it.each([
+    ['list', { data: location }],
+    ['get', { data: [location] }],
+  ])('rejects the wrong top-level data shape for %s', async (method, payload) => {
+    const fetch = vi.fn<PublicFetch>().mockResolvedValue(response(200, payload));
+    const client = new KokonutPublicApiClient('https://gateway.example', { fetch });
+    const result = method === 'get' ? client.locations.get('location-1') : client.locations.list();
+
+    await expect(result).rejects.toMatchObject({
+      name: 'PublicApiError',
+      message: 'Invalid public API response envelope',
+      statusCode: 200,
+    } satisfies Partial<PublicApiError>);
+  });
 });

@@ -182,3 +182,25 @@ def test_public_api_errors_are_stable(response: FakeResponse, message: str, stat
         client.locations.list()
 
     assert exc_info.value.status_code == status
+
+
+@pytest.mark.parametrize(
+    ("method", "data"),
+    [
+        ("list", LOCATION),
+        ("get", [LOCATION]),
+    ],
+)
+def test_public_api_rejects_wrong_top_level_data_shape(method: str, data: Any) -> None:
+    client = KokonutPublicApiClient(
+        "https://gateway.example",
+        session=FakeSession([FakeResponse(200, {"data": data})]),
+    )
+    if method == "list":
+        request = client.locations.list
+    else:
+        def request():
+            return client.locations.get("location-1")
+
+    with pytest.raises(PublicApiError, match="Invalid public API response envelope"):
+        request()

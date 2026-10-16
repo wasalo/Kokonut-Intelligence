@@ -5898,6 +5898,18 @@ regression protection for client behavior only: live Gateway route/auth,
 tenant-scope, Directus, and broader SDK parity remain open. Capability statuses
 and MAN-CAP acceptance counts do not change. See the [machine record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
 
+#### Response-shape parity follow-up — 16 October 2026
+
+Both clients now enforce the top-level response shape for each operation:
+location-list data must be an array, while location detail, metrics, CRISP,
+and summary data must be objects. Wrong-shape payloads raise the same
+`Invalid public API response envelope` error instead of leaking language-specific
+iteration/type failures or silently returning a value with the wrong type. Two
+focused regressions pass in each language; the full JavaScript SDK suite passes
+11 tests and TypeScript compilation, Python Ruff, and Python compilation pass.
+Fake transports make zero network calls. This does not add live Gateway,
+authorization, tenant-scope, Directus, or release acceptance.
+
 ### Gateway Data Stream write tenant boundary — 14 October 2026
 
 The protected `POST /api/data-stream/post` route previously called the core
