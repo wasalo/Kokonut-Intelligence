@@ -418,8 +418,14 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 # With external Traefik (VPS already running Traefik)
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.traefik.yml up -d
 
-# With worker container for cron-based ingestion
+# With the legacy ingestion worker, event dispatcher, and notification sender
 docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d
+
+# Run only event dispatch (plus its declared dependencies)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d event-worker
+
+# Run only notification delivery (plus its declared dependencies)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.worker.yml --profile worker up -d notification-worker
 ```
 
 Health monitoring with alerting:
@@ -455,13 +461,13 @@ tests/              382 test files covering platform services and invariants
 ```
 
 ```text
-Dockerfile.worker       Worker container for cron-based ingestion
+Dockerfile.worker       Python runtime image for ingestion, event, and notification workers
 Dockerfile.gateway      FastAPI gateway / Field Collector app
 Dockerfile.grpc         gRPC server container
 docker-compose.yml      Base services (PostgreSQL 16, ClickHouse 25.8, Redis 7, Directus 12.1.1, Caddy, Mosquitto 2; Metabase is opt-in)
 docker-compose.prod.yml     Production overlay (resource limits, no direct port exposure)
 docker-compose.traefik.yml  Traefik overlay (disables Caddy, adds Traefik labels)
-docker-compose.worker.yml   Worker overlay (cron-based Python ingestion container)
+docker-compose.worker.yml   Worker overlay (legacy ingestion, event dispatch, and notification delivery)
 ```
 
 The `services/` directory contains 65+ Python service modules organized by domain:

@@ -1,5 +1,7 @@
-# Worker container overlay — runs Python ingestion services on cron
+# Worker overlay — legacy ingestion, event dispatch, and notification delivery
 # Usage: docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d kokonut-worker
+# To run only event dispatch or notification delivery, target `event-worker` or
+# `notification-worker` explicitly with `--profile worker`.
 #
 # The worker container connects to the databases network to reach PostgreSQL and ClickHouse.
 # It does not expose any ports — all communication is internal.
