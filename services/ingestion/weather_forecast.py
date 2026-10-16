@@ -90,61 +90,77 @@ def parse_forecast_list(data: dict, location_id: str) -> list[dict]:
 
 
 def insert_forecasts(db, records: list[dict], source_raw: dict = None) -> int:
-    """Insert weather forecasts into PostgreSQL. Returns count inserted."""
+    """Insert weather forecasts into PostgreSQL. Returns count inserted.
+
+    Database errors propagate to the caller so it can roll back the complete
+    location batch before recording or projecting it.
+    """
     if not records:
         return 0
 
     inserted = 0
     with db.cursor() as cur:
         for rec in records:
-            try:
-                cur.execute(
-                    """
-                    INSERT INTO weather_forecast
-                        (location_id, source, forecast_date, forecast_hour,
-                         temp_c, temp_min_c, temp_max_c, feels_like_c,
-                         humidity_pct, precipitation_mm, precipitation_prob_pct,
-                         rain_3h_mm, wind_speed_kmh, wind_direction_deg,
-                         wind_gust_kmh, cloud_cover_pct, visibility_km,
-                         pressure_hpa, uv_index, description, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-                    ON CONFLICT (location_id, forecast_date, forecast_hour, source)
-                    DO UPDATE SET
-                        temp_c = EXCLUDED.temp_c,
-                        temp_min_c = EXCLUDED.temp_min_c,
-                        temp_max_c = EXCLUDED.temp_max_c,
-                        feels_like_c = EXCLUDED.feels_like_c,
-                        humidity_pct = EXCLUDED.humidity_pct,
-                        precipitation_mm = EXCLUDED.precipitation_mm,
-                        precipitation_prob_pct = EXCLUDED.precipitation_prob_pct,
-                        rain_3h_mm = EXCLUDED.rain_3h_mm,
-                        wind_speed_kmh = EXCLUDED.wind_speed_kmh,
-                        wind_direction_deg = EXCLUDED.wind_direction_deg,
-                        wind_gust_kmh = EXCLUDED.wind_gust_kmh,
-                        cloud_cover_pct = EXCLUDED.cloud_cover_pct,
-                        visibility_km = EXCLUDED.visibility_km,
-                        pressure_hpa = EXCLUDED.pressure_hpa,
-                        uv_index = EXCLUDED.uv_index,
-                        description = EXCLUDED.description,
-                        metadata = EXCLUDED.metadata,
-                        created_at = NOW()
-                    """,
-                    (
-                        rec["location_id"], rec["source"], rec["forecast_date"],
-                        rec["forecast_hour"], rec["temp_c"], rec["temp_min_c"],
-                        rec["temp_max_c"], rec["feels_like_c"], rec["humidity_pct"],
-                        rec["precipitation_mm"], rec["precipitation_prob_pct"],
-                        rec["rain_3h_mm"], rec["wind_speed_kmh"],
-                        rec["wind_direction_deg"], rec["wind_gust_kmh"],
-                        rec["cloud_cover_pct"], rec["visibility_km"],
-                        rec["pressure_hpa"], rec["uv_index"],
-                        rec["description"], rec["metadata"],
-                    ),
-                )
-                inserted += 1
-            except Exception as e:
-                logger.warning("Failed to insert forecast for %s %s: %s",
-                               rec["forecast_date"], rec["forecast_hour"], e)
+            cur.execute(
+                """
+                INSERT INTO weather_forecast
+                    (location_id, source, forecast_date, forecast_hour,
+                     temp_c, temp_min_c, temp_max_c, feels_like_c,
+                     humidity_pct, precipitation_mm, precipitation_prob_pct,
+                     rain_3h_mm, wind_speed_kmh, wind_direction_deg,
+                     wind_gust_kmh, cloud_cover_pct, visibility_km,
+                     pressure_hpa, uv_index, description, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                ON CONFLICT (location_id, forecast_date, forecast_hour, source)
+                DO UPDATE SET
+                    temp_c = EXCLUDED.temp_c,
+                    temp_min_c = EXCLUDED.temp_min_c,
+                    temp_max_c = EXCLUDED.temp_max_c,
+                    feels_like_c = EXCLUDED.feels_like_c,
+                    humidity_pct = EXCLUDED.humidity_pct,
+                    precipitation_mm = EXCLUDED.precipitation_mm,
+                    precipitation_prob_pct = EXCLUDED.precipitation_prob_pct,
+                    rain_3h_mm = EXCLUDED.rain_3h_mm,
+                    wind_speed_kmh = EXCLUDED.wind_speed_kmh,
+                    wind_direction_deg = EXCLUDED.wind_direction_deg,
+                    wind_gust_kmh = EXCLUDED.wind_gust_kmh,
+                    cloud_cover_pct = EXCLUDED.cloud_cover_pct,
+                    visibility_km = EXCLUDED.visibility_km,
+                    pressure_hpa = EXCLUDED.pressure_hpa,
+                    uv_index = EXCLUDED.uv_index,
+                    description = EXCLUDED.description,
+                    metadata = EXCLUDED.metadata,
+                    created_at = NOW()
+                """,
+                (
+                    rec["location_id"], rec["source"], rec["forecast_date"],
+                    rec["forecast_hour"], rec["temp_c"], rec["temp_min_c"],
+                    rec["temp_max_c"], rec["feels_like_c"], rec["humidity_pct"],
+                    rec["precipitation_mm"], rec["precipitation_prob_pct"],
+                    rec["rain_3h_mm"], rec["wind_speed_kmh"],
+                    rec["wind_direction_deg"], rec["wind_gust_kmh"],
+                    rec["cloud_cover_pct"], rec["visibility_km"],
+                    rec["pressure_hpa"], rec["uv_index"],
+                    rec["description"], rec["metadata"],
+                ),
+            )
+            inserted += 1
+    return inserted
+
+
+def insert_location_forecasts(db, records: list[dict], source_raw: dict = None) -> int:
+    """Insert one location's forecasts atomically inside the caller transaction."""
+    with db.cursor() as cur:
+        cur.execute("SAVEPOINT weather_forecast_location")
+    try:
+        inserted = insert_forecasts(db, records, source_raw=source_raw)
+    except Exception:
+        with db.cursor() as cur:
+            cur.execute("ROLLBACK TO SAVEPOINT weather_forecast_location")
+            cur.execute("RELEASE SAVEPOINT weather_forecast_location")
+        raise
+    with db.cursor() as cur:
+        cur.execute("RELEASE SAVEPOINT weather_forecast_location")
     return inserted
 
 
@@ -291,7 +307,7 @@ def run(location_id: str = None, *, all_locations: bool = False):
             elapsed_ms = int((time.time() - start) * 1000)
 
             records = parse_forecast_list(raw, loc_id)
-            inserted = insert_forecasts(db, records, source_raw=raw)
+            inserted = insert_location_forecasts(db, records, source_raw=raw)
             all_records.extend(records)
 
             log_ingestion(
@@ -305,6 +321,8 @@ def run(location_id: str = None, *, all_locations: bool = False):
                 status="success",
                 rows_affected=inserted,
                 processing_time_ms=elapsed_ms,
+                db=db,
+                location_id=str(loc_id),
             )
             success += 1
             logger.info("  ✓ %s: %d forecast points", name, inserted)
@@ -322,6 +340,8 @@ def run(location_id: str = None, *, all_locations: bool = False):
                 payload_hash="",
                 status="failed",
                 error_message=str(e),
+                db=db,
+                location_id=str(loc_id),
             )
             logger.error("  ✗ %s: %s", name, e)
 

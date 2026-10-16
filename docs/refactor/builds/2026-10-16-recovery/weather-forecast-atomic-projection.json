@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-16",
+  "slice": "weather forecast atomic persistence and projection",
+  "implementation": [
+    "Forecast row insert errors now propagate to the location transaction boundary.",
+    "Each location's forecast batch is protected by a PostgreSQL savepoint, so a failed row rolls back the complete location batch.",
+    "Successful and failed ingestion audit rows use the same PostgreSQL connection and transaction as forecast persistence and the ClickHouse outbox.",
+    "Only a successfully persisted location batch is added to the ClickHouse projection payload."
+  ],
+  "checks": {
+    "command": "python3 -m pytest tests/test_weather_forecast_atomicity.py tests/test_weather_forecast.py tests/test_weather_forecast_cli_scope.py -q",
+    "result": "26 passed",
+    "ruff": "passed for changed Python source and test",
+    "compileall": "passed for changed Python source and test",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "postgresql": "mocked connection only; no database contacted",
+    "clickhouse": "mocked outbox projection; no service contacted",
+    "openweathermap": "mocked provider response; no network request",
+    "candidate_or_legacy": "not accessed"
+  },
+  "limitations": [
+    "This verifies source behavior with mocks; live provider delivery and disposable PostgreSQL transaction behavior remain separate acceptance gates.",
+    "No MAN-CAP acceptance status changes."
+  ]
+}

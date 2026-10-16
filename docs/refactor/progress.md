@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### Weather forecast atomic projection — 16 October 2026
+
+Forecast insert errors now propagate to a per-location savepoint boundary;
+failure rolls back that location's complete forecast batch. Success and failure
+ingestion audit rows share the PostgreSQL transaction with forecast persistence
+and the ClickHouse outbox, and failed batches never enter the projection
+payload. The new mocked rollback/outbox/audit checks plus existing forecast and
+scope tests pass (26 total). Ruff, compilation, and whitespace checks pass. No
+PostgreSQL, ClickHouse, OpenWeatherMap, candidate, or legacy service was
+contacted. This closes a source-level consistency defect only; live providers,
+database-backed transaction behavior, and MAN-CAP acceptance remain open
+([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json);
+[implementation](../../services/ingestion/weather_forecast.py)).
+Checklist and MAN-CAP counts are unchanged.
+
 ### Remote-sensing CSV location and lineage scope — 16 October 2026
 
 Manual CSV import now requires either a canonical `--location-id` or explicit
