@@ -156,6 +156,35 @@ in the separate control-plane identity. Any database-backed effect added to
 this handler must use the same transaction or a bounded function that preserves
 that transaction boundary.
 
+The detailed [sensor anomaly effect contract](worker-sensor-anomaly-effects.json)
+now records the source-visible read/write set and the required boundary for each
+relation. It is a proposed authorization contract, not a grant list or evidence
+that those checks run in PostgreSQL. In particular, it separates global
+read-only alert-rule/sensor-type references from location-bound data and treats
+event queue state, notification delivery, and actuation delivery as distinct
+control-plane work.
+
+Before implementing the first database permissions:
+
+1. Add a durable location key or a bounded relation check for each tenant-owned
+   receipt, alert, ingestion-audit, and notification-intent row. Existing
+   rows with unresolved source lineage must stay inaccessible to the worker.
+2. Use bounded `SECURITY DEFINER` operations for event publication,
+   notification-intent creation, and actuation-intent creation. Do not grant
+   direct mutation of event lease/delivery state or notification attempt state
+   to the anomaly worker.
+3. Grant the anomaly operation only the draft-claim and pending-actuation
+   effects listed by its exact scope. It must not transition MRV lifecycle
+   state or transmit an actuator command.
+4. Replay the permissions on disposable PostgreSQL with wrong-location rows,
+   malformed lineage, duplicate/retry, owner transfer, and denied-write cases.
+   No base application RLS or candidate rollout follows automatically.
+
+Migration 405 and the Python context adapter implement the identity primitive,
+but no relation-specific worker view, policy, or bounded effect function has
+been added yet. The next migration must be additive and grant no access to the
+shared runtime or existing event/notification dispatchers.
+
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.
 The sensor source row remains authoritative: the handler must compare the

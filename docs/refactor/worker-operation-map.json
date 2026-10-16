@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "reviewed": "2026-10-15",
+  "reviewed": "2026-10-16",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
     "database_identity": "Kernel worker and spawned children inherit the configured runtime PG_USER and PG_PASSWORD.",
-    "signed_tenant_context": "Not established by scheduler dispatch or generic event-handler spawn.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide an opt-in signed worker context; scheduler dispatch and generic event-handler spawn do not establish it, and credentials are not isolated per operation.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },

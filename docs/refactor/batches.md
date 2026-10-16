@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (16 October 2026):** 393 checklist items complete and 19
-open (412 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
+**Current snapshot (16 October 2026):** 394 checklist items complete and 19
+open (413 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
 baseline-retained, 7 deployed, and 4 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -780,6 +780,7 @@ reporting views.
 - [x] Preserve the handler's caller-owned transaction while publishing the alert event. `EventBus.publish(commit=False)` is wired into anomaly processing; two focused checks verify it leaves commit/rollback to the caller on success and error, the handler passes this mode, and the 17-test EventBus durability suite passes ([contract](worker-tenant-context-contract.md); [evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).
 - [x] Add migration 405 for private worker principals, SHA-256 credential digests, exact tenant/location/resource/action grants, a separate non-login execution role, and signed `system_worker` transaction context. It does not provision credentials, grant access to the shared runtime role, enable application-table RLS, or change the candidate ([migration](../../schemas/postgres/405_signed_worker_tenant_context.sql); [contract](worker-tenant-context-contract.md)).
 - [x] Add the transaction-bound worker adapter. It clears previous context, validates canonical scope and a high-entropy credential, hashes the secret in memory, switches locally to the dedicated worker role, and calls the bounded setter without reading credentials from event/job data ([implementation](../../services/common/tenant_context.py); [unit tests](../../tests/test_tenant_context.py)).
+- [x] Record the complete source-visible effect contract for the sensor-anomaly handler. It matches all 12 read/write relations in the allowlisted worker operation map, separates shared references and tenant data from queue/notification/actuation intents, and records the missing row-level location keys and bounded-function requirements. A focused regression pins the contract to the operation map. This contract is proposed only: it adds no grants, views, RLS policies, or handler integration ([contract](worker-sensor-anomaly-effects.json); [test](../../tests/test_worker_operation_map.py); [worker context](worker-tenant-context-contract.md)).
 - [x] Replay migration 405 in isolated PostgreSQL 16 with forced RLS on synthetic authorization tables. Seventeen checks cover exact grants, tamper/replay denial, private credential/key access, shared-runtime separation, owner transfer, inactive state, expiry/revocation, transaction cleanup, and lock serialization. Migration and tenant-context unit suites pass (31 and 30 tests); Ruff, source validation, and compilation pass. No candidate or legacy database was accessed ([runner](../../scripts/check-worker-tenant-context-disposable.py); [evidence](builds/2026-10-16-recovery/worker-tenant-context-disposable.json)).
 - [ ] Extend the tenant map for any additional locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker

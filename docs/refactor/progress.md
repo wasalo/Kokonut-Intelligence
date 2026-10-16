@@ -6355,3 +6355,17 @@ acceptance are recorded above; handler integration, effect-specific
 application authorization, least-privilege table grants, and isolated
 per-handler credentials remain open ([contract](worker-tenant-context-contract.md);
 [evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).
+
+### Sensor anomaly worker effect contract — 16 October 2026
+
+Added a machine-readable, proposed-only source contract for the anomaly event
+handler. It matches the 12 read/write relations in the allowlisted operation
+map and documents location lineage, shared read-only alert references, draft
+claim creation, and the separate event, notification, and actuation intent
+boundaries. It explicitly adds no grants, policies, views, RLS, or dispatch
+integration. Twelve focused worker operation-map tests pass; Ruff, JSON parsing,
+`git diff --check`, and the 66-row capability-matrix validation pass. Security
+#70 passed and CI #346 was still running on the prior pushed head `a0ec3f45` at
+the time this batch began. The checklist is now 394 checked and 19 open; no
+separate capability is newly accepted ([effect contract](worker-sensor-anomaly-effects.json);
+[operation map](worker-operation-map.json); [test](../tests/test_worker_operation_map.py)).

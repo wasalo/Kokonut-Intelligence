@@ -52,11 +52,45 @@ def test_worker_map_states_shared_identity_and_open_authorization_boundaries():
     boundary = inventory["shared_boundary"]
 
     assert "inherit" in boundary["database_identity"]
-    assert "Not established" in boundary["signed_tenant_context"]
+    assert "Migration 405" in boundary["signed_tenant_context"]
+    assert "dispatch and generic event-handler spawn do not establish it" in boundary["signed_tenant_context"]
     assert "validate command_args" in boundary["module_argument_validation"]
     assert any("separate worker database principal" in item for item in inventory["known_open_items"])
     assert any("existing enabled scheduled_task rows" in item for item in inventory["known_open_items"])
     assert "does not change grants" in boundary["deployment_effect"]
+
+
+def test_sensor_anomaly_effect_contract_matches_source_operation_map():
+    inventory = _load_map()
+    handler = next(
+        entry
+        for entry in inventory["event_handlers"]
+        if entry["module"] == "services.ingestion.anomaly_detector"
+        and entry["function"] == "handle_sensor_reading"
+    )
+    contract = json.loads(
+        (ROOT / "docs/refactor/worker-sensor-anomaly-effects.json").read_text(encoding="utf-8")
+    )
+    effects = contract["effects"]
+
+    assert contract["status"] == "proposed_not_enforced"
+    assert contract["operation"]["event_type"] == handler["event_type"]
+    assert (contract["operation"]["module"], contract["operation"]["function"]) == (
+        handler["module"], handler["function"]
+    )
+    assert {item["relation"] for item in effects} == set(handler["reads"]) | set(handler["writes"])
+    assert len({item["relation"] for item in effects}) == len(effects)
+    assert all(item["required_boundary"].strip() for item in effects)
+    assert all(item["current_enforcement"].strip() for item in effects)
+    assert all(item["class"] for item in effects)
+    assert "commit=False" in contract["transaction"]["event_publication"]
+    assert "no dispatcher currently establishes it" in contract["transaction"]["context"]
+
+    by_relation = {item["relation"]: item for item in effects}
+    assert "select_enabled_reference" in by_relation["public.alert_rule"]["access"]
+    assert "with status draft" in by_relation["public.mrv_claim"]["required_boundary"]
+    assert "Never expose claim, lease" in by_relation["public.platform_event"]["required_boundary"]
+    assert "cannot approve, send, execute" in by_relation["public.actuation_log"]["required_boundary"]
 
 
 def test_anomaly_handler_records_database_effects_without_claiming_mqtt_delivery():
