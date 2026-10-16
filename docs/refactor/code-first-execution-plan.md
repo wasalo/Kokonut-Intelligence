@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Remote head before this local batch:** `efa7296314bafd5e9192b8737880f34527583472`
-**Status at batch start (checked 16 October 2026):** CI #335 was in progress and Security #59 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38858291436); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38858291192)).
+**Remote head before this local batch:** `6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`
+**Status at batch start (checked 16 October 2026):** CI #336 was pending and Security #60 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299381); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299385)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,18 +20,20 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - When this local batch began, the remote PR head was
-  [`efa7296314bafd5e9192b8737880f34527583472`](https://github.com/wasalo/Kokonut-Intelligence/commit/efa7296314bafd5e9192b8737880f34527583472)
-  on `feat/mobile-offline-acceptance`, PR #68. CI #335 was in progress and
-  Security #59 passed. The pushed batch includes ARM64 optional-profile checks
-  and KGP worker restart/lease recovery with one synthetic `GuildCreated`
-  projection. The current local extension replays all 393 ordered schema
-  sources, processes synthetic `GuildCreated`, `DomainCreated`, and `TaskCreated`
-  logs through the real indexer, verifies source-event links and idempotent
-  canonical replay, then simulates a changed chain tip, orphans all three event
-  projections, and rebuilds them when the same events reappear. The same
-  disposable check also verifies PostgreSQL restart reconnect and lease reclaim
-  against the real cursor table. It uses synthetic rows and stubbed chain
-  behavior, with no seed, live RPC, or provider calls. Other event types, real
+  [`6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`](https://github.com/wasalo/Kokonut-Intelligence/commit/6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f)
+  on `feat/mobile-offline-acceptance`, PR #68. CI #336 was pending and
+  Security #60 passed. The pushed batch includes ARM64 optional-profile checks
+  and KGP worker restart/lease recovery with guild/domain/task projection and
+  simulated reorg rebuild. The current local extension replays all 394 ordered
+  schema sources, adds source-linked governance target/selector/guild-scope
+  policy projections, and verifies seven-event canonical replay and rebuild on
+  a simulated chain-tip change. The same disposable check verifies PostgreSQL
+  restart reconnect and lease reclaim against the real cursor table. A fresh
+  encrypted candidate checkpoint was restore-rehearsed before migration 403
+  was applied; the candidate now has 394 applied schemas and zero pending,
+  health 200, and protected-route 401. Its app image was not rebuilt, the policy
+  table is empty, and RLS remains off. These synthetic rows and stubbed chain
+  behavior use no seed, live RPC, or provider calls. Other event types, real
   chain reorgs, ARM64 hardware behavior, and live KGP RPC/event processing remain
   unverified. Earlier owner, tenant,
   report, retention, Directus, and worker-boundary work remains in the PR.
@@ -107,9 +109,10 @@ MAN-CAP checks open until each has its own retained evidence.
   remain open. This slice is included in the latest pushed head ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
 - The capability matrix contains 66 capabilities: 55 baseline-retained, 7
   deployed, and 4 prepared. None of the 66 named MAN-CAP checks is accepted.
-- The local candidate has 393 applied schemas through migration 402, six applied
+- The local candidate has 394 applied schemas through migration 403, six applied
   seed ledger entries, 115 pending source migrations (all are unselected seeds),
-  zero failed ledger rows, and application-table RLS is disabled. The five
+  zero failed ledger rows, and application-table RLS is disabled. Migration 403's
+  governance policy table is empty; its app image was not rebuilt. The five
   owner-approved reference catalogs and migrations 401–402 are applied; other
   seed files remain held. It still uses the `kokonut` superuser because a separate
   runtime credential is not provisioned. The seed approval does not authorize
@@ -261,14 +264,17 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** At batch start, CI #335 was in progress and Security #59 passed on
-  pushed SHA `efa7296314bafd5e9192b8737880f34527583472`. The local disposable
-  KGP check replays all 393 ordered PostgreSQL schema sources, processes three
-  dependent protocol events through the real indexer, verifies source links and
-  idempotent replay, simulates a reorg and replacement-branch projection
-  rebuild, then checks restart and lease reclaim against the real cursor table.
-  Fifteen focused KGP/guild tests, Ruff, compilation, capability-matrix and
-  JSON evidence checks pass. No live RPC, seed, or provider is used.
+**Action:** At batch start, CI #336 was pending and Security #60 passed on
+  pushed SHA `6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`. The local disposable
+  KGP check replays all 394 ordered PostgreSQL schema sources, processes seven
+  guild/domain/task/governance events through the real indexer, verifies source
+  links and idempotent replay, simulates a reorg and replacement-branch
+  projection rebuild, then checks restart and lease reclaim against the real
+  cursor table. Forty-eight focused migration/KGP/guild tests, Ruff,
+  compilation, capability-matrix, and JSON evidence checks pass. A fresh
+  encrypted checkpoint and isolated restore preceded candidate migration 403;
+  the candidate is healthy with zero pending schemas, but its app image was not
+  rebuilt and RLS remains disabled. No live RPC, seed, or provider is used.
 
 **Acceptance:** require passing CI and Security on the current PR head before
 merging. The scheduler runtime acceptance is source/disposable evidence only;
@@ -734,10 +740,11 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. Before this local batch, the remote head was `efa7296`; CI #335 was
-in progress and Security #59 passed. This batch extends synthetic KGP event
-projection and replay evidence to cover three dependent event types and a
-simulated reorg/rebuild. Continue local work while CI runs and accumulate
+requested. Before this local batch, the remote head was `6edc14e`; CI #336 was
+pending and Security #60 passed. This batch extends synthetic KGP event
+projection and replay evidence to cover governance policy, seven linked events,
+and a simulated reorg/rebuild, then applies migration 403 to the checkpointed
+candidate after restore rehearsal. Continue local work while CI runs and accumulate
 related changes before the next push so the repository does not start CI for
 each small commit. Never push directly to
 `main`. Keep each candidate database

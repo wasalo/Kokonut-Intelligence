@@ -3,6 +3,7 @@
 from pathlib import Path
 
 MIGRATION = Path("schemas/postgres/323_guild_projection_reorg_recovery.sql")
+GOVERNANCE_POLICY_MIGRATION = Path("schemas/postgres/403_kgp_governance_target_policy_projection.sql")
 INDEXER = Path("services/guilds/indexer.py")
 PROJECTIONS = Path("services/guilds/projections.py")
 
@@ -32,6 +33,18 @@ def test_reorg_recovery_resets_and_replays_canonical_events() -> None:
     assert "ORDER BY block_number, log_index" in indexer
     assert "def reset_chain_projections" in projections
     assert "chain_projection = TRUE" in projections
+    assert "DELETE FROM kgp_governance_target_policy" in projections
+
+
+def test_governance_target_policy_projection_has_stable_replay_identity() -> None:
+    migration = GOVERNANCE_POLICY_MIGRATION.read_text()
+    for fragment in [
+        "CREATE TABLE IF NOT EXISTS kgp_governance_target_policy",
+        "permission_kind IN ('target', 'selector', 'guild_scope')",
+        "source_chain_event_id UUID NOT NULL",
+        "UNIQUE (deployment_id, permission_kind, target_address, selector)",
+    ]:
+        assert fragment in migration
 
 
 def test_reorg_retains_stable_guild_key_anchor_for_replay() -> None:

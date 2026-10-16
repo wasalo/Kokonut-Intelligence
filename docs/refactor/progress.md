@@ -8,20 +8,18 @@ grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
 At the last remote status check, the pushed PR head was
-`da4536dbcaa110bd1ca0f499fb74ff2edd56cfca`: CI #334 was in progress and
-Security #58 passed. That batch adds full-schema KGP restart/crash recovery on
-top of the ARM64 optional profiles and SchedulerEngine/EventBus recovery.
-Those pushed commits include EventBus notification crash recovery (`839a04c`),
-SchedulerEngine claim recovery (`9c5fe8b`), and KGP lease recovery after a
-worker crash (`cc65907`). The new local KGP acceptance now processes one
-synthetic `GuildCreated` log through the real indexer, confirms it is projected
-to a prelinked synthetic guild, and verifies replay does not duplicate either
-row. The same current-schema fixture still verifies database restart recovery
-and replacement-worker lease reclaim. No live RPC, seed data, or provider call
-is used. The local batch and evidence refresh await push. These bounded
-synthetic fixtures do not close other event-type parity, live-chain/provider,
-post-effect, or long-duration acceptance. The preceding Dockerfile digest
-correction and local 14-test repair are recorded separately
+`6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`: CI #336 was pending and
+Security #60 passed. That batch adds three-event KGP reorg replay on top of the
+ARM64 optional profiles and SchedulerEngine/EventBus recovery. The current
+local batch extends KGP projection coverage to governance target, selector,
+and guild-scope policy events, then verifies simulated reorg rebuild and worker
+recovery. A fresh encrypted candidate checkpoint was restore-rehearsed before
+migration 403 was applied; the candidate now has 394 applied schemas and zero
+pending, health 200, and protected-route 401. Its app image was not rebuilt,
+the governance table is empty, and RLS remains off. This local batch and its
+evidence await push. These bounded synthetic fixtures do not close other
+event-type parity, live-chain/provider, post-effect, or long-duration acceptance.
+The preceding Dockerfile digest correction and local 14-test repair are recorded separately
 ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
 ### KGP indexer PostgreSQL restart recovery — 16 October 2026
@@ -6081,8 +6079,8 @@ legacy databases were not involved ([evidence](builds/2026-10-16-recovery/schedu
 ### Runtime SQL and worker source inventory refresh — 16 October 2026
 
 Regenerated the direct-SQL inventory and verified its freshness. It now records
-3,797 execution sites across 806 service files, including 257 worker-linked
-sites and 1,033 regex-derived relation candidates. Worker source closure,
+3,799 execution sites across 806 service files, including 257 worker-linked
+sites and 1,034 regex-derived relation candidates. Worker source closure,
 function reachability, SQL reachability, boundary preflight, worker SQL
 inventory, and runtime SQL inventory checks all pass. This is static review
 evidence; it does not prove authorization, role isolation, tenant context, or
@@ -6118,21 +6116,29 @@ transport against PostgreSQL. It is QEMU software evidence only; Raspberry Pi
 resource/performance, physical recovery, and long-duration behavior remain
 open ([evidence](builds/2026-10-16-recovery/kernel-arm64-optional-profiles.json)).
 
-### KGP protocol projection, reorg replay, and worker recovery — 16 October 2026
+### KGP governance projection, reorg replay, and worker recovery — 16 October 2026
 
-Expanded the isolated current-source KGP acceptance against a disposable
-PostgreSQL database with all 393 ordered schema sources applied. The real
-indexer processed synthetic `GuildCreated`, `DomainCreated`, and `TaskCreated`
-logs and linked each projection to its source event. Rewinding the synthetic
-cursor and replaying the canonical logs created no duplicate rows. Changing the
-stubbed canonical tip exercised the reorg path: three events were orphaned,
-chain-owned domain/task projections were removed, and the retained local guild
-key allowed the same events on the replacement branch to rebuild all three
-projections. The same run confirmed worker reconnect after PostgreSQL restart
-and expired-lease reclaim by a replacement worker. Fifteen focused KGP/guild
-tests pass; Ruff, compilation, capability-matrix validation, JSON parsing, and
-diff checks pass. The database, contracts, cursor, and logs were synthetic;
-there was no seed data, live RPC, provider call, candidate/legacy access, or
-observation of a real chain reorg. Other event handlers, live-chain behavior,
-production-duration recovery, and provider delivery remain open
-([evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
+Migration 403 adds a read-only current-state projection for the governance
+contract's target permission, selector permission, and guild-scope settings.
+The contract remains authoritative for execution. The isolated acceptance
+applied all 394 ordered schema sources to disposable PostgreSQL and processed
+seven synthetic guild, domain, task, and governance events through the real
+indexer. It linked projected rows to source events, confirmed a repeated target
+permission event updates the current value, and verified duplicate canonical
+replay is idempotent. A stubbed tip change orphaned all seven events; projection
+reset cleared chain-derived state, then replay rebuilt guild, domain, task, and
+governance policy rows on the replacement branch while retaining the configured
+guild-key anchor. The same run confirmed worker reconnect after PostgreSQL
+restart and expired-lease reclaim by a replacement worker. Forty-eight focused
+migration/KGP/guild tests pass; Ruff, compilation, the migration source
+validator (515 files), capability-matrix validation, JSON parsing, and diff checks pass. The
+database, contracts, cursor, policy and logs were synthetic; there was no seed
+data, live RPC, provider call, candidate/legacy access, or observation of a real
+chain reorg in this disposable run. A separate checkpointed candidate rollout
+applied migration 403 with no app recreation; health, protected-route behavior,
+zero pending schemas, an empty policy table, and disabled application-table RLS
+were confirmed ([rollout evidence](builds/2026-10-16-recovery/candidate-migration-403-kgp-governance-target-rollout.json)).
+Other event handlers, live-chain behavior, production-duration recovery, and
+provider delivery remain open
+([migration](../schemas/postgres/403_kgp_governance_target_policy_projection.sql);
+[runtime evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).

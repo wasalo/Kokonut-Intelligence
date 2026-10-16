@@ -48,6 +48,47 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any], so
         )
         return cursor.rowcount == 1
 
+    if name in {
+        "TargetPermissionUpdated",
+        "TargetSelectorPermissionUpdated",
+        "GuildScopedTargetUpdated",
+    }:
+        if name == "TargetPermissionUpdated":
+            permission_kind = "target"
+            selector = ""
+            permission_value = event["allowed"]
+        elif name == "TargetSelectorPermissionUpdated":
+            permission_kind = "selector"
+            selector = event["selector"]
+            permission_value = event["allowed"]
+        else:
+            permission_kind = "guild_scope"
+            selector = ""
+            permission_value = event["guild_scoped"]
+        cursor.execute(
+            """
+            INSERT INTO kgp_governance_target_policy
+                (deployment_id, permission_kind, target_address, selector,
+                 permission_value, source_chain_event_id, chain_projection,
+                 orphaned_at)
+            VALUES (%s, %s, %s, %s, %s, %s, TRUE, NULL)
+            ON CONFLICT (deployment_id, permission_kind, target_address, selector)
+            DO UPDATE SET permission_value = EXCLUDED.permission_value,
+                          source_chain_event_id = EXCLUDED.source_chain_event_id,
+                          chain_projection = TRUE, orphaned_at = NULL,
+                          updated_at = NOW()
+            """,
+            (
+                deployment_id,
+                permission_kind,
+                event["target"],
+                selector,
+                permission_value,
+                source_chain_event_id,
+            ),
+        )
+        return cursor.rowcount == 1
+
     guild_uuid = _guild_uuid(cursor, event.get("guild_id", ""))
     if name == "DomainCreated":
         if not guild_uuid:
@@ -243,6 +284,11 @@ def reset_chain_projections(cursor, deployment_id: str) -> None:
                 AND ce.is_canonical = FALSE
           )
         """,
+        (deployment_id,),
+    )
+    cursor.execute(
+        "DELETE FROM kgp_governance_target_policy "
+        "WHERE deployment_id = %s AND chain_projection = TRUE",
         (deployment_id,),
     )
     cursor.execute("DELETE FROM guild_evidence_review WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))

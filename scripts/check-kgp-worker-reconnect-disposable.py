@@ -259,7 +259,7 @@ def _replay_schema_migrations(port: int, password: str) -> int:
 
 
 def _exercise_protocol_projection(port: int, password: str, deployment_id: str) -> dict[str, object]:
-    """Run dependent synthetic registry/domain/task logs through the indexer."""
+    """Run dependent synthetic Guild and governance logs through the indexer."""
     # The disposable check supplies its own database settings; importing the
     # indexer must not attempt to decrypt the repository's unrelated secrets.
     os.environ["KOKONUT_ENV"] = "development"
@@ -276,9 +276,12 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
         "registry": "0x3333333333333333333333333333333333333333",
         "domains": "0x4444444444444444444444444444444444444444",
         "tasks": "0x5555555555555555555555555555555555555555",
+        "governance": "0x6666666666666666666666666666666666666666",
     }
     guild_id = "0x" + "a1" * 32
     guild_key = "0x" + "b2" * 32
+    policy_target = "0x7777777777777777777777777777777777777777"
+    policy_selector = "0x1234abcd"
     block_hash = "0x" + "c3" * 32
 
     topics_by_name = {
@@ -328,6 +331,45 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             4,
             "d6",
         ),
+        synthetic_log(
+            "TargetPermissionUpdated",
+            contract_addresses["governance"],
+            [bytes.fromhex("00" * 12 + policy_target[2:])],
+            encode(["bool"], [True]),
+            11,
+            5,
+            "d7",
+        ),
+        synthetic_log(
+            "TargetSelectorPermissionUpdated",
+            contract_addresses["governance"],
+            [
+                bytes.fromhex("00" * 12 + policy_target[2:]),
+                bytes.fromhex(policy_selector[2:] + "00" * 28),
+            ],
+            encode(["bool"], [True]),
+            12,
+            6,
+            "d8",
+        ),
+        synthetic_log(
+            "GuildScopedTargetUpdated",
+            contract_addresses["governance"],
+            [bytes.fromhex("00" * 12 + policy_target[2:])],
+            encode(["bool"], [True]),
+            13,
+            7,
+            "d9",
+        ),
+        synthetic_log(
+            "TargetPermissionUpdated",
+            contract_addresses["governance"],
+            [bytes.fromhex("00" * 12 + policy_target[2:])],
+            encode(["bool"], [False]),
+            14,
+            8,
+            "da",
+        ),
     ]
 
     class SyntheticEth:
@@ -353,12 +395,14 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             with connection.cursor() as cursor:
                 cursor.execute(
                     "UPDATE kgp_protocol_deployment "
-                    "SET registry_address = %s, domain_address = %s, task_board_address = %s "
+                    "SET registry_address = %s, domain_address = %s, task_board_address = %s, "
+                    "governance_address = %s "
                     "WHERE id = %s",
                     (
                         contract_addresses["registry"],
                         contract_addresses["domains"],
                         contract_addresses["tasks"],
+                        contract_addresses["governance"],
                         deployment_id,
                     ),
                 )
@@ -423,6 +467,19 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             )
             processed_events = cursor.fetchall()
             cursor.execute(
+                """
+                SELECT policy.permission_kind, policy.target_address, policy.selector,
+                       policy.permission_value, policy.source_chain_event_id::text,
+                       event.id::text, event.processing_status, event.processing_attempts
+                FROM kgp_governance_target_policy AS policy
+                JOIN kgp_chain_event AS event ON event.id = policy.source_chain_event_id
+                WHERE policy.deployment_id = %s
+                ORDER BY policy.permission_kind
+                """,
+                (deployment_id,),
+            )
+            governance_policy_rows = cursor.fetchall()
+            cursor.execute(
                 "SELECT next_block FROM kgp_indexer_cursor WHERE deployment_id = %s",
                 (deployment_id,),
             )
@@ -448,18 +505,37 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             or task_projection[5:] != ("processed", 0)
         ):
             raise RuntimeError(f"synthetic TaskCreated event did not project: {task_projection!r}")
-        if projected_count != 3 or next_block != 19:
+        if projected_count != 7 or next_block != 19:
             raise RuntimeError(
-                f"expected three processed dependent events and cursor 19, got "
+                f"expected seven processed protocol events and cursor 19, got "
                 f"{projected_count} and {next_block}"
             )
         expected_events = [
             ("GuildCreated", "processed", 0),
             ("DomainCreated", "processed", 0),
             ("TaskCreated", "processed", 0),
+            ("TargetPermissionUpdated", "processed", 0),
+            ("TargetSelectorPermissionUpdated", "processed", 0),
+            ("GuildScopedTargetUpdated", "processed", 0),
+            ("TargetPermissionUpdated", "processed", 0),
         ]
         if processed_events != expected_events:
             raise RuntimeError(f"unexpected chain-event processing results: {processed_events!r}")
+        expected_policy_values = {
+            "guild_scope": (policy_target, "", True),
+            "selector": (policy_target, policy_selector, True),
+            "target": (policy_target, "", False),
+        }
+        if len(governance_policy_rows) != 3:
+            raise RuntimeError(
+                f"expected three current governance policy rows, got {governance_policy_rows!r}"
+            )
+        for row in governance_policy_rows:
+            kind, target, selector, value, source_event_id, event_id, status, attempts = row
+            if (target, selector, value) != expected_policy_values[kind]:
+                raise RuntimeError(f"unexpected projected governance policy: {row!r}")
+            if source_event_id != event_id or status != "processed" or attempts != 0:
+                raise RuntimeError(f"governance policy source event is not processed: {row!r}")
 
         # Re-read the same canonical logs from a rewound synthetic cursor. The
         # event idempotency keys must prevent duplicate projection rows.
@@ -495,10 +571,21 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 (deployment_id,),
             )
             task_rows = cursor.fetchone()[0]
-        if duplicate_count != 0 or (event_rows, guild_rows, domain_rows, task_rows) != (3, 1, 1, 1):
+        if duplicate_count != 0 or (event_rows, guild_rows, domain_rows, task_rows) != (7, 1, 1, 1):
             raise RuntimeError(
                 "canonical log replay created duplicate chain/projection rows: "
                 f"processed={duplicate_count}, counts={(event_rows, guild_rows, domain_rows, task_rows)}"
+            )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM kgp_governance_target_policy "
+                "WHERE deployment_id = %s AND chain_projection",
+                (deployment_id,),
+            )
+            policy_rows_after_replay = cursor.fetchone()[0]
+        if policy_rows_after_replay != 3:
+            raise RuntimeError(
+                f"canonical replay duplicated governance policy rows: {policy_rows_after_replay}"
             )
 
         # Change the stubbed canonical tip. The real reorg path must orphan
@@ -535,17 +622,24 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 (deployment_id,),
             )
             tasks_after_reorg = cursor.fetchone()[0]
-        if reorg_count != 0 or orphaned_events != 3:
+            cursor.execute(
+                "SELECT COUNT(*) FROM kgp_governance_target_policy "
+                "WHERE deployment_id = %s AND chain_projection",
+                (deployment_id,),
+            )
+            policies_after_reorg = cursor.fetchone()[0]
+        if reorg_count != 0 or orphaned_events != 7:
             raise RuntimeError(
-                f"synthetic reorg did not orphan the expected three events: "
+                f"synthetic reorg did not orphan the expected seven events: "
                 f"scan={reorg_count}, orphaned={orphaned_events}"
             )
         if guild_after_reorg != (None, guild_key, False, None):
             raise RuntimeError(f"guild identity binding was not retained across reorg: {guild_after_reorg!r}")
-        if domains_after_reorg != 0 or tasks_after_reorg != 0:
+        if domains_after_reorg != 0 or tasks_after_reorg != 0 or policies_after_reorg != 0:
             raise RuntimeError(
                 "chain-owned dependent projections remained after reorg: "
-                f"domains={domains_after_reorg}, tasks={tasks_after_reorg}"
+                f"domains={domains_after_reorg}, tasks={tasks_after_reorg}, "
+                f"governance policies={policies_after_reorg}"
             )
 
         reprojected_count = indexer.scan_once()
@@ -575,10 +669,27 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 (deployment_id,),
             )
             recanonical_tasks = cursor.fetchone()[0]
-        if reprojected_count != 3 or recanonical_events != [
+            cursor.execute(
+                """
+                SELECT policy.permission_kind, policy.target_address, policy.selector,
+                       policy.permission_value, policy.source_chain_event_id::text,
+                       event.id::text
+                FROM kgp_governance_target_policy AS policy
+                JOIN kgp_chain_event AS event ON event.id = policy.source_chain_event_id
+                WHERE policy.deployment_id = %s
+                ORDER BY policy.permission_kind
+                """,
+                (deployment_id,),
+            )
+            recanonical_policy_rows = cursor.fetchall()
+        if reprojected_count != 7 or recanonical_events != [
             ("GuildCreated", "processed", 0, True),
             ("DomainCreated", "processed", 0, True),
             ("TaskCreated", "processed", 0, True),
+            ("TargetPermissionUpdated", "processed", 0, True),
+            ("TargetSelectorPermissionUpdated", "processed", 0, True),
+            ("GuildScopedTargetUpdated", "processed", 0, True),
+            ("TargetPermissionUpdated", "processed", 0, True),
         ]:
             raise RuntimeError(f"canonical branch events were not replayed: {recanonical_events!r}")
         if (recanonical_guilds, recanonical_domains, recanonical_tasks) != (1, 1, 1):
@@ -586,8 +697,24 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 "replacement branch projections were not rebuilt: "
                 f"{(recanonical_guilds, recanonical_domains, recanonical_tasks)}"
             )
+        if len(recanonical_policy_rows) != 3:
+            raise RuntimeError(
+                f"replacement branch governance policy was not rebuilt: {recanonical_policy_rows!r}"
+            )
+        for row in recanonical_policy_rows:
+            kind, target, selector, value, source_event_id, event_id = row
+            if (target, selector, value) != expected_policy_values[kind] or source_event_id != event_id:
+                raise RuntimeError(f"replacement branch governance policy mismatch: {row!r}")
         return {
-            "synthetic_events": ["GuildCreated", "DomainCreated", "TaskCreated"],
+            "synthetic_events": [
+                "GuildCreated",
+                "DomainCreated",
+                "TaskCreated",
+                "TargetPermissionUpdated",
+                "TargetSelectorPermissionUpdated",
+                "GuildScopedTargetUpdated",
+                "TargetPermissionUpdated",
+            ],
             "processed_event_count": projected_count,
             "projection_source_event_links_match": True,
             "all_event_rows_processed": True,
@@ -596,10 +723,12 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             "guild_projection_rows_after_replay": guild_rows,
             "domain_projection_rows_after_replay": domain_rows,
             "task_projection_rows_after_replay": task_rows,
+            "governance_policy_rows_after_replay": policy_rows_after_replay,
             "synthetic_reorg_detected": True,
             "orphaned_events_after_reorg": orphaned_events,
             "replacement_branch_replay_count": reprojected_count,
             "replacement_branch_projections_rebuilt": True,
+            "governance_policy_rebuilt_after_reorg": True,
         }
     finally:
         connection.close()
@@ -827,8 +956,8 @@ def main() -> int:
                 "worker_id": worker_id,
                 "limitations": [
                     "All current ordered PostgreSQL schema migrations were applied, but the deployment, cursor, and prelinked guild rows are synthetic; no seed data or candidate/legacy database was used.",
-                    "Live Web3/RPC was not used. One synthetic GuildCreated log was returned to the real indexer, and block height was stubbed for the worker recovery phase.",
-                    "The canonical log was replayed after rewinding the disposable cursor; the idempotency key retained one chain-event row and one projected guild row.",
+                    "Live Web3/RPC was not used. Seven synthetic guild/domain/task/governance logs were returned to the real indexer; block height and the replacement tip hash were stubbed.",
+                    "Canonical duplicate replay and a simulated seven-event reorg/reappearance were exercised. Governance target state included a permission update sequence, and the replacement branch rebuilt the current rows from source events.",
                     "The PostgreSQL container had no volume and published only a loopback port. The default bridge permits egress, but this check makes no external provider or chain calls.",
                 ],
             }

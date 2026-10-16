@@ -47,6 +47,8 @@ EVENT_SIGNATURES = {
     "MotionObjected": "MotionObjected(uint256,address,bytes32)",
     "MotionFinalized": "MotionFinalized(uint256,uint8)",
     "MotionExecuted": "MotionExecuted(uint256,bytes)",
+    "TargetSelectorPermissionUpdated": "TargetSelectorPermissionUpdated(address,bytes4,bool)",
+    "GuildScopedTargetUpdated": "GuildScopedTargetUpdated(address,bool)",
 }
 EVENT_TOPICS = {
     "0x" + Web3.keccak(text=value).hex().removeprefix("0x"): name for name, value in EVENT_SIGNATURES.items()
@@ -82,6 +84,8 @@ EVENT_DATA_TYPES = {
     "MotionObjected": (["bytes32"], ["reason_hash"]),
     "MotionFinalized": (["uint8"], ["status"]),
     "MotionExecuted": (["bytes"], ["return_data"]),
+    "TargetSelectorPermissionUpdated": (["bool"], ["allowed"]),
+    "GuildScopedTargetUpdated": (["bool"], ["guild_scoped"]),
 }
 
 
@@ -184,8 +188,14 @@ def decode_log(log: dict[str, Any]) -> dict[str, Any]:
         decoded["review_id"] = _hex(topics[1])
         if event_name == "EvidenceDisputed":
             decoded["disputer"] = _topic_address(topics[2])
-    elif event_name in {"TargetPermissionUpdated"}:
+    elif event_name in {
+        "TargetPermissionUpdated",
+        "TargetSelectorPermissionUpdated",
+        "GuildScopedTargetUpdated",
+    }:
         decoded["target"] = _topic_address(topics[1])
+        if event_name == "TargetSelectorPermissionUpdated":
+            decoded["selector"] = _hex(topics[2])[:10]
     elif event_name in {"MotionCreated", "MotionObjected", "MotionFinalized", "MotionExecuted"}:
         decoded["motion_id"] = int.from_bytes(bytes.fromhex(_hex(topics[1])[2:]), "big")
         if event_name == "MotionCreated":

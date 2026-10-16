@@ -1,6 +1,8 @@
 # Batch 2 — recovery preparation
 
-10 October 2026. Preparation in progress; no backup or restore rehearsal performed.
+Prepared 10 October 2026; updated 16 October 2026. Scoped candidate PostgreSQL
+checkpoint/restore rehearsals are recorded below. This is not a complete
+platform backup or production recovery acceptance.
 
 ## Ownership findings
 
@@ -66,7 +68,13 @@ corruption evidence; age authentication supplies ciphertext integrity.
      -f docker-compose.kernel-recovery.yml up -d database
    ```
 
-4. Wait for DB health. The PostGIS image installs extension objects into its
+4. Wait for DB health. The recovery healthcheck requires both PID 1 to be the
+   final `postgres` process and a TCP readiness response. The PostGIS entrypoint
+   starts a temporary server during extension initialization; a plain
+   `pg_isready` can report healthy before that server shuts down. Do not restore
+   until this healthcheck passes. The delayed-init disposable check confirms it
+   stays starting during the temporary phase and becomes healthy only for the
+   final server. The PostGIS image installs extension objects into its
    configured `POSTGRES_DB`; do not restore into that initialized database because
    `pg_restore` will correctly reject the pre-existing PostGIS schemas. The
    database-only archive preserves RLS policies but excludes cluster-global
@@ -135,10 +143,9 @@ database to prepare parity evidence. Fixture implementation belongs to Batch 3.
 Shell syntax passed for kernel-checkpoint.sh. Recovery Compose parsed successfully
 with encrypted secrets; no resolved secrets printed. Five volume aggregates were
 measured using a temporary no-network read-only helper, subsequently removed.
-No test suites, checkpoint creation, provider startup or restore were performed.
 Batch 2 remains open: logical provider inventory, complete archives, external media
-ownership and isolated restore evidence are still required. Rollback: no deployment
-or data changes were made by this preparation slice.
+ownership, and populated runtime/provider recovery are still required. The earlier
+preparation slice made no deployment or data changes.
 
 ### Batch 2 scoped recovery performed — 10 October 2026
 
@@ -163,3 +170,25 @@ location rows; this closes database/role recovery for this checkpoint and does
 not prove farm-data parity or complete legacy/provider recovery. The database
 container is stopped and its recovery volume retained. See the
 [candidate restore evidence](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json).
+
+### Candidate migration 403 checkpoint, restore, and rollout — 16 October 2026
+
+A fresh age-encrypted checkpoint of the candidate PostgreSQL database was
+authenticated and restored to a new internal-only PostgreSQL 16.4/PostGIS 3.4
+`template0` database. The restored clone matched the candidate's 393 schema
+ledger rows/checksum fingerprint, extension list, and 1,392 public relations.
+The recovery service healthcheck was hardened after the first restore attempt
+exposed a readiness race: the PostGIS entrypoint's temporary initialization
+server can answer `pg_isready` before its handoff. A disposable delayed-init
+check verifies the healthcheck rejects that phase and passes after PID 1 becomes
+the final PostgreSQL server.
+
+After the successful restore rehearsal, the ordered runner applied only
+`schema:403_kgp_governance_target_policy_projection.sql` to the candidate. The
+candidate now records 394 applied schema migrations with zero pending; the
+policy table is empty, application-table RLS remains disabled, `/health` returns
+200, and the anonymous mobile review queue returns 401. The app, proxy, and
+Metabase were not recreated, the legacy stack was untouched, and no seed or
+application rows were written. The recovery container is stopped and its volume
+retained. This database-only rehearsal does not establish data/media/provider or
+production recovery parity. See the [rollout evidence](builds/2026-10-16-recovery/candidate-migration-403-kgp-governance-target-rollout.json).
