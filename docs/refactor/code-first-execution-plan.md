@@ -48,7 +48,13 @@ MAN-CAP checks open until each has its own retained evidence.
   disposable PostgreSQL stop/start check used a stub engine; the current check
   replays scheduler/event migrations and uses the real SchedulerEngine to claim,
   launch, and complete bounded `services.events --process --batch-size 10`
-  tasks before and after restart ([evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)). It uses an empty synthetic event queue and no provider; worker death during task execution, lease reclaim, full-ledger parity, and long-duration recovery remain open.
+  tasks before and after restart. A separate probe kills the real engine after
+  it commits a due task lease but before subprocess dispatch; forced expiry in
+  the disposable database lets a replacement worker mark the first run failed
+  and finish the task as attempt two. It uses an empty synthetic EventBus queue
+  and no provider. This covers claim-to-dispatch recovery only; a crash after
+  task effects, full-ledger parity, and long-duration recovery remain open
+  ([evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
 - A local EventBus worker slice now creates and closes its bus per iteration,
   recreates bounded-timeout notification connections, and retries logged
   failures. Twenty focused event-worker/EventBus tests pass with Ruff and
@@ -59,9 +65,12 @@ MAN-CAP checks open until each has its own retained evidence.
   `127.0.0.1` returned one synthetic `503`; the outbox recorded retryable/failed
   and then recovered to succeeded/succeeded after retry with the same
   idempotency key. The post-restart notification also succeeded with a distinct
-  ID. No remote provider was contacted. Full migration-ledger parity, real
-  provider delivery, in-flight lease recovery, and long-duration recovery
-  remain open
+  ID. A third request was received while its worker awaited the response; after
+  the worker was killed and the fixture expired its lease, a replacement
+  reclaimed the notification with attempt history `lease_lost,succeeded` and
+  reused the idempotency key. No remote provider was contacted. Full
+  migration-ledger parity, real provider delivery, production-duration lease
+  recovery, and long-duration recovery remain open
   ([evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 - A local KGP indexer change now reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
@@ -240,16 +249,16 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI #330 passed and Security #54 passed on pushed SHA
-  `fb835f141b8105df32206a6b889abff99c0c3806`; the preceding pushed revision
-  passed both checks. Local commits `03b949b`, `3f804f7`, `51fe6a3`, `58f1966`,
-  and `e28c4a3` add disposable PostgreSQL restart recovery for KGP, EventBus,
-  and the real SchedulerEngine. EventBus acceptance now includes loopback
-  notification delivery across restart and a synthetic `503` that recovers on
-  retry with the same idempotency key. The KGP script plus four focused tests,
-  the EventBus runtime script plus 20 focused tests, and the SchedulerEngine
-  runtime script plus 10 focused tests pass with Ruff, compilation, and
-  capability-matrix validation.
+**Action:** CI #331 is in progress and Security #55 passed on pushed SHA
+  `928b2a9d0091729979c9e695e217cab7dda3f556`; the preceding pushed revision
+  passed both checks. The pushed batch adds disposable PostgreSQL restart
+  recovery for KGP, EventBus, and the real SchedulerEngine. Local commits
+  `839a04c` and `9c5fe8b` add EventBus notification and SchedulerEngine task
+  crash/lease-reclaim probes. The receiver test reuses the notification key on
+  retry; the scheduler replacement completes the claimed task as attempt two.
+  The KGP script plus four focused tests, the EventBus runtime script plus 20
+  focused tests, and the SchedulerEngine runtime script plus 10 focused tests
+  pass with Ruff, compilation, and capability-matrix validation.
 The retained ARM64 evidence covers software emulation only; live provider and
 production acceptance remain separate gates.
 
@@ -717,10 +726,9 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The current push is `fb835f1`; CI #330 passed and Security
-#54 passed on that head. Local commits `03b949b`, `3f804f7`, `51fe6a3`,
-`58f1966`, and `e28c4a3` are
-waiting for the next batch push. Continue local work while CI runs and accumulate related changes
+requested. The current push is `928b2a9`; CI #331 is in progress and Security
+#55 passed on that head. Local commits `839a04c` and `9c5fe8b` are waiting for
+the next batch push. Continue local work while CI runs and accumulate related changes
 before the next push so the repository does
 not start CI for each small commit. Never push directly to
 `main`. Keep each candidate database

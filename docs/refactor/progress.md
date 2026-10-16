@@ -7,18 +7,21 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-The last pushed PR head is `fb835f141b8105df32206a6b889abff99c0c3806`.
+The last pushed PR head is `928b2a9d0091729979c9e695e217cab7dda3f556`.
 That batch adds verified ARM64 optional profiles for ClickHouse analytics,
-Directus, and HTTP sensors. CI #330 passed and Security #54 passed. Local
+Directus, and HTTP sensors, plus KGP/EventBus/SchedulerEngine recovery slices.
+CI #331 is in progress and Security #55 passed. Local
 scheduler, EventBus, and KGP worker runtime slices now confirm scheduled task
 completion, durable event completion, and lease-heartbeat recovery after
 disposable PostgreSQL stop/start; their bounded synthetic fixtures do not close
 provider, full-schema, mid-task lease-reclaim, or live-chain acceptance. The
-previous `46945f7` head passed both required checks. Local commits `58f1966`
-and `e28c4a3` strengthen EventBus recovery evidence with loopback notification
-delivery across the restart and a synthetic `503`/retry using the same
-idempotency key. The capability, checklist, and progress-document refresh is
-local and not pushed yet. The
+previous `46945f7` head passed both required checks. Local commits `839a04c`
+and `9c5fe8b` add disposable crash-recovery proofs: an EventBus notification
+worker is killed before HTTP acknowledgement and a SchedulerEngine claimant
+is killed before subprocess dispatch. Replacement workers reclaim both leases;
+the EventBus retry preserves its idempotency key and the scheduled task
+completes as attempt two. The capability, checklist, and progress-document
+refresh is local and not pushed yet. The
 preceding Dockerfile digest correction and local 14-test repair are recorded
 separately ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
@@ -41,9 +44,13 @@ bounded `services.events --process --batch-size 10` task before PostgreSQL
 stopped, remained alive during the outage, then claimed and completed another
 task under the same worker ID after restart. The disposable database replayed
 migrations 116, 117, 164, 165, 337, and 371. EventBus processed an empty queue;
-no external provider ran. This does not test a worker dying during task
-execution or subsequent lease reclaim, full-ledger parity, or long-duration
-recovery ([script](../../scripts/check-scheduler-engine-reconnect-disposable.py);
+no external provider ran. A separate crash probe killed the real engine after
+it committed a task lease but before starting the subprocess. After forced
+expiry in the disposable database, a replacement worker reclaimed and ran the
+task as attempt two; run history was `failed` then `completed`. This exercises
+claim-to-dispatch recovery, not a crash after the task's domain effect commits.
+Full-ledger parity, post-effect idempotency, and long-duration recovery remain
+open ([script](../../scripts/check-scheduler-engine-reconnect-disposable.py);
 [evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
 
 ### EventBus worker PostgreSQL restart recovery — 16 October 2026
@@ -58,9 +65,13 @@ restart and one after restart. The receiver returned a synthetic `503` for the
 first attempt; the outbox recorded `retryable` plus a failed attempt, then
 recovered to `succeeded` after the receiver accepted the retry. The retry
 reused the same notification UUID in `Idempotency-Key`; the post-restart event
-used a distinct notification ID. No remote provider was contacted. Full
-migration-ledger parity, real provider delivery, in-flight worker-loss/lease
-reclaim, and long outages remain open
+used a distinct notification ID. A third request was received by the fake
+receiver while its response was held; the worker was killed, the fixture
+expired the notification lease, and a one-shot replacement reclaimed it.
+Attempt state became `lease_lost,succeeded`, and the duplicate request reused
+the same idempotency key. No remote provider was contacted. Full
+migration-ledger parity, real provider delivery, production-duration lease
+reclaim and outage recovery, and long-duration acceptance remain open
 ([script](../../scripts/check-event-worker-reconnect-disposable.py);
 [evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 The current local slice also closes a generic-retention preview hazard: the
