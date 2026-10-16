@@ -4,7 +4,7 @@
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Remote head before this local batch:** `6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`
 **Status at batch start (checked 16 October 2026):** CI #336 was pending and Security #60 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299381); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299385)).
-**Latest pushed batch:** `359e1d5e52ce8b3fd907a992bd9d1bd272ce8205`; Security #66 passed and CI #342 is in progress.
+**Latest pushed batch:** `4e47163892c347e709940d88587924b603d584fc`; Security #69 passed and CI #345 is running.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -15,11 +15,21 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **386 checked and 19 open items (405 total)**,
+- The execution checklist has **393 checked and 19 open items (412 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
+- Latest pushed work on 16 October is recorded in commits `0bafc419`
+  (anomaly handler source and transaction boundaries) and `4e471638`
+  (signed worker tenant context). The focused anomaly/transaction checks pass;
+  migration 405 and its adapter pass 17 disposable PostgreSQL acceptance
+  checks and unit coverage. Security #69 passed; CI #345 is still running.
+  Migration 405 is not applied to the candidate, no worker credential or
+  handler deployment was provisioned, and application-table RLS remains off.
+  These changes do not add a separately accepted capability: the capability
+  matrix remains 66 rows (55 baseline-retained, 7 deployed, 4 prepared), with
+  zero accepted MAN-CAP checks.
 - Since the previous `8c7a053` accounting, commit `a1f45da` added the native
   Gateway farm-activity API and migration 404, with 13 focused service/HTTP/
   policy tests and 11 disposable PostgreSQL 16 checks passing. Commit `359e1d5`
@@ -28,10 +38,10 @@ MAN-CAP checks open until each has its own retained evidence.
   404 has not been applied to the candidate, and no MAN-CAP check was accepted.
   Security #66 passed and CI #342 failed on a seed UPDATE that migration 404
   correctly rejects. The local fix embeds immutable lineage in pilot INSERTs
-  and removes the later alignment UPDATE; 16 focused source checks pass. The
-  fix is pending push and hosted rerun. Current local edits additionally expose
-  the full farm-activity content allowlist in the create/edit forms; six focused
-  console checks still pass.
+  and removes the later alignment UPDATE; 16 focused source checks passed, then
+  the fix was included in a subsequent push. The later pushes also add anomaly
+  transaction boundaries and the signed worker-context adapter described in
+  the current status above.
 - When this local batch began, the remote PR head was
   [`6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`](https://github.com/wasalo/Kokonut-Intelligence/commit/6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f)
   on `feat/mobile-offline-acceptance`, PR #68. CI #336 was pending and
