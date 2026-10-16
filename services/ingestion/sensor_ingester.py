@@ -8,13 +8,13 @@ PostgreSQL and ClickHouse, and logs to ingestion_log.
 
 Usage:
     # Batch CSV upload
-    python -m services.ingestion.sensor_ingester --file data.csv
+    python -m services.ingestion.sensor_ingester --file data.csv --location-id UUID
 
     # Single reading (API-style)
-    python -m services.ingestion.sensor_ingester --sensor <uuid> --value 25.3
+    python -m services.ingestion.sensor_ingester --sensor <uuid> --value 25.3 --location-id UUID
 
     # List registered sensors
-    python -m services.ingestion.sensor_ingester --list
+    python -m services.ingestion.sensor_ingester --list --location-id UUID
 """
 
 import argparse
@@ -23,6 +23,7 @@ import json
 import re
 import sys
 from datetime import datetime, timezone
+from uuid import UUID
 
 from ..common.logging import get_logger
 from .field_validation import parse_reading_timestamp, validate_sensor_reading
@@ -75,6 +76,16 @@ _QUALITY_RE = re.compile(r'^(good|suspect|missing|estimated)$')
 _SENSOR_TYPE_RE = re.compile(r'^[a-z_]+$')
 _UNIT_RE = re.compile(r'^[a-zA-Z°%µ]+$')
 
+
+def _canonical_location_id(location_id: str | None) -> str:
+    """Require one canonical location scope before sensor database access."""
+    if location_id is None:
+        raise ValueError("sensor operations require an explicit location UUID")
+    try:
+        return str(UUID(str(location_id)))
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("location_id must be a UUID") from None
+
 # Sensor type range validation (fallback if sensor_type table not loaded)
 SENSOR_TYPE_RANGES = {
     "soil_moisture": (0, 100),
@@ -121,8 +132,9 @@ def get_sensor_type_ranges(db, *, strict: bool = False) -> dict:
     return ranges
 
 
-def get_active_sensors(db) -> list:
-    """Get all active sensor devices with type info."""
+def get_active_sensors(db, location_id: str) -> list:
+    """Get active sensor devices with type info for one location."""
+    location_id = _canonical_location_id(location_id)
     with db.cursor() as cur:
         cur.execute("""
             SELECT sd.id, sd.name, sd.slug, sd.sensor_type_id, st.name as sensor_type,
@@ -130,20 +142,23 @@ def get_active_sensors(db) -> list:
             FROM sensor_device sd
             JOIN sensor_type st ON sd.sensor_type_id = st.id
             WHERE sd.status = 'active'
-        """)
+              AND sd.location_id = %s
+        """, (location_id,))
         return cur.fetchall()
 
 
-def get_sensor_by_id_or_slug(db, identifier: str):
-    """Get a sensor by UUID or slug."""
+def get_sensor_by_id_or_slug(db, identifier: str, location_id: str):
+    """Get a sensor by UUID or slug, constrained to one location."""
+    location_id = _canonical_location_id(location_id)
     with db.cursor() as cur:
         cur.execute("""
             SELECT sd.id, sd.name, sd.slug, sd.sensor_type_id, st.name as sensor_type,
                    sd.location_id, sd.plot_id, sd.status, sd.protocol
             FROM sensor_device sd
             JOIN sensor_type st ON sd.sensor_type_id = st.id
-            WHERE sd.id::text = %s OR sd.slug = %s
-        """, (identifier, identifier))
+            WHERE (sd.id::text = %s OR sd.slug = %s)
+              AND sd.location_id = %s
+        """, (identifier, identifier, location_id))
         return cur.fetchone()
 
 
@@ -242,8 +257,9 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
         logger.warning("ClickHouse insert failed: %s", e)
 
 
-def run_csv(file_path: str):
-    """Batch ingest sensor readings from CSV."""
+def run_csv(file_path: str, location_id: str | None = None):
+    """Batch ingest CSV readings for sensors in one explicit location."""
+    location_id = _canonical_location_id(location_id)
     db = get_db()
     try:
         ranges = get_sensor_type_ranges(db)
@@ -295,7 +311,7 @@ def run_csv(file_path: str):
                 continue
 
             # Look up sensor
-            sensor_info = get_sensor_by_id_or_slug(db, device_id)
+            sensor_info = get_sensor_by_id_or_slug(db, device_id, location_id)
             if not sensor_info:
                 errors += 1
                 logger.warning("  ✗ Row %d: sensor '%s' not found", i + 1, device_id)
@@ -387,13 +403,20 @@ def run_csv(file_path: str):
         db.close()
 
 
-def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str = None):
-    """Ingest a single sensor reading (API-style)."""
+def run_single(
+    sensor_id: str,
+    value: float,
+    date_str: str = None,
+    time_str: str = None,
+    location_id: str | None = None,
+):
+    """Ingest one reading for a sensor in an explicit location."""
+    location_id = _canonical_location_id(location_id)
     db = get_db()
     try:
         ranges = get_sensor_type_ranges(db)
 
-        sensor_info = get_sensor_by_id_or_slug(db, sensor_id)
+        sensor_info = get_sensor_by_id_or_slug(db, sensor_id, location_id)
         if not sensor_info:
             logger.error("Sensor '%s' not found", sensor_id)
             sys.exit(1)
@@ -465,11 +488,12 @@ def run_single(sensor_id: str, value: float, date_str: str = None, time_str: str
         db.close()
 
 
-def list_sensors():
-    """List all registered sensors."""
+def list_sensors(location_id: str):
+    """List registered sensors for one location."""
+    location_id = _canonical_location_id(location_id)
     db = get_db()
     try:
-        sensors = get_active_sensors(db)
+        sensors = get_active_sensors(db, location_id)
     finally:
         db.close()
 
@@ -482,11 +506,12 @@ def list_sensors():
         logger.info("  %s | %s | %s | %s | %s", name, stype, str(loc_id)[:8], protocol or '—', sid)
 
 
-def check_calibration_status(db) -> list:
-    """Check calibration status for all active sensors.
+def check_calibration_status(db, location_id: str) -> list:
+    """Check calibration status for active sensors in one location.
 
     Returns list of dicts with sensor info and calibration status.
     """
+    location_id = _canonical_location_id(location_id)
     overdue = []
     with db.cursor() as cur:
         cur.execute("""
@@ -498,7 +523,8 @@ def check_calibration_status(db) -> list:
             LEFT JOIN location l ON sd.location_id = l.id
             WHERE sd.status = 'active'
               AND sd.calibration_date IS NOT NULL
-        """)
+              AND sd.location_id = %s
+        """, (location_id,))
         for row in cur.fetchall():
             sensor_id = str(row[0])
             name = row[1]
@@ -527,8 +553,9 @@ def check_calibration_status(db) -> list:
     return overdue
 
 
-def list_calibration_status():
-    """List calibration status for all active sensors."""
+def list_calibration_status(location_id: str):
+    """List calibration status for active sensors in one location."""
+    location_id = _canonical_location_id(location_id)
     db = get_db()
     try:
         with db.cursor() as cur:
@@ -539,8 +566,9 @@ def list_calibration_status():
                 JOIN sensor_type st ON sd.sensor_type_id = st.id
                 LEFT JOIN location l ON sd.location_id = l.id
                 WHERE sd.status = 'active'
+                  AND sd.location_id = %s
                 ORDER BY sd.calibration_date ASC NULLS LAST
-            """)
+            """, (location_id,))
             sensors = cur.fetchall()
 
         if not sensors:
@@ -574,6 +602,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--value", type=float, help="Sensor value (with --sensor)")
     parser.add_argument("--date", help="Reading date YYYY-MM-DD (with --sensor)")
     parser.add_argument("--time", help="Reading time HH:MM:SS (with --sensor)")
+    parser.add_argument("--location-id", help="Required UUID scope for every sensor operation")
     parser.add_argument("--list", action="store_true", help="List active sensors")
     parser.add_argument("--calibration", action="store_true", help="List calibration status")
     args = parser.parse_args(argv)
@@ -592,14 +621,21 @@ def main(argv: list[str] | None = None) -> None:
     if args.sensor is None and (args.date is not None or args.time is not None):
         parser.error("--date and --time require --sensor and --value")
 
+    if args.location_id is None:
+        parser.error("sensor operations require --location-id")
+    try:
+        location_id = _canonical_location_id(args.location_id)
+    except ValueError as exc:
+        parser.error(str(exc))
+
     if args.list:
-        list_sensors()
+        list_sensors(location_id)
     elif args.calibration:
-        list_calibration_status()
+        list_calibration_status(location_id)
     elif args.file:
-        run_csv(args.file)
+        run_csv(args.file, location_id)
     elif args.sensor and args.value is not None:
-        run_single(args.sensor, args.value, args.date, args.time)
+        run_single(args.sensor, args.value, args.date, args.time, location_id)
 
 
 if __name__ == "__main__":

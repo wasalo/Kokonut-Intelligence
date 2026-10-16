@@ -831,7 +831,14 @@ reporting views.
   content-free queue summary; both `mobile_device:read` and
   `mobile_collection_review:read` are required for the same location.
   Focused tests cover every helper and command path. Worker and remaining CLI
-  review is still open.
+  review is still open. The manual `sensor_ingester` CLI now requires one
+  canonical location UUID for CSV/single-reading writes, inventory, and
+  calibration; device lookup and read queries bind that location. One hundred
+  ten focused sensor/scheduler tests and the regenerated SQL/worker inventories
+  pass ([evidence](builds/2026-10-16-recovery/sensor-ingestion-cli-location-scope.json)).
+  The UUID is only a query filter and does not authenticate the operator or
+  establish signed context/RLS; recurring sensor ingestion remains disabled
+  until a real source contract exists.
   - [x] Add and verify migration 407's dormant signed-scope anomaly receipt functions. Nine disposable PostgreSQL 16 checks pass for scope and source matching, duplicate suppression, allowed transitions, alert linkage, privilege separation, and migration replay. This does not integrate the handler, provision a worker login, roll out to the candidate, or enable RLS ([migration](../../schemas/postgres/407_sensor_anomaly_effect_functions.sql); [runner](../../scripts/check-sensor-anomaly-effect-functions-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
   - [x] Add migration 408's signed-scope event publisher. Eleven disposable PostgreSQL 16 checks pass for canonical event payload/priority, source and alert linkage, retry/collision behavior, queue-state preservation, function ACLs, direct table denial, and replay. The publisher is not wired into the handler ([migration](../../schemas/postgres/408_sensor_alert_event_function.sql); [runner](../../scripts/check-sensor-alert-event-function-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).
   - [x] Add migration 409's signed-scope notification-intent function. Twelve disposable PostgreSQL 16 checks pass for source/alert linkage, webhook/Directus/email payload contracts, channel and destination allowlists, idempotency/collision handling, preservation of delivery state, bounded ACLs, and replay. Handler enqueueing remains direct until the worker credential and event-before-notification transaction flow are integrated ([migration](../../schemas/postgres/409_sensor_alert_notification_intent.sql); [runner](../../scripts/check-sensor-alert-notification-intent-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).

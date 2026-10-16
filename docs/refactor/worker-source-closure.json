@@ -2545,49 +2545,49 @@
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 27,
+          "line": 28,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 28,
+          "line": 29,
           "target": "services.ingestion.field_validation",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 37,
+          "line": 38,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 46,
+          "line": 47,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 53,
+          "line": 54,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 60,
+          "line": 61,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 67,
+          "line": 68,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 202,
+          "line": 217,
           "target": "services.ingestion.sensor_projection",
           "kind": "from"
         },

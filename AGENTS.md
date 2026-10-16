@@ -181,10 +181,10 @@ Commands:
 - GIS boundary import: `python3 -m services.ingestion.gis_import --file boundaries.geojson --target location`
 - Market data (live): `python3 -m services.ingestion.market_data --source world_bank`
 - Market data (seed): `python3 -m services.ingestion.market_data --source seed`
-- Sensor ingestion (CSV): `python3 -m services.ingestion.sensor_ingester --file data.csv`
-- Sensor ingestion (single): `python3 -m services.ingestion.sensor_ingester --sensor UUID --value 25.3`
-- Sensor list: `python3 -m services.ingestion.sensor_ingester --list`
-- Sensor calibration: `python3 -m services.ingestion.sensor_ingester --calibration`
+- Sensor ingestion (CSV): `python3 -m services.ingestion.sensor_ingester --file data.csv --location-id UUID`
+- Sensor ingestion (single): `python3 -m services.ingestion.sensor_ingester --sensor UUID --value 25.3 --location-id UUID`
+- Sensor list: `python3 -m services.ingestion.sensor_ingester --list --location-id UUID`
+- Sensor calibration: `python3 -m services.ingestion.sensor_ingester --calibration --location-id UUID`
 - Anomaly detection: `python3 -m services.ingestion.anomaly_detector`
 - Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --sensor UUID`
 - Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check`

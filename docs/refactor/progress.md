@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Location-scoped sensor ingestion CLI — 16 October 2026
+
+Required a canonical `--location-id` for local CSV/single-reading ingestion,
+sensor inventory, and calibration operations. Device UUID/slug lookup and all
+sensor inventory/calibration queries now bind that location; missing or invalid
+scope is rejected before opening a database connection or cursor. Updated the
+repository command guide, telemetry documentation, and isolated recovery
+fixture. The 110 focused sensor/scheduler tests pass, together with Ruff,
+compilation, the capability-matrix validator, and regenerated SQL/worker
+inventories. The checklist remains 414 complete / 19 open; the 66-row matrix
+and MAN-CAP statuses are unchanged. This is a query-selection boundary, not an
+authenticated tenant grant or database/RLS boundary. Recurring sensor
+ingestion remains rejected until a real source contract is defined. No
+candidate or legacy database, provider, or live device was accessed
+([evidence](builds/2026-10-16-recovery/sensor-ingestion-cli-location-scope.json);
+[implementation](../../services/ingestion/sensor_ingester.py)).
+
 ### Scheduled anomaly location scope — 16 October 2026
 
 The shared `anomaly` JobSpec now requires one location, and hourly Prefect

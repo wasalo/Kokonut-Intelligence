@@ -116,13 +116,22 @@ python3 -m services.ingestion.status summary
 Supported collection routes include:
 
 ```bash
-python3 -m services.ingestion.sensor_ingester --file readings.csv
-python3 -m services.ingestion.sensor_ingester --sensor SENSOR_UUID --value 25.3
+python3 -m services.ingestion.sensor_ingester --file readings.csv --location-id LOCATION_UUID
+python3 -m services.ingestion.sensor_ingester --sensor SENSOR_UUID --value 25.3 --location-id LOCATION_UUID
+python3 -m services.ingestion.sensor_ingester --list --location-id LOCATION_UUID
+python3 -m services.ingestion.sensor_ingester --calibration --location-id LOCATION_UUID
 python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056
 python3 -m services.ingestion.mqtt_subscriber --broker BROKER --port 8883
 python3 -m services.ingestion.device_manager --list
 python3 -m services.ingestion.device_manager --health --device-id DEVICE_ID
 ```
+
+Every `sensor_ingester` operation requires `--location-id`; device lookup,
+sensor inventory, and calibration queries are constrained to that location.
+This protects the local operator workflow from unbounded cross-location
+selection. The location argument is a query scope, not an authenticated tenant
+grant, and does not establish database-level isolation or authorize application
+RLS.
 
 `v_sensor_device_health_summary` exposes device fields such as
 `last_seen_at`, battery, signal strength, firmware, and reading rate. Device

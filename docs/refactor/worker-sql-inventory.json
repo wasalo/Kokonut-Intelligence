@@ -4273,9 +4273,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:114:12",
+      "id": "services/ingestion/sensor_ingester.py:125:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 114,
+      "line": 125,
       "column": 12,
       "scope": "get_sensor_type_ranges",
       "method": "execute",
@@ -4290,9 +4290,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:127:8",
+      "id": "services/ingestion/sensor_ingester.py:139:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 127,
+      "line": 139,
       "column": 8,
       "scope": "get_active_sensors",
       "method": "execute",
@@ -4302,15 +4302,15 @@
         "sensor_device",
         "sensor_type"
       ],
-      "static_sql_sha256": "9834b401910e25ea9462ff723af6e94c94a79c57c7f60a6dbfa6e9d12810edfa",
+      "static_sql_sha256": "02ed0a5e5f54df62550e290d1c77cba13d1618d4d5a7c217935b9e98404cb034",
       "operation_refs": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:140:8",
+      "id": "services/ingestion/sensor_ingester.py:154:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 140,
+      "line": 154,
       "column": 8,
       "scope": "get_sensor_by_id_or_slug",
       "method": "execute",
@@ -4320,15 +4320,15 @@
         "sensor_device",
         "sensor_type"
       ],
-      "static_sql_sha256": "b3f3302be4f975fca4f21ee89baa4e12c277824313b7a3dfdc113b55cebe86b5",
+      "static_sql_sha256": "9a90a7d9543e697c7778eac59a7fe995029b909447d58045e2a134fc1940b11e",
       "operation_refs": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:159:8",
+      "id": "services/ingestion/sensor_ingester.py:174:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 159,
+      "line": 174,
       "column": 8,
       "scope": "insert_reading",
       "method": "execute",
@@ -4344,9 +4344,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:181:8",
+      "id": "services/ingestion/sensor_ingester.py:196:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 181,
+      "line": 196,
       "column": 8,
       "scope": "insert_reading",
       "method": "execute",
@@ -4361,9 +4361,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:205:12",
+      "id": "services/ingestion/sensor_ingester.py:220:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 205,
+      "line": 220,
       "column": 12,
       "scope": "insert_reading_clickhouse",
       "method": "execute",
@@ -4378,9 +4378,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:492:8",
+      "id": "services/ingestion/sensor_ingester.py:517:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 492,
+      "line": 517,
       "column": 8,
       "scope": "check_calibration_status",
       "method": "execute",
@@ -4391,15 +4391,15 @@
         "sensor_device",
         "sensor_type"
       ],
-      "static_sql_sha256": "f245769f39bbf894462235a04797ab982e57a25e9c14a66a2c6bc6bd6e2ec9e3",
+      "static_sql_sha256": "52fb87800e1d3fd16e59794e84688ce41c375a3c0b1353bca3feb004f7ba2703",
       "operation_refs": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:535:12",
+      "id": "services/ingestion/sensor_ingester.py:562:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 535,
+      "line": 562,
       "column": 12,
       "scope": "list_calibration_status",
       "method": "execute",
@@ -4410,7 +4410,7 @@
         "sensor_device",
         "sensor_type"
       ],
-      "static_sql_sha256": "511451686c7f74e111722706cae44ece2a107ce28f80d8027816151b09972d2a",
+      "static_sql_sha256": "15601ae11407ec98d00665edbd46c4d5e6529d3fbe4fc7db413ac5588bff021b",
       "operation_refs": [
         "scheduled_module:services.ingestion.sensor_ingester"
       ]

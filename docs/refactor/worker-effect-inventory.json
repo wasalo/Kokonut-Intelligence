@@ -407,7 +407,7 @@
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 251,
+          "line": 267,
           "function": "services.ingestion.sensor_ingester:run_csv",
           "category": "filesystem",
           "call": "open"

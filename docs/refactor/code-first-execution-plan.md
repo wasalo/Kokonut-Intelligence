@@ -3,7 +3,7 @@
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Batch base (last pushed head before this work):** `30f996624ad9e9f4f908b41f1d5f55b86efb2620` on PR #68.
-**Current local batch:** Local commits after `30f9966` include the EventBus worker split, disabled dashboard-refresh boundary, signed default-off cache invalidation, removal of source-less sensor ingestion from composite Prefect flows, and the worker operation map/effect trace refresh (commit `0761353`). The current anomaly slice requires an explicit location for scheduled anomaly and baseline scans, applies location filters to reading/baseline and resulting alert paths, and fans out hourly Prefect work over active Kokonut Network locations. The focused anomaly, scheduler, Prefect, and worker-inventory suites pass 167 tests; the generated JobSpec inventory and capability-matrix validator pass. The checklist now has 414 checked / 19 open items; the capability matrix remains at 66 rows. Migrations 405–416 are not applied to the candidate, no worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. This source filter does not establish signed worker context or RLS. No candidate or legacy database, external provider, or live Prefect deployment was changed. Real worker identity, generic outbox authorization, provider delivery, other worker scopes, and production acceptance remain open.
+**Current local batch:** Local commits after `30f9966` include the EventBus worker split, disabled dashboard-refresh boundary, signed default-off cache invalidation, removal of source-less sensor ingestion from composite Prefect flows, and the worker operation map/effect trace refresh (commit `0761353`). Local commit `b0882b4` scopes scheduled anomaly and baseline scans to one explicit location and fans hourly Prefect work out over active Kokonut Network locations. The current sensor CLI slice requires a canonical location UUID for CSV/single-reading ingestion, inventory, and calibration, and binds its SQL lookups to that location; the focused sensor and scheduler suites pass 110 tests with Ruff, compilation, and generated SQL/worker inventory checks. The anomaly, scheduler, Prefect, and worker-inventory suites pass 167 tests. The checklist has 414 checked / 19 open items; the capability matrix remains at 66 rows. Migrations 405–416 are not applied to the candidate, no worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. These source/query filters do not establish authenticated tenant grants, signed worker context, or RLS. No candidate or legacy database, external provider, persisted schedule, or live Prefect deployment was changed. Real worker identity, generic outbox authorization, provider delivery, other worker scopes, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -359,6 +359,11 @@ before protected reads and writes, and make direct database access fail closed.
   climate, weather, metrics, credit adjustment, and remote sensing require a
   schema-validated location per scheduled task; recurring sensor ingestion
   still lacks a source contract.
+  The manual sensor CLI now requires a canonical `--location-id` for reads and
+  writes and binds sensor lookup, inventory, and calibration SQL to that
+  location. One hundred ten focused sensor/scheduler checks pass. This is a
+  query filter only; it does not authenticate the caller or establish signed
+  context/RLS ([evidence](builds/2026-10-16-recovery/sensor-ingestion-cli-location-scope.json)).
   The optional Prefect adapters preserve multi-location behavior by dispatching
   one task per active Kokonut Network location. Remote sensing is available only as a
   bounded sequential batch (1–10 jobs, default one) restricted by location for

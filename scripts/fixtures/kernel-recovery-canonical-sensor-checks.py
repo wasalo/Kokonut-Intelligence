@@ -9,6 +9,7 @@ from services.ingestion.sensor_ingester import get_sensor_by_id_or_slug, insert_
 
 SENSOR = 'f0000000-0000-4000-8000-000000000071'
 SLUG = 'kernel-recovery-canonical-sensor'
+LOCATION = 'a0000000-0000-0000-0000-000000000001'
 DAY = '2026-10-09'
 
 
@@ -31,9 +32,9 @@ def main():
         assert sink.query("SELECT count() FROM sensor_readings WHERE sensor_id='%s'" % SENSOR).result_rows == [(0,)]
         q("""INSERT INTO sensor_device(id,name,slug,sensor_type_id,location_id,protocol,metadata)
             SELECT %s,'Synthetic canonical recovery sensor',%s,id,
-            'a0000000-0000-0000-0000-000000000001','manual','{"synthetic_recovery_fixture":true}'
-            FROM sensor_type WHERE name='soil_moisture'""", (SENSOR, SLUG))
-        info = get_sensor_by_id_or_slug(conn, SLUG)
+            %s,'manual','{"synthetic_recovery_fixture":true}'
+            FROM sensor_type WHERE name='soil_moisture'""", (SENSOR, SLUG, LOCATION))
+        info = get_sensor_by_id_or_slug(conn, SLUG, LOCATION)
         assert info is not None
         # Roll back a real source insertion when outbox enqueue is unavailable.
         insert_reading(conn, info, DAY, '11:00:00', 5)

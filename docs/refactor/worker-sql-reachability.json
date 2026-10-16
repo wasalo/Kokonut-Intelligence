@@ -280,13 +280,13 @@
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
-        "services/ingestion/sensor_ingester.py:114:12",
-        "services/ingestion/sensor_ingester.py:127:8",
-        "services/ingestion/sensor_ingester.py:140:8",
-        "services/ingestion/sensor_ingester.py:159:8",
-        "services/ingestion/sensor_ingester.py:181:8",
-        "services/ingestion/sensor_ingester.py:205:12",
-        "services/ingestion/sensor_ingester.py:535:12"
+        "services/ingestion/sensor_ingester.py:125:12",
+        "services/ingestion/sensor_ingester.py:139:8",
+        "services/ingestion/sensor_ingester.py:154:8",
+        "services/ingestion/sensor_ingester.py:174:8",
+        "services/ingestion/sensor_ingester.py:196:8",
+        "services/ingestion/sensor_ingester.py:220:12",
+        "services/ingestion/sensor_ingester.py:562:12"
       ]
     },
     {
@@ -5522,9 +5522,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:114:12",
+      "id": "services/ingestion/sensor_ingester.py:125:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 114,
+      "line": 125,
       "scope": "get_sensor_type_ranges",
       "method": "execute",
       "expression_kind": "literal",
@@ -5543,9 +5543,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:127:8",
+      "id": "services/ingestion/sensor_ingester.py:139:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 127,
+      "line": 139,
       "scope": "get_active_sensors",
       "method": "execute",
       "expression_kind": "literal",
@@ -5565,9 +5565,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:140:8",
+      "id": "services/ingestion/sensor_ingester.py:154:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 140,
+      "line": 154,
       "scope": "get_sensor_by_id_or_slug",
       "method": "execute",
       "expression_kind": "literal",
@@ -5587,9 +5587,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:159:8",
+      "id": "services/ingestion/sensor_ingester.py:174:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 159,
+      "line": 174,
       "scope": "insert_reading",
       "method": "execute",
       "expression_kind": "literal",
@@ -5609,9 +5609,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:181:8",
+      "id": "services/ingestion/sensor_ingester.py:196:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 181,
+      "line": 196,
       "scope": "insert_reading",
       "method": "execute",
       "expression_kind": "literal",
@@ -5630,9 +5630,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:205:12",
+      "id": "services/ingestion/sensor_ingester.py:220:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 205,
+      "line": 220,
       "scope": "insert_reading_clickhouse",
       "method": "execute",
       "expression_kind": "literal",
@@ -5651,9 +5651,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:492:8",
+      "id": "services/ingestion/sensor_ingester.py:517:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 492,
+      "line": 517,
       "scope": "check_calibration_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -5672,9 +5672,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:535:12",
+      "id": "services/ingestion/sensor_ingester.py:562:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 535,
+      "line": 562,
       "scope": "list_calibration_status",
       "method": "execute",
       "expression_kind": "literal",
