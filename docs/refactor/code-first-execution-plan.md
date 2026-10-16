@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `a294640ba459197c9ce2901fa565dce89b3519fd`; CI #353 is pending and Security #77 is in progress (checked 16 October 2026).
-**Current local batch:** the worker-only database connection factory requires a named DSN and verifies `kokonut_worker_login`; all 12 focused tests pass. Handler integration and per-handler credential delivery remain open.
+**Latest pushed head:** `7bb17e52b33f51ddbe08da5173371978bf85f690`; CI #354 is pending and Security #78 is in progress (checked 16 October 2026).
+**Current local batch:** the worker-only database connection factory and worker-specific secret resolver are implemented. All 21 focused unit checks for both pass; per-handler secret delivery and bounded handler integration remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live

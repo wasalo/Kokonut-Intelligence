@@ -6529,7 +6529,7 @@ the capability matrix remains at 66 rows with no additional MAN-CAP acceptance
 [runner](../scripts/check-sensor-alert-draft-claim-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
 
-### Dedicated worker database connection factory — 16 October 2026
+### Dedicated worker database and credential helpers — 16 October 2026
 
 Added `services/common/worker_database.py` as preparation for isolating
 tenant-scoped execution from shared dispatch. `get_worker_db(worker_key)` reads
@@ -6544,3 +6544,13 @@ Python compilation, migration-source validation, and `git diff --check` pass.
 Per-handler secret delivery, bounded source reads, and anomaly-handler
 integration remain open; no worker credential or database was used
 ([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).
+The same module now has a secret resolver that accepts only the worker-specific
+credential variable and enforces the tenant-context adapter's 32–4096-byte
+boundary. It does not normalize/log the opaque value. No credential has been
+provisioned or placed in the shared event-worker environment. Nine new focused
+unit checks cover boundary length by UTF-8 bytes, missing/fallback behavior,
+invalid UTF-8, opaque-value preservation, worker-key validation, and
+worker-specific lookup; the combined worker database/credential file passes
+all 21 tests. Ruff, compilation, migration-source validation (523 files), and
+`git diff --check`
+pass ([evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).

@@ -19,6 +19,14 @@ shared `PG_*` settings. It is not called by the dispatcher or anomaly handler;
 its twelve focused mocked unit checks pass. Per-handler credential delivery,
 bounded source reads, and complete effect integration remain open
 ([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).
+`get_worker_credential()` now similarly reads only the named worker secret,
+requires 32–4096 UTF-8 bytes, and never normalizes or logs the opaque value.
+Do not place that secret in a shared dispatcher environment. Focused tests
+cover exact byte bounds, missing and fallback behavior, invalid UTF-8 text,
+opaque-value preservation, worker-key validation, and named-key-only lookup
+([evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
+The secret reader is not integrated, and no real worker credential has been
+provisioned.
 
 ## Decision
 

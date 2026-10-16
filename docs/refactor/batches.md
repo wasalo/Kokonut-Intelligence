@@ -795,8 +795,12 @@ reporting views.
   ([contract](worker-tenant-context-contract.md)).
   A worker-only connection factory now requires an explicit worker DSN, checks
   the dedicated `kokonut_worker_login`, and never falls back to shared
-  `PG_*` settings. Twelve focused unit tests, Ruff, Python compilation, and
-  migration-source validation pass ([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)); handler integration remains open.
+  `PG_*` settings. A sibling credential resolver reads only the named worker
+  variable and enforces 32–4096 UTF-8 bytes without normalizing or logging it.
+  Twenty-one focused unit tests cover both components; Ruff, Python compilation,
+  and validation of 523 migration sources pass ([factory evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json); [credential evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
+  No real credential is provisioned or delivered to a handler. Handler
+  integration remains open.
   The legacy `services.analytics.mobile_offline` service helpers and historic
   CLI commands have now been retired: they fail before opening a database
   connection because they have no authenticated tenant identity. Capture and

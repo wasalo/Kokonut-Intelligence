@@ -1915,6 +1915,17 @@ change, or RLS policy was added. Runtime worker isolation and all named
 MAN-CAP checks remain open; capability statuses and acceptance counts do not
 change ([contract](worker-tenant-context-contract.md); [operation map](worker-operation-map.md)).
 
+The worker database factory now requires a named per-worker DSN, verifies the
+database login, and rejects autocommit; its sibling credential resolver reads
+only the matching worker-specific secret and enforces a 32–4096-byte boundary.
+Twenty-one focused unit checks cover the factory and resolver, with Ruff,
+compilation, and migration-source validation passing
+([evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
+No real worker secret is provisioned or delivered, and the handler still uses
+the shared runtime path. These source checks do not establish runtime worker
+identity, bounded source/effect integration, direct-database isolation, or RLS
+readiness. CAP-040/047 statuses and MAN-CAP acceptance counts remain unchanged.
+
 The first source step now requires the sensor-reading handler to receive a
 canonical location UUID and match the source reading to that location before
 processing. This prevents a mismatched event payload from selecting a reading

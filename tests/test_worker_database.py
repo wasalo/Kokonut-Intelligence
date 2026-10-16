@@ -18,6 +18,111 @@ def _connection(login: str, *, autocommit: bool = False):
     return connection, cursor
 
 
+class _TrackedEnvironment(dict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lookups = []
+
+    def get(self, key, default=None):
+        self.lookups.append(key)
+        return super().get(key, default)
+
+
+def test_worker_credential_reads_only_the_named_worker_secret():
+    credential = "  opaque-worker-secret-0123456789abcdef  "
+    env = _TrackedEnvironment(
+        {
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": credential,
+            "KOKONUT_OTHER_WORKER_WORKER_CREDENTIAL": "x" * 32,
+            "WORKER_CREDENTIAL": "x" * 32,
+            "PG_PASSWORD": "x" * 32,
+        }
+    )
+
+    result = worker_database.get_worker_credential("sensor_anomaly", environ=env)
+
+    assert result == credential
+    assert env.lookups == ["KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL"]
+
+
+def test_worker_credential_is_required_and_shared_secrets_do_not_fallback():
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL",
+    ):
+        worker_database.get_worker_credential(
+            "sensor_anomaly",
+            environ={
+                "WORKER_CREDENTIAL": "x" * 32,
+                "PG_PASSWORD": "x" * 32,
+                "KOKONUT_OTHER_WORKER_WORKER_CREDENTIAL": "x" * 32,
+            },
+        )
+
+
+@pytest.mark.parametrize("credential", ["x" * 31, "x" * 4097])
+def test_worker_credential_rejects_values_outside_byte_bounds(credential):
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="32 to 4096 UTF-8 bytes",
+    ):
+        worker_database.get_worker_credential(
+            "sensor_anomaly",
+            environ={"KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": credential},
+        )
+
+
+@pytest.mark.parametrize("length", [32, 4096])
+def test_worker_credential_accepts_exact_byte_bounds(length):
+    credential = "x" * length
+
+    assert (
+        worker_database.get_worker_credential(
+            "sensor_anomaly",
+            environ={"KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": credential},
+        )
+        == credential
+    )
+
+
+def test_worker_credential_bounds_count_utf8_bytes_not_characters():
+    credential = "é" * 16
+
+    assert len(credential) == 16
+    assert len(credential.encode("utf-8")) == 32
+    assert (
+        worker_database.get_worker_credential(
+            "sensor_anomaly",
+            environ={"KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": credential},
+        )
+        == credential
+    )
+
+
+def test_worker_credential_rejects_invalid_utf8_text_without_exposing_value():
+    credential = "x" * 31 + "\ud800"
+
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="must contain valid UTF-8 text",
+    ) as error:
+        worker_database.get_worker_credential(
+            "sensor_anomaly",
+            environ={"KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": credential},
+        )
+
+    assert credential not in str(error.value)
+
+
+def test_invalid_worker_key_is_rejected_before_secret_lookup():
+    env = _TrackedEnvironment({"KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "x" * 32})
+
+    with pytest.raises(ValueError, match="worker_key"):
+        worker_database.get_worker_credential("Sensor-Anomaly", environ=env)
+
+    assert env.lookups == []
+
+
 def test_worker_dsn_is_required_even_when_shared_database_secrets_exist(monkeypatch):
     connect = MagicMock()
     monkeypatch.setattr(worker_database.psycopg2, "connect", connect)

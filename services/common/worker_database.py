@@ -16,10 +16,48 @@ import psycopg2
 
 _WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 _WORKER_LOGIN = "kokonut_worker_login"
+_WORKER_CREDENTIAL_MIN_BYTES = 32
+_WORKER_CREDENTIAL_MAX_BYTES = 4096
 
 
 class WorkerDatabaseConfigurationError(RuntimeError):
     """Raised when a dedicated worker connection is missing or unsafe."""
+
+
+def _worker_key(worker_key: str) -> str:
+    if not isinstance(worker_key, str) or not _WORKER_KEY.fullmatch(worker_key):
+        raise ValueError("worker_key must be a lowercase identifier")
+    return worker_key
+
+
+def get_worker_credential(
+    worker_key: str,
+    *,
+    environ: Mapping[str, str] | None = None,
+) -> str:
+    """Read a high-entropy worker credential from its named secret variable.
+
+    The value is opaque and is never normalized, logged, or included in
+    configuration errors. Call this only inside the isolated worker process;
+    do not add worker credentials to a shared dispatcher environment.
+    """
+    key = _worker_key(worker_key)
+    source = os.environ if environ is None else environ
+    env_name = f"KOKONUT_{key.upper()}_WORKER_CREDENTIAL"
+    credential = source.get(env_name, "")
+    if not isinstance(credential, str):
+        credential = ""
+    try:
+        credential_bytes = credential.encode("utf-8")
+    except UnicodeEncodeError:
+        raise WorkerDatabaseConfigurationError(
+            f"{env_name} must contain valid UTF-8 text"
+        ) from None
+    if not _WORKER_CREDENTIAL_MIN_BYTES <= len(credential_bytes) <= _WORKER_CREDENTIAL_MAX_BYTES:
+        raise WorkerDatabaseConfigurationError(
+            f"{env_name} must contain 32 to 4096 UTF-8 bytes"
+        )
+    return credential
 
 
 def get_worker_db(
@@ -39,8 +77,7 @@ def get_worker_db(
     so signed tenant context and bounded worker operations can share one
     transaction. The caller owns commit/rollback and connection cleanup.
     """
-    if not isinstance(worker_key, str) or not _WORKER_KEY.fullmatch(worker_key):
-        raise ValueError("worker_key must be a lowercase identifier")
+    worker_key = _worker_key(worker_key)
     if isinstance(connect_timeout, bool) or not isinstance(connect_timeout, int) or connect_timeout <= 0:
         raise ValueError("connect_timeout must be a positive integer")
 
