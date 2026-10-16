@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Remote head before this local batch:** `da4536dbcaa110bd1ca0f499fb74ff2edd56cfca`
-**Status at batch start (checked 16 October 2026):** CI #334 was in progress and Security #58 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38856951051); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38856951030)).
+**Remote head before this local batch:** `efa7296314bafd5e9192b8737880f34527583472`
+**Status at batch start (checked 16 October 2026):** CI #335 was in progress and Security #59 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38858291436); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38858291192)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,17 +20,20 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - When this local batch began, the remote PR head was
-  [`da4536dbcaa110bd1ca0f499fb74ff2edd56cfca`](https://github.com/wasalo/Kokonut-Intelligence/commit/da4536dbcaa110bd1ca0f499fb74ff2edd56cfca)
-  on `feat/mobile-offline-acceptance`, PR #68. CI #334 was in progress and
-  Security #58 passed. The pushed batch includes verified ARM64 optional
-  profiles for ClickHouse analytics, Directus, and HTTP sensors, plus restart
-  recovery for KGP, EventBus, and SchedulerEngine. The local KGP acceptance now
-  replays all 393 ordered schema sources, processes one synthetic `GuildCreated`
-  event through the real indexer, verifies its prelinked guild projection and
-  idempotent replay, then checks database restart and lease reclaim against the
-  real cursor table. It uses synthetic rows and stubbed chain behavior, with no
-  seed, live RPC, or provider calls. Other event types, ARM64 hardware behavior,
-  and live KGP RPC/event processing remain unverified. Earlier owner, tenant,
+  [`efa7296314bafd5e9192b8737880f34527583472`](https://github.com/wasalo/Kokonut-Intelligence/commit/efa7296314bafd5e9192b8737880f34527583472)
+  on `feat/mobile-offline-acceptance`, PR #68. CI #335 was in progress and
+  Security #59 passed. The pushed batch includes ARM64 optional-profile checks
+  and KGP worker restart/lease recovery with one synthetic `GuildCreated`
+  projection. The current local extension replays all 393 ordered schema
+  sources, processes synthetic `GuildCreated`, `DomainCreated`, and `TaskCreated`
+  logs through the real indexer, verifies source-event links and idempotent
+  canonical replay, then simulates a changed chain tip, orphans all three event
+  projections, and rebuilds them when the same events reappear. The same
+  disposable check also verifies PostgreSQL restart reconnect and lease reclaim
+  against the real cursor table. It uses synthetic rows and stubbed chain
+  behavior, with no seed, live RPC, or provider calls. Other event types, real
+  chain reorgs, ARM64 hardware behavior, and live KGP RPC/event processing remain
+  unverified. Earlier owner, tenant,
   report, retention, Directus, and worker-boundary work remains in the PR.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
@@ -74,18 +77,22 @@ MAN-CAP checks open until each has its own retained evidence.
   migration-ledger parity, real provider delivery, production-duration lease
   recovery, and long-duration recovery remain open
   ([evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
-- A local KGP indexer change now reconnects with a five-second timeout for each
+- A local KGP indexer change reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
-  Fourteen KGP service/indexer tests pass. The current disposable check replays
+  Fifteen focused KGP/guild tests pass. The current disposable check replays
   all 393 ordered PostgreSQL schema sources in separate transactions and
-  records checksums. The real indexer processes a synthetic `GuildCreated` log
-  into a prelinked guild row; a cursor rewind and replay leave one chain-event
-  row and one projection. The worker then reconnects after PostgreSQL restart,
-  and a replacement reclaims its expired lease against the real cursor table.
-  Deployment/cursor/guild rows are synthetic and block behavior is stubbed; no
-  seed, live RPC, or provider call is made. Other event types, production-
-  duration lease reclaim, and live event recovery remain open
+  records checksums. The real indexer processes synthetic `GuildCreated`,
+  `DomainCreated`, and `TaskCreated` logs, confirms each projection links to its
+  source event, and verifies canonical replay is idempotent. A stubbed tip
+  change exercises reorg reset: all three events become noncanonical, dependent
+  domain/task projections are removed, and retaining the configured guild key
+  lets the replacement branch rebuild all three projections. The same check
+  verifies PostgreSQL restart reconnect and expired-lease reclaim against the
+  real cursor table. Deployment/cursor/contract/guild rows are synthetic; no
+  seed, live RPC, or provider call is made. Other event types, real chain
+  reorgs, production-duration lease reclaim, and live event recovery remain
+  open
   ([evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
 - Directus source permissions now align with organization/location grants: the
   seed removes its obsolete user-level location filter while preserving other
@@ -254,13 +261,14 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** At batch start, CI #334 was in progress and Security #58 passed on
-  pushed SHA `da4536dbcaa110bd1ca0f499fb74ff2edd56cfca`. The current local
-  disposable KGP check replays all 393 ordered PostgreSQL schema sources,
-  processes a synthetic `GuildCreated` event through the real indexer, verifies
-  idempotent replay, then checks restart and lease reclaim against the real
-  cursor table. Eight focused KGP service/indexer tests, Ruff, and compilation
-  pass. No live RPC, seed, or provider is used.
+**Action:** At batch start, CI #335 was in progress and Security #59 passed on
+  pushed SHA `efa7296314bafd5e9192b8737880f34527583472`. The local disposable
+  KGP check replays all 393 ordered PostgreSQL schema sources, processes three
+  dependent protocol events through the real indexer, verifies source links and
+  idempotent replay, simulates a reorg and replacement-branch projection
+  rebuild, then checks restart and lease reclaim against the real cursor table.
+  Fifteen focused KGP/guild tests, Ruff, compilation, capability-matrix and
+  JSON evidence checks pass. No live RPC, seed, or provider is used.
 
 **Acceptance:** require passing CI and Security on the current PR head before
 merging. The scheduler runtime acceptance is source/disposable evidence only;
@@ -726,11 +734,12 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. Before this local batch, the remote head was `da4536d`; CI #334 was
-in progress and Security #58 passed. This batch adds synthetic event projection
-and replay evidence to the existing full-schema KGP restart/recovery check.
-Continue local work while CI runs and accumulate related changes before the
-next push so the repository does not start CI for each small commit. Never push directly to
+requested. Before this local batch, the remote head was `efa7296`; CI #335 was
+in progress and Security #59 passed. This batch extends synthetic KGP event
+projection and replay evidence to cover three dependent event types and a
+simulated reorg/rebuild. Continue local work while CI runs and accumulate
+related changes before the next push so the repository does not start CI for
+each small commit. Never push directly to
 `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable
 acceptance are complete.

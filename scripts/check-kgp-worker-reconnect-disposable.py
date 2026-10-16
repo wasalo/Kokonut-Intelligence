@@ -169,7 +169,7 @@ indexer.deployment_id = {deployment_id!r}
 indexer.contract_addresses = {{}}
 indexer.w3 = SimpleNamespace(eth=SimpleNamespace(
     block_number=0,
-    get_block=lambda _number: SimpleNamespace(hash=bytes.fromhex("c3" * 32)),
+    get_block=lambda _number: SimpleNamespace(hash=bytes.fromhex("f7" * 32)),
 ))
 indexer.run_forever(poll_interval=0.25, worker_id={worker_id!r})
 """
@@ -258,8 +258,8 @@ def _replay_schema_migrations(port: int, password: str) -> int:
         connection.close()
 
 
-def _exercise_guild_created_projection(port: int, password: str, deployment_id: str) -> dict[str, object]:
-    """Run a synthetic GuildCreated log through the real indexer and projection."""
+def _exercise_protocol_projection(port: int, password: str, deployment_id: str) -> dict[str, object]:
+    """Run dependent synthetic registry/domain/task logs through the indexer."""
     # The disposable check supplies its own database settings; importing the
     # indexer must not attempt to decrypt the repository's unrelated secrets.
     os.environ["KOKONUT_ENV"] = "development"
@@ -272,38 +272,73 @@ def _exercise_guild_created_projection(port: int, password: str, deployment_id: 
 
     from services.guilds.indexer import EVENT_TOPICS, KGPIndexer
 
-    contract_address = "0x1111111111111111111111111111111111111111"
+    contract_addresses = {
+        "registry": "0x3333333333333333333333333333333333333333",
+        "domains": "0x4444444444444444444444444444444444444444",
+        "tasks": "0x5555555555555555555555555555555555555555",
+    }
     guild_id = "0x" + "a1" * 32
     guild_key = "0x" + "b2" * 32
-    transaction_hash = "0x" + "d4" * 32
     block_hash = "0x" + "c3" * 32
-    guild_created_topic = next(
-        topic for topic, name in EVENT_TOPICS.items() if name == "GuildCreated"
-    )
-    raw_log = {
-        "address": contract_address,
-        "topics": [
-            bytes.fromhex(guild_created_topic[2:]),
-            bytes.fromhex(guild_id[2:]),
-            bytes.fromhex(guild_key[2:]),
-            bytes.fromhex("00" * 12 + "e5" * 20),
-        ],
-        "data": encode(["string"], ["Synthetic KGP projection guild"]),
-        "blockNumber": 8,
-        "blockHash": bytes.fromhex(block_hash[2:]),
-        "transactionHash": bytes.fromhex(transaction_hash[2:]),
-        "transactionIndex": 0,
-        "logIndex": 2,
+
+    topics_by_name = {
+        name: bytes.fromhex(topic[2:]) for topic, name in EVENT_TOPICS.items()
     }
+
+    def indexed_uint(value: int) -> bytes:
+        return value.to_bytes(32, byteorder="big")
+
+    def synthetic_log(event_name, address, topics, data, block_number, log_index, tx_byte):
+        return {
+            "address": address,
+            "topics": [topics_by_name[event_name], *topics],
+            "data": data,
+            "blockNumber": block_number,
+            "blockHash": bytes.fromhex(block_hash[2:]),
+            "transactionHash": bytes.fromhex(tx_byte * 32),
+            "transactionIndex": 0,
+            "logIndex": log_index,
+        }
+
+    raw_logs = [
+        synthetic_log(
+            "GuildCreated",
+            contract_addresses["registry"],
+            [bytes.fromhex(guild_id[2:]), bytes.fromhex(guild_key[2:]), bytes.fromhex("00" * 12 + "e5" * 20)],
+            encode(["string"], ["Synthetic KGP projection guild"]),
+            8,
+            2,
+            "d4",
+        ),
+        synthetic_log(
+            "DomainCreated",
+            contract_addresses["domains"],
+            [indexed_uint(7), bytes.fromhex(guild_id[2:]), indexed_uint(0)],
+            encode(["string", "address"], ["Synthetic KGP domain", "0x" + "e5" * 20]),
+            9,
+            3,
+            "d5",
+        ),
+        synthetic_log(
+            "TaskCreated",
+            contract_addresses["tasks"],
+            [indexed_uint(19), bytes.fromhex(guild_id[2:]), indexed_uint(7)],
+            encode(["bytes32"], [bytes.fromhex("f6" * 32)]),
+            10,
+            4,
+            "d6",
+        ),
+    ]
 
     class SyntheticEth:
         block_number = 30
+        current_block_hash = bytes.fromhex(block_hash[2:])
 
-        def get_logs(self, _query):
-            return [raw_log]
+        def get_logs(self, query):
+            return [log for log in raw_logs if log["address"] == query["address"]]
 
         def get_block(self, _number):
-            return SimpleNamespace(hash=bytes.fromhex(block_hash[2:]))
+            return SimpleNamespace(hash=self.current_block_hash)
 
     connection = psycopg2.connect(
         host="127.0.0.1",
@@ -317,6 +352,17 @@ def _exercise_guild_created_projection(port: int, password: str, deployment_id: 
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
+                    "UPDATE kgp_protocol_deployment "
+                    "SET registry_address = %s, domain_address = %s, task_board_address = %s "
+                    "WHERE id = %s",
+                    (
+                        contract_addresses["registry"],
+                        contract_addresses["domains"],
+                        contract_addresses["tasks"],
+                        deployment_id,
+                    ),
+                )
+                cursor.execute(
                     "INSERT INTO kokonut_guild (guild_key, name, onchain_guild_key) "
                     "VALUES (%s, %s, %s)",
                     ("synthetic-kgp-projection", "Synthetic KGP projection guild", guild_key),
@@ -326,7 +372,7 @@ def _exercise_guild_created_projection(port: int, password: str, deployment_id: 
             SimpleNamespace(eth=SyntheticEth()),
             connection,
             deployment_id,
-            contract_address,
+            contract_addresses,
             100,
         )
         projected_count = indexer.scan_once()
@@ -335,36 +381,88 @@ def _exercise_guild_created_projection(port: int, password: str, deployment_id: 
                 """
                 SELECT guild.onchain_guild_id, guild.onchain_guild_key,
                        guild.chain_projection, guild.source_chain_event_id::text,
-                       event.id::text, event.processing_status,
-                       event.processing_attempts, indexer.next_block
+                       event.id::text, event.processing_status, event.processing_attempts
                 FROM kokonut_guild AS guild
                 JOIN kgp_chain_event AS event
                   ON event.deployment_id = %s
-                 AND event.transaction_hash = %s
-                 AND event.log_index = 2
-                JOIN kgp_indexer_cursor AS indexer
-                  ON indexer.deployment_id = event.deployment_id
+                 AND event.event_name = 'GuildCreated'
                 WHERE guild.guild_key = %s
                 """,
-                (deployment_id, transaction_hash, "synthetic-kgp-projection"),
+                (deployment_id, "synthetic-kgp-projection"),
             )
-            projected = cursor.fetchone()
-        expected_event_id = projected[3] if projected else None
-        if not projected or projected[:3] != (guild_id, guild_key, True):
-            raise RuntimeError(f"synthetic GuildCreated event did not project: {projected!r}")
+            guild_projection = cursor.fetchone()
+            cursor.execute(
+                """
+                SELECT domain.onchain_domain_id, domain.name,
+                       domain.chain_projection, domain.source_chain_event_id::text,
+                       event.id::text, event.processing_status, event.processing_attempts
+                FROM guild_domain AS domain
+                JOIN kgp_chain_event AS event ON event.id = domain.source_chain_event_id
+                WHERE domain.deployment_id = %s AND domain.onchain_domain_id = 7
+                """,
+                (deployment_id,),
+            )
+            domain_projection = cursor.fetchone()
+            cursor.execute(
+                """
+                SELECT task.onchain_task_id, task.task_key, task.chain_projection,
+                       task.source_chain_event_id::text, event.id::text,
+                       event.processing_status, event.processing_attempts
+                FROM guild_task AS task
+                JOIN kgp_chain_event AS event ON event.id = task.source_chain_event_id
+                WHERE task.deployment_id = %s AND task.onchain_task_id = 19
+                """,
+                (deployment_id,),
+            )
+            task_projection = cursor.fetchone()
+            cursor.execute(
+                "SELECT event_name, processing_status, processing_attempts "
+                "FROM kgp_chain_event WHERE deployment_id = %s "
+                "ORDER BY block_number, log_index",
+                (deployment_id,),
+            )
+            processed_events = cursor.fetchall()
+            cursor.execute(
+                "SELECT next_block FROM kgp_indexer_cursor WHERE deployment_id = %s",
+                (deployment_id,),
+            )
+            next_block = cursor.fetchone()[0]
         if (
-            not expected_event_id
-            or projected[3] != projected[4]
-            or projected[5] != "processed"
-            or projected[6] != 0
-            or projected[7] != 19
+            not guild_projection
+            or guild_projection[:3] != (guild_id, guild_key, True)
+            or guild_projection[3] != guild_projection[4]
+            or guild_projection[5:] != ("processed", 0)
         ):
-            raise RuntimeError(f"synthetic GuildCreated event was not durably processed: {projected!r}")
-        if projected_count != 1:
-            raise RuntimeError(f"expected one projected chain event, got {projected_count}")
+            raise RuntimeError(f"synthetic GuildCreated event did not project: {guild_projection!r}")
+        if (
+            not domain_projection
+            or domain_projection[:3] != (7, "Synthetic KGP domain", True)
+            or domain_projection[3] != domain_projection[4]
+            or domain_projection[5:] != ("processed", 0)
+        ):
+            raise RuntimeError(f"synthetic DomainCreated event did not project: {domain_projection!r}")
+        if (
+            not task_projection
+            or task_projection[:3] != (19, "0x" + "f6" * 32, True)
+            or task_projection[3] != task_projection[4]
+            or task_projection[5:] != ("processed", 0)
+        ):
+            raise RuntimeError(f"synthetic TaskCreated event did not project: {task_projection!r}")
+        if projected_count != 3 or next_block != 19:
+            raise RuntimeError(
+                f"expected three processed dependent events and cursor 19, got "
+                f"{projected_count} and {next_block}"
+            )
+        expected_events = [
+            ("GuildCreated", "processed", 0),
+            ("DomainCreated", "processed", 0),
+            ("TaskCreated", "processed", 0),
+        ]
+        if processed_events != expected_events:
+            raise RuntimeError(f"unexpected chain-event processing results: {processed_events!r}")
 
-        # Re-read the same canonical log from a rewound synthetic cursor. The
-        # event idempotency key must prevent a duplicate projection row.
+        # Re-read the same canonical logs from a rewound synthetic cursor. The
+        # event idempotency keys must prevent duplicate projection rows.
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -375,9 +473,8 @@ def _exercise_guild_created_projection(port: int, password: str, deployment_id: 
         duplicate_count = indexer.scan_once()
         with connection.cursor() as cursor:
             cursor.execute(
-                "SELECT COUNT(*) FROM kgp_chain_event "
-                "WHERE deployment_id = %s AND transaction_hash = %s AND log_index = 2",
-                (deployment_id, transaction_hash),
+                "SELECT COUNT(*) FROM kgp_chain_event WHERE deployment_id = %s",
+                (deployment_id,),
             )
             event_rows = cursor.fetchone()[0]
             cursor.execute(
@@ -385,21 +482,124 @@ def _exercise_guild_created_projection(port: int, password: str, deployment_id: 
                 "WHERE guild_key = %s AND onchain_guild_id = %s AND chain_projection",
                 ("synthetic-kgp-projection", guild_id),
             )
-            projected_guild_rows = cursor.fetchone()[0]
-        if duplicate_count != 0 or event_rows != 1 or projected_guild_rows != 1:
+            guild_rows = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM guild_domain "
+                "WHERE deployment_id = %s AND onchain_domain_id = 7 AND chain_projection",
+                (deployment_id,),
+            )
+            domain_rows = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM guild_task "
+                "WHERE deployment_id = %s AND onchain_task_id = 19 AND chain_projection",
+                (deployment_id,),
+            )
+            task_rows = cursor.fetchone()[0]
+        if duplicate_count != 0 or (event_rows, guild_rows, domain_rows, task_rows) != (3, 1, 1, 1):
             raise RuntimeError(
-                "replayed canonical event created duplicate chain/projection rows: "
-                f"processed={duplicate_count}, event_rows={event_rows}, "
-                f"guild_rows={projected_guild_rows}"
+                "canonical log replay created duplicate chain/projection rows: "
+                f"processed={duplicate_count}, counts={(event_rows, guild_rows, domain_rows, task_rows)}"
+            )
+
+        # Change the stubbed canonical tip. The real reorg path must orphan
+        # projections, preserve the explicit guild-key match, and rebuild state
+        # when those same protocol events reappear on the replacement branch.
+        replacement_hash = bytes.fromhex("f7" * 32)
+        SyntheticEth.current_block_hash = replacement_hash
+        for raw_log in raw_logs:
+            raw_log["blockHash"] = replacement_hash
+        reorg_count = indexer.scan_once()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM kgp_chain_event "
+                "WHERE deployment_id = %s AND is_canonical = FALSE "
+                "AND processing_status = 'rejected'",
+                (deployment_id,),
+            )
+            orphaned_events = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT onchain_guild_id, onchain_guild_key, chain_projection, source_chain_event_id "
+                "FROM kokonut_guild WHERE guild_key = %s",
+                ("synthetic-kgp-projection",),
+            )
+            guild_after_reorg = cursor.fetchone()
+            cursor.execute(
+                "SELECT COUNT(*) FROM guild_domain "
+                "WHERE deployment_id = %s AND chain_projection",
+                (deployment_id,),
+            )
+            domains_after_reorg = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM guild_task "
+                "WHERE deployment_id = %s AND chain_projection",
+                (deployment_id,),
+            )
+            tasks_after_reorg = cursor.fetchone()[0]
+        if reorg_count != 0 or orphaned_events != 3:
+            raise RuntimeError(
+                f"synthetic reorg did not orphan the expected three events: "
+                f"scan={reorg_count}, orphaned={orphaned_events}"
+            )
+        if guild_after_reorg != (None, guild_key, False, None):
+            raise RuntimeError(f"guild identity binding was not retained across reorg: {guild_after_reorg!r}")
+        if domains_after_reorg != 0 or tasks_after_reorg != 0:
+            raise RuntimeError(
+                "chain-owned dependent projections remained after reorg: "
+                f"domains={domains_after_reorg}, tasks={tasks_after_reorg}"
+            )
+
+        reprojected_count = indexer.scan_once()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT event_name, processing_status, processing_attempts, is_canonical "
+                "FROM kgp_chain_event WHERE deployment_id = %s "
+                "ORDER BY block_number, log_index",
+                (deployment_id,),
+            )
+            recanonical_events = cursor.fetchall()
+            cursor.execute(
+                "SELECT COUNT(*) FROM kokonut_guild "
+                "WHERE guild_key = %s AND onchain_guild_id = %s AND chain_projection",
+                ("synthetic-kgp-projection", guild_id),
+            )
+            recanonical_guilds = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM guild_domain "
+                "WHERE deployment_id = %s AND onchain_domain_id = 7 AND chain_projection",
+                (deployment_id,),
+            )
+            recanonical_domains = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM guild_task "
+                "WHERE deployment_id = %s AND onchain_task_id = 19 AND chain_projection",
+                (deployment_id,),
+            )
+            recanonical_tasks = cursor.fetchone()[0]
+        if reprojected_count != 3 or recanonical_events != [
+            ("GuildCreated", "processed", 0, True),
+            ("DomainCreated", "processed", 0, True),
+            ("TaskCreated", "processed", 0, True),
+        ]:
+            raise RuntimeError(f"canonical branch events were not replayed: {recanonical_events!r}")
+        if (recanonical_guilds, recanonical_domains, recanonical_tasks) != (1, 1, 1):
+            raise RuntimeError(
+                "replacement branch projections were not rebuilt: "
+                f"{(recanonical_guilds, recanonical_domains, recanonical_tasks)}"
             )
         return {
-            "synthetic_event": "GuildCreated",
-            "event_processing_status": projected[5],
-            "projection_source_chain_event_id": expected_event_id,
-            "projection_fields_matched": True,
+            "synthetic_events": ["GuildCreated", "DomainCreated", "TaskCreated"],
+            "processed_event_count": projected_count,
+            "projection_source_event_links_match": True,
+            "all_event_rows_processed": True,
             "canonical_log_replay_idempotent": True,
             "event_rows_after_replay": event_rows,
-            "projected_guild_rows_after_replay": projected_guild_rows,
+            "guild_projection_rows_after_replay": guild_rows,
+            "domain_projection_rows_after_replay": domain_rows,
+            "task_projection_rows_after_replay": task_rows,
+            "synthetic_reorg_detected": True,
+            "orphaned_events_after_reorg": orphaned_events,
+            "replacement_branch_replay_count": reprojected_count,
+            "replacement_branch_projections_rebuilt": True,
         }
     finally:
         connection.close()
@@ -502,7 +702,7 @@ def main() -> int:
             "INSERT INTO kgp_indexer_cursor (deployment_id, next_block) "
             f"VALUES ('{deployment_id}', 1)",
         )
-        projection = _exercise_guild_created_projection(port, password, deployment_id)
+        projection = _exercise_protocol_projection(port, password, deployment_id)
         result["schema_migrations_applied"] = applied_schemas
         result["schema_migrations_expected"] = expected_schemas
         result["event_projection"] = projection

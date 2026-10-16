@@ -6117,3 +6117,22 @@ analytics database/projection, Directus bootstrap/hooks/permissions, or
 transport against PostgreSQL. It is QEMU software evidence only; Raspberry Pi
 resource/performance, physical recovery, and long-duration behavior remain
 open ([evidence](builds/2026-10-16-recovery/kernel-arm64-optional-profiles.json)).
+
+### KGP protocol projection, reorg replay, and worker recovery — 16 October 2026
+
+Expanded the isolated current-source KGP acceptance against a disposable
+PostgreSQL database with all 393 ordered schema sources applied. The real
+indexer processed synthetic `GuildCreated`, `DomainCreated`, and `TaskCreated`
+logs and linked each projection to its source event. Rewinding the synthetic
+cursor and replaying the canonical logs created no duplicate rows. Changing the
+stubbed canonical tip exercised the reorg path: three events were orphaned,
+chain-owned domain/task projections were removed, and the retained local guild
+key allowed the same events on the replacement branch to rebuild all three
+projections. The same run confirmed worker reconnect after PostgreSQL restart
+and expired-lease reclaim by a replacement worker. Fifteen focused KGP/guild
+tests pass; Ruff, compilation, capability-matrix validation, JSON parsing, and
+diff checks pass. The database, contracts, cursor, and logs were synthetic;
+there was no seed data, live RPC, provider call, candidate/legacy access, or
+observation of a real chain reorg. Other event handlers, live-chain behavior,
+production-duration recovery, and provider delivery remain open
+([evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).

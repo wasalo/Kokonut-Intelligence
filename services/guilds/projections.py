@@ -249,10 +249,11 @@ def reset_chain_projections(cursor, deployment_id: str) -> None:
     cursor.execute("DELETE FROM guild_task WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))
     cursor.execute("DELETE FROM guild_domain WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))
     cursor.execute("DELETE FROM guild_motion WHERE deployment_id = %s AND chain_projection = TRUE", (deployment_id,))
+    # Retain the configured on-chain key as the stable match anchor for replay.
     cursor.execute(
         """
         UPDATE kokonut_guild
-        SET onchain_guild_id = NULL, onchain_guild_key = NULL,
+        SET onchain_guild_id = NULL,
             chain_projection = FALSE, source_chain_event_id = NULL, orphaned_at = NOW()
         WHERE source_chain_event_id IN (
             SELECT id FROM kgp_chain_event WHERE deployment_id = %s AND is_canonical = FALSE
