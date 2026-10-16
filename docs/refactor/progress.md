@@ -6528,3 +6528,19 @@ the capability matrix remains at 66 rows with no additional MAN-CAP acceptance
 [fixture](../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql);
 [runner](../scripts/check-sensor-alert-draft-claim-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
+
+### Dedicated worker database connection factory — 16 October 2026
+
+Added `services/common/worker_database.py` as preparation for isolating
+tenant-scoped execution from shared dispatch. `get_worker_db(worker_key)` reads
+only the named `KOKONUT_<WORKER>_DATABASE_URL`, verifies the database login is
+`kokonut_worker_login`, and keeps the returned connection transaction-bound.
+The module does not load dotenv or import shared `PG_*` settings, and it never
+falls back to the application/control-plane DSN. `.env.example` documents the
+optional sensor-anomaly DSN without a secret value. Twelve focused mocked unit
+tests pass, covering required configuration, no shared-credential fallback,
+login verification, cleanup, transaction mode, and input validation. Ruff,
+Python compilation, migration-source validation, and `git diff --check` pass.
+Per-handler secret delivery, bounded source reads, and anomaly-handler
+integration remain open; no worker credential or database was used
+([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).

@@ -3,12 +3,22 @@
 **Status:** first database/source adapter and dormant anomaly receipt/event/
 notification functions implemented and accepted on 16 October 2026. Migration
 410 adds a bounded actuation-intent function, accepted in fifteen focused
-disposable PostgreSQL checks. Migration 405 and a transaction-bound Python
-adapter establish an opt-in worker context; migrations 407–410 add bounded
-receipt, canonical event-publication, notification-intent, and actuation-intent
-functions for `sensor_reading/process`.
+disposable PostgreSQL checks. Migration 411 adds a bounded draft-claim function,
+accepted in fourteen focused disposable PostgreSQL checks. Migration 405 and a
+transaction-bound Python adapter establish an opt-in worker context; migrations
+407–411 add bounded receipt, canonical event-publication, notification-intent,
+actuation-intent, and draft-claim functions for `sensor_reading/process`.
 No candidate database, worker credential, worker deployment, handler dispatch,
 or application-table RLS policy was changed.
+
+The new `services.common.worker_database.get_worker_db()` factory is a
+source-only preparation for isolated execution. It requires a worker-specific
+`KOKONUT_<WORKER>_DATABASE_URL`, verifies the login is exactly
+`kokonut_worker_login`, enforces transactional mode, and never falls back to
+shared `PG_*` settings. It is not called by the dispatcher or anomaly handler;
+its twelve focused mocked unit checks pass. Per-handler credential delivery,
+bounded source reads, and complete effect integration remain open
+([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).
 
 ## Decision
 

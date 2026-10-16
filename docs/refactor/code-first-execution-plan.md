@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `1f6cefc1c352420caf22717eb66457a139f116bc`; CI #352 is in progress and Security #76 passed (checked 16 October 2026).
-**Current local batch:** migration 411 adds a bounded signed-scope draft-claim operation. Fourteen focused disposable PostgreSQL 16 checks pass; the candidate and legacy databases were untouched.
+**Latest pushed head:** `a294640ba459197c9ce2901fa565dce89b3519fd`; CI #353 is pending and Security #77 is in progress (checked 16 October 2026).
+**Current local batch:** the worker-only database connection factory requires a named DSN and verifies `kokonut_worker_login`; all 12 focused tests pass. Handler integration and per-handler credential delivery remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
