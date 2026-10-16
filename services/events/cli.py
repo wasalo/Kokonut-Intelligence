@@ -2,6 +2,8 @@
 
 Usage:
     python3 -m services.events --process [--batch-size N] [--worker-id ID]
+    python3 -m services.events --event-worker [--worker-id ID]
+    python3 -m services.events --notification-worker [--worker-id ID]
     python3 -m services.events --stats
     python3 -m services.events --cleanup [--actor OPERATOR]
     python3 -m services.events --list-handlers
@@ -42,11 +44,7 @@ def cmd_process(args):
         bus.close()
 
 
-def cmd_worker(args):
-    from services.common.database import get_connection
-    from services.events.backend import get_event_store
-    from services.events.notification_outbox import deliver_batch
-
+def _run_worker(args, *, process_events: bool, deliver_notifications: bool):
     if args.poll_interval <= 0:
         raise ValueError("poll_interval must be positive")
 
@@ -57,10 +55,17 @@ def cmd_worker(args):
             result = {"processed": 0, "failed": 0}
             notifications = {"claimed": 0}
             try:
-                bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
-                result = bus.process_pending(args.batch_size, args.worker_id)
-                with get_connection(connect_timeout=5) as conn:
-                    notifications = deliver_batch(conn, args.worker_id, args.batch_size)
+                if process_events:
+                    from services.events.backend import get_event_store
+
+                    bus = get_event_store(lease_seconds=args.lease_seconds, connect_timeout=5)
+                    result = bus.process_pending(args.batch_size, args.worker_id)
+                if deliver_notifications:
+                    from services.common.database import get_connection
+                    from services.events.notification_outbox import deliver_batch
+
+                    with get_connection(connect_timeout=5) as conn:
+                        notifications = deliver_batch(conn, args.worker_id, args.batch_size)
             except KeyboardInterrupt:
                 return 0
             except Exception:
@@ -87,6 +92,21 @@ def cmd_worker(args):
                 time.sleep(args.poll_interval)
     except KeyboardInterrupt:
         return 0
+
+
+def cmd_worker(args):
+    """Compatibility worker that dispatches events and sends notifications."""
+    return _run_worker(args, process_events=True, deliver_notifications=True)
+
+
+def cmd_event_worker(args):
+    """Continuously dispatch durable domain events without sending notifications."""
+    return _run_worker(args, process_events=True, deliver_notifications=False)
+
+
+def cmd_notification_worker(args):
+    """Continuously deliver durable notification intents without dispatching events."""
+    return _run_worker(args, process_events=False, deliver_notifications=True)
 
 
 def cmd_stats(args):
@@ -276,7 +296,12 @@ def main():
     parser = argparse.ArgumentParser(description="Event Bus CLI")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--process", action="store_true", help="Process pending events")
-    group.add_argument("--worker", action="store_true", help="Continuously process events")
+    group.add_argument("--worker", action="store_true",
+                       help="Compatibility mode: dispatch events and deliver notifications")
+    group.add_argument("--event-worker", action="store_true",
+                       help="Continuously dispatch events without delivering notifications")
+    group.add_argument("--notification-worker", action="store_true",
+                       help="Continuously deliver notifications without dispatching events")
     group.add_argument("--stats", action="store_true", help="Show event statistics")
     group.add_argument("--cleanup", action="store_true", help="Clean up old events")
     group.add_argument("--list-handlers", action="store_true", help="List registered handlers")
@@ -332,6 +357,10 @@ def main():
         rc = cmd_process(args)
     elif args.worker:
         rc = cmd_worker(args)
+    elif args.event_worker:
+        rc = cmd_event_worker(args)
+    elif args.notification_worker:
+        rc = cmd_notification_worker(args)
     elif args.stats:
         rc = cmd_stats(args)
     elif args.cleanup:

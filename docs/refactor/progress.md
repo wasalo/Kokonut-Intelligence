@@ -1,5 +1,24 @@
 # Kokonut Kernel implementation progress
 
+### Event dispatch and notification delivery split — 16 October 2026
+
+Added `--event-worker` and `--notification-worker` modes and kept `--worker` as
+a combined compatibility path. The Kernel supervisor starts the two worker
+processes independently; the legacy worker overlay now has separate event and
+notification services. Notification delivery defaults to the event-bus feature
+setting and can be toggled independently. The focused event-worker, supervisor,
+feature, scheduled-command, outbox, and worker-inventory suites pass 157 tests
+and 3 subtests.
+Ruff, Python compilation, Compose parsing for legacy/standard/portability
+profiles, and refreshed source/function/SQL inventories pass. No database,
+provider, candidate, or legacy service was contacted. This is process
+responsibility separation only: event handlers still use the shared runtime
+PostgreSQL identity and destination configuration to create notification
+intents. Real provider delivery, worker identity/RLS, long-duration recovery,
+and MAN-CAP acceptance remain open
+([evidence](builds/2026-10-16-recovery/event-notification-worker-separation.json);
+[checklist](batches.md); [supervision](kernel-supervision.md)).
+
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
 ### Farm-activity permissions retired from optional Directus — 16 October 2026

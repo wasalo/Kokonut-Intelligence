@@ -8,9 +8,11 @@ require schema readiness before spawning child processes, use the private
 candidate database, and explicitly disable vendor providers. No database port
 or worker port is published. The API retains its localhost binding.
 
-The supervisor starts enabled scheduler/event workers, generates a distinct
-UUID-based identity for each supervisor lifetime, and refuses an empty worker
-role. CLI worker modes are mutually exclusive. When migrations or required read
+The supervisor starts enabled scheduler, event-dispatch, and notification
+delivery workers, generates distinct UUID-based identities for each supervisor
+lifetime, and refuses an empty worker role. Notification delivery defaults to
+the event-bus feature setting and can be independently disabled or enabled.
+CLI worker modes are mutually exclusive. When migrations or required read
 relations are missing, the supervisor exits before starting API or worker
 children; Compose retries after the external migration runner completes.
 Existing process-group shutdown,

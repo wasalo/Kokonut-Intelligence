@@ -5,7 +5,8 @@ from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import Mock, call, patch
 
-from services.events.cli import cmd_worker
+from services.events import cli as events_cli
+from services.events.cli import cmd_event_worker, cmd_notification_worker, cmd_worker
 
 
 def _args():
@@ -18,6 +19,58 @@ def _args():
 
 
 class EventWorkerRecoveryTests(TestCase):
+    def test_cli_selects_independent_worker_modes(self):
+        for flag, command in (
+            ("--worker", events_cli.cmd_worker),
+            ("--event-worker", events_cli.cmd_event_worker),
+            ("--notification-worker", events_cli.cmd_notification_worker),
+        ):
+            with self.subTest(flag=flag):
+                with patch.object(events_cli.sys, "argv", ["services.events", flag]):
+                    with patch.object(events_cli, command.__name__, return_value=0) as handler:
+                        with self.assertRaises(SystemExit) as raised:
+                            events_cli.main()
+
+                self.assertEqual(raised.exception.code, 0)
+                handler.assert_called_once()
+
+    def test_compatibility_worker_runs_event_and_notification_modes(self):
+        with patch("services.events.cli._run_worker", return_value=0) as run_worker:
+            self.assertEqual(cmd_worker(_args()), 0)
+
+        run_worker.assert_called_once_with(
+            _args(), process_events=True, deliver_notifications=True
+        )
+
+    def test_event_worker_does_not_open_notification_connection(self):
+        bus = Mock()
+        bus.process_pending.return_value = {"processed": 0, "failed": 0}
+
+        with (
+            patch("services.events.backend.get_event_store", return_value=bus),
+            patch("services.common.database.get_connection") as get_connection,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+        ):
+            self.assertEqual(cmd_event_worker(_args()), 0)
+
+        bus.process_pending.assert_called_once_with(10, "event-worker-test")
+        bus.close.assert_called_once()
+        get_connection.assert_not_called()
+
+    def test_notification_worker_does_not_open_event_store(self):
+        connection = object()
+
+        with (
+            patch("services.common.database.get_connection", return_value=nullcontext(connection)),
+            patch("services.events.notification_outbox.deliver_batch", return_value={"claimed": 0}) as deliver,
+            patch("services.events.backend.get_event_store") as get_event_store,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+        ):
+            self.assertEqual(cmd_notification_worker(_args()), 0)
+
+        deliver.assert_called_once_with(connection, "event-worker-test", 10)
+        get_event_store.assert_not_called()
+
     def test_event_store_failure_discards_bus_and_retries_with_fresh_instance(self):
         failed_bus = Mock()
         failed_bus.process_pending.side_effect = OSError("database connection lost")

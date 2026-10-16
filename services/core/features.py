@@ -100,6 +100,15 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "core",
         "description": "Reactive event bus",
     },
+    "notification_delivery": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_NOTIFICATION_DELIVERY",
+            os.getenv("KOKONUT_FEATURE_EVENT_BUS", "true"),
+        ).lower() == "true",
+        "critical": False,
+        "category": "communications",
+        "description": "Durable outbox delivery through configured notification providers",
+    },
     "event_retention_cleanup": {
         "enabled": os.getenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "false").lower() == "true",
         "critical": False,

@@ -100,6 +100,7 @@ services:
       KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION: ${KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION:-false}
       KOKONUT_FEATURE_SCHEDULER: "true"
       KOKONUT_FEATURE_EVENT_BUS: "true"
+      KOKONUT_FEATURE_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_NOTIFICATION_DELIVERY:-true}
     # The image HTTP probe belongs to the API; durable records track worker progress.
     healthcheck:
       disable: true

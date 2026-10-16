@@ -31,7 +31,12 @@ def commands(port: int, with_workers: bool, workers_only: bool = False) -> list[
         )
     if (with_workers or workers_only) and is_enabled("event_bus"):
         children.append(
-            ("events", [sys.executable, "-m", "services.events", "--worker", "--worker-id", f"{worker_id}-events"])
+            ("events", [sys.executable, "-m", "services.events", "--event-worker", "--worker-id", f"{worker_id}-events"])
+        )
+    if (with_workers or workers_only) and is_enabled("notification_delivery"):
+        children.append(
+            ("notifications", [sys.executable, "-m", "services.events", "--notification-worker",
+                               "--worker-id", f"{worker_id}-notifications"])
         )
     return children
 
@@ -77,7 +82,10 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
         for name, argv in child_commands:
             if stopping:
                 break
-            worker_key = {"scheduler": "scheduler", "events": "event_bus"}.get(name)
+            worker_key = {
+                "scheduler": "scheduler",
+                "events": "event_bus",
+            }.get(name)
             allowed_worker_keys = (worker_key,) if worker_key is not None else ()
             process = subprocess.Popen(
                 argv,

@@ -24,6 +24,9 @@ enforced by database grants or policies.
 
 ## What this establishes
 
+- Event dispatch and notification outbox sending now have separate CLI modes
+  and Kernel supervisor children; the legacy combined `--worker` mode remains
+  available. This is process separation only, not a distinct database identity.
 - Scheduler tasks and EventBus queue/receipt control still use the shared
   runtime PostgreSQL identity. The anomaly handler and the two registered
   cache invalidators have exact source-controlled worker credential routing

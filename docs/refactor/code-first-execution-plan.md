@@ -3,7 +3,7 @@
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Batch base head:** `30f996624ad9e9f4f908b41f1d5f55b86efb2620` on PR #68; Security #89 passed and CI #365 is pending.
-**Current local batch:** Migration 415 and the signed, default-off EventBus cache invalidation path are pushed. Seventy-four focused cache/EventBus tests and six network-isolated PostgreSQL 16 checks pass; all worker/source/SQL inventory checks are current. The notification-lineage follow-up is included in pushed commit `30f9966` and passes 14 focused mocked tests, Ruff, and compilation. The 411 checked / 19 open checklist and 66-row capability matrix are updated. No cache worker credential or active location grant is provisioned, the candidate has not received migration 415, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No database or migration changed. Real worker identity, generic outbox authorization, provider delivery, and other worker scopes remain open.
+**Current local batch:** Migration 415 and the signed, default-off EventBus cache invalidation path are pushed. Seventy-four focused cache/EventBus tests and six network-isolated PostgreSQL 16 checks pass; all worker/source/SQL inventory checks are current. The notification-lineage follow-up is included in pushed commit `30f9966` and passes 14 focused mocked tests. The current local slice splits event dispatch and notification delivery into independently runnable workers while preserving the combined CLI compatibility mode; 157 focused tests and 3 subtests pass with Ruff, compilation, Compose parsing, and regenerated worker inventories. The checklist now has 412 checked / 19 open items; the capability matrix remains at 66 rows. No cache worker credential or active location grant is provisioned, the candidate has not received migration 415, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No database or migration changed. Real worker identity, generic outbox authorization, provider delivery, and other worker scopes remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **411 checked and 19 open items (430 total)**,
+- The execution checklist has **412 checked and 19 open items (431 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,

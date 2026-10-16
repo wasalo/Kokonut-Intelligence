@@ -80,6 +80,8 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.metrics", ["--compute", "--metric", "value_flowed"]),
         ("services.events", ["--cleanup"]),
         ("services.events", ["--worker"]),
+        ("services.events", ["--event-worker"]),
+        ("services.events", ["--notification-worker"]),
         ("services.events", ["--dispose-dead-letter", "--event-id", str(uuid4())]),
         ("services.analytics.carbon_credits", ["--check-adjustments"]),
         ("services.ingestion.remote_sensing_fetcher", []),

@@ -79,7 +79,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    command: ["python3", "-m", "services.events", "--worker", "--worker-id", "event-worker"]
+    command: ["python3", "-m", "services.events", "--event-worker", "--worker-id", "event-worker"]
     user: appuser
     restart: unless-stopped
     depends_on:
@@ -96,13 +96,57 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
       KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
+      # Event handlers use configured destinations to decide which durable
+      # notification intents to enqueue; only notification-worker sends them.
       DIRECTUS_URL: http://directus:8055
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
     deploy:
       resources:
         limits:
           memory: 512M
+    profiles:
+      - worker
+
+  notification-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["python3", "-m", "services.events", "--notification-worker", "--worker-id", "notification-worker"]
+    user: appuser
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      DIRECTUS_URL: http://directus:8055
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     profiles:
       - worker
 

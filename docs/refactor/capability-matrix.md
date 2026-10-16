@@ -289,6 +289,18 @@ controls are approved and implemented; MAN-CAP-051 remains open
 
 **15 October 2026 dynamic retention policy and legal-hold model (CAP-047 / CAP-051):** migration 401 removes period defaults from policy/category reference data, permits an unset window, and demotes policies lacking explicit approval. New schedules are drafts; an operator must approve a positive configured window before activation, and auto-enforcement plus the independent feature flag remain separate gates. Record-level holds require an actor and reason, retain append-only placement/release history, and are checked by the generic sweeper and event cleanup. Event cleanup derives the window only from exactly one approved global `event_bus` / `platform_event` policy and fails closed on none or ambiguity. CLI actor and approver fields provide attribution but do not authenticate or authorize the caller. No period, policy, or hold has been configured. Migrations 401/402 are now applied on the candidate after an encrypted checkpoint and isolated restore/replay; the disposable migration/hold acceptance remains separate evidence. Notification/attempt/operator-audit pruning remains unimplemented. This prepares a dynamic policy path; it does not select legal periods or accept MAN-CAP-047/051. [Operations](retention-policy-operations.md)
 
+**16 October 2026 EventBus/outbox worker separation (CAP-047):** event dispatch
+and durable notification delivery now have independent CLI modes and Kernel
+supervisor children; the legacy `--worker` mode remains compatible. The default
+notification feature follows the event-bus setting, with an independent override.
+One hundred fifty-seven focused tests and three subtests pass, as do Ruff,
+compilation, Compose parsing, and generated worker inventories. No database or
+provider was contacted. This separates process responsibilities only: event
+handlers still use the shared runtime database identity and destination
+configuration to create outbox intents. Provider delivery, worker database
+boundaries, long-duration recovery, and MAN-CAP-047 remain open
+([evidence](builds/2026-10-16-recovery/event-notification-worker-separation.json)).
+
 **15 October 2026 worker reconnect contract (CAP-047):** scheduler ticks now
 use fresh bounded-timeout PostgreSQL connections while keeping a stable worker
 identity; two fault-injection tests prove that connection and tick failures do

@@ -83,7 +83,7 @@ def test_shutdown_terminates_process_group_then_forces_cleanup(monkeypatch):
 
 
 def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
-    processes = iter((_Process(111), _Process(112), _Process(113)))
+    processes = iter((_Process(111), _Process(112), _Process(113), _Process(114)))
     spawned = []
     allowlists = []
     _install_signal_fakes(monkeypatch, stop_on_sleep=True)
@@ -94,6 +94,7 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
             ("api", ["api"]),
             ("scheduler", ["scheduler"]),
             ("events", ["events"]),
+            ("notifications", ["notifications"]),
         ],
     )
 
@@ -111,8 +112,43 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
 
     assert runtime.run(with_workers=True) == 0
 
-    assert allowlists == [(), ("scheduler",), ("event_bus",)]
-    assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == ["", "scheduler", "event_bus"]
+    assert allowlists == [(), ("scheduler",), ("event_bus",), ()]
+    assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == [
+        "", "scheduler", "event_bus", ""
+    ]
+
+
+def test_commands_start_event_and_notification_workers_independently(monkeypatch):
+    from services.core import features
+
+    enabled = {
+        "scheduler": False,
+        "event_bus": True,
+        "notification_delivery": False,
+    }
+    monkeypatch.setattr(features, "is_enabled", lambda name: enabled.get(name, False))
+
+    children = runtime.commands(8099, with_workers=True)
+
+    assert [name for name, _ in children] == ["api", "events"]
+    assert children[1][1][3] == "--event-worker"
+
+    enabled.update(event_bus=False, notification_delivery=True)
+    children = runtime.commands(8099, with_workers=True)
+
+    assert [name for name, _ in children] == ["api", "notifications"]
+    assert children[1][1][3] == "--notification-worker"
+
+
+def test_commands_omit_both_workers_when_features_are_disabled(monkeypatch):
+    from services.core import features
+
+    monkeypatch.setattr(features, "is_enabled", lambda _name: False)
+
+    assert [name for name, _ in runtime.commands(8099, with_workers=True)] == ["api"]
+    assert runtime.commands(8099, with_workers=False) == [
+        ("api", [sys.executable, "-m", "services.gateway.cli", "--serve", "--port", "8099"])
+    ]
 
 
 def test_unexpected_zero_exit_fails_supervisor_and_stops_siblings(monkeypatch):

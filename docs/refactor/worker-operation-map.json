@@ -211,10 +211,10 @@
     },
     {
       "module": "services.events",
-      "scope": "--process claims the global event queue; --notification-process claims the global notification outbox. Event handlers may be tenant-scoped, global, or external as recorded below.",
+      "scope": "--process and --event-worker claim the global event queue; --notification-process and --notification-worker claim the global notification outbox; --worker remains the combined compatibility mode. Event handlers may be tenant-scoped, global, or external as recorded below.",
       "reads": ["public.platform_event", "public.event_handler", "public.event_handler_delivery", "public.notification_outbox"],
       "writes": ["public.platform_event", "public.event_handler_delivery", "public.event_handler_log", "public.event_dead_letter", "public.notification_outbox", "public.notification_outbox_attempt"],
-      "external_effects": ["Delegated to registered event handlers; --notification-process may deliver email, webhook, or Directus notifications"],
+      "external_effects": ["Delegated to registered event handlers; --notification-process and --notification-worker may deliver email, webhook, or Directus notifications"],
       "idempotency": "Per-event/per-handler receipts suppress already-successful handlers. Outbox enqueue uses stable source/channel/destination keys. Event and provider delivery remain at-least-once across lease expiry or a crash after an external effect.",
       "retry_boundary": "Event and notification queues use durable leases and bounded retries. Dead-letter replay/disposal and event cleanup are excluded from scheduled operation contracts; cleanup retention remains an owner decision.",
       "sources": ["services/events/bus.py", "services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]

@@ -47,8 +47,15 @@ is provided. The feature flag is a default-off switch, not policy approval.
 
 `data_stale` and `threshold_breached` handlers persist configured webhook and
 Directus notifications to `notification_outbox` before their event delivery is
-acknowledged. The event worker also claims and delivers notification rows. The
-outbox uses stable `(source event, channel, destination)` identities, a bounded
+acknowledged. Event dispatch and outbox delivery run independently; `--worker`
+remains a combined compatibility mode. The Kernel supervisor starts separate
+child processes for both features. `KOKONUT_FEATURE_NOTIFICATION_DELIVERY`
+controls notification delivery and defaults to the event-bus feature setting,
+preserving existing deployments while allowing delivery to be disabled or run
+independently. This separates process responsibility, not database or provider
+credentials: event handlers still use the shared runtime database identity and
+read destination configuration to decide which intents to enqueue. The outbox
+uses stable `(source event, channel, destination)` identities and a bounded
 retry budget, expiring leases, and operator-audited replay/disposal. Delivery is
 at-least-once: an external send can succeed just before a worker loses its lease
 or exits, so receivers that support `Idempotency-Key` should honor it.
@@ -66,6 +73,8 @@ against an authoritative source record; it does not grant tenant access or
 establish signed worker context. Events without a location remain unassigned.
 
 ```bash
+python3 -m services.events --event-worker --worker-id event-worker
+python3 -m services.events --notification-worker --worker-id notification-worker
 python3 -m services.events --notification-process --batch-size 50
 python3 -m services.events --notification-stats
 python3 -m services.events --notification-list-dead-letter
@@ -76,7 +85,7 @@ python3 -m services.events --notification-dispose-dead-letter \
   --reason "Reviewed with provider"
 ```
 
-These commands require migration `375_notification_outbox.sql` to be applied.
+Notification commands require migration `375_notification_outbox.sql` to be applied.
 `--notification-stats` also reports oldest open age and the combined table/index
 size of the outbox, attempt history, and operator audit. Its advisory defaults
 are 256 MiB warning and 512 MiB critical; set
