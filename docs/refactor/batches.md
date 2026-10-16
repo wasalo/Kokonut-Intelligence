@@ -911,10 +911,21 @@ reporting views.
   attestation output reports database-recorded state and does not claim live
   chain verification. No candidate or legacy database was touched. Signed
   media-byte delivery, live EAS validity checks, environment-key database
-  provisioning, and other Gateway handlers remain open
+  provisioning execution, and other Gateway handlers remain open
   ([attachment/attestation evidence](builds/2026-10-16-recovery/gateway-data-stream-attachment-attestation-contract.json);
   [search contract evidence](builds/2026-10-16-recovery/gateway-data-stream-search-contract.json);
   [tenant-context evidence](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)).
+- [x] Add a fail-closed Gateway API-key provisioner for the environment-to-DB
+  tenant-context bridge. It defaults to a no-write review, uses only a separate
+  operator-supplied maintenance DSN, requires strong key material and exact
+  UUID-scoped scopes, stores only SHA-256 hashes, inserts only missing rows,
+  uses concurrent-safe create-only inserts, and refuses conflicts, reactivation,
+  updates, or implicit revocation. Focused
+  parser, idempotency, concurrent insert, conflict, dry-run, and insert-contract
+  checks pass (16 tests; Ruff and CLI help also pass). The actual provisioner DSN and
+  configured production key rows remain deployment inputs; no candidate or
+  legacy database was accessed
+  ([evidence](builds/2026-10-16-recovery/gateway-api-key-provisioner-source.json)).
 - [x] Fail closed on unscoped worker cache invalidation. The allowlisted cache
   event handlers now require a canonical location UUID before creating the
   cache provider, so a malformed event cannot flush every location's cached

@@ -50,6 +50,21 @@ can establish tenant context. Database context independently revalidates
 capability tokens already stored in `capability_token`. No credential value or
 hash should be copied into this document or acceptance output.
 
+The one-shot `python3 -m services.gateway.api_key_provisioning` command bridges
+the environment key list to PostgreSQL through
+`KOKONUT_API_KEY_PROVISIONER_DSN`, which must be supplied only to the operator
+command and kept in encrypted secrets. The default mode is a dry run. `--apply`
+inserts only missing SHA-256 hashes with exact UUID-scoped grants; broad,
+wildcard, location-free, and malformed scopes are excluded. It never prints or
+stores raw key values, updates existing rows, reactivates inactive credentials,
+or removes rows for keys absent from the environment. Conflicting existing
+records stop the transaction and require an explicit credential rotation or
+reconciliation. The command does not take row-update locks; its concurrent
+insert path uses the migration-396 unique hash index and can reconcile an
+identical concurrent insert. A dedicated maintenance login needs only reviewed
+SELECT and INSERT column privileges on `api_key`; the Gateway runtime remains
+read-only.
+
 ## Acceptance evidence
 
 - [`gateway-tenant-context-disposable.json`](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)
@@ -64,6 +79,7 @@ hash should be copied into this document or acceptance output.
   records the repeatable runtime-role bootstrap and API-key write denial.
 
 The fixtures are synthetic and use a minimal compatible schema. They do not
-prove candidate data state, production key provisioning, shared-organization
+prove candidate data state, execution of the provisioning command, production
+key provisioning, shared-organization
 API-key access, all Gateway route parity, worker/CLI boundaries, or
 application-wide RLS readiness.
