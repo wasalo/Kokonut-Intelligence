@@ -114,6 +114,32 @@ def test_pilot_ownership_seed_runs_after_genesis_and_is_idempotent() -> None:
     assert "Kokonut Genesis" in ownership_seed
 
 
+def test_confirmed_operating_tenant_map_runs_last_and_skips_future_locations() -> None:
+    pilot_seed = Path("scripts/seed-pilot.sh").read_text()
+    assert pilot_seed.index("121_kokonut_network_tenant_owner_verification.sql") < pilot_seed.index(
+        "122_kokonut_network_operating_tenant_map.sql"
+    )
+
+    ownership_seed = Path(
+        "schemas/seeds/122_kokonut_network_operating_tenant_map.sql"
+    ).read_text()
+    for location_name, location_slug in (
+        ("Kokonut Genesis", "kokonut-genesis"),
+        ("Kokonut Seeds", "kokonut-seeds"),
+        ("Kokonut Adelphi", "kokonut-adelphi"),
+        ("Kokonut Terra Viva", "kokonut-terra-viva"),
+        ("Kokonut V1", "kokonut-v1"),
+    ):
+        assert location_name in ownership_seed
+        assert location_slug in ownership_seed
+    assert "IF NOT FOUND THEN" in ownership_seed
+    assert "CONTINUE;" in ownership_seed
+    assert "not_a_land_title_assertion" in ownership_seed
+    assert "location_organization_share" not in ownership_seed
+    assert "operator_organization_membership" not in ownership_seed
+    assert "audited transfer/reconciliation path" in ownership_seed
+
+
 def test_legacy_pilot_organization_seed_uses_confirmed_network_owner() -> None:
     pilot_organization = Path("schemas/seeds/113_pilot_organization.sql").read_text()
     assert "org_key = 'kokonut-network'" in pilot_organization

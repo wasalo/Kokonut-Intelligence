@@ -2,6 +2,24 @@
 
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
+### Owner-confirmed location operating-tenant map — 16 October 2026
+
+The pilot data flow now includes a new rerunnable owner reconciliation seed for
+the five owner-confirmed Kokonut Network locations. It matches exact names and
+slugs, establishes organization assignment plus one current owner relationship
+and verification, preserves the existing Adelphi/Genesis verification, and
+creates no sharing or operator account grants. It skips missing locations so
+Seeds, Terra Viva, and V1 can be mapped after their imported records exist; it
+does not create placeholder locations or assert land title. Conflicting names,
+owners, and revoked verification history fail the entire transaction. The
+17-test impact-network source suite passes; five disposable PostgreSQL checks
+pass for mapping, absent locations, replay, unknown-location preservation, and
+rollback on identity/owner conflicts. No candidate or legacy database was
+accessed ([seed](../../schemas/seeds/122_kokonut_network_operating_tenant_map.sql);
+[runner](../../scripts/check-network-location-owner-map-disposable.py);
+[evidence](builds/2026-10-16-recovery/network-location-owner-map-disposable.json);
+[application contract](tenant-owner-map-reconciliation.md)).
+
 ### Signed sensor-anomaly worker integration — 16 October 2026
 
 `handle_sensor_reading` now delegates to a worker-only adapter. It opens only

@@ -105,12 +105,16 @@ for seed_file in \
 done
 
 # Ownership must be applied last: earlier pilot seeds create Adelphi's legacy
-# organization assignment, and Genesis is created by 098_multi_farm.sql.
+# organization assignment, and Genesis is created by 098_multi_farm.sql. The
+# operating-tenant map skips future owner-confirmed locations until imported.
 echo "  Applying: 120_kokonut_network_ownership.sql"
 seed_apply "$SEED_DIR/120_kokonut_network_ownership.sql" pilot
 
 echo "  Applying: 121_kokonut_network_tenant_owner_verification.sql"
 seed_apply "$SEED_DIR/121_kokonut_network_tenant_owner_verification.sql" pilot
+
+echo "  Applying: 122_kokonut_network_operating_tenant_map.sql"
+seed_apply "$SEED_DIR/122_kokonut_network_operating_tenant_map.sql" pilot
 
 echo ""
 echo "=== Pilot Farm Data Loaded ==="

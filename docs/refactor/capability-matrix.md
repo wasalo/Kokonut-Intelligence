@@ -573,6 +573,21 @@ including the 384–385–389 trigger stack
 Migration 390 transfer and tenant-context acceptance passed 14 disposable
 PostgreSQL checks, and eight context unit tests passed
 ([acceptance](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json)).
+
+**16 October 2026 operating-tenant source reconciliation (CAP-001 / CAP-053):**
+the owner-confirmed map now covers Kokonut Genesis, Kokonut Seeds, Kokonut
+Adelphi, Kokonut Terra Viva, and Kokonut V1 through rerunnable seed 122. It
+applies only to exact name/slug matches that already exist, skips locations
+pending import, and fails closed on identity, owner, or revoked-verification
+conflicts. Five disposable PostgreSQL checks pass for missing locations,
+all-five reconciliation, replay, unknown-location preservation, and
+transactional rollback. This records operating-tenant access and does not
+assert land title or grant sharing. No candidate/legacy database was changed;
+operator affiliations, imported source data, remaining Gateway/worker scopes,
+and direct-database/RLS boundaries remain open. MAN-CAP-001 and MAN-CAP-053
+remain not run ([seed](../../schemas/seeds/122_kokonut_network_operating_tenant_map.sql);
+[evidence](builds/2026-10-16-recovery/network-location-owner-map-disposable.json);
+[procedure](tenant-owner-map-reconciliation.md)).
 The ownership/transfer rollout applied migrations 387–390 after a fresh
 age-encrypted checkpoint; the follow-up device-binding rollout applied 391 from
 a separate checkpoint. All 382 schema migrations are now applied with zero
