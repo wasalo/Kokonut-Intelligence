@@ -4,7 +4,7 @@
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Remote head before this local batch:** `6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`
 **Status at batch start (checked 16 October 2026):** CI #336 was pending and Security #60 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299381); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299385)).
-**Latest pushed batch:** `359e1d5e52ce8b3fd907a992bd9d1bd272ce8205`; Security #66 passed and CI #342 is pending.
+**Latest pushed batch:** `359e1d5e52ce8b3fd907a992bd9d1bd272ce8205`; Security #66 passed and CI #342 is in progress.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -26,7 +26,7 @@ MAN-CAP checks open until each has its own retained evidence.
   then added and pushed the separate operator-console panel; six focused console
   contract checks pass, including inline JavaScript syntax validation. Migration
   404 has not been applied to the candidate, and no MAN-CAP check was accepted.
-  Security #66 passed and CI #342 is pending for the latest pushed SHA.
+  Security #66 passed and CI #342 is in progress for the latest pushed SHA.
   Current local edits additionally expose the full farm-activity content
   allowlist in the create/edit forms; six focused console checks still pass.
 - When this local batch began, the remote PR head was
