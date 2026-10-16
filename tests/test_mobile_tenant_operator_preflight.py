@@ -39,6 +39,23 @@ class _PreflightConnection:
     def execute(self, sql, _params=None):
         normalized = " ".join(sql.lower().split())
         self.queries.append(normalized)
+        if normalized.startswith("with execution_role as"):
+            return _Result([{
+                "expected_role": True,
+                "direct_login": True,
+                "transaction_read_only": True,
+                "superuser": False,
+                "can_create_database": False,
+                "can_create_roles": False,
+                "replication_role": False,
+                "bypasses_rls": False,
+                "can_create_database_objects": False,
+                "can_create_public_objects": False,
+                "membership_count": 0,
+                "dml_relation_count": 0,
+                "owned_relation_count": 0,
+                "inventory_rls_enabled_relation_count": 0,
+            }])
         if normalized.startswith("with required(relation_name, column_name)"):
             return _Result([{
                 "required_column_count": len(tenant_preflight._REQUIRED_COLUMNS),
@@ -116,10 +133,13 @@ def test_preflight_reports_aggregate_operator_access_without_identifiers(monkeyp
     location_id = "a0000000-0000-0000-0000-000000000001"
     owner_id = "a0000000-0000-0000-0000-000000000801"
     connection = _PreflightConnection(_location_row(), _unlocated_row(), _operator_row())
-    monkeypatch.setattr(tenant_preflight, "get_connection", _fake_connection(connection))
+    inventory = tenant_preflight.collect_inventory(connection_factory=_fake_connection(connection))
 
-    inventory = tenant_preflight.collect_inventory()
-
+    assert inventory["database_readiness"]["execution_identity"]["status"] == "ready"
+    assert inventory["database_readiness"]["execution_identity"]["role_name_emitted"] is False
+    assert inventory["database_readiness"]["execution_identity_policy"] == (
+        "dedicated_read_only_preflight_role_required"
+    )
     access = inventory["locations"][0]["operator_access"]
     assert access["active_operator_grant"] == 4
     assert access["active_legacy_operator_grant"] == 1
@@ -137,9 +157,7 @@ def test_missing_authorization_function_stops_before_inventory_queries(monkeypat
     connection = _PreflightConnection(
         _location_row(), _unlocated_row(), _operator_row(), function_present=False
     )
-    monkeypatch.setattr(tenant_preflight, "get_connection", _fake_connection(connection))
-
-    inventory = tenant_preflight.collect_inventory()
+    inventory = tenant_preflight.collect_inventory(connection_factory=_fake_connection(connection))
 
     assert inventory["inventory_status"] == "schema_incomplete"
     assert inventory["schema_coverage"]["available_function_count"] == 0

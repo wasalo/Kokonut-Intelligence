@@ -18,8 +18,9 @@ from services.migration.cli import _discover_files, _validate_sources  # noqa: E
 
 APP_IMAGE = "kokonut-kernel-candidate-app:latest"
 DATABASE_IMAGE = "postgis/postgis:16-3.4"
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-14-recovery/tenant-database-readiness-postgres.json"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json"
 RUNTIME_ROLE = "tenant_preflight_fixture"
+PREFLIGHT_ROLE = "kokonut_tenant_preflight"
 
 
 def _docker_executable() -> str:
@@ -111,6 +112,8 @@ def _fixture_sql(sources: list[dict]) -> str:
     return f"""
 CREATE ROLE {RUNTIME_ROLE} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
     NOREPLICATION NOBYPASSRLS NOINHERIT;
+CREATE ROLE {PREFLIGHT_ROLE} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE
+    NOREPLICATION BYPASSRLS NOINHERIT;
 CREATE TABLE public.schema_migration (
     migration_id text NOT NULL,
     checksum text NOT NULL,
@@ -128,7 +131,8 @@ CREATE TABLE public.scheduled_task (
     is_enabled boolean NOT NULL
 );
 INSERT INTO public.scheduled_task (name, module_path, command_args, is_enabled) VALUES
-    ('synthetic-valid', 'services.metrics', '["--compute", "--all-locations"]', true),
+    ('synthetic-valid', 'services.metrics', '["--compute", "--all", "--location-id", "a0000000-0000-0000-0000-000000000901"]', true),
+    ('synthetic-unbounded', 'services.export.dataset_refresh', '["--all"]', true),
     ('synthetic-invalid', 'services.events', '["--cleanup"]', true),
     ('disabled-task', 'services.metrics', '["--compute", "--all-locations"]', false);
 CREATE TABLE public.preflight_no_rls_probe (id integer);
@@ -136,9 +140,15 @@ GRANT INSERT ON public.preflight_no_rls_probe TO {RUNTIME_ROLE};
 CREATE TABLE public.preflight_owner_rls_probe (id integer);
 ALTER TABLE public.preflight_owner_rls_probe OWNER TO {RUNTIME_ROLE};
 ALTER TABLE public.preflight_owner_rls_probe ENABLE ROW LEVEL SECURITY;
+CREATE TABLE public.location (id uuid);
+ALTER TABLE public.location ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON public.schema_migration, public.scheduled_task TO {RUNTIME_ROLE};
+GRANT SELECT ON public.schema_migration, public.scheduled_task TO {PREFLIGHT_ROLE};
+GRANT SELECT ON public.location TO {PREFLIGHT_ROLE};
 GRANT CONNECT ON DATABASE postgres TO {RUNTIME_ROLE};
+GRANT CONNECT ON DATABASE postgres TO {PREFLIGHT_ROLE};
 GRANT USAGE ON SCHEMA public TO {RUNTIME_ROLE};
+GRANT USAGE ON SCHEMA public TO {PREFLIGHT_ROLE};
 """
 
 
@@ -148,10 +158,20 @@ import json
 from services.common.cli import get_connection
 from services.migration.cli import _discover_files
 from services.mobile.tenant_preflight import (
+    _preflight_execution_identity,
     _migration_preflight,
     _runtime_role_preflight,
     _scheduled_task_preflight,
+    get_preflight_connection,
 )
+
+with get_preflight_connection(connect_timeout=5) as preflight_connection:
+    identity = _preflight_execution_identity(preflight_connection)
+assert identity["status"] == "ready", identity
+assert identity["direct_login"] is True and identity["transaction_read_only"] is True, identity
+assert identity["dml_relation_count"] == 0 and identity["owned_relation_count"] == 0, identity
+assert identity["role_membership_count"] == 0, identity
+assert identity["bypasses_rls"] is True and identity["inventory_rls_enabled_relation_count"] == 1, identity
 
 with get_connection(connect_timeout=5) as connection:
     connection.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
@@ -166,21 +186,29 @@ assert migration["checksum_drift_count"] == 1, migration
 assert migration["applied_ledger_rows_without_source_count"] == 1, migration
 assert runtime["status"] == "dml_with_rls_bypass_risk", runtime
 assert runtime["superuser"] is False and runtime["bypasses_rls"] is False, runtime
-assert runtime["rls_enabled_relation_count"] == 1, runtime
+assert runtime["rls_enabled_relation_count"] == 2, runtime
 assert runtime["rls_forced_relation_count"] == 0, runtime
 assert runtime["dml_relation_without_rls_count"] == 1, runtime
 assert runtime["dml_relation_with_rls_bypass_risk_count"] == 2, runtime
-assert schedules["enabled_task_count"] == 2, schedules
-assert schedules["contract_valid_count"] == 1, schedules
+assert schedules["enabled_task_count"] == 3, schedules
+assert schedules["contract_valid_count"] == 2, schedules
 assert schedules["contract_rejected_count"] == 1, schedules
 assert schedules["known_unbounded_scope_task_count"] == 1, schedules
-assert schedules["enabled_tasks_without_signed_tenant_context_count"] == 2, schedules
-report = {"migration": migration, "runtime_role": runtime, "scheduled_tasks": schedules}
+assert schedules["enabled_tasks_without_signed_tenant_context_count"] == 3, schedules
+report = {
+    "execution_identity": identity,
+    "migration": migration,
+    "runtime_role": runtime,
+    "scheduled_tasks": schedules,
+}
 serialized = json.dumps(report)
 for marker in (
     "tenant_preflight_fixture",
     "synthetic-valid",
+    "synthetic-unbounded",
     "synthetic-invalid",
+    "a0000000-0000-0000-0000-000000000901",
+    "kokonut_tenant_preflight",
     "services.metrics",
     "services.events",
     "--all-locations",
@@ -255,6 +283,10 @@ def main() -> int:
                     "--env",
                     "KOKONUT_ENV=development",
                     "--env",
+                    f"KOKONUT_RUNTIME_USER={RUNTIME_ROLE}",
+                    "--env",
+                    f"KOKONUT_TENANT_PREFLIGHT_DSN=postgresql://{PREFLIGHT_ROLE}@{database}:5432/postgres",
+                    "--env",
                     "PYTHONDONTWRITEBYTECODE=1",
                     "--entrypoint",
                     "python3",
@@ -279,6 +311,8 @@ def main() -> int:
             "network_egress": "blocked",
             "fixture_rows": "synthetic only",
             "checks": [
+                "the direct kokonut_tenant_preflight login is transaction-read-only, has no role memberships, and has no public DML, ownership, or object-creation privileges",
+                "the global-read identity bypasses RLS only while an inventory relation enables RLS, preventing filtered counts",
                 "local migration sources compare with matched, drifted, pending, and removed-source ledger rows",
                 "a non-elevated database role reports DML on an RLS-disabled table and an owned RLS table without FORCE RLS",
                 "enabled scheduler arguments use the shared operation contracts and identify known unbounded scope",

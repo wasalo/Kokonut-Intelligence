@@ -57,6 +57,23 @@ class _PreflightConnection:
     def execute(self, sql, _params=None):
         normalized = " ".join(sql.lower().split())
         self.queries.append(normalized)
+        if normalized.startswith("with execution_role as"):
+            return _Result([{
+                "expected_role": True,
+                "direct_login": True,
+                "transaction_read_only": True,
+                "superuser": False,
+                "can_create_database": False,
+                "can_create_roles": False,
+                "replication_role": False,
+                "bypasses_rls": False,
+                "can_create_database_objects": False,
+                "can_create_public_objects": False,
+                "membership_count": 0,
+                "dml_relation_count": 0,
+                "owned_relation_count": 0,
+                "inventory_rls_enabled_relation_count": 0,
+            }])
         if normalized.startswith("with required(relation_name, column_name)"):
             return _Result([{
                 "required_column_count": len(tenant_preflight._REQUIRED_COLUMNS),
@@ -115,9 +132,7 @@ def test_preflight_reports_device_binding_counts_without_leaking_identifiers(mon
     def fake_connection(**_kwargs):
         yield connection
 
-    monkeypatch.setattr(tenant_preflight, "get_connection", fake_connection)
-
-    inventory = tenant_preflight.collect_inventory()
+    inventory = tenant_preflight.collect_inventory(connection_factory=fake_connection)
 
     assert inventory["inventory_status"] == "complete"
     assert inventory["tenant_binding_totals_at_locations"]["tenant_unbound_device"] == 1

@@ -6230,3 +6230,25 @@ for this new option remains unrun. Persisted scheduler rows, external schedules,
 tenant context, worker roles, and candidate/legacy databases were not touched
 ([evidence](builds/2026-10-16-recovery/worker-credit-check-isolation.json);
 [operation map](worker-operation-map.md)).
+
+### Tenant preflight execution identity — 16 October 2026
+
+The ownership/readiness CLI no longer falls back to the shared application
+connection. It reads a separate `KOKONUT_TENANT_PREFLIGHT_DSN` from the loaded
+secret environment, uses a read-only repeatable-read transaction with a pinned
+`pg_catalog, public` search path, and requires a direct
+`kokonut_tenant_preflight` login. Before inventory queries it checks that the
+identity has no role memberships, public-table DML or ownership privileges,
+and cannot create database or public-schema objects. The aggregate report records only sanitized
+privilege flags and evaluates the configured runtime login separately. Focused
+tests cover exact identity, role switching, unsafe grants, fail-before-inventory,
+and sanitized connection failures; Ruff is clean. A separate PostgreSQL 16
+fixture confirmed the real catalog check with a synthetic RLS-enabled
+`location`: the global preflight login must bypass RLS while retaining zero
+DML/ownership/create privileges and no role memberships. The application-role and scheduler checks
+passed in that isolated database; it and its internal network were removed.
+No candidate or legacy database was contacted. Provisioning the actual role
+and secret, confirming cross-tenant read scope, and limiting who can invoke
+the inventory remain deployment gates ([source evidence](builds/2026-10-16-recovery/tenant-preflight-identity-source.json);
+[PostgreSQL evidence](builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json);
+[call-site audit](mobile-tenant-rls-callsite-audit.md)).

@@ -397,8 +397,14 @@ before protected reads and writes, and make direct database access fail closed.
   were removed. Neither candidate nor legacy data was touched and no migration
   was applied. The output also encodes that a dedicated read-only preflight role
   is required before the CLI runs after RLS. These reports do not prove worker
-  isolation. Owner mapping, remaining runtime role restriction, active-schedule
-  reconciliation, and complete worker context remain open
+  isolation. The CLI now requires the dedicated `kokonut_tenant_preflight`
+  login through `KOKONUT_TENANT_PREFLIGHT_DSN`, checks it is direct/read-only
+  with no public DML/ownership or object creation, and inspects the configured
+  application role separately. The CLI also requires `BYPASSRLS` to be enabled
+  exactly when an inventory relation has RLS, preventing filtered global
+  counts. The connection path has source tests only; no credentials or database
+  role were provisioned. Owner mapping, remaining
+  runtime role restriction, active-schedule reconciliation, and complete worker context remain open
   ([static report](worker-boundary-preflight.json); [source evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json); [PostgreSQL evidence](builds/2026-10-14-recovery/tenant-database-readiness-postgres.json); [test evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
 5. Keep application RLS disabled until all code paths and data ownership inputs
    pass. Isolated forced-RLS fixtures can prove policy behavior; they do not

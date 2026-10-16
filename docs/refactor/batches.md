@@ -755,6 +755,21 @@ reporting views.
   network and database. Candidate and legacy databases were untouched; no
   migration was applied
   ([source evidence](builds/2026-10-14-recovery/tenant-database-readiness-check.json); [PostgreSQL evidence](builds/2026-10-14-recovery/tenant-database-readiness-postgres.json); [runner](../../scripts/check-tenant-preflight-disposable.py)).
+- [x] Make the tenant ownership/readiness CLI require an explicit preflight
+  database identity. It reads `KOKONUT_TENANT_PREFLIGHT_DSN` only for this
+  command, pins the transaction search path, verifies a direct
+  `kokonut_tenant_preflight` login in read-only mode, and rejects public DML,
+  relation ownership, and database/schema object creation before inventory
+  SQL runs. Runtime privilege reporting now checks the configured application
+  role instead of accidentally inspecting the preflight login. Fifteen focused
+  source checks, Ruff, CLI-help, and capability-matrix validation pass. A
+  PostgreSQL 16 fixture with a synthetic RLS-enabled `location` verifies the
+  dedicated role is read-only, has no memberships, owns no relation, has no
+  DML/create privileges, and bypasses RLS only when required; application-role
+  and scheduler checks
+  also pass. The actual role and encrypted DSN remain an operator/deployment
+  gate; cross-tenant read scope needs review before RLS.
+  ([source evidence](builds/2026-10-16-recovery/tenant-preflight-identity-source.json); [PostgreSQL evidence](builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json)).
 - [x] Record the owner's operating-tenant mapping for Kokonut Genesis, Kokonut Seeds, Kokonut Adelphi, Kokonut Terra Viva, and Kokonut V1 as Kokonut Network. Sharing remains ungranted unless separately confirmed; no location or operator identity was backfilled into a database ([owner decision](open-follow-ups.md#decisions-and-source-data)).
 - [ ] Extend the tenant map for any additional locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker

@@ -1761,6 +1761,23 @@ operators to organizations or convert legacy grants. CAP-053 remains partial;
 worker integration, direct-database isolation, populated production lineage,
 retention/disposition, and RLS remain open.
 
+**16 October 2026 tenant-preflight identity boundary (CAP-053 / CAP-047):**
+the CLI now requires a separately supplied `KOKONUT_TENANT_PREFLIGHT_DSN`,
+pins `search_path` and read-only repeatable-read execution, and refuses to run
+inventory SQL unless the session is a direct `kokonut_tenant_preflight` login
+with no role memberships, public-table DML/ownership, or database/schema
+object-creation rights.
+The sanitized report shows the dedicated identity's privilege flags and
+checks the configured application role independently. Focused identity,
+DSN-error-sanitization, inventory short-circuit, and existing aggregate tests
+pass ([source evidence](builds/2026-10-16-recovery/tenant-preflight-identity-source.json)).
+A separate PostgreSQL 16 fixture passed with a synthetic RLS-enabled inventory
+relation, confirming that the read-only role's `BYPASSRLS` setting must match
+the inventory's RLS state ([database evidence](builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json)).
+Role provisioning, secret storage, operator authorization, and cross-tenant
+read-scope approval remain open. No candidate or legacy database was accessed;
+this change does not enable RLS or certify MAN-CAP.
+
 **14 October 2026 signed OIDC operator tenant context (CAP-053):** migration
 394 makes PostgreSQL validate the active session, enabled identity,
 tenant-qualified grant, active operator membership, and current location owner

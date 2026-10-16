@@ -8,14 +8,22 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
+from typing import TYPE_CHECKING
 from uuid import UUID
 
-from services.common.cli import get_connection, print_json, run
+import psycopg2
+
+from services.common.cli import print_json, run
+from services.common.env import load_dotenv
 from services.migration.cli import MigrationError, _discover_files, _validate_sources
 from services.security.scheduled_command_contracts import (
     ScheduledCommandRejected,
     validate_scheduled_command,
 )
+
+if TYPE_CHECKING:
+    from services.common.database import DatabaseConnection
 
 _INVENTORY_SQL = """
 WITH active_org_relationships AS (
@@ -280,6 +288,38 @@ SELECT location.id AS location_id,
  WHERE (:location_id::uuid IS NULL OR location.id = :location_id::uuid)
  ORDER BY location.id
 """
+
+_PREFLIGHT_ROLE = "kokonut_tenant_preflight"
+
+
+def get_preflight_connection(*, connect_timeout: int = 5) -> "DatabaseConnection":
+    """Open the dedicated, read-only tenant-preflight database identity.
+
+    The DSN is deliberately separate from the application connection settings.
+    It should be supplied only to this operator command, never to app/worker
+    containers. Its database role must be provisioned with the narrow SELECT
+    permissions needed by this aggregate inventory.
+    """
+    load_dotenv()
+    dsn = os.environ.get("KOKONUT_TENANT_PREFLIGHT_DSN", "").strip()
+    if not dsn:
+        raise RuntimeError("KOKONUT_TENANT_PREFLIGHT_DSN is required for this command")
+
+    connection = None
+    try:
+        from services.common.database import DatabaseConnection
+
+        connection = psycopg2.connect(dsn, connect_timeout=connect_timeout)
+        return DatabaseConnection(connection, readonly=True)
+    except Exception:
+        if connection is not None:
+            try:
+                connection.close()
+            except Exception:
+                pass
+        # psycopg2 connection errors may echo the DSN, so keep the CLI error
+        # independent of driver-provided text.
+        raise RuntimeError("tenant preflight database connection failed") from None
 
 _UNLOCATED_SQL = """
 SELECT (SELECT COUNT(*)::int FROM mobile_device WHERE location_id IS NULL)
@@ -591,18 +631,37 @@ def _migration_preflight(conn, migration_table_exists: bool) -> dict:
     }
 
 
-def _runtime_role_preflight(conn) -> dict:
+def _configured_runtime_role() -> str:
+    """Return the application login whose privileges the report evaluates."""
+    return os.environ.get("KOKONUT_RUNTIME_USER") or os.environ.get("PG_USER", "kokonut")
+
+
+def _preflight_execution_identity(conn) -> dict:
+    """Confirm the current login is the dedicated read-only preflight identity."""
     row = conn.execute(
         """
-        WITH runtime_role AS (
-            SELECT rolsuper, rolcreatedb, rolcreaterole,
-                   rolreplication, rolbypassrls
-              FROM pg_roles
-             WHERE rolname = current_user
+        WITH execution_role AS (
+            SELECT current_user = :expected_role AS expected_role,
+                   session_user = current_user AS direct_login,
+                   current_setting('transaction_read_only') = 'on' AS transaction_read_only,
+                   role.rolsuper AS superuser,
+                   role.rolcreatedb AS can_create_database,
+                   role.rolcreaterole AS can_create_roles,
+                   role.rolreplication AS replication_role,
+                   EXISTS (
+                       SELECT 1
+                         FROM pg_roles AS bypass_role
+                        WHERE bypass_role.rolbypassrls
+                          AND pg_has_role(current_user, bypass_role.oid, 'USAGE')
+                   ) AS bypasses_rls,
+                   has_database_privilege(current_user, current_database(), 'CREATE')
+                       AS can_create_database_objects,
+                   has_schema_privilege(current_user, 'public', 'CREATE')
+                       AS can_create_public_objects
+              FROM pg_roles AS role
+             WHERE role.rolname = current_user
         ), public_relations AS (
             SELECT relation.oid,
-                   relation.relrowsecurity AS rls_enabled,
-                   relation.relforcerowsecurity AS rls_forced,
                    pg_has_role(current_user, relation.relowner, 'USAGE')
                        AS can_use_owner_privileges,
                    (
@@ -610,6 +669,110 @@ def _runtime_role_preflight(conn) -> dict:
                        OR has_table_privilege(current_user, relation.oid, 'UPDATE')
                        OR has_table_privilege(current_user, relation.oid, 'DELETE')
                        OR has_table_privilege(current_user, relation.oid, 'TRUNCATE')
+                   ) AS has_dml
+              FROM pg_class AS relation
+              JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'public'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+        ), role_memberships AS (
+            SELECT COUNT(*)::int AS membership_count
+              FROM pg_auth_members AS membership
+             WHERE membership.member = (
+                   SELECT oid FROM pg_roles WHERE rolname = current_user
+             )
+        ), inventory_relations AS (
+            SELECT relation.relrowsecurity AS rls_enabled
+              FROM pg_class AS relation
+              JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+             WHERE namespace.nspname = 'public'
+               AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+               AND relation.relname = ANY(:inventory_relation_names::text[])
+        )
+        SELECT execution_role.expected_role,
+               execution_role.direct_login,
+               execution_role.transaction_read_only,
+               execution_role.superuser,
+               execution_role.can_create_database,
+               execution_role.can_create_roles,
+               execution_role.replication_role,
+               execution_role.bypasses_rls,
+               execution_role.can_create_database_objects,
+               execution_role.can_create_public_objects,
+               role_memberships.membership_count,
+               (SELECT COUNT(*)::int FROM public_relations WHERE has_dml)
+                   AS dml_relation_count,
+               (SELECT COUNT(*)::int FROM public_relations WHERE can_use_owner_privileges)
+                   AS owned_relation_count,
+               (SELECT COUNT(*)::int FROM inventory_relations WHERE rls_enabled)
+                   AS inventory_rls_enabled_relation_count
+          FROM execution_role
+          CROSS JOIN role_memberships
+        """,
+        {
+            "expected_role": _PREFLIGHT_ROLE,
+            "inventory_relation_names": sorted({relation for relation, _column in _REQUIRED_COLUMNS}),
+        },
+    ).first()
+
+    if row is None:
+        return {"status": "identity_unavailable", "role_name_emitted": False}
+
+    unsafe = any(
+        row[field]
+        for field in (
+            "superuser",
+            "can_create_database",
+            "can_create_roles",
+            "replication_role",
+            "can_create_database_objects",
+            "can_create_public_objects",
+            "membership_count",
+            "dml_relation_count",
+            "owned_relation_count",
+        )
+    )
+    if bool(row["inventory_rls_enabled_relation_count"]) != bool(row["bypasses_rls"]):
+        unsafe = True
+    ready = row["expected_role"] and row["direct_login"] and row["transaction_read_only"] and not unsafe
+    return {
+        "status": "ready" if ready else "unsafe_execution_identity",
+        "direct_login": row["direct_login"],
+        "transaction_read_only": row["transaction_read_only"],
+        "superuser": row["superuser"],
+        "can_create_database": row["can_create_database"],
+        "can_create_roles": row["can_create_roles"],
+        "replication_role": row["replication_role"],
+        "bypasses_rls": row["bypasses_rls"],
+        "can_create_database_objects": row["can_create_database_objects"],
+        "can_create_public_objects": row["can_create_public_objects"],
+        "role_membership_count": row["membership_count"],
+        "dml_relation_count": row["dml_relation_count"],
+        "owned_relation_count": row["owned_relation_count"],
+        "inventory_rls_enabled_relation_count": row["inventory_rls_enabled_relation_count"],
+        "role_name_emitted": False,
+    }
+
+
+def _runtime_role_preflight(conn, runtime_role_name: str | None = None) -> dict:
+    runtime_role_name = runtime_role_name or _configured_runtime_role()
+    row = conn.execute(
+        """
+        WITH runtime_role AS (
+            SELECT rolsuper, rolcreatedb, rolcreaterole,
+                   rolreplication, rolbypassrls
+              FROM pg_roles
+             WHERE rolname = :runtime_role_name
+        ), public_relations AS (
+            SELECT relation.oid,
+                   relation.relrowsecurity AS rls_enabled,
+                   relation.relforcerowsecurity AS rls_forced,
+                   pg_has_role(:runtime_role_name, relation.relowner, 'USAGE')
+                       AS can_use_owner_privileges,
+                   (
+                       has_table_privilege(:runtime_role_name, relation.oid, 'INSERT')
+                       OR has_table_privilege(:runtime_role_name, relation.oid, 'UPDATE')
+                       OR has_table_privilege(:runtime_role_name, relation.oid, 'DELETE')
+                       OR has_table_privilege(:runtime_role_name, relation.oid, 'TRUNCATE')
                    ) AS has_dml
               FROM pg_class AS relation
               JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
@@ -633,7 +796,8 @@ def _runtime_role_preflight(conn) -> dict:
                        AND can_use_owner_privileges)
                    AS dml_relation_with_rls_bypass_risk_count
           FROM runtime_role
-        """
+        """,
+        {"runtime_role_name": runtime_role_name},
     ).first()
     if row is None:
         return {"status": "not_available"}
@@ -724,7 +888,7 @@ def _scheduled_task_preflight(conn) -> dict:
 
 def _database_readiness_preflight(conn) -> dict:
     return {
-        "execution_identity_policy": "dedicated_read_only_preflight_role_required_before_rls",
+        "execution_identity_policy": "dedicated_read_only_preflight_role_required",
         "runtime_role": _runtime_role_preflight(conn),
         "scheduled_tasks": _scheduled_task_preflight(conn),
     }
@@ -754,7 +918,11 @@ def _ownership_status(assigned_organization_id: object, candidate_ids: list[obje
     return "assigned_owner_matches_relationship"
 
 
-def collect_inventory(location_id: str | None = None) -> dict:
+def collect_inventory(
+    location_id: str | None = None,
+    *,
+    connection_factory=None,
+) -> dict:
     """Return aggregate owner and known-lineage counts without raw identifiers."""
     normalized_location_id = None
     if location_id is not None:
@@ -763,11 +931,20 @@ def collect_inventory(location_id: str | None = None) -> dict:
         except (TypeError, ValueError) as exc:
             raise ValueError("location_id must be a UUID") from exc
 
-    with get_connection(connect_timeout=5) as conn:
+    factory = connection_factory or get_preflight_connection
+    with factory(connect_timeout=5) as conn:
         conn.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
         conn.execute("SET LOCAL statement_timeout = '15s'")
+        conn.execute("SET LOCAL search_path = pg_catalog, public")
+        execution_identity = _preflight_execution_identity(conn)
+        if execution_identity["status"] != "ready":
+            raise RuntimeError(
+                "tenant preflight requires a direct, read-only kokonut_tenant_preflight login "
+                "without public-table write, ownership, or object-creation privileges"
+            )
         schema_coverage, schema_state = _schema_state(conn)
         database_readiness = _database_readiness_preflight(conn)
+        database_readiness["execution_identity"] = execution_identity
         if schema_coverage["status"] == "complete":
             rows = conn.execute(
                 _INVENTORY_SQL,
