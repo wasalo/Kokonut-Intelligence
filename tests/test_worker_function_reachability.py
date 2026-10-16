@@ -109,6 +109,20 @@ def test_graph_tracks_instance_methods_and_literal_metric_registry_dispatch():
     }
 
 
+def test_graph_follows_shared_cli_run_callback_to_the_actual_command_body():
+    inventory = build_inventory()
+    operation = next(
+        item
+        for item in inventory["operations"]
+        if item["name"] == "services.analytics.carbon_credit_adjustment_check"
+    )
+    functions = {function["key"] for function in operation["reachable_functions"]}
+
+    assert "services.analytics.carbon_credit_adjustment_check:main" in functions
+    assert "services.analytics.carbon_credits:check_adjustments" in functions
+    assert "services.credit_class.chain_sync:retire_onchain" not in functions
+
+
 def test_direct_call_resolution_handles_module_and_symbol_aliases():
     function = {"module": "services.worker", "qualname": "run", "class_scope": None}
     definitions = {"services.helpers:run_job": {}, "services.helpers:run_query": {}}

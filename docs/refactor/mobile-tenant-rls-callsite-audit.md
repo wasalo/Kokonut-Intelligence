@@ -24,7 +24,7 @@ candidate reports 394 applied schema migrations through 403, zero pending,
 health 200, and a protected-route 401. No migration enables application-table
 RLS, which remains disabled. The current generated service SQL inventory
 records 3,799 call sites
-across 806 Python modules, with 257 sites linked to 20 worker operation roots;
+across 807 Python modules, with 257 sites linked to 20 worker operation roots;
 it is a static review aid, not a grant allowlist
 ([inventory](runtime-sql-inventory.json); [refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh.json)). Migration 395 removes runtime-role access to
 `operator_session` and gives OIDC a separate auth login for bounded session
@@ -136,23 +136,24 @@ the map must not be used as a worker grant list.
 Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
-remove runtime grants on this evidence. The first source-level effect pass now
-records 43 unique high-confidence process, filesystem, HTTP, email, dynamic
-import, and EVM call sites across 49 operation/site memberships and 20 roots
+remove runtime grants on this evidence. The current source-level effect inventory now
+records 38 unique high-confidence process, filesystem, HTTP, email, dynamic
+import, and EVM call sites across 44 operation/site memberships and 20 roots
 ([inventory](worker-effect-inventory.json)).
-It intentionally overcounts
-mutually exclusive CLI branches and can miss effects behind callbacks or
-provider adapters; for example, the credit adjustment worker contract rejects
-on-chain transaction calls still visible in the module-wide graph. The graph
+It can overcount mutually exclusive CLI branches in other workers and miss
+effects behind callbacks or provider adapters. The scheduled credit adjustment
+path is now a separate read-only entrypoint, and its graph excludes the
+interactive retirement/chain-sync code. The graph
 now follows the EventBus process target into the local child and resolver, and
 the callback inventory traces its validator, dynamic import, and five
 source-allowlisted handlers. Runtime string selection and persisted handler
 configuration remain unverified.
 The actuation helper reachable from a worker only records an approval-gated
-command; it does not publish MQTT. Next
-code-only work is to reconcile each candidate against its exact scheduler
-command contract, inspect remaining dynamic/provider callbacks and transitive
-effect wrappers, then reconcile persisted task rows with those contracts. The
+command; it does not publish MQTT. The function graph now follows callbacks
+passed through the shared CLI `run(main)` wrapper. Remaining code-only work is
+to reconcile each candidate against its exact scheduler command contract,
+inspect dynamic/provider callbacks and transitive effect wrappers, then
+reconcile persisted task rows with those contracts. The
 source-only JobSpec inventory now identifies 13 accepted default templates
 and two rejected defaults (source-less sensors and unlocated climate). Remote
 sensing is bounded to sequential `--run-jobs --limit` batches of 1–10 and

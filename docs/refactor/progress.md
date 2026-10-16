@@ -20,6 +20,19 @@ event-type parity, live-chain/provider, post-effect, or long-duration acceptance
 The preceding Dockerfile digest correction and local 14-test repair are recorded separately
 ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
+The local, unpushed code-first batch adds a dedicated read-only scheduler
+entrypoint for carbon-credit adjustment checks, removes the interactive
+credit-management CLI from the scheduler allowlist, and extends the shared
+database connection helper with read-only transaction mode. The function graph
+now follows the shared CLI `run(main)` callback. The focused command, worker,
+and database-helper suite passes 183 tests. A disposable PostgreSQL probe
+confirms the new connection mode starts read-only, rejects an insert with
+SQLSTATE `25006`, and leaves the synthetic table empty. The refreshed effect
+inventory no longer includes the interactive retirement/chain-sync paths under
+the scheduled job. Candidate, legacy, provider, and persisted schedule state
+were not accessed. This does not establish worker tenant context or RLS readiness
+([evidence](builds/2026-10-16-recovery/worker-credit-check-isolation.json)).
+
 ### KGP indexer PostgreSQL restart recovery — 16 October 2026
 
 A current-source runtime check applied all 393 ordered PostgreSQL schema
@@ -6077,7 +6090,7 @@ legacy databases were not involved ([evidence](builds/2026-10-16-recovery/schedu
 ### Runtime SQL and worker source inventory refresh — 16 October 2026
 
 Regenerated the direct-SQL inventory and verified its freshness. It now records
-3,799 execution sites across 806 service files, including 257 worker-linked
+3,799 execution sites across 807 service files, including 257 worker-linked
 sites and 1,034 regex-derived relation candidates. Worker source closure,
 function reachability, SQL reachability, boundary preflight, worker SQL
 inventory, and runtime SQL inventory checks all pass. This is static review
@@ -6140,3 +6153,24 @@ Other event handlers, live-chain behavior, production-duration recovery, and
 provider delivery remain open
 ([migration](../schemas/postgres/403_kgp_governance_target_policy_projection.sql);
 [runtime evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
+
+### Isolated scheduled carbon-credit check — 16 October 2026
+
+The `credit_adjustment` JobSpec now runs
+`services.analytics.carbon_credit_adjustment_check`, a narrow command that
+recomputes and reports candidate differences within a database read-only
+transaction. `services.analytics.carbon_credits` remains the interactive
+issuance/adjustment/retirement CLI and is no longer scheduler-allowlisted.
+The function graph follows callbacks passed to the shared CLI `run(main)`
+wrapper, so the scheduled path reaches `check_adjustments` and its calculation
+helpers without reaching issuance, retirement, or chain-sync methods. The worker
+effect index falls from 43 unique sites / 49 memberships to 38 / 44, and the
+SQL graph now links 196 unique sites across 239 memberships; 61 sites still
+have no static function match. A combined 183-test focused suite, Ruff,
+compilation, and all generated inventory checks pass. The runtime SQL inventory
+remains at 3,799 callsites while its source count rises to 807. Tests mock the
+read-only connection selection; a live disposable PostgreSQL write-denial probe
+for this new option remains unrun. Persisted scheduler rows, external schedules,
+tenant context, worker roles, and candidate/legacy databases were not touched
+([evidence](builds/2026-10-16-recovery/worker-credit-check-isolation.json);
+[operation map](worker-operation-map.md)).

@@ -1,22 +1,23 @@
 {
   "version": 1,
   "generated_by": "scripts/worker_function_reachability.py",
-  "scope": "Direct statically resolved Python calls, known multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
+  "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 20,
-    "source_files": 76,
+    "source_files": 77,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 399,
-    "direct_call_edges": 537,
+    "function_memberships": 391,
+    "direct_call_edges": 534,
     "callback_edges": 1,
     "dynamic_dispatch_edges": 20
   },
   "operations": [
     {
       "kind": "scheduled_module",
-      "name": "services.analytics.carbon_credits",
+      "name": "services.analytics.carbon_credit_adjustment_check",
       "source_files": [
         "services/analytics/carbon_balance.py",
+        "services/analytics/carbon_credit_adjustment_check.py",
         "services/analytics/carbon_credits.py",
         "services/common/cli.py",
         "services/common/database.py",
@@ -29,79 +30,14 @@
       ],
       "entry_functions": [
         {
-          "function": "services.analytics.carbon_credits:adjust_credit",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 558
+          "function": "services.analytics.carbon_credit_adjustment_check:main",
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 31
         },
         {
-          "function": "services.analytics.carbon_credits:check_adjustments",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 583
-        },
-        {
-          "function": "services.analytics.carbon_credits:get_balance",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 580
-        },
-        {
-          "function": "services.analytics.carbon_credits:issue_credit",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 549
-        },
-        {
-          "function": "services.analytics.carbon_credits:list_credits",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 554
-        },
-        {
-          "function": "services.analytics.carbon_credits:list_credits",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 575
-        },
-        {
-          "function": "services.analytics.carbon_credits:retire_credit",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 564
-        },
-        {
-          "function": "services.analytics.carbon_credits:review_retirement",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 572
-        },
-        {
-          "function": "services.common.cli:print_json",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 550
-        },
-        {
-          "function": "services.common.cli:print_json",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 560
-        },
-        {
-          "function": "services.common.cli:print_json",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 567
-        },
-        {
-          "function": "services.common.cli:print_json",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 573
-        },
-        {
-          "function": "services.common.cli:print_json",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 576
-        },
-        {
-          "function": "services.common.cli:print_json",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 581
-        },
-        {
-          "function": "services.common.cli:print_json",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 584
+          "function": "services.common.cli:run",
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 31
         }
       ],
       "reachable_functions": [
@@ -114,36 +50,12 @@
           "line": 128
         },
         {
-          "key": "services.analytics.carbon_credits:_generate_credit_code",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "_generate_credit_code",
+          "key": "services.analytics.carbon_credit_adjustment_check:main",
+          "module": "services.analytics.carbon_credit_adjustment_check",
+          "qualname": "main",
           "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 31
-        },
-        {
-          "key": "services.analytics.carbon_credits:_get_latest_price",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "_get_latest_price",
-          "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 68
-        },
-        {
-          "key": "services.analytics.carbon_credits:_query_climate_impact",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "_query_climate_impact",
-          "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 51
-        },
-        {
-          "key": "services.analytics.carbon_credits:adjust_credit",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "adjust_credit",
-          "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 169
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 17
         },
         {
           "key": "services.analytics.carbon_credits:check_adjustments",
@@ -154,30 +66,6 @@
           "line": 476
         },
         {
-          "key": "services.analytics.carbon_credits:get_balance",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "get_balance",
-          "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 454
-        },
-        {
-          "key": "services.analytics.carbon_credits:issue_credit",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "issue_credit",
-          "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 83
-        },
-        {
-          "key": "services.analytics.carbon_credits:list_credits",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "list_credits",
-          "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 431
-        },
-        {
           "key": "services.analytics.carbon_credits:recompute_sequestration",
           "module": "services.analytics.carbon_credits",
           "qualname": "recompute_sequestration",
@@ -186,20 +74,12 @@
           "line": 163
         },
         {
-          "key": "services.analytics.carbon_credits:retire_credit",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "retire_credit",
+          "key": "services.common.cli:get_connection",
+          "module": "services.common.cli",
+          "qualname": "get_connection",
           "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 258
-        },
-        {
-          "key": "services.analytics.carbon_credits:review_retirement",
-          "module": "services.analytics.carbon_credits",
-          "qualname": "review_retirement",
-          "class_scope": null,
-          "source": "services/analytics/carbon_credits.py",
-          "line": 342
+          "source": "services/common/cli.py",
+          "line": 53
         },
         {
           "key": "services.common.cli:print_json",
@@ -210,36 +90,40 @@
           "line": 73
         },
         {
-          "key": "services.credit_class.chain_sync:_get_web3_and_contract",
-          "module": "services.credit_class.chain_sync",
-          "qualname": "_get_web3_and_contract",
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
           "class_scope": null,
-          "source": "services/credit_class/chain_sync.py",
-          "line": 97
+          "source": "services/common/cli.py",
+          "line": 78
         },
         {
-          "key": "services.credit_class.chain_sync:_load_abi",
-          "module": "services.credit_class.chain_sync",
-          "qualname": "_load_abi",
+          "key": "services.common.database:get_connection",
+          "module": "services.common.database",
+          "qualname": "get_connection",
           "class_scope": null,
-          "source": "services/credit_class/chain_sync.py",
-          "line": 26
-        },
-        {
-          "key": "services.credit_class.chain_sync:retire_onchain",
-          "module": "services.credit_class.chain_sync",
-          "qualname": "retire_onchain",
-          "class_scope": null,
-          "source": "services/credit_class/chain_sync.py",
-          "line": 296
+          "source": "services/common/database.py",
+          "line": 173
         }
       ],
       "direct_call_edges": [
         {
-          "caller": "services.analytics.carbon_credits:adjust_credit",
-          "callee": "services.analytics.carbon_credits:recompute_sequestration",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 192
+          "caller": "services.analytics.carbon_credit_adjustment_check:main",
+          "callee": "services.analytics.carbon_credits:check_adjustments",
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 23
+        },
+        {
+          "caller": "services.analytics.carbon_credit_adjustment_check:main",
+          "callee": "services.common.cli:get_connection",
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 22
+        },
+        {
+          "caller": "services.analytics.carbon_credit_adjustment_check:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 27
         },
         {
           "caller": "services.analytics.carbon_credits:check_adjustments",
@@ -248,46 +132,16 @@
           "line": 495
         },
         {
-          "caller": "services.analytics.carbon_credits:issue_credit",
-          "callee": "services.analytics.carbon_credits:_generate_credit_code",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 122
-        },
-        {
-          "caller": "services.analytics.carbon_credits:issue_credit",
-          "callee": "services.analytics.carbon_credits:_get_latest_price",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 125
-        },
-        {
-          "caller": "services.analytics.carbon_credits:issue_credit",
-          "callee": "services.analytics.carbon_credits:_query_climate_impact",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 109
-        },
-        {
           "caller": "services.analytics.carbon_credits:recompute_sequestration",
           "callee": "services.analytics.carbon_balance:compute_carbon_balance",
           "source": "services/analytics/carbon_credits.py",
           "line": 165
         },
         {
-          "caller": "services.analytics.carbon_credits:review_retirement",
-          "callee": "services.credit_class.chain_sync:retire_onchain",
-          "source": "services/analytics/carbon_credits.py",
-          "line": 421
-        },
-        {
-          "caller": "services.credit_class.chain_sync:_get_web3_and_contract",
-          "callee": "services.credit_class.chain_sync:_load_abi",
-          "source": "services/credit_class/chain_sync.py",
-          "line": 121
-        },
-        {
-          "caller": "services.credit_class.chain_sync:retire_onchain",
-          "callee": "services.credit_class.chain_sync:_get_web3_and_contract",
-          "source": "services/credit_class/chain_sync.py",
-          "line": 352
+          "caller": "services.common.cli:get_connection",
+          "callee": "services.common.database:get_connection",
+          "source": "services/common/cli.py",
+          "line": 61
         }
       ],
       "callback_edges": [],
@@ -338,7 +192,7 @@
           "qualname": "get_connection",
           "class_scope": null,
           "source": "services/common/database.py",
-          "line": 169
+          "line": 173
         },
         {
           "key": "services.common.database:get_db",
@@ -5947,7 +5801,7 @@
           "qualname": "get_connection",
           "class_scope": null,
           "source": "services/common/database.py",
-          "line": 169
+          "line": 173
         },
         {
           "key": "services.common.database:get_db",
@@ -6805,7 +6659,7 @@
           "qualname": "get_connection",
           "class_scope": null,
           "source": "services/common/database.py",
-          "line": 169
+          "line": 173
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -6902,7 +6756,7 @@
           "qualname": "get_connection",
           "class_scope": null,
           "source": "services/common/database.py",
-          "line": 169
+          "line": 173
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",

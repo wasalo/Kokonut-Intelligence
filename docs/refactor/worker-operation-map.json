@@ -220,14 +220,14 @@
       "sources": ["services/events/bus.py", "services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
     },
     {
-      "module": "services.analytics.carbon_credits",
-      "scope": "The only scheduled operation is --check-adjustments; it can scan all verified/published credits or filter to one --location-id.",
+      "module": "services.analytics.carbon_credit_adjustment_check",
+      "scope": "Dedicated scheduled entrypoint recomputes and reports potential adjustment differences; it can scan all verified/published credits or filter to one --location-id. The interactive credit-management CLI is not scheduler-allowlisted.",
       "reads": ["public.carbon_credit", "public.climate_impact_summary", "public.tree_inventory", "public.soil_carbon_measurement", "public.ghg_emissions_inventory"],
       "writes": [],
       "external_effects": [],
-      "idempotency": "The check recomputes from current verified source rows and does not write credit adjustments, retirement state, or review decisions. Repeating it has no database side effects.",
-      "retry_boundary": "Retry repeats bounded database reads and reports current differences. --adjust, issuance, retirement, and retirement-review flags are rejected by the scheduled command contract.",
-      "sources": ["services/analytics/carbon_credits.py", "services/analytics/carbon_balance.py", "services/common/database.py"]
+      "idempotency": "The check recomputes from current verified source rows inside a database-enforced read-only transaction; it does not write credit adjustments, retirement state, or review decisions. Repeating it has no database side effects.",
+      "retry_boundary": "Retry repeats bounded database reads and reports current differences. The interactive issuance, adjustment, retirement, and retirement-review CLI is outside the scheduler module allowlist.",
+      "sources": ["services/analytics/carbon_credit_adjustment_check.py", "services/analytics/carbon_credits.py", "services/analytics/carbon_balance.py", "services/common/database.py"]
     },
     {
       "module": "services.ingestion.remote_sensing_fetcher",

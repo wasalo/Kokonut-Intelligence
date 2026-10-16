@@ -107,7 +107,7 @@ def test_only_generic_database_adapter_wrappers_remain_unknown():
     assert [(site["source"], site["line"]) for site in unknown] == [
         ("services/common/database.py", 71),
         ("services/common/database.py", 74),
-        ("services/common/database.py", 132),
+        ("services/common/database.py", 136),
     ]
 
 

@@ -573,6 +573,23 @@ class _RootCallVisitor(ast.NodeVisitor):
         target = _resolve_call_target(synthetic, node, self.definitions, self.contexts)
         if target:
             self.calls.append((target, node.lineno))
+        context = self.contexts[self.module]
+        if (
+            isinstance(node.func, ast.Name)
+            and context.symbol_aliases.get(node.func.id) == "services.common.cli:run"
+            and node.args
+        ):
+            callback = node.args[0]
+            if isinstance(callback, (ast.Name, ast.Attribute)):
+                callback_call = ast.Call(func=callback, args=[], keywords=[])
+                callback_target = _resolve_call_target(
+                    synthetic,
+                    callback_call,
+                    self.definitions,
+                    self.contexts,
+                )
+                if callback_target:
+                    self.calls.append((callback_target, node.lineno))
         self.generic_visit(node)
 
 
@@ -780,7 +797,7 @@ def build_inventory() -> dict:
         "version": 1,
         "generated_by": "scripts/worker_function_reachability.py",
         "scope": (
-            "Direct statically resolved Python calls, known multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation "
+            "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation "
             "entry functions within their local services.* import closures. Instance method calls are included only when local type "
             "inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on "
             "unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy "

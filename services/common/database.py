@@ -109,13 +109,17 @@ class MappingResult:
 class DatabaseConnection:
     """Transaction-owning connection adapter used by CLI entry points."""
 
-    def __init__(self, connection=None, *, connect_timeout: int | None = None):
+    def __init__(self, connection=None, *, connect_timeout: int | None = None, readonly: bool = False):
+        if not isinstance(readonly, bool):
+            raise TypeError("readonly must be a boolean")
         if connection is not None:
             if connect_timeout is not None:
                 raise ValueError("connect_timeout cannot configure an existing connection")
             self._connection = connection
         else:
             self._connection = get_db() if connect_timeout is None else get_db(connect_timeout=connect_timeout)
+        if readonly:
+            self._connection.set_session(readonly=True)
 
     @staticmethod
     def text(sql: str) -> str:
@@ -166,6 +170,6 @@ class DatabaseConnection:
         return False
 
 
-def get_connection(*, connect_timeout: int | None = None) -> DatabaseConnection:
-    """Return a transaction-owning credit-service connection."""
-    return DatabaseConnection(connect_timeout=connect_timeout)
+def get_connection(*, connect_timeout: int | None = None, readonly: bool = False) -> DatabaseConnection:
+    """Return a transaction-owning connection, optionally defaulting it to read-only."""
+    return DatabaseConnection(connect_timeout=connect_timeout, readonly=readonly)

@@ -14,6 +14,7 @@ from services.security.execution_allowlist import (
 
 ROOT = Path(__file__).resolve().parents[1]
 MAP_PATH = ROOT / "docs" / "refactor" / "worker-operation-map.json"
+EFFECT_PATH = ROOT / "docs" / "refactor" / "worker-effect-inventory.json"
 
 
 def _load_map() -> dict:
@@ -71,7 +72,7 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     scheduled = {entry["module"]: entry for entry in _load_map()["scheduled_modules"]}
     metrics = scheduled["services.metrics"]
     events = scheduled["services.events"]
-    credit_adjustments = scheduled["services.analytics.carbon_credits"]
+    credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_check"]
     projections = scheduled["services.ingestion.clickhouse_outbox"]
 
     assert "public.noi_snapshot" in metrics["writes"]
@@ -87,7 +88,8 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     }
     assert credit_adjustments["writes"] == []
     assert credit_adjustments["external_effects"] == []
-    assert "--check-adjustments" in credit_adjustments["scope"]
+    assert "read-only transaction" in credit_adjustments["idempotency"]
+    assert "interactive credit-management CLI is not scheduler-allowlisted" in credit_adjustments["scope"]
     assert set(projections["reads"]) == {"public.clickhouse_outbox"}
     assert set(projections["writes"]) == {
         "public.clickhouse_outbox",
@@ -96,6 +98,18 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "ClickHouse" in " ".join(projections["external_effects"])
     assert "--run-once" in projections["scope"]
     assert "--limit 100" in projections["scope"]
+
+
+def test_scheduled_credit_check_reachability_excludes_interactive_chain_effects():
+    effects = json.loads(EFFECT_PATH.read_text(encoding="utf-8"))
+    operation = next(
+        item
+        for item in effects["operations"]
+        if item["name"] == "services.analytics.carbon_credit_adjustment_check"
+    )
+
+    assert operation["candidate_effect_sites"] == []
+    assert operation["category_counts"] == {}
 
 
 def test_metrics_worker_map_tracks_registered_calculator_sources():

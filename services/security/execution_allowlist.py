@@ -14,7 +14,7 @@ ALLOWED_EVENT_HANDLERS = frozenset(
 
 ALLOWED_SCHEDULED_MODULES = frozenset(
     {
-        "services.analytics.carbon_credits",
+        "services.analytics.carbon_credit_adjustment_check",
         "services.ingestion.weather",
         "services.ingestion.market_data",
         "services.ingestion.eas_indexer",

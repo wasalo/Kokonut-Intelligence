@@ -32,8 +32,8 @@
     },
     {
       "job": "credit_adjustment",
-      "module": "services.analytics.carbon_credits",
-      "argument_count": 1,
+      "module": "services.analytics.carbon_credit_adjustment_check",
+      "argument_count": 0,
       "required_inputs": [],
       "status": "default_arguments_accepted",
       "reason": null

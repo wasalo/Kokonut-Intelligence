@@ -5,12 +5,13 @@
   "operations": [
     {
       "kind": "scheduled_module",
-      "name": "services.analytics.carbon_credits",
+      "name": "services.analytics.carbon_credit_adjustment_check",
       "root_modules": [
-        "services.analytics.carbon_credits"
+        "services.analytics.carbon_credit_adjustment_check"
       ],
       "modules": [
         "services.analytics.carbon_balance",
+        "services.analytics.carbon_credit_adjustment_check",
         "services.analytics.carbon_credits",
         "services.common.cli",
         "services.common.database",
@@ -23,6 +24,7 @@
       ],
       "source_files": [
         "services/analytics/carbon_balance.py",
+        "services/analytics/carbon_credit_adjustment_check.py",
         "services/analytics/carbon_credits.py",
         "services/common/cli.py",
         "services/common/database.py",
@@ -38,6 +40,18 @@
           "source": "services/analytics/carbon_balance.py",
           "line": 13,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 13,
+          "target": "services.analytics.carbon_credits",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credit_adjustment_check.py",
+          "line": 14,
+          "target": "services.common.cli",
           "kind": "from"
         },
         {

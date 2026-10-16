@@ -80,10 +80,9 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--notification-process": None,
         "--batch-size": "batch_size",
     },
-    # This command only recomputes and reports differences. Mutating credit
-    # adjustments and retirement review remain human-controlled operations.
-    "services.analytics.carbon_credits": {
-        "--check-adjustments": None,
+    # This dedicated entrypoint only recomputes and reports differences. The
+    # interactive issuance/retirement CLI is intentionally not schedulable.
+    "services.analytics.carbon_credit_adjustment_check": {
         "--location-id": "uuid",
     },
     "services.ingestion.remote_sensing_fetcher": {
@@ -232,10 +231,6 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         operations = options & {"--process", "--notification-process"}
         if len(operations) != 1:
             raise _reject("scheduled event command must select --process or --notification-process")
-
-    elif module_path == "services.analytics.carbon_credits":
-        if "--check-adjustments" not in options:
-            raise _reject("scheduled carbon-credit operation must be a read-only adjustment check")
 
     elif module_path == "services.ingestion.remote_sensing_fetcher":
         if "--run-jobs" not in options:

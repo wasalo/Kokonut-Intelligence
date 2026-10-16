@@ -322,7 +322,7 @@ below; implementation progress does not accept any named MAN-CAP check
 ([historical evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
 The current runtime SQL inventory covers 3,799 direct execution sites across
-806 service modules, includes summaries for 67 packages, and identifies 1,034
+807 service modules, includes summaries for 67 packages, and identifies 1,034
 regex-derived relation-name candidates. Literal SQLAlchemy `text()` and
 psycopg `SQL()` wrappers are unwrapped; 111 statement kinds, 23 `WITH`
 statements, 335 sites without relation candidates, 456 non-literal sites, and
@@ -749,7 +749,7 @@ acceptance remain open.
 | CAP-017 | Emergency response | services/analytics/ | MAN-CAP-017: Incident, response and recovery workflow retains approval/evidence history | tests/test_emergency_response.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-018 | EAS on Celo | services/attestation/ | MAN-CAP-018: Prepare and verify proof metadata without broadcasting or exposing private evidence | tests/test_attestation.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-019 | Ecocredit module | services/credit_class/ | MAN-CAP-019: Class, batch, basket, fee, enrollment and bridge state preserve supply and custody | tests/test_credit_batch_manager.py; tests/test_credit_balance.py | B — baseline code retained; Kernel capability path and parity unassessed. |
-| CAP-020 | Credit custody & retirement | services/analytics/carbon_credits.py; services/certificates/ | MAN-CAP-020: Atomic retirement reservation and independent confirmation prevent duplicate balance changes | tests/test_carbon_credits.py | B — baseline code retained; Kernel capability path and parity unassessed. |
+| CAP-020 | Credit custody & retirement | services/analytics/carbon_credits.py; services/certificates/ | MAN-CAP-020: Atomic retirement reservation and independent confirmation prevent duplicate balance changes | tests/test_carbon_credits.py | B — baseline credit issuance/retirement capability remains unaccepted; scheduled adjustment review now uses a separate database-enforced read-only entrypoint, which does not verify custody or retirement parity. |
 | CAP-021 | Linked data infrastructure | services/iri/; services/rdf/; services/storage/ | MAN-CAP-021: Resolve versioned IRI, hashes, RDF and lineage without private data disclosure | tests/test_linked_data.py; tests/test_evidence_lineage_integrity.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-022 | Data Stream | services/data_stream/ | MAN-CAP-022: Post, search, file references and proof verification preserve scope | tests/test_data_stream.py | B — baseline code retained. Protected Gateway draft creation now establishes signed DB tenant context before INSERT and attributes `created_by` to the database-verified Gateway credential. Focused route/service checks and disposable forced-RLS owner/location/actor insert and cross-location denial pass. Search, file, proof, broader output parity, and candidate credential provisioning remain open. |
 | CAP-023 | Governance framework abstraction | services/governance/ | MAN-CAP-023: Read Baal configuration/proposals/members; legacy Moloch identity remains distinct | tests/test_governance_framework.py | B — baseline code retained; Kernel capability path and parity unassessed. |

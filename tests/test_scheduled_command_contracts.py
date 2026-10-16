@@ -42,14 +42,14 @@ def test_every_scheduled_module_has_a_command_contract():
         ),
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
-        ("services.analytics.carbon_credits", ["--check-adjustments"]),
+        ("services.analytics.carbon_credit_adjustment_check", []),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once", "--limit", "100"]),
         (
-            "services.analytics.carbon_credits",
-            ["--check-adjustments", "--location-id", str(uuid4())],
+            "services.analytics.carbon_credit_adjustment_check",
+            ["--location-id", str(uuid4())],
         ),
     ],
 )
@@ -77,7 +77,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.events", ["--cleanup"]),
         ("services.events", ["--worker"]),
         ("services.events", ["--dispose-dead-letter", "--event-id", str(uuid4())]),
-        ("services.analytics.carbon_credits", []),
+        ("services.analytics.carbon_credits", ["--check-adjustments"]),
         ("services.ingestion.remote_sensing_fetcher", []),
         ("services.ingestion.remote_sensing_fetcher", ["--list-jobs"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "0"]),
@@ -88,7 +88,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.clickhouse_outbox", ["--list-dead-letter"]),
         ("services.ingestion.clickhouse_outbox", ["--replay-dead-letter", str(uuid4())]),
         ("services.ingestion.clickhouse_outbox", ["--dispose-dead-letter", str(uuid4())]),
-        ("services.analytics.carbon_credits", ["--adjust", "--location-id", str(uuid4())]),
+        ("services.analytics.carbon_credit_adjustment_check", ["--adjust", "--location-id", str(uuid4())]),
         (
             "services.analytics.carbon_credits",
             ["--confirm-retirement", "--retirement-id", str(uuid4()), "--reviewer-id", str(uuid4())],
@@ -102,12 +102,19 @@ def test_unsupported_or_incomplete_operations_are_rejected(module, arguments):
         validate_scheduled_command(module, arguments)
 
 
-def test_credit_adjustment_job_is_scheduler_allowed_but_restricted_to_check():
+def test_credit_adjustment_job_uses_dedicated_read_only_entrypoint():
     job = JOBS["credit_adjustment"]
 
-    assert job.module == "services.analytics.carbon_credits"
+    assert job.module == "services.analytics.carbon_credit_adjustment_check"
     assert job.scheduler_allowed
-    assert validate_scheduled_command(job.module, list(job.arguments)) == ("--check-adjustments",)
+    assert validate_scheduled_command(job.module, list(job.arguments)) == ()
+
+
+def test_interactive_carbon_credit_cli_is_not_scheduler_allowlisted():
+    from services.security.execution_allowlist import validate_scheduled_module
+
+    with pytest.raises(ValueError, match="not allowlisted"):
+        validate_scheduled_module("services.analytics.carbon_credits")
 
 
 def test_projection_job_is_scheduler_allowed_but_restricted_to_one_delivery_batch():

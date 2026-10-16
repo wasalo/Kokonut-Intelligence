@@ -5,13 +5,13 @@
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. Callbacks, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
     "operation_roots": 20,
-    "candidate_effect_sites": 43,
-    "operation_site_memberships": 49,
+    "candidate_effect_sites": 38,
+    "operation_site_memberships": 44,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 6,
-      "evm_client_setup": 6,
-      "evm_rpc": 6,
+      "evm_client_setup": 4,
+      "evm_rpc": 3,
       "filesystem": 8,
       "http": 11,
       "process": 5
@@ -19,8 +19,8 @@
     "operation_memberships_by_category": {
       "dynamic_import": 1,
       "email_delivery": 8,
-      "evm_client_setup": 6,
-      "evm_rpc": 6,
+      "evm_client_setup": 4,
+      "evm_rpc": 3,
       "filesystem": 8,
       "http": 15,
       "process": 5
@@ -55,48 +55,9 @@
   "operations": [
     {
       "kind": "scheduled_module",
-      "name": "services.analytics.carbon_credits",
-      "candidate_effect_sites": [
-        {
-          "source": "services/credit_class/chain_sync.py",
-          "line": 112,
-          "function": "services.credit_class.chain_sync:_get_web3_and_contract",
-          "category": "evm_client_setup",
-          "call": "web3.Web3.HTTPProvider"
-        },
-        {
-          "source": "services/credit_class/chain_sync.py",
-          "line": 123,
-          "function": "services.credit_class.chain_sync:_get_web3_and_contract",
-          "category": "evm_client_setup",
-          "call": "w3.eth.contract"
-        },
-        {
-          "source": "services/credit_class/chain_sync.py",
-          "line": 386,
-          "function": "services.credit_class.chain_sync:retire_onchain",
-          "category": "evm_rpc",
-          "call": "w3.eth.get_transaction_count"
-        },
-        {
-          "source": "services/credit_class/chain_sync.py",
-          "line": 394,
-          "function": "services.credit_class.chain_sync:retire_onchain",
-          "category": "evm_rpc",
-          "call": "w3.eth.send_raw_transaction"
-        },
-        {
-          "source": "services/credit_class/chain_sync.py",
-          "line": 395,
-          "function": "services.credit_class.chain_sync:retire_onchain",
-          "category": "evm_rpc",
-          "call": "w3.eth.wait_for_transaction_receipt"
-        }
-      ],
-      "category_counts": {
-        "evm_client_setup": 2,
-        "evm_rpc": 3
-      }
+      "name": "services.analytics.carbon_credit_adjustment_check",
+      "candidate_effect_sites": [],
+      "category_counts": {}
     },
     {
       "kind": "scheduled_module",

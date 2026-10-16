@@ -5,50 +5,25 @@
   "summary": {
     "operation_roots": 20,
     "sql_execution_sites": 257,
-    "statically_reachable_site_memberships": 264,
-    "unique_sites_with_static_operation_path": 221,
-    "sites_without_static_function_match": 36,
-    "unmatched_functions_absent_from_all_worker_graphs": 36,
+    "statically_reachable_site_memberships": 239,
+    "unique_sites_with_static_operation_path": 196,
+    "sites_without_static_function_match": 61,
+    "unmatched_functions_absent_from_all_worker_graphs": 61,
     "sites_reached_by_multiple_operations": 29
   },
   "operations": [
     {
       "kind": "scheduled_module",
-      "name": "services.analytics.carbon_credits",
-      "operation_ref": "scheduled_module:services.analytics.carbon_credits",
-      "statically_reachable_sql_site_count": 31,
+      "name": "services.analytics.carbon_credit_adjustment_check",
+      "operation_ref": "scheduled_module:services.analytics.carbon_credit_adjustment_check",
+      "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
         "services/analytics/carbon_balance.py:140:8",
         "services/analytics/carbon_balance.py:147:8",
         "services/analytics/carbon_balance.py:168:8",
         "services/analytics/carbon_balance.py:177:8",
         "services/analytics/carbon_balance.py:205:8",
-        "services/analytics/carbon_credits.py:128:4",
-        "services/analytics/carbon_credits.py:181:4",
-        "services/analytics/carbon_credits.py:205:4",
-        "services/analytics/carbon_credits.py:228:8",
-        "services/analytics/carbon_credits.py:276:4",
-        "services/analytics/carbon_credits.py:287:4",
-        "services/analytics/carbon_credits.py:301:4",
-        "services/analytics/carbon_credits.py:315:4",
-        "services/analytics/carbon_credits.py:34:4",
-        "services/analytics/carbon_credits.py:356:4",
-        "services/analytics/carbon_credits.py:384:8",
-        "services/analytics/carbon_credits.py:394:8",
-        "services/analytics/carbon_credits.py:408:4",
-        "services/analytics/carbon_credits.py:43:4",
-        "services/analytics/carbon_credits.py:448:4",
-        "services/analytics/carbon_credits.py:457:4",
-        "services/analytics/carbon_credits.py:489:4",
-        "services/analytics/carbon_credits.py:54:4",
-        "services/analytics/carbon_credits.py:71:4",
-        "services/credit_class/chain_sync.py:311:17",
-        "services/credit_class/chain_sync.py:318:13",
-        "services/credit_class/chain_sync.py:325:22",
-        "services/credit_class/chain_sync.py:335:16",
-        "services/credit_class/chain_sync.py:340:30",
-        "services/credit_class/chain_sync.py:364:18",
-        "services/credit_class/chain_sync.py:397:8"
+        "services/analytics/carbon_credits.py:489:4"
       ]
     },
     {
@@ -447,7 +422,7 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -466,10 +441,10 @@
         "climate_impact_summary"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -487,10 +462,10 @@
         "climate_impact_summary"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -508,10 +483,10 @@
         "tree_inventory"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -529,10 +504,10 @@
         "soil_carbon_measurement"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -550,10 +525,10 @@
         "ghg_emissions_inventory"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -569,7 +544,7 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -586,7 +561,7 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -605,14 +580,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:43:4",
@@ -626,14 +599,12 @@
         "location"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:54:4",
@@ -649,14 +620,12 @@
         "period_start"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:71:4",
@@ -670,14 +639,12 @@
         "price_observation"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:128:4",
@@ -691,14 +658,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:181:4",
@@ -712,14 +677,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:205:4",
@@ -733,14 +696,12 @@
         "credit_adjustment"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:228:8",
@@ -754,14 +715,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:276:4",
@@ -775,14 +734,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:287:4",
@@ -796,14 +753,12 @@
         "credit_retirement"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:301:4",
@@ -817,14 +772,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:315:4",
@@ -838,14 +791,12 @@
         "credit_retirement"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:356:4",
@@ -859,14 +810,12 @@
         "credit_retirement"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:384:8",
@@ -880,14 +829,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:394:8",
@@ -901,14 +848,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:408:4",
@@ -922,14 +867,12 @@
         "credit_retirement"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:448:4",
@@ -941,14 +884,12 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:457:4",
@@ -962,14 +903,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/analytics/carbon_credits.py:489:4",
@@ -981,10 +920,10 @@
       "statement_kind": "SELECT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -1377,7 +1316,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.analytics.carbon_credits",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -1413,7 +1352,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.analytics.carbon_credits",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -1435,9 +1374,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/common/database.py:132:12",
+      "id": "services/common/database.py:136:12",
       "source": "services/common/database.py",
-      "line": 132,
+      "line": 136,
       "scope": "DatabaseConnection.execute",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -1449,7 +1388,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.analytics.carbon_credits",
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check",
         "scheduled_module:services.events",
         "scheduled_module:services.export.dataset_refresh",
         "scheduled_module:services.ingestion.anomaly_detector",
@@ -1482,7 +1421,7 @@
         "credit_batch"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1501,7 +1440,7 @@
         "credit_balance"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1520,7 +1459,7 @@
         "credit_batch_contract"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1539,7 +1478,7 @@
         "credit_chain_mint"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1558,7 +1497,7 @@
         "credit_chain_mint"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1577,14 +1516,12 @@
         "credit_retirement"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/credit_class/chain_sync.py:318:13",
@@ -1598,14 +1535,12 @@
         "carbon_credit"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/credit_class/chain_sync.py:325:22",
@@ -1619,14 +1554,12 @@
         "credit_batch_contract"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/credit_class/chain_sync.py:335:16",
@@ -1640,14 +1573,12 @@
         "credit_batch"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/credit_class/chain_sync.py:340:30",
@@ -1662,14 +1593,12 @@
         "credit_batch_contract"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/credit_class/chain_sync.py:364:18",
@@ -1683,14 +1612,12 @@
         "credit_chain_mint"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/credit_class/chain_sync.py:397:8",
@@ -1704,14 +1631,12 @@
         "credit_retirement"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/credit_class/chain_sync.py:436:17",
@@ -1725,7 +1650,7 @@
         "credit_balance"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1744,7 +1669,7 @@
         "credit_batch_contract"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1763,7 +1688,7 @@
         "credit_balance"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1782,7 +1707,7 @@
         "credit_chain_mint"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1801,7 +1726,7 @@
         "credit_balance"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.analytics.carbon_credits"
+        "scheduled_module:services.analytics.carbon_credit_adjustment_check"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",

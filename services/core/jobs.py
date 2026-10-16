@@ -55,7 +55,7 @@ JOBS = MappingProxyType(
         ),
         "dashboards": JobSpec("services.export.dataset_refresh", ("--all",), 900, 2, 300, "Dashboard refresh"),
         "credit_adjustment": JobSpec(
-            "services.analytics.carbon_credits", ("--check-adjustments",), 600, 2, 600, "Credit adjustment check"
+            "services.analytics.carbon_credit_adjustment_check", (), 600, 2, 600, "Credit adjustment check"
         ),
         "remote_sensing": JobSpec(
             "services.ingestion.remote_sensing_fetcher",

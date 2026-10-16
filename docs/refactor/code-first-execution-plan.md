@@ -330,8 +330,11 @@ before protected reads and writes, and make direct database access fail closed.
    modules and five event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
-   open. The source-only effect index now records 43 unique direct effect sites
-  (49 operation/site memberships) across 20 worker roots. A separate comparison
+   open. The source-only effect index now records 38 unique direct effect sites
+  (44 operation/site memberships) across 20 worker roots. The scheduled carbon
+  adjustment check has its own read-only entrypoint; the interactive
+  credit-management CLI is excluded from scheduler allowlisting. The function
+  graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
   covers 15 shared JobSpecs: 13 no-input defaults pass, climate requires a
   schema-validated location per schedule, and recurring sensor ingestion still
   lacks a source contract. Remote sensing is available only as a
@@ -364,10 +367,10 @@ before protected reads and writes, and make direct database access fail closed.
    `public`-schema default privileges for future tables and sequences. The
    disposable PostgreSQL 16 role acceptance still passed current-handler SQL
    and proved a table/sequence created after provisioning is inaccessible to
-   the runtime login. A new whole-services SQL inventory covers all 806 Python
+   the runtime login. A new whole-services SQL inventory covers all 807 Python
    source files and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The current generated inventory covers 3,795
-   SQL execution sites across 806 source files; literal query wrappers are
+   names without becoming an ACL. The current generated inventory covers 3,799
+   SQL execution sites across 807 source files; literal query wrappers are
    unwrapped while parameter values remain unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and
    indirect-query surfaces before deriving explicit grants; worker, Directus,
@@ -376,7 +379,7 @@ before protected reads and writes, and make direct database access fail closed.
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
   preflight confirms all 20 allowlisted roots and imports, reports the shared
-  runtime identity and 34 SQL sites without static function matches,
+  runtime identity and 61 SQL sites without static function matches,
   and keeps RLS blocked. The complementary aggregate tenant preflight now
   reports pending/current-source checksum drift counts, connected-role
   superuser/BYPASSRLS and public DML/RLS indicators, and enabled scheduler

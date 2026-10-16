@@ -50,7 +50,7 @@ __all__ = [
 ]
 
 
-def get_connection(*, connect_timeout: int | None = None) -> "DatabaseConnection":
+def get_connection(*, connect_timeout: int | None = None, readonly: bool = False) -> "DatabaseConnection":
     """Lazily open a database connection for commands that need one.
 
     Keeping the database module out of import-time CLI setup lets offline
@@ -58,7 +58,7 @@ def get_connection(*, connect_timeout: int | None = None) -> "DatabaseConnection
     """
     from services.common.database import get_connection as _get_connection
 
-    return _get_connection(connect_timeout=connect_timeout)
+    return _get_connection(connect_timeout=connect_timeout, readonly=readonly)
 
 
 def __getattr__(name: str) -> Any:

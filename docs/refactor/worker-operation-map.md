@@ -33,8 +33,8 @@ data effects, and an idempotency/retry note.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  15 scheduled modules and five allowlisted handler modules. It covers 76
-  distinct local source files across 20 operation roots and 481 import edges,
+  15 scheduled modules and five allowlisted handler modules. It covers 77
+  distinct local source files across 20 operation roots and 483 import edges,
   with no unresolved local modules and the EventBus's one dynamic handler-import
   site. That site is dispatched through `validate_event_handler` and the exact
   allowlist. Package `__main__.py` entrypoints are included.
@@ -52,16 +52,17 @@ data effects, and an idempotency/retry note.
   operation also records each of the 20 functions from its literal
   `CALCULATORS` registry as an explicit registry-dispatch edge. A focused
   callback edge follows the EventBus's statically named multiprocessing target
-  to `_handler_process` and its local resolver. Across 20 operation roots, 52
-  entry functions reach 399 function memberships through 537 direct-call,
-  one callback, and 20 registry-dispatch edges, with no unresolved
+  to `_handler_process` and its local resolver. It also follows callbacks
+  passed to the shared `services.common.cli.run(main)` wrapper. Across 20
+  operation roots, entry functions reach 391 function memberships through
+  534 direct-call, one callback, and 20 registry-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
 - The direct [SQL execution inventory](worker-sql-inventory.json) finds 257
-  Python `.execute` sites in those 76 files. It fingerprints 220 literal
+  Python `.execute` sites in those 77 files. It fingerprints 220 literal
   statements and flags 37 f-string/composed/variable statements; three
   generic adapter statements have an unknown leading kind. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
@@ -71,8 +72,8 @@ data effects, and an idempotency/retry note.
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
   joins those 257 sites to the operation graph without including SQL text or
-  values. It links 221 sites across 264 operation/site memberships;
-  36 sites have no current static function match, and each belongs to a
+  values. It links 196 unique sites across 239 operation/site memberships;
+  61 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -89,14 +90,14 @@ data effects, and an idempotency/retry note.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, object-storage, EVM, notification, cache,
-  and dynamic-import call patterns. The current pass finds 43 unique candidate
-  sites across 49 operation/site memberships: HTTP (11), email delivery (6),
-  process lifecycle (5), EVM RPC (6), EVM client setup (6), filesystem (8),
+  and dynamic-import call patterns. The current pass finds 38 unique candidate
+  sites across 44 operation/site memberships: HTTP (11), email delivery (6),
+  process lifecycle (5), EVM RPC (3), EVM client setup (4), filesystem (8),
   and dynamic import (1), across 20 operation roots. These are review candidates,
-  not confirmed runtime effects:
-  the module graph conservatively includes mutually exclusive CLI branches,
-  so the carbon-credit entry also surfaces on-chain functions that its
-  scheduled `--check-adjustments` contract rejects. Absence from the inventory
+  not confirmed runtime effects. Other worker roots may still conservatively
+  include mutually exclusive CLI branches. The credit-adjustment schedule now
+  uses a dedicated read-only entrypoint; the interactive issuance/retirement
+  CLI is no longer scheduler-allowlisted. Absence from the inventory
   is not proof that an operation has no external effect. Its callback section
   traces the EventBus process target through `resolve_handler`, the allowlist
   validator, dynamic import, and the five code-allowlisted handler names. The
@@ -142,12 +143,14 @@ data effects, and an idempotency/retry note.
   Earth Engine. The proxy upsert and location fallback have focused source,
   migration-discovery, and PostgreSQL restored-checkpoint replay coverage; live
   provider acceptance remains open.
-- The carbon-credit job now has a bounded command contract for the existing
-  `credit_adjustment` JobSpec: only read-only `--check-adjustments` is accepted,
-  optionally scoped to one location. It does not schedule or enable the Prefect
-  flow. Mutation and retirement-review flags remain outside the scheduler
-  contract; cadence, tenant identity, output handling, and owner acceptance stay
-  open.
+- The carbon-credit job's `credit_adjustment` JobSpec uses a dedicated
+  `services.analytics.carbon_credit_adjustment_check` entrypoint with an
+  optional `--location-id`. It runs inside a database-enforced read-only
+  transaction and only calls the recompute-and-report path. The interactive
+  credit-management module is no longer scheduler-allowlisted, so its issuance,
+  mutation, retirement, and review paths do not enter the worker graph. The job
+  does not register or enable the Prefect flow; cadence, tenant identity, output
+  handling, and owner acceptance remain open.
 - The legacy schedule seed contains known mismatches: the sensor task has no
   declared input source, and its empty argument list does not create a sensor
   reading; the climate CLI requires one `--location-id`, while the old seed
