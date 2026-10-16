@@ -15,17 +15,29 @@ an ARM64 worker override.
 The planner tests pass, and Compose merged configuration passed for minimal,
 edge, and standard with the expected ARM64 app/database/worker settings and an
 isolated project volume ([profile evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json)).
-The initial restricted command shell could not access the Docker Desktop socket;
-host-authorized access later reached the healthy daemon. The ARM64 images built
-as `linux/arm64`, and all 391 current schemas through migration 400 applied with
-zero failures. A custom-format restore to a second database had the same 391
-checksums and zero pending migrations; health returned 200, an anonymous
-protected write returned 401, and short database/app restart checks recovered
-([runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
+In the earlier schema-400 refresh, the ARM64 images built as `linux/arm64`,
+391 schemas applied with zero failures, and a custom-format restore matched all
+391 migration checksums with zero pending migrations. Health returned 200, an
+anonymous protected write returned 401, and short database/app restart checks
+recovered ([prior runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
 This is QEMU evidence, not Raspberry Pi acceptance. `postgis_raster` passed a
 disposable function check after manual extension enablement; the ordered schema
 does not currently enable it. Physical performance, thermal, storage, power-loss,
 network, and device restart behavior remain unverified.
+
+**Current schema refresh (15 October 2026):** a second unique Compose project
+replayed all 393 current schema files through migration 402 with zero failures
+and zero pending migrations. A 5,220,702-byte custom-format logical dump restored
+to a second template0 database with an identical 393-checksum fingerprint and
+zero pending migrations. PostGIS geometry returned the expected point; Gateway
+health and protected-write responses were 200 and 401 before and after the
+database restart. After an intentional app SIGKILL, explicit Compose `up`
+restored health to 200 and protected writes still returned 401. This refresh
+used no seeds, farm data, or candidate/legacy volumes, and had no explicit
+CPU/memory caps. The app started before migrations, so background workers logged
+missing-schema errors during bootstrap; start the database and apply migrations
+before starting worker-bearing app services. Physical Pi and 24-hour/provider
+recovery remain open ([runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json)).
 
 On 10 October 2026 registry metadata was inspected for the candidate's exact
 database reference:

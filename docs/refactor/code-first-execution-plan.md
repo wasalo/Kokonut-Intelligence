@@ -91,11 +91,14 @@ MAN-CAP checks open until each has its own retained evidence.
   selected now. Policy configuration, approval roles, and hold operations are
   deployment gates. ZITADEL host/client settings, remaining operator/location
   mapping, R2 credentials, and external alert routing remain open.
-- ARM64 Buildx/QEMU acceptance exercised 391 schema migrations through 400,
-  with logical restore, health, protected-route denial, database restart, and app
-  process recovery. The candidate has since advanced through migration 402; the
-  QEMU run does not certify physical Raspberry Pi performance, power/storage/
-  network failure, or production failover.
+- ARM64 Buildx/QEMU acceptance now exercises all 393 current schema files
+  through migration 402, with matching logical-restore fingerprints, zero
+  pending migrations, PostGIS geometry, health, protected-route denial,
+  database-restart health recovery, and explicit Compose recovery after an app
+  SIGKILL. The current refresh had no explicit CPU/memory caps and started the
+  app before migrations, so workers logged missing-schema errors during
+  bootstrap. This does not certify physical Raspberry Pi performance,
+  power/storage/network failure, or production failover ([evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json)).
 - Encrypted checkpoints now authenticate their manifests and have an optional
   S3/R2-compatible transfer CLI. Fake-store checks cover staged byte verification,
   create-only completion, idempotency, tamper rejection, and private no-overwrite
@@ -605,8 +608,8 @@ Actual Pi storage wear, thermals, power-loss behavior, physical network
 reliability, and sustained device performance stay unverified until hardware is
 available; no human input is needed for this code-only assessment.
 
-**Current-source refresh (15 October 2026):** the isolated profile planner built
-the app and PostGIS images as linux/arm64, applied all 391 schemas through
+**Prior schema-400 refresh (15 October 2026):** the isolated profile planner
+built the app and PostGIS images as linux/arm64, applied all 391 schemas through
 migration 400 with zero failures, restored a logical backup with matching
 migration fingerprints and zero pending migrations, and passed HTTP health,
 anonymous protected-write denial, database restart, and app SIGKILL recovery.
@@ -619,7 +622,19 @@ after database recovery, with the task engine stubbed. Repeated/long provider
 outage behavior, lease recovery, and physical Pi limits remain open. The earlier
 restricted command shell could not access the Docker Desktop socket; host-
 authorized access reached the healthy daemon and completed this check
-([current evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
+([prior evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json)).
+
+**Schema-402 refresh (15 October 2026):** a fresh, uniquely named ARM64 project
+applied all 393 schema files through migration 402, with zero failures or
+pending migrations. A 5,220,702-byte custom-format dump restored into a second
+template0 database with a matching 393-row SHA-256 migration fingerprint and
+zero pending migrations. PostGIS geometry, `/health` 200, anonymous protected
+write 401, health after database restart, and health after app SIGKILL followed
+by Compose `up` passed. The app started before migration, so workers logged
+missing-schema errors during bootstrap; this refresh did not apply explicit
+resource limits or seeds. Raspberry Pi hardware, 24-hour recovery, and real
+provider/lease outages remain open
+([evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json)).
 
 ### Batch G — Reconcile ledgers, then request only owner decisions
 
