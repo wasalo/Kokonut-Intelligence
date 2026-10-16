@@ -6,11 +6,13 @@ Added `--event-worker` and `--notification-worker` modes and kept `--worker` as
 a combined compatibility path. The Kernel supervisor starts the two worker
 processes independently; the legacy worker overlay now has separate event and
 notification services. Notification delivery defaults to the event-bus feature
-setting and can be toggled independently. The focused event-worker, supervisor,
-feature, scheduled-command, outbox, and worker-inventory suites pass 157 tests
-and 3 subtests.
+setting and can be toggled independently. Each mode exits before opening a
+database connection when its feature is disabled; combined mode runs only
+enabled loops. The focused event-worker, supervisor, feature, scheduled-command,
+outbox, and worker-inventory suites pass 160 tests and 3 subtests.
 Ruff, Python compilation, Compose parsing for legacy/standard/portability
-profiles, and refreshed source/function/SQL inventories pass. No database,
+profiles, the legacy default/disabled/notification-only flag matrix, and
+refreshed source/function/SQL inventories pass. No database,
 provider, candidate, or legacy service was contacted. This is process
 responsibility separation only: event handlers still use the shared runtime
 PostgreSQL identity and destination configuration to create notification

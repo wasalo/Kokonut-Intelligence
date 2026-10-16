@@ -6,8 +6,8 @@
     "operation_roots": 20,
     "source_files": 81,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 401,
-    "direct_call_edges": 551,
+    "function_memberships": 402,
+    "direct_call_edges": 553,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -159,6 +159,7 @@
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/events/__init__.py",
         "services/events/__main__.py",
@@ -211,6 +212,14 @@
           "class_scope": null,
           "source": "services/common/worker_environment.py",
           "line": 15
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 127
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -338,7 +347,7 @@
           "qualname": "_get_conn",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 483
+          "line": 491
         },
         {
           "key": "services.events.cli:_run_worker",
@@ -354,7 +363,7 @@
           "qualname": "cmd_add_rule",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 472
+          "line": 480
         },
         {
           "key": "services.events.cli:cmd_cleanup",
@@ -362,7 +371,7 @@
           "qualname": "cmd_cleanup",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 126
+          "line": 134
         },
         {
           "key": "services.events.cli:cmd_dispose_dead_letter",
@@ -370,7 +379,7 @@
           "qualname": "cmd_dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 222
+          "line": 230
         },
         {
           "key": "services.events.cli:cmd_event_worker",
@@ -378,7 +387,7 @@
           "qualname": "cmd_event_worker",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 102
+          "line": 110
         },
         {
           "key": "services.events.cli:cmd_fork_opportunities",
@@ -386,7 +395,7 @@
           "qualname": "cmd_fork_opportunities",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 422
+          "line": 430
         },
         {
           "key": "services.events.cli:cmd_list_dead_letter",
@@ -394,7 +403,7 @@
           "qualname": "cmd_list_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 178
+          "line": 186
         },
         {
           "key": "services.events.cli:cmd_list_handlers",
@@ -402,7 +411,7 @@
           "qualname": "cmd_list_handlers",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 149
+          "line": 157
         },
         {
           "key": "services.events.cli:cmd_notification_dispose_dead_letter",
@@ -410,7 +419,7 @@
           "qualname": "cmd_notification_dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 278
+          "line": 286
         },
         {
           "key": "services.events.cli:cmd_notification_list_dead_letter",
@@ -418,7 +427,7 @@
           "qualname": "cmd_notification_list_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 256
+          "line": 264
         },
         {
           "key": "services.events.cli:cmd_notification_process",
@@ -426,7 +435,7 @@
           "qualname": "cmd_notification_process",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 236
+          "line": 244
         },
         {
           "key": "services.events.cli:cmd_notification_replay_dead_letter",
@@ -434,7 +443,7 @@
           "qualname": "cmd_notification_replay_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 266
+          "line": 274
         },
         {
           "key": "services.events.cli:cmd_notification_stats",
@@ -442,7 +451,7 @@
           "qualname": "cmd_notification_stats",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 246
+          "line": 254
         },
         {
           "key": "services.events.cli:cmd_notification_worker",
@@ -450,7 +459,7 @@
           "qualname": "cmd_notification_worker",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 107
+          "line": 115
         },
         {
           "key": "services.events.cli:cmd_pending_transfers",
@@ -458,7 +467,7 @@
           "qualname": "cmd_pending_transfers",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 454
+          "line": 462
         },
         {
           "key": "services.events.cli:cmd_process",
@@ -474,7 +483,7 @@
           "qualname": "cmd_process_event",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 440
+          "line": 448
         },
         {
           "key": "services.events.cli:cmd_propose_fork",
@@ -482,7 +491,7 @@
           "qualname": "cmd_propose_fork",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 430
+          "line": 438
         },
         {
           "key": "services.events.cli:cmd_replay_dead_letter",
@@ -490,7 +499,7 @@
           "qualname": "cmd_replay_dead_letter",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 210
+          "line": 218
         },
         {
           "key": "services.events.cli:cmd_resolve_transfer",
@@ -498,7 +507,7 @@
           "qualname": "cmd_resolve_transfer",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 463
+          "line": 471
         },
         {
           "key": "services.events.cli:cmd_stats",
@@ -506,7 +515,7 @@
           "qualname": "cmd_stats",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 112
+          "line": 120
         },
         {
           "key": "services.events.cli:cmd_worker",
@@ -514,7 +523,7 @@
           "qualname": "cmd_worker",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 97
+          "line": 105
         },
         {
           "key": "services.events.cli:main",
@@ -522,7 +531,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/events/cli.py",
-          "line": 295
+          "line": 303
         },
         {
           "key": "services.events.fork_detector:_jsonb",
@@ -844,235 +853,247 @@
           "caller": "services.events.cli:_get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
-          "line": 486
+          "line": 494
         },
         {
           "caller": "services.events.cli:_run_worker",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 67
+          "line": 75
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/events/cli.py",
+          "line": 53
+        },
+        {
+          "caller": "services.events.cli:_run_worker",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/events/cli.py",
+          "line": 54
         },
         {
           "caller": "services.events.cli:_run_worker",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 61
+          "line": 69
         },
         {
           "caller": "services.events.cli:_run_worker",
           "callee": "services.events.notification_outbox:deliver_batch",
           "source": "services/events/cli.py",
-          "line": 68
+          "line": 76
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 479
+          "line": 487
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 475
+          "line": 483
         },
         {
           "caller": "services.events.cli:cmd_add_rule",
           "callee": "services.events.insight_transfer:InsightTransferEngine.add_rule",
           "source": "services/events/cli.py",
-          "line": 476
+          "line": 484
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 137
+          "line": 145
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.bus:EventBus.cleanup_old_events",
           "source": "services/events/cli.py",
-          "line": 139
+          "line": 147
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 144
+          "line": 152
         },
         {
           "caller": "services.events.cli:cmd_cleanup",
           "callee": "services.events.retention:require_event_retention_cleanup",
           "source": "services/events/cli.py",
-          "line": 130
+          "line": 138
         },
         {
           "caller": "services.events.cli:cmd_dispose_dead_letter",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 225
+          "line": 233
         },
         {
           "caller": "services.events.cli:cmd_dispose_dead_letter",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 233
+          "line": 241
         },
         {
           "caller": "services.events.cli:cmd_dispose_dead_letter",
           "callee": "services.events.bus:EventBus.dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 227
+          "line": 235
         },
         {
           "caller": "services.events.cli:cmd_event_worker",
           "callee": "services.events.cli:_run_worker",
           "source": "services/events/cli.py",
-          "line": 104
+          "line": 112
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 426
+          "line": 434
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 425
+          "line": 433
         },
         {
           "caller": "services.events.cli:cmd_fork_opportunities",
           "callee": "services.events.fork_detector:detect_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 425
+          "line": 433
         },
         {
           "caller": "services.events.cli:cmd_list_dead_letter",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
-          "line": 181
+          "line": 189
         },
         {
           "caller": "services.events.cli:cmd_list_handlers",
           "callee": "services.common.database:get_db",
           "source": "services/events/cli.py",
-          "line": 152
+          "line": 160
         },
         {
           "caller": "services.events.cli:cmd_notification_dispose_dead_letter",
           "callee": "services.common.cli:print_json",
+          "source": "services/events/cli.py",
+          "line": 298
+        },
+        {
+          "caller": "services.events.cli:cmd_notification_dispose_dead_letter",
+          "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
           "line": 290
         },
         {
           "caller": "services.events.cli:cmd_notification_dispose_dead_letter",
-          "callee": "services.common.database:get_connection",
-          "source": "services/events/cli.py",
-          "line": 282
-        },
-        {
-          "caller": "services.events.cli:cmd_notification_dispose_dead_letter",
           "callee": "services.events.notification_outbox:dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 283
+          "line": 291
         },
         {
           "caller": "services.events.cli:cmd_notification_list_dead_letter",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 262
+          "line": 270
         },
         {
           "caller": "services.events.cli:cmd_notification_list_dead_letter",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 260
+          "line": 268
         },
         {
           "caller": "services.events.cli:cmd_notification_list_dead_letter",
           "callee": "services.events.notification_outbox:list_dead_letters",
           "source": "services/events/cli.py",
-          "line": 261
+          "line": 269
         },
         {
           "caller": "services.events.cli:cmd_notification_process",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 242
+          "line": 250
         },
         {
           "caller": "services.events.cli:cmd_notification_process",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 240
+          "line": 248
         },
         {
           "caller": "services.events.cli:cmd_notification_process",
           "callee": "services.events.notification_outbox:deliver_batch",
           "source": "services/events/cli.py",
-          "line": 241
+          "line": 249
         },
         {
           "caller": "services.events.cli:cmd_notification_replay_dead_letter",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 274
+          "line": 282
         },
         {
           "caller": "services.events.cli:cmd_notification_replay_dead_letter",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 270
+          "line": 278
         },
         {
           "caller": "services.events.cli:cmd_notification_replay_dead_letter",
           "callee": "services.events.notification_outbox:replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 271
+          "line": 279
         },
         {
           "caller": "services.events.cli:cmd_notification_stats",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 252
+          "line": 260
         },
         {
           "caller": "services.events.cli:cmd_notification_stats",
           "callee": "services.common.database:get_connection",
           "source": "services/events/cli.py",
-          "line": 250
+          "line": 258
         },
         {
           "caller": "services.events.cli:cmd_notification_stats",
           "callee": "services.events.notification_outbox:get_stats",
           "source": "services/events/cli.py",
-          "line": 251
+          "line": 259
         },
         {
           "caller": "services.events.cli:cmd_notification_worker",
           "callee": "services.events.cli:_run_worker",
           "source": "services/events/cli.py",
-          "line": 109
+          "line": 117
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 459
+          "line": 467
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 457
+          "line": 465
         },
         {
           "caller": "services.events.cli:cmd_pending_transfers",
           "callee": "services.events.insight_transfer:InsightTransferEngine.get_pending_transfers",
           "source": "services/events/cli.py",
-          "line": 458
+          "line": 466
         },
         {
           "caller": "services.events.cli:cmd_process",
@@ -1102,223 +1123,223 @@
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 450
+          "line": 458
         },
         {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 445
+          "line": 453
         },
         {
           "caller": "services.events.cli:cmd_process_event",
           "callee": "services.events.insight_transfer:InsightTransferEngine.process_event",
           "source": "services/events/cli.py",
-          "line": 447
+          "line": 455
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 436
+          "line": 444
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 434
+          "line": 442
         },
         {
           "caller": "services.events.cli:cmd_propose_fork",
           "callee": "services.events.fork_detector:propose_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 433
+          "line": 441
         },
         {
           "caller": "services.events.cli:cmd_replay_dead_letter",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 213
+          "line": 221
         },
         {
           "caller": "services.events.cli:cmd_replay_dead_letter",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 219
+          "line": 227
         },
         {
           "caller": "services.events.cli:cmd_replay_dead_letter",
           "callee": "services.events.bus:EventBus.replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 215
+          "line": 223
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.common.cli:print_json",
           "source": "services/events/cli.py",
-          "line": 468
+          "line": 476
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.events.cli:_get_conn",
           "source": "services/events/cli.py",
-          "line": 466
+          "line": 474
         },
         {
           "caller": "services.events.cli:cmd_resolve_transfer",
           "callee": "services.events.insight_transfer:InsightTransferEngine.resolve_transfer",
           "source": "services/events/cli.py",
-          "line": 467
+          "line": 475
         },
         {
           "caller": "services.events.cli:cmd_stats",
           "callee": "services.events.backend:get_event_store",
           "source": "services/events/cli.py",
-          "line": 115
+          "line": 123
         },
         {
           "caller": "services.events.cli:cmd_stats",
           "callee": "services.events.bus:EventBus.close",
           "source": "services/events/cli.py",
-          "line": 119
+          "line": 127
         },
         {
           "caller": "services.events.cli:cmd_stats",
           "callee": "services.events.bus:EventBus.get_stats",
           "source": "services/events/cli.py",
-          "line": 117
+          "line": 125
         },
         {
           "caller": "services.events.cli:cmd_worker",
           "callee": "services.events.cli:_run_worker",
           "source": "services/events/cli.py",
-          "line": 99
+          "line": 107
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_add_rule",
           "source": "services/events/cli.py",
-          "line": 414
+          "line": 422
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_cleanup",
           "source": "services/events/cli.py",
-          "line": 367
+          "line": 375
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 379
+          "line": 387
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_event_worker",
           "source": "services/events/cli.py",
-          "line": 361
+          "line": 369
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_fork_opportunities",
           "source": "services/events/cli.py",
-          "line": 398
+          "line": 406
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_list_dead_letter",
           "source": "services/events/cli.py",
-          "line": 371
+          "line": 379
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_list_handlers",
           "source": "services/events/cli.py",
-          "line": 369
+          "line": 377
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_dispose_dead_letter",
           "source": "services/events/cli.py",
-          "line": 396
+          "line": 404
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_list_dead_letter",
           "source": "services/events/cli.py",
-          "line": 385
+          "line": 393
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_process",
           "source": "services/events/cli.py",
-          "line": 381
+          "line": 389
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 389
+          "line": 397
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_stats",
           "source": "services/events/cli.py",
-          "line": 383
+          "line": 391
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_notification_worker",
           "source": "services/events/cli.py",
-          "line": 363
+          "line": 371
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_pending_transfers",
           "source": "services/events/cli.py",
-          "line": 406
+          "line": 414
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_process",
           "source": "services/events/cli.py",
-          "line": 357
+          "line": 365
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_process_event",
           "source": "services/events/cli.py",
-          "line": 404
+          "line": 412
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_propose_fork",
           "source": "services/events/cli.py",
-          "line": 400
+          "line": 408
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_replay_dead_letter",
           "source": "services/events/cli.py",
-          "line": 375
+          "line": 383
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_resolve_transfer",
           "source": "services/events/cli.py",
-          "line": 410
+          "line": 418
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_stats",
           "source": "services/events/cli.py",
-          "line": 365
+          "line": 373
         },
         {
           "caller": "services.events.cli:main",
           "callee": "services.events.cli:cmd_worker",
           "source": "services/events/cli.py",
-          "line": 359
+          "line": 367
         },
         {
           "caller": "services.events.fork_detector:_refs_json",

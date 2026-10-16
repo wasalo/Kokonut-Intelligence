@@ -291,9 +291,11 @@ controls are approved and implemented; MAN-CAP-051 remains open
 
 **16 October 2026 EventBus/outbox worker separation (CAP-047):** event dispatch
 and durable notification delivery now have independent CLI modes and Kernel
-supervisor children; the legacy `--worker` mode remains compatible. The default
-notification feature follows the event-bus setting, with an independent override.
-One hundred fifty-seven focused tests and three subtests pass, as do Ruff,
+supervisor children; the legacy `--worker` mode remains compatible. Each CLI
+mode checks its feature flag before connecting, and combined mode runs only
+enabled loops. The default notification feature follows the event-bus setting,
+with an independent override reflected in both Kernel and legacy Compose
+profiles. One hundred sixty focused tests and three subtests pass, as do Ruff,
 compilation, Compose parsing, and generated worker inventories. No database or
 provider was contacted. This separates process responsibilities only: event
 handlers still use the shared runtime database identity and destination

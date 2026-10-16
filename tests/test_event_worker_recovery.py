@@ -71,6 +71,50 @@ class EventWorkerRecoveryTests(TestCase):
         deliver.assert_called_once_with(connection, "event-worker-test", 10)
         get_event_store.assert_not_called()
 
+    def test_event_worker_feature_off_returns_before_opening_connections(self):
+        with (
+            patch("services.core.features.is_enabled", return_value=False),
+            patch("services.events.backend.get_event_store") as get_event_store,
+            patch("services.common.database.get_connection") as get_connection,
+        ):
+            self.assertEqual(cmd_event_worker(_args()), 0)
+
+        get_event_store.assert_not_called()
+        get_connection.assert_not_called()
+
+    def test_combined_worker_runs_only_the_enabled_loop(self):
+        bus = Mock()
+        bus.process_pending.return_value = {"processed": 0, "failed": 0}
+        feature_states = {"event_bus": True, "notification_delivery": False}
+
+        with (
+            patch("services.core.features.is_enabled", side_effect=feature_states.get),
+            patch("services.events.backend.get_event_store", return_value=bus),
+            patch("services.common.database.get_connection") as get_connection,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+        ):
+            self.assertEqual(cmd_worker(_args()), 0)
+
+        bus.process_pending.assert_called_once_with(10, "event-worker-test")
+        bus.close.assert_called_once()
+        get_connection.assert_not_called()
+
+    def test_notification_worker_can_run_when_event_bus_is_disabled(self):
+        connection = object()
+        feature_states = {"event_bus": False, "notification_delivery": True}
+
+        with (
+            patch("services.core.features.is_enabled", side_effect=feature_states.get),
+            patch("services.common.database.get_connection", return_value=nullcontext(connection)),
+            patch("services.events.notification_outbox.deliver_batch", return_value={"claimed": 0}) as deliver,
+            patch("services.events.backend.get_event_store") as get_event_store,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+        ):
+            self.assertEqual(cmd_notification_worker(_args()), 0)
+
+        deliver.assert_called_once_with(connection, "event-worker-test", 10)
+        get_event_store.assert_not_called()
+
     def test_event_store_failure_discards_bus_and_retries_with_fresh_instance(self):
         failed_bus = Mock()
         failed_bus.process_pending.side_effect = OSError("database connection lost")

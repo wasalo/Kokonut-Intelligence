@@ -1707,9 +1707,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:155:12",
+      "id": "services/events/cli.py:163:12",
       "source": "services/events/cli.py",
-      "line": 155,
+      "line": 163,
       "column": 12,
       "scope": "cmd_list_handlers",
       "method": "execute",
@@ -1724,9 +1724,9 @@
       ]
     },
     {
-      "id": "services/events/cli.py:184:12",
+      "id": "services/events/cli.py:192:12",
       "source": "services/events/cli.py",
-      "line": 184,
+      "line": 192,
       "column": 12,
       "scope": "cmd_list_dead_letter",
       "method": "execute",

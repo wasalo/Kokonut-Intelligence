@@ -52,9 +52,11 @@ remains a combined compatibility mode. The Kernel supervisor starts separate
 child processes for both features. `KOKONUT_FEATURE_NOTIFICATION_DELIVERY`
 controls notification delivery and defaults to the event-bus feature setting,
 preserving existing deployments while allowing delivery to be disabled or run
-independently. This separates process responsibility, not database or provider
-credentials: event handlers still use the shared runtime database identity and
-read destination configuration to decide which intents to enqueue. The outbox
+independently. Each CLI worker mode checks its own feature before opening a
+database connection; combined `--worker` runs whichever loops are enabled.
+This separates process responsibility, not database or provider credentials:
+event handlers still use the shared runtime database identity and read
+destination configuration to decide which intents to enqueue. The outbox
 uses stable `(source event, channel, destination)` identities and a bounded
 retry budget, expiring leases, and operator-audited replay/disposal. Delivery is
 at-least-once: an external send can succeed just before a worker loses its lease

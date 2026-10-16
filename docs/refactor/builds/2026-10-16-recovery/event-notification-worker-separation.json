@@ -3,7 +3,7 @@
   "scope": "Independent EventBus dispatch and notification outbox workers",
   "command": "python3 -m pytest tests/test_event_worker_recovery.py tests/test_kernel_runtime_supervisor.py tests/test_core_features.py tests/test_scheduled_command_contracts.py tests/test_notification_outbox.py tests/test_worker_operation_map.py tests/test_worker_source_closure.py tests/test_worker_function_reachability.py tests/test_worker_sql_inventory.py tests/test_worker_sql_reachability.py tests/test_worker_boundary_preflight.py -q",
   "result": {
-    "passed": 157,
+    "passed": 160,
     "failed": 0,
     "subtests": 3
   },
@@ -13,7 +13,9 @@
     "The notification-only worker claims and delivers outbox work without opening the EventBus.",
     "The Kernel supervisor starts and disables event and notification children independently and gives each a unique identity.",
     "Supervisor child worker-secret allowlists remain operation-specific; notification delivery does not receive a dedicated worker-secret allowance.",
-    "Long-running worker modes remain rejected by scheduled-command validation."
+    "Long-running worker modes remain rejected by scheduled-command validation.",
+    "Each direct worker mode returns before database access when its own feature flag is disabled.",
+    "The compatibility mode runs only the enabled loop; notification delivery can run with event dispatch disabled."
   ],
   "static_checks": [
     "Ruff on changed Python files",
@@ -27,7 +29,8 @@
     "Worker boundary preflight current",
     "Runtime SQL inventory current",
     "git diff --check",
-    "Kernel standard Compose flag matrix: default enables both workers, disabling the event bus disables notifications by inherited default, and explicit notification enablement runs the outbox worker independently."
+    "Kernel standard and legacy Compose flag matrices: default enables both workers, disabling the event bus disables notifications by inherited default, and explicit notification enablement runs the outbox worker independently.",
+    "Legacy Compose flags are present in the exact event-worker and notification-worker service environments."
   ],
   "limitations": [
     "Checks use mocks and static Compose parsing; no database, notification provider, candidate service, or legacy service was contacted.",

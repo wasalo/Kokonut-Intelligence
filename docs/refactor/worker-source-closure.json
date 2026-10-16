@@ -170,6 +170,7 @@
         "services.common.http",
         "services.common.logging",
         "services.common.worker_environment",
+        "services.core.features",
         "services.core.providers",
         "services.events",
         "services.events.backend",
@@ -190,6 +191,7 @@
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/events/__init__.py",
         "services/events/__main__.py",
@@ -250,6 +252,12 @@
           "source": "services/common/env.py",
           "line": 180,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
           "kind": "from"
         },
         {
@@ -326,128 +334,128 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 59,
+          "line": 51,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 67,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 64,
+          "line": 72,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 65,
+          "line": 73,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 113,
+          "line": 121,
           "target": "services.events.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 127,
-          "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
           "line": 135,
+          "target": "services.events.retention",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 143,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 150,
+          "line": 158,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 179,
+          "line": 187,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 211,
+          "line": 219,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 223,
+          "line": 231,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 237,
+          "line": 245,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 238,
+          "line": 246,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 247,
+          "line": 255,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 248,
+          "line": 256,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 257,
+          "line": 265,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 258,
+          "line": 266,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 267,
+          "line": 275,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 268,
+          "line": 276,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 279,
+          "line": 287,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 280,
+          "line": 288,
           "target": "services.events.notification_outbox",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 423,
-          "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
@@ -458,31 +466,37 @@
         },
         {
           "source": "services/events/cli.py",
-          "line": 443,
+          "line": 439,
+          "target": "services.events.fork_detector",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 451,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 455,
+          "line": 463,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 464,
+          "line": 472,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 473,
+          "line": 481,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 484,
+          "line": 492,
           "target": "services.common.database",
           "kind": "from"
         },

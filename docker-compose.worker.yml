@@ -98,6 +98,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
       KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
+      KOKONUT_FEATURE_EVENT_BUS: ${KOKONUT_FEATURE_EVENT_BUS:-true}
       # Event handlers use configured destinations to decide which durable
       # notification intents to enqueue; only notification-worker sends them.
       DIRECTUS_URL: http://directus:8055
@@ -136,6 +137,7 @@ services:
       PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_FEATURE_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_NOTIFICATION_DELIVERY:-${KOKONUT_FEATURE_EVENT_BUS:-true}}
       DIRECTUS_URL: http://directus:8055
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}

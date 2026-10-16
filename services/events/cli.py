@@ -48,6 +48,14 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool):
     if args.poll_interval <= 0:
         raise ValueError("poll_interval must be positive")
 
+    from services.core.features import is_enabled
+
+    process_events = process_events and is_enabled("event_bus")
+    deliver_notifications = deliver_notifications and is_enabled("notification_delivery")
+    if not process_events and not deliver_notifications:
+        logger.info("Event and notification workers are disabled by feature configuration")
+        return 0
+
     try:
         while True:
             bus = None
