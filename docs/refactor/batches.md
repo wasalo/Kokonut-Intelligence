@@ -836,6 +836,11 @@ reporting views.
   calibration; device lookup and read queries bind that location. One hundred
   ten focused sensor/scheduler tests and the regenerated SQL/worker inventories
   pass ([evidence](builds/2026-10-16-recovery/sensor-ingestion-cli-location-scope.json)).
+  The device-manager list/register/health operations and health updater now
+  require the same location scope, and device registration rejects a slug
+  already assigned elsewhere instead of moving it. Sixty-one device/IoT tests
+  pass with refreshed whole-service SQL/source inventories
+  ([evidence](builds/2026-10-16-recovery/device-manager-location-scope.json)).
   The UUID is only a query filter and does not authenticate the operator or
   establish signed context/RLS; recurring sensor ingestion remains disabled
   until a real source contract exists.

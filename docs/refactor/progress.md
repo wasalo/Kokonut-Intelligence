@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### Location-scoped device manager — 16 October 2026
+
+Required `--location-id` for device-manager list, registration, and health
+operations and validate it before database access. List, health lookup, and
+health updates now bind the location; device registration can refresh an
+existing slug only in its current location and rejects cross-location slug
+conflicts with a rollback. No-operation help is offline. The focused device
+manager and IoT suites pass 61 tests; changed source and unit-test files pass
+Ruff and compilation. The whole-repository SQL and source inventories were
+refreshed. The checklist remains 414 complete / 19 open and the 66-row matrix
+is unchanged. A UUID query scope is not an authenticated tenant grant and does
+not establish RLS; no candidate/legacy database or device was accessed
+([evidence](builds/2026-10-16-recovery/device-manager-location-scope.json);
+[implementation](../../services/ingestion/device_manager.py)).
+
 ### Location-scoped sensor ingestion CLI — 16 October 2026
 
 Required a canonical `--location-id` for local CSV/single-reading ingestion,

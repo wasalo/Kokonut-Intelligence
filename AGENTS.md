@@ -318,9 +318,9 @@ Commands:
 - Remote sensing create job: `python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID --provider gee`
 - MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 8883`
 - HTTP sensor receiver: `python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056`
-- Device manager list: `python3 -m services.ingestion.device_manager --list`
+- Device manager list: `python3 -m services.ingestion.device_manager --list --location-id UUID`
 - Device manager register: `python3 -m services.ingestion.device_manager --register --device-id sensor001 --sensor-type air_temperature --location-id UUID`
-- Device manager health: `python3 -m services.ingestion.device_manager --health --device-id sensor001`
+- Device manager health: `python3 -m services.ingestion.device_manager --health --device-id sensor001 --location-id UUID`
 - IoT sensor push tests: `python3 -m tests.test_iot_sensor_push`
 - Carbon credit tests: `python3 -m tests.test_carbon_credits`
 - Carbon credit issue: `python3 -m services.analytics.carbon_credits --issue --location-id UUID --vintage-year 2026 --methodology "IPCC 2006 Tier 2"`
