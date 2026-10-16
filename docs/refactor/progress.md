@@ -6415,3 +6415,30 @@ legacy databases were not contacted
 [fixture](../tests/fixtures/sensor_anomaly_effect_functions_disposable.sql);
 [runner](../scripts/check-sensor-anomaly-effect-functions-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
+
+### Bounded sensor-alert event publication — 16 October 2026
+
+Migration 408 adds `kokonut_security.publish_sensor_alert_event` behind a
+separate non-login function owner. It accepts only the exact signed
+`sensor_reading/process` location and an `alert_created` receipt whose source
+event, reading, device, rule, alert, and location agree. The function derives
+the existing handler's event payload from canonical alert/reading/device/rule
+columns, preserves high priority for critical alerts, and inserts a pending
+event with three retries. An identical event ID/content is idempotent; a
+conflicting ID is rejected. A retry never updates status, lease, retry, or
+delivery state. `kokonut_worker_execution` can call the function but has no
+direct `platform_event` read or DML access; runtime and operator-auth roles
+cannot execute it.
+
+Eleven focused PostgreSQL 16 checks passed in a loopback-only disposable
+container, including migration replay, source and alert mismatch denial,
+canonical payload/priority, stable-ID collision, completed-event retry
+preservation, function ACLs, and direct queue-table denial. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No handler
+integration, notification/actuation function, worker credential, candidate
+rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and legacy
+databases were not contacted
+([migration](../schemas/postgres/408_sensor_alert_event_function.sql);
+[fixture](../tests/fixtures/sensor_alert_event_function_disposable.sql);
+[runner](../scripts/check-sensor-alert-event-function-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).

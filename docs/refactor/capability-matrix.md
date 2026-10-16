@@ -2005,3 +2005,16 @@ worker table access. The functions are not wired into the handler and no worker
 login, candidate rollout, or RLS policy is enabled; no MAN-CAP row is accepted
 ([migration](../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
+
+### CAP-040/047 bounded sensor-alert event publication — 16 October 2026
+
+Migration 408 adds a canonical event publisher behind a separate non-login
+owner. It requires the signed source location and an `alert_created` receipt,
+derives the event payload and critical priority from the alert, and inserts the
+same pending event shape used by the current handler. Identical retries are
+accepted without modifying queue state; conflicting IDs fail closed. Eleven
+disposable PostgreSQL 16 checks pass, including ACL and replay checks. The
+handler still uses the direct EventBus path; no worker login, candidate
+rollout, RLS, or MAN-CAP acceptance is claimed
+([migration](../schemas/postgres/408_sensor_alert_event_function.sql);
+[evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).

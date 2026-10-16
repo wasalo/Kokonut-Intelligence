@@ -22,35 +22,35 @@
       "access": "select_source_event; insert_sensor_alert_event",
       "class": "tenant_source_and_control_plane_intent",
       "required_boundary": "Read only the requested sensor_reading source event whose type, source table, source ID, payload location, and joined reading all agree with signed scope. Publish only the sensor_alert intent through a bounded function that verifies the signed location and alert row. Never expose claim, lease, retry, delivery-receipt, or dead-letter mutation to this operation.",
-      "current_enforcement": "Application source query checks event type/table, source ID, payload location, every supplied sensor selector, and joined reading location; event publication is a direct INSERT through the shared EventBus connection. No worker SQL permission exists."
+      "current_enforcement": "Migration 407 bounds source-event selection inside receipt reservation; migration 408 adds a SECURITY DEFINER publisher that derives the canonical sensor_alert payload and priority from the signed-location alert and matching alert_created receipt. It inserts a pending event, accepts only identical stable-ID retries, rejects collisions, and leaves queue state untouched. kokonut_worker_execution has function EXECUTE only and no direct platform_event access. The handler still uses EventBus directly until credential-isolated integration."
     },
     {
       "relation": "public.sensor_reading",
       "access": "select",
       "class": "tenant_data",
       "required_boundary": "Read only the event source row at the signed location; event ID, event type, source table, sensor ID, and location must match.",
-      "current_enforcement": "The source query binds the event ID and requires the payload location and every supplied sensor selector to agree with the reading; signed worker context is not wired to the handler."
+      "current_enforcement": "Migrations 407 and 408 validate the event ID/type/table/source, payload location and every supplied sensor selector against the reading and device inside bounded functions. The handler remains unwired to signed worker context."
     },
     {
       "relation": "public.alert_rule",
       "access": "select_enabled_reference",
       "class": "shared_reference",
       "required_boundary": "Read enabled rules as shared read-only configuration. The event handler must not bootstrap, insert, update, or delete global alert rules.",
-      "current_enforcement": "Event processing skips default-rule bootstrap; no worker-specific SELECT boundary exists."
+      "current_enforcement": "Event processing skips default-rule bootstrap. Migration 407 requires an enabled rule for reservation; migration 408 derives alert event content from the matching alert/rule. Reads are confined to SECURITY DEFINER functions; there is no direct worker table grant."
     },
     {
       "relation": "public.sensor_type",
       "access": "select_reference",
       "class": "shared_reference",
       "required_boundary": "Read only sensor-type reference rows needed to interpret enabled alert rules.",
-      "current_enforcement": "Joined by the alert-rule query; no worker-specific SELECT boundary exists."
+      "current_enforcement": "Migration 408 verifies the rule/device sensor-type relationship through its bounded event publisher; no direct worker table grant exists."
     },
     {
       "relation": "public.sensor_device",
       "access": "select",
       "class": "tenant_data",
       "required_boundary": "Read the source device only when its ID and location match the signed scope and source reading.",
-      "current_enforcement": "The handler resolves the device by source sensor ID and includes its location in output; the query does not use signed context."
+      "current_enforcement": "Migrations 407 and 408 verify device identity and location against the source reading within bounded functions; no direct worker table grant exists and handler context is not integrated."
     },
     {
       "relation": "public.location",
@@ -64,7 +64,7 @@
       "access": "select_cooldown; insert; update_claim_link",
       "class": "tenant_data",
       "required_boundary": "Cooldown reads must remain within the signed location and device. Inserts must match the source device, reading, and location. The only update is linking the newly created alert to its newly created draft claim.",
-      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Event cooldown reads and new inserts bind to the source location; worker SQL permissions are not implemented."
+      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migration 408 reads only the alert linked by a matching alert_created receipt to derive the canonical event; no direct worker table grant exists. Existing handler cooldown reads/inserts remain application-scoped."
     },
     {
       "relation": "public.sensor_anomaly_effect",
