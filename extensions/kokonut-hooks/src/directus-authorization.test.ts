@@ -107,6 +107,27 @@ describe('Directus tenant authorization', () => {
     )).resolves.toMatchObject({ filter: { location_id: { _in: [locationA] } } });
   });
 
+  it('fails closed on nested relation fields and deep relation queries', async () => {
+    const store = makeStore();
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'farm_activity', {
+        fields: ['id', 'related_collection.name'],
+      },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'farm_activity', {
+        deep: { related_collection: { _filter: { status: { _eq: 'published' } } } },
+      },
+    )).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
+    await expect(authorizeDirectusRead(
+      store, accountability, issuer, 'farm_activity', {
+        fields: ['*', 'location_id'],
+      },
+    )).resolves.toMatchObject({
+      filter: { location_id: { _in: [locationA] } },
+    });
+  });
+
   it('fails closed when the user, issuer, operator, or grants are missing', async () => {
     await expect(authorizeDirectusRead(
       makeStore(), undefined, issuer, 'farm_activity', {},

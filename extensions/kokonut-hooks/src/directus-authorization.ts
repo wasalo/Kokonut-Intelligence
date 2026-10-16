@@ -53,6 +53,29 @@ function isUuid(value: unknown): value is string {
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
+function requestsRelationExpansion(query: Record<string, any>): boolean {
+  const deep = query.deep;
+  if (deep !== undefined && deep !== null) {
+    if (typeof deep !== 'object' || Array.isArray(deep)) return true;
+    if (Object.keys(deep).length > 0) return true;
+  }
+
+  const fields = query.fields;
+  if (fields === undefined || fields === null) return false;
+  const requestedFields = Array.isArray(fields)
+    ? fields
+    : typeof fields === 'string'
+      ? fields.split(',')
+      : null;
+  if (!requestedFields || !requestedFields.every((field) => typeof field === 'string')) return true;
+
+  return requestedFields.some((field: string) => {
+    const normalized = field.trim();
+    return normalized.length === 0 ||
+      (normalized !== '*' && (normalized.includes('.') || normalized.includes('*')));
+  });
+}
+
 /** Build the authorization store on the request's Knex transaction. */
 export function createDirectusTenantStore(database: any): DirectusTenantStore {
   return {
@@ -140,6 +163,10 @@ export async function authorizeDirectusRead(
   const operatorId = await resolveOperator(store, accountability, issuer);
   const locations = await store.authorizedLocations(operatorId, collection, 'read');
   if (locations.length === 0 || !query || typeof query !== 'object' || Array.isArray(query)) throw deny();
+  // Nested Directus fields/deep queries can traverse a relation whose own
+  // authorization has not yet been mapped to an organization/location grant.
+  // Keep the root row scoped and fail closed until each relation has a contract.
+  if (requestsRelationExpansion(query)) throw deny();
 
   const tenantFilter = { location_id: { _in: [...new Set(locations)] } };
   return {

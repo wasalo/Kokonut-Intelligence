@@ -37,6 +37,17 @@ reference-catalog seed rollout is recorded above. Application-table RLS remains
 unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment
 because no hardware is available; physical-device acceptance is not claimed.
 
+### Directus nested relation guard — 15 October 2026 local time
+
+The OIDC/location-grant hook now rejects non-empty `deep` queries, dotted
+relation fields, nested wildcards, and malformed field selectors across the
+eleven tenant-scoped collections. This keeps unreviewed related objects out of
+the root collection response until a cross-collection scope contract exists.
+Seven focused authorization tests and the extension build/TypeScript check
+pass. Directus runtime parity and root field privacy remain open; no database,
+provider, candidate, or legacy stack was touched ([inventory](directus-parity-inventory.md);
+[evidence](builds/2026-10-15-recovery/directus-relation-expansion-denial.json)).
+
 ### JobSpec runtime-input classification — 15 October 2026
 
 The static inventory now distinguishes command defaults from required inputs.
