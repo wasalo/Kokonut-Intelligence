@@ -56,6 +56,14 @@ Directus collections, fields, relations, hooks, and schedules remain open
 ([contract](gateway-farm-activity-operations.md);
 [evidence](builds/2026-10-16-recovery/gateway-farm-activity-operations-disposable.json)).
 
+The operator console now exposes the Gateway farm-activity API through a
+separate grant-filtered panel. Create/edit forms include all API-editable
+content, and lifecycle controls remain human-reviewed. Six focused UI contract
+and JavaScript syntax checks pass; authenticated browser acceptance and
+migration-404 candidate deployment remain open. No MAN-CAP acceptance or
+capability status changed
+([evidence](builds/2026-10-16-recovery/operator-console-farm-activity-contract.json)).
+
 **14 October 2026 Directus parity preflight (CAP-001 / CAP-047 / CAP-053):**
 the disposable Directus parity fixture now stops before synthetic user or farm
 activity writes when the historical `$CURRENT_USER.location_id` scope cannot
@@ -1895,6 +1903,33 @@ configuration.
 Worker identity, role/context, and live recovery gates remain open, so no
 MAN-CAP status or count changes ([inventory](worker-effect-inventory.json);
 [worker map](worker-operation-map.md)).
+
+### CAP-040/047 worker tenant-context design — 16 October 2026
+
+The worker boundary now has an implementation contract: a database-verified
+`system_worker` principal receives exact location/resource/action grants;
+global lease and event-queue coordination stays in a separate control-plane
+boundary; and the allowlisted sensor-reading handler is the first tenant
+execution target. No migration, worker identity, source integration, candidate
+change, or RLS policy was added. Runtime worker isolation and all named
+MAN-CAP checks remain open; capability statuses and acceptance counts do not
+change ([contract](worker-tenant-context-contract.md); [operation map](worker-operation-map.md)).
+
+The first source step now requires the sensor-reading handler to receive a
+canonical location UUID and match the source reading to that location before
+processing. This prevents a mismatched event payload from selecting a reading
+in another location; it does not establish a signed worker identity or tenant
+context. Six focused anomaly-handler cases cover missing/malformed location,
+canonicalization, validation before DB access, mismatched source location, and
+valid matching input. No MAN-CAP acceptance or status changed
+([source](../../services/ingestion/anomaly_detector.py); [contract](worker-tenant-context-contract.md); [tests](../../tests/test_anomaly_detector.py)).
+
+CI #342 exposed seed writes that conflicted with migration 404's farm-activity
+guard. The pilot seed now inserts lineage with each row, and the Adelphi
+alignment seed no longer issues a blanket farm-activity update. Two focused
+seed-contract checks pass; the combined focused run passes 16 tests. Hosted CI
+must be rerun on the pushed fix before the release gate can close
+([evidence](builds/2026-10-16-recovery/ci-342-pilot-seed-guard-fix.json)).
 
 ### CAP-047 scheduler template preflight — 15 October 2026
 

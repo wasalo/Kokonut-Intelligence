@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "workflow": {
+    "name": "CI",
+    "run_number": 342,
+    "run_id": 38909339187,
+    "job_id": 117001626173,
+    "result": "failure"
+  },
+  "failure": {
+    "step": "scripts/run-github-ci.sh pilot seed phase",
+    "database_error": "farm activity source and tenant identity are immutable through Gateway operations",
+    "root_cause": "The pilot seed inserted farm_activity records, then updated source metadata after migration 404 had installed the immutability trigger. The later Adelphi alignment seed also issued an UPDATE that would modify protected activity timestamps."
+  },
+  "repair": {
+    "files": [
+      "schemas/seeds/002_pilot_operations.sql",
+      "schemas/seeds/024_adelphi_alignment.sql"
+    ],
+    "changes": [
+      "Attach schema_version, source_system, source_id, and source_raw in each of the 30 farm_activity INSERT rows.",
+      "Remove the post-insert farm_activity source-lineage UPDATE.",
+      "Remove the blanket farm_activity UPDATE from the Adelphi alignment seed; the current inserted descriptions are already normalized."
+    ],
+    "migration_guard": "Unchanged; migration 404's Gateway immutability and audit boundary remains enforced."
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_anomaly_detector.py tests/test_pilot_farm_activity_seed_guard.py -q",
+    "result": "passed",
+    "tests_passed": 16,
+    "tests_failed": 0,
+    "scope": "Focused source/unit regressions only; no candidate or legacy database was accessed.",
+    "hosted_rerun": "pending push"
+  }
+}

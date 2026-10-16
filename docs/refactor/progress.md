@@ -2,6 +2,33 @@
 
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
+### Worker tenant-context design — 16 October 2026
+
+The static worker audit confirms that scheduled commands and spawned event
+handlers inherit the shared runtime PostgreSQL identity and do not establish
+signed tenant context. A new contract defines a database-verified
+`system_worker` identity, exact location/resource/action grants, database-side
+owner resolution, a separate control-plane boundary for global leases/queues,
+and the sensor-reading event handler as the first tenant-execution adapter.
+This is an architecture decision only: there is no worker migration, credential,
+runtime identity, candidate change, or RLS rollout. The allowlisted
+sensor-reading handler now requires a canonical event location and binds the
+source-row lookup to it. This is location-lineage validation, not signed worker
+authorization. The owner approved focused checks; six anomaly-handler cases
+pass for missing/malformed locations, canonicalization, validation before DB
+access, mismatched source location, and valid matching input. Migration,
+credential provisioning, runtime identity integration, and disposable
+authorization checks remain open
+([contract](worker-tenant-context-contract.md); [source audit](worker-operation-map.md)).
+
+CI #342 failed in the pilot-seed phase because its farm-activity source-lineage
+UPDATE ran after migration 404's immutable-source trigger was installed. A
+second alignment-seed UPDATE would also change protected activity timestamps.
+The pilot seed now inserts lineage with its 30 records and the alignment seed
+no longer rewrites guarded activity rows. Two focused seed-contract checks
+pass; the combined focused run passes 16 tests. Hosted CI must rerun after this
+fix is pushed ([evidence](builds/2026-10-16-recovery/ci-342-pilot-seed-guard-fix.json)).
+
 ### Native Gateway operations for farm activity — 16 October 2026
 
 The owner-selected Gateway path now has bounded list/detail, draft create/edit,

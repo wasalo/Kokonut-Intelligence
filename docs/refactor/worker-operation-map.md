@@ -4,7 +4,9 @@
 
 **Status:** entrypoint inventory, scheduler argument contracts, and static
 local-import closure implemented; runtime effects and authorization boundaries
-remain open.
+remain open. The system-worker identity and tenant-context design is specified
+in the [worker context contract](worker-tenant-context-contract.md); no worker
+identity, migration, or runtime integration exists yet.
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
 the exact 15 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
@@ -204,8 +206,9 @@ Before worker RLS or runtime-grant reduction:
    before any activation.
 2. Finish the transitive call graph across calculators, helpers, dynamic SQL,
    providers and file/network effects.
-3. Design a non-forgeable system-worker identity and narrow database operation
-   grants. Do not infer a single location for cross-location work.
+3. Implement a non-forgeable system-worker identity and narrow database
+   operation grants using the [worker tenant-context contract](worker-tenant-context-contract.md).
+   Do not infer a single location for cross-location work.
 4. Re-run the reviewed worker operations under the final role in disposable
    PostgreSQL, then repeat lease/retry/effect tests. Candidate rollout and RLS
    remain separate gates.

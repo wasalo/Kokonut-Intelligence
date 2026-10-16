@@ -62,9 +62,20 @@ def handle_sensor_reading(
     sensor_id = payload.get("sensor_id") or payload.get("sensor_device_id")
     if not sensor_id:
         raise ValueError("sensor-reading events require sensor_id")
+    location_id = payload.get("location_id")
+    if not location_id:
+        raise ValueError("sensor-reading events require location_id")
     if not event_id:
         raise ValueError("sensor-reading event ID is required for idempotent processing")
-    run_check(sensor_id=str(sensor_id), event_id=str(event_id))
+    try:
+        canonical_location_id = str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise ValueError("sensor-reading event location_id must be a UUID") from exc
+    run_check(
+        sensor_id=str(sensor_id),
+        location_id=canonical_location_id,
+        event_id=str(event_id),
+    )
 
 logger = get_logger("ingestion.anomaly")
 
@@ -629,14 +640,27 @@ def get_sensor_device_info(db, sensor_device_id: str) -> dict:
     }
 
 
-def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None):
+def run_check(
+    sensor_id: str = None,
+    since: str = None,
+    *,
+    event_id: str = None,
+    location_id: str = None,
+):
     """Check recent readings against alert rules."""
+    stable_event_id = None
+    requested_location_id = None
+    if event_id is not None:
+        try:
+            stable_event_id = str(uuid.UUID(str(event_id)))
+            requested_location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("event processing requires valid event and location UUIDs") from exc
+
     db = get_db()
     try:
         event_reading = None
-        stable_event_id = None
-        if event_id is not None:
-            stable_event_id = str(uuid.UUID(str(event_id)))
+        if stable_event_id is not None:
             with db.cursor() as cur:
                 cur.execute(
                     """
@@ -646,8 +670,9 @@ def run_check(sensor_id: str = None, since: str = None, *, event_id: str = None)
                     JOIN sensor_reading sr ON sr.id = e.source_id
                     WHERE e.id = %s AND e.event_type = 'sensor_reading'
                       AND e.source_table = 'sensor_reading'
+                      AND sr.location_id = %s::uuid
                     """,
-                    (stable_event_id,),
+                    (stable_event_id, requested_location_id),
                 )
                 event_reading = cur.fetchone()
             if event_reading is None:

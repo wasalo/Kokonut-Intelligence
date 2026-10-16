@@ -15,7 +15,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **384 checked and 19 open items (403 total)**,
+- The execution checklist has **386 checked and 19 open items (405 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -26,9 +26,12 @@ MAN-CAP checks open until each has its own retained evidence.
   then added and pushed the separate operator-console panel; six focused console
   contract checks pass, including inline JavaScript syntax validation. Migration
   404 has not been applied to the candidate, and no MAN-CAP check was accepted.
-  Security #66 passed and CI #342 is in progress for the latest pushed SHA.
-  Current local edits additionally expose the full farm-activity content
-  allowlist in the create/edit forms; six focused console checks still pass.
+  Security #66 passed and CI #342 failed on a seed UPDATE that migration 404
+  correctly rejects. The local fix embeds immutable lineage in pilot INSERTs
+  and removes the later alignment UPDATE; 16 focused source checks pass. The
+  fix is pending push and hosted rerun. Current local edits additionally expose
+  the full farm-activity content allowlist in the create/edit forms; six focused
+  console checks still pass.
 - When this local batch began, the remote PR head was
   [`6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`](https://github.com/wasalo/Kokonut-Intelligence/commit/6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f)
   on `feat/mobile-offline-acceptance`, PR #68. CI #336 was pending and
@@ -258,7 +261,7 @@ database, then used as the rollback reference for the separately approved five-f
 | Batch | Selected checklist items | Code work to complete first | Owner or external gate held open |
 |---|---|---|---|
 | API and transport parity | 1, 3, 12, 14 | Finish REST/gRPC method and error parity, authenticated CORS, SDK contract coverage, and synthetic auth/scope checks. The enabled gRPC loopback slice now registers both generated services and exercises key/scope decisions; the Directus fixture preflight now blocks without writes when its required identity field is absent. | Real OIDC, trusted HTTPS certificate, Directus runtime identity/schema and effective permissions, tenant-specific parity, and release authorization. |
-| Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. | Known five-location owner mapping is now supplied. Map legacy operator affiliations and any additional/shared locations; provision runtime identities before enabling RLS. |
+| Tenant and database boundaries | 9, 12 | Extend transaction-bound tenant context across remaining Gateway routes and worker jobs; audit direct SQL and direct-database role access; add synthetic owner/share and denial checks. The system-worker identity, exact location grant, control-plane split, and first event-handler slice are specified in the [worker tenant-context contract](worker-tenant-context-contract.md); source integration and disposable acceptance remain open. | Known five-location owner mapping is now supplied. Map legacy operator affiliations and any additional/shared locations; provision runtime identities before enabling RLS. |
 | Recovery and delivery | 1, 4, 6 | Continue provider-off/failure, lease reclaim, retry/idempotency, duplicate prevention, process outage, and rollback checks with fake endpoints or disposable databases. | Production provider state, external delivery destination, schedule/operator inventory, alert/on-call owner, and a 24-hour run window. |
 | Reports and dashboards | 1, 5, 6, 10 | Port all repository-verified Kokonut surfaces, finish query safety and synthetic parity, and document migration boundaries. Do not infer saved-query ownership from the archived Metabase database or represent generic sample-H2 e-commerce cards as Kokonut product reports. | The owner supplied the common cross-lifecycle review audience: liquidity providers, DAO members, guild members, and the wider community. This does not grant blanket report access. Per-report visibility/scope, populated semantic fixtures, external/operator-edited consumers, and DB roles follow farm-data ingestion. |
 | Field Collector | 11, 13 | Expand isolated browser/API checks for retired forms, consent, queue behavior, and cleanup; no-network OIDC checks now cover login/session/logout, invalid claims before DB access, discovery metadata URL, requested scopes, and configured S256 PKCE. | Configure selected ZITADEL after the owner supplies the identity hostname and the secrets are provisioned; trusted HTTPS browser origin and human disposition/retention decisions remain open. |
