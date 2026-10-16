@@ -76,8 +76,10 @@ def test_successful_delivery_is_not_invoked_again():
     invoke.assert_not_called()
 
 
-def test_handler_child_environment_removes_all_worker_secrets():
+def test_handler_child_environment_allows_only_exact_anomaly_worker_identity():
     env = _handler_child_environment(
+        "services.ingestion.anomaly_detector",
+        "handle_sensor_reading",
         {
             "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
             "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
@@ -90,10 +92,28 @@ def test_handler_child_environment_removes_all_worker_secrets():
     )
 
     assert env == {
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
         "PG_PASSWORD": "legacy-runtime-secret",
         "KOKONUT_OPERATOR_AUTH_PASSWORD": "operator-secret",
         "DATABASE_URL": "application-config",
     }
+
+
+def test_unmapped_event_handler_receives_no_worker_identity():
+    env = _handler_child_environment(
+        "services.events.handlers",
+        "handle_alert_notification",
+        {
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+            "KOKONUT_EVENT_BUS_DATABASE_URL": "postgresql://events",
+            "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL": "event-secret",
+            "DATABASE_URL": "application-config",
+        },
+    )
+
+    assert env == {"DATABASE_URL": "application-config"}
 
 
 def test_handler_success_uses_filtered_environment_and_stdin_request():
@@ -112,22 +132,32 @@ def test_handler_success_uses_filtered_environment_and_stdin_request():
         clear=True,
     ), patch("services.events.bus.subprocess.Popen", return_value=process) as popen:
         status, error = bus._invoke_handler(
-            "module", "function", "kind", {"value": 2}, 5, event_id="event-1"
+            "services.ingestion.anomaly_detector",
+            "handle_sensor_reading",
+            "sensor_reading",
+            {"sensor_id": "sensor-1", "location_id": "location-1"},
+            5,
+            event_id="event-1",
         )
 
     assert (status, error) == ("success", None)
     args, kwargs = popen.call_args
     assert args[0] == [sys.executable, "-m", "services.events.handler_runner"]
-    assert kwargs["env"] == {"PG_PASSWORD": "runtime-secret"}
+    assert kwargs["env"] == {
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+        "PG_PASSWORD": "runtime-secret",
+    }
+    assert "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL" not in kwargs["env"]
     assert kwargs["stdin"] == subprocess.PIPE
     assert kwargs["stdout"] == subprocess.PIPE
     assert kwargs["text"] is True
     request = json.loads(process.communicate.call_args.args[0])
     assert request == {
-        "module_path": "module",
-        "function_name": "function",
-        "event_type": "kind",
-        "payload": {"value": 2},
+        "module_path": "services.ingestion.anomaly_detector",
+        "function_name": "handle_sensor_reading",
+        "event_type": "sensor_reading",
+        "payload": {"sensor_id": "sensor-1", "location_id": "location-1"},
         "event_id": "event-1",
     }
     assert "worker-secret" not in repr(args)

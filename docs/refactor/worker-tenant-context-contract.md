@@ -1,7 +1,7 @@
 # Worker tenant-context contract
 
-**Status:** first database/source adapter and dormant anomaly receipt/event/
-notification functions implemented and accepted on 16 October 2026. Migration
+**Status:** first database/source adapter and signed sensor-anomaly handler
+integration implemented and accepted in disposable checks on 16 October 2026. Migration
 410 adds a bounded actuation-intent function, accepted in fifteen focused
 disposable PostgreSQL checks. Migration 411 adds a bounded draft-claim function,
 accepted in fourteen focused disposable PostgreSQL checks. Migration 412 adds
@@ -9,24 +9,28 @@ four bounded read functions, accepted in ten disposable PostgreSQL checks.
 Migration 413 creates a source-validated alert, appends its ingestion audit
 row, and advances the reserved receipt atomically. Nine focused disposable
 PostgreSQL 16 checks pass, including forced-RLS writes and rollback on audit
-failure. The operation remains dormant and is not called by the handler.
-Migration 405 and the transaction-bound Python adapter establish an opt-in
-worker context; migrations 407–412 add bounded receipt, source-read,
+failure. Migration 414 completes the handler's bounded effect sequence and
+event/notification payload parity; seven end-to-end disposable PostgreSQL
+checks pass. Migration 405 and the transaction-bound Python adapter establish
+an opt-in worker context; migrations 407–414 add bounded receipt, source-read,
 rule/evaluation/cooldown, event-publication, notification-intent,
-actuation-intent, and draft-claim operations for `sensor_reading/process`.
-These remain dormant. No candidate database, worker credential, worker
-deployment, or handler dispatch was changed. Migration 412 adds a narrow owner
+actuation-intent, draft-claim, and worker-delivery operations for
+`sensor_reading/process`. The anomaly handler now uses these operations through
+one dedicated worker transaction, and EventBus secret forwarding is limited
+to this exact handler. No candidate database, worker credential, or active
+location grant was provisioned. Migration 412 adds a narrow owner
 SELECT policy only on source tables where RLS is already enabled; it does not
 enable RLS globally.
 
-The new `services.common.worker_database.get_worker_db()` factory is a
-source-only preparation for isolated execution. It requires a worker-specific
+The `services.common.worker_database.get_worker_db()` factory supports isolated
+execution and is used by the anomaly adapter. It requires a worker-specific
 `KOKONUT_<WORKER>_DATABASE_URL`, verifies the login is exactly
 `kokonut_worker_login`, enforces transactional mode, and never falls back to
-shared `PG_*` settings. It is not called by the dispatcher or anomaly handler;
-its twelve focused mocked unit checks pass. Per-handler credential delivery
-and complete effect integration remain open; bounded anomaly reads are now
-prepared in migration 412
+shared `PG_*` settings. The anomaly worker calls it through the exact-handler
+EventBus allowlist; twelve focused mocked unit checks pass. Code-level
+per-handler credential delivery is implemented; the actual credential and
+database identity remain unprovisioned. Bounded anomaly reads are implemented
+in migrations 412–414
 ([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).
 `get_worker_credential()` now similarly reads only the named worker secret,
 requires 32–4096 UTF-8 bytes, and never normalizes or logs the opaque value.
@@ -34,8 +38,8 @@ Do not place that secret in a shared dispatcher environment. Focused tests
 cover exact byte bounds, missing and fallback behavior, invalid UTF-8 text,
 opaque-value preservation, worker-key validation, and named-key-only lookup
 ([evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
-The secret reader is not integrated, and no real worker credential has been
-provisioned.
+The secret reader is integrated for this handler, but no real worker
+credential has been provisioned.
 
 ## Decision
 
@@ -98,49 +102,37 @@ The existing worker operation inventory shows two distinct kinds of work:
    first protected query and must revalidate source/event location against that
    authorization in SQL.
 
-The scheduler currently launches allowlisted modules in subprocesses, and the
-EventBus starts allowlisted handlers in subprocesses. Neither path
-establishes a signed tenant context today. The child must receive only the
-credential for its own execution identity. Credentials must not be inherited
-from a process that can dispatch unrelated operations; deployment-level
-principal separation is required before claiming isolation between handlers.
+The scheduler launches allowlisted modules in subprocesses without signed
+tenant context. The EventBus also starts allowlisted handlers in subprocesses;
+the sensor-anomaly handler establishes signed context, while other handlers do
+not yet have an operation-specific adapter. Each child must receive only the
+credential for its own execution identity. Deployment-level principal and
+credential provisioning remains required before activation.
 
 The shared application subprocess boundary removes worker-specific database
-URLs and credentials before exec, except for an explicit scheduler/event-bus
-key passed only to the matching service. The EventBus handler child currently
-receives no worker secret. Its request travels on stdin, not command-line
-arguments, and a small JSON result channel prevents handler stdout from
-corrupting status reporting. The runner validates the allowlisted
-module/function, preserves both legacy two-argument and `event_id` handler
-signatures, and kills/reaps timed-out children. Twenty-six mocked unit checks pass
+URLs and credentials before exec, except for explicit handler-to-worker
+allowlist entries. The EventBus now forwards the sensor-anomaly DSN and
+credential only to `services.ingestion.anomaly_detector.handle_sensor_reading`.
+The request travels on stdin, not command-line arguments, and a small JSON
+result channel prevents handler stdout from corrupting status reporting. The
+runner validates the allowlisted module/function, preserves legacy handler
+signatures, and kills/reaps timed-out children. Twenty-six subprocess-boundary
+unit checks plus focused exact-handler environment checks pass
 ([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
-No secret is yet delivered to a handler; the dispatcher has no trusted
-handler-to-worker identity mapping, and handlers still use their existing
-shared runtime database path.
 
 ## First implementation slice
 
-Use `services.ingestion.anomaly_detector.handle_sensor_reading` as the first
-tenant-execution adapter because the durable `sensor_reading` event already
-contains a location ID and the handler is explicitly allowlisted. The first
-source slice now requires a canonical location UUID and constrains the source
-event/reading join by that location. This is not signed worker context or tenant
-authorization. Migrations 405–412 provide dormant context, reads, and effect
-operations for the complete adapter, which still must:
-
-1. Require and canonicalize `payload.location_id` before opening a database
-   connection; reject missing or malformed values.
-2. Establish database-signed worker context for that location and the exact
-   anomaly-processing operation before querying the source event or reading.
-3. Require the joined `platform_event` and `sensor_reading` to match the event
-   ID, event type, source table, source row, sensor ID, and authorized location.
-4. Preserve the current event receipt, alert idempotency, notification outbox,
-   and human-approved actuation boundaries. Shared alert-rule configuration is
-   a read-only reference input; event execution now skips the default-rule
-   bootstrap, which remains available to the interactive CLI.
-5. Keep queue claim, lease renewal, acknowledgement, retry, and dead-letter
-   operations in the control-plane boundary. Do not broaden the anomaly
-   execution identity to claim or complete arbitrary events.
+`services.ingestion.anomaly_detector.handle_sensor_reading` is the first
+tenant-execution adapter. It requires and canonicalizes `payload.location_id`
+before connecting, establishes database-signed context, and delegates to the
+worker module's bounded reads and writes. Migrations 405–414 and the adapter
+preserve exact source/event/location matching, idempotent effects, read-only
+alert-rule references, caller-owned transaction semantics, and human-approved
+actuation. Event execution skips default-rule bootstrap; the interactive CLI
+retains it. Queue claim, lease, acknowledgement, retry, and dead-letter work
+remain in the control-plane boundary. The source integration passes seven
+end-to-end checks on disposable PostgreSQL; real worker provisioning, candidate
+rollout, and live crash/recovery acceptance remain open.
 
 The first location-lineage source change is in
 `services/ingestion/anomaly_detector.py`. Migration 405 adds private worker
@@ -148,12 +140,10 @@ principals, SHA-256 credential digests, exact tenant/location/resource/action
 grants, a dedicated `kokonut_worker_execution` group role, the bounded signed
 context setter, and an exact-scope accessor. `services/common/tenant_context.py`
 hashes the supplied worker secret in memory, clears prior context, assumes the
-dedicated role locally, and requires a non-autocommit transaction. The adapter
-is not yet connected to an event or scheduled handler: no worker-only credential
-is provisioned, and the EventBus currently filters worker secrets from all
-handler children. A future static policy may deliver only the credential
-selected for the handler's trusted worker identity after the handler's
-signed-context integration is complete.
+dedicated role locally, and requires a non-autocommit transaction. The anomaly
+adapter now uses these primitives. No real worker-only credential, login, or
+active location grant is provisioned; the disposable acceptance uses synthetic
+values only.
 
 Migration 412 supplies the read contract through four SECURITY DEFINER
 functions owned by `kokonut_anomaly_read_owner`, a no-login,
@@ -191,11 +181,26 @@ function `EXECUTE` only. Nine disposable PostgreSQL 16 checks pass for replay,
 missing/mismatched scope, rule validation, required receipt, source-derived
 alert fields, single audit linkage, duplicate suppression, atomic rollback,
 forced RLS, and role/table boundaries. Candidate and legacy databases were not
-accessed; this function remains unconnected to the handler
+accessed; handler integration is accepted separately by migration 414's
+end-to-end disposable runner
 ([migration](../../schemas/postgres/413_sensor_anomaly_alert_write.sql);
 [fixture](../../tests/fixtures/sensor_anomaly_alert_write_disposable.sql);
 [runner](../../scripts/check-sensor-anomaly-alert-write-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-alert-write-disposable.json)).
+
+Migration 414 and `services.ingestion.sensor_anomaly_worker` now connect the
+bounded operations in one non-autocommit transaction. EventBus sends the
+worker-specific DSN and opaque credential only to the exact anomaly handler.
+The runner applies/replays migrations 405–414, invokes the Python worker with
+synthetic credentials under forced RLS, verifies canonical notification
+payload parity, draft claims, approval-only actuation intent, idempotent
+retries, and direct-table denial, and passes seven checks. No candidate or
+legacy database was accessed. A real login, secret, active location grant,
+candidate rollout, global application RLS, and live provider/worker crash
+acceptance are still required
+([migration](../../schemas/postgres/414_sensor_anomaly_worker_delivery.sql);
+[runner](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json)).
 
 The focused anomaly and pilot seed-guard suites passed 19 tests, the EventBus
 durability suite passed 17 tests, and two transaction tests passed. They cover
@@ -297,11 +302,13 @@ Remaining worker-permission work before broader integration:
    and event/reading/device/rule relationships; the worker receives no direct
    source-table SELECT. Ten focused disposable PostgreSQL 16 checks pass for
    replay, forced RLS, metric results, cooldown, and role boundaries.
-7. Integrate the anomaly handler only after its credential is isolated from
-   unrelated dispatch. Keep alert creation, receipt update, claim creation,
-   alert publication, notification enqueue, and actuation intent creation in
-   one caller-owned transaction; the worker must not submit, verify, publish,
-   reject, or transmit actuator commands.
+7. **Complete in source and disposable acceptance:** integrate the anomaly
+   handler with isolated worker resolvers and bounded operations. Keep alert
+   creation, receipt update, claim creation, alert publication, notification
+   enqueue, and actuation intent creation in one caller-owned transaction; the
+   worker must not submit, verify, publish, reject, or transmit actuator
+   commands. Seven end-to-end checks pass; live recovery against this adapter
+   remains open.
 8. Provision an isolated worker login/credential in a restored disposable
    database. Verify that it cannot read worker grants, sign operator context,
    issue another worker identity, or access unrelated tenant rows.
@@ -416,17 +423,17 @@ gates.
   signed source/alert receipt and published sensor-alert event. It fixes the
   destination key, allowlists channel payload fields, enforces a 16 KiB limit,
   inserts pending intent only, and preserves delivery and attempt state on
-  replay. Twelve disposable PostgreSQL 16 checks pass; the anomaly handler is
-  not yet wired to this function.
+  replay. Twelve disposable PostgreSQL 16 checks pass; migration 414 now wires
+  the handler through this function.
 - Migration 412's bounded source read and metric evaluation validate signed
   location plus event/source/sensor selectors; the rule list checks the
   device's sensor type and enabled state; history and cooldown queries stay in
   the same location. Ten disposable PostgreSQL 16 checks pass, including a
-  forced-RLS source read and worker direct-table denial. The anomaly handler is
-  not yet wired to these functions.
+  forced-RLS source read and worker direct-table denial. Migration 414 now
+  wires the handler through these functions.
 - Event receipt semantics, idempotency, retries, and outbox effects remain
   unchanged under disposable PostgreSQL and source-level checks.
-- Migrations 405–412 are tested only in disposable databases. No migration is
+- Migrations 405–414 are tested only in disposable databases. No migration is
   applied to the candidate, no worker is activated, and no application-table
   RLS rollout is enabled. Migration 412's narrow owner SELECT policy is added
   only where a source table already has RLS enabled or forced.

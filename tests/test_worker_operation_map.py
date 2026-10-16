@@ -84,7 +84,7 @@ def test_sensor_anomaly_effect_contract_matches_source_operation_map():
     assert all(item["current_enforcement"].strip() for item in effects)
     assert all(item["class"] for item in effects)
     assert "commit=False" in contract["transaction"]["event_publication"]
-    assert "no dispatcher currently establishes it" in contract["transaction"]["context"]
+    assert "integrated anomaly worker establishes it" in contract["transaction"]["context"]
 
     by_relation = {item["relation"]: item for item in effects}
     assert "select_enabled_reference" in by_relation["public.alert_rule"]["access"]

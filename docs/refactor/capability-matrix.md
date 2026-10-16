@@ -2123,3 +2123,22 @@ with a dedicated worker identity, and no MAN-CAP status changes
 ([migration](../schemas/postgres/413_sensor_anomaly_alert_write.sql);
 [runner](../scripts/check-sensor-anomaly-alert-write-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-alert-write-disposable.json)).
+
+### CAP-040/047 signed sensor-anomaly worker integration — 16 October 2026
+
+`handle_sensor_reading` now uses the worker-only database and credential
+resolvers, sets transaction-bound `sensor_reading/process` context, and calls
+the bounded read, receipt, alert/audit, draft-claim, event, notification, and
+approval-intent functions on one connection. EventBus child-process secret
+routing is allowlisted for this exact handler. Migration 414 adds canonical
+notification context to published alert events, a signed boolean-only check
+for configured actuation, and no-login function-owner policies needed when
+source tables already enforce RLS. Forty-five focused anomaly/EventBus tests
+and seven disposable PostgreSQL 16 end-to-end checks pass. The worker login,
+credential and location grant are not provisioned; migration 414 is not on the
+candidate, global RLS is not enabled, and live EventBus recovery, provider
+delivery and human actuation acceptance remain open. This implementation does
+not change MAN-CAP status ([adapter](../services/ingestion/sensor_anomaly_worker.py);
+[migration](../schemas/postgres/414_sensor_anomaly_worker_delivery.sql);
+[runner](../scripts/check-sensor-anomaly-worker-delivery-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json)).

@@ -2,24 +2,40 @@
 
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
-### Signed sensor-anomaly alert write boundary — 16 October 2026
+### Signed sensor-anomaly worker integration — 16 October 2026
 
-Migration 413 adds a dormant `create_sensor_anomaly_alert` operation behind a
-separate no-login function owner. It requires signed
-`sensor_reading/process` context, revalidates the source event, reading,
-location, device, and enabled rule, and requires a matching reserved
-`no_match` receipt. It creates the location-bound alert, appends its
-`ingestion_log` row, and advances the receipt to `alert_created` atomically.
-The worker has function EXECUTE only; direct alert/audit/receipt table writes
-remain denied. Nine focused checks passed on disposable PostgreSQL 16,
-including migration replay, forced-RLS execution, duplicate suppression, and
-rollback of the alert and receipt when the audit insert fails. The synthetic
-test container was removed; candidate and legacy databases were not accessed.
-The handler still uses its existing path, migration 413 is not rolled out to
-the candidate, and global application RLS remains disabled
-([migration](../../schemas/postgres/413_sensor_anomaly_alert_write.sql);
-[runner](../../scripts/check-sensor-anomaly-alert-write-disposable.py);
-[evidence](builds/2026-10-16-recovery/sensor-anomaly-alert-write-disposable.json)).
+`handle_sensor_reading` now delegates to a worker-only adapter. It opens only
+`KOKONUT_SENSOR_ANOMALY_DATABASE_URL`, validates the login, hashes the named
+worker credential in memory, establishes signed `sensor_reading/process`
+context, and keeps reads, receipts, alert/audit creation, a draft claim,
+notification intents, the follow-up event, and an optional approval-required
+actuation intent on one non-autocommit connection. The event dispatcher passes
+the worker DSN and credential only to this exact allowlisted handler. The
+interactive anomaly CLI retains its shared-database path; event calls to that
+path now fail before connecting.
+
+Migration 414 enriches canonical alert events with the fields used by
+notification formatters, adds a signed, boolean-only actuator-configuration
+read, and installs missing no-login function-owner policies when source tables
+are forced under RLS. No worker can send commands. The published event and
+transactionally inserted notification intent have matching payloads, so the
+later notification handler deduplicates them. The source receipt suppresses
+event retries.
+
+Forty-five focused anomaly and event-bus tests pass. The isolated PostgreSQL 16
+runner applies and replays migrations 405–414, then exercises the Python worker
+with synthetic credentials and a disposable database. Seven checks pass for
+signed scope, forced-RLS function use, source-derived alert/claim linkage,
+notification parity/idempotency, approval-only actuation intent, receipt
+retry suppression, and direct-table denial. Ruff, Python compilation, provider
+boundaries, dependency alignment, static worker inventories, and diff checks
+pass. No external provider, candidate database, or legacy database was
+accessed. The worker login, credential, and location grant are not provisioned;
+migration 414 is not applied to the candidate, and global application RLS
+remains disabled
+([migration](../../schemas/postgres/414_sensor_anomaly_worker_delivery.sql);
+[runner](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json)).
 
 ### Signed sensor-anomaly read boundary — 16 October 2026
 
@@ -48,15 +64,13 @@ signed tenant context. A new contract defines a database-verified
 `system_worker` identity, exact location/resource/action grants, database-side
 owner resolution, a separate control-plane boundary for global leases/queues,
 and the sensor-reading event handler as the first tenant-execution adapter.
-The first dormant migrations now establish its signed context and bounded
-anomaly operations. The allowlisted
-sensor-reading handler now requires a canonical event location and binds the
-source-row lookup to it. This is location-lineage validation, not signed worker
-authorization. The owner approved focused checks; six anomaly-handler cases
-pass for missing/malformed locations, canonicalization, validation before DB
-access, mismatched source location, and valid matching input. Migration,
-credential provisioning, runtime identity integration, and disposable
-authorization checks remain open
+The first migrations establish its signed context and bounded anomaly
+operations. The allowlisted sensor-reading handler requires a canonical event
+location and now uses the signed worker adapter described above. This is code
+and disposable-database acceptance only: worker login, credential and active
+location grant provisioning, plus candidate rollout, remain open. Focused
+checks cover handler validation, database authorization, and exact child-secret
+routing
 ([contract](worker-tenant-context-contract.md); [source audit](worker-operation-map.md)).
 
 CI #342 failed in the pilot-seed phase because its farm-activity source-lineage

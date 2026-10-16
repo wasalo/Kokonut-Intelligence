@@ -4,11 +4,11 @@
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 20,
-    "source_files": 77,
+    "source_files": 81,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 391,
-    "direct_call_edges": 534,
-    "callback_edges": 1,
+    "function_memberships": 382,
+    "direct_call_edges": 528,
+    "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
   "operations": [
@@ -24,6 +24,7 @@
         "services/common/db.py",
         "services/common/env.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/providers.py",
         "services/credit_class/chain_sync.py",
         "services/ingestion/config.py"
@@ -157,6 +158,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/providers.py",
         "services/events/__init__.py",
         "services/events/__main__.py",
@@ -203,6 +205,14 @@
           "line": 33
         },
         {
+          "key": "services.common.worker_environment:worker_subprocess_environment",
+          "module": "services.common.worker_environment",
+          "qualname": "worker_subprocess_environment",
+          "class_scope": null,
+          "source": "services/common/worker_environment.py",
+          "line": 15
+        },
+        {
           "key": "services.core.providers:ProviderSettings.from_environment",
           "module": "services.core.providers",
           "qualname": "ProviderSettings.from_environment",
@@ -224,7 +234,7 @@
           "qualname": "EventBus._claim",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 91
+          "line": 103
         },
         {
           "key": "services.events.bus:EventBus._complete",
@@ -232,7 +242,7 @@
           "qualname": "EventBus._complete",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 229
+          "line": 265
         },
         {
           "key": "services.events.bus:EventBus._get_conn",
@@ -240,7 +250,7 @@
           "qualname": "EventBus._get_conn",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 51
+          "line": 61
         },
         {
           "key": "services.events.bus:EventBus._invoke_handler",
@@ -248,7 +258,7 @@
           "qualname": "EventBus._invoke_handler",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 209
+          "line": 221
         },
         {
           "key": "services.events.bus:EventBus._process_event",
@@ -256,7 +266,7 @@
           "qualname": "EventBus._process_event",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 142
+          "line": 154
         },
         {
           "key": "services.events.bus:EventBus._retry_or_dead_letter",
@@ -264,7 +274,7 @@
           "qualname": "EventBus._retry_or_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 242
+          "line": 278
         },
         {
           "key": "services.events.bus:EventBus.cleanup_old_events",
@@ -272,7 +282,7 @@
           "qualname": "EventBus.cleanup_old_events",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 325
+          "line": 361
         },
         {
           "key": "services.events.bus:EventBus.close",
@@ -280,7 +290,7 @@
           "qualname": "EventBus.close",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 59
+          "line": 69
         },
         {
           "key": "services.events.bus:EventBus.dispose_dead_letter",
@@ -288,7 +298,7 @@
           "qualname": "EventBus.dispose_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 300
+          "line": 336
         },
         {
           "key": "services.events.bus:EventBus.get_stats",
@@ -296,7 +306,7 @@
           "qualname": "EventBus.get_stats",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 318
+          "line": 354
         },
         {
           "key": "services.events.bus:EventBus.process_pending",
@@ -304,7 +314,7 @@
           "qualname": "EventBus.process_pending",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 115
+          "line": 127
         },
         {
           "key": "services.events.bus:EventBus.replay_dead_letter",
@@ -312,23 +322,15 @@
           "qualname": "EventBus.replay_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 267
+          "line": 303
         },
         {
-          "key": "services.events.bus:_handler_process",
+          "key": "services.events.bus:_handler_child_environment",
           "module": "services.events.bus",
-          "qualname": "_handler_process",
+          "qualname": "_handler_child_environment",
           "class_scope": null,
           "source": "services/events/bus.py",
           "line": 29
-        },
-        {
-          "key": "services.events.bus:resolve_handler",
-          "module": "services.events.bus",
-          "qualname": "resolve_handler",
-          "class_scope": null,
-          "source": "services/events/bus.py",
-          "line": 20
         },
         {
           "key": "services.events.cli:_get_conn",
@@ -592,7 +594,7 @@
           "qualname": "_deliver",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 309
+          "line": 333
         },
         {
           "key": "services.events.notification_outbox:_finish_attempt",
@@ -600,7 +602,7 @@
           "qualname": "_finish_attempt",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 372
+          "line": 396
         },
         {
           "key": "services.events.notification_outbox:_recover_expired_leases",
@@ -608,7 +610,7 @@
           "qualname": "_recover_expired_leases",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 219
+          "line": 243
         },
         {
           "key": "services.events.notification_outbox:_retry_delay_seconds",
@@ -616,7 +618,7 @@
           "qualname": "_retry_delay_seconds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 367
+          "line": 391
         },
         {
           "key": "services.events.notification_outbox:_storage_thresholds",
@@ -624,7 +626,7 @@
           "qualname": "_storage_thresholds",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 445
+          "line": 469
         },
         {
           "key": "services.events.notification_outbox:_validate_operator",
@@ -632,7 +634,7 @@
           "qualname": "_validate_operator",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 526
+          "line": 550
         },
         {
           "key": "services.events.notification_outbox:claim_batch",
@@ -640,7 +642,7 @@
           "qualname": "claim_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 245
+          "line": 269
         },
         {
           "key": "services.events.notification_outbox:deliver_batch",
@@ -648,7 +650,7 @@
           "qualname": "deliver_batch",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 419
+          "line": 443
         },
         {
           "key": "services.events.notification_outbox:dispose_dead_letter",
@@ -656,7 +658,7 @@
           "qualname": "dispose_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 576
+          "line": 600
         },
         {
           "key": "services.events.notification_outbox:get_stats",
@@ -664,7 +666,7 @@
           "qualname": "get_stats",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 465
+          "line": 489
         },
         {
           "key": "services.events.notification_outbox:list_dead_letters",
@@ -672,7 +674,7 @@
           "qualname": "list_dead_letters",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 507
+          "line": 531
         },
         {
           "key": "services.events.notification_outbox:replay_dead_letter",
@@ -680,7 +682,7 @@
           "qualname": "replay_dead_letter",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
-          "line": 534
+          "line": 558
         },
         {
           "key": "services.events.retention:event_retention_cleanup_enabled",
@@ -697,14 +699,6 @@
           "class_scope": null,
           "source": "services/events/retention.py",
           "line": 15
-        },
-        {
-          "key": "services.security.execution_allowlist:validate_event_handler",
-          "module": "services.security.execution_allowlist",
-          "qualname": "validate_event_handler",
-          "class_scope": null,
-          "source": "services/security/execution_allowlist.py",
-          "line": 36
         }
       ],
       "direct_call_edges": [
@@ -712,115 +706,115 @@
           "caller": "services.events.bus:EventBus._claim",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 93
+          "line": 105
         },
         {
           "caller": "services.events.bus:EventBus._complete",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 230
+          "line": 266
         },
         {
           "caller": "services.events.bus:EventBus._get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/bus.py",
-          "line": 55
+          "line": 65
+        },
+        {
+          "caller": "services.events.bus:EventBus._invoke_handler",
+          "callee": "services.events.bus:_handler_child_environment",
+          "source": "services/events/bus.py",
+          "line": 242
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._complete",
           "source": "services/events/bus.py",
-          "line": 157
+          "line": 169
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._complete",
           "source": "services/events/bus.py",
-          "line": 207
+          "line": 219
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 143
+          "line": 155
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._invoke_handler",
           "source": "services/events/bus.py",
-          "line": 186
+          "line": 198
         },
         {
           "caller": "services.events.bus:EventBus._retry_or_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 243
+          "line": 279
         },
         {
           "caller": "services.events.bus:EventBus.cleanup_old_events",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 331
+          "line": 367
         },
         {
           "caller": "services.events.bus:EventBus.cleanup_old_events",
           "callee": "services.events.retention:require_event_retention_cleanup",
           "source": "services/events/bus.py",
-          "line": 330
+          "line": 366
         },
         {
           "caller": "services.events.bus:EventBus.dispose_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 307
+          "line": 343
         },
         {
           "caller": "services.events.bus:EventBus.get_stats",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 319
+          "line": 355
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._claim",
           "source": "services/events/bus.py",
-          "line": 119
+          "line": 131
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 117
+          "line": 129
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._process_event",
           "source": "services/events/bus.py",
-          "line": 122
+          "line": 134
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._retry_or_dead_letter",
           "source": "services/events/bus.py",
-          "line": 132
+          "line": 144
         },
         {
           "caller": "services.events.bus:EventBus.replay_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 270
+          "line": 306
         },
         {
-          "caller": "services.events.bus:_handler_process",
-          "callee": "services.events.bus:resolve_handler",
+          "caller": "services.events.bus:_handler_child_environment",
+          "callee": "services.common.worker_environment:worker_subprocess_environment",
           "source": "services/events/bus.py",
-          "line": 32
-        },
-        {
-          "caller": "services.events.bus:resolve_handler",
-          "callee": "services.security.execution_allowlist:validate_event_handler",
-          "source": "services/events/bus.py",
-          "line": 22
+          "line": 37
         },
         {
           "caller": "services.events.cli:_get_conn",
@@ -1336,67 +1330,67 @@
           "caller": "services.events.notification_outbox:_deliver",
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/events/notification_outbox.py",
-          "line": 322
+          "line": 346
         },
         {
           "caller": "services.events.notification_outbox:_finish_attempt",
           "callee": "services.events.notification_outbox:_retry_delay_seconds",
           "source": "services/events/notification_outbox.py",
-          "line": 380
+          "line": 404
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_configured_channels",
           "source": "services/events/notification_outbox.py",
-          "line": 260
+          "line": 284
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 262
+          "line": 286
         },
         {
           "caller": "services.events.notification_outbox:claim_batch",
           "callee": "services.events.notification_outbox:_recover_expired_leases",
           "source": "services/events/notification_outbox.py",
-          "line": 267
+          "line": 291
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_deliver",
           "source": "services/events/notification_outbox.py",
-          "line": 426
+          "line": 450
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:_finish_attempt",
           "source": "services/events/notification_outbox.py",
-          "line": 435
+          "line": 459
         },
         {
           "caller": "services.events.notification_outbox:deliver_batch",
           "callee": "services.events.notification_outbox:claim_batch",
           "source": "services/events/notification_outbox.py",
-          "line": 421
+          "line": 445
         },
         {
           "caller": "services.events.notification_outbox:dispose_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 586
+          "line": 610
         },
         {
           "caller": "services.events.notification_outbox:get_stats",
           "callee": "services.events.notification_outbox:_storage_thresholds",
           "source": "services/events/notification_outbox.py",
-          "line": 486
+          "line": 510
         },
         {
           "caller": "services.events.notification_outbox:replay_dead_letter",
           "callee": "services.events.notification_outbox:_validate_operator",
           "source": "services/events/notification_outbox.py",
-          "line": 535
+          "line": 559
         },
         {
           "caller": "services.events.retention:require_event_retention_cleanup",
@@ -1405,15 +1399,7 @@
           "line": 17
         }
       ],
-      "callback_edges": [
-        {
-          "caller": "services.events.bus:EventBus._invoke_handler",
-          "callee": "services.events.bus:_handler_process",
-          "source": "services/events/bus.py",
-          "line": 214,
-          "dispatch": "multiprocessing_process_target"
-        }
-      ],
+      "callback_edges": [],
       "dynamic_dispatch_edges": []
     },
     {
@@ -1424,6 +1410,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/worker_environment.py",
         "services/core/features.py",
         "services/core/providers.py",
         "services/export/dataset_refresh.py"
@@ -1598,6 +1585,9 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/adapters/mqtt.py",
         "services/core/providers.py",
@@ -1609,48 +1599,49 @@
         "services/ingestion/config.py",
         "services/ingestion/ml_anomaly_detector.py",
         "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/sensor_anomaly_worker.py",
         "services/security/execution_allowlist.py"
       ],
       "entry_functions": [
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1065
+          "line": 1175
         },
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1070
+          "line": 1180
         },
         {
           "function": "services.ingestion.anomaly_detector:list_rules",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1054
+          "line": 1164
         },
         {
           "function": "services.ingestion.anomaly_detector:run_baseline_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1056
+          "line": 1166
         },
         {
           "function": "services.ingestion.anomaly_detector:run_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1074
+          "line": 1184
         },
         {
           "function": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1061
+          "line": 1171
         },
         {
           "function": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1064
+          "line": 1174
         },
         {
           "function": "services.ingestion.ml_anomaly_detector:save_models",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1069
+          "line": 1179
         }
       ],
       "reachable_functions": [
@@ -1684,7 +1675,7 @@
           "qualname": "EventBus._get_conn",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 51
+          "line": 61
         },
         {
           "key": "services.events.bus:EventBus.publish",
@@ -1692,7 +1683,7 @@
           "qualname": "EventBus.publish",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 64
+          "line": 74
         },
         {
           "key": "services.events.notification_outbox:_notification_payloads",
@@ -1724,7 +1715,7 @@
           "qualname": "check_cooldown",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 369
+          "line": 382
         },
         {
           "key": "services.ingestion.anomaly_detector:compute_gap_hours",
@@ -1732,7 +1723,7 @@
           "qualname": "compute_gap_hours",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 282
+          "line": 295
         },
         {
           "key": "services.ingestion.anomaly_detector:compute_rate_of_change",
@@ -1740,7 +1731,7 @@
           "qualname": "compute_rate_of_change",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 238
+          "line": 251
         },
         {
           "key": "services.ingestion.anomaly_detector:compute_window_stats",
@@ -1748,7 +1739,7 @@
           "qualname": "compute_window_stats",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 308
+          "line": 321
         },
         {
           "key": "services.ingestion.anomaly_detector:create_alert",
@@ -1756,7 +1747,7 @@
           "qualname": "create_alert",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 392
+          "line": 412
         },
         {
           "key": "services.ingestion.anomaly_detector:ensure_alert_rules",
@@ -1764,7 +1755,7 @@
           "qualname": "ensure_alert_rules",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 180
+          "line": 193
         },
         {
           "key": "services.ingestion.anomaly_detector:evaluate_metric",
@@ -1772,7 +1763,7 @@
           "qualname": "evaluate_metric",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 336
+          "line": 349
         },
         {
           "key": "services.ingestion.anomaly_detector:evaluate_rule",
@@ -1780,7 +1771,7 @@
           "qualname": "evaluate_rule",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 218
+          "line": 231
         },
         {
           "key": "services.ingestion.anomaly_detector:get_sensor_device_info",
@@ -1788,7 +1779,7 @@
           "qualname": "get_sensor_device_info",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 604
+          "line": 645
         },
         {
           "key": "services.ingestion.anomaly_detector:list_rules",
@@ -1796,7 +1787,7 @@
           "qualname": "list_rules",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1012
+          "line": 1122
         },
         {
           "key": "services.ingestion.anomaly_detector:run_baseline_check",
@@ -1804,7 +1795,7 @@
           "qualname": "run_baseline_check",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 872
+          "line": 982
         },
         {
           "key": "services.ingestion.anomaly_detector:run_check",
@@ -1812,7 +1803,7 @@
           "qualname": "run_check",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 632
+          "line": 676
         },
         {
           "key": "services.ingestion.anomaly_detector:send_actuation_commands",
@@ -1820,7 +1811,7 @@
           "qualname": "send_actuation_commands",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 541
+          "line": 582
         },
         {
           "key": "services.ingestion.anomaly_detector:send_directus_notification",
@@ -1828,7 +1819,7 @@
           "qualname": "send_directus_notification",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 497
+          "line": 538
         },
         {
           "key": "services.ingestion.anomaly_detector:send_email_notification",
@@ -1836,7 +1827,7 @@
           "qualname": "send_email_notification",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 446
+          "line": 487
         },
         {
           "key": "services.ingestion.anomaly_detector:send_notifications",
@@ -1844,7 +1835,7 @@
           "qualname": "send_notifications",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 534
+          "line": 575
         },
         {
           "key": "services.ingestion.base:get_db",
@@ -2012,13 +2003,13 @@
           "caller": "services.events.bus:EventBus._get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/bus.py",
-          "line": 55
+          "line": 65
         },
         {
           "caller": "services.events.bus:EventBus.publish",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 75
+          "line": 85
         },
         {
           "caller": "services.events.notification_outbox:_notification_payloads",
@@ -2030,205 +2021,205 @@
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 176
+          "line": 182
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:compute_gap_hours",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 349
+          "line": 362
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:compute_rate_of_change",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 343
+          "line": 356
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:compute_window_stats",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 355
+          "line": 368
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:compute_window_stats",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 361
+          "line": 374
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:evaluate_rule",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 340
+          "line": 353
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:evaluate_rule",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 346
+          "line": 359
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:evaluate_rule",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 352
+          "line": 365
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:evaluate_rule",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 358
+          "line": 371
         },
         {
           "caller": "services.ingestion.anomaly_detector:evaluate_metric",
           "callee": "services.ingestion.anomaly_detector:evaluate_rule",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 364
+          "line": 377
         },
         {
           "caller": "services.ingestion.anomaly_detector:list_rules",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1014
+          "line": 1124
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:_get_event_bus",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 985
+          "line": 1095
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:check_cooldown",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 965
+          "line": 1075
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:create_alert",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 968
+          "line": 1078
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:get_sensor_device_info",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 973
+          "line": 1083
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:send_notifications",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 983
+          "line": 1093
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 878
+          "line": 988
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.events.bus:EventBus.publish",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 844
+          "line": 953
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.events.notification_outbox:enqueue_event_notification",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 835
+          "line": 943
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:check_cooldown",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 765
+          "line": 851
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:create_alert",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 781
+          "line": 874
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:ensure_alert_rules",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 658
+          "line": 736
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:evaluate_metric",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 778
+          "line": 871
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:get_sensor_device_info",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 800
+          "line": 881
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:send_actuation_commands",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 841
+          "line": 950
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:send_notifications",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 821
+          "line": 925
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 634
+          "line": 697
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 794
+          "line": 894
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 787
+          "line": 887
         },
         {
           "caller": "services.ingestion.anomaly_detector:send_actuation_commands",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 552
+          "line": 593
         },
         {
           "caller": "services.ingestion.anomaly_detector:send_actuation_commands",
           "callee": "services.ingestion.mqtt_actuator:send_actuation_command",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 587
+          "line": 628
         },
         {
           "caller": "services.ingestion.anomaly_detector:send_notifications",
           "callee": "services.ingestion.anomaly_detector:send_actuation_commands",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 538
+          "line": 579
         },
         {
           "caller": "services.ingestion.anomaly_detector:send_notifications",
           "callee": "services.ingestion.anomaly_detector:send_directus_notification",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 537
+          "line": 578
         },
         {
           "caller": "services.ingestion.anomaly_detector:send_notifications",
           "callee": "services.ingestion.anomaly_detector:send_email_notification",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 536
+          "line": 577
         },
         {
           "caller": "services.ingestion.base:get_db",
@@ -2240,7 +2231,7 @@
           "caller": "services.ingestion.base:log_ingestion",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 154
+          "line": 155
         },
         {
           "caller": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
@@ -2418,6 +2409,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -2470,6 +2462,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -2665,7 +2658,7 @@
           "caller": "services.ingestion.base:log_ingestion",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 154
+          "line": 155
         },
         {
           "caller": "services.ingestion.climate_data:fetch_modis",
@@ -2951,6 +2944,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -3201,6 +3195,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -3270,7 +3265,7 @@
           "qualname": "update_indexer_status",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 186
+          "line": 187
         },
         {
           "key": "services.ingestion.clickhouse_outbox:enqueue",
@@ -3332,7 +3327,7 @@
           "caller": "services.ingestion.base:log_ingestion",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 154
+          "line": 155
         },
         {
           "caller": "services.ingestion.base:post_clickhouse_rows",
@@ -3344,7 +3339,7 @@
           "caller": "services.ingestion.base:update_indexer_status",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 202
+          "line": 203
         },
         {
           "caller": "services.ingestion.eas_indexer:insert_clickhouse",
@@ -3432,6 +3427,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -3469,7 +3465,7 @@
           "qualname": "batch_ranges",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 288
+          "line": 289
         },
         {
           "key": "services.ingestion.base:get_db",
@@ -3485,7 +3481,7 @@
           "qualname": "get_last_synced_block",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 227
+          "line": 228
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -3501,7 +3497,7 @@
           "qualname": "now_utc",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 283
+          "line": 284
         },
         {
           "key": "services.ingestion.base:post_clickhouse_rows",
@@ -3517,7 +3513,7 @@
           "qualname": "update_indexer_status",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 186
+          "line": 187
         },
         {
           "key": "services.ingestion.clickhouse_outbox:enqueue",
@@ -3659,7 +3655,7 @@
           "caller": "services.ingestion.base:get_last_synced_block",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 231
+          "line": 232
         },
         {
           "caller": "services.ingestion.base:post_clickhouse_rows",
@@ -3671,7 +3667,7 @@
           "caller": "services.ingestion.base:update_indexer_status",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 202
+          "line": 203
         },
         {
           "caller": "services.ingestion.gnosis_indexer:get_moloch_contract",
@@ -3902,6 +3898,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -4096,6 +4093,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -4400,7 +4398,7 @@
           "caller": "services.ingestion.base:log_ingestion",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 154
+          "line": 155
         },
         {
           "caller": "services.ingestion.base:post_clickhouse_rows",
@@ -4602,6 +4600,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -4687,7 +4686,7 @@
           "qualname": "now_utc",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 283
+          "line": 284
         },
         {
           "key": "services.ingestion.base:update_indexer_status",
@@ -4695,7 +4694,7 @@
           "qualname": "update_indexer_status",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 186
+          "line": 187
         },
         {
           "key": "services.ingestion.clickhouse_outbox:enqueue",
@@ -4797,7 +4796,7 @@
           "caller": "services.ingestion.base:update_indexer_status",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 202
+          "line": 203
         },
         {
           "caller": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
@@ -4897,6 +4896,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/events/bus.py",
@@ -5193,7 +5193,7 @@
           "caller": "services.ingestion.base:log_ingestion",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 154
+          "line": 155
         },
         {
           "caller": "services.ingestion.base:post_clickhouse_rows",
@@ -5485,6 +5485,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/ingestion/base.py",
@@ -5656,7 +5657,7 @@
           "caller": "services.ingestion.base:log_ingestion",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 154
+          "line": 155
         },
         {
           "caller": "services.ingestion.weather:insert_weather_clickhouse",
@@ -5738,6 +5739,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
         "services/events/bus.py",
@@ -6404,6 +6406,7 @@
         "services/common/db.py",
         "services/common/env.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/providers.py"
       ],
       "entry_functions": [
@@ -6524,6 +6527,7 @@
         "services/common/db.py",
         "services/common/env.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/providers.py"
       ],
       "entry_functions": [
@@ -6641,6 +6645,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/providers.py",
         "services/events/handlers.py",
         "services/events/notification_outbox.py"
@@ -6723,7 +6728,7 @@
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 176
+          "line": 182
         }
       ],
       "callback_edges": [],
@@ -6738,6 +6743,7 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_environment.py",
         "services/core/providers.py",
         "services/events/handlers.py",
         "services/events/notification_outbox.py"
@@ -6834,7 +6840,7 @@
           "caller": "services.events.notification_outbox:enqueue_event_notification",
           "callee": "services.events.notification_outbox:_notification_payloads",
           "source": "services/events/notification_outbox.py",
-          "line": 176
+          "line": 182
         }
       ],
       "callback_edges": [],
@@ -6850,6 +6856,9 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/adapters/mqtt.py",
         "services/core/providers.py",
@@ -6861,6 +6870,7 @@
         "services/ingestion/config.py",
         "services/ingestion/ml_anomaly_detector.py",
         "services/ingestion/mqtt_actuator.py",
+        "services/ingestion/sensor_anomaly_worker.py",
         "services/security/execution_allowlist.py"
       ],
       "entry_functions": [
@@ -6872,12 +6882,52 @@
       ],
       "reachable_functions": [
         {
-          "key": "services.common.database:get_db",
-          "module": "services.common.database",
-          "qualname": "get_db",
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
           "class_scope": null,
-          "source": "services/common/database.py",
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 27
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
           "line": 33
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 63
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -6888,108 +6938,12 @@
           "line": 25
         },
         {
-          "key": "services.events.bus:EventBus._get_conn",
-          "module": "services.events.bus",
-          "qualname": "EventBus._get_conn",
-          "class_scope": "EventBus",
-          "source": "services/events/bus.py",
-          "line": 51
-        },
-        {
-          "key": "services.events.bus:EventBus.publish",
-          "module": "services.events.bus",
-          "qualname": "EventBus.publish",
-          "class_scope": "EventBus",
-          "source": "services/events/bus.py",
-          "line": 64
-        },
-        {
           "key": "services.events.notification_outbox:_notification_payloads",
           "module": "services.events.notification_outbox",
           "qualname": "_notification_payloads",
           "class_scope": null,
           "source": "services/events/notification_outbox.py",
           "line": 45
-        },
-        {
-          "key": "services.events.notification_outbox:enqueue_event_notification",
-          "module": "services.events.notification_outbox",
-          "qualname": "enqueue_event_notification",
-          "class_scope": null,
-          "source": "services/events/notification_outbox.py",
-          "line": 158
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:check_cooldown",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "check_cooldown",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 369
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:compute_gap_hours",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "compute_gap_hours",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 282
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:compute_rate_of_change",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "compute_rate_of_change",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 238
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:compute_window_stats",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "compute_window_stats",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 308
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:create_alert",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "create_alert",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 392
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:ensure_alert_rules",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "ensure_alert_rules",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 180
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:evaluate_metric",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "evaluate_metric",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 336
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:evaluate_rule",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "evaluate_rule",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 218
-        },
-        {
-          "key": "services.ingestion.anomaly_detector:get_sensor_device_info",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "get_sensor_device_info",
-          "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 604
         },
         {
           "key": "services.ingestion.anomaly_detector:handle_sensor_reading",
@@ -7000,90 +6954,94 @@
           "line": 56
         },
         {
-          "key": "services.ingestion.anomaly_detector:run_check",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "run_check",
+          "key": "services.ingestion.sensor_anomaly_worker:_alert_payload",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_alert_payload",
           "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 632
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 135
         },
         {
-          "key": "services.ingestion.anomaly_detector:send_actuation_commands",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "send_actuation_commands",
+          "key": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_enqueue_notifications",
           "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 541
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 169
         },
         {
-          "key": "services.ingestion.anomaly_detector:send_directus_notification",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "send_directus_notification",
+          "key": "services.ingestion.sensor_anomaly_worker:_many",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_many",
           "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 497
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 87
         },
         {
-          "key": "services.ingestion.anomaly_detector:send_email_notification",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "send_email_notification",
+          "key": "services.ingestion.sensor_anomaly_worker:_one",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_one",
           "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 446
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 81
         },
         {
-          "key": "services.ingestion.anomaly_detector:send_notifications",
-          "module": "services.ingestion.anomaly_detector",
-          "qualname": "send_notifications",
+          "key": "services.ingestion.sensor_anomaly_worker:_payload_hash",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_payload_hash",
           "class_scope": null,
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 534
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 93
         },
         {
-          "key": "services.ingestion.base:get_db",
-          "module": "services.ingestion.base",
-          "qualname": "get_db",
+          "key": "services.ingestion.sensor_anomaly_worker:_record_outcome",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_record_outcome",
           "class_scope": null,
-          "source": "services/ingestion/base.py",
-          "line": 50
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 117
         },
         {
-          "key": "services.ingestion.base:hash_payload",
-          "module": "services.ingestion.base",
-          "qualname": "hash_payload",
+          "key": "services.ingestion.sensor_anomaly_worker:_rule",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "_rule",
           "class_scope": null,
-          "source": "services/ingestion/base.py",
-          "line": 121
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 100
         },
         {
-          "key": "services.ingestion.base:log_ingestion",
-          "module": "services.ingestion.base",
-          "qualname": "log_ingestion",
+          "key": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "module": "services.ingestion.sensor_anomaly_worker",
+          "qualname": "process_sensor_reading",
           "class_scope": null,
-          "source": "services/ingestion/base.py",
-          "line": 130
-        },
-        {
-          "key": "services.ingestion.mqtt_actuator:send_actuation_command",
-          "module": "services.ingestion.mqtt_actuator",
-          "qualname": "send_actuation_command",
-          "class_scope": null,
-          "source": "services/ingestion/mqtt_actuator.py",
-          "line": 68
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 211
         }
       ],
       "direct_call_edges": [
         {
-          "caller": "services.events.bus:EventBus._get_conn",
-          "callee": "services.common.database:get_db",
-          "source": "services/events/bus.py",
-          "line": 55
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 152
         },
         {
-          "caller": "services.events.bus:EventBus.publish",
-          "callee": "services.events.bus:EventBus._get_conn",
-          "source": "services/events/bus.py",
-          "line": 75
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 143
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 44
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 80
         },
         {
           "caller": "services.events.notification_outbox:_notification_payloads",
@@ -7092,184 +7050,136 @@
           "line": 95
         },
         {
-          "caller": "services.events.notification_outbox:enqueue_event_notification",
+          "caller": "services.ingestion.anomaly_detector:handle_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 76
+        },
+        {
+          "caller": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
           "callee": "services.events.notification_outbox:_notification_payloads",
-          "source": "services/events/notification_outbox.py",
-          "line": 176
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 180
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:compute_gap_hours",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 349
+          "caller": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 190
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:compute_rate_of_change",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 343
+          "caller": "services.ingestion.sensor_anomaly_worker:_record_outcome",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 126
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:compute_window_stats",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 355
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 225
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:compute_window_stats",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 361
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 220
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:evaluate_rule",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 340
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 221
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:evaluate_rule",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 346
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_alert_payload",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 341
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:evaluate_rule",
-          "source": "services/ingestion/anomaly_detector.py",
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_enqueue_notifications",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
           "line": 352
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:evaluate_rule",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 358
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_many",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 238
         },
         {
-          "caller": "services.ingestion.anomaly_detector:evaluate_metric",
-          "callee": "services.ingestion.anomaly_detector:evaluate_rule",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 364
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 232
         },
         {
-          "caller": "services.ingestion.anomaly_detector:handle_sensor_reading",
-          "callee": "services.ingestion.anomaly_detector:run_check",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 67
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 246
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.events.bus:EventBus.publish",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 844
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 258
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.events.notification_outbox:enqueue_event_notification",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 835
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 276
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.anomaly_detector:check_cooldown",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 765
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 291
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.anomaly_detector:create_alert",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 781
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 309
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.anomaly_detector:ensure_alert_rules",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 658
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 326
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.anomaly_detector:evaluate_metric",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 778
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 363
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.anomaly_detector:get_sensor_device_info",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 800
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_one",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 378
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.anomaly_detector:send_actuation_commands",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 841
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_payload_hash",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 300
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.anomaly_detector:send_notifications",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 821
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_record_outcome",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 266
         },
         {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 634
-        },
-        {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.base:hash_payload",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 794
-        },
-        {
-          "caller": "services.ingestion.anomaly_detector:run_check",
-          "callee": "services.ingestion.base:log_ingestion",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 787
-        },
-        {
-          "caller": "services.ingestion.anomaly_detector:send_actuation_commands",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 552
-        },
-        {
-          "caller": "services.ingestion.anomaly_detector:send_actuation_commands",
-          "callee": "services.ingestion.mqtt_actuator:send_actuation_command",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 587
-        },
-        {
-          "caller": "services.ingestion.anomaly_detector:send_notifications",
-          "callee": "services.ingestion.anomaly_detector:send_actuation_commands",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 538
-        },
-        {
-          "caller": "services.ingestion.anomaly_detector:send_notifications",
-          "callee": "services.ingestion.anomaly_detector:send_directus_notification",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 537
-        },
-        {
-          "caller": "services.ingestion.anomaly_detector:send_notifications",
-          "callee": "services.ingestion.anomaly_detector:send_email_notification",
-          "source": "services/ingestion/anomaly_detector.py",
-          "line": 536
-        },
-        {
-          "caller": "services.ingestion.base:get_db",
-          "callee": "services.common.database:get_db",
-          "source": "services/ingestion/base.py",
-          "line": 59
-        },
-        {
-          "caller": "services.ingestion.base:log_ingestion",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/ingestion/base.py",
-          "line": 154
+          "caller": "services.ingestion.sensor_anomaly_worker:process_sensor_reading",
+          "callee": "services.ingestion.sensor_anomaly_worker:_rule",
+          "source": "services/ingestion/sensor_anomaly_worker.py",
+          "line": 238
         }
       ],
       "callback_edges": [],

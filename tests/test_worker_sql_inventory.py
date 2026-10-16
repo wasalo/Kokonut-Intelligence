@@ -108,6 +108,8 @@ def test_only_generic_database_adapter_wrappers_remain_unknown():
         ("services/common/database.py", 71),
         ("services/common/database.py", 74),
         ("services/common/database.py", 136),
+        ("services/ingestion/sensor_anomaly_worker.py", 83),
+        ("services/ingestion/sensor_anomaly_worker.py", 89),
     ]
 
 
@@ -135,11 +137,13 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/analytics/reporting_reader.py": 3,
         "services/cache/cache.py": 1,
         "services/common/database.py": 3,
+        "services/common/tenant_context.py": 1,
         "services/events/fork_detector.py": 1,
         "services/events/insight_transfer.py": 2,
         "services/ingestion/data_freshness.py": 5,
         "services/ingestion/ml_anomaly_detector.py": 1,
         "services/ingestion/remote_sensing_fetcher.py": 1,
+        "services/ingestion/sensor_anomaly_worker.py": 2,
         "services/metrics/calculators/allocated_shared_cost.py": 1,
         "services/metrics/calculators/attestation_coverage.py": 2,
         "services/metrics/calculators/crop_revenue.py": 1,

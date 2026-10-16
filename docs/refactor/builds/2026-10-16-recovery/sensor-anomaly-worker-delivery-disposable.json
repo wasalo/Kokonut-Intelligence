@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Signed event-driven sensor anomaly transaction and delivery",
+  "database": "isolated disposable PostgreSQL 16 container",
+  "migration_414_sha256": "e322316c3f1507828f12cff89b6b5e259a18a1f1e2d7fce6a6fde9a64f409b1b",
+  "migrations": [
+    "schemas/postgres/405_signed_worker_tenant_context.sql",
+    "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+    "schemas/postgres/407_sensor_anomaly_effect_functions.sql",
+    "schemas/postgres/408_sensor_alert_event_function.sql",
+    "schemas/postgres/409_sensor_alert_notification_intent.sql",
+    "schemas/postgres/410_sensor_alert_actuation_intent.sql",
+    "schemas/postgres/411_sensor_alert_draft_claim_intent.sql",
+    "schemas/postgres/412_sensor_anomaly_worker_reads.sql",
+    "schemas/postgres/413_sensor_anomaly_alert_write.sql",
+    "schemas/postgres/414_sensor_anomaly_worker_delivery.sql"
+  ],
+  "result": "passed",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "migrations 405\u2013414 apply in order and migration 414 replays cleanly"
+    },
+    {
+      "result": "passed",
+      "description": "signed worker transaction creates the alert, draft claim, notification and approval intent"
+    },
+    {
+      "result": "passed",
+      "description": "published event contains the same source-derived context used by channel formatters"
+    },
+    {
+      "result": "passed",
+      "description": "follow-up event notification handling is idempotent with the transactionally queued intent"
+    },
+    {
+      "result": "passed",
+      "description": "actuator-enabled alert creates only an approval-required intent; no command is sent"
+    },
+    {
+      "result": "passed",
+      "description": "source event replay suppresses duplicate alert, notification, and actuator records"
+    },
+    {
+      "result": "passed",
+      "description": "forced-RLS function owners work while worker execution has no direct alert table access"
+    }
+  ],
+  "network": "no external providers contacted; webhook URL is synthetic and used only to select a formatter",
+  "candidate_or_legacy_database_access": false,
+  "raw_worker_credential_printed": false
+}

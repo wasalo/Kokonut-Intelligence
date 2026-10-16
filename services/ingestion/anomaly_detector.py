@@ -71,7 +71,9 @@ def handle_sensor_reading(
         canonical_location_id = str(uuid.UUID(str(location_id)))
     except (TypeError, ValueError, AttributeError) as exc:
         raise ValueError("sensor-reading event location_id must be a UUID") from exc
-    run_check(
+    from .sensor_anomaly_worker import process_sensor_reading
+
+    process_sensor_reading(
         sensor_id=str(sensor_id),
         location_id=canonical_location_id,
         event_id=str(event_id),
@@ -679,6 +681,10 @@ def run_check(
     location_id: str = None,
 ):
     """Check recent readings against alert rules."""
+    if event_id is not None:
+        raise ValueError(
+            "event-driven sensor readings must use handle_sensor_reading"
+        )
     stable_event_id = None
     requested_location_id = None
     if event_id is not None:

@@ -15,7 +15,7 @@
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 77,
+    "source_file_count": 81,
     "unresolved_local_module_count": 0,
     "known_allowlisted_dynamic_import_site_count": 1,
     "passed": true
@@ -27,9 +27,9 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 257,
-    "sites_with_static_operation_path": 196,
-    "sites_without_static_function_match": 61,
+    "execution_site_count": 267,
+    "sites_with_static_operation_path": 203,
+    "sites_without_static_function_match": 64,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -185,6 +185,21 @@
         "site": "services/common/database.py:74:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 20
+      },
+      {
+        "site": "services/common/tenant_context.py:215:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/common/tenant_context.py:295:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
+      },
+      {
+        "site": "services/common/tenant_context.py:361:8",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 2
       },
       {
         "site": "services/credit_class/chain_sync.py:176:12",

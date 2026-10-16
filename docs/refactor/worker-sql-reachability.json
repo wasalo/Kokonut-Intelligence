@@ -4,12 +4,12 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 20,
-    "sql_execution_sites": 257,
-    "statically_reachable_site_memberships": 239,
-    "unique_sites_with_static_operation_path": 196,
-    "sites_without_static_function_match": 61,
-    "unmatched_functions_absent_from_all_worker_graphs": 61,
-    "sites_reached_by_multiple_operations": 29
+    "sql_execution_sites": 267,
+    "statically_reachable_site_memberships": 222,
+    "unique_sites_with_static_operation_path": 203,
+    "sites_without_static_function_match": 64,
+    "unmatched_functions_absent_from_all_worker_graphs": 64,
+    "sites_reached_by_multiple_operations": 7
   },
   "operations": [
     {
@@ -32,23 +32,23 @@
       "operation_ref": "scheduled_module:services.events",
       "statically_reachable_sql_site_count": 44,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:145:12",
-        "services/events/bus.py:164:16",
+        "services/events/bus.py:107:12",
+        "services/events/bus.py:157:12",
         "services/events/bus.py:176:16",
-        "services/events/bus.py:192:16",
-        "services/events/bus.py:197:16",
-        "services/events/bus.py:232:12",
-        "services/events/bus.py:247:12",
-        "services/events/bus.py:256:16",
-        "services/events/bus.py:272:12",
-        "services/events/bus.py:309:12",
-        "services/events/bus.py:321:12",
-        "services/events/bus.py:334:16",
-        "services/events/bus.py:337:16",
-        "services/events/bus.py:378:16",
-        "services/events/bus.py:407:16",
-        "services/events/bus.py:415:16",
-        "services/events/bus.py:95:12",
+        "services/events/bus.py:188:16",
+        "services/events/bus.py:204:16",
+        "services/events/bus.py:209:16",
+        "services/events/bus.py:268:12",
+        "services/events/bus.py:283:12",
+        "services/events/bus.py:292:16",
+        "services/events/bus.py:308:12",
+        "services/events/bus.py:345:12",
+        "services/events/bus.py:357:12",
+        "services/events/bus.py:370:16",
+        "services/events/bus.py:373:16",
+        "services/events/bus.py:414:16",
+        "services/events/bus.py:443:16",
+        "services/events/bus.py:451:16",
         "services/events/cli.py:135:12",
         "services/events/cli.py:164:12",
         "services/events/fork_detector.py:133:12",
@@ -61,21 +61,21 @@
         "services/events/insight_transfer.py:292:12",
         "services/events/insight_transfer.py:45:8",
         "services/events/insight_transfer.py:59:12",
-        "services/events/notification_outbox.py:221:8",
-        "services/events/notification_outbox.py:232:8",
-        "services/events/notification_outbox.py:269:8",
-        "services/events/notification_outbox.py:297:12",
-        "services/events/notification_outbox.py:382:8",
+        "services/events/notification_outbox.py:245:8",
+        "services/events/notification_outbox.py:256:8",
+        "services/events/notification_outbox.py:293:8",
+        "services/events/notification_outbox.py:321:12",
         "services/events/notification_outbox.py:406:8",
-        "services/events/notification_outbox.py:468:8",
-        "services/events/notification_outbox.py:470:8",
-        "services/events/notification_outbox.py:511:8",
-        "services/events/notification_outbox.py:541:8",
-        "services/events/notification_outbox.py:552:8",
-        "services/events/notification_outbox.py:564:8",
-        "services/events/notification_outbox.py:592:8",
-        "services/events/notification_outbox.py:603:8",
-        "services/events/notification_outbox.py:612:8"
+        "services/events/notification_outbox.py:430:8",
+        "services/events/notification_outbox.py:492:8",
+        "services/events/notification_outbox.py:494:8",
+        "services/events/notification_outbox.py:535:8",
+        "services/events/notification_outbox.py:565:8",
+        "services/events/notification_outbox.py:576:8",
+        "services/events/notification_outbox.py:588:8",
+        "services/events/notification_outbox.py:616:8",
+        "services/events/notification_outbox.py:627:8",
+        "services/events/notification_outbox.py:636:8"
       ]
     },
     {
@@ -104,38 +104,39 @@
       "kind": "scheduled_module",
       "name": "services.ingestion.anomaly_detector",
       "operation_ref": "scheduled_module:services.ingestion.anomaly_detector",
-      "statically_reachable_sql_site_count": 35,
+      "statically_reachable_sql_site_count": 36,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:78:16",
-        "services/events/notification_outbox.py:183:12",
-        "services/events/notification_outbox.py:198:12",
-        "services/ingestion/anomaly_detector.py:1017:12",
-        "services/ingestion/anomaly_detector.py:183:8",
-        "services/ingestion/anomaly_detector.py:190:8",
-        "services/ingestion/anomaly_detector.py:200:12",
-        "services/ingestion/anomaly_detector.py:245:8",
-        "services/ingestion/anomaly_detector.py:288:8",
-        "services/ingestion/anomaly_detector.py:314:8",
-        "services/ingestion/anomaly_detector.py:372:8",
-        "services/ingestion/anomaly_detector.py:397:8",
-        "services/ingestion/anomaly_detector.py:411:12",
-        "services/ingestion/anomaly_detector.py:437:16",
-        "services/ingestion/anomaly_detector.py:558:8",
-        "services/ingestion/anomaly_detector.py:607:8",
-        "services/ingestion/anomaly_detector.py:641:16",
-        "services/ingestion/anomaly_detector.py:662:12",
-        "services/ingestion/anomaly_detector.py:693:20",
-        "services/ingestion/anomaly_detector.py:704:20",
-        "services/ingestion/anomaly_detector.py:736:24",
-        "services/ingestion/anomaly_detector.py:755:24",
-        "services/ingestion/anomaly_detector.py:768:28",
-        "services/ingestion/anomaly_detector.py:802:24",
-        "services/ingestion/anomaly_detector.py:824:28",
-        "services/ingestion/anomaly_detector.py:881:12",
-        "services/ingestion/anomaly_detector.py:909:16",
-        "services/ingestion/anomaly_detector.py:934:20",
-        "services/ingestion/anomaly_detector.py:948:20",
-        "services/ingestion/base.py:156:12",
+        "services/events/bus.py:88:16",
+        "services/events/notification_outbox.py:189:12",
+        "services/events/notification_outbox.py:204:12",
+        "services/events/notification_outbox.py:224:16",
+        "services/ingestion/anomaly_detector.py:1019:16",
+        "services/ingestion/anomaly_detector.py:1044:20",
+        "services/ingestion/anomaly_detector.py:1058:20",
+        "services/ingestion/anomaly_detector.py:1127:12",
+        "services/ingestion/anomaly_detector.py:196:8",
+        "services/ingestion/anomaly_detector.py:203:8",
+        "services/ingestion/anomaly_detector.py:213:12",
+        "services/ingestion/anomaly_detector.py:258:8",
+        "services/ingestion/anomaly_detector.py:301:8",
+        "services/ingestion/anomaly_detector.py:327:8",
+        "services/ingestion/anomaly_detector.py:391:8",
+        "services/ingestion/anomaly_detector.py:418:8",
+        "services/ingestion/anomaly_detector.py:449:12",
+        "services/ingestion/anomaly_detector.py:478:16",
+        "services/ingestion/anomaly_detector.py:599:8",
+        "services/ingestion/anomaly_detector.py:650:8",
+        "services/ingestion/anomaly_detector.py:702:16",
+        "services/ingestion/anomaly_detector.py:740:12",
+        "services/ingestion/anomaly_detector.py:771:20",
+        "services/ingestion/anomaly_detector.py:782:20",
+        "services/ingestion/anomaly_detector.py:814:24",
+        "services/ingestion/anomaly_detector.py:834:24",
+        "services/ingestion/anomaly_detector.py:860:28",
+        "services/ingestion/anomaly_detector.py:902:24",
+        "services/ingestion/anomaly_detector.py:928:28",
+        "services/ingestion/anomaly_detector.py:991:12",
+        "services/ingestion/base.py:157:12",
         "services/ingestion/ml_anomaly_detector.py:213:4",
         "services/ingestion/ml_anomaly_detector.py:248:4",
         "services/ingestion/ml_anomaly_detector.py:489:4",
@@ -156,7 +157,7 @@
       "operation_ref": "scheduled_module:services.ingestion.climate_data",
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:156:12",
+        "services/ingestion/base.py:157:12",
         "services/ingestion/climate_data.py:35:4",
         "services/ingestion/climate_data.py:63:4",
         "services/ingestion/climate_data.py:99:4",
@@ -198,8 +199,8 @@
       "operation_ref": "scheduled_module:services.ingestion.eas_indexer",
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:156:12",
-        "services/ingestion/base.py:204:12",
+        "services/ingestion/base.py:157:12",
+        "services/ingestion/base.py:205:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
         "services/ingestion/eas_indexer.py:107:12",
         "services/ingestion/eas_indexer.py:113:16",
@@ -214,8 +215,8 @@
       "operation_ref": "scheduled_module:services.ingestion.gnosis_indexer",
       "statically_reachable_sql_site_count": 9,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:204:12",
-        "services/ingestion/base.py:233:12",
+        "services/ingestion/base.py:205:12",
+        "services/ingestion/base.py:234:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
         "services/ingestion/gnosis_indexer.py:113:8",
         "services/ingestion/gnosis_indexer.py:124:8",
@@ -243,7 +244,7 @@
       "operation_ref": "scheduled_module:services.ingestion.remote_sensing_fetcher",
       "statically_reachable_sql_site_count": 13,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:156:12",
+        "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
         "services/ingestion/copernicus_remote_sensing.py:204:4",
         "services/ingestion/copernicus_remote_sensing.py:227:8",
@@ -264,7 +265,7 @@
       "operation_ref": "scheduled_module:services.ingestion.rpc_indexer",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:204:12",
+        "services/ingestion/base.py:205:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
         "services/ingestion/rpc_indexer.py:120:8",
         "services/ingestion/rpc_indexer.py:59:12",
@@ -277,7 +278,7 @@
       "operation_ref": "scheduled_module:services.ingestion.sensor_ingester",
       "statically_reachable_sql_site_count": 9,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:156:12",
+        "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
         "services/ingestion/sensor_ingester.py:114:12",
         "services/ingestion/sensor_ingester.py:127:8",
@@ -294,7 +295,7 @@
       "operation_ref": "scheduled_module:services.ingestion.weather",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:156:12",
+        "services/ingestion/base.py:157:12",
         "services/ingestion/clickhouse_outbox.py:38:8",
         "services/ingestion/weather.py:175:12",
         "services/ingestion/weather.py:180:12",
@@ -360,54 +361,36 @@
       "kind": "event_handler",
       "name": "services.events.handlers.handle_alert_notification",
       "operation_ref": "event_handler:services.events.handlers.handle_alert_notification",
-      "statically_reachable_sql_site_count": 2,
+      "statically_reachable_sql_site_count": 3,
       "statically_reachable_sql_site_ids": [
-        "services/events/notification_outbox.py:183:12",
-        "services/events/notification_outbox.py:198:12"
+        "services/events/notification_outbox.py:189:12",
+        "services/events/notification_outbox.py:204:12",
+        "services/events/notification_outbox.py:224:16"
       ]
     },
     {
       "kind": "event_handler",
       "name": "services.events.handlers.handle_stale_data",
       "operation_ref": "event_handler:services.events.handlers.handle_stale_data",
-      "statically_reachable_sql_site_count": 2,
+      "statically_reachable_sql_site_count": 3,
       "statically_reachable_sql_site_ids": [
-        "services/events/notification_outbox.py:183:12",
-        "services/events/notification_outbox.py:198:12"
+        "services/events/notification_outbox.py:189:12",
+        "services/events/notification_outbox.py:204:12",
+        "services/events/notification_outbox.py:224:16"
       ]
     },
     {
       "kind": "event_handler",
       "name": "services.ingestion.anomaly_detector.handle_sensor_reading",
       "operation_ref": "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-      "statically_reachable_sql_site_count": 26,
+      "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:78:16",
-        "services/events/notification_outbox.py:183:12",
-        "services/events/notification_outbox.py:198:12",
-        "services/ingestion/anomaly_detector.py:183:8",
-        "services/ingestion/anomaly_detector.py:190:8",
-        "services/ingestion/anomaly_detector.py:200:12",
-        "services/ingestion/anomaly_detector.py:245:8",
-        "services/ingestion/anomaly_detector.py:288:8",
-        "services/ingestion/anomaly_detector.py:314:8",
-        "services/ingestion/anomaly_detector.py:372:8",
-        "services/ingestion/anomaly_detector.py:397:8",
-        "services/ingestion/anomaly_detector.py:411:12",
-        "services/ingestion/anomaly_detector.py:437:16",
-        "services/ingestion/anomaly_detector.py:558:8",
-        "services/ingestion/anomaly_detector.py:607:8",
-        "services/ingestion/anomaly_detector.py:641:16",
-        "services/ingestion/anomaly_detector.py:662:12",
-        "services/ingestion/anomaly_detector.py:693:20",
-        "services/ingestion/anomaly_detector.py:704:20",
-        "services/ingestion/anomaly_detector.py:736:24",
-        "services/ingestion/anomaly_detector.py:755:24",
-        "services/ingestion/anomaly_detector.py:768:28",
-        "services/ingestion/anomaly_detector.py:802:24",
-        "services/ingestion/anomaly_detector.py:824:28",
-        "services/ingestion/base.py:156:12",
-        "services/ingestion/mqtt_actuator.py:104:4"
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:160:8",
+        "services/common/tenant_context.py:161:8",
+        "services/common/worker_database.py:103:12",
+        "services/ingestion/sensor_anomaly_worker.py:83:8",
+        "services/ingestion/sensor_anomaly_worker.py:89:8"
       ]
     }
   ],
@@ -1410,6 +1393,148 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
+      "id": "services/common/tenant_context.py:110:8",
+      "source": "services/common/tenant_context.py",
+      "line": 110,
+      "scope": "clear_tenant_context",
+      "method": "execute",
+      "expression_kind": "composed",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/common/tenant_context.py:160:8",
+      "source": "services/common/tenant_context.py",
+      "line": 160,
+      "scope": "set_worker_tenant_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SET",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/common/tenant_context.py:161:8",
+      "source": "services/common/tenant_context.py",
+      "line": 161,
+      "scope": "set_worker_tenant_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.set_worker_tenant_context"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/common/tenant_context.py:215:8",
+      "source": "services/common/tenant_context.py",
+      "line": 215,
+      "scope": "set_mobile_device_tenant_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.set_mobile_device_context"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/common/tenant_context.py:295:8",
+      "source": "services/common/tenant_context.py",
+      "line": 295,
+      "scope": "set_operator_tenant_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.set_operator_tenant_context"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/common/tenant_context.py:361:8",
+      "source": "services/common/tenant_context.py",
+      "line": 361,
+      "scope": "set_gateway_tenant_context",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.set_gateway_tenant_context"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
+    },
+    {
+      "id": "services/common/worker_database.py:103:12",
+      "source": "services/common/worker_database.py",
+      "line": 103,
+      "scope": "get_worker_db",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
       "id": "services/credit_class/chain_sync.py:176:12",
       "source": "services/credit_class/chain_sync.py",
       "line": 176,
@@ -1734,9 +1859,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/events/bus.py:78:16",
+      "id": "services/events/bus.py:88:16",
       "source": "services/events/bus.py",
-      "line": 78,
+      "line": 88,
       "scope": "EventBus.publish",
       "method": "execute",
       "expression_kind": "literal",
@@ -1752,7 +1877,6 @@
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -1760,9 +1884,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:95:12",
+      "id": "services/events/bus.py:107:12",
       "source": "services/events/bus.py",
-      "line": 95,
+      "line": 107,
       "scope": "EventBus._claim",
       "method": "execute",
       "expression_kind": "literal",
@@ -1787,9 +1911,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:145:12",
+      "id": "services/events/bus.py:157:12",
       "source": "services/events/bus.py",
-      "line": 145,
+      "line": 157,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1813,9 +1937,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:164:16",
+      "id": "services/events/bus.py:176:16",
       "source": "services/events/bus.py",
-      "line": 164,
+      "line": 176,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1838,9 +1962,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:176:16",
+      "id": "services/events/bus.py:188:16",
       "source": "services/events/bus.py",
-      "line": 176,
+      "line": 188,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1864,9 +1988,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:192:16",
+      "id": "services/events/bus.py:204:16",
       "source": "services/events/bus.py",
-      "line": 192,
+      "line": 204,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1889,9 +2013,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:197:16",
+      "id": "services/events/bus.py:209:16",
       "source": "services/events/bus.py",
-      "line": 197,
+      "line": 209,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1914,9 +2038,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:232:12",
+      "id": "services/events/bus.py:268:12",
       "source": "services/events/bus.py",
-      "line": 232,
+      "line": 268,
       "scope": "EventBus._complete",
       "method": "execute",
       "expression_kind": "literal",
@@ -1939,9 +2063,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:247:12",
+      "id": "services/events/bus.py:283:12",
       "source": "services/events/bus.py",
-      "line": 247,
+      "line": 283,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -1964,9 +2088,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:256:16",
+      "id": "services/events/bus.py:292:16",
       "source": "services/events/bus.py",
-      "line": 256,
+      "line": 292,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -1991,9 +2115,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:272:12",
+      "id": "services/events/bus.py:308:12",
       "source": "services/events/bus.py",
-      "line": 272,
+      "line": 308,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2020,9 +2144,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:309:12",
+      "id": "services/events/bus.py:345:12",
       "source": "services/events/bus.py",
-      "line": 309,
+      "line": 345,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2045,9 +2169,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:321:12",
+      "id": "services/events/bus.py:357:12",
       "source": "services/events/bus.py",
-      "line": 321,
+      "line": 357,
       "scope": "EventBus.get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -2070,9 +2194,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:334:16",
+      "id": "services/events/bus.py:370:16",
       "source": "services/events/bus.py",
-      "line": 334,
+      "line": 370,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2093,9 +2217,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:337:16",
+      "id": "services/events/bus.py:373:16",
       "source": "services/events/bus.py",
-      "line": 337,
+      "line": 373,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2118,9 +2242,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:378:16",
+      "id": "services/events/bus.py:414:16",
       "source": "services/events/bus.py",
-      "line": 378,
+      "line": 414,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2147,9 +2271,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:407:16",
+      "id": "services/events/bus.py:443:16",
       "source": "services/events/bus.py",
-      "line": 407,
+      "line": 443,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2172,9 +2296,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:415:16",
+      "id": "services/events/bus.py:451:16",
       "source": "services/events/bus.py",
-      "line": 415,
+      "line": 451,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2488,9 +2612,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:183:12",
+      "id": "services/events/notification_outbox.py:189:12",
       "source": "services/events/notification_outbox.py",
-      "line": 183,
+      "line": 189,
       "scope": "enqueue_event_notification",
       "method": "execute",
       "expression_kind": "literal",
@@ -2508,7 +2632,6 @@
       "statically_reachable_operations": [
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -2516,9 +2639,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:198:12",
+      "id": "services/events/notification_outbox.py:204:12",
       "source": "services/events/notification_outbox.py",
-      "line": 198,
+      "line": 204,
       "scope": "enqueue_event_notification",
       "method": "execute",
       "expression_kind": "literal",
@@ -2536,7 +2659,6 @@
       "statically_reachable_operations": [
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -2544,9 +2666,36 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:221:8",
+      "id": "services/events/notification_outbox.py:224:16",
       "source": "services/events/notification_outbox.py",
-      "line": 221,
+      "line": 224,
+      "scope": "enqueue_event_notification",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/events/notification_outbox.py:245:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 245,
       "scope": "_recover_expired_leases",
       "method": "execute",
       "expression_kind": "literal",
@@ -2570,9 +2719,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:232:8",
+      "id": "services/events/notification_outbox.py:256:8",
       "source": "services/events/notification_outbox.py",
-      "line": 232,
+      "line": 256,
       "scope": "_recover_expired_leases",
       "method": "execute",
       "expression_kind": "literal",
@@ -2595,9 +2744,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:269:8",
+      "id": "services/events/notification_outbox.py:293:8",
       "source": "services/events/notification_outbox.py",
-      "line": 269,
+      "line": 293,
       "scope": "claim_batch",
       "method": "execute",
       "expression_kind": "literal",
@@ -2622,40 +2771,15 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:297:12",
+      "id": "services/events/notification_outbox.py:321:12",
       "source": "services/events/notification_outbox.py",
-      "line": 297,
+      "line": 321,
       "scope": "claim_batch",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
         "notification_outbox_attempt"
-      ],
-      "import_closure_operations": [
-        "event_handler:services.events.handlers.handle_alert_notification",
-        "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.events",
-        "scheduled_module:services.ingestion.anomaly_detector"
-      ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.events"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/events/notification_outbox.py:382:8",
-      "source": "services/events/notification_outbox.py",
-      "line": 382,
-      "scope": "_finish_attempt",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "UPDATE",
-      "candidate_relations": [
-        "notification_outbox"
       ],
       "import_closure_operations": [
         "event_handler:services.events.handlers.handle_alert_notification",
@@ -2680,6 +2804,31 @@
       "expression_kind": "literal",
       "statement_kind": "UPDATE",
       "candidate_relations": [
+        "notification_outbox"
+      ],
+      "import_closure_operations": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.events"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/events/notification_outbox.py:430:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 430,
+      "scope": "_finish_attempt",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
         "notification_outbox_attempt"
       ],
       "import_closure_operations": [
@@ -2697,9 +2846,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:468:8",
+      "id": "services/events/notification_outbox.py:492:8",
       "source": "services/events/notification_outbox.py",
-      "line": 468,
+      "line": 492,
       "scope": "get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -2722,9 +2871,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:470:8",
+      "id": "services/events/notification_outbox.py:494:8",
       "source": "services/events/notification_outbox.py",
-      "line": 470,
+      "line": 494,
       "scope": "get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -2748,9 +2897,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:511:8",
+      "id": "services/events/notification_outbox.py:535:8",
       "source": "services/events/notification_outbox.py",
-      "line": 511,
+      "line": 535,
       "scope": "list_dead_letters",
       "method": "execute",
       "expression_kind": "literal",
@@ -2773,9 +2922,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:541:8",
+      "id": "services/events/notification_outbox.py:565:8",
       "source": "services/events/notification_outbox.py",
-      "line": 541,
+      "line": 565,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2798,9 +2947,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:552:8",
+      "id": "services/events/notification_outbox.py:576:8",
       "source": "services/events/notification_outbox.py",
-      "line": 552,
+      "line": 576,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2823,9 +2972,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:564:8",
+      "id": "services/events/notification_outbox.py:588:8",
       "source": "services/events/notification_outbox.py",
-      "line": 564,
+      "line": 588,
       "scope": "replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2848,9 +2997,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:592:8",
+      "id": "services/events/notification_outbox.py:616:8",
       "source": "services/events/notification_outbox.py",
-      "line": 592,
+      "line": 616,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2873,9 +3022,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:603:8",
+      "id": "services/events/notification_outbox.py:627:8",
       "source": "services/events/notification_outbox.py",
-      "line": 603,
+      "line": 627,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2898,9 +3047,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/notification_outbox.py:612:8",
+      "id": "services/events/notification_outbox.py:636:8",
       "source": "services/events/notification_outbox.py",
-      "line": 612,
+      "line": 636,
       "scope": "dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -3007,9 +3156,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:183:8",
+      "id": "services/ingestion/anomaly_detector.py:196:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 183,
+      "line": 196,
       "scope": "ensure_alert_rules",
       "method": "execute",
       "expression_kind": "literal",
@@ -3022,7 +3171,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3030,9 +3178,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:190:8",
+      "id": "services/ingestion/anomaly_detector.py:203:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 190,
+      "line": 203,
       "scope": "ensure_alert_rules",
       "method": "execute",
       "expression_kind": "literal",
@@ -3045,7 +3193,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3053,9 +3200,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:200:12",
+      "id": "services/ingestion/anomaly_detector.py:213:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 200,
+      "line": 213,
       "scope": "ensure_alert_rules",
       "method": "execute",
       "expression_kind": "literal",
@@ -3068,7 +3215,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3076,9 +3222,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:245:8",
+      "id": "services/ingestion/anomaly_detector.py:258:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 245,
+      "line": 258,
       "scope": "compute_rate_of_change",
       "method": "execute",
       "expression_kind": "literal",
@@ -3091,7 +3237,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3099,9 +3244,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:288:8",
+      "id": "services/ingestion/anomaly_detector.py:301:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 288,
+      "line": 301,
       "scope": "compute_gap_hours",
       "method": "execute",
       "expression_kind": "literal",
@@ -3114,7 +3259,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3122,9 +3266,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:314:8",
+      "id": "services/ingestion/anomaly_detector.py:327:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 314,
+      "line": 327,
       "scope": "compute_window_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -3137,7 +3281,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3145,9 +3288,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:372:8",
+      "id": "services/ingestion/anomaly_detector.py:391:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 372,
+      "line": 391,
       "scope": "check_cooldown",
       "method": "execute",
       "expression_kind": "literal",
@@ -3160,7 +3303,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3168,22 +3310,23 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:397:8",
+      "id": "services/ingestion/anomaly_detector.py:418:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 397,
+      "line": 418,
       "scope": "create_alert",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "INSERT",
       "candidate_relations": [
-        "sensor_alert"
+        "sensor_alert",
+        "sensor_device",
+        "sensor_reading"
       ],
       "import_closure_operations": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3191,9 +3334,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:411:12",
+      "id": "services/ingestion/anomaly_detector.py:449:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 411,
+      "line": 449,
       "scope": "create_alert",
       "method": "execute",
       "expression_kind": "literal",
@@ -3208,7 +3351,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3216,9 +3358,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:437:16",
+      "id": "services/ingestion/anomaly_detector.py:478:16",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 437,
+      "line": 478,
       "scope": "create_alert",
       "method": "execute",
       "expression_kind": "literal",
@@ -3231,7 +3373,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3239,9 +3380,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:558:8",
+      "id": "services/ingestion/anomaly_detector.py:599:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 558,
+      "line": 599,
       "scope": "send_actuation_commands",
       "method": "execute",
       "expression_kind": "literal",
@@ -3254,7 +3395,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3262,9 +3402,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:607:8",
+      "id": "services/ingestion/anomaly_detector.py:650:8",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 607,
+      "line": 650,
       "scope": "get_sensor_device_info",
       "method": "execute",
       "expression_kind": "literal",
@@ -3279,7 +3419,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3287,9 +3426,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:641:16",
+      "id": "services/ingestion/anomaly_detector.py:702:16",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 641,
+      "line": 702,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3303,7 +3442,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3311,9 +3449,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:662:12",
+      "id": "services/ingestion/anomaly_detector.py:740:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 662,
+      "line": 740,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3327,7 +3465,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3335,9 +3472,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:693:20",
+      "id": "services/ingestion/anomaly_detector.py:771:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 693,
+      "line": 771,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3350,7 +3487,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3358,9 +3494,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:704:20",
+      "id": "services/ingestion/anomaly_detector.py:782:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 704,
+      "line": 782,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3373,7 +3509,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3381,9 +3516,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:736:24",
+      "id": "services/ingestion/anomaly_detector.py:814:24",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 736,
+      "line": 814,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3396,7 +3531,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3404,9 +3538,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:755:24",
+      "id": "services/ingestion/anomaly_detector.py:834:24",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 755,
+      "line": 834,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3419,7 +3553,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3427,9 +3560,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:768:28",
+      "id": "services/ingestion/anomaly_detector.py:860:28",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 768,
+      "line": 860,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3442,7 +3575,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3450,9 +3582,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:802:24",
+      "id": "services/ingestion/anomaly_detector.py:902:24",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 802,
+      "line": 902,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3465,7 +3597,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3473,9 +3604,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:824:28",
+      "id": "services/ingestion/anomaly_detector.py:928:28",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 824,
+      "line": 928,
       "scope": "run_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3488,7 +3619,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -3496,9 +3626,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:881:12",
+      "id": "services/ingestion/anomaly_detector.py:991:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 881,
+      "line": 991,
       "scope": "run_baseline_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3518,9 +3648,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:909:16",
+      "id": "services/ingestion/anomaly_detector.py:1019:16",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 909,
+      "line": 1019,
       "scope": "run_baseline_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3540,9 +3670,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:934:20",
+      "id": "services/ingestion/anomaly_detector.py:1044:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 934,
+      "line": 1044,
       "scope": "run_baseline_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3562,9 +3692,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:948:20",
+      "id": "services/ingestion/anomaly_detector.py:1058:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 948,
+      "line": 1058,
       "scope": "run_baseline_check",
       "method": "execute",
       "expression_kind": "literal",
@@ -3585,9 +3715,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:1017:12",
+      "id": "services/ingestion/anomaly_detector.py:1127:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 1017,
+      "line": 1127,
       "scope": "list_rules",
       "method": "execute",
       "expression_kind": "literal",
@@ -3608,9 +3738,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/base.py:156:12",
+      "id": "services/ingestion/base.py:157:12",
       "source": "services/ingestion/base.py",
-      "line": 156,
+      "line": 157,
       "scope": "log_ingestion",
       "method": "execute",
       "expression_kind": "literal",
@@ -3634,7 +3764,6 @@
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_data",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -3647,9 +3776,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/base.py:204:12",
+      "id": "services/ingestion/base.py:205:12",
       "source": "services/ingestion/base.py",
-      "line": 204,
+      "line": 205,
       "scope": "update_indexer_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -3683,9 +3812,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/base.py:233:12",
+      "id": "services/ingestion/base.py:234:12",
       "source": "services/ingestion/base.py",
-      "line": 233,
+      "line": 234,
       "scope": "get_last_synced_block",
       "method": "execute",
       "expression_kind": "literal",
@@ -4943,7 +5072,6 @@
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "static_link_status": "linked",
@@ -5217,6 +5345,46 @@
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_anomaly_worker.py:83:8",
+      "source": "services/ingestion/sensor_anomaly_worker.py",
+      "line": 83,
+      "scope": "_one",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_anomaly_worker.py:89:8",
+      "source": "services/ingestion/sensor_anomaly_worker.py",
+      "line": 89,
+      "scope": "_many",
+      "method": "execute",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ],
+      "statically_reachable_operations": [
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,

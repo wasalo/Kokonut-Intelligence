@@ -71,8 +71,22 @@ def test_every_service_subprocess_uses_the_shared_environment_policy():
             if not (
                 isinstance(environment, ast.Call)
                 and isinstance(environment.func, ast.Name)
-                and environment.func.id == "worker_subprocess_environment"
+                and environment.func.id
+                in {"worker_subprocess_environment", "_handler_child_environment"}
             ):
                 violations.append(f"{path.relative_to(ROOT)}:{node.lineno}")
 
     assert violations == []
+
+    bus_tree = ast.parse((ROOT / "services/events/bus.py").read_text(encoding="utf-8"))
+    helper = next(
+        node
+        for node in bus_tree.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_handler_child_environment"
+    )
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "worker_subprocess_environment"
+        for node in ast.walk(helper)
+    )

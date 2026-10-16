@@ -17,15 +17,27 @@ from services.security.execution_allowlist import validate_event_handler
 logger = get_logger("events.bus")
 
 
-def _handler_child_environment(environ=None):
-    """Copy the runtime environment without worker-only secrets.
+_HANDLER_WORKER_KEYS = {
+    # The allowlisted anomaly handler is the only event handler currently
+    # provisioned with the signed worker identity needed for sensor writes.
+    ("services.ingestion.anomaly_detector", "handle_sensor_reading"): (
+        "sensor_anomaly",
+    ),
+}
 
-    Event handlers are configured independently, so the dispatcher cannot
-    safely infer which worker identity a handler may use. Until a handler has
-    an explicit trusted identity mapping, child processes receive no worker
-    DSNs or credentials.
+
+def _handler_child_environment(module_path, function_name, environ=None):
+    """Copy the environment with only an exact handler's worker identity.
+
+    Handler registrations are database-backed, so worker access must be
+    selected from this source-controlled mapping rather than event metadata or
+    registration fields.
     """
-    return worker_subprocess_environment(environ=environ)
+    allowed_worker_keys = _HANDLER_WORKER_KEYS.get((module_path, function_name), ())
+    return worker_subprocess_environment(
+        allowed_worker_keys=allowed_worker_keys,
+        environ=environ,
+    )
 
 
 def resolve_handler(module_path: str, function_name: str):
@@ -227,7 +239,7 @@ class EventBus:
                 stdout=subprocess.PIPE,
                 stderr=None,
                 text=True,
-                env=worker_subprocess_environment(),
+                env=_handler_child_environment(module_path, function_name),
             )
         except OSError as exc:
             return "error", f"Handler process could not start: {type(exc).__name__}"

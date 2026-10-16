@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -78,112 +79,66 @@ def test_sensor_reading_handler_rejects_missing_or_malformed_location_before_dat
     from services.ingestion.anomaly_detector import handle_sensor_reading
 
     payload = {"sensor_id": "sensor-1"}
-    with patch("services.ingestion.anomaly_detector.run_check") as run_check:
+    with patch("services.ingestion.sensor_anomaly_worker.process_sensor_reading") as process:
         with pytest.raises(ValueError, match="require location_id"):
             handle_sensor_reading("sensor_reading", payload, event_id="event-1")
         payload["location_id"] = "not-a-uuid"
         with pytest.raises(ValueError, match="location_id must be a UUID"):
             handle_sensor_reading("sensor_reading", payload, event_id="event-1")
 
-    run_check.assert_not_called()
+    process.assert_not_called()
 
 
 def test_sensor_reading_handler_passes_canonical_location_to_source_check():
     from services.ingestion.anomaly_detector import handle_sensor_reading
 
     location_id = "A0000000-0000-0000-0000-000000000001"
-    with patch("services.ingestion.anomaly_detector.run_check") as run_check:
+    with patch("services.ingestion.sensor_anomaly_worker.process_sensor_reading") as process:
         handle_sensor_reading(
             "sensor_reading",
             {"sensor_id": "sensor-1", "location_id": location_id},
             event_id="event-1",
         )
 
-    run_check.assert_called_once_with(
+    process.assert_called_once_with(
         sensor_id="sensor-1",
         location_id=location_id.lower(),
         event_id="event-1",
     )
 
 
-@pytest.mark.parametrize("location_id", [None, "not-a-uuid"])
-def test_event_run_check_rejects_invalid_location_before_opening_database(location_id):
+def test_event_run_check_refuses_the_shared_database_path():
     from services.ingestion.anomaly_detector import run_check
 
     with patch("services.ingestion.anomaly_detector.get_db") as get_db:
-        with pytest.raises(ValueError, match="valid event and location UUIDs"):
-            run_check(event_id="a0000000-0000-0000-0000-000000000002", location_id=location_id)
+        with pytest.raises(ValueError, match="must use handle_sensor_reading"):
+            run_check(
+                event_id="a0000000-0000-0000-0000-000000000002",
+                location_id="a0000000-0000-0000-0000-000000000001",
+            )
 
     get_db.assert_not_called()
 
 
-def test_event_run_check_filters_source_reading_by_location_and_stops_on_mismatch():
-    from services.ingestion.anomaly_detector import run_check
-
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchone.return_value = None
-    event_id = "a0000000-0000-0000-0000-000000000002"
-    location_id = "a0000000-0000-0000-0000-000000000001"
-
-    with patch("services.ingestion.anomaly_detector.get_db", return_value=db):
-        with pytest.raises(ValueError, match="no matching source reading"):
-            run_check(event_id=event_id, location_id=location_id)
-
-    statement, params = cursor.execute.call_args.args
-    assert "sr.location_id = %s::uuid" in statement
-    assert "e.payload ->> 'location_id' = %s" in statement
-    assert "e.payload ->> 'sensor_id' = sr.sensor_id::TEXT" in statement
-    assert "e.payload ->> 'sensor_device_id' = sr.sensor_id::TEXT" in statement
-    assert params == (event_id, location_id, location_id)
-    db.close.assert_called_once()
-
-
-def test_event_run_check_accepts_source_reading_at_requested_location():
-    from services.ingestion.anomaly_detector import run_check
-
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchone.return_value = (
-        "reading-1", "sensor-1", "soil_moisture", 12.5, None, None,
-        "a0000000-0000-0000-0000-000000000001", None,
-    )
-    cursor.fetchall.return_value = []
-    event_id = "a0000000-0000-0000-0000-000000000002"
-    location_id = "a0000000-0000-0000-0000-000000000001"
+def test_worker_validates_event_location_and_sensor_before_loading_credentials():
+    from services.ingestion.sensor_anomaly_worker import process_sensor_reading
 
     with (
-        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
-        patch("services.ingestion.anomaly_detector.ensure_alert_rules"),
+        patch("services.ingestion.sensor_anomaly_worker.get_worker_credential") as credential,
+        patch("services.ingestion.sensor_anomaly_worker.get_worker_db") as get_db,
     ):
-        run_check(sensor_id="sensor-1", event_id=event_id, location_id=location_id)
-
-    assert cursor.execute.call_count == 2
-    assert cursor.execute.call_args_list[0].args[1] == (event_id, location_id, location_id)
-    db.close.assert_called_once()
-
-
-def test_event_run_check_does_not_bootstrap_shared_alert_rules():
-    from services.ingestion.anomaly_detector import run_check
-
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchone.return_value = (
-        "reading-1", "sensor-1", "soil_moisture", 12.5, None, None,
-        "a0000000-0000-0000-0000-000000000001", None,
-    )
-    cursor.fetchall.return_value = []
-    event_id = "a0000000-0000-0000-0000-000000000002"
-    location_id = "a0000000-0000-0000-0000-000000000001"
-
-    with (
-        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
-        patch("services.ingestion.anomaly_detector.ensure_alert_rules") as ensure_rules,
-    ):
-        run_check(sensor_id="sensor-1", event_id=event_id, location_id=location_id)
-
-    ensure_rules.assert_not_called()
-    db.close.assert_called_once()
+        with pytest.raises(ValueError, match="badly formed hexadecimal UUID"):
+            process_sensor_reading(
+                sensor_id="sensor-1", location_id="bad-location", event_id="event-1"
+            )
+        with pytest.raises(ValueError, match="badly formed hexadecimal UUID"):
+            process_sensor_reading(
+                sensor_id="sensor-1",
+                location_id="a0000000-0000-0000-0000-000000000001",
+                event_id="event-1",
+            )
+    credential.assert_not_called()
+    get_db.assert_not_called()
 
 
 def test_create_alert_records_the_authoritative_location_and_rejects_stale_device_scope():
@@ -274,67 +229,231 @@ def test_interactive_run_check_keeps_default_alert_rule_bootstrap():
     db.close.assert_called_once()
 
 
-def test_anomaly_event_publishes_without_committing_the_handler_transaction():
-    from datetime import datetime, timezone
+class _AnomalyWorkerCursor:
+    def __init__(self, connection):
+        self.connection = connection
+        self.rows = []
+        self.row = None
 
-    from services.ingestion.anomaly_detector import run_check
+    def __enter__(self):
+        return self
 
-    db = MagicMock()
-    cursor = db.cursor.return_value.__enter__.return_value
-    cursor.fetchone.side_effect = [
-        (
-            "reading-1", "sensor-1", "soil_moisture", 12.5, None, None,
-            "a0000000-0000-0000-0000-000000000001", None,
-        ),
-        ("reading-1",),
-        ("sensor-1",),
-        (None, datetime.now(timezone.utc)),
-    ]
-    cursor.fetchall.return_value = [
-        (
-            "rule-1", "Soil Moisture Low", "type-1", "soil_moisture", "value",
-            "lt", 15.0, None, "warning", 0, False, None,
-        ),
-    ]
-    event_bus = MagicMock()
-    location_id = "a0000000-0000-0000-0000-000000000001"
-    event_id = "a0000000-0000-0000-0000-000000000002"
+    def __exit__(self, *_args):
+        return False
+
+    def execute(self, statement, params=None):
+        compact = " ".join(statement.split())
+        self.connection.calls.append((compact, params))
+        function = next(
+            (name for name in self.connection.results if f"{name}(" in compact),
+            None,
+        )
+        result = self.connection.results.get(function) if function else None
+        if isinstance(result, list):
+            self.rows = result
+            self.row = None
+        else:
+            self.row = result
+            self.rows = []
+
+    def fetchone(self):
+        return self.row
+
+    def fetchall(self):
+        return self.rows
+
+
+class _AnomalyWorkerConnection:
+    autocommit = False
+
+    def __init__(self, *, cooldown=False, matches=True, reserved=True, actuator=True):
+        location_id = "a0000000-0000-0000-0000-000000000001"
+        self.calls = []
+        self.results = {
+            "set_worker_tenant_context": (
+                "a0000000-0000-0000-0000-000000000801",
+                location_id,
+                "a0000000-0000-0000-0000-000000000901",
+                "system_worker",
+            ),
+            "read_sensor_anomaly_source": (
+                "a0000000-0000-0000-0000-000000000021",
+                "a0000000-0000-0000-0000-000000000011",
+                "soil_moisture",
+                12.5,
+                None,
+                None,
+                location_id,
+                None,
+                "a0000000-0000-0000-0000-000000000011",
+                "Sensor 1",
+                "a0000000-0000-0000-0000-000000000071",
+                "soil_moisture",
+                "Test Farm",
+            ),
+            "list_sensor_anomaly_rules": [(
+                "a0000000-0000-0000-0000-000000000091",
+                "Soil Moisture Low",
+                "a0000000-0000-0000-0000-000000000071",
+                "soil_moisture",
+                "value",
+                "lt",
+                15.0,
+                None,
+                "warning",
+                0,
+                True,
+                "sensor_anomaly",
+            )],
+            "reserve_sensor_anomaly_effect": (reserved,),
+            "sensor_anomaly_in_cooldown": (cooldown,),
+            "evaluate_sensor_anomaly_rule": (matches,),
+            "record_sensor_anomaly_effect_outcome": (True,),
+            "create_sensor_anomaly_alert": (
+                "a0000000-0000-0000-0000-000000000041",
+                datetime(2026, 10, 16, 12, 0, tzinfo=timezone.utc),
+            ),
+            "create_sensor_alert_draft_claim": (
+                "a0000000-0000-0000-0000-000000000051",
+            ),
+            "publish_sensor_alert_event": (True,),
+            "enqueue_sensor_alert_notification_intent": (True,),
+            "sensor_alert_actuation_enabled": (actuator,),
+            "create_sensor_alert_actuation_intent": (
+                "a0000000-0000-0000-0000-000000000061",
+            ),
+        }
+        self.commits = 0
+        self.rollbacks = 0
+        self.closed = 0
+
+    def cursor(self):
+        return _AnomalyWorkerCursor(self)
+
+    def commit(self):
+        self.commits += 1
+
+    def rollback(self):
+        self.rollbacks += 1
+
+    def close(self):
+        self.closed += 1
+
+
+def _process_worker(connection):
+    from services.ingestion.sensor_anomaly_worker import process_sensor_reading
 
     with (
-        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
-        patch("services.ingestion.anomaly_detector.ensure_alert_rules"),
-        patch("services.ingestion.anomaly_detector.check_cooldown", return_value=False),
-        patch("services.ingestion.anomaly_detector.evaluate_metric", return_value=True),
-        patch("services.ingestion.anomaly_detector.create_alert", return_value="alert-1"),
-        patch("services.ingestion.anomaly_detector.log_ingestion") as log_ingestion,
+        patch("services.ingestion.sensor_anomaly_worker.get_worker_credential", return_value="x" * 40),
+        patch("services.ingestion.sensor_anomaly_worker.get_worker_db", return_value=connection),
         patch(
-            "services.ingestion.anomaly_detector.get_sensor_device_info",
-            return_value={
-                "sensor_name": "Sensor 1",
-                "sensor_type": "soil_moisture",
-                "location_name": "Test Farm",
-                "location_id": location_id,
-            },
+            "services.ingestion.sensor_anomaly_worker._notification_payloads",
+            return_value=[("webhook", "primary", {"text": "test"})],
         ),
-        patch("services.events.notification_outbox.enqueue_event_notification") as enqueue_notification,
-        patch("services.ingestion.anomaly_detector.send_actuation_commands"),
-        patch("services.events.bus.EventBus", return_value=event_bus),
     ):
-        run_check(sensor_id="sensor-1", event_id=event_id, location_id=location_id)
+        return process_sensor_reading(
+            sensor_id="a0000000-0000-0000-0000-000000000011",
+            location_id="a0000000-0000-0000-0000-000000000001",
+            event_id="a0000000-0000-0000-0000-000000000031",
+        )
 
-    event_bus.publish.assert_called_once()
-    assert event_bus.publish.call_args.kwargs["commit"] is False
-    effect_insert = next(
-        call for call in cursor.execute.call_args_list
-        if "INSERT INTO sensor_anomaly_effect" in call.args[0]
+
+def test_sensor_anomaly_worker_runs_bounded_effects_in_one_signed_transaction():
+    connection = _AnomalyWorkerConnection()
+
+    stats = _process_worker(connection)
+
+    assert stats == {
+        "rules": 1,
+        "reserved": 1,
+        "alerts": 1,
+        "claims": 1,
+        "notifications": 1,
+        "actuation_intents": 1,
+        "skipped": 0,
+    }
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+    assert connection.closed == 1
+    statements = [statement for statement, _params in connection.calls]
+    assert statements.index("SET LOCAL ROLE kokonut_worker_execution") < next(
+        index for index, statement in enumerate(statements)
+        if "read_sensor_anomaly_source" in statement
     )
-    assert effect_insert.args[1] == (location_id, "reading-1", "rule-1", event_id)
-    log_ingestion.assert_called_once()
-    assert log_ingestion.call_args.kwargs["location_id"] == location_id
-    enqueue_notification.assert_called_once()
-    assert enqueue_notification.call_args.kwargs["location_id"] == location_id
-    db.commit.assert_called_once()
-    db.close.assert_called_once()
+    assert any("record_sensor_anomaly_effect_outcome" not in statement for statement in statements)
+    assert not any(
+        "FROM public." in statement or "INSERT INTO public." in statement
+        for statement in statements
+    )
+
+
+def test_sensor_anomaly_worker_skips_actuation_for_unconfigured_rules():
+    connection = _AnomalyWorkerConnection(actuator=False)
+
+    stats = _process_worker(connection)
+
+    assert stats["alerts"] == 1
+    assert stats["actuation_intents"] == 0
+    assert not any(
+        "create_sensor_alert_actuation_intent" in statement
+        for statement, _params in connection.calls
+    )
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+
+
+@pytest.mark.parametrize(
+    ("connection_kwargs", "expected_functions"),
+    [
+        ({"cooldown": True}, {"reserve_sensor_anomaly_effect", "sensor_anomaly_in_cooldown",
+                               "record_sensor_anomaly_effect_outcome"}),
+        ({"matches": False}, {"reserve_sensor_anomaly_effect", "sensor_anomaly_in_cooldown",
+                              "evaluate_sensor_anomaly_rule"}),
+        ({"reserved": False}, {"reserve_sensor_anomaly_effect"}),
+    ],
+)
+def test_sensor_anomaly_worker_keeps_cooldown_no_match_and_replay_paths_bounded(
+    connection_kwargs, expected_functions
+):
+    connection = _AnomalyWorkerConnection(**connection_kwargs)
+
+    stats = _process_worker(connection)
+
+    executed_functions = {
+        function
+        for statement, _params in connection.calls
+        for function in expected_functions
+        if f"{function}(" in statement
+    }
+    assert executed_functions == expected_functions
+    assert stats["alerts"] == 0
+    assert connection.commits == 1
+    assert connection.rollbacks == 0
+    assert connection.closed == 1
+
+
+def test_sensor_anomaly_worker_rolls_back_and_closes_on_delivery_failure():
+    from services.ingestion.sensor_anomaly_worker import process_sensor_reading
+
+    connection = _AnomalyWorkerConnection()
+    with (
+        patch("services.ingestion.sensor_anomaly_worker.get_worker_credential", return_value="x" * 40),
+        patch("services.ingestion.sensor_anomaly_worker.get_worker_db", return_value=connection),
+        patch(
+            "services.ingestion.sensor_anomaly_worker._enqueue_notifications",
+            side_effect=RuntimeError("synthetic notification intent failure"),
+        ),
+    ):
+        with pytest.raises(RuntimeError, match="synthetic notification intent failure"):
+            process_sensor_reading(
+                sensor_id="a0000000-0000-0000-0000-000000000011",
+                location_id="a0000000-0000-0000-0000-000000000001",
+                event_id="a0000000-0000-0000-0000-000000000031",
+            )
+
+    assert connection.commits == 0
+    assert connection.rollbacks == 1
+    assert connection.closed == 1
 
 
 if __name__ == "__main__":
