@@ -134,6 +134,10 @@ image reported ARM64 and its configured non-root user; runtime CLI help and
 the image-manifest command passed in a network-disabled QEMU container. This
 does not claim Raspberry Pi performance, power-loss, storage, or full service
 acceptance ([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
+The optional Kokonut OIDC application target also built and passed its
+network-disabled CLI/manifest smoke on ARM64; this does not verify ZITADEL's
+service images or the full identity profile
+([evidence](builds/2026-10-16-recovery/kernel-arm64-oidc-smoke.json)).
 
 **15 October 2026 Kernel startup schema gate (CAP-047):** the default and OIDC
 image commands and both standard-profile roles now require complete schema

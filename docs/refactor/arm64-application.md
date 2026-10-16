@@ -1,6 +1,6 @@
 # ARM64 Kernel application build evidence
 
-## Current source smoke — 16 October 2026
+## Current source smokes — 16 October 2026
 
 On `04bf2a85dffd8f2b5a28051d940f8c9ed4407ec9`, Docker Buildx built the
 default Kernel target for `linux/arm64` and exported manifest
@@ -11,6 +11,13 @@ both completed successfully. The temporary image and archives were removed;
 no Compose service was started or replaced. This refreshes the code-only ARM64
 build/import smoke, not physical Pi, database, ingress, or provider acceptance
 ([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
+
+The optional OIDC application target also built for `linux/arm64`. The loaded
+image reported the same non-root user; runtime CLI help and its image-manifest
+command passed under QEMU with networking disabled. Authlib, cryptography, and
+itsdangerous resolved ARM64 packages. This verifies the Kokonut application
+image only; the ZITADEL service images and full profile remain unverified
+([evidence](builds/2026-10-16-recovery/kernel-arm64-oidc-smoke.json)).
 
 ## Build and runtime status — 15 October 2026
 

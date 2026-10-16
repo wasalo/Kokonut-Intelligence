@@ -5981,3 +5981,10 @@ archives were removed, and no Compose service was changed. This satisfies a
 current-source software build/import check only; Raspberry Pi hardware,
 database-backed startup, external ingress, and power-loss checks remain open
 ([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
+
+The optional Kokonut OIDC image was then built separately for ARM64. Its
+Authlib, cryptography, and itsdangerous dependencies resolved, and a
+network-disabled QEMU container passed runtime CLI help and OIDC image-manifest
+generation. The temporary image and archive were removed. This verifies the
+Kernel OIDC application target only; ZITADEL image manifests and full login
+acceptance remain open ([evidence](builds/2026-10-16-recovery/kernel-arm64-oidc-smoke.json)).
