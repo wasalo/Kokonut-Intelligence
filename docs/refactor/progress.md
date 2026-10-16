@@ -11,8 +11,9 @@ The 17-commit batch was pushed as `d01941abad13c5128fca85acb0f4b5645a4322b4`.
 Eight prior local commits above it cover ZITADEL image pins, report-review
 tenant-context tests, report-generator/query/helper inventories, the report
 stakeholder-audience record, the indirect location-scope correction, and ARM64
-schema-402 evidence. The current CI repair is the ninth local commit in this
-batch and remains unpushed. Security #49 passed; CI #325 failed on that pushed head
+schema-402 evidence. The CI repair and its read-only candidate seed confirmation
+are local commits nine and ten above the pushed head, and remain unpushed.
+Security #49 passed; CI #325 failed on that pushed head
 with four tests. The current local repair restores the flow-metric seed to the
 normal seed set, aligns the OIDC `Vary` test with CORS, refreshes the worker SQL
 expectation, and asserts retention-lock ordering. It passed 31 focused tests;

@@ -40,11 +40,23 @@
     "result": "passed",
     "passed": 31,
     "skipped": 2,
-    "skipped_reason": "Database-dependent flow-metric calculator/seed assertions skipped because no local test database was available; a deterministic seed-selection regression passed.",
+    "skipped_reason": "The pytest database factory had no configured reachable test DSN; the deterministic seed-selection regression passed.",
     "ruff": "passed",
     "python_compile": "passed",
     "seed_shell_syntax": "passed",
     "git_diff_check": "passed"
+  },
+  "candidate_read_only_confirmation": {
+    "database": "kokonut-intelligence candidate",
+    "query": "SELECT metric_key, category FROM metric_definition WHERE metric_key IN ('governed_lead_time_days','first_time_through_yield_pct','rework_rate_pct') ORDER BY metric_key",
+    "rows": [
+      ["first_time_through_yield_pct", "quality"],
+      ["governed_lead_time_days", "lead_time"],
+      ["rework_rate_pct", "quality"]
+    ],
+    "result": "passed",
+    "write_performed": false,
+    "limitation": "The candidate already had the approved reference seed applied; this confirms current rows but does not exercise a clean bootstrap through the updated default seed path."
   },
   "remaining_gate": "The fixes are local and unpushed. CI and Security must rerun on the batch head; local focused tests do not substitute for release CI."
 }

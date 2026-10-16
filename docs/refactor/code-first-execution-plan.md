@@ -33,13 +33,13 @@ MAN-CAP checks open until each has its own retained evidence.
   local commits, including retention-policy and optional Directus role/profile
   work, fresh-volume Directus overlay acceptance, worker effect and SQL
   reachability inventories, and the five-seed/retention rollout evidence.
-  Eight existing local commits sit above that pushed head. The current CI
-  repair is the next local batch and is also unpushed; neither it nor the
-  preceding local commits has been evaluated by CI. They cover ZITADEL image
-  pins; report-review tenant-context tests;
+  Ten local commits sit above that pushed head and have not been evaluated by
+  CI: eight earlier commits covering ZITADEL image pins; report-review
+  tenant-context tests;
   report-generator, direct-query, and helper-query inventories; the report
   review-audience record; the indirect location-scope correction; and current
-  ARM64 schema-402 evidence, plus the current CI repair. The pushed batch
+  ARM64 schema-402 evidence, followed by the CI #325 repair and its read-only
+  candidate seed confirmation. The pushed batch
   includes report calculation and scheduler worker
   recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
   permission work. See the relevant evidence below and the current CI status
