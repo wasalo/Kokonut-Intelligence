@@ -24,6 +24,8 @@ _HANDLER_WORKER_KEYS = {
     ),
     ("services.cache.events", "handle_metric_computed"): ("cache_invalidation",),
     ("services.cache.events", "handle_crisp_scored"): ("cache_invalidation",),
+    ("services.cache.events", "handle_sensor_reading"): ("cache_invalidation",),
+    ("services.cache.events", "handle_harvest_recorded"): ("cache_invalidation",),
 }
 
 

@@ -3,9 +3,9 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 20,
+    "operation_roots": 22,
     "sql_execution_sites": 268,
-    "statically_reachable_site_memberships": 232,
+    "statically_reachable_site_memberships": 244,
     "unique_sites_with_static_operation_path": 204,
     "sites_without_static_function_match": 64,
     "unmatched_functions_absent_from_all_worker_graphs": 64,
@@ -32,23 +32,23 @@
       "operation_ref": "scheduled_module:services.events",
       "statically_reachable_sql_site_count": 44,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:108:12",
-        "services/events/bus.py:158:12",
-        "services/events/bus.py:177:16",
-        "services/events/bus.py:189:16",
-        "services/events/bus.py:205:16",
-        "services/events/bus.py:210:16",
-        "services/events/bus.py:269:12",
-        "services/events/bus.py:284:12",
-        "services/events/bus.py:293:16",
-        "services/events/bus.py:309:12",
-        "services/events/bus.py:346:12",
-        "services/events/bus.py:358:12",
-        "services/events/bus.py:371:16",
-        "services/events/bus.py:374:16",
-        "services/events/bus.py:415:16",
-        "services/events/bus.py:444:16",
-        "services/events/bus.py:452:16",
+        "services/events/bus.py:110:12",
+        "services/events/bus.py:160:12",
+        "services/events/bus.py:179:16",
+        "services/events/bus.py:191:16",
+        "services/events/bus.py:207:16",
+        "services/events/bus.py:212:16",
+        "services/events/bus.py:271:12",
+        "services/events/bus.py:286:12",
+        "services/events/bus.py:295:16",
+        "services/events/bus.py:311:12",
+        "services/events/bus.py:348:12",
+        "services/events/bus.py:360:12",
+        "services/events/bus.py:373:16",
+        "services/events/bus.py:376:16",
+        "services/events/bus.py:417:16",
+        "services/events/bus.py:446:16",
+        "services/events/bus.py:454:16",
         "services/events/cli.py:163:12",
         "services/events/cli.py:192:12",
         "services/events/fork_detector.py:133:12",
@@ -106,7 +106,7 @@
       "operation_ref": "scheduled_module:services.ingestion.anomaly_detector",
       "statically_reachable_sql_site_count": 36,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:89:16",
+        "services/events/bus.py:91:16",
         "services/events/notification_outbox.py:189:12",
         "services/events/notification_outbox.py:204:12",
         "services/events/notification_outbox.py:224:16",
@@ -346,7 +346,21 @@
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
         "services/cache/cache.py:178:16",
-        "services/cache/events.py:84:12",
+        "services/cache/events.py:86:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:160:8",
+        "services/common/tenant_context.py:161:8",
+        "services/common/worker_database.py:103:12"
+      ]
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_harvest_recorded",
+      "operation_ref": "event_handler:services.cache.events.handle_harvest_recorded",
+      "statically_reachable_sql_site_count": 6,
+      "statically_reachable_sql_site_ids": [
+        "services/cache/cache.py:178:16",
+        "services/cache/events.py:86:12",
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
@@ -360,7 +374,21 @@
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
         "services/cache/cache.py:178:16",
-        "services/cache/events.py:84:12",
+        "services/cache/events.py:86:12",
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:160:8",
+        "services/common/tenant_context.py:161:8",
+        "services/common/worker_database.py:103:12"
+      ]
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_sensor_reading",
+      "operation_ref": "event_handler:services.cache.events.handle_sensor_reading",
+      "statically_reachable_sql_site_count": 6,
+      "statically_reachable_sql_site_ids": [
+        "services/cache/cache.py:178:16",
+        "services/cache/events.py:86:12",
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
@@ -1143,7 +1171,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1163,7 +1193,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1183,7 +1215,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1204,7 +1238,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1224,11 +1260,15 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -1247,7 +1287,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1267,7 +1309,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1287,7 +1331,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1295,9 +1341,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/cache/events.py:84:12",
+      "id": "services/cache/events.py:86:12",
       "source": "services/cache/events.py",
-      "line": 84,
+      "line": 86,
       "scope": "_invalidate_event_cache",
       "method": "execute",
       "expression_kind": "literal",
@@ -1305,11 +1351,15 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -1326,7 +1376,9 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
@@ -1362,7 +1414,9 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
@@ -1398,7 +1452,9 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
@@ -1434,13 +1490,17 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ],
       "static_link_status": "linked",
@@ -1458,13 +1518,17 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ],
       "static_link_status": "linked",
@@ -1484,13 +1548,17 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ],
       "static_link_status": "linked",
@@ -1510,7 +1578,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
@@ -1532,7 +1602,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
@@ -1554,7 +1626,9 @@
       ],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
@@ -1574,13 +1648,17 @@
       "candidate_relations": [],
       "import_closure_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
       ],
       "static_link_status": "linked",
@@ -1912,9 +1990,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/events/bus.py:89:16",
+      "id": "services/events/bus.py:91:16",
       "source": "services/events/bus.py",
-      "line": 89,
+      "line": 91,
       "scope": "EventBus.publish",
       "method": "execute",
       "expression_kind": "literal",
@@ -1937,9 +2015,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:108:12",
+      "id": "services/events/bus.py:110:12",
       "source": "services/events/bus.py",
-      "line": 108,
+      "line": 110,
       "scope": "EventBus._claim",
       "method": "execute",
       "expression_kind": "literal",
@@ -1964,9 +2042,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:158:12",
+      "id": "services/events/bus.py:160:12",
       "source": "services/events/bus.py",
-      "line": 158,
+      "line": 160,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -1990,9 +2068,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:177:16",
+      "id": "services/events/bus.py:179:16",
       "source": "services/events/bus.py",
-      "line": 177,
+      "line": 179,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2015,9 +2093,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:189:16",
+      "id": "services/events/bus.py:191:16",
       "source": "services/events/bus.py",
-      "line": 189,
+      "line": 191,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2041,9 +2119,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:205:16",
+      "id": "services/events/bus.py:207:16",
       "source": "services/events/bus.py",
-      "line": 205,
+      "line": 207,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2066,9 +2144,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:210:16",
+      "id": "services/events/bus.py:212:16",
       "source": "services/events/bus.py",
-      "line": 210,
+      "line": 212,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2091,9 +2169,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:269:12",
+      "id": "services/events/bus.py:271:12",
       "source": "services/events/bus.py",
-      "line": 269,
+      "line": 271,
       "scope": "EventBus._complete",
       "method": "execute",
       "expression_kind": "literal",
@@ -2116,9 +2194,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:284:12",
+      "id": "services/events/bus.py:286:12",
       "source": "services/events/bus.py",
-      "line": 284,
+      "line": 286,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2141,9 +2219,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:293:16",
+      "id": "services/events/bus.py:295:16",
       "source": "services/events/bus.py",
-      "line": 293,
+      "line": 295,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2168,9 +2246,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:309:12",
+      "id": "services/events/bus.py:311:12",
       "source": "services/events/bus.py",
-      "line": 309,
+      "line": 311,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2197,9 +2275,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:346:12",
+      "id": "services/events/bus.py:348:12",
       "source": "services/events/bus.py",
-      "line": 346,
+      "line": 348,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2222,9 +2300,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:358:12",
+      "id": "services/events/bus.py:360:12",
       "source": "services/events/bus.py",
-      "line": 358,
+      "line": 360,
       "scope": "EventBus.get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -2247,9 +2325,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:371:16",
+      "id": "services/events/bus.py:373:16",
       "source": "services/events/bus.py",
-      "line": 371,
+      "line": 373,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2270,9 +2348,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:374:16",
+      "id": "services/events/bus.py:376:16",
       "source": "services/events/bus.py",
-      "line": 374,
+      "line": 376,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2295,9 +2373,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:415:16",
+      "id": "services/events/bus.py:417:16",
       "source": "services/events/bus.py",
-      "line": 415,
+      "line": 417,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2324,9 +2402,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:444:16",
+      "id": "services/events/bus.py:446:16",
       "source": "services/events/bus.py",
-      "line": 444,
+      "line": 446,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2349,9 +2427,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:452:16",
+      "id": "services/events/bus.py:454:16",
       "source": "services/events/bus.py",
-      "line": 452,
+      "line": 454,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",

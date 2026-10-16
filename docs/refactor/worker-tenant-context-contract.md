@@ -22,14 +22,15 @@ location grant was provisioned. Migration 412 adds a narrow owner
 SELECT policy only on source tables where RLS is already enabled; it does not
 enable RLS globally.
 
-Migration 415 and the opt-in adapter for the two registered cache invalidation
-handlers are now verified. Seventy-four focused cache/EventBus/runner/environment
-tests pass. Six checks on network-isolated disposable PostgreSQL 16 cover
-migration replay, signed event/type/location agreement, location and
-computation-type isolation, idempotent retry, forced RLS, and direct-table
-denial. The worker-specific DSN and credential reach only the exact two
-registered handlers. The flag remains off by default; no credential or active
-grant is provisioned, and migration 415 is not deployed to the candidate.
+Migrations 415–416 and the opt-in adapters for all four registered cache
+invalidation handlers are now verified. Eighty focused cache/EventBus/allowlist
+and operation-map tests pass. Eight checks on network-isolated disposable
+PostgreSQL 16 cover migration replay, signed event/type/location agreement,
+location and computation-type isolation, idempotent retry, forced RLS, direct
+table denial, and handler registration. The worker-specific DSN and credential
+reach only the exact four registered handlers. The flag remains off by default;
+no credential or active grant is provisioned, and migration 416 is not deployed
+to the candidate.
 
 The `services.common.worker_database.get_worker_db()` factory supports isolated
 execution and is used by the anomaly adapter. It requires a worker-specific
@@ -343,15 +344,15 @@ tables or use unrelated tenant rows. A real deployment login, secret, and
 active location grant have not been provisioned. No access is granted to the
 shared runtime or existing event/notification dispatchers.
 
-Migration 415 and source integration for the two registered cache invalidation
-handlers are now prepared as the next scoped extension. The default-off path
-retains existing behavior; when enabled, each handler uses its own worker DSN,
-an exact EventBus credential allowlist entry, and a signed
-`computation_cache/invalidate` scope. The bounded function rechecks the durable
-event ID, event type, and location before invalidating only the matching
-analytics or CRISP cache rows. Focused handler and disposable PostgreSQL 16
-acceptance is still pending; migration 415 has not been rolled out, and no
-credential or grant is provisioned.
+Migrations 415–416 and source integration cover all four registered cache
+invalidation handlers: `metric_computed`, `crisp_scored`, `sensor_reading`, and
+`harvest_recorded`. The default-off path retains existing behavior; when
+enabled, each handler uses its own worker DSN, an exact EventBus credential
+allowlist entry, and a signed `computation_cache/invalidate` scope. The bounded
+function rechecks the durable event ID, event type, and location before
+invalidating only the corresponding analytics, CRISP, or metric cache rows.
+Focused handler and disposable PostgreSQL 16 acceptance pass; migration 416
+has not been rolled out, and no credential or grant is provisioned.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.
@@ -405,10 +406,11 @@ authorization contract to it.
     rows. Provisioning real deployment identities and secrets remains an
     activation gate.
 11. **Complete in source and disposable acceptance:** add a signed, opt-in cache
-    invalidation path for the two registered EventBus handlers. Focused tests
-    and six isolated PostgreSQL checks pass for event ID/type/location matching,
-    cache-type scoping, retry safety, forced RLS, role boundaries, and migration
-    replay. Credential and active grant provisioning remain an activation gate.
+    invalidation path for all four registered EventBus handlers. Eighty focused
+    tests and eight isolated PostgreSQL checks pass for event ID/type/location
+    matching, cache-type scoping, retry safety, forced RLS, role boundaries,
+    handler registration, and migrations 415–416 replay. Credential and active
+    grant provisioning remain an activation gate.
 12. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.

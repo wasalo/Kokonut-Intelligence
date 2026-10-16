@@ -3,7 +3,7 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 20,
+    "operation_roots": 22,
     "source_files": 81,
     "execution_sites": 268,
     "static_literal_sites": 228,
@@ -644,7 +644,9 @@
       "static_sql_sha256": "a649f85716c8c1da0b2acfd8c641dc8bb3119899a08a7faf5d428f810a7f3864",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -662,7 +664,9 @@
       "static_sql_sha256": "0086840cf4c94434cae4e6edfc6d7cf1f10a9205939d2af31a8327590f56d246",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -680,7 +684,9 @@
       "static_sql_sha256": "d5f43065cf5c9d4c6a50973bb4c3f214442b543005a0ec34eb82efdfde2031b1",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -699,7 +705,9 @@
       "static_sql_sha256": "3aefde19c9beb24d42d7c861420f91d60d177d5b44ba0879e6eaf25a0ee861e4",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -717,7 +725,9 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -735,7 +745,9 @@
       "static_sql_sha256": "a4d3efb71e7ed1b76b79d8c95561f999449b3a389be4a768bb5346f5933538ab",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -753,7 +765,9 @@
       "static_sql_sha256": "40f1716714d989efca3d4ef81c4ad85dc6c9de65dbdd8c743590faf8dc56343d",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -771,13 +785,15 @@
       "static_sql_sha256": "29c2c3f9280b3fd3e97133fb52140f0068bbad289ee5efe11cb343f99933bbe5",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
-      "id": "services/cache/events.py:84:12",
+      "id": "services/cache/events.py:86:12",
       "source": "services/cache/events.py",
-      "line": 84,
+      "line": 86,
       "column": 12,
       "scope": "_invalidate_event_cache",
       "method": "execute",
@@ -787,7 +803,9 @@
       "static_sql_sha256": "f7d7f40d11afbdf1d6a7fee264553f65d0deedf14315de247e7c1002b29a2f00",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
-        "event_handler:services.cache.events.handle_metric_computed"
+        "event_handler:services.cache.events.handle_harvest_recorded",
+        "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading"
       ]
     },
     {
@@ -803,7 +821,9 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
@@ -837,7 +857,9 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
@@ -871,7 +893,9 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
@@ -905,7 +929,9 @@
       "static_sql_sha256": null,
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -923,7 +949,9 @@
       "static_sql_sha256": "24fc3a6d2722aec0c79b77a02e1c934443f41889f22f9a014cad82eb69311d67",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -943,7 +971,9 @@
       "static_sql_sha256": "a6bc4b7812a18547b53d1f5cc97449e35b48ee4ec9bf93e1f0e3b0557ded64a4",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -963,7 +993,9 @@
       "static_sql_sha256": "d537c38e81889d8c9c589dcbde55655ffcbc6b58f9da329f5b79f324fd74a4b0",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -983,7 +1015,9 @@
       "static_sql_sha256": "81ca588b00a848671d9b5acab7dbea2024c41a7e41b710a90a58e7e9bcf36f9b",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -1003,7 +1037,9 @@
       "static_sql_sha256": "a0672a7f91650cac43993fd0ed95997fbfb4dfc1ea3015596588d841228d408c",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -1021,7 +1057,9 @@
       "static_sql_sha256": "e3e4c413fce8753db132b245d90630657bd9eedd390b945007e41120e12fd5d9",
       "operation_refs": [
         "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
+        "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -1317,9 +1355,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:89:16",
+      "id": "services/events/bus.py:91:16",
       "source": "services/events/bus.py",
-      "line": 89,
+      "line": 91,
       "column": 16,
       "scope": "EventBus.publish",
       "method": "execute",
@@ -1338,9 +1376,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:108:12",
+      "id": "services/events/bus.py:110:12",
       "source": "services/events/bus.py",
-      "line": 108,
+      "line": 110,
       "column": 12,
       "scope": "EventBus._claim",
       "method": "execute",
@@ -1361,9 +1399,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:158:12",
+      "id": "services/events/bus.py:160:12",
       "source": "services/events/bus.py",
-      "line": 158,
+      "line": 160,
       "column": 12,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1383,9 +1421,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:177:16",
+      "id": "services/events/bus.py:179:16",
       "source": "services/events/bus.py",
-      "line": 177,
+      "line": 179,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1404,9 +1442,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:189:16",
+      "id": "services/events/bus.py:191:16",
       "source": "services/events/bus.py",
-      "line": 189,
+      "line": 191,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1426,9 +1464,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:205:16",
+      "id": "services/events/bus.py:207:16",
       "source": "services/events/bus.py",
-      "line": 205,
+      "line": 207,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1447,9 +1485,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:210:16",
+      "id": "services/events/bus.py:212:16",
       "source": "services/events/bus.py",
-      "line": 210,
+      "line": 212,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1468,9 +1506,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:269:12",
+      "id": "services/events/bus.py:271:12",
       "source": "services/events/bus.py",
-      "line": 269,
+      "line": 271,
       "column": 12,
       "scope": "EventBus._complete",
       "method": "execute",
@@ -1489,9 +1527,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:284:12",
+      "id": "services/events/bus.py:286:12",
       "source": "services/events/bus.py",
-      "line": 284,
+      "line": 286,
       "column": 12,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1510,9 +1548,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:293:16",
+      "id": "services/events/bus.py:295:16",
       "source": "services/events/bus.py",
-      "line": 293,
+      "line": 295,
       "column": 16,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1533,9 +1571,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:309:12",
+      "id": "services/events/bus.py:311:12",
       "source": "services/events/bus.py",
-      "line": 309,
+      "line": 311,
       "column": 12,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
@@ -1558,9 +1596,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:346:12",
+      "id": "services/events/bus.py:348:12",
       "source": "services/events/bus.py",
-      "line": 346,
+      "line": 348,
       "column": 12,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
@@ -1579,9 +1617,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:358:12",
+      "id": "services/events/bus.py:360:12",
       "source": "services/events/bus.py",
-      "line": 358,
+      "line": 360,
       "column": 12,
       "scope": "EventBus.get_stats",
       "method": "execute",
@@ -1600,9 +1638,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:371:16",
+      "id": "services/events/bus.py:373:16",
       "source": "services/events/bus.py",
-      "line": 371,
+      "line": 373,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1619,9 +1657,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:374:16",
+      "id": "services/events/bus.py:376:16",
       "source": "services/events/bus.py",
-      "line": 374,
+      "line": 376,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1640,9 +1678,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:415:16",
+      "id": "services/events/bus.py:417:16",
       "source": "services/events/bus.py",
-      "line": 415,
+      "line": 417,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1665,9 +1703,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:444:16",
+      "id": "services/events/bus.py:446:16",
       "source": "services/events/bus.py",
-      "line": 444,
+      "line": 446,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1686,9 +1724,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:452:16",
+      "id": "services/events/bus.py:454:16",
       "source": "services/events/bus.py",
-      "line": 452,
+      "line": 454,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",

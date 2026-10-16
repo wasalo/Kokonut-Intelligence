@@ -22,9 +22,10 @@ MIGRATIONS = (
     "schemas/postgres/118_computation_cache.sql",
     "schemas/postgres/405_signed_worker_tenant_context.sql",
     "schemas/postgres/415_signed_cache_invalidation_worker.sql",
+    "schemas/postgres/416_sensor_harvest_cache_invalidation.sql",
 )
 WORKER_FIXTURE = "tests/fixtures/worker_tenant_context_disposable.sql"
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-16-recovery/cache-invalidation-worker-disposable.json"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-16-recovery/cache-invalidation-worker-four-handlers-disposable.json"
 
 WORKER_ID = "a0000000-0000-0000-0000-000000000901"
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -33,6 +34,8 @@ LOCATION_B = "a0000000-0000-0000-0000-000000000002"
 EVENT_METRIC_A = "a0000000-0000-0000-0000-000000000101"
 EVENT_CRISP_A = "a0000000-0000-0000-0000-000000000102"
 EVENT_METRIC_B = "a0000000-0000-0000-0000-000000000103"
+EVENT_SENSOR_A = "a0000000-0000-0000-0000-000000000104"
+EVENT_HARVEST_A = "a0000000-0000-0000-0000-000000000105"
 RAW_CREDENTIAL = "synthetic-cache-worker-credential-for-disposable-check"
 CREDENTIAL_HASH = hashlib.sha256(RAW_CREDENTIAL.encode("utf-8")).hexdigest()
 
@@ -138,6 +141,7 @@ def main() -> int:
     created = False
     checks: list[str] = []
     migration_path = ROOT / "schemas/postgres/415_signed_cache_invalidation_worker.sql"
+    extension_migration_path = ROOT / "schemas/postgres/416_sensor_harvest_cache_invalidation.sql"
 
     try:
         run(
@@ -175,7 +179,10 @@ def main() -> int:
         migration_sql = migration_path.read_text(encoding="utf-8")
         docker_sql(docker, container, migration_sql)
         docker_sql(docker, container, migration_sql)
-        checks.append("migration 415 applies and replays after the signed worker-context migration")
+        extension_migration_sql = extension_migration_path.read_text(encoding="utf-8")
+        docker_sql(docker, container, extension_migration_sql)
+        docker_sql(docker, container, extension_migration_sql)
+        checks.append("migrations 415 and 416 apply and replay after the signed worker-context migration")
 
         docker_sql(
             docker,
@@ -196,14 +203,19 @@ def main() -> int:
             INSERT INTO public.platform_event (id, event_type, payload) VALUES
                 ('{EVENT_METRIC_A}', 'metric_computed', '{{"location_id":"{LOCATION_A}"}}'),
                 ('{EVENT_CRISP_A}', 'crisp_scored', '{{"location_id":"{LOCATION_A}"}}'),
-                ('{EVENT_METRIC_B}', 'metric_computed', '{{"location_id":"{LOCATION_B}"}}');
+                ('{EVENT_METRIC_B}', 'metric_computed', '{{"location_id":"{LOCATION_B}"}}'),
+                ('{EVENT_SENSOR_A}', 'sensor_reading', '{{"location_id":"{LOCATION_A}"}}'),
+                ('{EVENT_HARVEST_A}', 'harvest_recorded', '{{"location_id":"{LOCATION_A}"}}');
             INSERT INTO public.cache_entry
                 (cache_key, computation_type, location_id, result, expires_at)
             VALUES
                 ('analytics-a', 'analytics', '{LOCATION_A}', '{{}}', NOW() + INTERVAL '1 day'),
                 ('crisp-a', 'crisp', '{LOCATION_A}', '{{}}', NOW() + INTERVAL '1 day'),
                 ('analytics-b', 'analytics', '{LOCATION_B}', '{{}}', NOW() + INTERVAL '1 day'),
-                ('metric-a', 'metric', '{LOCATION_A}', '{{}}', NOW() + INTERVAL '1 day');
+                ('metric-a', 'metric', '{LOCATION_A}', '{{}}', NOW() + INTERVAL '1 day'),
+                ('metric-sensor-a', 'metric', '{LOCATION_A}', '{{}}', NOW() + INTERVAL '1 day'),
+                ('metric-harvest-a', 'metric', '{LOCATION_A}', '{{}}', NOW() + INTERVAL '1 day'),
+                ('metric-b', 'metric', '{LOCATION_B}', '{{}}', NOW() + INTERVAL '1 day');
             """,
         )
 
@@ -225,6 +237,23 @@ def main() -> int:
             SELECT kokonut_security.invalidate_worker_computation_cache(
                 '{EVENT_METRIC_A}'::uuid, 'metric_computed'
             );
+            SELECT kokonut_security.invalidate_worker_computation_cache(
+                '{EVENT_CRISP_A}'::uuid, 'crisp_scored'
+            );
+            RESET ROLE;
+            UPDATE public.cache_entry SET is_valid = TRUE WHERE cache_key = 'metric-harvest-a';
+            SET LOCAL ROLE kokonut_worker_login;
+            SET LOCAL ROLE kokonut_worker_execution;
+            SELECT kokonut_security.invalidate_worker_computation_cache(
+                '{EVENT_SENSOR_A}'::uuid, 'sensor_reading'
+            );
+            RESET ROLE;
+            UPDATE public.cache_entry SET is_valid = TRUE WHERE cache_key = 'metric-harvest-a';
+            SET LOCAL ROLE kokonut_worker_login;
+            SET LOCAL ROLE kokonut_worker_execution;
+            SELECT kokonut_security.invalidate_worker_computation_cache(
+                '{EVENT_HARVEST_A}'::uuid, 'harvest_recorded'
+            );
             RESET ROLE;
             SELECT string_agg(cache_key || '=' || is_valid::text, ',' ORDER BY cache_key)
               FROM public.cache_entry;
@@ -235,12 +264,14 @@ def main() -> int:
             f"{TENANT_ID}|{LOCATION_A}|{WORKER_ID}|system_worker",
             "1",
             "0",
-            "analytics-a=false,analytics-b=true,crisp-a=true,metric-a=true",
+            "1",
+            "3",
+            "1",
+            "analytics-a=false,analytics-b=true,crisp-a=false,metric-a=false,metric-b=true,metric-harvest-a=false,metric-sensor-a=false",
         ]:
-            raise AssertionError(f"signed invalidation scope or retry behavior differed: {effect_result}")
-        checks.append(
-            "signed context invalidates only analytics rows at its location; replay is idempotent"
-        )
+            raise AssertionError(f"signed cache type/location mapping differed: {effect_result}")
+        checks.append("all four event types invalidate only their mapped cache type at the signed location")
+        checks.append("same-event retry returns zero additional invalidations and preserves idempotent cache state")
 
         for event_id, requested_type, event_location in (
             (EVENT_CRISP_A, "metric_computed", LOCATION_A),
@@ -278,6 +309,23 @@ def main() -> int:
             raise AssertionError(f"worker role or forced-RLS policies differ from contract: {boundary}")
         checks.append("forced-RLS policies scope the function owner while execution role has no direct table reads")
 
+        registrations = docker_sql(
+            docker,
+            container,
+            """
+            SELECT string_agg(handler_name || '|' || event_type || '|' || module_path || '|' || function_name,
+                              ',' ORDER BY handler_name)
+              FROM public.event_handler
+             WHERE handler_name IN ('sensor_cache_invalidator', 'harvest_cache_invalidator');
+            """,
+        ).strip()
+        if registrations != (
+            "harvest_cache_invalidator|harvest_recorded|services.cache.events|handle_harvest_recorded,"
+            "sensor_cache_invalidator|sensor_reading|services.cache.events|handle_sensor_reading"
+        ):
+            raise AssertionError(f"new cache event handler registrations differ from contract: {registrations}")
+        checks.append("migration 416 registers the existing sensor and harvest cache handlers")
+
         for table in ("cache_entry", "platform_event"):
             denial = docker_sql(
                 docker,
@@ -308,6 +356,7 @@ def main() -> int:
             "scope": "Signed EventBus cache invalidation",
             "database": "isolated disposable PostgreSQL 16 container with --network none",
             "migration_415_sha256": hashlib.sha256(migration_path.read_bytes()).hexdigest(),
+            "migration_416_sha256": hashlib.sha256(extension_migration_path.read_bytes()).hexdigest(),
             "migrations": [*MIGRATIONS],
             "result": "passed",
             "checks": [{"result": "passed", "description": item} for item in checks],

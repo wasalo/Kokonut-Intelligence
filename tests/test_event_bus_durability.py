@@ -111,7 +111,12 @@ def test_cache_handlers_receive_only_their_exact_worker_identity():
         "PG_PASSWORD": "legacy-runtime-secret",
     }
 
-    for function_name in ("handle_metric_computed", "handle_crisp_scored"):
+    for function_name in (
+        "handle_metric_computed",
+        "handle_crisp_scored",
+        "handle_sensor_reading",
+        "handle_harvest_recorded",
+    ):
         env = _handler_child_environment(
             "services.cache.events", function_name, source
         )

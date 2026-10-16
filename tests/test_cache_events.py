@@ -107,6 +107,8 @@ def test_unscoped_or_invalid_location_never_invalidates_cache(
     [
         (handle_metric_computed, "metric_computed"),
         (handle_crisp_scored, "crisp_scored"),
+        (handle_sensor_reading, "sensor_reading"),
+        (handle_harvest_recorded, "harvest_recorded"),
     ],
 )
 def test_signed_cache_invalidation_sets_scope_and_uses_bounded_function(
@@ -149,6 +151,8 @@ def test_signed_cache_invalidation_sets_scope_and_uses_bounded_function(
     [
         (handle_metric_computed, "metric_computed"),
         (handle_crisp_scored, "crisp_scored"),
+        (handle_sensor_reading, "sensor_reading"),
+        (handle_harvest_recorded, "harvest_recorded"),
     ],
 )
 def test_signed_cache_invalidation_rolls_back_and_closes_on_database_error(
@@ -187,6 +191,8 @@ def test_signed_cache_invalidation_rolls_back_and_closes_on_database_error(
     [
         (handle_metric_computed, "metric_computed"),
         (handle_crisp_scored, "crisp_scored"),
+        (handle_sensor_reading, "sensor_reading"),
+        (handle_harvest_recorded, "harvest_recorded"),
     ],
 )
 def test_signed_cache_invalidation_rejects_wrong_handler_type_before_database_access(
@@ -209,9 +215,19 @@ def test_signed_cache_invalidation_rejects_wrong_handler_type_before_database_ac
     get_connection.assert_not_called()
 
 
-@pytest.mark.parametrize("handler", [handle_metric_computed, handle_crisp_scored])
+@pytest.mark.parametrize(
+    ("handler", "event_type"),
+    [
+        (handle_metric_computed, "metric_computed"),
+        (handle_crisp_scored, "crisp_scored"),
+        (handle_sensor_reading, "sensor_reading"),
+        (handle_harvest_recorded, "harvest_recorded"),
+    ],
+)
 @pytest.mark.parametrize("event_id", [None, "not-a-uuid"])
-def test_signed_cache_invalidation_requires_valid_durable_event_id(handler, event_id, monkeypatch):
+def test_signed_cache_invalidation_requires_valid_durable_event_id(
+    handler, event_type, event_id, monkeypatch
+):
     monkeypatch.setattr("services.core.features.is_enabled", lambda _feature: True)
     get_credential = MagicMock()
     get_connection = MagicMock()
@@ -220,7 +236,7 @@ def test_signed_cache_invalidation_requires_valid_durable_event_id(handler, even
 
     with pytest.raises(ValueError, match="valid event_id"):
         handler(
-            "metric_computed" if handler is handle_metric_computed else "crisp_scored",
+            event_type,
             {"location_id": LOCATION_1},
             event_id=event_id,
         )

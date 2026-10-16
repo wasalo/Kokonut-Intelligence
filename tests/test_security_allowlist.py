@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -61,6 +62,8 @@ def test_event_handlers_contain_known_handlers():
     """ALLOWED_EVENT_HANDLERS contains the expected cache event handlers."""
     assert ("services.cache.events", "handle_metric_computed") in ALLOWED_EVENT_HANDLERS
     assert ("services.cache.events", "handle_crisp_scored") in ALLOWED_EVENT_HANDLERS
+    assert ("services.cache.events", "handle_sensor_reading") in ALLOWED_EVENT_HANDLERS
+    assert ("services.cache.events", "handle_harvest_recorded") in ALLOWED_EVENT_HANDLERS
 
 
 def test_scheduled_modules_contain_known_modules():

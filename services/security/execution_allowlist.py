@@ -8,6 +8,8 @@ ALLOWED_EVENT_HANDLERS = frozenset(
         ("services.events.handlers", "handle_stale_data"),
         ("services.cache.events", "handle_metric_computed"),
         ("services.cache.events", "handle_crisp_scored"),
+        ("services.cache.events", "handle_sensor_reading"),
+        ("services.cache.events", "handle_harvest_recorded"),
         ("services.events.handlers", "handle_alert_notification"),
     }
 )

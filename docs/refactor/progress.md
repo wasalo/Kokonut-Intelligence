@@ -6729,29 +6729,31 @@ specific secret is delivered and no handler is yet integrated with the worker
 database/context helpers
 ([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
 
-### Signed cache invalidation worker — 16 October 2026
+### Signed cache invalidation worker — four-handler extension — 16 October 2026
 
-The two registered EventBus cache handlers now support an opt-in signed worker
-path. Migration 415 verifies the durable event ID, exact event type and signed
-location before invalidating only the associated analytics or CRISP cache
-rows. The feature stays disabled by default, and Compose passes its worker DSN
-and credential only to the worker supervisor; EventBus forwards them only to
-the two exact handler pairs.
+Migrations 415–416 and source integration now cover all four registered
+EventBus cache handlers: `metric_computed`, `crisp_scored`, `sensor_reading`,
+and `harvest_recorded`. The bounded function verifies the durable event ID,
+exact event type, and signed location before invalidating only the associated
+analytics, CRISP, or metric cache rows. The feature remains disabled by default;
+Compose passes the worker DSN and credential only to the supervisor, and
+EventBus routes each secret pair only to its exact registered handler.
 
-Seventy-four focused cache/EventBus/runner/environment and operation-map tests
-pass. Six checks on network-isolated disposable PostgreSQL 16 pass for
-migration replay, event/type/location mismatch denial, cache/location scoping,
-retry idempotency, forced-RLS behavior, and direct-table denial. Ruff, Python
-compilation, migration-source validation, Compose profile validation, and
-worker SQL/source inventory checks pass. Evidence:
-[cache-invalidation-worker-disposable.json](builds/2026-10-16-recovery/cache-invalidation-worker-disposable.json).
+Eighty focused cache/EventBus/allowlist and operation-map tests pass. Eight
+checks on network-isolated disposable PostgreSQL 16 pass for migrations 415–416
+replay, event/type/location mismatch denial, cache/location scoping, retry
+idempotency, handler registration, forced-RLS behavior, and direct-table
+denial. Ruff, Python compilation, migration-source validation, Compose profile
+validation, and worker SQL/source inventory checks pass. Evidence:
+[cache-invalidation-worker-four-handlers-disposable.json](builds/2026-10-16-recovery/cache-invalidation-worker-four-handlers-disposable.json).
 
-No worker credential or active location grant is provisioned, migration 415
-has not been applied to the candidate, and the feature flag remains off. This
-closes the source/disposable acceptance slice only; MAN-CAP status, candidate
-rollout, production identity provisioning, and application-wide RLS do not
-change. The checklist now records 410 complete items and 19 open; the validated
-capability matrix remains at 66 rows, with MAN-CAP acceptance separately gated.
+No cache worker credential or active location grant is provisioned, migration
+416 has not been applied to the candidate, and the feature flag remains off.
+This closes the source/disposable acceptance slice only; MAN-CAP status,
+candidate rollout, production identity provisioning, and application-wide RLS
+do not change. The checklist records 412 complete items and 19 open; the
+validated capability matrix remains at 66 rows, with MAN-CAP acceptance
+separately gated.
 
 ### Notification handler location lineage — 16 October 2026
 

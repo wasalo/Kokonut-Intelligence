@@ -17,6 +17,8 @@ logger = get_logger("cache.events")
 _CACHE_EVENT_COMPUTATION_TYPES = {
     "metric_computed": "analytics",
     "crisp_scored": "crisp",
+    "sensor_reading": "metric",
+    "harvest_recorded": "metric",
 }
 
 
@@ -142,17 +144,16 @@ def handle_sensor_reading(
     event_type: str,
     payload: dict,
     *,
+    event_id: str | None = None,
     cache_backend: ComputationCacheBackend | None = None,
 ) -> None:
     """Invalidate metric caches when new sensor data arrives."""
-    from services.cache.backend import get_computation_cache
-
-    location_id = _require_location_id(payload)
-    cache = cache_backend if cache_backend is not None else get_computation_cache()
-    count = cache.invalidate(
-        computation_type="metric",
-        location_id=location_id,
-        reason=f"sensor_reading:{event_type}",
+    count, location_id = _invalidate_event_cache(
+        expected_event_type="sensor_reading",
+        event_type=event_type,
+        payload=payload,
+        event_id=event_id,
+        cache_backend=cache_backend,
     )
     logger.info("Invalidated %d metric cache entries for location %s", count, location_id)
 
@@ -161,16 +162,15 @@ def handle_harvest_recorded(
     event_type: str,
     payload: dict,
     *,
+    event_id: str | None = None,
     cache_backend: ComputationCacheBackend | None = None,
 ) -> None:
     """Invalidate metric caches when a harvest is recorded."""
-    from services.cache.backend import get_computation_cache
-
-    location_id = _require_location_id(payload)
-    cache = cache_backend if cache_backend is not None else get_computation_cache()
-    count = cache.invalidate(
-        computation_type="metric",
-        location_id=location_id,
-        reason=f"harvest_recorded:{event_type}",
+    count, location_id = _invalidate_event_cache(
+        expected_event_type="harvest_recorded",
+        event_type=event_type,
+        payload=payload,
+        event_id=event_id,
+        cache_backend=cache_backend,
     )
     logger.info("Invalidated %d metric cache entries for location %s", count, location_id)
