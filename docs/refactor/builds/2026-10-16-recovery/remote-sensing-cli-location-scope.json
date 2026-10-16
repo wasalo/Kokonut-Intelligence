@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-16",
+  "slice": "Location scope across remote-sensing CLI and worker entry points",
+  "scope": {
+    "operations": [
+      "due-job execution and atomic lease claims",
+      "job listing",
+      "specific job lookup and provider dispatch",
+      "new job creation"
+    ],
+    "contract": "Every CLI mode and helper path requires one canonical location UUID. Job lookup and due claims filter by location, provider dispatch checks the loaded row has the same location, and explicit-bbox lookup includes that location.",
+    "prefect": "The adapter continues to fan out only across active Kokonut Network locations.",
+    "worker_identity": "The CLI location is a query scope only; no signed worker context or least-privilege worker identity was added."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_remote_sensing_scheduler_contract.py tests/test_remote_sensing_automation.py tests/test_scheduled_command_contracts.py -q",
+      "result": "passed",
+      "tests": 138
+    },
+    "ruff": "passed",
+    "compileall": "passed",
+    "disposable_postgresql": "See remote-sensing-cli-location-postgres.json for actual PostgreSQL 16 lease/claim checks."
+  },
+  "limitations": [
+    "This does not provision provider credentials or call a provider.",
+    "Persisted schedules, provider parity, tenant authorization, worker identity, and RLS remain open."
+  ]
+}

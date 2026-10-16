@@ -190,11 +190,18 @@ application-wide RLS or proof for other workers.
   compares all 15 shared job templates with the Kernel module allowlist and
   command validation. Eight no-input defaults pass, six jobs require a
   validated location, and sensor ingestion still lacks a recurring source
-  contract. Remote sensing requires one `--location-id` for scheduled runs and
-  is limited to a sequential `--run-jobs --limit` batch of 1–10 due jobs (the
-  default JobSpec runs one),
+  contract. Remote sensing requires one `--location-id` for every CLI mode and
+  its due-job API, and scheduled runs remain limited to a sequential
+  `--run-jobs --limit` batch of 1–10 due jobs (the default JobSpec runs one),
   while ClickHouse projections are limited to one bounded `--run-once` delivery
-  batch. The remote-sensing contract rejects other operations; the projection
+  batch. The scheduler contract permits only the bounded run operation; the
+  operator CLI and helper APIs require one canonical location for listing,
+  lookup, creation, provider dispatch, and due-job claims; there is no global
+  queue-claim mode. These query filters do not establish tenant authorization.
+  Focused source checks and a disposable PostgreSQL claim probe verify the
+  location predicate ([evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-scope.json);
+  [PostgreSQL evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-postgres.json)).
+  The projection
   contract rejects manual list/replay/disposal/reconcile actions. No task or
   provider is activated. This is the source catalog only; it does not
   reconcile persisted tasks or external schedules. Check it with

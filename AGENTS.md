@@ -313,8 +313,8 @@ Commands:
 - Remote sensing tests: `python3 -m tests.test_telemetry_freshness`
 - Climate data tests: `python3 -m tests.test_climate_data`
 - Remote sensing automation tests: `python3 -m tests.test_remote_sensing_automation`
-- Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs`
-- Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs`
+- Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs --location-id UUID`
+- Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs --location-id UUID`
 - Remote sensing create job: `python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID --provider gee`
 - MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 8883`
 - HTTP sensor receiver: `python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056`

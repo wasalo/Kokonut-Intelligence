@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify remote-sensing location-scoped claims against disposable PostgreSQL."""
+"""Verify strictly location-scoped remote-sensing claims in disposable PostgreSQL."""
 
 from __future__ import annotations
 
@@ -104,11 +104,11 @@ def main() -> int:
             connect_timeout=8,
             application_name="remote-sensing-location-claim-disposable",
         )
-        first_location, second_location, global_location = (uuid.uuid4() for _ in range(3))
+        first_location, second_location, unselected_location = (uuid.uuid4() for _ in range(3))
         expected_by_location = {
             str(first_location): [str(uuid.uuid4()), str(uuid.uuid4())],
             str(second_location): [str(uuid.uuid4())],
-            str(global_location): [str(uuid.uuid4())],
+            str(unselected_location): [str(uuid.uuid4())],
         }
         with connection.cursor() as cursor:
             cursor.execute(
@@ -141,7 +141,12 @@ def main() -> int:
             _claim_due_jobs(connection, location_id=str(first_location)),
         ]
         second_claim = _claim_due_jobs(connection, location_id=str(second_location))
-        global_claim = _claim_due_jobs(connection)
+        try:
+            _claim_due_jobs(connection)
+        except ValueError:
+            unscoped_claim_rejected = True
+        else:
+            unscoped_claim_rejected = False
 
         claimed_ids = [rows[0]["id"] for rows in first_claims if rows]
         first_location_scoped = (
@@ -150,9 +155,6 @@ def main() -> int:
         )
         second_location_scoped = (
             len(second_claim) == 1 and str(second_claim[0]["location_id"]) == str(second_location)
-        )
-        direct_operator_global = (
-            len(global_claim) == 1 and str(global_claim[0]["location_id"]) == str(global_location)
         )
         with connection.cursor() as cursor:
             cursor.execute(
@@ -164,13 +166,13 @@ def main() -> int:
             {
                 "first_location_claims_only_its_two_jobs": first_location_scoped,
                 "second_location_claims_only_its_job": second_location_scoped,
-                "unscoped_operator_claim_remains_global": direct_operator_global,
+                "unscoped_claim_rejected_before_database_access": unscoped_claim_rejected,
                 "unclaimed_rows_after_expected_claims": unclaimed_count,
                 "result": "passed"
                 if first_location_scoped
                 and second_location_scoped
-                and direct_operator_global
-                and unclaimed_count == 0
+                and unscoped_claim_rejected
+                and unclaimed_count == 1
                 else "failed",
                 "limitations": [
                     "Uses a synthetic remote_sensing_job table and rows; no repository database or provider is contacted.",

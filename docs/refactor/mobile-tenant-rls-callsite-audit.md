@@ -173,10 +173,11 @@ computation uses `--compute --all --location-id` and rejects the old global
 `--all-locations` command. Optional Prefect adapters preserve multi-location
 behavior by querying active locations directly assigned to the
 owner-confirmed `kokonut-network` organization and dispatching one location at a
-time; climate and remote sensing use the same selector. Scheduled remote-sensing
-claims filter due rows by the required location input, while the manual CLI
-queue mode remains global. This SQL filter is code-level scope only, not signed
-worker context or database authorization. No persisted tasks or
+time; climate and remote sensing use the same selector. Remote-sensing list,
+create, job lookup, due-job claim, and provider dispatch now require the same
+explicit location and reject cross-location job IDs before provider work. The
+location filter is code-level scope only, not signed worker context or database
+authorization. No persisted tasks or
 external Prefect state were inspected. Remote sensing remains bounded to
 sequential `--run-jobs --limit` batches of 1–10 and ClickHouse projection to one
 bounded run-once operation ([inventory](worker-job-contract-inventory.json);

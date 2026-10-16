@@ -4033,9 +4033,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:75:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:86:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 75,
+      "line": 86,
       "column": 4,
       "scope": "_query_active_jobs",
       "method": "execute",
@@ -4044,15 +4044,15 @@
       "candidate_relations": [
         "remote_sensing_job"
       ],
-      "static_sql_sha256": "a8d34929122595b6878e387d9caac86a3c5aea1481f8a994b45f16bdb6eaee77",
+      "static_sql_sha256": "f29aad543299f2496465986aa2c5d8ad30f76f206b4e285c20ab9aac6dc8f86b",
       "operation_refs": [
         "scheduled_module:services.ingestion.remote_sensing_fetcher"
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:92:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:105:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 92,
+      "line": 105,
       "column": 8,
       "scope": "_claim_due_jobs",
       "method": "execute",
@@ -4063,15 +4063,15 @@
         "due",
         "remote_sensing_job"
       ],
-      "static_sql_sha256": "45c4e094e1ac61fb359719834fa5f7ef444c996425dc3979507a59b7f78c2c65",
+      "static_sql_sha256": "edd72783a52eaead63ae41a9790f0fbc30479cf4193a781ff24d98f6ef9dbed6",
       "operation_refs": [
         "scheduled_module:services.ingestion.remote_sensing_fetcher"
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:129:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:143:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 129,
+      "line": 143,
       "column": 4,
       "scope": "_query_job",
       "method": "execute",
@@ -4080,15 +4080,15 @@
       "candidate_relations": [
         "remote_sensing_job"
       ],
-      "static_sql_sha256": "7e3bb9bf5abded077edf22e7dd4620b557653abf41e2be10a6d287b55b44a252",
+      "static_sql_sha256": "a478582484798bc4f6cf2005103f14b7735559c9a68ae0ef6ebb0fa2359acc5d",
       "operation_refs": [
         "scheduled_module:services.ingestion.remote_sensing_fetcher"
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:180:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:197:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 180,
+      "line": 197,
       "column": 4,
       "scope": "_update_job_status",
       "method": "execute",
@@ -4103,9 +4103,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:199:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:216:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 199,
+      "line": 216,
       "column": 8,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -4114,15 +4114,15 @@
       "candidate_relations": [
         "remote_sensing_job"
       ],
-      "static_sql_sha256": "206265011127f9807fa33faaf4acfde0e8bf78c6775b2488871da3cd580ecc00",
+      "static_sql_sha256": "1ac5b3e53e721a55a7576825cca7801b902219fd3ec85b1b16a1762ba0412ec3",
       "operation_refs": [
         "scheduled_module:services.ingestion.remote_sensing_fetcher"
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:215:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:232:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 215,
+      "line": 232,
       "column": 4,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -4138,9 +4138,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:243:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:260:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 243,
+      "line": 260,
       "column": 4,
       "scope": "_record_provider_attempt",
       "method": "execute",
@@ -4155,9 +4155,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:390:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:414:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 390,
+      "line": 414,
       "column": 4,
       "scope": "list_jobs",
       "method": "execute",
@@ -4167,17 +4167,17 @@
         "location",
         "remote_sensing_job"
       ],
-      "static_sql_sha256": "2dcbb87ae179d4c51c25cdf38eb60be2973a74dd0b1ec9099e7437377ec0490c",
+      "static_sql_sha256": "744bcc00d455ba934bd1832959489dfa8fe0465955a761a33062b28d6a412871",
       "operation_refs": [
         "scheduled_module:services.ingestion.remote_sensing_fetcher"
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:439:12",
+      "id": "services/ingestion/remote_sensing_fetcher.py:477:12",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 439,
+      "line": 477,
       "column": 12,
-      "scope": "module",
+      "scope": "main",
       "method": "execute",
       "expression_kind": "literal",
       "statement_kind": "INSERT",

@@ -801,18 +801,20 @@ code-level scope only: workers have no signed tenant context, RLS remains
 blocked, and none of the 66 manual capability checks is accepted ([evidence](builds/2026-10-16-recovery/prefect-location-scoped-job-fanout.json);
 [schedule inventory](schedule-ownership-inventory.md)).
 
-**16 October 2026 per-location remote-sensing scheduling (CAP-040 / CAP-047):**
-the remote-sensing scheduled JobSpec now requires one UUID location, and its
-atomic due-job claim filters by that location before acquiring a lease. The
-optional Prefect adapter uses the existing active Kokonut Network location
-fan-out; the direct operator CLI retains its unscoped queue behavior. Source
-tests cover location forwarding, SQL binding, missing-scope rejection, and
-Prefect fan-out. A disposable PostgreSQL 16 fixture also confirms that scoped
-claims lease only the requested location, while the direct operator claim stays
-global ([database evidence](builds/2026-10-16-recovery/remote-sensing-location-postgres.json);
-[reusable check](../scripts/check-remote-sensing-location-claim-disposable.py)). Provider credentials, provider outcomes, signed worker context,
-database authorization, persisted-task reconciliation, and MAN-CAP acceptance
-remain open. No schedule or database state was accessed ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);
+**16 October 2026 per-location remote-sensing operations (CAP-040 / CAP-047):**
+the scheduled JobSpec and every manual CLI/helper path now require one UUID
+location. Listing, specific-job lookup, due claims, explicit-bbox reads, job
+creation, and provider dispatch bind or verify that same location. The
+optional Prefect adapter keeps its active Kokonut Network fan-out. The 138-test
+focused suite covers the source contract; a disposable PostgreSQL 16 fixture
+confirms two locations claim only their own jobs, while an unscoped claim is
+rejected before SQL and the unselected third-location job remains unclaimed
+([database evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-postgres.json);
+[reusable check](../scripts/check-remote-sensing-location-claim-disposable.py)).
+This location UUID scopes queries but is not signed worker context or database
+authorization. Provider credentials/outcomes, persisted-task reconciliation,
+and MAN-CAP acceptance remain open; the capability status is unchanged
+([source evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-scope.json);
 [operation map](worker-operation-map.json); [JobSpec inventory](worker-job-contract-inventory.json)).
 
 **14 October 2026 worker boundary update:** a machine-readable inventory now

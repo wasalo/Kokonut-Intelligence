@@ -154,9 +154,13 @@ Create and run fetch jobs with:
 
 ```bash
 python3 -m services.ingestion.remote_sensing_fetcher --location-id LOCATION_UUID --provider gee
-python3 -m services.ingestion.remote_sensing_fetcher --list-jobs
-python3 -m services.ingestion.remote_sensing_fetcher --run-jobs
+python3 -m services.ingestion.remote_sensing_fetcher --list-jobs --location-id LOCATION_UUID
+python3 -m services.ingestion.remote_sensing_fetcher --run-jobs --location-id LOCATION_UUID
 ```
+
+Listing, creating, querying, and running fetch jobs all require one explicit
+location. This argument scopes SQL selection; it is not an authenticated tenant
+grant and does not establish database-level isolation or application RLS.
 
 Jobs select one provider and cadence. Supported job providers include `gee`,
 `copernicus`, and schema-level `manual`; the CLI exposes the automated GEE and

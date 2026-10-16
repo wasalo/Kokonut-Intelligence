@@ -28,8 +28,8 @@
   },
   "sql_reachability": {
     "execution_site_count": 268,
-    "sites_with_static_operation_path": 204,
-    "sites_without_static_function_match": 64,
+    "sites_with_static_operation_path": 205,
+    "sites_without_static_function_match": 63,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -337,12 +337,7 @@
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/remote_sensing_fetcher.py:439:12",
-        "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 1
-      },
-      {
-        "site": "services/ingestion/remote_sensing_fetcher.py:75:4",
+        "site": "services/ingestion/remote_sensing_fetcher.py:86:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },

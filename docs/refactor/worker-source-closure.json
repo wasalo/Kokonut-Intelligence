@@ -2159,13 +2159,13 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 290,
+          "line": 312,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 294,
+          "line": 316,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         }

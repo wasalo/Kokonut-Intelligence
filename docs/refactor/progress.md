@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Remote-sensing CLI and queue location scope — 16 October 2026
+
+Required a canonical `--location-id` for every remote-sensing CLI operation and
+every queue helper path, including list, lookup, provider dispatch, and atomic
+due-job claim. A location-mismatched job is rejected before bounding-box reads
+or provider calls, and an unscoped claim fails before database access. The
+focused remote-sensing, automation, and scheduler-contract suites pass 138
+tests; an isolated PostgreSQL 16 check verified per-location leases and that
+an unselected location remains unclaimed. Source/query filters are not tenant
+authorization, signed worker context, or RLS. The checklist remains 414
+complete / 19 open and the matrix remains at 66 rows. No candidate/legacy
+database, provider, persisted schedule, or live deployment was accessed
+([scope evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-scope.json);
+[PostgreSQL evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-postgres.json);
+[implementation](../../services/ingestion/remote_sensing_fetcher.py)).
+
 ### Location-scoped device manager — 16 October 2026
 
 Required `--location-id` for device-manager list, registration, and health
@@ -377,15 +393,20 @@ shared worker role still has no signed tenant context ([JobSpec inventory](worke
 
 ### Per-location remote-sensing scheduled claims — 16 October 2026
 
+This is the earlier scheduler-only checkpoint; the newer CLI and queue
+hardening above supersedes the note that direct operator runs could process
+the global queue.
+
 The scheduled `remote_sensing` JobSpec now requires one location UUID. The
 atomic due-job claim binds that location into its SQL predicate before it locks
 and leases a queue row. The optional Prefect flow fans out over active
-Kokonut Network locations through the shared location dispatcher. The direct
-operator CLI remains able to process its global queue. Source tests cover
+Kokonut Network locations through the shared location dispatcher. At that
+checkpoint, the direct operator CLI could still process its global queue.
+Source tests cover
 claim-query binding, dispatcher forwarding, schedule-contract rejection of a
 missing location, and Prefect routing. The actual claim function also passed a
 disposable PostgreSQL 16 probe using two locations, verifying scoped leases and
-the direct operator's global queue behavior. At that checkpoint, the inventory
+the then-existing direct operator global-queue behavior. At that checkpoint, the inventory
 contained nine no-input jobs, five required-location jobs, and one sensor job
 without a source contract; the later anomaly-scope slice changes the current
 totals to eight and six. No persisted task, Prefect deployment, provider, candidate database,
