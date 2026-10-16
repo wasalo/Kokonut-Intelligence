@@ -91,7 +91,7 @@ See PostgreSQL’s
 [custom options](https://www.postgresql.org/docs/current/runtime-config-custom.html)
 and [configuration-setting functions](https://www.postgresql.org/docs/current/config-setting.html).
 
-## Worker execution and database identity trace — 14 October 2026
+## Worker execution and database identity trace — 14 October 2026 (updated 16 October 2026)
 
 The supported execution allowlist is a code-execution boundary only. It does
 not bind a scheduled module or event handler to a database role or tenant.
@@ -154,12 +154,19 @@ passed through the shared CLI `run(main)` wrapper. Remaining code-only work is
 to reconcile each candidate against its exact scheduler command contract,
 inspect dynamic/provider callbacks and transitive effect wrappers, then
 reconcile persisted task rows with those contracts. The
-source-only JobSpec inventory now identifies 13 accepted default templates
-and two rejected defaults (source-less sensors and unlocated climate). Remote
-sensing is bounded to sequential `--run-jobs --limit` batches of 1–10 and
-ClickHouse projection to one bounded run-once operation; neither enables a
-provider or inspects persisted tasks or external Prefect state
-([inventory](worker-job-contract-inventory.json)). A
+source-only JobSpec inventory now identifies ten accepted default templates,
+four validated required-location inputs (weather, climate, metrics, and credit
+adjustment), and one missing sensor source contract. Native scheduled metric
+computation uses `--compute --all --location-id` and rejects the old global
+`--all-locations` command. Optional Prefect adapters preserve multi-location
+behavior by querying active locations directly assigned to the
+owner-confirmed `kokonut-network` organization and dispatching one location at a
+time; climate uses the same selector. This SQL filter is code-level scope only,
+not signed worker context or database authorization. No persisted tasks or
+external Prefect state were inspected. Remote sensing remains bounded to
+sequential `--run-jobs --limit` batches of 1–10 and ClickHouse projection to one
+bounded run-once operation ([inventory](worker-job-contract-inventory.json);
+[schedule policy](schedule-ownership-inventory.md)). A
 later role/context change needs a non-forgeable system-worker identity and
 narrow operation grants. Active provider schedules, operational owners, and
 any production identity mapping remain separate owner inputs under OFU-16/02.
