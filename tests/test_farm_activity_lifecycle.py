@@ -293,7 +293,7 @@ def test_farm_activity_queue_sets_tenant_context_before_query(_tenant_context_sp
     assert connection.rolled_back and connection.closed
 
 
-def test_farm_activity_detail_requires_same_tenant_review_grant(_tenant_context_spy):
+def test_canonical_farm_activity_detail_uses_its_own_location_grant(_tenant_context_spy):
     from services.gateway.farm_activity_lifecycle import get_farm_activity
 
     row = {
@@ -326,13 +326,89 @@ def test_farm_activity_detail_requires_same_tenant_review_grant(_tenant_context_
         "location_id": LOCATION_ID,
         "resource": "farm_activity",
         "action": "read_detail",
-        "required_scopes": (("mobile_collection_review", "read_detail"),),
     }
     query = next(statement for statement in connection.cursor_instance.statements if "FROM farm_activity AS activity" in statement[0])
     assert result["description"] == "Removed weeds."
     assert _tenant_context_spy == [(connection, context)]
     assert connection.cursor_instance.statements.index(("SET TENANT CONTEXT", context)) < connection.cursor_instance.statements.index(query)
     assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize(
+    ("grant_action", "published_only"),
+    [("read_published", True), ("read_published_detail", True)],
+)
+def test_published_farm_activity_reads_filter_status_and_consent(
+    _tenant_context_spy, grant_action, published_only
+):
+    from services.gateway.farm_activity_lifecycle import (
+        get_farm_activity,
+        list_farm_activities,
+    )
+
+    row = {
+        "id": ACTIVITY_ID,
+        "location_id": LOCATION_ID,
+        "activity_type": "weeding",
+        "activity_date": date(2026, 10, 12),
+        "description": "Reviewed activity.",
+        "labor_hours": Decimal("2.00"),
+        "notes": "No names included.",
+        "status": "published",
+        "created_at": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "updated_at": datetime(2026, 10, 13, tzinfo=timezone.utc),
+        "eligible_for_use": True,
+        "eligibility_reason": "eligible",
+        "workflow_events_truncated": False,
+        "workflow_events": [],
+    }
+    connection = ActivityReadConnection(row)
+    if grant_action == "read_published":
+        result = list_farm_activities(
+            OPERATOR_ID,
+            LOCATION_ID,
+            grant_action=grant_action,
+            published_only=published_only,
+            connection_factory=lambda: connection,
+        )
+    else:
+        result = get_farm_activity(
+            OPERATOR_ID,
+            ACTIVITY_ID,
+            LOCATION_ID,
+            grant_action=grant_action,
+            published_only=published_only,
+            connection_factory=lambda: connection,
+        )
+
+    query = next(
+        params
+        for statement, params in connection.cursor_instance.statements
+        if "FROM farm_activity AS activity" in statement
+    )
+    sql = next(
+        statement
+        for statement, _params in connection.cursor_instance.statements
+        if "FROM farm_activity AS activity" in statement
+    )
+    assert "activity.status IN ('verified', 'published')" in sql
+    assert "farm_activity_source_eligible_for_use" in sql
+    assert grant_action in query
+    assert result
+    assert _tenant_context_spy[0][1]["action"] == grant_action
+
+
+def test_farm_activity_read_rejects_mismatched_analyst_scope(_tenant_context_spy):
+    from services.gateway.farm_activity_lifecycle import list_farm_activities
+
+    with pytest.raises(ValueError, match="Unsupported farm activity list scope"):
+        list_farm_activities(
+            OPERATOR_ID,
+            LOCATION_ID,
+            grant_action="read_published",
+            published_only=False,
+            connection_factory=lambda: pytest.fail("invalid scope opened a database"),
+        )
 
 
 def test_draft_edit_sets_three_grant_context_before_update(_tenant_context_spy):

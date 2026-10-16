@@ -93,12 +93,17 @@ def list_farm_activities(
     location_id: str,
     limit: int = 50,
     *,
+    grant_action: str = "read",
+    published_only: bool = False,
     connection_factory: Callable | None = None,
 ) -> list[dict]:
-    """List the location's native Field Collector workflow records without free text."""
+    """List bounded Field Collector activity summaries under one explicit scope."""
     operator_id, location_id = _normalize_operator_location(operator_id, location_id)
     if not 1 <= limit <= 100:
         raise ValueError("limit must be between 1 and 100")
+    allowed_actions = {"read": False, "read_published": True}
+    if grant_action not in allowed_actions or allowed_actions[grant_action] != published_only:
+        raise ValueError("Unsupported farm activity list scope")
 
     conn = (connection_factory or _connection_factory())()
     try:
@@ -140,11 +145,18 @@ def list_farm_activities(
                       AND activity.source_system = 'field_collector'
                       AND activity.source_raw->>'form_id' = 'farm_activity_v1'
                       AND activity.source_raw->>'form_version' = '1.2.0'
+                      AND (%s::boolean IS FALSE
+                           OR activity.status IN ('verified', 'published'))
+                      AND (%s::boolean IS FALSE
+                           OR farm_activity_source_eligible_for_use(
+                                  activity.source_system, activity.source_id,
+                                  activity.source_raw, activity.location_id
+                              ))
                       AND EXISTS (
                           SELECT 1 FROM operator_scope_grant AS grant_row
                            WHERE grant_row.operator_id = %s::uuid
                              AND grant_row.resource = 'farm_activity'
-                             AND grant_row.action = 'read'
+                             AND grant_row.action = %s
                              AND grant_row.location_id = activity.location_id
                              AND operator_scope_grant_allows(
                                  grant_row.operator_id, grant_row.resource,
@@ -154,8 +166,8 @@ def list_farm_activities(
                       )
                     ORDER BY activity.updated_at DESC, activity.id DESC
                     LIMIT %s""",
-            (location_id, operator_id, limit),
-            tenant_scope=(operator_id, location_id, "farm_activity", "read"),
+            (location_id, published_only, published_only, operator_id, grant_action, limit),
+            tenant_scope=(operator_id, location_id, "farm_activity", grant_action),
         )
         for row in rows:
             row["id"] = str(row["id"])
@@ -176,10 +188,15 @@ def get_farm_activity(
     activity_id: str,
     location_id: str,
     *,
+    grant_action: str = "read_detail",
+    published_only: bool = False,
     connection_factory: Callable | None = None,
 ) -> dict | None:
-    """Read bounded canonical content and its human decision history by location."""
+    """Read bounded canonical content and human decision history by location."""
     operator_id, activity_id, location_id = _normalize_ids(operator_id, activity_id, location_id)
+    allowed_actions = {"read_detail": False, "read_published_detail": True}
+    if grant_action not in allowed_actions or allowed_actions[grant_action] != published_only:
+        raise ValueError("Unsupported farm activity detail scope")
     conn = (connection_factory or _connection_factory())()
     try:
         rows = _read_query(
@@ -243,11 +260,18 @@ def get_farm_activity(
                       AND activity.source_system = 'field_collector'
                       AND activity.source_raw->>'form_id' = 'farm_activity_v1'
                       AND activity.source_raw->>'form_version' = '1.2.0'
+                      AND (%s::boolean IS FALSE
+                           OR activity.status IN ('verified', 'published'))
+                      AND (%s::boolean IS FALSE
+                           OR farm_activity_source_eligible_for_use(
+                                  activity.source_system, activity.source_id,
+                                  activity.source_raw, activity.location_id
+                              ))
                       AND EXISTS (
                           SELECT 1 FROM operator_scope_grant AS grant_row
                            WHERE grant_row.operator_id = %s::uuid
                              AND grant_row.resource = 'farm_activity'
-                             AND grant_row.action = 'read_detail'
+                             AND grant_row.action = %s
                              AND grant_row.location_id = activity.location_id
                              AND operator_scope_grant_allows(
                                  grant_row.operator_id, grant_row.resource,
@@ -255,22 +279,9 @@ def get_farm_activity(
                              )
                              AND grant_row.revoked_at IS NULL
                       )
-                      AND EXISTS (
-                          SELECT 1 FROM operator_scope_grant AS detail_grant
-                           WHERE detail_grant.operator_id = %s::uuid
-                             AND detail_grant.resource = 'mobile_collection_review'
-                             AND detail_grant.action = 'read_detail'
-                             AND detail_grant.location_id = activity.location_id
-                             AND operator_scope_grant_allows(
-                                 detail_grant.operator_id, detail_grant.resource,
-                                 detail_grant.action, detail_grant.location_id
-                             )
-                             AND detail_grant.revoked_at IS NULL
-                      )
                     LIMIT 1""",
-            (activity_id, location_id, operator_id, operator_id),
-            tenant_scope=(operator_id, location_id, "farm_activity", "read_detail"),
-            required_tenant_scopes=(("mobile_collection_review", "read_detail"),),
+            (activity_id, location_id, published_only, published_only, operator_id, grant_action),
+            tenant_scope=(operator_id, location_id, "farm_activity", grant_action),
         )
         if not rows:
             return None

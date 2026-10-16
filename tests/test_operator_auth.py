@@ -447,6 +447,27 @@ def test_farm_activity_draft_edit_route_requires_edit_and_both_detail_scopes():
     assert operator_auth.auth_route_policy("POST", path, enabled=True) is None
 
 
+@pytest.mark.parametrize(
+    ("path", "action"),
+    [
+        ("/operator/api/farm-activities/published", "read_published"),
+        (
+            "/operator/api/farm-activities/published/33333333-3333-4333-8333-333333333333",
+            "read_published_detail",
+        ),
+    ],
+)
+def test_analyst_farm_activity_routes_have_approved_data_scopes(path, action):
+    policy = operator_auth.auth_route_policy("GET", path, enabled=True)
+
+    assert policy["resource"] == "farm_activity"
+    assert policy["action"] == action
+    assert policy["scope_required"] is True
+    assert policy["public"] is False
+    assert operator_auth.auth_route_policy("POST", path, enabled=True) is None
+    assert operator_auth.auth_route_policy("GET", path, enabled=False) is None
+
+
 class _ReviewProvider(_FakeProvider):
     def __init__(self, *, allowed_action=None, allowed_actions=None):
         super().__init__(allowed=False)
@@ -535,6 +556,44 @@ def test_farm_activity_intake_queue_uses_scoped_operator_and_no_store(monkeypatc
     assert response.json()["data"] == [{"id": "collection-id", "activity_type": "weeding"}]
     queue_reader.assert_called_once_with(OPERATOR_ID, LOCATION_ID, 9)
     assert provider.scopes_seen == [(OPERATOR_ID, "farm_activity", "read", LOCATION_ID)]
+
+
+@pytest.mark.parametrize(
+    ("path", "scope", "service_name", "result"),
+    [
+        (
+            "/operator/api/farm-activities/published",
+            "read_published",
+            "list_farm_activities",
+            [{"id": "activity-id", "status": "published"}],
+        ),
+        (
+            "/operator/api/farm-activities/published/33333333-3333-4333-8333-333333333333",
+            "read_published_detail",
+            "get_farm_activity",
+            {"id": "activity-id", "status": "published"},
+        ),
+    ],
+)
+def test_analyst_routes_call_consent_and_status_filtered_queries(
+    monkeypatch, path, scope, service_name, result
+):
+    provider = _FarmActivityProvider(allowed_scopes={("farm_activity", scope)})
+    monkeypatch.setattr(operator_auth, "create_provider", lambda: provider)
+    monkeypatch.setattr("services.gateway.audit.GatewayAudit.log", lambda *_args, **_kwargs: None)
+    reader = MagicMock(return_value=result)
+    monkeypatch.setattr(
+        f"services.gateway.farm_activity_lifecycle.{service_name}", reader
+    )
+
+    with TestClient(create_app()) as client:
+        _set_operator_cookies(client)
+        response = client.get(path, params={"location_id": LOCATION_ID})
+
+    assert response.status_code == 200, response.text
+    assert response.headers["cache-control"] == "no-store"
+    assert reader.call_args.kwargs == {"grant_action": scope, "published_only": True}
+    assert provider.scopes_seen == [(OPERATOR_ID, "farm_activity", scope, LOCATION_ID)]
 
 
 def test_farm_activity_detail_requires_both_detail_grants(monkeypatch):
@@ -759,10 +818,7 @@ def test_farm_activity_draft_route_requires_scope_csrf_and_review_acknowledgemen
         (
             "GET",
             "/operator/api/farm-activities/33333333-3333-4333-8333-333333333333",
-            {
-                ("farm_activity", "read_detail"),
-                ("mobile_collection_review", "read_detail"),
-            },
+            {("farm_activity", "read_detail")},
             "services.gateway.farm_activity_lifecycle.get_farm_activity",
             None,
         ),

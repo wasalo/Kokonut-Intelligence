@@ -1,12 +1,14 @@
 # Directus parity inventory
 
-**Review date:** 15 October 2026
+**Review date:** 16 October 2026
 **Status:** source inventory, the fail-closed tenant authorization adapter,
 and an organization/location permission seed repair are implemented. Pinned
 Directus 12.1.1 acceptance confirms grant-scoped Field Note reads, but the
 unlicensed API hides the Field Worker's custom `farm_activity` permission rows;
-operational Directus parity, field/relationship parity, and schedule acceptance
-remain open.
+the owner selected Gateway operations with Directus optional. Gateway role
+templates and status-filtered Analyst reads now cover the native Field Collector
+farm-activity workflow; broader collection, field/relationship, and schedule
+parity remain open.
 
 The hook extension now declares the exact Directus host version pinned by the
 base Compose file. A source regression check keeps the package host metadata
@@ -52,12 +54,12 @@ Directus surface has been replaced.
 
 | Surface | Current source | What the source establishes | What remains unverified |
 | --- | --- | --- | --- |
-| API roles and CRUD rules | [`config/directus/permissions.sql`](../../config/directus/permissions.sql) | Staff policies define collection actions, writable fields, and business filters. An idempotent repair removes the obsolete `$CURRENT_USER.location_id` predicate and create validation while preserving other filters; the tenant hook supplies the active organization/location grant scope. The SQL includes manager, supervisor, finance, analyst, auditor, and field-worker policy identities, plus separate agent read/write/full policy tiers. | Directus 12.1.1 without a custom-permission license hides stored permissions that use item filters, field restrictions, validation, or presets. The pinned API probe therefore denies Field Worker `farm_activity` requests. A valid license or a Gateway-only operational surface is required before claiming parity; field privacy, expanded relations, and all mutation cases remain open. |
+| API roles and CRUD rules | [`config/directus/permissions.sql`](../../config/directus/permissions.sql) | Staff policies define collection actions, writable fields, and business filters. The Gateway now has explicit operator-grant templates for Field Worker, Supervisor, Manager, Finance, Analyst, and Auditor on native Field Collector farm activities; the Analyst template has status- and consent-filtered read routes. | Directus 12.1.1 without a custom-permission license hides stored rules used by the `farm_activity` permissions. The Gateway mapping covers only native `farm_activity_v1` 1.2.0 workflow behavior. Legacy source CRUD, all other collections/fields, field privacy, expanded relations, and retained hook effects remain open. |
 | Database identity | [`optional-database-roles.md`](optional-database-roles.md) | The Directus service can bootstrap with an owner-backed one-shot operation and run under a non-owner DML role. The runtime role is separate from the native API and analytics roles. | Directus API enforcement under that runtime identity; the role alone does not enforce collection, field, or tenant policy. |
 | Lifecycle and accountability hooks | [`extensions/kokonut-hooks/src/workflow.ts`](../../extensions/kokonut-hooks/src/workflow.ts), [`index.ts`](../../extensions/kokonut-hooks/src/index.ts), [`roles.ts`](../../extensions/kokonut-hooks/src/roles.ts) | Thirty-five collections use the shared lifecycle transition map. Hook code resolves role slugs from server accountability, validates selected payloads and tenant references, records transitions, applies domain calculations, and defines two scheduled jobs. The eleven scoped collections also use the fail-closed operator mapping/grant adapter described below. | Hook-by-hook parity against native service paths, execution/retry behavior under the deployed Directus image, and authenticated before/after database evidence. |
 | Tenant and Field Collector gates | Permission SQL plus [`directus-authorization.ts`](../../extensions/kokonut-hooks/src/directus-authorization.ts) and [`tests/test_directus_tenant_permissions.py`](../../tests/test_directus_tenant_permissions.py) | The hook maps the authenticated Directus user’s `external_identifier` to an enabled Kokonut operator by exact configured OIDC issuer and subject. For eleven location-scoped collections, including `revenue_event`, it adds a grant-derived location predicate before reads and checks all create/update/delete targets using the request transaction. It now rejects `deep` query objects and nested/wildcard relation fields until each related collection has an explicit scope contract. Field Collector-origin farm-activity reads remain excluded from Directus. | Pinned-image behavior under `kokonut_directus_runtime`, role/field parity, effective denial of nested relations, bulk-query cases, live issuer/identity/grants, revocation/transfer concurrency, and confirmation every Field Collector path stays on Gateway. This hook check is not PostgreSQL RLS or a signed tenant-context boundary. |
 | Schema metadata | [`tests/test_directus_metadata.py`](../../tests/test_directus_metadata.py) and [`schemas/directus/snapshots/schema_latest.json`](../../schemas/directus/snapshots/schema_latest.json) | The checker compares snapshot sort fields and physical field metadata, and can query the local Compose database when it is running. | Permission parity, API response shape, current runtime identity, or whether the optional Directus profile is deployed. |
-| Native replacement surface | [`services/gateway/router.py`](../../services/gateway/router.py), [`services/gateway/operator_auth.py`](../../services/gateway/operator_auth.py), [`native-location-reads.md`](native-location-reads.md), and the [operator console contract](kernel-operations-console.md) | Native routes cover a deliberately bounded public read surface and selected authenticated reviewer, farm-activity, and Field Collector operations. Their policies are explicit and unknown routes remain protected. | Generic CRUD, all Directus collections and fields, admin UI behavior, and one-to-one role semantics are not implemented as native parity. |
+| Native replacement surface | [`services/gateway/router.py`](../../services/gateway/router.py), [`services/gateway/operator_auth.py`](../../services/gateway/operator_auth.py), [`services/gateway/farm_activity_roles.py`](../../services/gateway/farm_activity_roles.py), and the [operator console contract](kernel-operations-console.md) | Native routes cover a bounded public read surface and selected authenticated reviewer, Field Collector, and farm-activity operations. Farm-activity templates expand into explicit tenant-qualified grants; Analyst reads are verified/published-only. | This is scoped support for native Field Collector `farm_activity_v1` 1.2.0, not generic CRUD across legacy source types, every Directus collection/field/relation, administrative UI, hook side effects, or schedules. |
 
 The 13 October pinned-image probe found that the archived `directus_users`
 table had no `location_id` column while staff filters referenced it. Synthetic
@@ -196,16 +198,22 @@ image, the synthetic Field Worker sees a Field Note in its granted location
 and cannot see the cross-location Field Note; this confirms the loaded read
 hook works on a permission-compatible collection. `farm_activity` remains
 denied even in the own location because its role-linked rows use custom
-permission rules that the unlicensed API hides. The failure is not resolved by
-the hook: Directus filters those rows before item hooks can authorize them.
-
-Keep Directus optional and do not broaden its permissions to bypass this
-behavior. Choose between a valid Directus custom-permission license for
-operational users and keeping operational CRUD behind the Kokonut Gateway with
-Directus as an optional administrative adapter. The Gateway currently does not
-implement every Directus collection and field, so a Gateway-only choice needs a
-scoped capability mapping before the Directus item can close. Hook-by-hook,
-field/relationship, mutation, and scheduled-job parity remain open.
+permission rules that the unlicensed API hides. The owner selected Gateway
+operations while keeping Directus optional. The Gateway now provides explicit
+per-location role templates for Field Worker, Supervisor, Manager, Finance,
+Analyst, and Auditor, atomic provisioning that checks active tenant membership
+plus current owner/share state, and verified/published-only Analyst routes.
+Canonical activity detail uses its own `farm_activity:read_detail` grant;
+private capture detail remains a separate mobile-review permission. This map
+covers native Field Collector `farm_activity_v1` version 1.2.0 only. General
+legacy-source create/update, other collection CRUD, complete field/relationship
+parity, Directus admin UI, hook side effects, and scheduled-job ownership remain
+open. No Directus permission was broadly enabled and no live provider/account
+was configured. Focused unit/route/query/lifecycle tests (104 passing) and
+four disposable PostgreSQL role-provisioning checks pass; the disposable
+fixture uses no candidate or legacy data
+([evidence](builds/2026-10-16-recovery/farm-activity-gateway-role-mapping.json);
+[PostgreSQL runner](../../scripts/check-farm-activity-role-grant-disposable.py)).
 
 ## Parity fixture preflight guard — 14 October 2026
 

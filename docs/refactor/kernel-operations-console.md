@@ -259,6 +259,55 @@ python3 -m services.cli operator list
 
 The OIDC login does not auto-provision identities or grants. Disabled identities
 cannot create sessions, and disabling an identity revokes its current sessions.
+
+For the implemented farm-activity Gateway surface, legacy Directus role names
+are available as explicit scope templates. Each template expands into ordinary
+operator/location grants that can be inspected and revoked independently; it
+is not a role claim trusted from OIDC. The command requires active membership
+in the selected organization and a verified location owner or active location
+share, and applies the entire bundle in one transaction:
+
+```sh
+python3 -m services.cli operator farm-activity-role templates
+python3 -m services.cli operator farm-activity-role grant \
+  --role field_worker --operator-id OPERATOR_UUID \
+  --organization-id ORG_UUID --location-id LOCATION_UUID \
+  --granted-by TENANT_ADMIN
+```
+
+Available templates are `field_worker`, `supervisor`, `manager`, `finance`,
+`analyst`, and `auditor`. They map only the native `farm_activity_v1` 1.2.0
+workflow. The manager bundle includes verify/reject/rework/publish/exception
+actions, whose transitions still enforce state, reason, and independent-actor
+rules. No template grants deletion. Field Worker draft creation is the
+content-reviewed promotion of an eligible Field Collector capture; a generic
+Directus-style create endpoint for arbitrary source records is not implemented.
+The Analyst template uses a separate verified/published-only route and filters
+ineligible Field Collector sources at query time.
+
+| Legacy role | Gateway farm-activity scopes |
+| --- | --- |
+| Field Worker | `read`, `read_detail`, `create_draft`, `edit_draft`; also `mobile_collection_review:read_detail` for review-before-promotion and draft correction |
+| Supervisor | `read`, `read_detail`, `submit` |
+| Manager | `read`, `read_detail`, `verify`, `reject`, `rework`, `publish`, `close_exception` |
+| Finance | `read`, `read_detail` |
+| Analyst | `read_published`, `read_published_detail` |
+| Auditor | `read`, `read_detail` |
+
+`GET /operator/api/farm-activities/published?location_id=...` and
+`GET /operator/api/farm-activities/published/{activity_id}?location_id=...`
+require `farm_activity:read_published` and
+`farm_activity:read_published_detail`, respectively. These queries return only
+verified or published records and exclude Field Collector rows that are no
+longer eligible for use. The ordinary canonical activity detail endpoint
+requires `farm_activity:read_detail`; private capture detail remains a separate
+`mobile_collection_review:read_detail` permission.
+
+These templates do not claim complete Directus parity. They do not cover other
+collections, all Directus fields or relations, arbitrary legacy source CRUD,
+admin UI behavior, hook side effects, or scheduled hooks. Directus remains an
+optional adapter until those retained surfaces have explicit contracts and
+acceptance evidence.
 The report snapshot was selected as the first review source because its schema
 and workflow specify `draft → submitted → verified → published`. The report
 queue returns at most 100 location-specific submitted summaries; its detail
@@ -271,8 +320,10 @@ photo count. The farm-activity intake list returns at most 100 eligible native
 `farm_activity:read_detail` and `mobile_collection_review:read_detail`; draft
 promotion additionally requires `farm_activity:create_draft` and repeats all
 three grants in the transaction. The canonical lifecycle list is also capped
-at 100 and omits descriptions and notes. Detail requires the same two detail
-grants and returns bounded activity fields plus append-only decision history.
+at 100 and omits descriptions and notes. Canonical activity detail requires
+`farm_activity:read_detail` and returns bounded activity fields plus
+append-only decision history; private capture detail keeps its separate review
+grants.
 Detail includes the newest 100 events at most and indicates when older events
 are omitted.
 

@@ -7,11 +7,32 @@ Services, schemas, configuration, and package metadata are included. Legacy
 images remain unchanged.
 
 `docker-compose.kernel-candidate.yml` is a standalone preparation manifest.
-It contains PostgreSQL/PostGIS plus the candidate app. The database is private,
-the API binds localhost port 8098 by default, and its named volume differs from
-the legacy volume. Always use a separate project name:
+It contains PostgreSQL/PostGIS plus the candidate app. The database stays
+private in the base manifest; the API binds localhost port 8098 by default, and
+its named volume differs from the legacy volume. Always use a separate project
+name:
 
     docker compose -p kokonut-kernel-candidate -f docker-compose.kernel-candidate.yml build
+
+For local host tools that need a PostgreSQL connection, opt in to the
+loopback-only [`docker-compose.kernel-local-db.yml`](../../docker-compose.kernel-local-db.yml)
+override. It publishes the candidate database at `127.0.0.1:5433`; the active
+local candidate currently uses this mapping and passed a host authentication
+check and app health check on 16 October 2026 ([evidence](builds/2026-10-16-recovery/kernel-local-db-port.json)). Set
+`KOKONUT_KERNEL_PG_PORT` to another free host port if needed. The application
+continues to connect through Compose at `database:5432`. Keep the base
+candidate database private and do not use this development override in
+production. Start the local database access profile with:
+
+```sh
+docker compose -p kokonut-kernel-candidate \
+  -f docker-compose.kernel-candidate.yml \
+  -f docker-compose.kernel-local-db.yml up -d database
+```
+
+Host-side commands can then use `PG_HOST=127.0.0.1` and `PG_PORT=5433` (or the
+selected override port). Production Compose explicitly removes database host
+ports.
 
 Do not combine this manifest with legacy Compose or use the legacy project name.
 No automatic seeding, migration, or restore is configured. The image supervisor

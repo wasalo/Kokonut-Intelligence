@@ -7,6 +7,27 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
+
+The owner selected native Gateway operations for farm activity, with Directus
+optional. Six legacy role names now expand into atomic tenant-qualified scope
+grants; Analyst reads use dedicated verified/published-only routes and exclude
+Field Collector records that are no longer eligible for use. Canonical activity
+detail now uses its own scope, separate from private capture-detail access. The
+104-test focused role/route/query/lifecycle suite and four-case disposable
+PostgreSQL provisioning check pass. This closes the
+unlicensed Directus permission blocker only for native Field Collector 1.2.0
+workflow operations; arbitrary legacy-source CRUD, other collections, full
+field/relation parity, and hooks/schedules remain open ([inventory](directus-parity-inventory.md);
+[evidence](builds/2026-10-16-recovery/farm-activity-gateway-role-mapping.json)).
+
+The local Kernel candidate now also has an explicit development Compose overlay
+for host-side PostgreSQL tools. The candidate database listens on
+`127.0.0.1:5433`; the existing data volume was preserved while Compose recreated
+only the database container. Host authentication with `SELECT 1` and Gateway
+health both pass; Metabase, proxy, and the legacy stack were not changed
+([overlay](../../docker-compose.kernel-local-db.yml);
+[evidence](builds/2026-10-16-recovery/kernel-local-db-port.json)).
+
 The pushed PR head is
 `8c7a053eeda37d42e229eacf4c18ec6e7943c9d6`: CI #337 and Security #61 are in
 progress. This batch extends KGP projection coverage to governance target,

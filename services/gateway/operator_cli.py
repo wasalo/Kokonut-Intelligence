@@ -8,6 +8,10 @@ from urllib.parse import urlsplit
 from uuid import UUID
 
 from services.common.cli import get_connection, print_json, run
+from services.gateway.farm_activity_roles import (
+    FARM_ACTIVITY_ROLE_SCOPES,
+    get_farm_activity_role_scopes,
+)
 
 _SLUG = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 
@@ -453,6 +457,147 @@ def revoke_scope(args) -> None:
     print_json(row)
 
 
+def grant_farm_activity_role(args) -> None:
+    """Expand a named legacy role to ordinary, tenant-qualified scope grants."""
+    operator_id = _uuid(args.operator_id, "operator-id")
+    location_id = _uuid(args.location_id, "location-id")
+    organization_id = _uuid(args.organization_id, "organization-id")
+    scopes = get_farm_activity_role_scopes(args.role)
+    if not args.granted_by.strip():
+        raise ValueError("granted-by must identify the local operator")
+
+    with get_connection() as conn:
+        identity = conn.execute(
+            "SELECT id FROM operator_identity WHERE id = :operator_id AND enabled = TRUE FOR SHARE",
+            {"operator_id": operator_id},
+        ).first()
+        if identity is None:
+            raise ValueError("enabled operator identity was not found")
+
+        target = conn.execute(
+            """SELECT organization_id AS location_organization_id
+                 FROM location WHERE id = :location_id FOR SHARE""",
+            {"location_id": location_id},
+        ).first()
+        if target is None:
+            raise ValueError("location was not found")
+        location_organization_id = (
+            str(target["location_organization_id"])
+            if target["location_organization_id"] is not None
+            else None
+        )
+        owner = conn.execute(
+            """SELECT organization_id
+                 FROM location_tenant_owner_verification
+                WHERE location_id = :location_id AND revoked_at IS NULL
+                FOR SHARE""",
+            {"location_id": location_id},
+        ).first()
+        verified_organization_id = str(owner["organization_id"]) if owner else None
+        if verified_organization_id is None or verified_organization_id != location_organization_id:
+            raise ValueError("location must have a current verified tenant owner")
+
+        membership = conn.execute(
+            """SELECT 1
+                 FROM operator_organization_membership AS membership
+                 JOIN organization AS tenant ON tenant.id = membership.organization_id
+                WHERE membership.operator_id = :operator_id
+                  AND membership.organization_id = :organization_id
+                  AND membership.revoked_at IS NULL
+                  AND tenant.status = 'active'
+                FOR SHARE OF membership, tenant""",
+            {"operator_id": operator_id, "organization_id": organization_id},
+        ).first()
+        if membership is None:
+            raise ValueError("operator must have active membership in the requested organization")
+
+        owns_location = verified_organization_id == organization_id
+        shared_location = conn.execute(
+            """SELECT 1 FROM location_organization_share
+                WHERE location_id = :location_id
+                  AND organization_id = :organization_id
+                  AND revoked_at IS NULL
+                  AND (expires_at IS NULL OR expires_at > NOW())
+                FOR SHARE""",
+            {"location_id": location_id, "organization_id": organization_id},
+        ).first()
+        if not owns_location and shared_location is None:
+            raise ValueError("organization needs the verified owner or an active location share")
+
+        granted = []
+        for resource, action in scopes:
+            parameters = {
+                "operator_id": operator_id,
+                "resource": resource,
+                "action": action,
+                "location_id": location_id,
+                "organization_id": organization_id,
+                "granted_by": args.granted_by.strip(),
+            }
+            row = conn.execute(
+                """INSERT INTO operator_scope_grant
+                       (operator_id, resource, action, location_id, organization_id, granted_by)
+                   VALUES (:operator_id, :resource, :action, :location_id,
+                           :organization_id, :granted_by)
+                   ON CONFLICT (operator_id, resource, action, location_id)
+                       WHERE revoked_at IS NULL DO NOTHING
+                   RETURNING id, operator_id, resource, action, location_id,
+                             organization_id, granted_by""",
+                parameters,
+            ).first()
+            if row is None:
+                existing = conn.execute(
+                    """SELECT id, operator_id, resource, action, location_id,
+                              organization_id, granted_by
+                         FROM operator_scope_grant
+                        WHERE operator_id = :operator_id AND resource = :resource
+                          AND action = :action AND location_id = :location_id
+                          AND revoked_at IS NULL
+                        FOR UPDATE""",
+                    parameters,
+                ).first()
+                if existing is None:
+                    raise ValueError("an active role grant could not be resolved")
+                existing_organization_id = (
+                    str(existing["organization_id"])
+                    if existing["organization_id"] is not None
+                    else None
+                )
+                if existing_organization_id is None:
+                    row = conn.execute(
+                        """UPDATE operator_scope_grant
+                              SET organization_id = :organization_id
+                            WHERE id = :grant_id AND organization_id IS NULL
+                              AND revoked_at IS NULL
+                            RETURNING id, operator_id, resource, action, location_id,
+                                      organization_id, granted_by""",
+                        {"organization_id": organization_id, "grant_id": existing["id"]},
+                    ).first()
+                    if row is None:
+                        raise ValueError("an existing role grant changed during provisioning")
+                elif existing_organization_id != organization_id:
+                    raise ValueError("an active scope grant exists under a different tenant; revoke it first")
+                else:
+                    row = existing
+            granted.append(row)
+
+    print_json({"role": args.role, "grants": granted})
+
+
+def list_farm_activity_role_templates(_args) -> None:
+    print_json(
+        {
+            "roles": {
+                role: [
+                    {"resource": resource, "action": action}
+                    for resource, action in get_farm_activity_role_scopes(role)
+                ]
+                for role in FARM_ACTIVITY_ROLE_SCOPES
+            }
+        }
+    )
+
+
 def request_location_tenant_transfer(args) -> None:
     location_id = _uuid(args.location_id, "location-id")
     target_organization_id = _uuid(args.target_organization_id, "target-organization-id")
@@ -613,6 +758,18 @@ def main() -> None:
     revoke = commands.add_parser("revoke-grant", help="Revoke one operator scope grant")
     revoke.add_argument("--grant-id", required=True)
     revoke.set_defaults(func=revoke_scope)
+
+    role = commands.add_parser("farm-activity-role", help="Provision a legacy farm-activity role as scoped grants")
+    role_commands = role.add_subparsers(dest="role_command", required=True)
+    role_templates = role_commands.add_parser("templates", help="List role-to-scope mappings")
+    role_templates.set_defaults(func=list_farm_activity_role_templates)
+    role_grant = role_commands.add_parser("grant", help="Grant one role template at one tenant location")
+    role_grant.add_argument("--role", choices=tuple(FARM_ACTIVITY_ROLE_SCOPES), required=True)
+    role_grant.add_argument("--operator-id", required=True)
+    role_grant.add_argument("--organization-id", required=True)
+    role_grant.add_argument("--location-id", required=True)
+    role_grant.add_argument("--granted-by", required=True)
+    role_grant.set_defaults(func=grant_farm_activity_role)
 
     membership = commands.add_parser("organization-membership", help="Manage an operator's tenant affiliation")
     membership_commands = membership.add_subparsers(dest="membership_command", required=True)
