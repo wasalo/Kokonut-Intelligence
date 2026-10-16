@@ -142,3 +142,39 @@ def test_successful_location_projects_only_after_atomic_insert_and_audits_in_tra
     project.assert_called_once_with(records, db)
     assert db.commits == 1
     assert db.closed
+
+
+def test_transactional_clickhouse_enqueue_failure_propagates():
+    with patch.object(
+        weather_forecast,
+        "enqueue",
+        side_effect=RuntimeError("synthetic outbox failure"),
+    ) as enqueue:
+        with pytest.raises(RuntimeError, match="synthetic outbox failure"):
+            weather_forecast.insert_forecasts_clickhouse([_forecast_record()], MagicMock())
+
+    enqueue.assert_called_once()
+
+
+def test_outbox_failure_closes_without_committing_source_transaction():
+    db = _Connection([(LOCATION_ID, "Kokonut Farm", 18.5, -69.9)])
+    records = [_forecast_record()]
+    with (
+        patch.object(weather_forecast, "OPENWEATHERMAP_API_KEY", "synthetic-key"),
+        patch.object(weather_forecast, "get_db", return_value=db),
+        patch.object(weather_forecast, "fetch_forecast_raw", return_value={"city": {"id": 7}}),
+        patch.object(weather_forecast, "parse_forecast_list", return_value=records),
+        patch.object(weather_forecast, "insert_location_forecasts", return_value=1),
+        patch.object(
+            weather_forecast,
+            "insert_forecasts_clickhouse",
+            side_effect=RuntimeError("synthetic outbox failure"),
+        ),
+        patch.object(weather_forecast, "log_ingestion"),
+        patch.object(weather_forecast.time, "sleep"),
+    ):
+        with pytest.raises(RuntimeError, match="synthetic outbox failure"):
+            weather_forecast.run(location_id=LOCATION_ID)
+
+    assert db.commits == 0
+    assert db.closed

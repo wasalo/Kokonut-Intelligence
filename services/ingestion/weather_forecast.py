@@ -217,6 +217,11 @@ def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
             rows,
         )
     except Exception as e:
+        if conn is not None:
+            # The source write and durable projection intent share a transaction.
+            # Let enqueue failures abort that transaction instead of committing
+            # forecasts with no recoverable ClickHouse delivery record.
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 
@@ -259,42 +264,8 @@ def get_spray_windows(db, location_id: str, days: int = 5) -> list[dict]:
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
-def run(location_id: str = None, *, all_locations: bool = False):
-    """Main forecast ingestion entry point."""
-    if all_locations and location_id is not None:
-        raise ValueError("choose one location or the explicit all-locations mode")
-    if not all_locations and location_id is None:
-        raise ValueError("provide --location-id or explicitly select all locations")
-    if location_id is not None:
-        try:
-            location_id = str(uuid.UUID(str(location_id)))
-        except (TypeError, ValueError, AttributeError):
-            raise ValueError("location_id must be a UUID") from None
-
-    if not OPENWEATHERMAP_API_KEY:
-        logger.error("OPENWEATHERMAP_API_KEY not set in .env")
-        sys.exit(1)
-
-    db = get_db()
-    with db.cursor() as cur:
-        if location_id:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
-                "FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
-                (location_id,),
-            )
-        else:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
-                "FROM location WHERE status = 'active' AND center IS NOT NULL"
-            )
-        locations = cur.fetchall()
-
-    if not locations:
-        logger.info("No active locations with coordinates found.")
-        db.close()
-        return
-
+def _ingest_locations(db, locations) -> None:
+    """Fetch, persist, audit, and enqueue one transaction's selected locations."""
     logger.info("Fetching 5-day forecasts for %d locations...", len(locations))
     all_records = []
     success = 0
@@ -348,10 +319,51 @@ def run(location_id: str = None, *, all_locations: bool = False):
     if all_records:
         insert_forecasts_clickhouse(all_records, db)
     db.commit()
-    db.close()
 
     logger.info("Done: %d success, %d errors, %d total forecast points",
                 success, errors, len(all_records))
+
+
+def run(location_id: str = None, *, all_locations: bool = False):
+    """Main forecast ingestion entry point."""
+    if all_locations and location_id is not None:
+        raise ValueError("choose one location or the explicit all-locations mode")
+    if not all_locations and location_id is None:
+        raise ValueError("provide --location-id or explicitly select all locations")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("location_id must be a UUID") from None
+
+    if not OPENWEATHERMAP_API_KEY:
+        logger.error("OPENWEATHERMAP_API_KEY not set in .env")
+        sys.exit(1)
+
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            if location_id:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
+                    "FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
+                    (location_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
+                    "FROM location WHERE status = 'active' AND center IS NOT NULL"
+                )
+            locations = cur.fetchall()
+
+        if not locations:
+            logger.info("No active locations with coordinates found.")
+            return
+        _ingest_locations(db, locations)
+    finally:
+        # Closing an uncommitted connection rolls back source rows, audit rows,
+        # and outbox intent together when any mandatory enqueue fails.
+        db.close()
 
 
 def _canonical_location_id(location_id: str) -> str:

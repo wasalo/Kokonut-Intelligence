@@ -19,9 +19,10 @@ acceptance rows.
 **16 October 2026 forecast projection atomicity (CAP-040 / CAP-047):** the
 weather-forecast producer now rolls back a whole location batch to a PostgreSQL
 savepoint on any row failure, records ingestion audit state in the same
-transaction, and queues ClickHouse rows only after successful PostgreSQL
-persistence. Four new mocked regressions and existing forecast/scope tests pass
-26 tests. Live provider/database acceptance and MAN-CAP-040/047 remain open
+transaction, queues ClickHouse rows only after successful PostgreSQL
+persistence, and aborts/cleans up the transaction when durable outbox enqueue
+fails. Six mocked regressions and existing forecast/scope/shared-producer tests
+pass 36 tests. Live provider/database acceptance and MAN-CAP-040/047 remain open
 ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
 
 **16 October 2026 scheduled anomaly scope (CAP-040 / CAP-047):** hourly
