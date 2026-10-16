@@ -40,14 +40,15 @@ because no hardware is available; physical-device acceptance is not claimed.
 ### JobSpec runtime-input classification — 15 October 2026
 
 The static inventory now distinguishes command defaults from required inputs.
-Thirteen default argument lists pass directly. Climate's command schema passes
-when supplied a synthetic UUID solely for validation; each real scheduled
-climate job still requires an explicit location and remains disabled until
-reviewed. Sensor ingestion remains blocked because no recurring source contract
-exists. Eighty-five focused scheduler-contract, dispatch, and inventory checks pass; the
-inventory is regenerated and current. No provider, database, Prefect state, or
-schedule was accessed or changed ([inventory](worker-job-contract-inventory.json);
-[evidence](builds/2026-10-15-recovery/worker-job-input-classification.json)).
+Twelve default argument lists pass directly. Climate and weather command
+schemas pass when supplied a synthetic UUID solely for validation; each real
+scheduled job must provide one explicit location. Scheduled weather can no
+longer invoke the standalone CLI's all-location mode. Sensor ingestion remains
+blocked because no recurring source contract exists. Focused scheduler-contract,
+dispatch, and inventory checks pass; the inventory is regenerated and current.
+No provider, database, Prefect state, or persisted schedule was accessed or
+changed ([inventory](worker-job-contract-inventory.json);
+[evidence](builds/2026-10-15-recovery/worker-weather-location-contract.json)).
 
 ### Dynamic retention policy scope metadata — 15 October 2026
 

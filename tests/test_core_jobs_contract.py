@@ -10,8 +10,11 @@ from services.core.jobs import JOBS, JobFailed, run_job
 from services.security.scheduled_command_contracts import ScheduledCommandRejected
 
 _LOCATION_ID = "a9aa6466-0754-4b7c-b20c-155a81134eaa"
-_DISPATCHES = [(job_id, _LOCATION_ID if job_id == "climate" else None) for job_id in JOBS if job_id != "sensors"]
-_DISPATCHES.append(("weather", _LOCATION_ID))
+_DISPATCHES = [
+    (job_id, _LOCATION_ID if job_id in {"climate", "weather"} else None)
+    for job_id in JOBS
+    if job_id != "sensors"
+]
 
 
 @pytest.mark.parametrize(("job_id", "location_id"), _DISPATCHES)
@@ -42,6 +45,14 @@ def test_climate_dispatch_requires_a_location_before_subprocess():
     run.assert_not_called()
 
 
+def test_weather_dispatch_requires_a_location_before_subprocess():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="requires a location"):
+            run_job("weather")
+
+    run.assert_not_called()
+
+
 def test_nonzero_job_exit_retains_return_code_and_bounded_output():
     provider_error = "provider failed " + ("x" * 600)
     completed = subprocess.CompletedProcess(args=[], returncode=7, stdout="ignored", stderr=provider_error)
@@ -50,7 +61,7 @@ def test_nonzero_job_exit_retains_return_code_and_bounded_output():
         patch("services.core.jobs.subprocess.run", return_value=completed),
         pytest.raises(JobFailed) as error,
     ):
-        run_job("weather")
+        run_job("weather", location_id=_LOCATION_ID)
 
     assert error.value.returncode == 7
     assert error.value.output == provider_error[-500:]

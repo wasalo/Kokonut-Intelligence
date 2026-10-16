@@ -22,8 +22,8 @@ data effects, and an idempotency/retry note.
   code-owned job runs, and subprocess creation.
   They check supported options, value formats, required arguments and option
   relationships. Human-review commands, unbounded event workers, event cleanup
-  without a retention decision, and source-less recurring sensor ingestion are
-  rejected.
+  without a retention decision, source-less recurring sensor ingestion, and
+  scheduled weather scans without an explicit location are rejected.
 - A rejected runtime command fails without spawning a process or scheduling a
   retry. The task row is not automatically rewritten; active legacy rows need
   operator review before deployment.

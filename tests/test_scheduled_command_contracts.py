@@ -24,7 +24,6 @@ def test_every_scheduled_module_has_a_command_contract():
 @pytest.mark.parametrize(
     ("module", "arguments"),
     [
-        ("services.ingestion.weather", []),
         ("services.ingestion.weather", ["--location-id", str(uuid4())]),
         ("services.ingestion.market_data", ["--source", "world_bank"]),
         ("services.ingestion.market_data", ["--month", "2", "--year", "2026"]),
@@ -64,6 +63,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("os", ["--help"]),
         ("services.ingestion.sensor_ingester", []),
         ("services.ingestion.sensor_ingester", ["--file", "/tmp/readings.csv"]),
+        ("services.ingestion.weather", []),
         ("services.ingestion.climate_data", ["--all"]),
         ("services.ingestion.climate_data", ["--all", "--location-id", "invalid"]),
         ("services.ingestion.climate_data", ["--all", "--worldclim", "--location-id", str(uuid4())]),
@@ -116,6 +116,18 @@ def test_projection_job_is_scheduler_allowed_but_restricted_to_one_delivery_batc
     assert job.module == "services.ingestion.clickhouse_outbox"
     assert job.scheduler_allowed
     assert validate_scheduled_command(job.module, list(job.arguments)) == ("--run-once", "--limit", "100")
+
+
+def test_weather_job_requires_one_explicit_location_before_dispatch():
+    from services.scheduler.job_plan import build_job_plan
+
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="Weather refresh requires a location"):
+            run_job("weather")
+    run.assert_not_called()
+
+    with pytest.raises(ValueError, match="Weather schedule planning requires one location"):
+        build_job_plan("weather", "daily")
 
 
 def test_remote_sensing_job_defaults_to_one_due_job_batch():
@@ -180,9 +192,9 @@ def test_run_now_rejects_invalid_stored_arguments_before_subprocess():
     connection.close.assert_called_once()
 
 
-def test_reviewable_job_plans_are_validated_and_sensor_source_remains_required():
-    weather = build_job_plan("weather", "hourly")
-    assert weather["scheduled_task"]["command_args"] == []
+def test_reviewable_job_plans_require_tenant_inputs_and_sensor_source():
+    weather = build_job_plan("weather", "hourly", location_id=str(uuid4()))
+    assert weather["scheduled_task"]["command_args"][0] == "--location-id"
 
     climate = build_job_plan("climate", "weekly", location_id=str(uuid4()))
     assert "--location-id" in climate["scheduled_task"]["command_args"]

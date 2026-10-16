@@ -31,7 +31,15 @@ class JobSpec:
 
 JOBS = MappingProxyType(
     {
-        "weather": JobSpec("services.ingestion.weather", (), 300, 2, 300, "Weather ingestion"),
+        "weather": JobSpec(
+            "services.ingestion.weather",
+            (),
+            300,
+            2,
+            300,
+            "Weather ingestion",
+            required_inputs=("location_id",),
+        ),
         "sensors": JobSpec("services.ingestion.sensor_ingester", (), 120, 3, 60, "Sensor ingestion"),
         "market_data": JobSpec(
             "services.ingestion.market_data", ("--source", "world_bank"), 600, 2, 600, "Market data ingestion"
@@ -96,7 +104,7 @@ def run_job(job_id: str, *, location_id: str | None = None) -> dict[str, str]:
     spec = JOBS[job_id]
     arguments = list(spec.arguments)
     if "location_id" in spec.required_inputs and location_id is None:
-        raise ValueError("Climate refresh requires a location")
+        raise ValueError(f"{job_id.capitalize()} refresh requires a location")
     if location_id is not None:
         if job_id != "weather" and "location_id" not in spec.required_inputs:
             raise ValueError("Location override is supported only for weather and climate")

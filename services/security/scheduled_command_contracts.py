@@ -167,6 +167,9 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     if module_path == "services.ingestion.sensor_ingester":
         raise _reject("sensor ingestion has no recurring source contract")
 
+    if module_path == "services.ingestion.weather" and "--location-id" not in options:
+        raise _reject("weather ingestion requires one explicit location")
+
     if module_path == "services.ingestion.market_data":
         has_month = "--month" in options
         has_year = "--year" in options

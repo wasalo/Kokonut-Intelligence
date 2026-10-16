@@ -31,7 +31,7 @@ def build_job_plan(job_id: str, cadence: str, *, location_id: str | None = None)
     arguments = list(spec.arguments)
     name = f"kernel-{job_id}-{cadence}"
     if "location_id" in spec.required_inputs and location_id is None:
-        raise ValueError("Climate schedule planning requires one location")
+        raise ValueError(f"{job_id.capitalize()} schedule planning requires one location")
     if location_id is not None:
         if job_id != "weather" and "location_id" not in spec.required_inputs:
             raise ValueError("Location override is supported only for weather and climate")

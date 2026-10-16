@@ -98,8 +98,10 @@ authenticated administrative authorization. It is not a general erasure executor
 outbox, handler attempt history, operator-audit records, media, exports,
 backups, and Field Collector disposition do not have automatic pruning paths.
 
-No periods have been configured. Migrations 401 and 402 and the source changes
-are not yet applied to the local candidate. Keep both
+No periods have been configured. Migrations 401 and 402 are applied to the
+local candidate after an encrypted checkpoint and isolated restore/replay;
+the rollout left policy and hold tables empty and did not recreate the app.
+Keep both
 `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP` and
 `KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT` disabled. Do not add a recurring
 cleanup schedule until an accountable owner configures the applicable policy

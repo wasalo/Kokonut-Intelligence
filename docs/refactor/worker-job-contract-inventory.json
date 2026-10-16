@@ -6,8 +6,8 @@
     "catalog_jobs": 15,
     "allowlisted_modules": 15,
     "outcomes": {
-      "default_arguments_accepted": 13,
-      "required_runtime_inputs_validated": 1,
+      "default_arguments_accepted": 12,
+      "required_runtime_inputs_validated": 2,
       "source_contract_missing": 1
     }
   },
@@ -130,9 +130,11 @@
       "job": "weather",
       "module": "services.ingestion.weather",
       "argument_count": 0,
-      "required_inputs": [],
-      "status": "default_arguments_accepted",
-      "reason": null
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
     }
   ]
 }
