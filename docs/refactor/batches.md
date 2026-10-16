@@ -805,6 +805,16 @@ reporting views.
   before exec; no worker credential is currently delivered to any handler.
   The handler request stays on stdin and timeout/error handling is covered by
   26 focused EventBus/runner checks ([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
+  That boundary is now shared by every application subprocess: scheduled and
+  manual tasks, known jobs and flow commands, report generation, the migration
+  runner, and SOPS receive no worker-specific DSNs or credentials. The
+  supervisor strips them from the API and allows only the named scheduler or
+  event-bus key into its matching worker process. Ruff, Python compilation,
+  and 183 focused unit checks pass across the shared policy, service-wide
+  subprocess inventory, scheduler/job dispatch, supervisor mapping, EventBus,
+  migration runner, and SOPS wrapper ([evidence](builds/2026-10-16-recovery/worker-subprocess-environment-unit.json)).
+  This does not yet connect any worker to its dedicated database identity or
+  signed context.
   The legacy `services.analytics.mobile_offline` service helpers and historic
   CLI commands have now been retired: they fail before opening a database
   connection because they have no authenticated tenant identity. Capture and

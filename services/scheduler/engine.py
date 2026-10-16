@@ -13,6 +13,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from services.common.logging import get_logger
+from services.common.worker_environment import worker_subprocess_environment
 from services.scheduler.parser import next_run_time
 from services.scheduler.resources import ResourcePool
 from services.security.scheduled_command_contracts import (
@@ -233,6 +234,7 @@ class SchedulerEngine:
                 capture_output=True,
                 text=True,
                 timeout=timeout,
+                env=worker_subprocess_environment(),
             )
             duration_ms = int((time.monotonic() - start_time) * 1000)
 

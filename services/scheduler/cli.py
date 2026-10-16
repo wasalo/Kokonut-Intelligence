@@ -16,6 +16,7 @@ import argparse
 import sys
 
 from services.common.cli import print_json
+from services.common.worker_environment import worker_subprocess_environment
 
 
 def cmd_status(args):
@@ -129,6 +130,7 @@ def cmd_run_now(args):
             result = subprocess.run(
                 [_sys.executable, "-m", module_path, *validated_args],
                 timeout=timeout,
+                env=worker_subprocess_environment(),
             )
             return result.returncode
     finally:

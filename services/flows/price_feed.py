@@ -1,5 +1,6 @@
 """Price feed ingestion flow."""
 
+from services.common.worker_environment import worker_subprocess_environment
 from services.core.adapters.prefect import flow
 
 
@@ -10,6 +11,7 @@ def price_feed_flow():
     result = subprocess.run(
         ["python3", "-m", "services.ingestion.yahoo_finance"],
         capture_output=True, text=True, timeout=300,
+        env=worker_subprocess_environment(),
     )
     if result.returncode != 0:
         raise RuntimeError(f"Yahoo Finance fetch failed: {result.stderr}")

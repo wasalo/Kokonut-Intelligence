@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass
 from types import MappingProxyType
 
+from services.common.worker_environment import worker_subprocess_environment
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
 from services.security.scheduled_command_contracts import validate_scheduled_command
 
@@ -133,6 +134,7 @@ def run_job(job_id: str, *, location_id: str | None = None) -> dict[str, str]:
         capture_output=True,
         text=True,
         timeout=spec.timeout_seconds,
+        env=worker_subprocess_environment(),
     )
     if result.returncode != 0:
         raise JobFailed(spec.label, result)

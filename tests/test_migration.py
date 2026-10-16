@@ -117,9 +117,12 @@ def test_psql_raises_on_query_failure(monkeypatch):
 
 def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
     captured = {}
+    child_env = {"PATH": "/synthetic/bin"}
+    monkeypatch.setattr(cli, "worker_subprocess_environment", lambda: child_env)
 
     def fake_run(command, **kwargs):
         captured["command"] = command
+        captured.update(kwargs)
         return subprocess.CompletedProcess(command, 0, "", "")
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -131,6 +134,7 @@ def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):
     assert "psql -X -q" in shell_command
     assert shell_command.count("docker compose exec") == 1
     assert "database psql" in shell_command
+    assert captured["env"] == child_env
 
 
 def test_psql_pins_canonical_search_path(monkeypatch):

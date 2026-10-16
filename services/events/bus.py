@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import importlib
 import json
-import os
-import re
 import subprocess
 import sys
 import uuid
@@ -13,12 +11,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 from services.common.logging import get_logger
+from services.common.worker_environment import worker_subprocess_environment
 from services.security.execution_allowlist import validate_event_handler
 
 logger = get_logger("events.bus")
-_WORKER_SECRET_ENV = re.compile(
-    r"^KOKONUT_[A-Z][A-Z0-9_]*_(?:DATABASE_URL|WORKER_CREDENTIAL)$"
-)
 
 
 def _handler_child_environment(environ=None):
@@ -29,12 +25,7 @@ def _handler_child_environment(environ=None):
     an explicit trusted identity mapping, child processes receive no worker
     DSNs or credentials.
     """
-    source = os.environ if environ is None else environ
-    return {
-        name: value
-        for name, value in source.items()
-        if not _WORKER_SECRET_ENV.fullmatch(name)
-    }
+    return worker_subprocess_environment(environ=environ)
 
 
 def resolve_handler(module_path: str, function_name: str):
@@ -236,7 +227,7 @@ class EventBus:
                 stdout=subprocess.PIPE,
                 stderr=None,
                 text=True,
-                env=_handler_child_environment(),
+                env=worker_subprocess_environment(),
             )
         except OSError as exc:
             return "error", f"Handler process could not start: {type(exc).__name__}"

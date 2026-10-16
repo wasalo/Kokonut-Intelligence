@@ -12,6 +12,7 @@ import time
 import uuid
 
 from services.common.logging import get_logger
+from services.common.worker_environment import worker_subprocess_environment
 
 logger = get_logger("core.runtime")
 
@@ -76,7 +77,13 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
         for name, argv in child_commands:
             if stopping:
                 break
-            process = subprocess.Popen(argv, start_new_session=True)
+            worker_key = {"scheduler": "scheduler", "events": "event_bus"}.get(name)
+            allowed_worker_keys = (worker_key,) if worker_key is not None else ()
+            process = subprocess.Popen(
+                argv,
+                start_new_session=True,
+                env=worker_subprocess_environment(allowed_worker_keys=allowed_worker_keys),
+            )
             children.append((name, process))
             logger.info("Started Kernel process %s (pid=%s)", name, process.pid)
 

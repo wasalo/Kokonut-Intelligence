@@ -36,6 +36,22 @@ def test_sops_failure_does_not_fall_back_in_production(monkeypatch, tmp_path):
     assert env._LOADED is False
 
 
+def test_sops_child_receives_the_filtered_environment(monkeypatch, tmp_path):
+    child_env = {"PATH": "/synthetic/bin"}
+    captured = {}
+    monkeypatch.setattr(env, "worker_subprocess_environment", lambda: child_env)
+
+    def fake_run(command, **kwargs):
+        captured["command"] = command
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(command, 0, "decrypted", "")
+
+    monkeypatch.setattr(env.subprocess, "run", fake_run)
+
+    assert env._sops_decrypt(tmp_path / "synthetic.env.sops") == "decrypted"
+    assert captured["env"] == child_env
+
+
 def test_loader_reuses_secrets_exported_by_load_secrets_script(monkeypatch, tmp_path):
     _reset_loader(monkeypatch, tmp_path)
     monkeypatch.setenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "true")

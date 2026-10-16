@@ -13,6 +13,7 @@ import uuid
 from pathlib import Path
 
 from ..common.logging import get_logger
+from ..common.worker_environment import worker_subprocess_environment
 
 logger = get_logger("migration")
 
@@ -148,7 +149,11 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
         ]
         try:
             result = subprocess.run(
-                shell_cmd, capture_output=True, text=True, timeout=3600
+                shell_cmd,
+                capture_output=True,
+                text=True,
+                timeout=3600,
+                env=worker_subprocess_environment(),
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise MigrationError(f"psql execution failed: {exc}") from exc

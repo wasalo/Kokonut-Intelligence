@@ -1,0 +1,24 @@
+{
+  "check": "worker-subprocess-environment",
+  "date": "2026-10-16",
+  "base_commit": "5fb7f917694ccc35bba82cd022b0843ff735ba2c",
+  "result": "passed",
+  "pytest_command": "python3 -m pytest tests/test_worker_environment.py tests/test_scheduler_durability.py tests/test_core_jobs_contract.py tests/test_kernel_runtime_supervisor.py tests/test_scheduled_command_contracts.py tests/test_event_bus_durability.py tests/test_event_handler_runner.py tests/test_common_env.py tests/test_migration.py -q",
+  "tests_passed": 183,
+  "ruff": "passed",
+  "python_compilation": "passed",
+  "scope": [
+    "default removal of worker-specific database URLs and credentials",
+    "exact worker-key allowlisting in the runtime supervisor",
+    "API, scheduled task, manual run, and known-job subprocess boundaries",
+    "service-wide AST guard for subprocess.run and subprocess.Popen",
+    "EventBus request transport, failure, and timeout behavior",
+    "mocked migration-runner and SOPS child environments"
+  ],
+  "environment": "synthetic values and mocked subprocesses",
+  "database_access": false,
+  "candidate_or_legacy_services_accessed": false,
+  "real_credentials_used": false,
+  "worker_database_identity_integrated": false,
+  "signed_worker_context_integrated": false
+}

@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `12d3e94cb86922128cc9bc36da740b9ffe2fb217`; its Gitleaks check was queued and no CI check had appeared at last check (16 October 2026).
-**Current local batch:** EventBus now launches handlers with worker-specific DSN/credential variables stripped from the subprocess environment. The handler runner uses a stdin JSON request and a bounded JSON result; 26 focused EventBus/runner checks pass. No per-handler secret is delivered until an explicit trusted identity mapping and handler integration are ready.
+**Pre-batch pushed head:** `5fb7f917694ccc35bba82cd022b0843ff735ba2c`; Gitleaks passed and CI was in progress at the last check (16 October 2026).
+**Current local batch:** A shared subprocess-environment policy now strips worker DSNs and credentials from the API, scheduled commands, jobs/flows, report commands, migration runner, and SOPS children. The supervisor allows only `KOKONUT_SCHEDULER_*` into the scheduler child and `KOKONUT_EVENT_BUS_*` into the event worker; all other worker keys are removed. The EventBus handler continues to receive no worker secret and uses stdin JSON plus a bounded JSON result. All 183 focused unit checks pass with Ruff and compilation ([evidence](builds/2026-10-16-recovery/worker-subprocess-environment-unit.json)). This source work does not integrate worker database identity or signed tenant context.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live

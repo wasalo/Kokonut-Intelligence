@@ -1,5 +1,6 @@
 """Scheduler command contracts fail closed before activation or dispatch."""
 
+import sys
 from argparse import Namespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -247,6 +248,34 @@ def test_run_now_rejects_invalid_stored_arguments_before_subprocess():
         cmd_run_now(Namespace(task_name="invalid-climate"))
 
     run.assert_not_called()
+    connection.close.assert_called_once()
+
+
+def test_run_now_passes_filtered_environment_to_task_child():
+    from services.scheduler.cli import cmd_run_now
+
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    location_id = str(uuid4())
+    cursor.fetchone.return_value = ("services.metrics", ["--compute", "--all", "--location-id", location_id], 30)
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+    child_env = {"PATH": "/synthetic/bin"}
+    completed = MagicMock(returncode=0)
+
+    with (
+        patch("services.common.database.get_db", return_value=connection),
+        patch("subprocess.run", return_value=completed) as run,
+        patch("services.scheduler.cli.worker_subprocess_environment", return_value=child_env),
+    ):
+        result = cmd_run_now(Namespace(task_name="metrics"))
+
+    assert result == 0
+    run.assert_called_once_with(
+        [sys.executable, "-m", "services.metrics", "--compute", "--all", "--location-id", location_id],
+        timeout=30,
+        env=child_env,
+    )
     connection.close.assert_called_once()
 
 

@@ -58,6 +58,7 @@ def test_shutdown_terminates_process_group_then_forces_cleanup(monkeypatch):
     group_signals = []
     handlers, registrations = _install_signal_fakes(monkeypatch, stop_on_sleep=True)
     monkeypatch.setattr(runtime, "commands", lambda *_args, **_kwargs: [("api", ["api-command"])])
+    monkeypatch.setattr(runtime, "worker_subprocess_environment", lambda **_kwargs: {"PATH": "/synthetic/bin"})
     monkeypatch.setattr(
         runtime.subprocess,
         "Popen",
@@ -68,7 +69,10 @@ def test_shutdown_terminates_process_group_then_forces_cleanup(monkeypatch):
     result = runtime.run(shutdown_seconds=0.1)
 
     assert result == 0
-    assert spawned == [(["api-command"], {"start_new_session": True})]
+    assert spawned == [(
+        ["api-command"],
+        {"start_new_session": True, "env": {"PATH": "/synthetic/bin"}},
+    )]
     assert group_signals == [(101, signal.SIGTERM), (101, signal.SIGKILL)]
     assert len(process.wait_calls) == 2
     assert process.wait_calls[0] is not None
@@ -76,6 +80,39 @@ def test_shutdown_terminates_process_group_then_forces_cleanup(monkeypatch):
     assert handlers[signal.SIGTERM]
     assert (signal.SIGTERM, "previous-15") in registrations
     assert (signal.SIGINT, "previous-2") in registrations
+
+
+def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
+    processes = iter((_Process(111), _Process(112), _Process(113)))
+    spawned = []
+    allowlists = []
+    _install_signal_fakes(monkeypatch, stop_on_sleep=True)
+    monkeypatch.setattr(
+        runtime,
+        "commands",
+        lambda *_args, **_kwargs: [
+            ("api", ["api"]),
+            ("scheduler", ["scheduler"]),
+            ("events", ["events"]),
+        ],
+    )
+
+    def filtered_environment(*, allowed_worker_keys):
+        allowlists.append(tuple(allowed_worker_keys))
+        return {"VISIBLE_WORKER_KEYS": ",".join(allowed_worker_keys)}
+
+    monkeypatch.setattr(runtime, "worker_subprocess_environment", filtered_environment)
+    monkeypatch.setattr(
+        runtime.subprocess,
+        "Popen",
+        lambda argv, **kwargs: spawned.append((argv, kwargs)) or next(processes),
+    )
+    monkeypatch.setattr(runtime.os, "killpg", lambda *_args: None)
+
+    assert runtime.run(with_workers=True) == 0
+
+    assert allowlists == [(), ("scheduler",), ("event_bus",)]
+    assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == ["", "scheduler", "event_bus"]
 
 
 def test_unexpected_zero_exit_fails_supervisor_and_stops_siblings(monkeypatch):

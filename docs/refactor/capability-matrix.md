@@ -1927,6 +1927,13 @@ process environment that strips worker-specific DSNs and credentials before
 exec; 26 mocked EventBus/runner checks cover environment filtering, request
 transport, compatibility, failure handling, and timeout cleanup
 ([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
+The same filter now covers scheduled/manual tasks, known jobs and flow
+commands, report generation, migration execution, and SOPS. The supervisor
+strips worker secrets from the API child and limits scheduler/event-bus children
+to their named worker-key prefixes. Ruff and compilation pass; the EventBus,
+scheduler, supervisor, job, migration, SOPS, and environment-policy suites pass
+183 focused checks ([evidence](builds/2026-10-16-recovery/worker-subprocess-environment-unit.json)).
+No dedicated worker secret is provisioned or used.
 This does not deliver an identity-specific secret or establish runtime worker
 identity, bounded source/effect integration, direct-database isolation, or RLS
 readiness. CAP-040/047 statuses and MAN-CAP acceptance counts remain unchanged.

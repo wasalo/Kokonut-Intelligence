@@ -25,7 +25,11 @@ def test_job_dispatch_uses_catalog_interpreter_arguments_and_timeout(job_id, loc
     if location_id is not None:
         expected_argv.extend(("--location-id", location_id))
 
-    with patch("services.core.jobs.subprocess.run", return_value=completed) as run:
+    child_env = {"PATH": "/synthetic/bin"}
+    with (
+        patch("services.core.jobs.worker_subprocess_environment", return_value=child_env),
+        patch("services.core.jobs.subprocess.run", return_value=completed) as run,
+    ):
         result = run_job(job_id, location_id=location_id)
 
     run.assert_called_once_with(
@@ -33,6 +37,7 @@ def test_job_dispatch_uses_catalog_interpreter_arguments_and_timeout(job_id, loc
         capture_output=True,
         text=True,
         timeout=spec.timeout_seconds,
+        env=child_env,
     )
     assert result == {"status": "success", "output": "complete"}
 

@@ -1,5 +1,6 @@
 """Focused scheduler durability tests without a live PostgreSQL dependency."""
 
+import sys
 from datetime import datetime, timezone
 from unittest import TestCase
 from unittest.mock import Mock, patch
@@ -21,23 +22,36 @@ class SchedulerDurabilityTests(TestCase):
         engine._complete_task = Mock()
         completed = Mock(returncode=0, stdout="ok", stderr="")
 
-        with patch("services.scheduler.engine.subprocess.run", return_value=completed) as run:
+        child_env = {"PATH": "/synthetic/bin"}
+        with (
+            patch("services.scheduler.engine.worker_subprocess_environment", return_value=child_env),
+            patch("services.scheduler.engine.subprocess.run", return_value=completed) as run,
+        ):
             result = engine._execute_task(
                 "run",
                 "task",
                 "metrics",
                 "services.metrics",
-                ["--compute", "--all-locations"],
+                ["--compute", "--all", "--location-id", "a9aa6466-0754-4b7c-b20c-155a81134eaa"],
                 30,
                 None,
             )
 
         self.assertTrue(result)
         run.assert_called_once_with(
-            [__import__("sys").executable, "-m", "services.metrics", "--compute", "--all-locations"],
+            [
+                sys.executable,
+                "-m",
+                "services.metrics",
+                "--compute",
+                "--all",
+                "--location-id",
+                "a9aa6466-0754-4b7c-b20c-155a81134eaa",
+            ],
             capture_output=True,
             text=True,
             timeout=30,
+            env=child_env,
         )
         engine._complete_task.assert_called_once()
 

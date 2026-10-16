@@ -7,6 +7,8 @@ import re
 import subprocess
 from pathlib import Path
 
+from services.common.worker_environment import worker_subprocess_environment
+
 _LOADED = False
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -57,6 +59,7 @@ def _sops_decrypt(sops_path: Path) -> str:
                 text=True,
                 check=True,
                 timeout=10,
+                env=worker_subprocess_environment(),
             )
             # A successful decrypt with empty output is valid (empty secret
             # file); only a non-zero exit triggers the next attempt.
