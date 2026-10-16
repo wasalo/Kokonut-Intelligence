@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-16",
+  "result": "passed",
+  "check": "KGP indexer process and durable lease heartbeat across disposable PostgreSQL stop/start",
+  "command": "python3 scripts/check-kgp-worker-reconnect-disposable.py",
+  "database_image": "postgres:16-alpine",
+  "database_port_binding": "127.0.0.1 only",
+  "database_volume": false,
+  "candidate_or_legacy_modified": false,
+  "worker_id": "kgp-reconnect-probe",
+  "worker_alive_during_outage": true,
+  "database_restart_reconnected": true,
+  "lease_heartbeat_before_restart": "2026-10-16T04:35:53.112291Z",
+  "lease_heartbeat_after_restart": "2026-10-16T04:35:56.866307Z",
+  "limitations": [
+    "The cursor schema and row were synthetic. The check exercised the current KGP worker lease claim, heartbeat, release, and connection loop, not production migrations or chain event processing.",
+    "Web3 block height was stubbed below the first cursor block, so no RPC or event queries were made.",
+    "The disposable PostgreSQL container had no volume and was bound only to loopback."
+  ]
+}

@@ -7,16 +7,40 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-The last pushed PR head is `3b9ae044a5fa08f42f59b28fc360fd2bf945a3d7`.
-That 16-commit batch includes the CI #325 regression fixes, read-only candidate
-seed confirmation, report/tenant source inventories, scheduled-weather input
-guard, Directus relation-expansion guard, schema-gated startup with ARM64 QEMU
-acceptance, and the reviewed Kernel input-lock correction. Gitleaks #51 passed;
-CI #327 is running on this head. The prior head's CI stopped before tests
-because the `Dockerfile.kernel` schema-readiness change was not reflected in
-its SHA-256 release-input lock. The lock was refreshed and pushed; the
-release-input gate and 14 Kernel profile/startup tests pass locally
-([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
+The last pushed PR head is `fb835f141b8105df32206a6b889abff99c0c3806`.
+That batch adds verified ARM64 optional profiles for ClickHouse analytics,
+Directus, and HTTP sensors. CI #330 is running and Security #54 passed. Local
+EventBus and KGP worker runtime slices now confirm durable event completion and
+lease-heartbeat recovery after disposable PostgreSQL stop/start; their bounded
+synthetic fixtures do not close provider, full-schema, or live-chain
+acceptance. The working tree also
+contains this new runtime evidence and the checklist refresh; those changes are
+not pushed yet. The previous `46945f7` head passed both required checks. The
+preceding Dockerfile digest correction and local 14-test repair are recorded
+separately ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
+
+### KGP indexer PostgreSQL restart recovery — 16 October 2026
+
+A current-source runtime check ran the KGP indexer against a loopback-only,
+no-volume PostgreSQL 16 container. The worker remained alive during the
+database stop, reconnected after restart, and advanced its durable cursor lease
+heartbeat. The schema and cursor were synthetic, while chain height was held
+below the first cursor block; no production migration, chain RPC, or event
+query was used. Production migration parity, lease-expiry reclaim, RPC/event
+processing, and provider delivery remain open
+([script](../../scripts/check-kgp-worker-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
+
+### EventBus worker PostgreSQL restart recovery — 16 October 2026
+
+The actual EventBus worker completed one synthetic unhandled event before a
+PostgreSQL stop and another after restart, both under the same worker identity.
+The isolated database replayed migrations 116, 165, and 375. The event queue
+used real lease and completion SQL; notification processing queried an empty
+outbox, with no external provider configured. This does not cover registered
+handler execution, provider delivery, the full migration ledger, or long
+outages ([script](../../scripts/check-event-worker-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 The current local slice also closes a generic-retention preview hazard: the
 outbox, attempt, and operator-audit tables now skip before row inspection in
 both preview and enforcement until archive/idempotency handling exists. Dry

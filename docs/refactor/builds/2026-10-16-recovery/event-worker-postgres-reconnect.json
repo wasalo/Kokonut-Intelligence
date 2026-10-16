@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-16",
+  "result": "passed",
+  "check": "EventBus worker process recovery and durable event completion across disposable PostgreSQL stop/start",
+  "command": "python3 scripts/check-event-worker-reconnect-disposable.py",
+  "database_image": "postgres:16-alpine",
+  "database_port_binding": "127.0.0.1 only",
+  "database_volume": false,
+  "candidate_or_legacy_modified": false,
+  "worker_id": "event-worker-reconnect-probe",
+  "worker_alive_during_outage": true,
+  "database_restart_reconnected": true,
+  "event_before_restart_completed": true,
+  "event_after_restart_completed": true,
+  "both_events_claimed_by_same_worker": true,
+  "external_provider_calls": 0,
+  "migrations_replayed": [
+    "116_event_bus.sql",
+    "165_event_bus_durability.sql",
+    "375_notification_outbox.sql"
+  ],
+  "limitations": [
+    "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
+    "Synthetic events had no matching handlers, so real EventBus lease and completion SQL ran without invoking application handlers.",
+    "Notification processing used the real outbox query against an empty queue; no external delivery provider was configured.",
+    "The PostgreSQL container had no volume and was bound only to loopback."
+  ]
+}

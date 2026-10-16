@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `46945f72176535b33caec52ae67336a2b3b0a577`
-**Latest pushed head status (checked 16 October 2026):** CI and Gitleaks are running on this head ([CI job](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38848103961/job/116803077246); [Security job](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38848103992/job/116803078004)). The previous pushed head passed both checks before this batch.
+**Latest pushed head:** `fb835f141b8105df32206a6b889abff99c0c3806`
+**Latest pushed head status (checked 16 October 2026):** CI #330 is in progress and Security #54 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785849); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785888)). The preceding pushed head passed both required checks.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,14 +20,16 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
-  [`46945f72176535b33caec52ae67336a2b3b0a577`](https://github.com/wasalo/Kokonut-Intelligence/commit/46945f72176535b33caec52ae67336a2b3b0a577)
-  on `feat/mobile-offline-acceptance`, PR #68. CI and Gitleaks are running.
-  This five-commit push records default/OIDC ARM64 QEMU smokes, adds explicit
-  ARM64 ZITADEL, gRPC, and MQTT profile overlays, and refreshes current-source
-  scheduler reconnect and SQL-inventory evidence. Twenty-five focused
-  profile/Compose tests, Ruff, compilation, capability-matrix validation, and
-  the SQL-inventory freshness check pass locally. Earlier owner, tenant,
-  report, retention, Directus, and worker-boundary work remains in the PR.
+  [`fb835f141b8105df32206a6b889abff99c0c3806`](https://github.com/wasalo/Kokonut-Intelligence/commit/fb835f141b8105df32206a6b889abff99c0c3806)
+  on `feat/mobile-offline-acceptance`, PR #68. CI #330 is running and Security
+  #54 passed. This batch enables verified ARM64 optional profiles for ClickHouse
+  analytics, Directus, and HTTP sensors; the app and pinned service images
+  passed bounded Buildx/QEMU architecture and runtime-smoke checks. The current
+  local KGP recovery slice also passes a disposable PostgreSQL stop/start check
+  with durable lease-heartbeat advancement; it uses a synthetic cursor schema
+  and stubbed chain height. ARM64 hardware behavior and live KGP RPC/event
+  processing remain unverified. Earlier owner, tenant, report, retention,
+  Directus, and worker-boundary work remains in the PR.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
   isolated PostgreSQL check pass; the latter proved rejected calculations
@@ -49,14 +51,21 @@ MAN-CAP checks open until each has its own retained evidence.
 - A local EventBus worker slice now creates and closes its bus per iteration,
   recreates bounded-timeout notification connections, and retries logged
   failures. Twenty focused event-worker/EventBus tests pass with Ruff and
-  compilation; the
-  event/notification live restart and delivery checks remain open. This change
-  is included in the latest pushed head.
+  compilation. A disposable PostgreSQL stop/start check replays migrations
+  116, 165, and 375 and confirms the actual worker completes synthetic
+  unhandled events before and after restart under one worker identity. Handler
+  execution, notification/provider delivery, full migration-ledger parity, and
+  long-duration recovery remain open ([evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 - A local KGP indexer change now reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
-  Fourteen KGP service/indexer tests pass; live database/RPC recovery remains
-  open. It is included in the latest pushed head.
+  Fourteen KGP service/indexer tests pass. A new disposable PostgreSQL
+  stop/start check confirms process survival and lease-heartbeat advancement
+  ([evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
+  It used a synthetic cursor schema and stubbed chain height; production
+  migration parity, lease-expiry reclaim, and live RPC/event recovery remain
+  open. The implementation is in the latest pushed head; this runtime evidence
+  and checklist refresh are local to the next batch.
 - Directus source permissions now align with organization/location grants: the
   seed removes its obsolete user-level location filter while preserving other
   predicates, the grant hook covers `revenue_event`, and the isolated API

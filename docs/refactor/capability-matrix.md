@@ -237,11 +237,17 @@ with Ruff clean. The continuous KGP indexer now also opens a fresh bounded
 connection for each scan cycle and survives rollback/failure-record errors in
 its source loop; 14 focused KGP service/indexer tests pass with Ruff and
 compilation. A loopback-only disposable PostgreSQL stop/start check confirms
-the scheduler process survives the outage and reconnects; the engine was
-stubbed, and the event worker has source/unit checks only. Real task/lease
-recovery, event/notification/KGP live process recovery, provider delivery and
-long-duration acceptance remain open. MAN-CAP-047 is not accepted
-([scheduler unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [scheduler runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json); [event worker evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json); [KGP evidence](builds/2026-10-15-recovery/kgp-worker-connection-recovery.json)).
+the scheduler process survives the outage and reconnects; the scheduler engine
+was stubbed. A second disposable check replays EventBus/notification migrations
+116, 165, and 375, then confirms the real worker process completes synthetic
+unhandled events before and after restart under one worker ID. The notification
+outbox was empty and no providers were configured. The KGP process also passes
+a current-source stop/start check: it stays alive and advances its durable
+cursor lease heartbeat after restart, using a synthetic cursor schema and
+stubbed chain height. Real scheduler task/lease recovery, handler/provider
+delivery, production KGP schema parity and RPC/event processing, lease-expiry
+reclaim, and long-duration acceptance remain open. MAN-CAP-047 is not accepted
+([scheduler unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [scheduler runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json); [event worker evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json); [EventBus runtime evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json); [KGP evidence](builds/2026-10-15-recovery/kgp-worker-connection-recovery.json); [KGP runtime evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
 
 **14 October 2026 supervisor contract (CAP-047):** four focused tests cover
 graceful shutdown, process-group escalation, unexpected zero exit, and
