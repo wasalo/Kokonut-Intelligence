@@ -6,6 +6,10 @@ notification functions implemented and accepted on 16 October 2026. Migration
 disposable PostgreSQL checks. Migration 411 adds a bounded draft-claim function,
 accepted in fourteen focused disposable PostgreSQL checks. Migration 412 adds
 four bounded read functions, accepted in ten disposable PostgreSQL checks.
+Migration 413 creates a source-validated alert, appends its ingestion audit
+row, and advances the reserved receipt atomically. Nine focused disposable
+PostgreSQL 16 checks pass, including forced-RLS writes and rollback on audit
+failure. The operation remains dormant and is not called by the handler.
 Migration 405 and the transaction-bound Python adapter establish an opt-in
 worker context; migrations 407–412 add bounded receipt, source-read,
 rule/evaluation/cooldown, event-publication, notification-intent,
@@ -177,6 +181,21 @@ does not affect another location's metric result
 ([migration](../../schemas/postgres/412_sensor_anomaly_worker_reads.sql);
 [runner](../../scripts/check-sensor-anomaly-worker-reads-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)).
+
+Migration 413 closes the alert/audit write boundary. Its
+`create_sensor_anomaly_alert` function validates the signed source event,
+reading, device, enabled rule, and reserved `no_match` receipt, then inserts the
+location-bound alert and append-only ingestion audit row and advances the
+receipt to `alert_created` in the same transaction. The execution role retains
+function `EXECUTE` only. Nine disposable PostgreSQL 16 checks pass for replay,
+missing/mismatched scope, rule validation, required receipt, source-derived
+alert fields, single audit linkage, duplicate suppression, atomic rollback,
+forced RLS, and role/table boundaries. Candidate and legacy databases were not
+accessed; this function remains unconnected to the handler
+([migration](../../schemas/postgres/413_sensor_anomaly_alert_write.sql);
+[fixture](../../tests/fixtures/sensor_anomaly_alert_write_disposable.sql);
+[runner](../../scripts/check-sensor-anomaly-alert-write-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-alert-write-disposable.json)).
 
 The focused anomaly and pilot seed-guard suites passed 19 tests, the EventBus
 durability suite passed 17 tests, and two transaction tests passed. They cover

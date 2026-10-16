@@ -64,7 +64,7 @@
       "access": "select_cooldown; insert; update_claim_link",
       "class": "tenant_data",
       "required_boundary": "Cooldown reads must remain within the signed location and device. Inserts must match the source device, reading, and location. The only update is linking the newly created alert to its newly created draft claim.",
-      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migration 412 bounds cooldown reads to an enabled rule/device pair at the signed location. Migrations 408 and 411 bound canonical alert-event publication and the alert's claim_id link behind separate SECURITY DEFINER operations. The claim operation follows the alert_created receipt and precedes downstream notification construction; migration 408's event payload does not include claim_id. The worker has no direct sensor_alert SELECT, and existing handler cooldown reads/inserts remain application-scoped."
+      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migration 412 bounds cooldown reads to an enabled rule/device pair at the signed location. Migrations 408 and 411 bound canonical alert-event publication and the alert's claim_id link behind separate SECURITY DEFINER operations. The claim operation follows the alert_created receipt and precedes downstream notification construction; migration 408's event payload does not include claim_id. Migration 413 validates the signed event, reading, device, enabled rule, and reserved receipt, then atomically creates the location-bound alert, appends its ingestion audit row, and advances the receipt. Nine disposable PostgreSQL 16 checks pass under forced RLS, including rollback on audit failure; the worker has no direct sensor_alert SELECT/INSERT/UPDATE access. The handler remains unconnected."
     },
     {
       "relation": "public.sensor_anomaly_effect",
@@ -85,7 +85,7 @@
       "access": "insert_anomaly_audit",
       "class": "tenant_audit",
       "required_boundary": "Append an audit row for the signed location and source reading. The operation must not update or delete prior audit rows.",
-      "current_enforcement": "Migration 406 adds a nullable location_id; anomaly log writes pass the verified device/source location. Unresolved history remains NULL, and no worker INSERT boundary exists."
+      "current_enforcement": "Migration 406 adds a nullable location_id; unresolved history remains NULL. Migration 413 appends the sensor-alert ingestion entry in the same signed, source-validated transaction as alert creation. Nine disposable PostgreSQL 16 checks pass for audit linkage, atomic rollback, forced RLS, and role boundaries; the worker has no direct ingestion_log INSERT access. The handler remains unconnected."
     },
     {
       "relation": "public.notification_outbox",

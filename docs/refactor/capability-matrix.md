@@ -2108,3 +2108,18 @@ enabled globally. This is implementation evidence only; no MAN-CAP row changes
 status ([migration](../schemas/postgres/412_sensor_anomaly_worker_reads.sql);
 [runner](../scripts/check-sensor-anomaly-worker-reads-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)).
+
+### CAP-040/047 bounded sensor-anomaly alert write — 16 October 2026
+
+Migration 413 adds a bounded `SECURITY DEFINER` function to create one
+source-derived, location-bound alert and its append-only ingestion audit entry
+for a signed worker scope and reserved anomaly receipt. The function advances
+that receipt only after both writes succeed. Nine disposable PostgreSQL 16
+checks pass for replay, source/rule/scope denial, required receipt, duplicate
+suppression, forced-RLS execution, direct table denial, role separation, and
+atomic rollback when audit insertion fails. No candidate or legacy database
+was accessed. The function is dormant, the handler has not been integrated
+with a dedicated worker identity, and no MAN-CAP status changes
+([migration](../schemas/postgres/413_sensor_anomaly_alert_write.sql);
+[runner](../scripts/check-sensor-anomaly-alert-write-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-alert-write-disposable.json)).

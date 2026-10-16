@@ -2,6 +2,25 @@
 
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
+### Signed sensor-anomaly alert write boundary — 16 October 2026
+
+Migration 413 adds a dormant `create_sensor_anomaly_alert` operation behind a
+separate no-login function owner. It requires signed
+`sensor_reading/process` context, revalidates the source event, reading,
+location, device, and enabled rule, and requires a matching reserved
+`no_match` receipt. It creates the location-bound alert, appends its
+`ingestion_log` row, and advances the receipt to `alert_created` atomically.
+The worker has function EXECUTE only; direct alert/audit/receipt table writes
+remain denied. Nine focused checks passed on disposable PostgreSQL 16,
+including migration replay, forced-RLS execution, duplicate suppression, and
+rollback of the alert and receipt when the audit insert fails. The synthetic
+test container was removed; candidate and legacy databases were not accessed.
+The handler still uses its existing path, migration 413 is not rolled out to
+the candidate, and global application RLS remains disabled
+([migration](../../schemas/postgres/413_sensor_anomaly_alert_write.sql);
+[runner](../../scripts/check-sensor-anomaly-alert-write-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-alert-write-disposable.json)).
+
 ### Signed sensor-anomaly read boundary — 16 October 2026
 
 Migration 412 now provides four dormant read operations behind a separate
