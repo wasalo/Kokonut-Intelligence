@@ -84,7 +84,7 @@ def _query_active_jobs(conn) -> List[Dict[str, Any]]:
     return rows
 
 
-def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
+def _claim_due_jobs(conn, location_id: Optional[str] = None) -> List[Dict[str, Any]]:
     """Claim one due job atomically so queued leases do not expire in a batch."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     worker = f"remote-sensing-{uuid.uuid4()}"
@@ -97,6 +97,7 @@ def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
             WHERE status = 'active'
               AND (next_run_at IS NULL OR next_run_at <= NOW())
               AND (lease_expires_at IS NULL OR lease_expires_at <= NOW())
+              AND (%s::uuid IS NULL OR location_id = %s::uuid)
             ORDER BY next_run_at NULLS FIRST
             LIMIT 1
             FOR UPDATE SKIP LOCKED
@@ -110,7 +111,7 @@ def _claim_due_jobs(conn) -> List[Dict[str, Any]]:
         WHERE j.id = due.id
         RETURNING j.*
         """,
-            (worker,),
+            (location_id, location_id, worker),
         )
         rows = [dict(r) for r in cur.fetchall()]
         conn.commit()
@@ -356,14 +357,14 @@ def fetch_job(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def run_due_jobs(conn, limit: int = 1) -> Dict[str, Any]:
-    """Run a bounded number of due jobs, claiming each only when ready."""
+def run_due_jobs(conn, limit: int = 1, location_id: Optional[str] = None) -> Dict[str, Any]:
+    """Run a bounded number of due jobs, optionally restricted to one location."""
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_RUN_BATCH_SIZE:
         raise ValueError(f"limit must be an integer between 1 and {MAX_RUN_BATCH_SIZE}")
 
     results = []
     for _ in range(limit):
-        jobs = _claim_due_jobs(conn)
+        jobs = _claim_due_jobs(conn, location_id=location_id)
         if not jobs:
             break
         job = jobs[0]
@@ -410,7 +411,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--list-jobs", action="store_true", help="List all jobs")
     parser.add_argument("--job-id", help="Run a specific job by ID")
-    parser.add_argument("--location-id", help="Location UUID for new job")
+    parser.add_argument("--location-id", help="Location UUID to scope due jobs or to create a new job")
     parser.add_argument("--provider", choices=["gee", "copernicus"], default="gee")
     parser.add_argument("--cadence-days", type=int, default=7)
     args = parser.parse_args()
@@ -421,7 +422,7 @@ if __name__ == "__main__":
     conn = get_db()
     try:
         if args.run_jobs:
-            result = run_due_jobs(conn, limit=args.limit)
+            result = run_due_jobs(conn, limit=args.limit, location_id=args.location_id)
             print_json(result)
         elif args.list_jobs:
             result = list_jobs(conn)

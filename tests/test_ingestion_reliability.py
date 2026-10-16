@@ -15,7 +15,7 @@ def test_remote_sensing_due_jobs_are_claimed_with_row_locks():
     assert "FOR UPDATE SKIP LOCKED" in content
     assert "LIMIT 1\n            FOR UPDATE SKIP LOCKED" in content
     assert "def _claim_due_jobs" in content
-    assert "jobs = _claim_due_jobs(conn)" in content
+    assert "jobs = _claim_due_jobs(conn, location_id=location_id)" in content
 
 
 def test_ingestion_entry_points_close_connections_in_finally():

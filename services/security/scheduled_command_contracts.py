@@ -87,6 +87,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
     "services.ingestion.remote_sensing_fetcher": {
         "--run-jobs": None,
         "--limit": "small_batch_size",
+        "--location-id": "uuid",
     },
     "services.ingestion.clickhouse_outbox": {
         "--run-once": None,
@@ -234,6 +235,8 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     elif module_path == "services.ingestion.remote_sensing_fetcher":
         if "--run-jobs" not in options:
             raise _reject("scheduled remote-sensing operation must run due jobs")
+        if "--location-id" not in options:
+            raise _reject("scheduled remote-sensing operation requires one explicit location")
 
     elif module_path == "services.ingestion.clickhouse_outbox":
         if "--run-once" not in options:

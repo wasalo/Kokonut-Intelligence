@@ -39,14 +39,30 @@ command contract reject missing scope before a connection or child process is
 created. The native metric JobSpec is now also one-location-per-task, rejecting
 the legacy global `--all-locations` scheduler command. The Prefect adapter keeps
 its aggregate intent by fanning out over active locations assigned to the
-owner-confirmed Kokonut Network organization; weather, credit, and climate use
-the same selector. The 126-test scheduler/Prefect slice passes. The static
-JobSpec inventory records 10 default jobs, four jobs with validated required
+owner-confirmed Kokonut Network organization; weather, credit, climate, and
+remote sensing use the same selector. The 126-test scheduler/Prefect slice passes. The static
+JobSpec inventory records nine no-input jobs, five jobs with validated required
 location inputs, and one source-less sensor job. No persisted task was read or
 changed. Existing task rows need reconciliation before activation, and the
 shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);
 [operation map](worker-operation-map.json);
 [evidence](builds/2026-10-16-recovery/prefect-location-scoped-job-fanout.json)).
+
+### Per-location remote-sensing scheduled claims — 16 October 2026
+
+The scheduled `remote_sensing` JobSpec now requires one location UUID. The
+atomic due-job claim binds that location into its SQL predicate before it locks
+and leases a queue row. The optional Prefect flow fans out over active
+Kokonut Network locations through the shared location dispatcher. The direct
+operator CLI remains able to process its global queue. Source tests cover
+claim-query binding, dispatcher forwarding, schedule-contract rejection of a
+missing location, and Prefect routing. The updated inventory now contains nine
+no-input jobs, five required-location jobs, and one sensor job without a source
+contract. No persisted task, Prefect deployment, provider, or database was
+accessed. This is code-level scope only; signed worker identity and RLS remain
+open ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);
+[JobSpec inventory](worker-job-contract-inventory.json);
+[operation map](worker-operation-map.json)).
 
 ### KGP indexer PostgreSQL restart recovery — 16 October 2026
 

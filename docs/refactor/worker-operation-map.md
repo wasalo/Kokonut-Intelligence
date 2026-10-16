@@ -1,6 +1,6 @@
 # Kernel worker operation map
 
-**Reviewed:** 15 October 2026
+**Reviewed:** 16 October 2026
 
 **Status:** entrypoint inventory, scheduler argument contracts, and static
 local-import closure implemented; runtime effects and authorization boundaries
@@ -169,9 +169,11 @@ data effects, and an idempotency/retry note.
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
   compares all 15 shared job templates with the Kernel module allowlist and
-  command validation. Thirteen default argument lists pass, and the sensor and
-  climate defaults fail closed. Remote sensing is limited to a sequential
-  `--run-jobs --limit` batch of 1–10 due jobs (the default JobSpec runs one),
+  command validation. Nine no-input defaults pass, five jobs require a
+  validated location, and sensor ingestion still lacks a recurring source
+  contract. Remote sensing requires one `--location-id` for scheduled runs and
+  is limited to a sequential `--run-jobs --limit` batch of 1–10 due jobs (the
+  default JobSpec runs one),
   while ClickHouse projections are limited to one bounded `--run-once` delivery
   batch. The remote-sensing contract rejects other operations; the projection
   contract rejects manual list/replay/disposal/reconcile actions. No task or

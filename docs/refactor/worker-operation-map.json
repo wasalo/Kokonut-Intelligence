@@ -231,11 +231,11 @@
     },
     {
       "module": "services.ingestion.remote_sensing_fetcher",
-      "scope": "Claims one due remote-sensing job at a time and processes at most --limit jobs sequentially (1-10; the shared JobSpec defaults to one). Provider job rows must already be configured and active; this contract creates no jobs.",
+      "scope": "The scheduled JobSpec requires one explicit --location-id and claims due jobs only for that location; it processes at most --limit jobs sequentially (1-10; the shared JobSpec defaults to one). The optional Prefect adapter fans out over active Kokonut Network locations. Direct CLI queue mode retains the operator's unscoped behavior. Provider job rows must already be configured and active; this contract creates no jobs.",
       "reads": ["public.remote_sensing_job", "public.location", "public.plot", "public.farm", "public.remote_sensing_observation"],
       "writes": ["public.remote_sensing_job", "public.remote_sensing_observation", "public.remote_sensing_provider_attempt", "public.clickhouse_outbox"],
       "external_effects": ["Google Earth Engine API requests", "Copernicus Data Space API requests", "ClickHouse projection delivery only through the separately optional outbox worker"],
-      "idempotency": "Due rows are claimed with FOR UPDATE SKIP LOCKED and one 30-minute lease at a time. remote_sensing_observation has a unique source_system/source_id key; provider attempts are append-only and can repeat across retries.",
+      "idempotency": "Due rows are claimed with FOR UPDATE SKIP LOCKED, filtered by location for scheduled runs, and protected by one 30-minute lease at a time. remote_sensing_observation has a unique source_system/source_id key; provider attempts are append-only and can repeat across retries.",
       "retry_boundary": "The configured provider can fall back to the other supported provider. Retryable failure schedules the job for 15 minutes later; completion updates are lease-owner guarded. The process bounds each invocation and claims the next row only after the current provider attempt finishes.",
       "sources": ["services/ingestion/remote_sensing_fetcher.py", "services/ingestion/remote_sensing.py", "services/ingestion/gee_remote_sensing.py", "services/ingestion/copernicus_remote_sensing.py", "services/core/jobs.py", "schemas/postgres/077_telemetry_infrastructure.sql", "schemas/postgres/300_ingestion_reliability.sql"]
     },

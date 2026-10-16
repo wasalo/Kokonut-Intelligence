@@ -17,8 +17,8 @@ def test_inventory_distinguishes_location_input_from_missing_sensor_source():
     jobs = {entry["job"]: entry for entry in inventory["jobs"]}
 
     assert inventory["summary"]["outcomes"] == {
-        "default_arguments_accepted": 10,
-        "required_runtime_inputs_validated": 4,
+        "default_arguments_accepted": 9,
+        "required_runtime_inputs_validated": 5,
         "source_contract_missing": 1,
     }
     assert jobs["weather"]["required_inputs"] == ["location_id"]

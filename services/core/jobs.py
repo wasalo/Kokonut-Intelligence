@@ -78,6 +78,7 @@ JOBS = MappingProxyType(
             2,
             600,
             "Remote sensing fetch",
+            required_inputs=("location_id",),
         ),
         "climate": JobSpec(
             "services.ingestion.climate_data",

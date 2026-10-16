@@ -659,7 +659,7 @@ dispatcher, disabled schedule planner, and database-driven command contract.
 The scheduler contract rejects missing scope before process creation, and the
 CLI rejects it before opening a database connection. Ninety-three focused
 command/contract checks pass; the generated JobSpec inventory now distinguishes
-10 default jobs, four required-location jobs, and one source-less sensor job.
+nine no-input jobs, five required-location jobs, and one source-less sensor job.
 This remains a source contract: workers inherit the shared runtime identity
 without signed tenant context, RLS remains blocked, and no MAN-CAP status or
 acceptance count changes ([evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json);
@@ -682,6 +682,17 @@ empty inventory, one-location dispatch, and schedule planning. The selection is
 code-level scope only: workers have no signed tenant context, RLS remains
 blocked, and none of the 66 manual capability checks is accepted ([evidence](builds/2026-10-16-recovery/prefect-location-scoped-job-fanout.json);
 [schedule inventory](schedule-ownership-inventory.md)).
+
+**16 October 2026 per-location remote-sensing scheduling (CAP-040 / CAP-047):**
+the remote-sensing scheduled JobSpec now requires one UUID location, and its
+atomic due-job claim filters by that location before acquiring a lease. The
+optional Prefect adapter uses the existing active Kokonut Network location
+fan-out; the direct operator CLI retains its unscoped queue behavior. Source
+tests cover location forwarding, SQL binding, missing-scope rejection, and
+Prefect fan-out. Provider credentials, provider outcomes, signed worker context,
+database authorization, persisted-task reconciliation, and MAN-CAP acceptance
+remain open. No schedule or database state was accessed ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);
+[operation map](worker-operation-map.json); [JobSpec inventory](worker-job-contract-inventory.json)).
 
 **14 October 2026 worker boundary update:** a machine-readable inventory now
 matches the scheduler and event-handler allowlists and records their

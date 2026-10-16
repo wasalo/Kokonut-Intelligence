@@ -1,0 +1,57 @@
+{
+  "title": "Remote-sensing scheduled location scope",
+  "date": "2026-10-16",
+  "scope": "Require one explicit location for scheduled remote-sensing work, filter due-job claims by that location, and preserve the optional Prefect adapter's owner-scoped fan-out.",
+  "implementation": {
+    "job_spec_required_inputs": [
+      "location_id"
+    ],
+    "scheduled_command_contract": "Requires --run-jobs and exactly one UUID --location-id; bounded --limit remains 1-10.",
+    "claim_query": "Binds the requested location UUID into the due-row predicate before FOR UPDATE SKIP LOCKED and lease acquisition.",
+    "prefect": "Fans out one location at a time over active locations assigned to the active kokonut-network organization.",
+    "direct_operator_cli": "The existing unscoped --run-jobs mode remains available to direct operator CLI invocation.",
+    "schedule_state": "No task was registered, enabled, or changed."
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_remote_sensing_scheduler_contract.py tests/test_scheduled_command_contracts.py tests/test_core_jobs_contract.py tests/test_worker_job_contract_inventory.py tests/test_prefect_workflow.py tests/test_prefect_scoped_location_fanout.py tests/test_worker_operation_map.py tests/test_ingestion_reliability.py -q",
+      "result": "passed: 144 tests"
+    },
+    {
+      "command": "ruff check <changed Python files>",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m compileall -q <changed service modules>",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/worker_job_contract_inventory.py --check docs/refactor/worker-job-contract-inventory.json",
+      "result": "passed: 15 JobSpecs; nine no-input defaults, five required-location jobs, one source-contract-missing sensor job"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed: 66 capability rows; no MAN-CAP acceptance status changed"
+    },
+    {
+      "command": "Worker source, function reachability, SQL reachability, boundary preflight, worker SQL, runtime SQL inventory --check commands",
+      "result": "passed after refreshing generated source inventories"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "not_performed": [
+    "No candidate or legacy database was accessed.",
+    "No Prefect server, provider API, external schedule, or persisted task was accessed.",
+    "No Raspberry Pi or ARM64 device acceptance was performed.",
+    "The SQL claim predicate was verified with source-level tests and static inventory checks, not a live PostgreSQL query."
+  ],
+  "remaining_gates": [
+    "Provider credentials and successful provider outcome parity",
+    "Persisted task and external Prefect schedule reconciliation",
+    "Signed worker tenant identity, least-privilege database role, and RLS readiness",
+    "Live recovery and 24-hour runtime acceptance"
+  ]
+}

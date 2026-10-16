@@ -1,17 +1,18 @@
 """Bounded source tests for the remote-sensing scheduled operation."""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.ingestion.remote_sensing_fetcher import MAX_RUN_BATCH_SIZE, run_due_jobs
+from services.ingestion.remote_sensing_fetcher import MAX_RUN_BATCH_SIZE, _claim_due_jobs, run_due_jobs
 
 
 def test_due_jobs_are_claimed_one_at_a_time_and_processed_before_next_claim():
     jobs = [{"id": "first", "provider": "gee"}, {"id": "second", "provider": "copernicus"}]
     sequence = []
 
-    def claim(_conn):
+    def claim(_conn, *, location_id=None):
+        assert location_id is None
         sequence.append("claim")
         return [jobs.pop(0)] if jobs else []
 
@@ -36,7 +37,7 @@ def test_due_jobs_default_to_one_claim_and_stop_when_no_job_is_due():
     with patch("services.ingestion.remote_sensing_fetcher._claim_due_jobs", return_value=[]) as claim:
         result = run_due_jobs(conn)
 
-    claim.assert_called_once_with(conn)
+        claim.assert_called_once_with(conn, location_id=None)
     assert result == {"status": "no_jobs_due", "executed": 0}
 
 
@@ -46,7 +47,7 @@ def test_default_batch_does_not_claim_a_second_due_job():
     with (
         patch(
             "services.ingestion.remote_sensing_fetcher._claim_due_jobs",
-            side_effect=lambda _conn: [jobs.pop(0)] if jobs else [],
+            side_effect=lambda _conn, *, location_id=None: [jobs.pop(0)] if jobs else [],
         ) as claim,
         patch(
             "services.ingestion.remote_sensing_fetcher.fetch_job",
@@ -55,7 +56,7 @@ def test_default_batch_does_not_claim_a_second_due_job():
     ):
         result = run_due_jobs(conn)
 
-    claim.assert_called_once_with(conn)
+    claim.assert_called_once_with(conn, location_id=None)
     fetch.assert_called_once_with(conn, {"id": "first", "provider": "gee"})
     assert result["executed"] == 1
     assert len(jobs) == 1
@@ -68,3 +69,40 @@ def test_due_job_batch_limit_rejects_invalid_values_before_claim(limit):
             run_due_jobs(object(), limit=limit)
 
     claim.assert_not_called()
+
+
+def test_due_job_claim_passes_exact_location_scope_to_sql():
+    from uuid import uuid4
+
+    location_id = str(uuid4())
+    conn = MagicMock()
+    cursor = conn.cursor.return_value
+    cursor.fetchall.return_value = []
+
+    assert _claim_due_jobs(conn, location_id=location_id) == []
+
+    sql, params = cursor.execute.call_args.args
+    assert "location_id = %s::uuid" in sql
+    assert params[:2] == (location_id, location_id)
+    assert params[2].startswith("remote-sensing-")
+
+
+def test_direct_unscoped_claim_keeps_operator_global_queue_behavior():
+    conn = MagicMock()
+    conn.cursor.return_value.fetchall.return_value = []
+
+    assert _claim_due_jobs(conn) == []
+
+    sql, params = conn.cursor.return_value.execute.call_args.args
+    assert "(%s::uuid IS NULL OR location_id = %s::uuid)" in sql
+    assert params[:2] == (None, None)
+
+
+def test_run_due_jobs_forwards_location_scope_to_each_atomic_claim():
+    conn = object()
+    location_id = "6c02f16f-8853-4e77-bc2c-886b34b94412"
+    with patch("services.ingestion.remote_sensing_fetcher._claim_due_jobs", return_value=[]) as claim:
+        result = run_due_jobs(conn, location_id=location_id)
+
+    claim.assert_called_once_with(conn, location_id=location_id)
+    assert result == {"status": "no_jobs_due", "executed": 0}

@@ -335,12 +335,13 @@ before protected reads and writes, and make direct database access fail closed.
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
-  covers 15 shared JobSpecs: 10 no-input defaults pass, while climate, weather,
-  metrics, and credit adjustment require a schema-validated location per
+  covers 15 shared JobSpecs: nine no-input defaults pass, while climate, weather,
+  metrics, credit adjustment, and remote sensing require a schema-validated location per
   scheduled task; recurring sensor ingestion still lacks a source contract.
   The optional Prefect adapters preserve multi-location behavior by dispatching
   one task per active Kokonut Network location. Remote sensing is available only as a
-  bounded sequential batch (1–10 jobs, default one), and ClickHouse projection
+  bounded sequential batch (1–10 jobs, default one) restricted by location for
+  scheduled calls (the manual queue CLI remains global), and ClickHouse projection
   is limited to a bounded run-once contract. No task or provider was activated.
   Neither report inspects persisted tasks or
    provider state, and neither proves runtime identity or tenant context. New

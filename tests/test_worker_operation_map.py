@@ -192,6 +192,8 @@ def test_remote_sensing_job_is_bounded_and_provider_execution_is_not_claimed():
     )
 
     assert "at most --limit jobs sequentially (1-10" in entry["scope"]
+    assert "requires one explicit --location-id" in entry["scope"]
+    assert "filtered by location for scheduled runs" in entry["idempotency"]
     assert "one 30-minute lease at a time" in entry["idempotency"]
     assert "Google Earth Engine API requests" in entry["external_effects"]
     assert "Copernicus Data Space API requests" in entry["external_effects"]

@@ -2015,13 +2015,13 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 289,
+          "line": 290,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 293,
+          "line": 294,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         }

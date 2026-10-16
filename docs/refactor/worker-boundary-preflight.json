@@ -322,7 +322,7 @@
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/ingestion/remote_sensing_fetcher.py:438:12",
+        "site": "services/ingestion/remote_sensing_fetcher.py:439:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },

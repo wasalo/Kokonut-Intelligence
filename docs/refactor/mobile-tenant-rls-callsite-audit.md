@@ -154,15 +154,17 @@ passed through the shared CLI `run(main)` wrapper. Remaining code-only work is
 to reconcile each candidate against its exact scheduler command contract,
 inspect dynamic/provider callbacks and transitive effect wrappers, then
 reconcile persisted task rows with those contracts. The
-source-only JobSpec inventory now identifies ten accepted default templates,
-four validated required-location inputs (weather, climate, metrics, and credit
-adjustment), and one missing sensor source contract. Native scheduled metric
+source-only JobSpec inventory now identifies nine accepted no-input templates,
+five validated required-location inputs (weather, climate, metrics, credit
+adjustment, and remote sensing), and one missing sensor source contract. Native scheduled metric
 computation uses `--compute --all --location-id` and rejects the old global
 `--all-locations` command. Optional Prefect adapters preserve multi-location
 behavior by querying active locations directly assigned to the
 owner-confirmed `kokonut-network` organization and dispatching one location at a
-time; climate uses the same selector. This SQL filter is code-level scope only,
-not signed worker context or database authorization. No persisted tasks or
+time; climate and remote sensing use the same selector. Scheduled remote-sensing
+claims filter due rows by the required location input, while the manual CLI
+queue mode remains global. This SQL filter is code-level scope only, not signed
+worker context or database authorization. No persisted tasks or
 external Prefect state were inspected. Remote sensing remains bounded to
 sequential `--run-jobs --limit` batches of 1–10 and ClickHouse projection to one
 bounded run-once operation ([inventory](worker-job-contract-inventory.json);

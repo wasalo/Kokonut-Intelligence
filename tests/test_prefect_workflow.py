@@ -110,6 +110,20 @@ def test_metrics_and_credit_prefect_flows_preserve_owner_scoped_fanout() -> None
     credit_fanout.assert_called_once_with("credit_adjustment")
 
 
+def test_remote_sensing_prefect_flow_preserves_owner_scoped_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.remote_sensing import remote_sensing_flow
+
+    with patch(
+        "services.flows.remote_sensing.run_job_for_kokonut_network_locations",
+        return_value={"status": "success"},
+    ) as fanout:
+        assert remote_sensing_flow.fn() == {"status": "success"}
+
+    fanout.assert_called_once_with("remote_sensing")
+
+
 def test_pipeline_dispatch_routes_required_location_jobs_through_owner_fanout() -> None:
     from unittest.mock import patch
 

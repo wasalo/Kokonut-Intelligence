@@ -43,8 +43,8 @@ def test_every_scheduled_module_has_a_command_contract():
         ),
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
-        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs"]),
-        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10"]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--location-id", str(uuid4())]),
+        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10", "--location-id", str(uuid4())]),
         ("services.ingestion.clickhouse_outbox", ["--run-once"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once", "--limit", "100"]),
         (
@@ -85,7 +85,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.remote_sensing_fetcher", ["--list-jobs"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "0"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "11"]),
-        ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--location-id", str(uuid4())]),
+        ("services.ingestion.remote_sensing_fetcher", ["--location-id", str(uuid4())]),
         ("services.ingestion.clickhouse_outbox", []),
         ("services.ingestion.clickhouse_outbox", ["--reconcile"]),
         ("services.ingestion.clickhouse_outbox", ["--list-dead-letter"]),
@@ -178,7 +178,22 @@ def test_remote_sensing_job_defaults_to_one_due_job_batch():
 
     assert job.module == "services.ingestion.remote_sensing_fetcher"
     assert job.scheduler_allowed
-    assert validate_scheduled_command(job.module, list(job.arguments)) == ("--run-jobs", "--limit", "1")
+    assert job.required_inputs == ("location_id",)
+    with pytest.raises(ScheduledCommandRejected, match="requires one explicit location"):
+        validate_scheduled_command(job.module, list(job.arguments))
+    location_id = str(uuid4())
+    assert validate_scheduled_command(
+        job.module, [*job.arguments, "--location-id", location_id]
+    ) == (*job.arguments, "--location-id", location_id)
+    with pytest.raises(ValueError, match="requires one location"):
+        build_job_plan("remote_sensing", "every-6h")
+    plan = build_job_plan("remote_sensing", "every-6h", location_id=location_id)
+    assert plan["scheduled_task"]["command_args"] == [
+        *job.arguments,
+        "--location-id",
+        location_id,
+    ]
+    assert plan["scheduled_task"]["is_enabled"] is False
 
 
 def test_sensor_job_rejects_missing_source_before_launching_the_noop_cli():

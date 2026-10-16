@@ -69,6 +69,14 @@ def test_metrics_dispatch_requires_one_location_before_subprocess():
     run.assert_not_called()
 
 
+def test_remote_sensing_dispatch_requires_one_location_before_subprocess():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="requires a location"):
+            run_job("remote_sensing")
+
+    run.assert_not_called()
+
+
 def test_nonzero_job_exit_retains_return_code_and_bounded_output():
     provider_error = "provider failed " + ("x" * 600)
     completed = subprocess.CompletedProcess(args=[], returncode=7, stdout="ignored", stderr=provider_error)
