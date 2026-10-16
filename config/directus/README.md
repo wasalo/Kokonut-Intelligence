@@ -63,3 +63,10 @@ Agent roles are restricted from `verified`/`published` status on all governed co
 2. Follow the existing pattern: `INSERT INTO directus_permissions (collection, action, fields, permissions, presets, ...)` with appropriate `role_id` and `policy_id`
 3. Re-apply via `./scripts/seed.sh`
 4. Test with `python3 -m tests.test_directus_metadata`
+
+`farm_activity` is intentionally excluded from Directus role permissions. The
+Kokonut Gateway owns Field Collector and operator farm-activity operations,
+including tenant-qualified grants, lifecycle validation, and the append-only
+actor ledger. Reapplying `permissions.sql` removes stale farm-activity rules
+from the repository-managed policies. Do not re-add these permissions to make
+the unlicensed Directus API expose that collection.

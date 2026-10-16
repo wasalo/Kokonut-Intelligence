@@ -33,7 +33,7 @@ def test_migration_retires_linked_collections_and_freezes_mobile_provenance():
     assert "Field Collector farm activity source provenance is immutable" in sql
 
 
-def test_migration_preserves_directus_for_legacy_data_and_routes_mobile_reads_to_gateway():
+def test_migration_and_directus_seed_keep_field_collector_access_on_gateway():
     sql = MIGRATION.read_text()
 
     assert "to_regclass('public.directus_permissions') IS NOT NULL" in sql
@@ -46,10 +46,10 @@ def test_migration_preserves_directus_for_legacy_data_and_routes_mobile_reads_to
     assert "scoped Gateway review/use endpoints" in sql
 
     directus_seed = DIRECTUS_PERMISSIONS.read_text()
-    assert '"source_system":{"_null":true}' in directus_seed
-    assert '"source_system":{"_neq":"field_collector"}' in directus_seed
-    assert "jsonb_path_exists(" in directus_seed
-    assert "action = 'read'" in directus_seed
+    assert "('farm_activity'," not in directus_seed.lower()
+    assert "where collection = 'farm_activity'" in directus_seed.lower()
+    assert "gateway, which owns its" in directus_seed.lower()
+    assert "tenant-qualified grants" in directus_seed.lower()
 
 
 def test_dashboard_dataset_rewrite_is_limited_to_known_seeded_queries():

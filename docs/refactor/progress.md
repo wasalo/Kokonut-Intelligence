@@ -2,6 +2,25 @@
 
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
+### Farm-activity permissions retired from optional Directus — 16 October 2026
+
+The owner selected the Gateway as the only farm-activity operations surface,
+with Directus remaining optional. Removed `farm_activity` permission inserts
+for all nine repository-managed Directus policies and added an idempotent
+cleanup for stale rows belonging to those exact policy IDs. Custom policies
+are left untouched for owner review. Twenty-four focused authorization and
+source-contract tests pass. A fresh, isolated Directus 12.1.1 runtime using
+`kokonut_directus_runtime` applied and replayed the permission seed, retained
+14 other curated role permissions, reported zero managed farm-activity rules,
+and passed health and login checks. The disposable project was removed; the
+candidate and legacy databases were not touched. This closes the Directus
+farm-activity bypass slice only; other collection/field/relationship parity,
+hooks, schedules, external identity mapping, and migration 404 candidate
+rollout remain open. No MAN-CAP acceptance is claimed
+([seed](../../config/directus/permissions.sql);
+[runtime evidence](builds/2026-10-15-recovery/directus-profile-disposable.json);
+[parity inventory](directus-parity-inventory.md)).
+
 ### Owner-confirmed location operating-tenant map — 16 October 2026
 
 The pilot data flow now includes a new rerunnable owner reconciliation seed for

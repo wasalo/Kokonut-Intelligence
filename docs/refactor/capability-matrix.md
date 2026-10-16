@@ -64,6 +64,21 @@ migration-404 candidate deployment remain open. No MAN-CAP acceptance or
 capability status changed
 ([evidence](builds/2026-10-16-recovery/operator-console-farm-activity-contract.json)).
 
+**16 October 2026 Directus farm-activity retirement (CAP-001 / CAP-047 / CAP-053):**
+the owner-selected Gateway path is now enforced in the optional Directus seed:
+all nine repository-managed roles have no `farm_activity` permission inserts,
+and replay cleanup removes stale rows only for those managed policy IDs. A
+fresh pinned Directus 12.1.1 runtime applies and replays the seed with zero
+managed farm-activity permissions while retaining 14 unrelated curated role
+permissions; health and authentication pass. Twenty-four focused tests cover
+the source and authorization boundary. Unknown custom policies are preserved
+for owner review. This narrows the Directus bypass surface but does not close
+other collection, field, relationship, hook, schedule, or live identity
+parity. MAN-CAP checks remain unaccepted
+([seed](../../config/directus/permissions.sql);
+[runtime evidence](builds/2026-10-15-recovery/directus-profile-disposable.json);
+[parity inventory](directus-parity-inventory.md)).
+
 **14 October 2026 Directus parity preflight (CAP-001 / CAP-047 / CAP-053):**
 the disposable Directus parity fixture now stops before synthetic user or farm
 activity writes when the historical `$CURRENT_USER.location_id` scope cannot

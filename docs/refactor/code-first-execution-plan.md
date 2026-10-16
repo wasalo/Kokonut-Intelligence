@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Batch base head:** `9f1e3b5ec5e2885cc7d06cff63467763e8160662` on PR #68; Security #81 was running and CI #357 pending at last check.
-**Current local batch:** Migration 412 adds dormant bounded reads for the sensor-anomaly worker behind a no-login function owner. Event and reading selectors are matched, metric evaluation requires the event identity, history and cooldown queries remain location/device scoped, and the worker has no direct anomaly source-table access. The migration applies and replays after migrations 405–411 on disposable PostgreSQL 16; ten focused checks pass for signed scope, metric results, forced RLS, and role boundaries ([evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)). The handler is not connected to the dedicated worker DSN/credential, and no candidate or legacy database was touched.
+**Batch base head:** `4d468003fee0c3490e62f95d700e874abdb9cf08` on PR #68; Security #86 passed and CI #362 is running.
+**Current local batch:** The optional Directus seed no longer grants `farm_activity` to any of its nine managed policies, and replay cleanup removes stale rows only for those policy IDs. Twenty-four focused tests pass. A fresh Directus 12.1.1 disposable runtime applied and replayed the seed, retained 14 other curated permissions, confirmed zero managed farm-activity permissions, and passed health/login checks ([evidence](builds/2026-10-15-recovery/directus-profile-disposable.json)). Unknown custom policies remain untouched for review; remaining Directus parity stays open. Candidate and legacy databases were not touched.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,23 +14,21 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **403 checked and 19 open items (422 total)**,
+- The execution checklist has **408 checked and 19 open items (427 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
-- At the start of this batch the pushed PR head was `9f1e3b5` (worker-secret
-  subprocess isolation); Security #81 was running and CI #357 pending at the
-  last status check. This local slice adds migration 412's dormant read-only
-  sensor-anomaly functions for event-linked source context, enabled device
-  rules, event-bound metric/history evaluation, and cooldown lookup. Ten
-  disposable PostgreSQL 16 checks pass after applying and replaying migrations
-  405–412; they verify scope/source matching, five metric outcomes, forced-RLS
-  reads, direct worker table denial, and role boundaries. The handler still
-  uses the shared database path; no worker credential, candidate rollout, or
-  global RLS enablement occurred. The candidate remains through migration 403.
-  This adds no accepted capability: the matrix remains 66 rows (55
-  baseline-retained, 7 deployed, 4 prepared), with zero accepted MAN-CAP checks.
+- The pushed PR head for this batch is `4d46800`; Security #86 passed and CI
+  #362 remains in progress. This local slice makes the owner-selected
+  Gateway-only farm-activity boundary explicit in the optional Directus role
+  seed. Twenty-four focused tests and fresh Directus 12.1.1 runtime apply,
+  replay, health, and login checks pass; zero of the nine managed policies
+  retain farm-activity grants, while 14 unrelated curated permissions remain.
+  Unknown custom policy rows are preserved. The candidate and legacy databases
+  were not touched. This adds no accepted capability: the matrix remains 66
+  rows (55 baseline-retained, 7 deployed, 4 prepared), with zero accepted
+  MAN-CAP checks.
 - Since the previous `8c7a053` accounting, commit `a1f45da` added the native
   Gateway farm-activity API and migration 404, with 13 focused service/HTTP/
   policy tests and 11 disposable PostgreSQL 16 checks passing. Commit `359e1d5`
@@ -776,15 +774,9 @@ physical acceptance record rather than revising emulation evidence.
 
 ## Push and release cadence
 
-Keep related code changes in local commits and push in reviewable batches, as
-requested. Before this local batch, the remote head was `6edc14e`; CI #336 was
-pending and Security #60 passed. This batch extends synthetic KGP event
-projection and replay evidence to cover governance policy, seven linked events,
-and a simulated reorg/rebuild, then applies migration 403 to the checkpointed
-candidate after restore rehearsal. It is pushed as `8c7a053`; CI #337 and
-Security #61 are running. Continue local work while CI runs and accumulate
-related changes before the next push so the repository does not start CI for
-each small commit. Never push directly to
-`main`. Keep each candidate database
-rollout separately gated even when the corresponding migration and disposable
-acceptance are complete.
+Keep related changes in local commits and push reviewable batches, as
+requested. The current uncommitted Directus permission retirement is based on
+remote head `4d46800`; Security #86 passed and CI #362 is running. After this
+batch is committed and pushed, continue code-first work while CI runs. Never
+push directly to `main`. Keep each candidate database rollout separately gated
+even when its migration and disposable acceptance are complete.

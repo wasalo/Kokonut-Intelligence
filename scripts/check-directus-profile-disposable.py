@@ -27,11 +27,17 @@ def free_loopback_port() -> int:
         return int(listener.getsockname()[1])
 
 
-def run(command: list[str], *, env: dict[str, str]) -> subprocess.CompletedProcess[str]:
+def run(
+    command: list[str],
+    *,
+    env: dict[str, str],
+    input_text: str | None = None,
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=ROOT,
         env=env,
+        input=input_text,
         text=True,
         capture_output=True,
         check=False,
@@ -172,6 +178,79 @@ def main() -> int:
         require_success(role, "Directus role bootstrap", env)
         bootstrap = run([*compose, "--profile", "directus-admin", "run", "--rm", "directus-bootstrap"], env=env)
         require_success(bootstrap, "owner-backed Directus bootstrap", env)
+
+        permission_seed = (ROOT / "config/directus/permissions.sql").read_text(encoding="utf-8")
+        permission_seed_command = [
+            *compose,
+            "exec",
+            "-T",
+            "database",
+            "psql",
+            "-X",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-U",
+            "kokonut",
+            "-d",
+            "kokonut_intelligence",
+        ]
+        seed_first = run(permission_seed_command, env=env, input_text=permission_seed)
+        require_success(seed_first, "Directus permission seed", env)
+        permission_counts_query = """
+            SELECT
+                count(*) FILTER (WHERE collection = 'farm_activity'),
+                count(*) FILTER (WHERE collection = 'field_note')
+              FROM public.directus_permissions
+             WHERE policy IN (
+                'b1000000-0000-0000-0000-000000000001',
+                'b1000000-0000-0000-0000-000000000002',
+                'b1000000-0000-0000-0000-000000000003',
+                'b1000000-0000-0000-0000-000000000004',
+                'b1000000-0000-0000-0000-000000000005',
+                'b1000000-0000-0000-0000-000000000006',
+                'b1000000-0000-0000-0000-000000000007',
+                'b1000000-0000-0000-0000-000000000008',
+                'b1000000-0000-0000-0000-000000000009'
+             )
+        """
+
+        def permission_counts() -> tuple[int, int]:
+            result = run(
+                [
+                    *compose,
+                    "exec",
+                    "-T",
+                    "database",
+                    "psql",
+                    "-X",
+                    "-t",
+                    "-A",
+                    "-F",
+                    "|",
+                    "-U",
+                    "kokonut",
+                    "-d",
+                    "kokonut_intelligence",
+                    "-c",
+                    permission_counts_query,
+                ],
+                env=env,
+            )
+            require_success(result, "Directus permission seed verification", env)
+            values = result.stdout.strip().split("|")
+            if len(values) != 2 or not all(value.isdigit() for value in values):
+                raise RuntimeError("Directus permission seed returned an unexpected count shape")
+            return int(values[0]), int(values[1])
+
+        first_counts = permission_counts()
+        if first_counts[0] != 0 or first_counts[1] == 0:
+            raise RuntimeError("Directus seed must remove farm_activity while preserving other role permissions")
+        seed_replay = run(permission_seed_command, env=env, input_text=permission_seed)
+        require_success(seed_replay, "Directus permission seed replay", env)
+        replay_counts = permission_counts()
+        if replay_counts != first_counts:
+            raise RuntimeError("Directus permission seed replay changed curated role-permission counts")
+
         start = run([*compose, "up", "-d", "directus"], env=env)
         require_success(start, "Directus runtime start", env)
 
@@ -227,6 +306,12 @@ def main() -> int:
                 "owner_login": login_status,
                 "runtime_database_identity": "kokonut_directus_runtime",
                 "owner_backed_bootstrap": "passed",
+                "permission_seed": {
+                    "first_application": "passed",
+                    "replay": "passed",
+                    "repository_managed_farm_activity_permissions": first_counts[0],
+                    "other_curated_permissions": first_counts[1],
+                },
                 "loopback_only": True,
             }
         )

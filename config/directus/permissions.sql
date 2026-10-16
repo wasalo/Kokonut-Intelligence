@@ -103,14 +103,6 @@ END $$;
 -- 4. PERMISSION RULES — skip if policy already has permissions
 -- ============================================================
 
--- Field Worker Policy permissions
-DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'farm_activity' AND action = 'create') THEN
-    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'create', '{}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id,location_id,source_system,source_id,source_raw', 'b1000000-0000-0000-0000-000000000001');
-END IF;
-END $$;
-
 -- ============================================================
 -- Impact accountability workflow permissions
 -- ============================================================
@@ -187,20 +179,6 @@ DO $$ BEGIN
 IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'stakeholder_feedback' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
         ('stakeholder_feedback', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009');
-END IF;
-END $$;
-
-DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'farm_activity' AND action = 'read') THEN
-    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000001');
-END IF;
-END $$;
-
-DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000001' AND collection = 'farm_activity' AND action = 'update') THEN
-    INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'update', '{"status":{"_eq":"draft"}}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id', 'b1000000-0000-0000-0000-000000000001');
 END IF;
 END $$;
 
@@ -354,10 +332,8 @@ END $$;
 -- ============================================================
 
 DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000002' AND collection = 'farm_activity') THEN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000002' AND collection = 'harvest_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000002'),
-        ('farm_activity', 'update', '{}', '{}', 'status', 'b1000000-0000-0000-0000-000000000002'),
         ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000002'),
         ('harvest_event', 'update', '{}', '{}', 'status', 'b1000000-0000-0000-0000-000000000002'),
         ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000002'),
@@ -380,10 +356,8 @@ END $$;
 -- ============================================================
 
 DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000003' AND collection = 'farm_activity') THEN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000003' AND collection = 'harvest_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000003'),
-        ('farm_activity', 'update', '{}', '{}', 'status,rejection_reason', 'b1000000-0000-0000-0000-000000000003'),
         ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000003'),
         ('harvest_event', 'update', '{}', '{}', 'status,rejection_reason', 'b1000000-0000-0000-0000-000000000003'),
         ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000003'),
@@ -416,7 +390,6 @@ IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-
         ('sales_event', 'update', '{}', '{}', 'status,rejection_reason', 'b1000000-0000-0000-0000-000000000004'),
         ('revenue_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000004'),
         ('revenue_event', 'update', '{}', '{}', 'status,rejection_reason', 'b1000000-0000-0000-0000-000000000004'),
-        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000004'),
         ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000004'),
         ('loss_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000004'),
         ('labor_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000004'),
@@ -433,9 +406,8 @@ END $$;
 -- ============================================================
 
 DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'farm_activity') THEN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000005' AND collection = 'harvest_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
         ('harvest_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
         ('expense_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
         ('sales_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000005'),
@@ -455,9 +427,8 @@ END $$;
 -- ============================================================
 
 DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'farm_activity') THEN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000009' AND collection = 'harvest_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
         ('sales_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000009'),
@@ -544,9 +515,8 @@ END $$;
 
 -- Agent Read-Only permissions (read verified/published data + agent tables)
 DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000006' AND collection = 'farm_activity') THEN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000006' AND collection = 'harvest_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
         ('harvest_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
         ('expense_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
         ('sales_event', 'read', '{"status":{"_in":["verified","published"]}}', '{}', '*', 'b1000000-0000-0000-0000-000000000006'),
@@ -566,7 +536,7 @@ END $$;
 
 -- Agent Write permissions (create draft records + agent tables)
 DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000007' AND collection = 'farm_activity') THEN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000007' AND collection = 'agent_task' AND action = 'create') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
         ('mrv_claim', 'create', '{}', '{}', 'claim_type,claim_date,claim_data,source_record_ids,evidence_urls,location_id,plot_id', 'b1000000-0000-0000-0000-000000000007'),
         ('mrv_claim', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000007'),
@@ -592,10 +562,8 @@ END $$;
 
 -- Agent Full permissions (read all, create, update — no publish)
 DO $$ BEGIN
-IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000008' AND collection = 'farm_activity') THEN
+IF NOT EXISTS (SELECT 1 FROM directus_permissions WHERE policy = 'b1000000-0000-0000-0000-000000000008' AND collection = 'harvest_event' AND action = 'read') THEN
     INSERT INTO directus_permissions (collection, action, permissions, validation, fields, policy) VALUES
-        ('farm_activity', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
-        ('farm_activity', 'create', '{}', '{}', 'activity_type,activity_date,description,labor_hours,labor_cost,materials_used,evidence_urls,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000008'),
         ('harvest_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
         ('harvest_event', 'create', '{}', '{}', 'harvest_date,quantity,unit,quality_grade,destination,loss_amount,loss_unit,loss_reason,loss_estimated_value,evidence_urls,notes,plot_id,crop_cycle_id,location_id', 'b1000000-0000-0000-0000-000000000008'),
         ('expense_event', 'read', '{}', '{}', '*', 'b1000000-0000-0000-0000-000000000008'),
@@ -685,30 +653,26 @@ BEGIN
        SET validation = '{}'::JSON
     WHERE policy = 'b1000000-0000-0000-0000-000000000001'
       AND action = 'create'
-      AND collection IN ('farm_activity', 'harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal')
+      AND collection IN ('harvest_event', 'expense_event', 'stakeholder_feedback', 'metric_proposal')
       AND validation::JSONB = '{"location_id":{"_eq":"$CURRENT_USER.location_id"}}'::JSONB;
 END $$;
 
--- Directus cannot express Field Collector's cross-table source, revision, and
--- consent eligibility in its permission DSL. Preserve the existing row scopes
--- for legacy farm activity while requiring Field Collector reads to use the
--- location-scoped Gateway review/use endpoints. Keep nullable legacy sources
--- readable, and make the repair idempotent for already-seeded installations.
-DO $$
-DECLARE
-    field_collector_read_gate JSON :=
-        '{"_or":[{"source_system":{"_null":true}},{"source_system":{"_neq":"field_collector"}}]}'::JSON;
-BEGIN
-    UPDATE directus_permissions
-       SET permissions = json_build_object(
-           '_and', json_build_array(
-               COALESCE(permissions, '{}'::JSON), field_collector_read_gate
-           )
-       )
-     WHERE collection = 'farm_activity'
-       AND action = 'read'
-       AND NOT jsonb_path_exists(
-           COALESCE(permissions, '{}'::JSON)::jsonb,
-           '$.** ? (@._or[0].source_system._null == true && @._or[1].source_system._neq == "field_collector")'::jsonpath
-       );
-END $$;
+-- Farm activity is operated through the Kokonut Gateway, which owns its
+-- tenant-qualified grants, lifecycle checks, and append-only actor ledger.
+-- Remove only the repository-managed role policies so stale permissions from
+-- earlier seed versions cannot become active after a Directus entitlement or
+-- runtime change. Unrecognized custom policies remain subject to operator
+-- inventory and review.
+DELETE FROM directus_permissions
+ WHERE collection = 'farm_activity'
+   AND policy IN (
+       'b1000000-0000-0000-0000-000000000001',
+       'b1000000-0000-0000-0000-000000000002',
+       'b1000000-0000-0000-0000-000000000003',
+       'b1000000-0000-0000-0000-000000000004',
+       'b1000000-0000-0000-0000-000000000005',
+       'b1000000-0000-0000-0000-000000000006',
+       'b1000000-0000-0000-0000-000000000007',
+       'b1000000-0000-0000-0000-000000000008',
+       'b1000000-0000-0000-0000-000000000009'
+   );

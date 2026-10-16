@@ -11,7 +11,7 @@ PARITY_CHECK = Path("scripts/fixtures/directus-api-parity-check.py")
 def test_permission_repair_replaces_user_location_with_grant_hooks() -> None:
     text = PERMISSIONS.read_text()
     repair = text.index("Replace the legacy per-user location filter")
-    repair_block = text[repair : text.index("-- Directus cannot express", repair)]
+    repair_block = text[repair : text.index("-- Farm activity is operated", repair)]
     seed_definitions = text[:repair]
 
     assert "$CURRENT_USER.location_id" not in seed_definitions
@@ -20,6 +20,19 @@ def test_permission_repair_replaces_user_location_with_grant_hooks() -> None:
     assert "term <> '{}'::JSONB" in repair_block
     assert "Unexpected legacy Directus location permission filter shape" in repair_block
     assert "operator_scope_grant_allows" not in text  # tenant filtering lives in the required hook
+
+
+def test_directus_seed_keeps_farm_activity_operations_on_gateway() -> None:
+    text = PERMISSIONS.read_text()
+    lower = text.lower()
+
+    assert "('farm_activity'," not in lower
+    cleanup = lower[lower.index("-- farm activity is operated through the kokonut gateway") :]
+    assert "delete from directus_permissions" in cleanup
+    assert "where collection = 'farm_activity'" in cleanup
+    for policy_id in range(1, 10):
+        assert f"b1000000-0000-0000-0000-{policy_id:012d}" in cleanup
+    assert "unrecognized custom policies remain subject to operator" in cleanup
 
 
 def test_directus_fixture_uses_verified_organization_location_grants() -> None:
