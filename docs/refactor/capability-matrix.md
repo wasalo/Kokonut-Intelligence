@@ -2087,3 +2087,24 @@ legacy adoption, role boundaries, direct table denial, and replay. This is not
 a newly accepted capability and no MAN-CAP row is closed
 ([migration](../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
 [evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
+
+### CAP-040/047 bounded sensor-anomaly reads — 16 October 2026
+
+Migration 412 adds read-only sensor-anomaly operations behind a dedicated
+no-login function owner. Source reads and rule evaluation require the signed
+`sensor_reading/process` scope and match the event type, source table and ID,
+payload location, and sensor selectors to the reading and device. Rule listing
+is limited to enabled rules for the scoped device's sensor type. Value,
+rate-of-change, gap, minimum, maximum, and cooldown reads are bounded to the
+same device and location; metric evaluation also receives and validates the
+source event. The worker has no direct read privileges on event, sensor, rule,
+location, or alert tables. Explicit owner policies allow bounded functions to
+operate when a source table is forced under RLS. Ten disposable PostgreSQL 16
+checks pass for replay, unsigned and mismatched-scope denial, synthetic metric
+results, cooldown behavior, forced-RLS reads, and role/column boundaries.
+These functions are dormant: the anomaly handler does not yet use a dedicated
+worker identity, migration 412 is not deployed to the candidate, and RLS is not
+enabled globally. This is implementation evidence only; no MAN-CAP row changes
+status ([migration](../schemas/postgres/412_sensor_anomaly_worker_reads.sql);
+[runner](../scripts/check-sensor-anomaly-worker-reads-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)).

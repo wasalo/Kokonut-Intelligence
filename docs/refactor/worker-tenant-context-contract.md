@@ -4,20 +4,25 @@
 notification functions implemented and accepted on 16 October 2026. Migration
 410 adds a bounded actuation-intent function, accepted in fifteen focused
 disposable PostgreSQL checks. Migration 411 adds a bounded draft-claim function,
-accepted in fourteen focused disposable PostgreSQL checks. Migration 405 and a
-transaction-bound Python adapter establish an opt-in worker context; migrations
-407–411 add bounded receipt, canonical event-publication, notification-intent,
-actuation-intent, and draft-claim functions for `sensor_reading/process`.
-No candidate database, worker credential, worker deployment, handler dispatch,
-or application-table RLS policy was changed.
+accepted in fourteen focused disposable PostgreSQL checks. Migration 412 adds
+four bounded read functions, accepted in ten disposable PostgreSQL checks.
+Migration 405 and the transaction-bound Python adapter establish an opt-in
+worker context; migrations 407–412 add bounded receipt, source-read,
+rule/evaluation/cooldown, event-publication, notification-intent,
+actuation-intent, and draft-claim operations for `sensor_reading/process`.
+These remain dormant. No candidate database, worker credential, worker
+deployment, or handler dispatch was changed. Migration 412 adds a narrow owner
+SELECT policy only on source tables where RLS is already enabled; it does not
+enable RLS globally.
 
 The new `services.common.worker_database.get_worker_db()` factory is a
 source-only preparation for isolated execution. It requires a worker-specific
 `KOKONUT_<WORKER>_DATABASE_URL`, verifies the login is exactly
 `kokonut_worker_login`, enforces transactional mode, and never falls back to
 shared `PG_*` settings. It is not called by the dispatcher or anomaly handler;
-its twelve focused mocked unit checks pass. Per-handler credential delivery,
-bounded source reads, and complete effect integration remain open
+its twelve focused mocked unit checks pass. Per-handler credential delivery
+and complete effect integration remain open; bounded anomaly reads are now
+prepared in migration 412
 ([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).
 `get_worker_credential()` now similarly reads only the named worker secret,
 requires 32–4096 UTF-8 bytes, and never normalizes or logs the opaque value.
@@ -96,13 +101,14 @@ credential for its own execution identity. Credentials must not be inherited
 from a process that can dispatch unrelated operations; deployment-level
 principal separation is required before claiming isolation between handlers.
 
-The current EventBus launch step now builds an explicit child environment that
-removes every worker-specific database URL and worker credential before exec.
-It sends the handler request on stdin, not command-line arguments, and uses a
-small JSON result channel so handler stdout does not corrupt status reporting.
-The runner validates the allowlisted module/function, preserves both legacy
-two-argument and `event_id` handler signatures, and kills/reaps timed-out
-children. Twenty-six mocked unit checks pass
+The shared application subprocess boundary removes worker-specific database
+URLs and credentials before exec, except for an explicit scheduler/event-bus
+key passed only to the matching service. The EventBus handler child currently
+receives no worker secret. Its request travels on stdin, not command-line
+arguments, and a small JSON result channel prevents handler stdout from
+corrupting status reporting. The runner validates the allowlisted
+module/function, preserves both legacy two-argument and `event_id` handler
+signatures, and kills/reaps timed-out children. Twenty-six mocked unit checks pass
 ([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
 No secret is yet delivered to a handler; the dispatcher has no trusted
 handler-to-worker identity mapping, and handlers still use their existing
@@ -115,8 +121,8 @@ tenant-execution adapter because the durable `sensor_reading` event already
 contains a location ID and the handler is explicitly allowlisted. The first
 source slice now requires a canonical location UUID and constrains the source
 event/reading join by that location. This is not signed worker context or tenant
-authorization; those remain the next implementation step. The complete adapter
-must:
+authorization. Migrations 405–412 provide dormant context, reads, and effect
+operations for the complete adapter, which still must:
 
 1. Require and canonicalize `payload.location_id` before opening a database
    connection; reject missing or malformed values.
@@ -144,6 +150,33 @@ is provisioned, and the EventBus currently filters worker secrets from all
 handler children. A future static policy may deliver only the credential
 selected for the handler's trusted worker identity after the handler's
 signed-context integration is complete.
+
+Migration 412 supplies the read contract through four SECURITY DEFINER
+functions owned by `kokonut_anomaly_read_owner`, a no-login,
+`NOBYPASSRLS`, non-member role with only the selected source columns:
+
+- `read_sensor_anomaly_source(event_id, location_id, sensor_id)` returns the
+  matching reading and device/type/location context only when event type,
+  source table/ID, payload location, and every supplied sensor selector agree.
+- `list_sensor_anomaly_rules(device_id, location_id)` returns enabled rules
+  for that device's sensor type and signed location.
+- `evaluate_sensor_anomaly_rule(event_id, reading_id, rule_id, location_id)`
+  validates the same source event and computes the configured value,
+  rate-of-change, gap, minimum, or maximum predicate using location-bounded
+  history.
+- `sensor_anomaly_in_cooldown(device_id, rule_id, location_id)` checks only
+  the enabled rule/device pair's location-bound alert history.
+
+The execution role has EXECUTE on these functions but no direct SELECT on the
+source tables. If a source relation has RLS enabled or forced, a narrow SELECT
+policy for this no-login owner lets the SECURITY DEFINER functions run; each
+function still checks the signed-location predicate. This does not enable RLS
+on any table and is not a global isolation acceptance. Disposable PostgreSQL 16
+checks verify a mismatched event is rejected and one location's sensor history
+does not affect another location's metric result
+([migration](../../schemas/postgres/412_sensor_anomaly_worker_reads.sql);
+[runner](../../scripts/check-sensor-anomaly-worker-reads-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)).
 
 The focused anomaly and pilot seed-guard suites passed 19 tests, the EventBus
 durability suite passed 17 tests, and two transaction tests passed. They cover
@@ -240,15 +273,20 @@ Remaining worker-permission work before broader integration:
    `claim_id`; notification and actuation intents follow event publication.
    Fourteen focused disposable PostgreSQL 16 checks pass, including replay,
    role boundaries, and direct-table denial.
-6. Integrate the anomaly handler only after its credential is isolated from
+6. **Complete:** migration 412 adds read-only source, rule, metric/history, and
+   cooldown operations behind a no-login owner. They validate signed location
+   and event/reading/device/rule relationships; the worker receives no direct
+   source-table SELECT. Ten focused disposable PostgreSQL 16 checks pass for
+   replay, forced RLS, metric results, cooldown, and role boundaries.
+7. Integrate the anomaly handler only after its credential is isolated from
    unrelated dispatch. Keep alert creation, receipt update, claim creation,
    alert publication, notification enqueue, and actuation intent creation in
    one caller-owned transaction; the worker must not submit, verify, publish,
    reject, or transmit actuator commands.
-7. Provision an isolated worker login/credential in a restored disposable
+8. Provision an isolated worker login/credential in a restored disposable
    database. Verify that it cannot read worker grants, sign operator context,
    issue another worker identity, or access unrelated tenant rows.
-8. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
+9. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
 
@@ -265,9 +303,11 @@ canonical alert-event publisher; eleven checks pass. Migration 409 adds the
 bounded notification-intent function; twelve checks pass. Migration 410 adds
 the bounded actuation-intent function, accepted in fifteen disposable checks.
 Migration 411 adds the bounded draft-claim function; fourteen disposable
-PostgreSQL acceptance checks pass. The Python context adapter can set signed
-scope, but no worker login or dispatcher integration exists. No access is granted to the shared
-runtime or existing event/notification dispatchers.
+PostgreSQL acceptance checks pass. Migration 412 adds bounded anomaly reads;
+ten disposable PostgreSQL acceptance checks pass. The Python context adapter
+can set signed scope, but no worker login or dispatcher integration exists. No
+access is granted to the shared runtime or existing event/notification
+dispatchers.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.
@@ -301,15 +341,25 @@ producer against this contract.
    signed source receipt and published alert, accepts only the existing three
    channel payload shapes, and inserts pending intent without touching
    delivery attempts. Twelve disposable PostgreSQL 16 checks pass.
-6. Integrate only the sensor-reading handler after its credential is isolated
+6. **Complete:** migration 410 adds the bounded rule-derived actuation intent;
+   fifteen disposable PostgreSQL 16 checks pass for signed scope, approval,
+   idempotency, privilege boundaries, and replay.
+7. **Complete:** migration 411 adds the bounded draft-claim operation; fourteen
+   disposable PostgreSQL 16 checks pass for draft-only creation, exact legacy
+   adoption without lifecycle mutation, role boundaries, and replay.
+8. **Complete:** migration 412 adds event-linked source reads, scoped device
+   rules, metric/history evaluation, and cooldown reads; ten disposable
+   PostgreSQL 16 checks pass for signed scope, forced RLS, metric results,
+   role boundaries, and replay.
+9. Integrate only the sensor-reading handler after its credential is isolated
    from unrelated dispatch, add a regression inventory for producers and
    dispatch, and add disposable PostgreSQL checks for valid grant,
    cross-location denial, inactive/transfer/revocation denial, stale-context
    clearing, same-transaction signature, and transaction cleanup.
-7. Provision an isolated worker login/credential in a restored disposable
+10. Provision an isolated worker login/credential in a restored disposable
    database. Verify it cannot read worker grants, sign operator context, issue
    another worker identity, or access unrelated tenant rows.
-8. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
+11. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
 
@@ -349,11 +399,18 @@ gates.
   inserts pending intent only, and preserves delivery and attempt state on
   replay. Twelve disposable PostgreSQL 16 checks pass; the anomaly handler is
   not yet wired to this function.
+- Migration 412's bounded source read and metric evaluation validate signed
+  location plus event/source/sensor selectors; the rule list checks the
+  device's sensor type and enabled state; history and cooldown queries stay in
+  the same location. Ten disposable PostgreSQL 16 checks pass, including a
+  forced-RLS source read and worker direct-table denial. The anomaly handler is
+  not yet wired to these functions.
 - Event receipt semantics, idempotency, retries, and outbox effects remain
   unchanged under disposable PostgreSQL and source-level checks.
-- Migration 405 is tested only in a disposable database. No migration is
+- Migrations 405–412 are tested only in disposable databases. No migration is
   applied to the candidate, no worker is activated, and no application-table
-  RLS policy is enabled as part of this source slice.
+  RLS rollout is enabled. Migration 412's narrow owner SELECT policy is added
+  only where a source table already has RLS enabled or forced.
 
 ## Rollback
 

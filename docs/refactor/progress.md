@@ -2,6 +2,25 @@
 
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 
+### Signed sensor-anomaly read boundary — 16 October 2026
+
+Migration 412 now provides four dormant read operations behind a separate
+no-login function owner: event-linked source context, enabled rules for one
+device, event-bound metric evaluation, and scoped cooldown lookup. The
+functions use transaction-bound `sensor_reading/process` context, check the
+source event's location and sensor selectors, and constrain all history and
+alert reads to the same location/device. The dedicated owner has only the
+columns needed by those functions; the worker execution role cannot read the
+source tables directly. Narrow SELECT policies support use under forced RLS
+without enabling RLS globally. Ten disposable PostgreSQL 16 checks pass for
+405–412 replay, signed scope, source and rule matching, metric/history results,
+cooldowns, forced-RLS reads, and role separation. Candidate and legacy databases
+were not accessed. This does not connect the handler to the worker-only DSN or
+credential resolver, provision a worker identity, enable global RLS, or accept a
+MAN-CAP capability ([migration](../../schemas/postgres/412_sensor_anomaly_worker_reads.sql);
+[runner](../../scripts/check-sensor-anomaly-worker-reads-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)).
+
 ### Worker tenant-context design — 16 October 2026
 
 The static worker audit confirms that scheduled commands and spawned event
@@ -10,8 +29,8 @@ signed tenant context. A new contract defines a database-verified
 `system_worker` identity, exact location/resource/action grants, database-side
 owner resolution, a separate control-plane boundary for global leases/queues,
 and the sensor-reading event handler as the first tenant-execution adapter.
-This is an architecture decision only: there is no worker migration, credential,
-runtime identity, candidate change, or RLS rollout. The allowlisted
+The first dormant migrations now establish its signed context and bounded
+anomaly operations. The allowlisted
 sensor-reading handler now requires a canonical event location and binds the
 source-row lookup to it. This is location-lineage validation, not signed worker
 authorization. The owner approved focused checks; six anomaly-handler cases

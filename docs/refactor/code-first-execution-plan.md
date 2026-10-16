@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Pre-batch pushed head:** `5fb7f917694ccc35bba82cd022b0843ff735ba2c`; Gitleaks passed and CI was in progress at the last check (16 October 2026).
-**Current local batch:** A shared subprocess-environment policy now strips worker DSNs and credentials from the API, scheduled commands, jobs/flows, report commands, migration runner, and SOPS children. The supervisor allows only `KOKONUT_SCHEDULER_*` into the scheduler child and `KOKONUT_EVENT_BUS_*` into the event worker; all other worker keys are removed. The EventBus handler continues to receive no worker secret and uses stdin JSON plus a bounded JSON result. All 183 focused unit checks pass with Ruff and compilation ([evidence](builds/2026-10-16-recovery/worker-subprocess-environment-unit.json)). This source work does not integrate worker database identity or signed tenant context.
+**Batch base head:** `9f1e3b5ec5e2885cc7d06cff63467763e8160662` on PR #68; Security #81 was running and CI #357 pending at last check.
+**Current local batch:** Migration 412 adds dormant bounded reads for the sensor-anomaly worker behind a no-login function owner. Event and reading selectors are matched, metric evaluation requires the event identity, history and cooldown queries remain location/device scoped, and the worker has no direct anomaly source-table access. The migration applies and replays after migrations 405–411 on disposable PostgreSQL 16; ten focused checks pass for signed scope, metric results, forced RLS, and role boundaries ([evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)). The handler is not connected to the dedicated worker DSN/credential, and no candidate or legacy database was touched.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,32 +14,23 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **401 checked and 19 open items (420 total)**,
+- The execution checklist has **403 checked and 19 open items (422 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
-- The latest pushed work is `1f6cefc1` (migration 410's dormant signed-scope
-  actuation intent), following `08227f1` (migration 409's notification intent), after
-  `1c5c761` (migration 407's receipt functions), `ba0c47bc` (migration 406
-  sensor anomaly location lineage), `0bafc419` (anomaly handler source and
-  transaction boundaries), `4e471638` (signed worker tenant context),
-  `a0ec3f45` (batch status refresh), and `78580cd4` (anomaly effect contract).
-  Security #76 passed and CI #352 is in progress. This local batch adds
-  migration 411's bounded draft-claim operation, keyed by source-reading event
-  plus alert. It creates only draft claims and adopts an exact legacy-linked
-  claim without changing lifecycle state. The intended order is receipt update,
-  claim operation, alert publication, then downstream notification and
-  actuation intents; the alert-event payload itself omits claim ID. Fourteen
-  disposable PostgreSQL acceptance checks pass. Handler integration, isolated credentials,
-  candidate rollout, RLS, and MAN-CAP acceptance remain open.
-  Migration 405 and its adapter pass 17 disposable PostgreSQL acceptance
-  checks and unit coverage. The focused anomaly/transaction checks pass.
-  Migration 405 is not applied to the candidate, no worker credential or
-  handler deployment was provisioned, and application-table RLS remains off.
-  These changes do not add a separately accepted capability: the capability
-  matrix remains 66 rows (55 baseline-retained, 7 deployed, 4 prepared), with
-  zero accepted MAN-CAP checks.
+- At the start of this batch the pushed PR head was `9f1e3b5` (worker-secret
+  subprocess isolation); Security #81 was running and CI #357 pending at the
+  last status check. This local slice adds migration 412's dormant read-only
+  sensor-anomaly functions for event-linked source context, enabled device
+  rules, event-bound metric/history evaluation, and cooldown lookup. Ten
+  disposable PostgreSQL 16 checks pass after applying and replaying migrations
+  405–412; they verify scope/source matching, five metric outcomes, forced-RLS
+  reads, direct worker table denial, and role boundaries. The handler still
+  uses the shared database path; no worker credential, candidate rollout, or
+  global RLS enablement occurred. The candidate remains through migration 403.
+  This adds no accepted capability: the matrix remains 66 rows (55
+  baseline-retained, 7 deployed, 4 prepared), with zero accepted MAN-CAP checks.
 - Since the previous `8c7a053` accounting, commit `a1f45da` added the native
   Gateway farm-activity API and migration 404, with 13 focused service/HTTP/
   policy tests and 11 disposable PostgreSQL 16 checks passing. Commit `359e1d5`

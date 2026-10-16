@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (16 October 2026):** 401 checklist items complete and 19
-open (420 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
+**Current snapshot (16 October 2026):** 403 checklist items complete and 19
+open (422 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
 baseline-retained, 7 deployed, and 4 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -786,9 +786,10 @@ reporting views.
 - [ ] Extend the tenant map for any additional locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
-  Migrations 405 and 407–409 and the worker adapter have disposable database
-  acceptance; the receipt, event-publisher, and notification-intent functions
-  remain dormant. Handler integration
+  Migrations 405 and 407–412 and the worker adapter have disposable database
+  acceptance; their bounded anomaly operations remain dormant. Migration 412's
+  ten PostgreSQL 16 checks cover event-linked reads, metric/history and
+  cooldown scope, forced-RLS access, and role separation. Handler integration
   and per-worker credential isolation, control-plane
   separation, remaining operation scopes, and application-table RLS acceptance
   remain open
@@ -830,6 +831,8 @@ reporting views.
   - [x] Verify migration 410's bounded actuation-intent function on disposable PostgreSQL 16. Fifteen checks pass for signed scope and source/alert linkage, canonical rule-derived command, critical and configured approval requirements, one intent per alert event, retry preservation after simulated delivery, role boundaries, direct table denial, legacy-row preservation, and migration replay. No candidate or legacy database was touched ([migration](../../schemas/postgres/410_sensor_alert_actuation_intent.sql); [fixture](../../tests/fixtures/sensor_alert_actuation_intent_disposable.sql); [runner](../../scripts/check-sensor-alert-actuation-intent-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).
   - [x] Add migration 411's bounded signed-scope draft-claim operation. It keys idempotency by source-reading event plus alert, creates only `draft` claims, preserves existing lifecycle/review state when adopting a legacy linked claim, and gives the worker function EXECUTE without direct claim or alert-table access. The intended handler order is to link the alert-created receipt, create/adopt the claim, publish the alert event, then construct notification and actuation intents; the event payload itself does not include `claim_id` ([migration](../../schemas/postgres/411_sensor_alert_draft_claim_intent.sql)).
   - [x] Verify migration 411 on disposable PostgreSQL 16. Fourteen checks pass for signed scope and source linkage, rule-driven draft creation, retry preservation, exact legacy-claim adoption without lifecycle mutation, event publication, role boundaries, direct-table denial, and migration replay. Candidate and legacy databases were untouched ([fixture](../../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql); [runner](../../scripts/check-sensor-alert-draft-claim-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
+  - [x] Add migration 412's dormant read-only sensor-anomaly operations behind a dedicated no-login function owner. Source reads and metric evaluation bind the event payload, reading, device, rule, and signed location; rule listing and cooldown lookup are location/device scoped. Direct worker table access is revoked. The migration remains unconnected to the handler and does not enable RLS globally ([migration](../../schemas/postgres/412_sensor_anomaly_worker_reads.sql)).
+  - [x] Verify migration 412 by applying and replaying it on disposable PostgreSQL 16 after migrations 405–411. Ten checks pass for missing signed context, source/event selectors, rule and metric scoping, cooldown behavior, forced-RLS reads, exact role/column boundaries, direct worker table denial, and replay. Synthetic history confirms value, rate-of-change, gap, and minimum results while another location's value does not affect the maximum. Candidate and legacy databases remain untouched ([fixture](../../tests/fixtures/sensor_anomaly_worker_reads_disposable.sql); [runner](../../scripts/check-sensor-anomaly-worker-reads-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)).
   - [x] Add this operations overview with exact dual-grant route policy, same-transaction signed tenant context, SQL scope rechecks, and a content-free queue summary. The 83-test service/route/console check passes; live OIDC, database-role, and browser acceptance remain open ([console contract](kernel-operations-console.md); [evidence](builds/2026-10-14-recovery/mobile-operations-inventory-route.json)).
   - [x] Ignore stale inventory responses and errors after the operator changes locations, so an older request cannot replace the selected location's view ([evidence](builds/2026-10-15-recovery/operator-inventory-stale-response-guard.json)).
   - [x] Add direct service regressions for the OIDC report-review queue/detail
