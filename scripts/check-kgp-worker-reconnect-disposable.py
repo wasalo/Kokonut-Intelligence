@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise KGP worker lease renewal across a disposable PostgreSQL restart."""
+"""Exercise KGP event projection and worker recovery in disposable PostgreSQL."""
 
 from __future__ import annotations
 
@@ -167,7 +167,10 @@ from services.guilds.indexer import KGPIndexer
 indexer = object.__new__(KGPIndexer)
 indexer.deployment_id = {deployment_id!r}
 indexer.contract_addresses = {{}}
-indexer.w3 = SimpleNamespace(eth=SimpleNamespace(block_number=0))
+indexer.w3 = SimpleNamespace(eth=SimpleNamespace(
+    block_number=0,
+    get_block=lambda _number: SimpleNamespace(hash=bytes.fromhex("c3" * 32)),
+))
 indexer.run_forever(poll_interval=0.25, worker_id={worker_id!r})
 """
 
@@ -251,6 +254,153 @@ def _replay_schema_migrations(port: int, password: str) -> int:
                     f"ordered schema migration {migration['id']} failed: {exc}"
                 ) from exc
         return len(migrations)
+    finally:
+        connection.close()
+
+
+def _exercise_guild_created_projection(port: int, password: str, deployment_id: str) -> dict[str, object]:
+    """Run a synthetic GuildCreated log through the real indexer and projection."""
+    # The disposable check supplies its own database settings; importing the
+    # indexer must not attempt to decrypt the repository's unrelated secrets.
+    os.environ["KOKONUT_ENV"] = "development"
+    os.environ["KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT"] = "true"
+
+    from types import SimpleNamespace
+
+    import psycopg2
+    from eth_abi import encode
+
+    from services.guilds.indexer import EVENT_TOPICS, KGPIndexer
+
+    contract_address = "0x1111111111111111111111111111111111111111"
+    guild_id = "0x" + "a1" * 32
+    guild_key = "0x" + "b2" * 32
+    transaction_hash = "0x" + "d4" * 32
+    block_hash = "0x" + "c3" * 32
+    guild_created_topic = next(
+        topic for topic, name in EVENT_TOPICS.items() if name == "GuildCreated"
+    )
+    raw_log = {
+        "address": contract_address,
+        "topics": [
+            bytes.fromhex(guild_created_topic[2:]),
+            bytes.fromhex(guild_id[2:]),
+            bytes.fromhex(guild_key[2:]),
+            bytes.fromhex("00" * 12 + "e5" * 20),
+        ],
+        "data": encode(["string"], ["Synthetic KGP projection guild"]),
+        "blockNumber": 8,
+        "blockHash": bytes.fromhex(block_hash[2:]),
+        "transactionHash": bytes.fromhex(transaction_hash[2:]),
+        "transactionIndex": 0,
+        "logIndex": 2,
+    }
+
+    class SyntheticEth:
+        block_number = 30
+
+        def get_logs(self, _query):
+            return [raw_log]
+
+        def get_block(self, _number):
+            return SimpleNamespace(hash=bytes.fromhex(block_hash[2:]))
+
+    connection = psycopg2.connect(
+        host="127.0.0.1",
+        port=port,
+        dbname="kokonut_intelligence",
+        user="kokonut",
+        password=password,
+        connect_timeout=5,
+    )
+    try:
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "INSERT INTO kokonut_guild (guild_key, name, onchain_guild_key) "
+                    "VALUES (%s, %s, %s)",
+                    ("synthetic-kgp-projection", "Synthetic KGP projection guild", guild_key),
+                )
+
+        indexer = KGPIndexer(
+            SimpleNamespace(eth=SyntheticEth()),
+            connection,
+            deployment_id,
+            contract_address,
+            100,
+        )
+        projected_count = indexer.scan_once()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT guild.onchain_guild_id, guild.onchain_guild_key,
+                       guild.chain_projection, guild.source_chain_event_id::text,
+                       event.id::text, event.processing_status,
+                       event.processing_attempts, indexer.next_block
+                FROM kokonut_guild AS guild
+                JOIN kgp_chain_event AS event
+                  ON event.deployment_id = %s
+                 AND event.transaction_hash = %s
+                 AND event.log_index = 2
+                JOIN kgp_indexer_cursor AS indexer
+                  ON indexer.deployment_id = event.deployment_id
+                WHERE guild.guild_key = %s
+                """,
+                (deployment_id, transaction_hash, "synthetic-kgp-projection"),
+            )
+            projected = cursor.fetchone()
+        expected_event_id = projected[3] if projected else None
+        if not projected or projected[:3] != (guild_id, guild_key, True):
+            raise RuntimeError(f"synthetic GuildCreated event did not project: {projected!r}")
+        if (
+            not expected_event_id
+            or projected[3] != projected[4]
+            or projected[5] != "processed"
+            or projected[6] != 0
+            or projected[7] != 19
+        ):
+            raise RuntimeError(f"synthetic GuildCreated event was not durably processed: {projected!r}")
+        if projected_count != 1:
+            raise RuntimeError(f"expected one projected chain event, got {projected_count}")
+
+        # Re-read the same canonical log from a rewound synthetic cursor. The
+        # event idempotency key must prevent a duplicate projection row.
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE kgp_indexer_cursor SET next_block = 1, confirmed_block = 0 "
+                    "WHERE deployment_id = %s",
+                    (deployment_id,),
+                )
+        duplicate_count = indexer.scan_once()
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM kgp_chain_event "
+                "WHERE deployment_id = %s AND transaction_hash = %s AND log_index = 2",
+                (deployment_id, transaction_hash),
+            )
+            event_rows = cursor.fetchone()[0]
+            cursor.execute(
+                "SELECT COUNT(*) FROM kokonut_guild "
+                "WHERE guild_key = %s AND onchain_guild_id = %s AND chain_projection",
+                ("synthetic-kgp-projection", guild_id),
+            )
+            projected_guild_rows = cursor.fetchone()[0]
+        if duplicate_count != 0 or event_rows != 1 or projected_guild_rows != 1:
+            raise RuntimeError(
+                "replayed canonical event created duplicate chain/projection rows: "
+                f"processed={duplicate_count}, event_rows={event_rows}, "
+                f"guild_rows={projected_guild_rows}"
+            )
+        return {
+            "synthetic_event": "GuildCreated",
+            "event_processing_status": projected[5],
+            "projection_source_chain_event_id": expected_event_id,
+            "projection_fields_matched": True,
+            "canonical_log_replay_idempotent": True,
+            "event_rows_after_replay": event_rows,
+            "projected_guild_rows_after_replay": projected_guild_rows,
+        }
     finally:
         connection.close()
 
@@ -352,8 +502,10 @@ def main() -> int:
             "INSERT INTO kgp_indexer_cursor (deployment_id, next_block) "
             f"VALUES ('{deployment_id}', 1)",
         )
+        projection = _exercise_guild_created_projection(port, password, deployment_id)
         result["schema_migrations_applied"] = applied_schemas
         result["schema_migrations_expected"] = expected_schemas
+        result["event_projection"] = projection
 
         process = subprocess.Popen(
             [sys.executable, "-u", "-c", _worker_code(deployment_id, worker_id)],
@@ -474,8 +626,9 @@ def main() -> int:
                 "lease_heartbeat_after_reclaim": heartbeat_after_reclaim,
                 "worker_id": worker_id,
                 "limitations": [
-                    "All current ordered PostgreSQL schema migrations were applied, but the deployment and cursor rows are synthetic; no seed data or candidate/legacy database was used.",
-                    "The Web3 block height was stubbed below the first cursor block, so no RPC or event queries were made.",
+                    "All current ordered PostgreSQL schema migrations were applied, but the deployment, cursor, and prelinked guild rows are synthetic; no seed data or candidate/legacy database was used.",
+                    "Live Web3/RPC was not used. One synthetic GuildCreated log was returned to the real indexer, and block height was stubbed for the worker recovery phase.",
+                    "The canonical log was replayed after rewinding the disposable cursor; the idempotency key retained one chain-event row and one projected guild row.",
                     "The PostgreSQL container had no volume and published only a loopback port. The default bridge permits egress, but this check makes no external provider or chain calls.",
                 ],
             }

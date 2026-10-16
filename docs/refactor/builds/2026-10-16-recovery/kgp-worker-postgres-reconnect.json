@@ -1,7 +1,7 @@
 {
   "date": "2026-10-16",
   "result": "passed",
-  "check": "KGP indexer restart reconnect and durable lease recovery after worker crash",
+  "check": "KGP event projection/replay, PostgreSQL restart reconnect, and durable lease recovery after worker crash",
   "command": "python3 scripts/check-kgp-worker-reconnect-disposable.py",
   "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
   "database_port_binding": "127.0.0.1 only",
@@ -12,18 +12,28 @@
   "schema_migrations_expected": 393,
   "candidate_or_legacy_modified": false,
   "external_provider_calls": 0,
+  "event_projection": {
+    "synthetic_event": "GuildCreated",
+    "event_processing_status": "processed",
+    "projection_source_chain_event_id": "16fb306d-59d1-49b0-a5ed-25f56e968a9c",
+    "projection_fields_matched": true,
+    "canonical_log_replay_idempotent": true,
+    "event_rows_after_replay": 1,
+    "projected_guild_rows_after_replay": 1
+  },
   "worker_id": "kgp-reconnect-probe",
   "worker_alive_during_outage": true,
   "database_restart_reconnected": true,
-  "lease_heartbeat_before_restart": "2026-10-16T05:37:14.453293",
-  "lease_heartbeat_after_restart": "2026-10-16T05:37:20.643842",
+  "lease_heartbeat_before_restart": "2026-10-16T05:54:03.359822",
+  "lease_heartbeat_after_restart": "2026-10-16T05:54:10.410429",
   "worker_killed_and_lease_reclaimed": true,
   "lease_owner_before_reclaim": "kgp-reconnect-probe",
   "lease_owner_after_reclaim": "kgp-crash-recovery",
-  "lease_heartbeat_after_reclaim": "2026-10-16T05:37:22.749975",
+  "lease_heartbeat_after_reclaim": "2026-10-16T05:54:12.839065",
   "limitations": [
-    "All current ordered PostgreSQL schema migrations were applied, but the deployment and cursor rows are synthetic; no seed data or candidate/legacy database was used.",
-    "The Web3 block height was stubbed below the first cursor block, so no RPC or event queries were made.",
+    "All 393 current ordered PostgreSQL schema migrations were applied, but the deployment, cursor, and prelinked guild rows are synthetic; no seed data or candidate/legacy database was used.",
+    "Live Web3/RPC was not used. One synthetic GuildCreated log was supplied to the real indexer, and the Web3 block height was stubbed for the worker recovery phase.",
+    "The canonical log was replayed after rewinding the disposable cursor; the idempotency key retained one chain-event row and one projected guild row.",
     "The PostgreSQL container had no volume and published only a loopback port. The default bridge permits egress, but this check makes no external provider or chain calls."
   ]
 }

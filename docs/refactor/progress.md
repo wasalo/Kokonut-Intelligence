@@ -7,35 +7,39 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-The last pushed PR head is `943c9605c1ec43563e425bcd1105c3f524c39d2e`.
-That batch adds verified ARM64 optional profiles for ClickHouse analytics,
-Directus, and HTTP sensors, plus KGP/EventBus/SchedulerEngine recovery slices.
-CI #333 is in progress and Security #57 passed. Those pushed commits include
-EventBus notification crash recovery (`839a04c`), SchedulerEngine claim
-recovery (`9c5fe8b`), and KGP lease recovery after a worker crash (`cc65907`).
-A new local KGP acceptance commit (`28f6f3f`) extends the check to the complete
-current schema set. Replacement workers reclaim expired leases: the EventBus
-retry preserves its idempotency key, the scheduled task completes as attempt
-two, and KGP lease ownership changes to the replacement worker. These bounded
-synthetic fixtures do not close provider, post-effect, long-duration, or
-live-chain acceptance. The checklist and progress-document refresh is in the
-local batch awaiting push. The preceding Dockerfile digest correction and
-local 14-test repair are recorded separately
+At the last remote status check, the pushed PR head was
+`da4536dbcaa110bd1ca0f499fb74ff2edd56cfca`: CI #334 was in progress and
+Security #58 passed. That batch adds full-schema KGP restart/crash recovery on
+top of the ARM64 optional profiles and SchedulerEngine/EventBus recovery.
+Those pushed commits include EventBus notification crash recovery (`839a04c`),
+SchedulerEngine claim recovery (`9c5fe8b`), and KGP lease recovery after a
+worker crash (`cc65907`). The new local KGP acceptance now processes one
+synthetic `GuildCreated` log through the real indexer, confirms it is projected
+to a prelinked synthetic guild, and verifies replay does not duplicate either
+row. The same current-schema fixture still verifies database restart recovery
+and replacement-worker lease reclaim. No live RPC, seed data, or provider call
+is used. The local batch and evidence refresh await push. These bounded
+synthetic fixtures do not close other event-type parity, live-chain/provider,
+post-effect, or long-duration acceptance. The preceding Dockerfile digest
+correction and local 14-test repair are recorded separately
 ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
 ### KGP indexer PostgreSQL restart recovery — 16 October 2026
 
 A current-source runtime check applied all 393 ordered PostgreSQL schema
 migrations from the repository, recording each source checksum in the
-migration ledger. It inserted only synthetic KGP deployment/cursor rows. The
-worker remained alive through a database stop/start and advanced its lease
-heartbeat. The check then killed the worker, forced its lease expiry, and
-confirmed a replacement worker took ownership and advanced the heartbeat.
-Web3 block height was stubbed below the first cursor block; no chain RPC,
-event query, seed data, or external provider call occurred. The database had
-no volume and published only a loopback port. Candidate/legacy state remains
-untouched. Production-duration lease reclaim, live RPC/event processing, and
-provider delivery remain open
+migration ledger. It inserted synthetic KGP deployment/cursor rows and a
+prelinked guild row. The real `KGPIndexer.scan_once` processed a synthetic
+`GuildCreated` log, projected the source event ID and on-chain identity to the
+guild, and marked the chain event processed. Replaying that canonical log
+after rewinding the disposable cursor retained one event row and one guild
+projection. The worker remained alive through a database stop/start and
+advanced its lease heartbeat. The check then killed the worker, forced its
+lease expiry, and confirmed a replacement worker took ownership and advanced
+the heartbeat. Live RPC, seeds, and external providers were not used. The
+database had no volume and published only a loopback port. Candidate/legacy
+state remains untouched. Other event-type projection parity, production-duration
+lease reclaim, live RPC/event processing, and provider delivery remain open
 ([script](../../scripts/check-kgp-worker-reconnect-disposable.py);
 [evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
 
