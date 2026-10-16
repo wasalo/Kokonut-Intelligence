@@ -7,19 +7,18 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-The 17-commit batch was pushed as `d01941abad13c5128fca85acb0f4b5645a4322b4`.
-Eight prior local commits above it cover ZITADEL image pins, report-review
-tenant-context tests, report-generator/query/helper inventories, the report
-stakeholder-audience record, the indirect location-scope correction, and ARM64
-schema-402 evidence. The CI repair and its read-only candidate seed confirmation
-are local commits nine and ten above the pushed head, and remain unpushed.
-Security #49 passed; CI #325 failed on that pushed head
-with four tests. The current local repair restores the flow-metric seed to the
-normal seed set, aligns the OIDC `Vary` test with CORS, refreshes the worker SQL
-expectation, and asserts retention-lock ordering. It passed 31 focused tests;
-two DB-dependent flow-metric tests skipped because no local test database was
-available ([evidence](builds/2026-10-15-recovery/ci-325-regression-fix.json)).
-The repair remains unpushed. The candidate now has 393 applied schema migrations through 402, six
+The last pushed PR head is `d01941abad13c5128fca85acb0f4b5645a4322b4`.
+This local batch is 15 commits ahead of that head and includes the CI #325
+regression fixes, read-only candidate seed confirmation, report/tenant source
+inventories, scheduled-weather input guard, Directus relation-expansion guard,
+and schema-gated startup plus its ARM64 QEMU acceptance. Security #49 passed;
+CI #325 failed on the previous pushed head with four tests. The local CI repair
+restores the flow-metric seed to the normal seed set, aligns the OIDC `Vary`
+test with CORS, refreshes the worker SQL expectation, and asserts retention-lock
+ordering. It passed 31 focused tests; two DB-dependent flow-metric tests skipped
+because no local test database was available
+([evidence](builds/2026-10-15-recovery/ci-325-regression-fix.json)).
+This batch has not yet received hosted CI/Security results. The candidate now has 393 applied schema migrations through 402, six
 recorded seed migrations, zero pending schema migrations, 115 unselected seed
 sources pending, and no failed ledger rows. The five approved reference catalogs
 and configurable retention/legal-hold schema are applied; no retention period,
