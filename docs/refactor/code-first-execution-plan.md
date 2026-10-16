@@ -53,9 +53,11 @@ MAN-CAP checks open until each has its own retained evidence.
   failures. Twenty focused event-worker/EventBus tests pass with Ruff and
   compilation. A disposable PostgreSQL stop/start check replays migrations
   116, 165, and 375 and confirms the actual worker completes synthetic
-  unhandled events before and after restart under one worker identity. Handler
-  execution, notification/provider delivery, full migration-ledger parity, and
-  long-duration recovery remain open ([evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
+  events before and after restart under one worker identity while invoking the
+  real allowlisted alert-notification child handler. All provider switches were
+  disabled and the synthetic payload created no outbox row. External provider
+  delivery, full migration-ledger parity, and long-duration recovery remain
+  open ([evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 - A local KGP indexer change now reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.

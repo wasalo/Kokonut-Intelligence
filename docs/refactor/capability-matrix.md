@@ -239,9 +239,10 @@ its source loop; 14 focused KGP service/indexer tests pass with Ruff and
 compilation. A loopback-only disposable PostgreSQL stop/start check confirms
 the scheduler process survives the outage and reconnects; the scheduler engine
 was stubbed. A second disposable check replays EventBus/notification migrations
-116, 165, and 375, then confirms the real worker process completes synthetic
-unhandled events before and after restart under one worker ID. The notification
-outbox was empty and no providers were configured. The KGP process also passes
+116, 165, and 375, then confirms the real worker process invokes its allowlisted
+alert-notification handler and completes synthetic events before and after
+restart under one worker ID. Provider switches were disabled; the notification
+outbox remained empty. The KGP process also passes
 a current-source stop/start check: it stays alive and advances its durable
 cursor lease heartbeat after restart, using a synthetic cursor schema and
 stubbed chain height. Real scheduler task/lease recovery, handler/provider

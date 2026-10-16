@@ -33,13 +33,14 @@ processing, and provider delivery remain open
 
 ### EventBus worker PostgreSQL restart recovery — 16 October 2026
 
-The actual EventBus worker completed one synthetic unhandled event before a
-PostgreSQL stop and another after restart, both under the same worker identity.
-The isolated database replayed migrations 116, 165, and 375. The event queue
-used real lease and completion SQL; notification processing queried an empty
-outbox, with no external provider configured. This does not cover registered
-handler execution, provider delivery, the full migration ledger, or long
-outages ([script](../../scripts/check-event-worker-reconnect-disposable.py);
+The actual EventBus worker invoked the allowlisted alert-notification handler
+for one synthetic event before a PostgreSQL stop and another after restart,
+both under the same worker identity. The isolated database replayed migrations
+116, 165, and 375. The handler ran in its spawned child process and opened a
+database connection; all optional providers were disabled, so it created no
+notification row. The worker completed both events through real lease and
+completion SQL. External provider delivery, the full migration ledger, and
+long outages remain open ([script](../../scripts/check-event-worker-reconnect-disposable.py);
 [evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 The current local slice also closes a generic-retention preview hazard: the
 outbox, attempt, and operator-audit tables now skip before row inspection in

@@ -111,16 +111,30 @@ def _enqueue(name: str, event_type: str) -> str:
     )
 
 
-def _wait_for_completed(name: str, event_id: str, timeout: float) -> str:
+def _register_handler(name: str, event_type: str) -> None:
+    _sql(
+        name,
+        "INSERT INTO event_handler "
+        "(handler_name, event_type, module_path, function_name, timeout_seconds) "
+        "VALUES ('reconnect_probe_handler', "
+        f"'{event_type}', 'services.events.handlers', 'handle_alert_notification', 10)",
+    )
+
+
+def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, str]:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         values = _sql(
             name,
-            "SELECT status, COALESCE(worker_id, '') FROM platform_event "
-            f"WHERE id = '{event_id}'",
+            "SELECT e.status, COALESCE(e.worker_id, ''), COALESCE(("
+            "SELECT d.status FROM event_handler_delivery d "
+            "JOIN event_handler h ON h.id = d.handler_id "
+            "WHERE d.event_id = e.id AND h.handler_name = 'reconnect_probe_handler'"
+            "), '') FROM platform_event e "
+            f"WHERE e.id = '{event_id}'",
         ).split("|")
-        if len(values) == 2 and values[0] == "completed" and values[1]:
-            return values[1]
+        if len(values) == 3 and values[0] == "completed" and values[1] and values[2]:
+            return values[1], values[2]
         time.sleep(0.25)
     raise TimeoutError("EventBus worker did not complete the synthetic event")
 
@@ -186,6 +200,7 @@ def main() -> int:
                 check=True,
                 stdin=sql,
             )
+        _register_handler(name, event_type)
 
         env = os.environ.copy()
         env.update(
@@ -200,6 +215,15 @@ def main() -> int:
                 "CLICKHOUSE_ENABLED": "false",
                 "ALERT_WEBHOOK_URL": "",
                 "ALERT_SMTP_HOST": "",
+                "ALERT_EMAIL_TO": "",
+                "DIRECTUS_ADMIN_TOKEN": "",
+                "KOKONUT_FEATURE_DIRECTUS": "false",
+                "KOKONUT_FEATURE_CLICKHOUSE": "false",
+                "KOKONUT_FEATURE_GRPC": "false",
+                "KOKONUT_FEATURE_METABASE": "false",
+                "KOKONUT_FEATURE_MQTT": "false",
+                "KOKONUT_FEATURE_PREFECT": "false",
+                "KOKONUT_FEATURE_LEGACY_DATASET_SQL": "false",
             }
         )
         worker_code = f"""
@@ -232,9 +256,11 @@ raise SystemExit(cmd_worker(args))
 
         threading.Thread(target=collect_output, daemon=True).start()
         event_before = _enqueue(name, event_type)
-        before_worker = _wait_for_completed(name, event_before, timeout)
+        before_worker, before_handler_status = _wait_for_completed(name, event_before, timeout)
         if before_worker != worker_id:
             raise RuntimeError("synthetic pre-outage event was not claimed by the probe worker")
+        if before_handler_status != "success":
+            raise RuntimeError("allowlisted pre-outage handler did not succeed")
 
         _docker("stop", "--time", "1", name)
         _wait_for_log(process, lines, output, "Event worker iteration failed", timeout)
@@ -244,9 +270,11 @@ raise SystemExit(cmd_worker(args))
         _docker("start", name)
         _wait_until_ready(name, timeout)
         event_after = _enqueue(name, event_type)
-        after_worker = _wait_for_completed(name, event_after, timeout)
+        after_worker, after_handler_status = _wait_for_completed(name, event_after, timeout)
         if after_worker != worker_id:
             raise RuntimeError("synthetic post-outage event was not claimed by the probe worker")
+        if after_handler_status != "success":
+            raise RuntimeError("allowlisted post-outage handler did not succeed")
 
         result.update(
             {
@@ -255,6 +283,8 @@ raise SystemExit(cmd_worker(args))
                 "database_restart_reconnected": True,
                 "event_before_restart_completed": True,
                 "event_after_restart_completed": True,
+                "handler_succeeded_before_restart": True,
+                "handler_succeeded_after_restart": True,
                 "both_events_claimed_by_same_worker": True,
                 "worker_id": worker_id,
                 "migrations_replayed": [
@@ -264,8 +294,8 @@ raise SystemExit(cmd_worker(args))
                 ],
                 "limitations": [
                     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
-                    "Synthetic events had no matching handlers, so the real EventBus lease and completion SQL ran without invoking application handlers.",
-                    "Notification processing used the real outbox query against an empty queue; no external delivery provider was configured.",
+                    "A real allowlisted alert-notification handler ran in the worker's spawned child process, but the synthetic payload had no configured destination and produced no outbox row.",
+                    "All optional provider switches and notification destinations were explicitly disabled; notification processing queried the empty outbox and made no external delivery calls.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
             }

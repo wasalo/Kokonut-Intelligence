@@ -13,6 +13,10 @@
   "event_before_restart_completed": true,
   "event_after_restart_completed": true,
   "both_events_claimed_by_same_worker": true,
+  "handler_succeeded_before_restart": true,
+  "handler_succeeded_after_restart": true,
+  "allowlisted_handler_invoked": "services.events.handlers.handle_alert_notification",
+  "all_optional_providers_disabled": true,
   "external_provider_calls": 0,
   "migrations_replayed": [
     "116_event_bus.sql",
@@ -21,8 +25,8 @@
   ],
   "limitations": [
     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
-    "Synthetic events had no matching handlers, so real EventBus lease and completion SQL ran without invoking application handlers.",
-    "Notification processing used the real outbox query against an empty queue; no external delivery provider was configured.",
+    "The allowlisted alert-notification handler ran in its spawned child process, but the synthetic payload had no configured destination and created no outbox row.",
+    "All optional provider switches and notification destinations were explicitly disabled; notification processing queried the empty outbox and made no external delivery calls.",
     "The PostgreSQL container had no volume and was bound only to loopback."
   ]
 }
