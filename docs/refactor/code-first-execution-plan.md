@@ -15,21 +15,21 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **395 checked and 19 open items (414 total)**,
+- The execution checklist has **396 checked and 19 open items (415 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
-- Latest pushed work on 16 October includes commits `0bafc419`
-  (anomaly handler source and transaction boundaries), `4e471638`
-  (signed worker tenant context), `a0ec3f45` (batch status refresh), and
-  `78580cd4` (proposed anomaly effect contract). Security #71 passed and CI
-  #347 is running on `78580cd4`. The current local batch adds migration 406's
-  direct location lineage and writes those keys from the anomaly event path.
-  Unresolved history remains NULL; this adds no worker grants, RLS, or dispatch
-  integration. Seventy-three focused anomaly, outbox, worker-map, and migration
-  tests plus seven disposable PostgreSQL checks pass, along with Ruff and
-  migration-source checks.
+- Latest pushed work on 16 October at the start of this batch was `ba0c47bc`
+  (migration 406 sensor anomaly location lineage), after `0bafc419` (anomaly
+  handler source and transaction boundaries), `4e471638` (signed worker tenant
+  context), `a0ec3f45` (batch status refresh), and `78580cd4` (anomaly effect
+  contract). CI #348 was queued and Security #72 was running. This local batch
+  adds migration 407's dormant bounded receipt reserve/outcome functions and
+  their nine-check disposable PostgreSQL 16 acceptance. The worker can execute
+  only the functions and has no direct receipt-table access. The handler is not
+  integrated; no credential, candidate rollout, RLS, or MAN-CAP acceptance was
+  added.
   Migration 405 and its adapter pass 17 disposable PostgreSQL acceptance
   checks and unit coverage. The focused anomaly/transaction checks pass.
   Migration 405 is not applied to the candidate, no worker credential or

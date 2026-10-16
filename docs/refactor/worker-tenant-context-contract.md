@@ -1,9 +1,11 @@
 # Worker tenant-context contract
 
-**Status:** first database/source adapter implemented, 16 October 2026. Migration
-405 and a transaction-bound Python adapter now establish an opt-in worker
-context. No candidate database, worker credential, worker deployment, handler
-dispatch, or application-table RLS policy was changed.
+**Status:** first database/source adapter and dormant anomaly receipt functions
+implemented and accepted on 16 October 2026. Migration 405 and a transaction-
+bound Python adapter establish an opt-in worker context; migration 407 adds
+bounded receipt reservation/outcome functions for `sensor_reading/process`.
+No candidate database, worker credential, worker deployment, handler dispatch,
+or application-table RLS policy was changed.
 
 ## Decision
 
@@ -164,13 +166,15 @@ read-only alert-rule/sensor-type references from location-bound data and treats
 event queue state, notification delivery, and actuation delivery as distinct
 control-plane work.
 
-Before implementing the first database permissions:
+Remaining worker-permission work before broader integration:
 
 1. Enforce the direct location keys added by migration 406 for tenant-owned
-   receipts, alerts, ingestion-audit rows, and notification intents. Existing
-   rows with unresolved source lineage remain NULL and must stay inaccessible
-   to the worker.
-2. Use bounded `SECURITY DEFINER` operations for event publication,
+   alerts, ingestion-audit rows, and notification intents. Existing rows with
+   unresolved source lineage remain NULL and must stay inaccessible to the
+   worker. Migration 407 protects anomaly-receipt reservation and outcome
+   writes through bounded functions; its signed-scope, source-lineage,
+   idempotency, and privilege acceptance passed on disposable PostgreSQL 16.
+2. Add bounded `SECURITY DEFINER` operations for event publication,
    notification-intent creation, and actuation-intent creation. Do not grant
    direct mutation of event lease/delivery state or notification attempt state
    to the anomaly worker.
@@ -182,10 +186,12 @@ Before implementing the first database permissions:
    No base application RLS or candidate rollout follows automatically.
 
 Migrations 405 and 406 implement the identity primitive and additive source
-lineage columns, and the Python context adapter can set the signed scope. No
-relation-specific worker view, policy, bounded effect function, or dispatcher
-integration exists yet. The next permission migration must grant no access to
-the shared runtime or existing event/notification dispatchers.
+lineage columns. Migration 407 adds bounded anomaly-receipt reserve/outcome
+functions to the dormant worker execution role; nine disposable acceptance
+checks pass. The Python context adapter can set the signed scope, but no worker
+login or dispatcher integration exists. Event publication, notification
+intent, and actuation intent still need bounded functions. No access is granted
+to the shared runtime or existing event/notification dispatchers.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.
@@ -203,15 +209,21 @@ producer against this contract.
    transaction state and canonical selectors, hashes the credential in memory,
    clears prior context, calls the database setter through the dedicated role,
    and returns typed scope. It never reads a credential from event/job payloads.
-3. Integrate only the sensor-reading handler after its credential is isolated
+3. **Complete:** migration 407 adds a separate non-login function owner and
+   signed-scope checked receipt reserve/outcome functions. Disposable
+   PostgreSQL 16 acceptance verifies event/reading/device/rule/location
+   agreement, duplicate suppression, valid transitions, alert-link checks,
+   privilege separation, and replay. These functions remain dormant until
+   worker credentials and handler transaction integration are ready.
+4. Integrate only the sensor-reading handler after its credential is isolated
    from unrelated dispatch, add a regression inventory for
    producers and dispatch, and add disposable PostgreSQL checks for valid grant,
    cross-location denial, inactive/transfer/revocation denial, stale-context
    clearing, same-transaction signature, and transaction cleanup.
-4. Provision an isolated worker login/credential in a restored disposable
+5. Provision an isolated worker login/credential in a restored disposable
    database. Verify it cannot read worker grants, sign operator context, issue
    another worker identity, or access unrelated tenant rows.
-5. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
+6. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
 
@@ -233,6 +245,12 @@ gates.
   context.
 - Source event ID and sensor row are joined and checked against the verified
   location before alert processing.
+- Migration 407's receipt functions require signed `sensor_reading/process`
+  location scope, bind the event and reading to the same source/device, require
+  an enabled rule, suppress duplicates, permit only one `no_match` transition,
+  and validate any linked alert. Nine disposable PostgreSQL 16 checks pass;
+  the worker execution role has no direct receipt-table privileges. The
+  functions are not called by the handler yet.
 - Event receipt semantics, idempotency, retries, and outbox effects remain
   unchanged under disposable PostgreSQL and source-level checks.
 - Migration 405 is tested only in a disposable database. No migration is

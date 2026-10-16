@@ -1994,3 +1994,14 @@ image compatibility only. No live ClickHouse profile, projection parity,
 Directus bootstrap/hooks/authorization, or physical Raspberry Pi behavior was
 tested; capability row statuses and MAN-CAP acceptance counts are unchanged
 ([evidence](builds/2026-10-16-recovery/kernel-arm64-optional-profiles.json)).
+
+### CAP-040/047 bounded anomaly receipt functions — 16 October 2026
+
+Migration 407 adds signed-location reservation and outcome functions behind a
+dedicated non-login owner. Disposable PostgreSQL 16 acceptance passed nine
+checks, including event/source/device/rule matching, replay suppression,
+outcome and alert-link validation, runtime/auth separation, and no direct
+worker table access. The functions are not wired into the handler and no worker
+login, candidate rollout, or RLS policy is enabled; no MAN-CAP row is accepted
+([migration](../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).

@@ -6389,3 +6389,29 @@ Security #71 passed on the preceding pushed head
 ([migration](../schemas/postgres/406_sensor_anomaly_location_lineage.sql);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-location-lineage.json);
 [runner](../scripts/check-sensor-anomaly-location-lineage-disposable.py)).
+
+### Bounded sensor anomaly receipt functions — 16 October 2026
+
+Migration 407 adds two `SECURITY DEFINER` functions for reserving a
+`sensor_anomaly_effect` receipt and recording its `cooldown` or `alert_created`
+outcome. They require the exact signed `sensor_reading/process` location scope,
+match event type/table/source, payload location and every supplied sensor
+selector against the reading and device, and require an enabled rule. Duplicate
+reservations are suppressed; only a matching `no_match` row can transition.
+Alert links must match the same reading, rule, device, and location. A dedicated
+non-login owner receives only the required source-read and receipt column
+privileges; `kokonut_worker_execution` receives only `EXECUTE` and cannot
+directly read or mutate receipt rows. Runtime and operator-auth roles have no
+function `EXECUTE`.
+
+All nine focused acceptance checks passed against disposable PostgreSQL 16,
+including wrong/missing scope, selector/source/rule denials, duplicate and
+transition replay, invalid and cross-location alert links, privilege checks,
+and migration replay. Ruff, Python compilation, and diff checks pass. The
+functions remain dormant: no handler/dispatcher integration, worker credential,
+candidate rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and
+legacy databases were not contacted
+([migration](../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
+[fixture](../tests/fixtures/sensor_anomaly_effect_functions_disposable.sql);
+[runner](../scripts/check-sensor-anomaly-effect-functions-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).

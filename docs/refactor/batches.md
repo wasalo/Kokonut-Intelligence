@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (16 October 2026):** 395 checklist items complete and 19
-open (414 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
+**Current snapshot (16 October 2026):** 396 checklist items complete and 19
+open (415 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
 baseline-retained, 7 deployed, and 4 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -786,8 +786,9 @@ reporting views.
 - [ ] Extend the tenant map for any additional locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
-  Migration 405 and the worker adapter have disposable database acceptance;
-  handler integration and per-worker credential isolation, control-plane
+  Migrations 405 and 407 and the worker adapter have disposable database
+  acceptance; the 407 receipt functions remain dormant. Handler integration
+  and per-worker credential isolation, control-plane
   separation, remaining operation scopes, and application-table RLS acceptance
   remain open
   ([contract](worker-tenant-context-contract.md)).
@@ -800,6 +801,7 @@ reporting views.
   `mobile_collection_review:read` are required for the same location.
   Focused tests cover every helper and command path. Worker and remaining CLI
   review is still open.
+  - [x] Add and verify migration 407's dormant signed-scope anomaly receipt functions. Nine disposable PostgreSQL 16 checks pass for scope and source matching, duplicate suppression, allowed transitions, alert linkage, privilege separation, and migration replay. This does not integrate the handler, provision a worker login, roll out to the candidate, or enable RLS ([migration](../../schemas/postgres/407_sensor_anomaly_effect_functions.sql); [runner](../../scripts/check-sensor-anomaly-effect-functions-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
   - [x] Add this operations overview with exact dual-grant route policy, same-transaction signed tenant context, SQL scope rechecks, and a content-free queue summary. The 83-test service/route/console check passes; live OIDC, database-role, and browser acceptance remain open ([console contract](kernel-operations-console.md); [evidence](builds/2026-10-14-recovery/mobile-operations-inventory-route.json)).
   - [x] Ignore stale inventory responses and errors after the operator changes locations, so an older request cannot replace the selected location's view ([evidence](builds/2026-10-15-recovery/operator-inventory-stale-response-guard.json)).
   - [x] Add direct service regressions for the OIDC report-review queue/detail
