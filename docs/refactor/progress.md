@@ -6004,3 +6004,23 @@ compilation, and diff validation pass. No provider container or credential was
 used; hostname selection, live login, browser flow, and real resource behavior
 remain open ([evidence](builds/2026-10-16-recovery/zitadel-arm64-profile.json);
 [deployment plan](zitadel-provider.md)).
+
+### Scheduler worker PostgreSQL reconnect — 16 October 2026
+
+The current-source scheduler worker completed a tick against a loopback-only
+disposable PostgreSQL instance, remained alive while the database container was
+stopped, then reconnected and completed another tick after restart. The
+scheduler engine was stubbed, so this verifies process and connection recovery
+only; lease/task recovery, provider delivery, scale, and long-duration behavior
+remain open. The no-volume disposable container was removed; the candidate and
+legacy databases were not involved ([evidence](builds/2026-10-16-recovery/scheduler-worker-postgres-reconnect.json)).
+
+### Runtime SQL and worker source inventory refresh — 16 October 2026
+
+Regenerated the direct-SQL inventory and verified its freshness. It now records
+3,797 execution sites across 806 service files, including 257 worker-linked
+sites and 1,033 regex-derived relation candidates. Worker source closure,
+function reachability, SQL reachability, boundary preflight, worker SQL
+inventory, and runtime SQL inventory checks all pass. This is static review
+evidence; it does not prove authorization, role isolation, tenant context, or
+RLS safety ([inventory evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh.json)).

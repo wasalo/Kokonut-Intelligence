@@ -115,6 +115,14 @@ MAN-CAP-040/047 remain
 open ([dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
 [inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json)).
 
+**16 October 2026 scheduler worker outage recovery (CAP-040 / CAP-047):** a
+current-source disposable PostgreSQL stop/start check confirms the scheduler
+worker remains alive through the connection outage and completes ticks before
+and after recovery. The scheduler engine was stubbed, so the check does not
+exercise task SQL, lease ownership/reclaim, provider delivery, or long-duration
+recovery. No MAN-CAP status changed
+([evidence](builds/2026-10-16-recovery/scheduler-worker-postgres-reconnect.json)).
+
 **15 October 2026 ARM64 candidate profile (CAP-047):** the planner now selects
 an isolated ARM64 app/PostGIS profile for minimal, edge, and standard; analytics
 and optional service images remain blocked pending architecture verification.
@@ -266,14 +274,14 @@ through 397 and no application-table RLS. The later candidate state is recorded
 below; implementation progress does not accept any named MAN-CAP check
 ([historical evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
-The current runtime SQL inventory covers 3,795 direct execution sites across
+The current runtime SQL inventory covers 3,797 direct execution sites across
 806 service modules, includes summaries for 67 packages, and identifies 1,033
 regex-derived relation-name candidates. Literal SQLAlchemy `text()` and
 psycopg `SQL()` wrappers are unwrapped; 111 statement kinds, 23 `WITH`
-statements, 333 sites without relation candidates, 456 non-literal sites, and
+statements, 335 sites without relation candidates, 456 non-literal sites, and
 dynamic or indirect paths require review before narrowing runtime grants. The
 report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
-[latest evidence](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json);
+[latest evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh.json);
 [previous evidence](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
 
 **Last recorded GitHub status (CAP-001 / CAP-047 / CAP-053), checked 15 October:**

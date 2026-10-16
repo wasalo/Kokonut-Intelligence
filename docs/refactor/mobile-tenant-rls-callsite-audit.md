@@ -1,6 +1,6 @@
 # Field Collector tenant and RLS call-site audit
 
-Updated: 15 October 2026
+Updated: 16 October 2026 (static SQL inventory refreshed)
 
 ## Finding
 
@@ -22,7 +22,10 @@ the retention and legal-hold tables empty and did not recreate the candidate
 app. The candidate reports 393 applied schema migrations through 402, zero
 pending, health 200, and a protected-route 401. No migration enables
 application-table RLS, which remains
-disabled. Migration 395 removes runtime-role access to
+disabled. The current generated service SQL inventory records 3,797 call sites
+across 806 Python modules, with 257 sites linked to 20 worker operation roots;
+it is a static review aid, not a grant allowlist
+([inventory](runtime-sql-inventory.json); [refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh.json)). Migration 395 removes runtime-role access to
 `operator_session` and gives OIDC a separate auth login for bounded session
 functions. Runtime provisioning
 now limits `mobile_device` and `mobile_device_enrollment` to explicit column

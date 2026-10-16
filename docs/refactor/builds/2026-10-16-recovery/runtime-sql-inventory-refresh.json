@@ -1,0 +1,29 @@
+{
+  "checked_at_utc": "2026-10-16T03:48:32Z",
+  "source_revision": "397d64d",
+  "command": "python3 scripts/runtime_sql_inventory.py --output docs/refactor/runtime-sql-inventory.json",
+  "freshness_check": "python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json",
+  "freshness_check_result": "passed",
+  "inventory_summary": {
+    "source_files": 806,
+    "execution_sites": 3797,
+    "worker_operation_roots": 20,
+    "sites_with_worker_operation_refs": 257,
+    "relation_candidates": 1033,
+    "sites_without_relation_candidates": 335,
+    "non_literal_sites": 456,
+    "service_packages": 67
+  },
+  "refresh_delta_from_previous_artifact": {
+    "previous_execution_sites": 3795,
+    "current_execution_sites": 3797,
+    "location_keys_added": 43,
+    "location_keys_removed": 43,
+    "changed_records_at_same_source_location": 0
+  },
+  "limitations": [
+    "This is a static Python SQL call-site inventory with regex-derived relation candidates; it is not a SQL parser, query-reachability proof, authorization check, or database grant allowlist.",
+    "ORM, extension, dynamic, and external database effects remain outside the inventory's completeness guarantee.",
+    "No database was accessed or modified."
+  ]
+}
