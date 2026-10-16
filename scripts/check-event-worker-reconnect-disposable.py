@@ -126,10 +126,12 @@ def _start_loopback_webhook() -> tuple[
     ThreadingHTTPServer,
     threading.Thread,
     queue.Queue[dict[str, str]],
+    threading.Event,
 ]:
     received: queue.Queue[dict[str, str]] = queue.Queue()
     request_number = 0
     request_lock = threading.Lock()
+    release_crash_probe = threading.Event()
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
@@ -138,17 +140,30 @@ def _start_loopback_webhook() -> tuple[
             payload = self.rfile.read(size).decode("utf-8")
             with request_lock:
                 request_number += 1
+                current_request = request_number
                 status_code = 503 if request_number == 1 else 200
             received.put(
                 {
                     "idempotency_key": self.headers.get("Idempotency-Key", ""),
                     "payload": payload,
                     "status_code": str(status_code),
+                    "request_number": str(current_request),
                 }
             )
+            if current_request == 4:
+                # Model a receiver that has accepted the request while the
+                # sender loses its connection before receiving the response.
+                release_crash_probe.wait(timeout=30)
             self.send_response(status_code)
             self.end_headers()
-            self.wfile.write(b"temporarily unavailable" if status_code == 503 else b"accepted")
+            try:
+                self.wfile.write(
+                    b"temporarily unavailable" if status_code == 503 else b"accepted"
+                )
+            except OSError:
+                # The crash probe intentionally kills the sender before this
+                # response is released.
+                pass
 
         def log_message(self, format: str, *args: object) -> None:
             return
@@ -156,7 +171,7 @@ def _start_loopback_webhook() -> tuple[
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    return server, thread, received
+    return server, thread, received, release_crash_probe
 
 
 def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, str]:
@@ -222,6 +237,16 @@ def _make_notification_retryable_now(name: str, notification_id: str) -> None:
         raise RuntimeError("failed to release the synthetic notification retry")
 
 
+def _expire_notification_lease(name: str, notification_id: str) -> None:
+    updated_id = _sql(
+        name,
+        "UPDATE notification_outbox SET lease_expires_at = NOW() - INTERVAL '1 second' "
+        f"WHERE id = '{notification_id}' AND status = 'processing' RETURNING id",
+    )
+    if updated_id != notification_id:
+        raise RuntimeError("failed to expire the killed worker's notification lease")
+
+
 def main() -> int:
     image = os.environ.get("EVENT_WORKER_RECONNECT_POSTGRES_IMAGE", "postgres:16-alpine")
     timeout = float(os.environ.get("EVENT_WORKER_RECONNECT_TIMEOUT", "30"))
@@ -236,6 +261,7 @@ def main() -> int:
     webhook_server: ThreadingHTTPServer | None = None
     webhook_thread: threading.Thread | None = None
     webhook_requests: queue.Queue[dict[str, str]] | None = None
+    release_crash_probe: threading.Event | None = None
     result: dict[str, object] = {
         "date": datetime.now(timezone.utc).date().isoformat(),
         "database_image": image,
@@ -287,7 +313,12 @@ def main() -> int:
                 check=True,
                 stdin=sql,
             )
-        webhook_server, webhook_thread, webhook_requests = _start_loopback_webhook()
+        (
+            webhook_server,
+            webhook_thread,
+            webhook_requests,
+            release_crash_probe,
+        ) = _start_loopback_webhook()
 
         env = os.environ.copy()
         env.update(
@@ -394,6 +425,67 @@ raise SystemExit(cmd_worker(args))
         if notification_before == notification_after:
             raise RuntimeError("distinct events reused a notification idempotency key")
 
+        event_during_worker_crash = _enqueue(name, event_type)
+        crash_worker, crash_handler_status = _wait_for_completed(
+            name, event_during_worker_crash, timeout
+        )
+        if crash_worker != worker_id or crash_handler_status != "success":
+            raise RuntimeError("crash-probe event did not complete through the allowlisted handler")
+        notification_during_crash = _wait_for_notification_state(
+            name, event_during_worker_crash, "processing", "processing", timeout
+        )
+        assert webhook_requests is not None
+        accepted_before_crash = _wait_for_webhook(webhook_requests, timeout)
+        if accepted_before_crash["request_number"] != "4":
+            raise RuntimeError("crash probe did not reach the expected blocked webhook request")
+        if accepted_before_crash["idempotency_key"] != notification_during_crash:
+            raise RuntimeError("crash-probe request used the wrong notification idempotency key")
+        if process is None or process.poll() is not None:
+            raise RuntimeError("EventBus worker exited before the crash-probe request")
+        process.kill()
+        process.wait(timeout=5)
+        assert release_crash_probe is not None
+        release_crash_probe.set()
+        _expire_notification_lease(name, notification_during_crash)
+
+        recovery = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "services.events",
+                "--notification-process",
+                "--worker-id",
+                "event-notification-crash-recovery",
+                "--batch-size",
+                "10",
+            ],
+            cwd=ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=False,
+        )
+        if recovery.returncode:
+            raise RuntimeError("replacement notification worker failed its one-shot batch")
+        if _wait_for_notification_state(
+            name, event_during_worker_crash, "succeeded", "succeeded", timeout
+        ) != notification_during_crash:
+            raise RuntimeError("worker-crash recovery changed the notification identity")
+        retry_after_crash = _wait_for_webhook(webhook_requests, timeout)
+        if retry_after_crash["request_number"] != "5":
+            raise RuntimeError("replacement worker did not make the expected second delivery")
+        if retry_after_crash["idempotency_key"] != accepted_before_crash["idempotency_key"]:
+            raise RuntimeError("worker-crash delivery did not reuse the notification idempotency key")
+        attempt_history = _sql(
+            name,
+            "SELECT string_agg(status, ',' ORDER BY attempt_number) "
+            "FROM notification_outbox_attempt "
+            f"WHERE outbox_id = '{notification_during_crash}'",
+        )
+        if attempt_history != "lease_lost,succeeded":
+            raise RuntimeError("worker-crash attempt history was not lease_lost then succeeded")
+
         result.update(
             {
                 "result": "passed",
@@ -409,8 +501,12 @@ raise SystemExit(cmd_worker(args))
                 "latest_notification_attempts_succeeded": True,
                 "notification_retry_after_transient_failure": True,
                 "retry_reused_idempotency_key": True,
+                "worker_killed_before_notification_ack": True,
+                "worker_crash_lease_reclaimed": True,
+                "duplicate_delivery_reused_idempotency_key": True,
+                "worker_crash_attempt_history": attempt_history,
                 "source_notification_idempotency_keys_distinct": True,
-                "loopback_webhook_calls": 3,
+                "loopback_webhook_calls": 5,
                 "worker_id": worker_id,
                 "migrations_replayed": [
                     "116_event_bus.sql",
@@ -421,7 +517,8 @@ raise SystemExit(cmd_worker(args))
                     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
                     "The real allowlisted alert-notification handler ran in its spawned child process and queued webhooks to a temporary HTTP server bound to 127.0.0.1; no remote provider was contacted.",
                     "The local server returned one synthetic 503, then accepted the retry and the post-restart notification. The first notification recovered from retryable/failed to succeeded/succeeded; its retry reused the same durable notification ID as the idempotency key.",
-                    "All three loopback requests carried the matching durable notification IDs as idempotency keys; the two source events used distinct IDs.",
+                    "A third notification request was received while its worker was blocked before receiving the HTTP response. The process was killed, its lease expired in the fixture, and a one-shot replacement worker reclaimed it; the attempt history was lease_lost then succeeded, and the duplicate request reused the same idempotency key.",
+                    "All five loopback requests carried their matching durable notification IDs as idempotency keys; retries reused the source notification ID, while the three source events used distinct IDs.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
             }
@@ -435,6 +532,8 @@ raise SystemExit(cmd_worker(args))
                 process.kill()
                 process.wait(timeout=5)
         _docker("rm", "--force", name, check=False)
+        if release_crash_probe is not None:
+            release_crash_probe.set()
         if webhook_server is not None:
             webhook_server.shutdown()
             webhook_server.server_close()
