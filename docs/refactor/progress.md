@@ -6725,4 +6725,5 @@ diff checks pass ([evidence](builds/2026-10-16-recovery/notification-handler-loc
 This value is non-authoritative event-payload lineage: it does not authorize
 tenant access or establish signed worker context. No database or provider was
 contacted; the capability matrix and MAN-CAP statuses are unchanged. The
-checklist now records 411 complete items and 19 open.
+checklist now records 411 complete items and 19 open. The batch is pushed in
+commit `30f9966`; Security #89 passed and CI #365 is pending.

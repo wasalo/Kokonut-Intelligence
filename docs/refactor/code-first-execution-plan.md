@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Batch base head:** `2d27f57a65c6d3fc384a2e3081d88b5b4d532fb3` on PR #68; Security is green and CI is in progress.
-**Current local batch:** Migration 415 and the signed, default-off EventBus cache invalidation path are pushed. Seventy-four focused cache/EventBus tests and six network-isolated PostgreSQL 16 checks pass; all worker/source/SQL inventory checks are current. The local notification-lineage follow-up now passes 14 focused mocked tests, Ruff, and compilation. The 411 checked / 19 open checklist and 66-row capability matrix are updated. No cache worker credential or active location grant is provisioned, the candidate has not received migration 415, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No database or migration changed. Real worker identity, generic outbox authorization, provider delivery, and other worker scopes remain open.
+**Batch base head:** `30f996624ad9e9f4f908b41f1d5f55b86efb2620` on PR #68; Security #89 passed and CI #365 is pending.
+**Current local batch:** Migration 415 and the signed, default-off EventBus cache invalidation path are pushed. Seventy-four focused cache/EventBus tests and six network-isolated PostgreSQL 16 checks pass; all worker/source/SQL inventory checks are current. The notification-lineage follow-up is included in pushed commit `30f9966` and passes 14 focused mocked tests, Ruff, and compilation. The 411 checked / 19 open checklist and 66-row capability matrix are updated. No cache worker credential or active location grant is provisioned, the candidate has not received migration 415, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No database or migration changed. Real worker identity, generic outbox authorization, provider delivery, and other worker scopes remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -776,9 +776,7 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related changes in local commits and push reviewable batches, as
-requested. The latest pushed batch is `2d27f57`; Security #38964945498 passed
-and CI #38964945460 is running. The notification-lineage change described at
-the top of this plan is locally verified but not yet committed or pushed.
-Continue independent code-first work while CI runs.
+requested. The latest pushed batch is `30f9966`; Security #89 passed and CI
+#365 is pending. Continue independent code-first work while CI runs.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.
