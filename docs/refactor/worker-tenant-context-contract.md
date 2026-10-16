@@ -130,9 +130,11 @@ preserve exact source/event/location matching, idempotent effects, read-only
 alert-rule references, caller-owned transaction semantics, and human-approved
 actuation. Event execution skips default-rule bootstrap; the interactive CLI
 retains it. Queue claim, lease, acknowledgement, retry, and dead-letter work
-remain in the control-plane boundary. The source integration passes seven
-end-to-end checks on disposable PostgreSQL; real worker provisioning and
-candidate rollout remain open. Isolated EventBus crash/recovery now passes.
+remain in the control-plane boundary. The current end-to-end runner passes
+eight checks on disposable PostgreSQL, including an EventBus child crash after
+commit followed by attempt-two recovery without duplicate effects. Real
+deployment credential, login, location grant, and candidate rollout remain
+open.
 
 The first location-lineage source change is in
 `services/ingestion/anomaly_detector.py`. Migration 405 adds private worker
@@ -241,32 +243,29 @@ the authorization contract:
   event execution reads existing rules without creating global configuration.
   Focused regressions verify both paths.
 
-The signed worker operation must authorize the location-bound table access and
-route shared queue/audit mutations through bounded database operations. A
-single `sensor_reading:process` grant does not by itself authorize global
-notification, event-bus, or audit writes. Before handler integration, map each
-effect to a tenant-qualified row policy or a database function that derives
-scope from the signed context; keep event claim/receipt and queue acknowledgement
-in the separate control-plane identity. Any database-backed effect added to
-this handler must use the same transaction or a bounded function that preserves
-that transaction boundary.
+Migration 414 now maps each sensor-anomaly effect to a bounded operation that
+derives scope from signed context. A single `sensor_reading:process` grant does
+not authorize global notification, EventBus, or audit writes; those effects use
+dedicated functions and preserve the caller's transaction. Event claim, lease,
+acknowledgement, retry, and dead-letter state stay in the separate control-plane
+identity. This contract does not authorize other worker handlers or global
+application-table RLS.
 
 The detailed [sensor anomaly effect contract](worker-sensor-anomaly-effects.json)
-now records the source-visible read/write set and the required boundary for each
-relation. It is a proposed authorization contract, not a grant list or evidence
-that those checks run in PostgreSQL. In particular, it separates global
-read-only alert-rule/sensor-type references from location-bound data and treats
-event queue state, notification delivery, and actuation delivery as distinct
-control-plane work.
+records the source-visible read/write set and required boundary for each
+relation. Migrations 405–414 and the integrated worker enforce and exercise
+the anomaly slice in disposable PostgreSQL; the document is still not a grant
+list for other workers. It separates global read-only alert-rule and sensor-type
+references from location-bound data and treats event queue state, notification
+delivery, and actuation delivery as distinct operations.
 
 Remaining worker-permission work before broader integration:
 
-1. Enforce the direct location keys added by migration 406 for tenant-owned
-   alerts, ingestion-audit rows, and notification intents. Existing rows with
-   unresolved source lineage remain NULL and must stay inaccessible to the
-   worker. Migration 407 protects anomaly-receipt reservation and outcome
-   writes through bounded functions; its signed-scope, source-lineage,
-   idempotency, and privilege acceptance passed on disposable PostgreSQL 16.
+1. **Complete for the sensor-anomaly handler:** migration 406 adds direct
+   location lineage, migration 407 bounds receipt reservation/outcomes, and
+   migrations 413–414 bind alert creation and ingestion audit to signed source
+   context. Unresolved historical rows remain inaccessible to the worker.
+   Other workers' location lineage still needs its own review.
 2. **Complete:** migration 408 adds a bounded canonical sensor-alert event
    publisher. It derives payload and priority from the matching alert/receipt,
    inserts a pending event, handles identical retries, rejects ID conflicts,
@@ -276,8 +275,8 @@ Remaining worker-permission work before broader integration:
    the existing webhook, Directus, and email payload shapes. It validates the
    signed source/alert linkage, fixes the destination key, limits fields and
    payload size, inserts pending intent only, and preserves delivery state on
-   retry. Twelve disposable PostgreSQL 16 checks pass. The handler remains
-   unwired and must publish the alert event before enqueueing notification.
+   retry. Twelve disposable PostgreSQL 16 checks pass. Migration 414 wires the
+   handler to publish the alert event before enqueueing notification.
 4. **Complete:** migration 410 adds a separate non-login
    actuation-function owner and `create_sensor_alert_actuation_intent`. It
    validates the source event, reading, receipt, alert, recorded alert event,
@@ -293,9 +292,10 @@ Remaining worker-permission work before broader integration:
    the alert. It validates signed scope and the `alert_created` source receipt,
    inserts only a `draft` claim, links the claim to the alert, and can adopt the
    exact legacy-linked claim without changing its lifecycle or review state.
-   The future handler must call it after recording the alert receipt and before building
-   downstream notification intent data. The alert-event payload itself omits
-   `claim_id`; notification and actuation intents follow event publication.
+   Migration 414 calls it after recording the alert receipt and before
+   constructing downstream notification intent data. The alert-event payload
+   itself omits `claim_id`; notification and actuation intents follow event
+   publication.
    Fourteen focused disposable PostgreSQL 16 checks pass, including replay,
    role boundaries, and direct-table denial.
 6. **Complete:** migration 412 adds read-only source, rule, metric/history, and
@@ -310,9 +310,10 @@ Remaining worker-permission work before broader integration:
    worker must not submit, verify, publish, reject, or transmit actuator
    commands. Eight end-to-end checks pass, including process crash after
    handler commit and attempt-two recovery without duplicate effects.
-8. Provision an isolated worker login/credential in a restored disposable
-   database. Verify that it cannot read worker grants, sign operator context,
-   issue another worker identity, or access unrelated tenant rows.
+8. **Complete in disposable PostgreSQL:** provision a synthetic isolated worker
+   login/credential and verify that it cannot read worker grants, sign operator
+   context, issue another worker identity, or access unrelated tenant rows.
+   Real deployment login, credential, and grant provisioning remain open.
 9. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
@@ -323,25 +324,22 @@ uniqueness, retry preservation after approval/delivery state changes, role
 separation, direct table denial, and migration replay. No base application RLS
 or candidate rollout follows automatically.
 
-Migrations 405 and 406 implement the identity primitive and additive source
-lineage columns. Migration 407 adds bounded anomaly-receipt reserve/outcome
-functions; nine disposable acceptance checks pass. Migration 408 adds the
-canonical alert-event publisher; eleven checks pass. Migration 409 adds the
-bounded notification-intent function; twelve checks pass. Migration 410 adds
-the bounded actuation-intent function, accepted in fifteen disposable checks.
-Migration 411 adds the bounded draft-claim function; fourteen disposable
-PostgreSQL acceptance checks pass. Migration 412 adds bounded anomaly reads;
-ten disposable PostgreSQL acceptance checks pass. The Python context adapter
-can set signed scope, but no worker login or dispatcher integration exists. No
-access is granted to the shared runtime or existing event/notification
-dispatchers.
+Migrations 405–414 implement and disposable-check the signed sensor-anomaly
+worker path, including source reads, receipt transitions, alert/audit creation,
+draft claims, canonical event publication, notification intents, and
+approval-required actuation intents. The handler uses a worker-specific DSN and
+credential supplied only by the exact EventBus allowlist entry. Disposable
+acceptance also verifies that the worker login cannot directly access protected
+tables or use unrelated tenant rows. A real deployment login, secret, and
+active location grant have not been provisioned. No access is granted to the
+shared runtime or existing event/notification dispatchers.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.
-The sensor source row remains authoritative: the handler must compare the
-payload selector with its database row after context is established. Before
-implementation, reconcile any alternate or external `sensor_reading` event
-producer against this contract.
+The sensor source row remains authoritative, and the integrated handler
+compares payload selectors against it after context is established. Reconcile
+any alternate or external `sensor_reading` producer before extending this
+authorization contract to it.
 
 ## Planned code and migration sequence
 
@@ -356,8 +354,8 @@ producer against this contract.
    signed-scope checked receipt reserve/outcome functions. Disposable
    PostgreSQL 16 acceptance verifies event/reading/device/rule/location
    agreement, duplicate suppression, valid transitions, alert-link checks,
-   privilege separation, and replay. These functions remain dormant until
-   worker credentials and handler transaction integration are ready.
+   privilege separation, and replay. Migration 414 calls these functions
+   through the integrated worker in disposable acceptance.
 4. **Complete:** migration 408 adds a separate non-login event-function owner
    and `publish_sensor_alert_event`. It derives canonical event content from a
    signed-scope alert and `alert_created` receipt, inserts a pending event with
@@ -378,14 +376,15 @@ producer against this contract.
    rules, metric/history evaluation, and cooldown reads; ten disposable
    PostgreSQL 16 checks pass for signed scope, forced RLS, metric results,
    role boundaries, and replay.
-9. Integrate only the sensor-reading handler after its credential is isolated
-   from unrelated dispatch, add a regression inventory for producers and
-   dispatch, and add disposable PostgreSQL checks for valid grant,
-   cross-location denial, inactive/transfer/revocation denial, stale-context
-   clearing, same-transaction signature, and transaction cleanup.
-10. Provision an isolated worker login/credential in a restored disposable
-   database. Verify it cannot read worker grants, sign operator context, issue
-   another worker identity, or access unrelated tenant rows.
+9. **Complete:** integrate the sensor-reading handler after isolating its
+   credential from unrelated dispatch; retain event/source/location checks,
+   same-transaction effects, retry coverage, and producer/dispatch regression
+   inventories. Eight end-to-end disposable checks pass.
+10. **Complete in disposable PostgreSQL:** provision a synthetic isolated
+    worker login/credential and verify it cannot read worker grants, sign
+    operator context, issue another worker identity, or access unrelated tenant
+    rows. Provisioning real deployment identities and secrets remains an
+    activation gate.
 11. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
@@ -397,9 +396,10 @@ gates.
 
 ## Acceptance for the first slice
 
-- Missing/malformed location and invalid scope fail before the worker setter
-  call or provider construction. The Python adapter requires a separate secret
-  argument; handler-level missing-credential denial remains unintegrated.
+- Missing/malformed location and missing/invalid worker credential fail before
+  scoped database operations. The handler obtains a separate secret from the
+  worker-only environment and validates it before opening the worker DB; the
+  source/unit and disposable suites cover this boundary.
 - Database-selected tenant scope matches the current owner and exact worker
   resource/action grant; caller tenant input is never accepted. Migration 405
   acceptance verifies the exact scope in disposable PostgreSQL.
@@ -412,14 +412,14 @@ gates.
   location scope, bind the event and reading to the same source/device, require
   an enabled rule, suppress duplicates, permit only one `no_match` transition,
   and validate any linked alert. Nine disposable PostgreSQL 16 checks pass;
-  the worker execution role has no direct receipt-table privileges. The
-  functions are not called by the handler yet.
+  the worker execution role has no direct receipt-table privileges. Migration
+  414 calls them through the integrated handler.
 - Migration 408's event publisher accepts only an alert linked to a matching
   `alert_created` receipt under the signed source location. It derives the
   event payload and critical priority from canonical records, inserts a
   pending event, verifies stable-ID replays, and cannot read or mutate global
-  queue rows directly. Eleven disposable PostgreSQL 16 checks pass; handler
-  dispatch remains unchanged.
+  queue rows directly. Eleven disposable PostgreSQL 16 checks pass; migration
+  414 calls the publisher through the integrated handler.
 - Migration 409's notification-intent function accepts only the matching
   signed source/alert receipt and published sensor-alert event. It fixes the
   destination key, allowlists channel payload fields, enforces a 16 KiB limit,

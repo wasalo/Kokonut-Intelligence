@@ -1,9 +1,11 @@
 # Sensor anomaly idempotency and delivery
 
 Status: the signed worker integration is implemented and passed eight
-synthetic end-to-end PostgreSQL 16 checks. The separate crash/replay exercise
-below passed against the earlier handler path; it does not yet establish live
-process recovery for the new signed adapter. Broader event-bus, provider, and
+synthetic end-to-end PostgreSQL 16 checks, including an EventBus child-process
+crash after effects commit and attempt-two recovery without duplicate effects.
+This verifies the signed adapter's recovery path against disposable services,
+not a deployed credential, candidate database, external provider, or
+long-duration production recovery window. Broader event-bus, provider, and
 Batch 2 acceptance gates remain open.
 
 ## Event processing boundary

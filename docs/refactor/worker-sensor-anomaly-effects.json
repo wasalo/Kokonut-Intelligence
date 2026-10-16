@@ -22,7 +22,7 @@
       "access": "select_source_event; insert_sensor_alert_event",
       "class": "tenant_source_and_control_plane_intent",
       "required_boundary": "Read only the requested sensor_reading source event whose type, source table, source ID, payload location, and joined reading all agree with signed scope. Publish only the sensor_alert intent through a bounded function that verifies the signed location and alert row. Never expose claim, lease, retry, delivery-receipt, or dead-letter mutation to this operation.",
-      "current_enforcement": "Migrations 412 and 414 provide bounded source-read and canonical sensor-alert publication functions. The integrated worker uses these functions in the same transaction as alert and notification intents. EventBus grants worker DSN/credential forwarding only to the exact anomaly handler. Queue lease, retry, delivery-receipt, and dead-letter mutation remain outside this operation; live process crash/recovery on the new adapter remains open."
+      "current_enforcement": "Migrations 412 and 414 provide bounded source-read and canonical sensor-alert publication functions. The integrated worker uses these functions in the same transaction as alert and notification intents. EventBus grants worker DSN/credential forwarding only to the exact anomaly handler. Queue lease, retry, delivery-receipt, and dead-letter mutation remain outside this operation. Disposable EventBus child-process crash/recovery passes for the signed adapter; production credential and runtime recovery remain open."
     },
     {
       "relation": "public.sensor_reading",
@@ -64,14 +64,14 @@
       "access": "select_cooldown; insert; update_claim_link",
       "class": "tenant_data",
       "required_boundary": "Cooldown reads must remain within the signed location and device. Inserts must match the source device, reading, and location. The only update is linking the newly created alert to its newly created draft claim.",
-      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migration 412 bounds cooldown reads to an enabled rule/device pair at signed location. Migrations 408 and 411 bound canonical alert-event publication and claim linking. Migration 413 atomically creates the location-bound alert, appends audit, and advances the receipt. The integrated worker calls these operations plus draft-claim creation in one transaction; it has no direct sensor_alert SELECT/INSERT/UPDATE access. Seven disposable end-to-end checks pass under forced RLS."
+      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migration 412 bounds cooldown reads to an enabled rule/device pair at signed location. Migrations 408 and 411 bound canonical alert-event publication and claim linking. Migration 413 atomically creates the location-bound alert, appends audit, and advances the receipt. The integrated worker calls these operations plus draft-claim creation in one transaction; it has no direct sensor_alert SELECT/INSERT/UPDATE access. Eight disposable end-to-end checks pass under forced RLS, including EventBus child-process crash and retry recovery."
     },
     {
       "relation": "public.sensor_anomaly_effect",
       "access": "insert_receipt; update_outcome",
       "class": "tenant_idempotency_state",
       "required_boundary": "Insert/update only the receipt for the signed source reading, source event, and rule. Preserve unique-key retry suppression; unresolved or cross-location source lineage must fail closed.",
-      "current_enforcement": "Migration 406 adds nullable location_id; unresolved history remains NULL. Migration 407 provides bounded reserve/outcome functions validating signed location, event payload selectors, reading, device, rule, and alert linkage. The integrated worker uses them inside its one transaction; no worker login or direct receipt-table privilege is provisioned."
+      "current_enforcement": "Migration 406 adds nullable location_id; unresolved history remains NULL. Migration 407 provides bounded reserve/outcome functions validating signed location, event payload selectors, reading, device, rule, and alert linkage. The integrated worker uses them inside its one transaction; disposable acceptance provisions a synthetic login and confirms no direct receipt-table privilege. No real deployment login is provisioned."
     },
     {
       "relation": "public.mrv_claim",
