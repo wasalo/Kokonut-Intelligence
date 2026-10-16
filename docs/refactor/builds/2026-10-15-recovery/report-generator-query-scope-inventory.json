@@ -3,23 +3,24 @@
   "scope": "Source-only AST inventory of direct registered report query calls; no runtime or authorization claims.",
   "result": "passed",
   "inventory_path": "docs/refactor/report-generator-query-scope-inventory.json",
-  "inventory_sha256": "3ca8ae7a8d154b4073ef0b8d3b27d6645e76df76bf44466bab6cc3d4a3252d18",
+  "inventory_sha256": "432248e522462857735293cbeec4bd5f7cacc7b8713f9f117db062f96b4bdf42",
   "counts": {
     "registered_report_types": 94,
     "direct_query_sites": 177,
-    "query_sites_with_bound_location_scope_signal": 125,
+    "query_sites_with_bound_location_scope_signal": 126,
     "conditional_scope_query_sites": 5,
     "unresolved_query_sites": 0,
     "classification_counts": {
-      "all_direct_queries_show_bound_location_scope": 33,
+      "all_direct_queries_show_bound_location_scope": 34,
       "conditional_direct_query_scope": 3,
       "helper_or_computed_without_direct_query": 28,
-      "mixed_direct_query_scope": 17,
+      "mixed_direct_query_scope": 16,
       "no_bound_location_scope_visible": 13
     }
   },
   "checks": {
-    "focused_report_inventory_tests": "8 passed",
+    "query_scope_tests": "7 passed",
+    "report_source_inventory_tests": "2 passed",
     "ruff": "passed",
     "python_compile": "passed",
     "query_scope_inventory_freshness": "passed",

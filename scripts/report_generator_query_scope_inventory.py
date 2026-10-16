@@ -24,6 +24,14 @@ _LOCATION_ROW_LOOKUP = re.compile(
 )
 _INDIRECT_LOCATION_SCOPE = (
     re.compile(
+        r"\bsubject_type\s*=\s*['\"]location['\"][\s\S]*?\bsubject_id\s*=\s*(?:%s|:[a-z_][a-z0-9_]*|\$\d+)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bsubject_id\s*=\s*(?:%s|:[a-z_][a-z0-9_]*|\$\d+)[\s\S]*?\bsubject_type\s*=\s*['\"]location['\"]",
+        re.IGNORECASE,
+    ),
+    re.compile(
         r"\bscope_type\s*=\s*['\"]location['\"][\s\S]*?\bscope_id\s*=\s*(?:%s|:[a-z_][a-z0-9_]*|\$\d+)",
         re.IGNORECASE,
     ),

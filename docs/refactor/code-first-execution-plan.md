@@ -41,8 +41,9 @@ MAN-CAP checks open until each has its own retained evidence.
   The database role remains capable of writes outside this guarded path, and
   populated report output parity remains open. An AST-only inventory now maps
   all 94 registered generators to source locations and declared inputs. A
-  second inventory maps 177 direct query sites: 125 show a bound location-scope
-  signal, while conditional, mixed, no-signal, and helper-only report paths
+  second inventory maps 177 direct query sites: 126 show a bound location-scope
+  signal, including attestation queries bound by `subject_type='location'` and
+  `subject_id`. Conditional, mixed, no-signal, and helper-only report paths
   still need scope-contract review. Neither inventory proves tenant isolation
   or semantic parity. Direct queue/detail service tests
   also verify the OIDC report-review tenant-context and cleanup contract.

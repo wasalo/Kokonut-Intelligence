@@ -112,6 +112,32 @@ def generate(conn, location_id):
     assert all(query["indirect_location_scope_visible"] for query in analysis["queries"])
 
 
+def test_classifier_recognizes_location_subject_id_scope():
+    analysis = analyze_function_source(
+        '''
+def generate(conn, location_id):
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT * FROM attestation_record "
+        "WHERE subject_type = 'location' AND subject_id = %s",
+        (location_id,),
+    )
+    cur.execute(
+        "SELECT * FROM attestation_record "
+        "WHERE subject_type = 'person' AND subject_id = %s",
+        (location_id,),
+    )
+''',
+        "generate",
+    )
+
+    assert analysis["direct_query_count"] == 2
+    assert analysis["queries_with_bound_location_scope_signal"] == 1
+    assert analysis["queries"][0]["indirect_location_scope_visible"] is True
+    assert analysis["queries"][0]["bound_location_scope_signal"] is True
+    assert analysis["queries"][1]["indirect_location_scope_visible"] is False
+
+
 def test_registry_wide_inventory_links_direct_queries_to_actual_source_lines():
     inventory = build_inventory()
 
