@@ -235,12 +235,14 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI and Gitleaks are running on pushed SHA
-`46945f72176535b33caec52ae67336a2b3b0a577`; the preceding pushed revision
-passed both checks. The latest local batch also passes 25 focused profile and
-Compose checks, Ruff, compilation, matrix validation, and the SQL inventory
-freshness check. The retained ARM64 evidence covers software emulation only;
-live provider and production acceptance remain separate gates.
+**Action:** CI #330 is in progress and Security #54 passed on pushed SHA
+`fb835f141b8105df32206a6b889abff99c0c3806`; the preceding pushed revision
+passed both checks. The latest local commits `03b949b` and `3f804f7` add
+disposable PostgreSQL restart recovery for the KGP and EventBus workers. The
+KGP script plus four focused tests, the EventBus runtime script plus 20 focused
+tests, Ruff, compilation, and capability-matrix validation pass locally. The
+retained ARM64 evidence covers software emulation only; live provider and
+production acceptance remain separate gates.
 
 **Acceptance:** require passing CI and Security on the current PR head before
 merging. The scheduler runtime acceptance is source/disposable evidence only;
@@ -706,8 +708,9 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The current push is `46945f7`; CI and Gitleaks are running on that
-head. Continue local work while those checks run and accumulate related changes
+requested. The current push is `fb835f1`; CI #330 is in progress and Security
+#54 passed on that head. Local commits `03b949b` and `3f804f7` are waiting for
+the next batch push. Continue local work while CI runs and accumulate related changes
 before the next push so the repository does
 not start CI for each small commit. Never push directly to
 `main`. Keep each candidate database
