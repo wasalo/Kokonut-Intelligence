@@ -14,6 +14,9 @@
   "task_before_restart_completed": true,
   "task_after_restart_completed": true,
   "both_runs_claimed_by_same_worker": true,
+  "scheduler_worker_killed_after_claim": true,
+  "scheduler_task_lease_reclaimed": true,
+  "scheduler_crash_run_history": "failed,scheduler-engine-crash-probe,1;completed,scheduler-engine-crash-recovery,2",
   "task_command": "python -m services.events --process --batch-size 10",
   "external_provider_calls": 0,
   "migrations_replayed": [
@@ -27,7 +30,8 @@
   "limitations": [
     "Only the scheduler, event bus, and durable ownership migrations were replayed; the full schema ledger was not applied.",
     "The bounded task ran EventBus processing against an empty synthetic queue; no domain provider or external service ran.",
-    "The outage occurred between completed tasks, so this does not test recovery or lease reclaim after a worker dies mid-task.",
+    "The crash probe killed the scheduler after its durable lease claim but before it launched the task subprocess. Lease expiry was forced in the disposable database rather than waiting the configured timeout; the replacement worker ran the bounded task successfully as attempt two.",
+    "The synthetic task processes an empty EventBus queue; this does not test duplicate domain effects after a task subprocess commits and the scheduler crashes before recording completion.",
     "The PostgreSQL container had no volume and was bound only to loopback."
   ]
 }

@@ -127,6 +127,29 @@ def _wait_for_completed(name: str, task_id: str, timeout: float) -> str:
     raise TimeoutError("SchedulerEngine did not complete the synthetic task")
 
 
+def _wait_for_running_claim(
+    name: str,
+    task_id: str,
+    worker_id: str,
+    process: subprocess.Popen[str],
+    timeout: float,
+) -> str:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(f"claiming scheduler worker exited with status {process.returncode}")
+        run_id = _sql(
+            name,
+            "SELECT id FROM task_run "
+            f"WHERE task_id = '{task_id}' AND status = 'running' "
+            f"AND worker_id = '{worker_id}' ORDER BY started_at DESC LIMIT 1",
+        )
+        if run_id:
+            return run_id
+        time.sleep(0.25)
+    raise TimeoutError("scheduler crash probe did not persist its task lease")
+
+
 def main() -> int:
     image = os.environ.get("SCHEDULER_ENGINE_RECONNECT_POSTGRES_IMAGE", "postgres:16-alpine")
     timeout = float(os.environ.get("SCHEDULER_ENGINE_RECONNECT_TIMEOUT", "45"))
@@ -252,6 +275,80 @@ run_worker(tick_interval=1, worker_id={worker_id!r})
         if second_worker != worker_id:
             raise RuntimeError("post-outage task was not claimed by the probe worker")
 
+        crash_task = _create_task(name, "crash")
+        crash_worker_id = "scheduler-engine-crash-probe"
+        crash_code = f"""
+import time
+from services.common.database import get_db
+from services.scheduler.engine import SchedulerEngine
+
+connection = get_db(connect_timeout=5)
+engine = SchedulerEngine(connection, worker_id={crash_worker_id!r})
+claim = engine._claim_next()
+if claim is None:
+    raise SystemExit("no due task was claimed")
+print(claim[0], flush=True)
+time.sleep(60)
+"""
+        crash_process = subprocess.Popen(
+            [sys.executable, "-u", "-c", crash_code],
+            cwd=ROOT,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            first_run_id = _wait_for_running_claim(
+                name, crash_task, crash_worker_id, crash_process, timeout
+            )
+            crash_process.kill()
+            crash_process.wait(timeout=5)
+            expired = _sql(
+                name,
+                "UPDATE scheduled_task SET lease_expires_at = NOW() - INTERVAL '1 second' "
+                f"WHERE id = '{crash_task}' AND lease_owner = '{crash_worker_id}' "
+                f"AND lease_token = '{first_run_id}' "
+                "RETURNING id",
+            )
+            if expired != crash_task:
+                raise RuntimeError("failed to expire the crashed scheduler task lease")
+            reclaim_code = """
+import json
+from services.scheduler.worker import _run_tick
+
+print(json.dumps(_run_tick("scheduler-engine-crash-recovery")), flush=True)
+"""
+            reclaim = subprocess.run(
+                [sys.executable, "-u", "-c", reclaim_code],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            if reclaim.returncode:
+                raise RuntimeError("replacement scheduler worker failed its recovery tick")
+            run_history = _sql(
+                name,
+                "SELECT string_agg(status || ',' || COALESCE(worker_id, '') || ',' "
+                "|| attempt_count::text, ';' ORDER BY started_at) "
+                f"FROM task_run WHERE task_id = '{crash_task}'",
+            )
+            expected_history = (
+                "failed,scheduler-engine-crash-probe,1;"
+                "completed,scheduler-engine-crash-recovery,2"
+            )
+            if run_history != expected_history:
+                raise RuntimeError(
+                    f"unexpected scheduler crash/reclaim history: {run_history}"
+                )
+        finally:
+            if crash_process.poll() is None:
+                crash_process.kill()
+                crash_process.wait(timeout=5)
+
         result.update(
             {
                 "result": "passed",
@@ -261,13 +358,17 @@ run_worker(tick_interval=1, worker_id={worker_id!r})
                 "task_before_restart_completed": True,
                 "task_after_restart_completed": True,
                 "both_runs_claimed_by_same_worker": True,
+                "scheduler_worker_killed_after_claim": True,
+                "scheduler_task_lease_reclaimed": True,
+                "scheduler_crash_run_history": run_history,
                 "task_command": "python -m services.events --process --batch-size 10",
                 "worker_id": worker_id,
                 "migrations_replayed": list(migrations),
                 "limitations": [
                     "Only the scheduler, event bus, and durable ownership migrations were replayed; the full schema ledger was not applied.",
                     "The bounded task ran EventBus processing against an empty synthetic queue; no domain provider or external service ran.",
-                    "The outage occurred between completed tasks, so this does not test recovery or lease reclaim after a worker dies mid-task.",
+                    "The crash probe killed the scheduler after its durable lease claim but before it launched the task subprocess. Lease expiry was forced in the disposable database rather than waiting the configured timeout; the replacement worker ran the bounded task successfully as attempt two.",
+                    "The synthetic task processes an empty EventBus queue; this does not test duplicate domain effects after a task subprocess commits and the scheduler crashes before recording completion.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
             }
