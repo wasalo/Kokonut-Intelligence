@@ -14,6 +14,20 @@
     "non_literal_sites": 480,
     "service_packages": 67
   },
+  "worker_sql_reachability": {
+    "operation_roots": 20,
+    "source_files": 81,
+    "execution_sites": 267,
+    "literal_execution_sites": 227,
+    "composed_or_variable_execution_sites": 40,
+    "function_memberships": 382,
+    "direct_call_edges": 528,
+    "dynamic_dispatch_edges": 20,
+    "statically_reachable_site_memberships": 222,
+    "unique_sites_with_static_operation_path": 203,
+    "sites_without_static_function_match": 64,
+    "sites_reached_by_multiple_operations": 7
+  },
   "checks": [
     {
       "name": "worker_source_closure",

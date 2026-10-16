@@ -28,10 +28,17 @@ tenant-preflight updates. All six static checks pass: worker source closure,
 function reachability, SQL reachability, boundary preflight, worker SQL
 inventory, and runtime SQL inventory freshness. The report now records 3,862
 SQL execution sites across 815 Python service files, 267 worker-linked sites,
-and 1,041 regex-derived relation candidates. It flags 134 unknown statements,
-24 `WITH` sites requiring review, 370 sites with no relation candidates, and
-480 non-literal calls. These counts guide review; they do not form an ACL or
-prove tenant isolation. No candidate or legacy database was accessed
+and 1,041 regex-derived relation candidates. The worker graph has 20 operation
+roots across 81 files, 267 SQL sites, 227 literal and 40 composed/variable
+sites, 203 unique sites with static operation paths, and 64 unmatched functions.
+All 40 composed/variable worker SQL sites now have source-pattern review; their
+statement fragments come from fixed code paths or module constants, and data
+values are bound parameters. This still does not establish least-privilege
+database grants or tenant isolation.
+The runtime report flags 134 unknown statements, 24 `WITH` sites requiring
+review, 370 sites with no relation candidates, and 480 non-literal calls. These
+counts guide review; they do not form an ACL or prove tenant isolation. No
+candidate or legacy database was accessed
 ([inventory](runtime-sql-inventory.json);
 [evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)).
 

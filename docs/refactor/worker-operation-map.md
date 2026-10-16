@@ -64,26 +64,25 @@ enforced by database grants or policies.
   callback edge follows the EventBus's statically named multiprocessing target
   to `_handler_process` and its local resolver. It also follows callbacks
   passed to the shared `services.common.cli.run(main)` wrapper. Across 20
-  operation roots, entry functions reach 391 function memberships through
-  534 direct-call, one callback, and 20 registry-dispatch edges, with no unresolved
+  operation roots and 81 source files, entry functions reach 382 function
+  memberships through 528 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 257
-  Python `.execute` sites in those 77 files. It fingerprints 220 literal
-  statements and flags 37 f-string/composed/variable statements; three
-  generic adapter statements have an unknown leading kind. Candidate relation tokens are
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 267
+  Python `.execute` sites in those 81 files. It fingerprints 227 literal
+  statements and flags 40 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 257 sites to the operation graph without including SQL text or
-  values. It links 196 unique sites across 239 operation/site memberships;
-  61 sites have no current static function match, and each belongs to a
+  joins those 267 sites to the operation graph without including SQL text or
+  values. It links 203 unique sites across 222 operation/site memberships;
+  64 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -198,11 +197,15 @@ enforced by database grants or policies.
 ## What remains open
 
 This map, import closure, SQL inventories, effect candidates, job-template
-comparison, and argument
-schemas are not an ACL, tenant policy, or complete dynamic call graph. All 37 composed/variable sites
-have source-pattern review; the static call graph follows local instance types
-and the explicit metric registry, but 36 SQL sites still have no direct static
-function match. It does not account for all callback/provider dispatch,
+comparison, and argument schemas are not an ACL, tenant policy, or complete
+dynamic call graph. Source-pattern review now covers all 40 composed/variable
+SQL sites: the prior 36-site review, the remote-sensing update builder, signed
+context cleanup, and the anomaly worker's generic query wrappers. All values
+remain parameterized and statement fragments come from fixed source constants.
+Keep this review current as the inventory changes. The static call graph
+follows local instance types and the explicit metric registry, but 64 SQL sites
+still have no direct static function match.
+It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map
 also does not prove that external Prefect/host schedules are inactive or that
 effects are replay-safe on populated data.

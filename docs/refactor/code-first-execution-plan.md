@@ -404,7 +404,7 @@ before protected reads and writes, and make direct database access fail closed.
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
   preflight confirms all 20 allowlisted roots and imports, reports the shared
-  runtime identity and 61 SQL sites without static function matches,
+  runtime identity and 64 SQL sites without static function matches,
   and keeps RLS blocked. The complementary aggregate tenant preflight now
   reports pending/current-source checksum drift counts, connected-role
   superuser/BYPASSRLS and public DML/RLS indicators, and enabled scheduler

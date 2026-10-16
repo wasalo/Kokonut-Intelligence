@@ -167,8 +167,8 @@ dispatch before process creation. Sixty-eight
 dispatcher/command checks and Ruff pass with subprocesses substituted. The
 runtime SQL inventory now covers 806 service source files. A follow-up worker
 inventory refresh after dynamic-retention, projection, and remote-sensing
-contracts now records 257 SQL sites across 20 roots, including four
-event-retention queries. The source-only JobSpec inventory now distinguishes
+contracts recorded 257 SQL sites across 20 roots and 77 source files,
+including four event-retention queries. The source-only JobSpec inventory now distinguishes
 10 accepted default argument lists, four validated per-schedule location
 inputs for climate, weather, metrics, and credit adjustment, and the still-missing
 recurring sensor source contract. External-provider operations remain limited to explicit
@@ -2178,3 +2178,17 @@ not change MAN-CAP status ([adapter](../services/ingestion/sensor_anomaly_worker
 [migration](../schemas/postgres/414_sensor_anomaly_worker_delivery.sql);
 [runner](../scripts/check-sensor-anomaly-worker-delivery-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json)).
+
+### CAP-040/047 worker SQL inventory reconciliation — 16 October 2026
+
+The current static inventories cover 20 operation roots, 81 source files, and
+267 SQL execution sites. The call graph links 203 unique sites across 222
+operation/site memberships and leaves 64 without a static function match.
+Source-pattern review now covers all 40 composed/variable SQL sites, including
+the signed-context cleanup and anomaly worker query wrappers added with the
+integration. These are review aids only: no least-privilege grants, worker
+credential, candidate rollout, or application RLS was added, and no MAN-CAP
+status changes ([source map](worker-operation-map.md);
+[SQL inventory](worker-sql-inventory.json);
+[reachability](worker-sql-reachability.json);
+[refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)).

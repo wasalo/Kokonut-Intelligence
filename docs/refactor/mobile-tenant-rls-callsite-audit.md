@@ -23,10 +23,12 @@ informational KGP policy projection and did not recreate the candidate app. The
 candidate reports 394 applied schema migrations through 403, zero pending,
 health 200, and a protected-route 401. No migration enables application-table
 RLS, which remains disabled. The current generated service SQL inventory
-records 3,799 call sites
-across 807 Python modules, with 257 sites linked to 20 worker operation roots;
-it is a static review aid, not a grant allowlist
-([inventory](runtime-sql-inventory.json); [refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh.json)). Migration 395 removes runtime-role access to
+records 3,862 call sites across 815 Python modules, with 267 sites linked to
+20 worker operation roots across 81 source files. The worker SQL graph links 203
+unique sites to static operation paths and leaves 64 without a static function
+match; these counts are review aids, not an authorization allowlist or proof of
+tenant isolation. It is a static review aid, not a grant allowlist
+([inventory](runtime-sql-inventory.json); [refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)). Migration 395 removes runtime-role access to
 `operator_session` and gives OIDC a separate auth login for bounded session
 functions. Runtime provisioning
 now limits `mobile_device` and `mobile_device_enrollment` to explicit column
