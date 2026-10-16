@@ -132,7 +132,10 @@ def test_event_run_check_filters_source_reading_by_location_and_stops_on_mismatc
 
     statement, params = cursor.execute.call_args.args
     assert "sr.location_id = %s::uuid" in statement
-    assert params == (event_id, location_id)
+    assert "e.payload ->> 'location_id' = %s" in statement
+    assert "e.payload ->> 'sensor_id' = sr.sensor_id::TEXT" in statement
+    assert "e.payload ->> 'sensor_device_id' = sr.sensor_id::TEXT" in statement
+    assert params == (event_id, location_id, location_id)
     db.close.assert_called_once()
 
 
@@ -156,7 +159,7 @@ def test_event_run_check_accepts_source_reading_at_requested_location():
         run_check(sensor_id="sensor-1", event_id=event_id, location_id=location_id)
 
     assert cursor.execute.call_count == 2
-    assert cursor.execute.call_args_list[0].args[1] == (event_id, location_id)
+    assert cursor.execute.call_args_list[0].args[1] == (event_id, location_id, location_id)
     db.close.assert_called_once()
 
 
@@ -181,6 +184,77 @@ def test_event_run_check_does_not_bootstrap_shared_alert_rules():
 
     ensure_rules.assert_not_called()
     db.close.assert_called_once()
+
+
+def test_create_alert_records_the_authoritative_location_and_rejects_stale_device_scope():
+    from services.ingestion.anomaly_detector import create_alert
+
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = ("alert-1",)
+
+    result = create_alert(
+        db, "device-1", "rule-1", "reading-1", "warning", "Synthetic alert",
+        12.5, 15.0, location_id=location_id,
+    )
+
+    assert result == "alert-1"
+    statement, parameters = cursor.execute.call_args.args
+    assert "COALESCE(%s::uuid, device.location_id)" in statement
+    assert "device.location_id = %s::uuid" in statement
+    assert "reading.sensor_id::text = device.id::text" in statement
+    assert "reading.location_id = device.location_id" in statement
+    assert parameters[0] == location_id
+    assert parameters[-4:] == (location_id, location_id, location_id, "reading-1")
+
+    cursor.fetchone.return_value = None
+    with pytest.raises(ValueError, match="not assigned to the source location"):
+        create_alert(
+            db, "device-1", "rule-1", "reading-1", "warning", "Synthetic alert",
+            12.5, 15.0, location_id=location_id,
+        )
+
+
+def test_ingestion_log_writer_persists_optional_location_lineage():
+    from services.ingestion.base import log_ingestion
+
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    location_id = "a0000000-0000-0000-0000-000000000001"
+
+    log_ingestion(
+        source_system="anomaly_detector",
+        source_table="sensor_reading",
+        source_id="reading-1",
+        target_table="sensor_alert",
+        target_id="alert-1",
+        operation="insert",
+        payload_hash="a" * 64,
+        db=db,
+        location_id=location_id,
+    )
+
+    statement, parameters = cursor.execute.call_args.args
+    assert "dedupe_key, location_id)" in statement
+    assert parameters[-1] == location_id
+    db.commit.assert_not_called()
+    db.close.assert_not_called()
+
+
+def test_anomaly_cooldown_query_can_be_scoped_to_location():
+    from services.ingestion.anomaly_detector import check_cooldown
+
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = None
+    location_id = "a0000000-0000-0000-0000-000000000001"
+
+    assert check_cooldown(db, "rule-1", "device-1", 30, location_id=location_id) is False
+
+    statement, parameters = cursor.execute.call_args.args
+    assert "location_id = %s::uuid" in statement
+    assert parameters == ("rule-1", "device-1", location_id, location_id)
 
 
 def test_interactive_run_check_keeps_default_alert_rule_bootstrap():
@@ -232,7 +306,7 @@ def test_anomaly_event_publishes_without_committing_the_handler_transaction():
         patch("services.ingestion.anomaly_detector.check_cooldown", return_value=False),
         patch("services.ingestion.anomaly_detector.evaluate_metric", return_value=True),
         patch("services.ingestion.anomaly_detector.create_alert", return_value="alert-1"),
-        patch("services.ingestion.anomaly_detector.log_ingestion"),
+        patch("services.ingestion.anomaly_detector.log_ingestion") as log_ingestion,
         patch(
             "services.ingestion.anomaly_detector.get_sensor_device_info",
             return_value={
@@ -242,7 +316,7 @@ def test_anomaly_event_publishes_without_committing_the_handler_transaction():
                 "location_id": location_id,
             },
         ),
-        patch("services.events.notification_outbox.enqueue_event_notification"),
+        patch("services.events.notification_outbox.enqueue_event_notification") as enqueue_notification,
         patch("services.ingestion.anomaly_detector.send_actuation_commands"),
         patch("services.events.bus.EventBus", return_value=event_bus),
     ):
@@ -250,6 +324,15 @@ def test_anomaly_event_publishes_without_committing_the_handler_transaction():
 
     event_bus.publish.assert_called_once()
     assert event_bus.publish.call_args.kwargs["commit"] is False
+    effect_insert = next(
+        call for call in cursor.execute.call_args_list
+        if "INSERT INTO sensor_anomaly_effect" in call.args[0]
+    )
+    assert effect_insert.args[1] == (location_id, "reading-1", "rule-1", event_id)
+    log_ingestion.assert_called_once()
+    assert log_ingestion.call_args.kwargs["location_id"] == location_id
+    enqueue_notification.assert_called_once()
+    assert enqueue_notification.call_args.kwargs["location_id"] == location_id
     db.commit.assert_called_once()
     db.close.assert_called_once()
 

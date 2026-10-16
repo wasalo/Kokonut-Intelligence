@@ -146,6 +146,7 @@ def log_ingestion(
     validation_warnings: Optional[list[str]] = None,
     dedupe_key: Optional[str] = None,
     db=None,
+    location_id: Optional[str] = None,
 ) -> None:
     """Log ingestion event to the ingestion_log table."""
     owns_db = db is None
@@ -159,9 +160,9 @@ def log_ingestion(
                     (source_system, source_table, source_id, target_table, target_id,
                      operation, payload_hash, status, error_message, rows_affected,
                      processing_time_ms, processor_version, batch_id, validation_status,
-                     validation_errors, validation_warnings, dedupe_key)
+                     validation_errors, validation_warnings, dedupe_key, location_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                        %s::jsonb, %s::jsonb, %s)
+                        %s::jsonb, %s::jsonb, %s, %s::uuid)
                 """,
                 (
                     source_system, source_table, source_id, target_table, target_id,
@@ -169,7 +170,7 @@ def log_ingestion(
                     processing_time_ms, processor_version or INGESTION_PROCESSOR_VERSION,
                     batch_id, validation_status,
                     json.dumps(validation_errors or []), json.dumps(validation_warnings or []),
-                    dedupe_key,
+                    dedupe_key, location_id,
                 ),
             )
         if owns_db:

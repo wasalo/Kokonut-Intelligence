@@ -1,0 +1,16 @@
+{
+  "checked_at": "2026-10-16T15:42:04.057890+00:00",
+  "postgres_image": "postgres:16",
+  "migration": "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+  "candidate_or_legacy_database_touched": false,
+  "checks": [
+    "migration 406 applies and replays idempotently on PostgreSQL 16",
+    "sensor alerts backfill only from matching device and reading; missing readings stay unresolved",
+    "anomaly receipts require matching event/source/location and every supplied sensor selector",
+    "ingestion audit rows use matching reading/alert lineage; conflicts remain NULL",
+    "notification intents backfill only from a matching linked alert and event location",
+    "new direct location keys reject unknown locations",
+    "application alert binds device, reading, and location; audit/outbox helpers preserve location scope"
+  ],
+  "result": "passed"
+}

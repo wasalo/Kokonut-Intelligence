@@ -22,14 +22,14 @@
       "access": "select_source_event; insert_sensor_alert_event",
       "class": "tenant_source_and_control_plane_intent",
       "required_boundary": "Read only the requested sensor_reading source event whose type, source table, source ID, payload location, and joined reading all agree with signed scope. Publish only the sensor_alert intent through a bounded function that verifies the signed location and alert row. Never expose claim, lease, retry, delivery-receipt, or dead-letter mutation to this operation.",
-      "current_enforcement": "Application source query checks event type/table and reading location; event publication is a direct INSERT through the shared EventBus connection. No worker SQL permission exists."
+      "current_enforcement": "Application source query checks event type/table, source ID, payload location, every supplied sensor selector, and joined reading location; event publication is a direct INSERT through the shared EventBus connection. No worker SQL permission exists."
     },
     {
       "relation": "public.sensor_reading",
       "access": "select",
       "class": "tenant_data",
       "required_boundary": "Read only the event source row at the signed location; event ID, event type, source table, sensor ID, and location must match.",
-      "current_enforcement": "The source query binds the event ID and location; signed worker context is not wired to the handler."
+      "current_enforcement": "The source query binds the event ID and requires the payload location and every supplied sensor selector to agree with the reading; signed worker context is not wired to the handler."
     },
     {
       "relation": "public.alert_rule",
@@ -57,21 +57,21 @@
       "access": "select_name",
       "class": "tenant_data",
       "required_boundary": "Read the current authorized location's display name only; owner/tenant resolution remains in the signed context setter.",
-      "current_enforcement": "A device metadata join reads location; it is not signed-context constrained."
+      "current_enforcement": "The event path constrains the device metadata join to the source location; it is not signed-context constrained."
     },
     {
       "relation": "public.sensor_alert",
       "access": "select_cooldown; insert; update_claim_link",
       "class": "tenant_data",
       "required_boundary": "Cooldown reads must remain within the signed location and device. Inserts must match the source device, reading, and location. The only update is linking the newly created alert to its newly created draft claim.",
-      "current_enforcement": "Cooldown and insert are direct SQL; the table has no location_id column, so a reviewed relation check or additive location key is required."
+      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Event cooldown reads and new inserts bind to the source location; worker SQL permissions are not implemented."
     },
     {
       "relation": "public.sensor_anomaly_effect",
       "access": "insert_receipt; update_outcome",
       "class": "tenant_idempotency_state",
       "required_boundary": "Insert/update only the receipt for the signed source reading, source event, and rule. Preserve unique-key retry suppression; unresolved or cross-location source lineage must fail closed.",
-      "current_enforcement": "Direct INSERT/UPDATE uses reading and event IDs; the table has no location_id column or worker policy."
+      "current_enforcement": "Migration 406 adds a nullable location_id and backfills only receipts with matching source event, payload, and reading. New receipts and updates bind location, event, reading, and rule; no worker policy exists."
     },
     {
       "relation": "public.mrv_claim",
@@ -85,14 +85,14 @@
       "access": "insert_anomaly_audit",
       "class": "tenant_audit",
       "required_boundary": "Append an audit row for the signed location and source reading. The operation must not update or delete prior audit rows.",
-      "current_enforcement": "The handler writes through log_ingestion on its connection; ingestion_log has no location_id column."
+      "current_enforcement": "Migration 406 adds a nullable location_id; anomaly log writes pass the verified device/source location. Unresolved history remains NULL, and no worker INSERT boundary exists."
     },
     {
       "relation": "public.notification_outbox",
       "access": "insert_sensor_alert_intent",
       "class": "tenant_notification_intent",
       "required_boundary": "Enqueue an intent for the signed location and newly published sensor_alert event. Do not claim, edit, replay, dispose, or deliver notification rows or attempts.",
-      "current_enforcement": "The handler inserts an outbox intent directly before publishing the event; notification_outbox has no location_id column. Delivery has a separate worker."
+      "current_enforcement": "Migration 406 adds a nullable location_id and backfills through the linked sensor_alert event. The anomaly handler persists canonical location on enqueue and rejects conflicting retry scope; direct insertion remains and delivery has a separate worker."
     },
     {
       "relation": "public.actuation_log",
@@ -105,7 +105,7 @@
   "implementation_constraints": [
     "Do not grant the shared kokonut_runtime role worker execution or worker authorization-table access.",
     "Prefer bounded SECURITY DEFINER functions for shared event/notification intents and other writes that otherwise expose global queue state.",
-    "Add or validate location lineage before worker authorization; preserve historic rows whose source relation is no longer available and keep them inaccessible to this worker.",
+    "Migration 406 adds nullable direct location lineage and leaves unresolved history NULL; before worker authorization, enforce these keys and keep NULL rows inaccessible to this worker.",
     "Do not enable application-table FORCE ROW LEVEL SECURITY or roll migration changes onto the candidate as part of this source contract.",
     "Worker credentials must be isolated by operation at deployment before any dispatcher integration."
   ]

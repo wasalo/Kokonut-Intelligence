@@ -166,9 +166,10 @@ control-plane work.
 
 Before implementing the first database permissions:
 
-1. Add a durable location key or a bounded relation check for each tenant-owned
-   receipt, alert, ingestion-audit, and notification-intent row. Existing
-   rows with unresolved source lineage must stay inaccessible to the worker.
+1. Enforce the direct location keys added by migration 406 for tenant-owned
+   receipts, alerts, ingestion-audit rows, and notification intents. Existing
+   rows with unresolved source lineage remain NULL and must stay inaccessible
+   to the worker.
 2. Use bounded `SECURITY DEFINER` operations for event publication,
    notification-intent creation, and actuation-intent creation. Do not grant
    direct mutation of event lease/delivery state or notification attempt state
@@ -180,10 +181,11 @@ Before implementing the first database permissions:
    malformed lineage, duplicate/retry, owner transfer, and denied-write cases.
    No base application RLS or candidate rollout follows automatically.
 
-Migration 405 and the Python context adapter implement the identity primitive,
-but no relation-specific worker view, policy, or bounded effect function has
-been added yet. The next migration must be additive and grant no access to the
-shared runtime or existing event/notification dispatchers.
+Migrations 405 and 406 implement the identity primitive and additive source
+lineage columns, and the Python context adapter can set the signed scope. No
+relation-specific worker view, policy, bounded effect function, or dispatcher
+integration exists yet. The next permission migration must grant no access to
+the shared runtime or existing event/notification dispatchers.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.

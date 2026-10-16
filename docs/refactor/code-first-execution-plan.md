@@ -2,9 +2,9 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Remote head before this local batch:** `a0ec3f450e1e372f16a038709e470c6270859891`
-**Status at batch start (checked 16 October 2026):** Security #70 passed and CI #346 was running ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38920450888); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38920451041)).
-**Latest pushed batch:** `a0ec3f450e1e372f16a038709e470c6270859891`; Security #70 passed and CI #346 was running when this batch began.
+**Remote head before this local batch:** `78580cd445b773afa47bf18573041b5db4a9b183`
+**Status at batch start (checked 16 October 2026):** Security #71 passed and CI #347 was running ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38921940434); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38921940426)).
+**Latest pushed batch:** `78580cd445b773afa47bf18573041b5db4a9b183`; Security #71 passed and CI #347 was running when this batch began.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -15,19 +15,21 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **394 checked and 19 open items (413 total)**,
+- The execution checklist has **395 checked and 19 open items (414 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
-- Latest pushed work on 16 October is recorded in commits `0bafc419`
+- Latest pushed work on 16 October includes commits `0bafc419`
   (anomaly handler source and transaction boundaries), `4e471638`
-  (signed worker tenant context), and `a0ec3f45` (batch status refresh).
-  Security #70 passed and CI #346 is running on `a0ec3f45`. The current local
-  batch records the source-visible effect contract for the anomaly handler:
-  12 read/write relations, proposed row boundaries, and separate control-plane
-  effects. It grants no access and does not wire dispatch. Twelve focused
-  worker-map tests pass, as do Ruff and capability-matrix validation.
+  (signed worker tenant context), `a0ec3f45` (batch status refresh), and
+  `78580cd4` (proposed anomaly effect contract). Security #71 passed and CI
+  #347 is running on `78580cd4`. The current local batch adds migration 406's
+  direct location lineage and writes those keys from the anomaly event path.
+  Unresolved history remains NULL; this adds no worker grants, RLS, or dispatch
+  integration. Seventy-three focused anomaly, outbox, worker-map, and migration
+  tests plus seven disposable PostgreSQL checks pass, along with Ruff and
+  migration-source checks.
   Migration 405 and its adapter pass 17 disposable PostgreSQL acceptance
   checks and unit coverage. The focused anomaly/transaction checks pass.
   Migration 405 is not applied to the candidate, no worker credential or

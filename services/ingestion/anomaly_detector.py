@@ -377,16 +377,23 @@ def evaluate_metric(metric: str, value: float, rule: dict, db, sensor_id: str,
     return False
 
 
-def check_cooldown(db, alert_rule_id: str, sensor_device_id: str, cooldown_minutes: int) -> bool:
+def check_cooldown(
+    db,
+    alert_rule_id: str,
+    sensor_device_id: str,
+    cooldown_minutes: int,
+    location_id: str | None = None,
+) -> bool:
     """Check if alert is in cooldown period. Returns True if still cooling down."""
     with db.cursor() as cur:
         cur.execute(
             """
             SELECT triggered_at FROM sensor_alert
             WHERE alert_rule_id = %s AND sensor_device_id = %s
+              AND (%s::uuid IS NULL OR location_id = %s::uuid)
             ORDER BY triggered_at DESC LIMIT 1
             """,
-            (alert_rule_id, sensor_device_id),
+            (alert_rule_id, sensor_device_id, location_id, location_id),
         )
         row = cur.fetchone()
         if not row:
@@ -402,21 +409,39 @@ def check_cooldown(db, alert_rule_id: str, sensor_device_id: str, cooldown_minut
 
 def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
                  severity: str, message: str, reading_value: float, threshold_value: float,
-                 auto_create_claim: bool = False, claim_type: str = None) -> str:
+                 auto_create_claim: bool = False, claim_type: str = None,
+                 location_id: str | None = None) -> str:
     """Create a sensor alert record. Returns alert ID."""
     with db.cursor() as cur:
         cur.execute(
             """
             INSERT INTO sensor_alert
-                (sensor_device_id, alert_rule_id, reading_id, severity, status,
+                (location_id, sensor_device_id, alert_rule_id, reading_id, severity, status,
                  message, reading_value, threshold_value, triggered_at)
-            VALUES (%s, %s, %s, %s, 'open', %s, %s, %s, NOW())
+            SELECT COALESCE(%s::uuid, device.location_id), device.id, %s, %s, %s,
+                   'open', %s, %s, %s, NOW()
+              FROM sensor_device AS device
+             WHERE device.id = %s
+               AND (%s::uuid IS NULL OR device.location_id = %s::uuid)
+               AND (
+                   %s::uuid IS NULL
+                   OR EXISTS (
+                       SELECT 1 FROM sensor_reading AS reading
+                       WHERE reading.id = %s
+                         AND reading.sensor_id::text = device.id::text
+                         AND reading.location_id = device.location_id
+                   )
+               )
             RETURNING id
             """,
-            (sensor_device_id, alert_rule_id, reading_id, severity,
-             message, reading_value, threshold_value),
+            (location_id, alert_rule_id, reading_id, severity, message,
+             reading_value, threshold_value, sensor_device_id, location_id, location_id,
+             location_id, reading_id),
         )
-        alert_id = str(cur.fetchone()[0])
+        alert_row = cur.fetchone()
+        if alert_row is None:
+            raise ValueError("sensor device is not assigned to the source location")
+        alert_id = str(alert_row[0])
 
         if auto_create_claim and claim_type:
             cur.execute(
@@ -428,6 +453,8 @@ def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
                 FROM sensor_device sd
                 JOIN sensor_reading sr ON sr.id = %s
                 WHERE sd.id = %s
+                  AND sd.location_id = sr.location_id
+                  AND (%s::uuid IS NULL OR sd.location_id = %s::uuid)
                 RETURNING id
                 """,
                 (
@@ -440,6 +467,7 @@ def create_alert(db, sensor_device_id: str, alert_rule_id: str, reading_id: str,
                         "severity": severity,
                     }),
                     sensor_device_id, alert_id, reading_id, sensor_device_id,
+                    location_id, location_id,
                 ),
             )
             claim_row = cur.fetchone()
@@ -612,7 +640,9 @@ def send_actuation_commands(alert_data: dict, db=None) -> None:
             db.close()
 
 
-def get_sensor_device_info(db, sensor_device_id: str) -> dict:
+def get_sensor_device_info(
+    db, sensor_device_id: str, location_id: str | None = None
+) -> dict:
     """Get sensor device details for notification context."""
     with db.cursor() as cur:
         cur.execute(
@@ -623,8 +653,9 @@ def get_sensor_device_info(db, sensor_device_id: str) -> dict:
             JOIN sensor_type st ON sd.sensor_type_id = st.id
             LEFT JOIN location l ON sd.location_id = l.id
             WHERE sd.id = %s
+              AND (%s::uuid IS NULL OR sd.location_id = %s::uuid)
             """,
-            (sensor_device_id,),
+            (sensor_device_id, location_id, location_id),
         )
         row = cur.fetchone()
         if row:
@@ -671,8 +702,21 @@ def run_check(
                     WHERE e.id = %s AND e.event_type = 'sensor_reading'
                       AND e.source_table = 'sensor_reading'
                       AND sr.location_id = %s::uuid
+                      AND e.payload ->> 'location_id' = %s
+                      AND (
+                          e.payload ->> 'sensor_id' = sr.sensor_id::TEXT
+                          OR e.payload ->> 'sensor_device_id' = sr.sensor_id::TEXT
+                      )
+                      AND (
+                          e.payload ->> 'sensor_id' IS NULL
+                          OR e.payload ->> 'sensor_id' = sr.sensor_id::TEXT
+                      )
+                      AND (
+                          e.payload ->> 'sensor_device_id' IS NULL
+                          OR e.payload ->> 'sensor_device_id' = sr.sensor_id::TEXT
+                      )
                     """,
-                    (stable_event_id, requested_location_id),
+                    (stable_event_id, requested_location_id, requested_location_id),
                 )
                 event_reading = cur.fetchone()
             if event_reading is None:
@@ -764,12 +808,13 @@ def run_check(
                         cur.execute(
                             """
                             INSERT INTO sensor_anomaly_effect
-                                (source_reading_id, alert_rule_id, source_event_id, outcome)
-                            VALUES (%s, %s, %s, 'no_match')
+                                (location_id, source_reading_id, alert_rule_id,
+                                 source_event_id, outcome)
+                            VALUES (%s::uuid, %s, %s, %s, 'no_match')
                             ON CONFLICT (source_reading_id, alert_rule_id) DO NOTHING
                             RETURNING source_reading_id
                             """,
-                            (reading_id, rule["id"], stable_event_id),
+                            (requested_location_id, reading_id, rule["id"], stable_event_id),
                         )
                         reserved = cur.fetchone() is not None
                     if not reserved:
@@ -780,7 +825,14 @@ def run_check(
 
                 if sensor_id_val not in sensor_device_cache:
                     with db.cursor() as cur:
-                        cur.execute("SELECT id FROM sensor_device WHERE id::text = %s", (str(sensor_id_val),))
+                        cur.execute(
+                            """
+                            SELECT id FROM sensor_device
+                            WHERE id::text = %s
+                              AND (%s::uuid IS NULL OR location_id = %s::uuid)
+                            """,
+                            (str(sensor_id_val), requested_location_id, requested_location_id),
+                        )
                         row = cur.fetchone()
                         sensor_device_cache[sensor_id_val] = str(row[0]) if row else None
 
@@ -790,7 +842,13 @@ def run_check(
                         raise ValueError("sensor-reading source device is no longer registered")
                     continue
 
-                if check_cooldown(db, rule["id"], sensor_device_id, rule["cooldown_minutes"]):
+                if check_cooldown(
+                    db,
+                    rule["id"],
+                    sensor_device_id,
+                    rule["cooldown_minutes"],
+                    location_id=requested_location_id,
+                ):
                     if stable_event_id is not None:
                         with db.cursor() as cur:
                             cur.execute(
@@ -798,8 +856,9 @@ def run_check(
                                 UPDATE sensor_anomaly_effect
                                 SET outcome = 'cooldown', updated_at = NOW()
                                 WHERE source_reading_id = %s AND alert_rule_id = %s
+                                  AND source_event_id = %s AND location_id = %s::uuid
                                 """,
-                                (reading_id, rule["id"]),
+                                (reading_id, rule["id"], stable_event_id, requested_location_id),
                             )
                     continue
 
@@ -810,7 +869,14 @@ def run_check(
                         db, sensor_device_id, rule["id"], reading_id,
                         rule["severity"], message, value, rule["threshold_value"],
                         rule["auto_create_claim"], rule["claim_type"],
+                        location_id=requested_location_id if stable_event_id is not None else None,
                     )
+
+                    device_info = get_sensor_device_info(
+                        db, sensor_device_id, location_id=requested_location_id
+                    )
+                    if stable_event_id is not None and str(device_info.get("location_id")) != requested_location_id:
+                        raise ValueError("sensor device location no longer matches source reading")
 
                     log_ingestion(
                         source_system="anomaly_detector",
@@ -823,13 +889,17 @@ def run_check(
                         status="success",
                         rows_affected=1,
                         db=db if stable_event_id is not None else None,
+                        location_id=device_info.get("location_id"),
                     )
 
-                    device_info = get_sensor_device_info(db, sensor_device_id)
                     with db.cursor() as cur:
                         cur.execute(
-                            "SELECT claim_id, triggered_at FROM sensor_alert WHERE id = %s",
-                            (alert_id,),
+                            """
+                            SELECT claim_id, triggered_at FROM sensor_alert
+                            WHERE id = %s
+                              AND (%s::uuid IS NULL OR location_id = %s::uuid)
+                            """,
+                            (alert_id, requested_location_id, requested_location_id),
                         )
                         claim_id, triggered_at = cur.fetchone()
                     alert_data = {
@@ -855,8 +925,12 @@ def run_check(
                                 SET outcome = 'alert_created', sensor_alert_id = %s,
                                     updated_at = NOW()
                                 WHERE source_reading_id = %s AND alert_rule_id = %s
+                                  AND source_event_id = %s AND location_id = %s::uuid
                                 """,
-                                (alert_id, reading_id, rule["id"]),
+                                (
+                                    alert_id, reading_id, rule["id"], stable_event_id,
+                                    requested_location_id,
+                                ),
                             )
                         from services.events.notification_outbox import enqueue_event_notification
 
@@ -865,6 +939,7 @@ def run_check(
                             event_id=alert_event_id,
                             event_type="sensor_alert",
                             payload=alert_data,
+                            location_id=device_info.get("location_id"),
                         )
                         send_actuation_commands(alert_data, db=db)
 

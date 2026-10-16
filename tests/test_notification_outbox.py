@@ -64,6 +64,81 @@ def test_completion_database_failure_propagates_without_processing_next_row(monk
     )
 
 
+def test_notification_intent_persists_canonical_location_scope():
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = ("outbox-row",)
+    location_id = "A0000000-0000-0000-0000-000000000001"
+    event_id = "a0000000-0000-0000-0000-000000000002"
+    message = {"subject": "Synthetic alert"}
+
+    with patch.object(
+        notification_outbox,
+        "_notification_payloads",
+        return_value=[("webhook", "primary", message)],
+    ):
+        inserted = notification_outbox.enqueue_event_notification(
+            conn,
+            event_id=event_id,
+            event_type="sensor_alert",
+            payload={"message": "Synthetic alert"},
+            location_id=location_id,
+        )
+
+    assert inserted == 1
+    statement, parameters = cursor.execute.call_args.args
+    assert "payload, location_id)" in statement
+    assert parameters[-1] == location_id.lower()
+
+
+def test_notification_retry_fills_missing_location_lineage_and_rejects_conflict():
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.side_effect = [
+        None,
+        ("sensor_alert", {"subject": "Synthetic alert"}, None),
+    ]
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    event_id = "a0000000-0000-0000-0000-000000000002"
+    message = {"subject": "Synthetic alert"}
+
+    with patch.object(
+        notification_outbox,
+        "_notification_payloads",
+        return_value=[("webhook", "primary", message)],
+    ):
+        inserted = notification_outbox.enqueue_event_notification(
+            conn,
+            event_id=event_id,
+            event_type="sensor_alert",
+            payload={"message": "Synthetic alert"},
+            location_id=location_id,
+        )
+
+    assert inserted == 0
+    update_statement, update_parameters = cursor.execute.call_args.args
+    assert "SET location_id = %s::uuid" in update_statement
+    assert update_parameters == (location_id, event_id, "webhook", "primary")
+
+    cursor.fetchone.side_effect = [
+        None,
+        ("sensor_alert", message, "a0000000-0000-0000-0000-000000000002"),
+    ]
+    with patch.object(
+        notification_outbox,
+        "_notification_payloads",
+        return_value=[("webhook", "primary", message)],
+    ):
+        with pytest.raises(notification_outbox.NotificationIdempotencyConflict, match="location"):
+            notification_outbox.enqueue_event_notification(
+                conn,
+                event_id=event_id,
+                event_type="sensor_alert",
+                payload={"message": "Synthetic alert"},
+                location_id=location_id,
+            )
+
+
 def test_lost_completion_lease_is_counted_separately_and_continues(monkeypatch):
     rows = [_row("stale"), _row("owned")]
     monkeypatch.setattr(notification_outbox, "claim_batch", lambda *_args: rows)

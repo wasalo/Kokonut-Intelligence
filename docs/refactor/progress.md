@@ -6369,3 +6369,23 @@ integration. Twelve focused worker operation-map tests pass; Ruff, JSON parsing,
 the time this batch began. The checklist is now 394 checked and 19 open; no
 separate capability is newly accepted ([effect contract](worker-sensor-anomaly-effects.json);
 [operation map](worker-operation-map.json); [test](../tests/test_worker_operation_map.py)).
+
+### Sensor anomaly location lineage — 16 October 2026
+
+Migration 406 adds nullable direct `location_id` keys to sensor alerts, anomaly
+effect receipts, ingestion audit rows, and notification outbox intents. Its
+backfill uses matching sensor device/reading locations, source-event identity
+and every supplied payload selector, and linked alert lineage. Conflicting or
+unresolved historical rows remain NULL. The anomaly event path now checks the
+event payload's location and every supplied sensor selector against the source
+reading; cooldown, alert insert/read, receipt updates, ingestion audit, and
+notification intent writes carry the source location. Generic ingestion and
+notification callers retain optional/unscoped behavior. No worker grants, row
+policies, RLS, or candidate rollout were added. Seventy-three focused anomaly,
+outbox, worker-map, and migration tests plus seven disposable PostgreSQL 16
+replay, backfill, unresolved-lineage, foreign-key, and application-write checks
+pass; Ruff, compilation, and diff checks pass. CI #347 was still running and
+Security #71 passed on the preceding pushed head
+([migration](../schemas/postgres/406_sensor_anomaly_location_lineage.sql);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-location-lineage.json);
+[runner](../scripts/check-sensor-anomaly-location-lineage-disposable.py)).

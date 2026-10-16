@@ -161,6 +161,7 @@ def enqueue_event_notification(
     event_id: str,
     event_type: str,
     payload: dict[str, Any],
+    location_id: str | None = None,
     environment: dict[str, str] | None = None,
 ) -> int:
     """Persist configured notification intents idempotently in the caller's transaction."""
@@ -172,6 +173,11 @@ def enqueue_event_notification(
         raise ValueError("event_type is required for notification delivery")
     if not isinstance(payload, dict):
         raise ValueError("notification payload must be a JSON object")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
 
     destinations = _notification_payloads(event_type, payload, environment=environment)
     inserted = 0
@@ -183,12 +189,12 @@ def enqueue_event_notification(
             cur.execute(
                 """
                 INSERT INTO notification_outbox
-                    (source_event_id, event_type, channel, destination_key, payload)
-                VALUES (%s, %s, %s, %s, %s::jsonb)
+                    (source_event_id, event_type, channel, destination_key, payload, location_id)
+                VALUES (%s, %s, %s, %s, %s::jsonb, %s::uuid)
                 ON CONFLICT (source_event_id, channel, destination_key) DO NOTHING
                 RETURNING id
                 """,
-                (stable_event_id, event_type, channel, destination_key, encoded),
+                (stable_event_id, event_type, channel, destination_key, encoded, location_id),
             )
             row = cur.fetchone()
             if row is not None:
@@ -197,9 +203,10 @@ def enqueue_event_notification(
 
             cur.execute(
                 """
-                SELECT event_type, payload
+                SELECT event_type, payload, location_id
                 FROM notification_outbox
                 WHERE source_event_id = %s AND channel = %s AND destination_key = %s
+                FOR UPDATE
                 """,
                 (stable_event_id, channel, destination_key),
             )
@@ -212,6 +219,23 @@ def enqueue_event_notification(
             if existing[0] != event_type or stored_payload != message:
                 raise NotificationIdempotencyConflict(
                     "source event notification identity conflicts with existing content"
+                )
+            if existing[2] is None and location_id is not None:
+                cur.execute(
+                    """
+                    UPDATE notification_outbox SET location_id = %s::uuid
+                    WHERE source_event_id = %s AND channel = %s
+                      AND destination_key = %s AND location_id IS NULL
+                    """,
+                    (location_id, stable_event_id, channel, destination_key),
+                )
+            elif (
+                location_id is not None
+                and existing[2] is not None
+                and str(existing[2]) != location_id
+            ):
+                raise NotificationIdempotencyConflict(
+                    "source event notification location conflicts with existing content"
                 )
     return inserted
 
