@@ -3,13 +3,17 @@
 Combine `docker-compose.kernel-candidate.yml` with
 `docker-compose.kernel-standard.yml`. The app overrides its command to run only
 the API; the new worker service runs the same Dockerfile/package with
-`python3 -m services.core.runtime --workers-only`. Both use the private candidate
-database and explicitly disable vendor providers. No database port or worker
-port is published. The API retains its localhost binding.
+`python3 -m services.core.runtime --workers-only --require-schema`. Both roles
+require schema readiness before spawning child processes, use the private
+candidate database, and explicitly disable vendor providers. No database port
+or worker port is published. The API retains its localhost binding.
 
 The supervisor starts enabled scheduler/event workers, generates a distinct
 UUID-based identity for each supervisor lifetime, and refuses an empty worker
-role. CLI worker modes are mutually exclusive. Existing process-group shutdown,
+role. CLI worker modes are mutually exclusive. When migrations or required read
+relations are missing, the supervisor exits before starting API or worker
+children; Compose retries after the external migration runner completes.
+Existing process-group shutdown,
 shared 30-second drain budget, unexpected-exit failure, init process, and
 40-second Compose grace period apply to both roles. Lease and delivery state
 remain PostgreSQL state; unique identities do not prove concurrency safety.

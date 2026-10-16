@@ -15,6 +15,12 @@ the legacy volume. Always use a separate project name:
 
 Do not combine this manifest with legacy Compose or use the legacy project name.
 No automatic seeding, migration, restore, or worker execution is configured.
+The image supervisor requires the complete bundled schema ledger and read
+contracts before spawning the API or workers. On a fresh volume, the app
+container stays in Compose's restart loop until the separate host-side
+checksummed migration runner finishes; that runner connects to the database
+independently and is not blocked by this guard. For an orderly first start,
+start the database, apply migrations, then start the app.
 The database uses `POSTGRES_PASSWORD` for its owner credential. Application
 connections use `PG_PASSWORD` (falling back to `POSTGRES_PASSWORD` for legacy
 compatibility). The default candidate still uses the owner role until the

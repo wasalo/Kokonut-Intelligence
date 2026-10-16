@@ -31,6 +31,23 @@ def test_default_profile_planner_does_not_select_optional_overlays() -> None:
     assert "--env-file /dev/null" in result.stdout
 
 
+def test_default_and_oidc_kernel_runtime_commands_require_schema_readiness() -> None:
+    dockerfile = (ROOT / "Dockerfile.kernel").read_text()
+    runtime_commands = [line for line in dockerfile.splitlines() if line.startswith("CMD ")
+                       and "services.core.runtime" in line]
+
+    assert len(runtime_commands) == 2
+    assert all("--require-schema" in command for command in runtime_commands)
+
+
+def test_standard_api_and_worker_require_schema_readiness() -> None:
+    standard = yaml.safe_load((ROOT / "docker-compose.kernel-standard.yml").read_text())
+
+    for service_name in ("app", "worker"):
+        command = standard["services"][service_name]["command"]
+        assert "--require-schema" in command
+
+
 def test_oidc_profile_requires_https_proxy_overlay() -> None:
     result = _run_planner("minimal", "--oidc")
 

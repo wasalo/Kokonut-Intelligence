@@ -40,7 +40,7 @@ EXPOSE 8099
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=20s \
     CMD python3 -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/health', timeout=5).close()" || exit 1
 
-CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers"]
+CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers", "--require-schema"]
 
 # Optional transport target. Generate protobufs inside the image, preserving
 # the existing service imports without committing generated Python artifacts.
@@ -95,7 +95,7 @@ RUN pip install --no-cache-dir -r requirements/oidc.txt \
 COPY apps/operator-console/ ./apps/operator-console/
 USER appuser
 RUN python3 -m services.core.image_manifest --target oidc
-CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers"]
+CMD ["python3", "-m", "services.core.runtime", "--port", "8099", "--with-workers", "--require-schema"]
 
 # Default builds remain the minimal API/worker image.
 FROM kernel-base AS kernel

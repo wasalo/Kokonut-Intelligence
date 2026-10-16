@@ -128,6 +128,14 @@ it. Physical Pi performance is not claimed ([profile evidence](builds/2026-10-15
 [runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json);
 [deployment record](arm64-database.md)).
 
+**15 October 2026 Kernel startup schema gate (CAP-047):** the default and OIDC
+image commands and both standard-profile roles now require complete schema
+readiness before spawning API or worker processes. A focused supervisor test
+proves a readiness failure launches no child, and profile checks cover the
+image/Compose commands. ARM64 startup has not yet been rerun with this guard;
+no MAN-CAP acceptance or hardware claim follows
+([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
+
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,
 opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and

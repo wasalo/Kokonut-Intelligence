@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-15",
+  "scope": "Kernel supervisor schema readiness before API/worker process creation",
+  "result": "focused source and profile checks passed",
+  "changes": [
+    "Default and OIDC image runtime commands require schema readiness.",
+    "Standard API and worker Compose commands require schema readiness.",
+    "A failed readiness check exits before child processes are spawned."
+  ],
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_kernel_profile.py tests/test_kernel_schema_startup.py -q",
+      "result": "passed",
+      "passed": 14
+    },
+    {
+      "command": "ruff check tests/test_kernel_profile.py tests/test_kernel_schema_startup.py",
+      "result": "passed"
+    },
+    {
+      "command": "POSTGRES_PASSWORD=compose-test-only docker compose --env-file /dev/null -f docker-compose.kernel-candidate.yml -f docker-compose.kernel-standard.yml config --format json",
+      "result": "passed",
+      "observed": [
+        "standard API command includes --require-schema",
+        "standard worker command includes --require-schema"
+      ]
+    }
+  ],
+  "limitations": [
+    "ARM64 QEMU bootstrap has not yet been repeated with the guard.",
+    "This does not establish physical Raspberry Pi behavior or MAN-CAP acceptance."
+  ],
+  "candidate_or_legacy_database_changed": false,
+  "migration_applied": false,
+  "containers_started": false
+}

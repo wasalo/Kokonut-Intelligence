@@ -2,7 +2,7 @@
 # Explicit environment duplication keeps both roles on the same provider policy.
 services:
   app:
-    command: ["python3", "-m", "services.core.runtime", "--port", "8099"]
+    command: ["python3", "-m", "services.core.runtime", "--port", "8099", "--require-schema"]
     environment:
       KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-postgres}
       KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
@@ -25,7 +25,7 @@ services:
       context: .
       dockerfile: Dockerfile.kernel
     restart: unless-stopped
-    command: ["python3", "-m", "services.core.runtime", "--workers-only"]
+    command: ["python3", "-m", "services.core.runtime", "--workers-only", "--require-schema"]
     # The inherited HTTP probe applies only to an API role.
     # Worker progress must be observed through durable run/delivery records.
     healthcheck:

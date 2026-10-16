@@ -35,9 +35,12 @@ database restart. After an intentional app SIGKILL, explicit Compose `up`
 restored health to 200 and protected writes still returned 401. This refresh
 used no seeds, farm data, or candidate/legacy volumes, and had no explicit
 CPU/memory caps. The app started before migrations, so background workers logged
-missing-schema errors during bootstrap; start the database and apply migrations
-before starting worker-bearing app services. Physical Pi and 24-hour/provider
-recovery remain open ([runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json)).
+missing-schema errors during bootstrap. The image and standard-profile commands
+now require schema readiness before spawning API or worker children; a fresh
+QEMU replay is still needed to confirm the guard in the ARM64 container runtime.
+Physical Pi and 24-hour/provider recovery remain open
+([runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json);
+[startup guard evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
 
 On 10 October 2026 registry metadata was inspected for the candidate's exact
 database reference:

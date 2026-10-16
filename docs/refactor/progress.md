@@ -61,6 +61,20 @@ No provider, database, Prefect state, or persisted schedule was accessed or
 changed ([inventory](worker-job-contract-inventory.json);
 [evidence](builds/2026-10-15-recovery/worker-weather-location-contract.json)).
 
+### Kernel startup schema readiness — 15 October 2026
+
+The default and OIDC image commands and both standard-profile roles now pass
+`--require-schema` to the supervisor. If required migrations or read relations
+are missing, it exits before spawning API or worker children; Compose retries
+after the separate host migration runner completes. The focused regression
+confirms a readiness failure launches no child, and profile checks cover each
+declared runtime command. ARM64 QEMU has not yet been rerun with the guard, so
+the earlier schema-402 worker error remains a historical observation pending
+container-level confirmation. No database, candidate, legacy service, or
+migration state was changed
+([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json);
+[ARM64 record](arm64-database.md)).
+
 ### Dynamic retention policy scope metadata — 15 October 2026
 
 Migration 402 adds optional owner-defined jurisdiction and purpose codes with
