@@ -7,17 +7,15 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-At the last remote status check, the pushed PR head was
-`6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`: CI #336 was pending and
-Security #60 passed. That batch adds three-event KGP reorg replay on top of the
-ARM64 optional profiles and SchedulerEngine/EventBus recovery. The current
-local batch extends KGP projection coverage to governance target, selector,
-and guild-scope policy events, then verifies simulated reorg rebuild and worker
-recovery. A fresh encrypted candidate checkpoint was restore-rehearsed before
-migration 403 was applied; the candidate now has 394 applied schemas and zero
-pending, health 200, and protected-route 401. Its app image was not rebuilt,
-the governance table is empty, and RLS remains off. This local batch and its
-evidence await push. These bounded synthetic fixtures do not close other
+The pushed PR head is
+`8c7a053eeda37d42e229eacf4c18ec6e7943c9d6`: CI #337 and Security #61 are in
+progress. This batch extends KGP projection coverage to governance target,
+selector, and guild-scope policy events, then verifies simulated reorg rebuild
+and worker recovery. A fresh encrypted candidate checkpoint was
+restore-rehearsed before migration 403 was applied; the candidate now has 394
+applied schemas and zero pending, health 200, and protected-route 401. Its app
+image was not rebuilt, the governance table is empty, and RLS remains off.
+These bounded synthetic fixtures do not close other
 event-type parity, live-chain/provider, post-effect, or long-duration acceptance.
 The preceding Dockerfile digest correction and local 14-test repair are recorded separately
 ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).

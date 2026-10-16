@@ -4,6 +4,7 @@
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Remote head before this local batch:** `6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`
 **Status at batch start (checked 16 October 2026):** CI #336 was pending and Security #60 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299381); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299385)).
+**Latest pushed batch:** `8c7a053eeda37d42e229eacf4c18ec6e7943c9d6`; CI #337 and Security #61 are in progress.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -35,7 +36,8 @@ MAN-CAP checks open until each has its own retained evidence.
   table is empty, and RLS remains off. These synthetic rows and stubbed chain
   behavior use no seed, live RPC, or provider calls. Other event types, real
   chain reorgs, ARM64 hardware behavior, and live KGP RPC/event processing remain
-  unverified. Earlier owner, tenant,
+  unverified. This batch is now pushed as `8c7a053`; CI #337 and Security #61
+  are running. Earlier owner, tenant,
   report, retention, Directus, and worker-boundary work remains in the PR.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
@@ -744,7 +746,8 @@ requested. Before this local batch, the remote head was `6edc14e`; CI #336 was
 pending and Security #60 passed. This batch extends synthetic KGP event
 projection and replay evidence to cover governance policy, seven linked events,
 and a simulated reorg/rebuild, then applies migration 403 to the checkpointed
-candidate after restore rehearsal. Continue local work while CI runs and accumulate
+candidate after restore rehearsal. It is pushed as `8c7a053`; CI #337 and
+Security #61 are running. Continue local work while CI runs and accumulate
 related changes before the next push so the repository does not start CI for
 each small commit. Never push directly to
 `main`. Keep each candidate database
