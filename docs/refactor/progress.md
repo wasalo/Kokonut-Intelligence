@@ -10,10 +10,11 @@ reference outputs remain open until owners can review the ingested farm data
 The last pushed PR head is `fb835f141b8105df32206a6b889abff99c0c3806`.
 That batch adds verified ARM64 optional profiles for ClickHouse analytics,
 Directus, and HTTP sensors. CI #330 is running and Security #54 passed. Local
-EventBus and KGP worker runtime slices now confirm durable event completion and
-lease-heartbeat recovery after disposable PostgreSQL stop/start; their bounded
-synthetic fixtures do not close provider, full-schema, or live-chain
-acceptance. The working tree also
+scheduler, EventBus, and KGP worker runtime slices now confirm scheduled task
+completion, durable event completion, and lease-heartbeat recovery after
+disposable PostgreSQL stop/start; their bounded synthetic fixtures do not close
+provider, full-schema, mid-task lease-reclaim, or live-chain acceptance. The
+working tree also
 contains this new runtime evidence and the checklist refresh; those changes are
 not pushed yet. The previous `46945f7` head passed both required checks. The
 preceding Dockerfile digest correction and local 14-test repair are recorded
@@ -30,6 +31,18 @@ query was used. Production migration parity, lease-expiry reclaim, RPC/event
 processing, and provider delivery remain open
 ([script](../../scripts/check-kgp-worker-reconnect-disposable.py);
 [evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
+
+### SchedulerEngine PostgreSQL restart recovery — 16 October 2026
+
+The real scheduler worker and `SchedulerEngine` claimed and completed one
+bounded `services.events --process --batch-size 10` task before PostgreSQL
+stopped, remained alive during the outage, then claimed and completed another
+task under the same worker ID after restart. The disposable database replayed
+migrations 116, 117, 164, 165, 337, and 371. EventBus processed an empty queue;
+no external provider ran. This does not test a worker dying during task
+execution or subsequent lease reclaim, full-ledger parity, or long-duration
+recovery ([script](../../scripts/check-scheduler-engine-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
 
 ### EventBus worker PostgreSQL restart recovery — 16 October 2026
 

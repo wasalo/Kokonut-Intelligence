@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-16",
+  "result": "passed",
+  "check": "Real SchedulerEngine task execution and worker recovery across disposable PostgreSQL stop/start",
+  "command": "python3 scripts/check-scheduler-engine-reconnect-disposable.py",
+  "scheduler_engine": "real SchedulerEngine",
+  "database_image": "postgres:16-alpine",
+  "database_port_binding": "127.0.0.1 only",
+  "database_volume": false,
+  "candidate_or_legacy_modified": false,
+  "worker_id": "scheduler-engine-reconnect-probe",
+  "worker_alive_during_outage": true,
+  "database_restart_reconnected": true,
+  "task_before_restart_completed": true,
+  "task_after_restart_completed": true,
+  "both_runs_claimed_by_same_worker": true,
+  "task_command": "python -m services.events --process --batch-size 10",
+  "external_provider_calls": 0,
+  "migrations_replayed": [
+    "116_event_bus.sql",
+    "117_task_scheduler.sql",
+    "164_scheduler_durability.sql",
+    "165_event_bus_durability.sql",
+    "337_scheduler_ownership.sql",
+    "371_scheduler_run_windows.sql"
+  ],
+  "limitations": [
+    "Only the scheduler, event bus, and durable ownership migrations were replayed; the full schema ledger was not applied.",
+    "The bounded task ran EventBus processing against an empty synthetic queue; no domain provider or external service ran.",
+    "The outage occurred between completed tasks, so this does not test recovery or lease reclaim after a worker dies mid-task.",
+    "The PostgreSQL container had no volume and was bound only to loopback."
+  ]
+}

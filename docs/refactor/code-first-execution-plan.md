@@ -44,10 +44,11 @@ MAN-CAP checks open until each has its own retained evidence.
   or semantic parity. Direct queue/detail service tests
   also verify the OIDC report-review tenant-context and cleanup contract.
 - The scheduler now obtains a fresh bounded-timeout connection for each tick
-  while preserving one worker ID. Ten focused scheduler tests pass. A
-  loopback-only disposable PostgreSQL stop/start check proves the worker process
-  survives the outage and reconnects; the scheduler engine was stubbed, so real
-  task SQL, lease recovery, delivery, and long-duration recovery remain open.
+  while preserving one worker ID. Ten focused scheduler tests pass. An earlier
+  disposable PostgreSQL stop/start check used a stub engine; the current check
+  replays scheduler/event migrations and uses the real SchedulerEngine to claim,
+  launch, and complete bounded `services.events --process --batch-size 10`
+  tasks before and after restart ([evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)). It uses an empty synthetic event queue and no provider; worker death during task execution, lease reclaim, full-ledger parity, and long-duration recovery remain open.
 - A local EventBus worker slice now creates and closes its bus per iteration,
   recreates bounded-timeout notification connections, and retries logged
   failures. Twenty focused event-worker/EventBus tests pass with Ruff and
