@@ -239,7 +239,11 @@ def test_oidc_login_session_and_logout_use_opaque_cookie_contract(
         session = client.get("/operator/auth/session")
         assert session.status_code == 200
         assert session.headers["cache-control"] == "no-store"
-        assert session.headers["vary"] == "Cookie"
+        vary_headers = {
+            value.strip().lower()
+            for value in session.headers["vary"].split(",")
+        }
+        assert {"cookie", "origin"} <= vary_headers
         assert session.json()["scopes"][0]["location_id"] == _LOCATION_ID
 
         logout = client.post(

@@ -111,6 +111,7 @@ else
         "schemas/seeds/015_revenue_multiplier_config.sql"
         "schemas/seeds/023_impact_frameworks.sql"
         "schemas/seeds/027_carbon_framework_seeds.sql"
+        "schemas/seeds/103_flow_metrics.sql"
         "schemas/seeds/032_ebf_rubric.sql"
         "schemas/seeds/033_ebf_dashboard_datasets.sql"
         "schemas/seeds/034_ebf_p2_dashboard_datasets.sql"

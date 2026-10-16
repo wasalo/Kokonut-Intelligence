@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-15",
+  "subject": "Local regression fixes for GitHub CI run 325",
+  "remote_ci": {
+    "run": 325,
+    "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38814030074",
+    "job_url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38814030074/job/116694088007",
+    "head_sha": "d01941abad13c5128fca85acb0f4b5645a4322b4",
+    "result": "failure",
+    "failed_tests": [
+      {
+        "test": "tests/test_flow_metrics.py::test_flow_metric_definitions_seeded",
+        "cause": "The normal seed.sh path omitted the approved reference-only flow-metric seed.",
+        "local_fix": "Add schemas/seeds/103_flow_metrics.sql to the default curated seed set and guard its selection with a focused source regression."
+      },
+      {
+        "test": "tests/test_operator_oidc_provider_contract.py::test_oidc_login_session_and_logout_use_opaque_cookie_contract",
+        "cause": "The test required Vary to equal Cookie even though CORS correctly adds Origin.",
+        "local_fix": "Assert that both Cookie and Origin are present in the Vary token set."
+      },
+      {
+        "test": "tests/test_worker_sql_inventory.py::test_dynamic_sql_review_categories_remain_explicit",
+        "cause": "The expected source inventory omitted the current remote-sensing dynamic query site.",
+        "local_fix": "Add the existing remote_sensing_fetcher query site to the expected source map."
+      },
+      {
+        "test": "tests/test_workflow_spec_conformance.py::test_specs_reference_current_production_states_and_controls",
+        "cause": "The source assertion prohibited advisory locks after retention cleanup added a transaction lock to serialize against legal-hold changes.",
+        "local_fix": "Assert that the legal-hold lock is present before platform_event deletion."
+      }
+    ],
+    "security_run": {
+      "run": 49,
+      "url": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38814029821",
+      "result": "success"
+    }
+  },
+  "local_verification": {
+    "command": "python3 -m pytest tests/test_flow_metrics.py tests/test_operator_oidc_provider_contract.py tests/test_worker_sql_inventory.py tests/test_workflow_spec_conformance.py -q",
+    "result": "passed",
+    "passed": 31,
+    "skipped": 2,
+    "skipped_reason": "Database-dependent flow-metric calculator/seed assertions skipped because no local test database was available; a deterministic seed-selection regression passed.",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "seed_shell_syntax": "passed",
+    "git_diff_check": "passed"
+  },
+  "remaining_gate": "The fixes are local and unpushed. CI and Security must rerun on the batch head; local focused tests do not substitute for release CI."
+}

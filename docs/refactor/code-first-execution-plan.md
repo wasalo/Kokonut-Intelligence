@@ -3,7 +3,7 @@
 **Updated:** 15 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `d01941abad13c5128fca85acb0f4b5645a4322b4`
-**Latest pushed head status (last recorded):** Security #49 passed; CI #325 was in progress on that head. The current ZITADEL image-pin follow-up is local and is not covered by those runs.
+**Latest pushed head status (checked 15 October 2026):** Security #49 passed; CI #325 failed on the pushed head. Four focused regressions are fixed locally; the repair batch remains unpushed and needs a fresh hosted CI/Security run.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -21,15 +21,25 @@ MAN-CAP checks open until each has its own retained evidence.
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
   [`d01941abad13c5128fca85acb0f4b5645a4322b4`](https://github.com/wasalo/Kokonut-Intelligence/commit/d01941abad13c5128fca85acb0f4b5645a4322b4)
-  on `feat/mobile-offline-acceptance`, PR #68. Security #49 passed; CI #325 is
-  in progress at the last recorded check. This push carried the previous 17
+  on `feat/mobile-offline-acceptance`, PR #68. Security #49 passed; CI #325
+  failed with four tests after 5,010 passed and 84 subtests passed. The failures
+  were a missing flow-metric seed in the normal seed path, a stale exact `Vary`
+  header expectation, a worker SQL inventory test missing the remote-sensing
+  source, and a workflow test that prohibited the retention/legal-hold
+  serialization lock. The four fixes now pass 31 focused tests locally; two
+  database-dependent flow-metric checks skipped because no local test database
+  was available. See the [CI repair evidence](builds/2026-10-15-recovery/ci-325-regression-fix.json).
+  This push carried the previous 17
   local commits, including retention-policy and optional Directus role/profile
   work, fresh-volume Directus overlay acceptance, worker effect and SQL
   reachability inventories, and the five-seed/retention rollout evidence.
-  Four local commits sit above that pushed head and have not been evaluated
-  by CI. They pin ZITADEL images, add report-review context tests, inventory
-  all 94 report generators, and map visible location scope across direct report
-  query sites. The pushed batch
+  Eight existing local commits sit above that pushed head. The current CI
+  repair is the next local batch and is also unpushed; neither it nor the
+  preceding local commits has been evaluated by CI. They cover ZITADEL image
+  pins; report-review tenant-context tests;
+  report-generator, direct-query, and helper-query inventories; the report
+  review-audience record; the indirect location-scope correction; and current
+  ARM64 schema-402 evidence, plus the current CI repair. The pushed batch
   includes report calculation and scheduler worker
   recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
   permission work. See the relevant evidence below and the current CI status
@@ -226,9 +236,11 @@ database, then used as the rollback reference for the separately approved five-f
 and the focused test named in any failure log.
 
 **Action:** The latest pushed head is `d01941abad13c5128fca85acb0f4b5645a4322b4`.
-Security #49 passed and CI #325 is in progress. Continue
-code work while CI runs; inspect any failure against the exact pushed SHA
-before changing the checklist status.
+Security #49 passed; CI #325 failed with four tests, and the local repair passes
+31 focused tests with two database-dependent skips. The repair evidence is
+[`ci-325-regression-fix.json`](builds/2026-10-15-recovery/ci-325-regression-fix.json).
+The fix is not yet covered by hosted CI; inspect the next run against its exact
+pushed SHA before changing the checklist status.
 
 **Acceptance:** require passing CI and Security on the current PR head before
 merging. The scheduler runtime acceptance is source/disposable evidence only;
