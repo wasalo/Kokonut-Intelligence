@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `fb835f141b8105df32206a6b889abff99c0c3806`
-**Latest pushed head status (checked 16 October 2026):** CI #330 passed and Security #54 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785849); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785888)). The preceding pushed head passed both required checks.
+**Latest pushed head:** `f99db449bd0d5a696bd84a1e5d230f389651601e`
+**Latest pushed head status (checked 16 October 2026):** CI #332 is in progress and Security #56 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38853798783); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38853798777)). The preceding pushed head passed both required checks.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,9 +20,9 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
-  [`fb835f141b8105df32206a6b889abff99c0c3806`](https://github.com/wasalo/Kokonut-Intelligence/commit/fb835f141b8105df32206a6b889abff99c0c3806)
-  on `feat/mobile-offline-acceptance`, PR #68. CI #330 passed and Security
-  #54 passed. This batch enables verified ARM64 optional profiles for ClickHouse
+  [`f99db449bd0d5a696bd84a1e5d230f389651601e`](https://github.com/wasalo/Kokonut-Intelligence/commit/f99db449bd0d5a696bd84a1e5d230f389651601e)
+  on `feat/mobile-offline-acceptance`, PR #68. CI #332 is in progress and Security
+  #56 passed. This batch enables verified ARM64 optional profiles for ClickHouse
   analytics, Directus, and HTTP sensors; the app and pinned service images
   passed bounded Buildx/QEMU architecture and runtime-smoke checks. The current
   local KGP recovery slice also passes a disposable PostgreSQL stop/start check
@@ -76,12 +76,13 @@ MAN-CAP checks open until each has its own retained evidence.
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
   Fourteen KGP service/indexer tests pass. A new disposable PostgreSQL
-  stop/start check confirms process survival and lease-heartbeat advancement
-  ([evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
-  It used a synthetic cursor schema and stubbed chain height; production
-  migration parity, lease-expiry reclaim, and live RPC/event recovery remain
-  open. The implementation is in the latest pushed head; this runtime evidence
-  and checklist refresh are local to the next batch.
+  stop/start check confirms process survival and lease-heartbeat advancement.
+  A second probe kills the worker, forces expiry of its synthetic lease, and
+  confirms a replacement worker takes ownership and advances the heartbeat.
+  The current local recovery code/evidence commit is `cc65907`. The check uses a
+  synthetic cursor schema and stubbed chain height; production migration
+  parity, production-duration lease reclaim, and live RPC/event recovery remain
+  open ([evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
 - Directus source permissions now align with organization/location grants: the
   seed removes its obsolete user-level location filter while preserving other
   predicates, the grant hook covers `revenue_event`, and the isolated API
@@ -249,13 +250,14 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI #331 is in progress and Security #55 passed on pushed SHA
-  `928b2a9d0091729979c9e695e217cab7dda3f556`; the preceding pushed revision
-  passed both checks. The pushed batch adds disposable PostgreSQL restart
-  recovery for KGP, EventBus, and the real SchedulerEngine. Local commits
-  `839a04c` and `9c5fe8b` add EventBus notification and SchedulerEngine task
-  crash/lease-reclaim probes. The receiver test reuses the notification key on
-  retry; the scheduler replacement completes the claimed task as attempt two.
+**Action:** CI #332 is in progress and Security #56 passed on pushed SHA
+  `f99db449bd0d5a696bd84a1e5d230f389651601e`; the preceding pushed revision
+  passed both checks. The local batch adds disposable PostgreSQL crash recovery
+  for EventBus notifications, SchedulerEngine tasks, and KGP leases. The
+  EventBus receiver test reuses the notification key on retry; the scheduler
+  replacement completes the claimed task as attempt two; the KGP replacement
+  takes an expired lease under its own worker ID. These three recovery commits
+  are waiting for the next batch push.
   The KGP script plus four focused tests, the EventBus runtime script plus 20
   focused tests, and the SchedulerEngine runtime script plus 10 focused tests
   pass with Ruff, compilation, and capability-matrix validation.
@@ -726,9 +728,9 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The current push is `928b2a9`; CI #331 is in progress and Security
-#55 passed on that head. Local commits `839a04c` and `9c5fe8b` are waiting for
-the next batch push. Continue local work while CI runs and accumulate related changes
+requested. The current push is `f99db44`; CI #332 is in progress and Security
+#56 passed on that head. Local commits `839a04c`, `9c5fe8b`, and `cc65907` are
+waiting for the next batch push. Continue local work while CI runs and accumulate related changes
 before the next push so the repository does
 not start CI for each small commit. Never push directly to
 `main`. Keep each candidate database

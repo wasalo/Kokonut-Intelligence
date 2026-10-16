@@ -7,21 +7,18 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-The last pushed PR head is `928b2a9d0091729979c9e695e217cab7dda3f556`.
+The last pushed PR head is `f99db449bd0d5a696bd84a1e5d230f389651601e`.
 That batch adds verified ARM64 optional profiles for ClickHouse analytics,
 Directus, and HTTP sensors, plus KGP/EventBus/SchedulerEngine recovery slices.
-CI #331 is in progress and Security #55 passed. Local
-scheduler, EventBus, and KGP worker runtime slices now confirm scheduled task
-completion, durable event completion, and lease-heartbeat recovery after
-disposable PostgreSQL stop/start; their bounded synthetic fixtures do not close
-provider, full-schema, mid-task lease-reclaim, or live-chain acceptance. The
-previous `46945f7` head passed both required checks. Local commits `839a04c`
-and `9c5fe8b` add disposable crash-recovery proofs: an EventBus notification
-worker is killed before HTTP acknowledgement and a SchedulerEngine claimant
-is killed before subprocess dispatch. Replacement workers reclaim both leases;
-the EventBus retry preserves its idempotency key and the scheduled task
-completes as attempt two. The capability, checklist, and progress-document
-refresh is local and not pushed yet. The
+CI #332 is in progress and Security #56 passed. Three local commits extend
+the recovery batch: EventBus notification crash recovery (`839a04c`),
+SchedulerEngine claim recovery (`9c5fe8b`), and KGP lease recovery after a
+worker crash (`cc65907`). Replacement workers reclaim expired leases: the
+EventBus retry preserves its idempotency key, the scheduled task completes as
+attempt two, and KGP lease ownership changes to the replacement worker. These
+bounded synthetic fixtures do not close provider, full-schema, post-effect,
+long-duration, or live-chain acceptance. The checklist and progress-document
+refresh is in the local batch awaiting push. The
 preceding Dockerfile digest correction and local 14-test repair are recorded
 separately ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
@@ -30,9 +27,11 @@ separately ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.js
 A current-source runtime check ran the KGP indexer against a loopback-only,
 no-volume PostgreSQL 16 container. The worker remained alive during the
 database stop, reconnected after restart, and advanced its durable cursor lease
-heartbeat. The schema and cursor were synthetic, while chain height was held
-below the first cursor block; no production migration, chain RPC, or event
-query was used. Production migration parity, lease-expiry reclaim, RPC/event
+heartbeat. The check then killed that worker, expired its synthetic lease,
+and confirmed a replacement worker took ownership and advanced the heartbeat.
+The schema and cursor were synthetic, while chain height was held below the
+first cursor block; no production migration, chain RPC, or event query was
+used. Production migration parity, production-duration lease reclaim, RPC/event
 processing, and provider delivery remain open
 ([script](../../scripts/check-kgp-worker-reconnect-disposable.py);
 [evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
