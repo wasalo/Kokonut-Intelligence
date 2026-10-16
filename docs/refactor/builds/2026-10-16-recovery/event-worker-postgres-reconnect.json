@@ -1,7 +1,7 @@
 {
   "date": "2026-10-16",
   "result": "passed",
-  "check": "EventBus worker process recovery and durable event completion across disposable PostgreSQL stop/start",
+  "check": "EventBus worker, alert handler, and durable loopback notification delivery across disposable PostgreSQL stop/start",
   "command": "python3 scripts/check-event-worker-reconnect-disposable.py",
   "database_image": "postgres:16-alpine",
   "database_port_binding": "127.0.0.1 only",
@@ -16,7 +16,11 @@
   "handler_succeeded_before_restart": true,
   "handler_succeeded_after_restart": true,
   "allowlisted_handler_invoked": "services.events.handlers.handle_alert_notification",
-  "all_optional_providers_disabled": true,
+  "notification_succeeded_before_restart": true,
+  "notification_succeeded_after_restart": true,
+  "notification_attempts_succeeded": true,
+  "loopback_webhook_calls": 2,
+  "loopback_idempotency_keys_unique": true,
   "external_provider_calls": 0,
   "migrations_replayed": [
     "116_event_bus.sql",
@@ -25,8 +29,8 @@
   ],
   "limitations": [
     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
-    "The allowlisted alert-notification handler ran in its spawned child process, but the synthetic payload had no configured destination and created no outbox row.",
-    "All optional provider switches and notification destinations were explicitly disabled; notification processing queried the empty outbox and made no external delivery calls.",
+    "The real allowlisted alert-notification handler ran in its spawned child process. A temporary HTTP server bound to 127.0.0.1 accepted the two notification deliveries; no remote provider was contacted.",
+    "Both notification outbox rows and their latest attempt rows were verified as succeeded. Each loopback request carried its matching durable notification ID as the Idempotency-Key, and the two keys were distinct.",
     "The PostgreSQL container had no volume and was bound only to loopback."
   ]
 }

@@ -15,6 +15,7 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -104,21 +105,51 @@ def _sql(name: str, statement: str) -> str:
 
 
 def _enqueue(name: str, event_type: str) -> str:
+    payload = json.dumps(
+        {
+            "severity": "warning",
+            "metric": "reconnect_probe",
+            "value": 1,
+            "threshold": 0,
+            "message": "synthetic worker recovery probe",
+        },
+        separators=(",", ":"),
+    )
     return _sql(
         name,
         "INSERT INTO platform_event (event_type, payload) "
-        f"VALUES ('{event_type}', '{{}}'::jsonb) RETURNING id",
+        f"VALUES ('{event_type}', '{payload}'::jsonb) RETURNING id",
     )
 
 
-def _register_handler(name: str, event_type: str) -> None:
-    _sql(
-        name,
-        "INSERT INTO event_handler "
-        "(handler_name, event_type, module_path, function_name, timeout_seconds) "
-        "VALUES ('reconnect_probe_handler', "
-        f"'{event_type}', 'services.events.handlers', 'handle_alert_notification', 10)",
-    )
+def _start_loopback_webhook() -> tuple[
+    ThreadingHTTPServer,
+    threading.Thread,
+    queue.Queue[dict[str, str]],
+]:
+    received: queue.Queue[dict[str, str]] = queue.Queue()
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            size = int(self.headers.get("Content-Length", "0"))
+            payload = self.rfile.read(size).decode("utf-8")
+            received.put(
+                {
+                    "idempotency_key": self.headers.get("Idempotency-Key", ""),
+                    "payload": payload,
+                }
+            )
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"accepted")
+
+        def log_message(self, format: str, *args: object) -> None:
+            return
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server, thread, received
 
 
 def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, str]:
@@ -129,7 +160,7 @@ def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, 
             "SELECT e.status, COALESCE(e.worker_id, ''), COALESCE(("
             "SELECT d.status FROM event_handler_delivery d "
             "JOIN event_handler h ON h.id = d.handler_id "
-            "WHERE d.event_id = e.id AND h.handler_name = 'reconnect_probe_handler'"
+            "WHERE d.event_id = e.id AND h.handler_name = 'alert_notifier'"
             "), '') FROM platform_event e "
             f"WHERE e.id = '{event_id}'",
         ).split("|")
@@ -137,6 +168,39 @@ def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, 
             return values[1], values[2]
         time.sleep(0.25)
     raise TimeoutError("EventBus worker did not complete the synthetic event")
+
+
+def _wait_for_notification_delivery(
+    name: str,
+    event_id: str,
+    received: queue.Queue[dict[str, str]],
+    timeout: float,
+) -> str:
+    deadline = time.monotonic() + timeout
+    notification_id = ""
+    while time.monotonic() < deadline:
+        values = _sql(
+            name,
+            "SELECT o.id, o.status, COALESCE(a.status, '') "
+            "FROM notification_outbox o LEFT JOIN LATERAL ("
+            "SELECT status FROM notification_outbox_attempt "
+            "WHERE outbox_id = o.id ORDER BY attempt_number DESC LIMIT 1"
+            ") a ON TRUE "
+            f"WHERE o.source_event_id = '{event_id}'",
+        ).split("|")
+        if len(values) == 3 and values[1:] == ["succeeded", "succeeded"]:
+            notification_id = values[0]
+            break
+        time.sleep(0.25)
+    if not notification_id:
+        raise TimeoutError("loopback notification was not durably acknowledged")
+    try:
+        delivery = received.get(timeout=max(0.1, deadline - time.monotonic()))
+    except queue.Empty as exc:
+        raise TimeoutError("the local webhook did not receive a delivery") from exc
+    if delivery["idempotency_key"] != notification_id:
+        raise RuntimeError("webhook idempotency key did not match the durable notification ID")
+    return notification_id
 
 
 def main() -> int:
@@ -149,7 +213,10 @@ def main() -> int:
     lines: list[str] = []
     output: queue.Queue[str | None] = queue.Queue()
     worker_id = "event-worker-reconnect-probe"
-    event_type = f"reconnect_probe_{uuid.uuid4().hex[:12]}"
+    event_type = "threshold_breached"
+    webhook_server: ThreadingHTTPServer | None = None
+    webhook_thread: threading.Thread | None = None
+    webhook_requests: queue.Queue[dict[str, str]] | None = None
     result: dict[str, object] = {
         "date": datetime.now(timezone.utc).date().isoformat(),
         "database_image": image,
@@ -157,6 +224,7 @@ def main() -> int:
         "database_volume": False,
         "candidate_or_legacy_modified": False,
         "external_provider_calls": 0,
+        "loopback_webhook_calls": 0,
     }
 
     try:
@@ -200,7 +268,7 @@ def main() -> int:
                 check=True,
                 stdin=sql,
             )
-        _register_handler(name, event_type)
+        webhook_server, webhook_thread, webhook_requests = _start_loopback_webhook()
 
         env = os.environ.copy()
         env.update(
@@ -213,10 +281,14 @@ def main() -> int:
                 "PG_USER": "kokonut",
                 "PG_PASSWORD": password,
                 "CLICKHOUSE_ENABLED": "false",
-                "ALERT_WEBHOOK_URL": "",
+                "ALERT_WEBHOOK_URL": (
+                    f"http://127.0.0.1:{webhook_server.server_address[1]}/alerts"
+                ),
                 "ALERT_SMTP_HOST": "",
                 "ALERT_EMAIL_TO": "",
                 "DIRECTUS_ADMIN_TOKEN": "",
+                "NO_PROXY": "127.0.0.1,localhost",
+                "no_proxy": "127.0.0.1,localhost",
                 "KOKONUT_FEATURE_DIRECTUS": "false",
                 "KOKONUT_FEATURE_CLICKHOUSE": "false",
                 "KOKONUT_FEATURE_GRPC": "false",
@@ -261,6 +333,10 @@ raise SystemExit(cmd_worker(args))
             raise RuntimeError("synthetic pre-outage event was not claimed by the probe worker")
         if before_handler_status != "success":
             raise RuntimeError("allowlisted pre-outage handler did not succeed")
+        assert webhook_requests is not None
+        notification_before = _wait_for_notification_delivery(
+            name, event_before, webhook_requests, timeout
+        )
 
         _docker("stop", "--time", "1", name)
         _wait_for_log(process, lines, output, "Event worker iteration failed", timeout)
@@ -275,6 +351,11 @@ raise SystemExit(cmd_worker(args))
             raise RuntimeError("synthetic post-outage event was not claimed by the probe worker")
         if after_handler_status != "success":
             raise RuntimeError("allowlisted post-outage handler did not succeed")
+        notification_after = _wait_for_notification_delivery(
+            name, event_after, webhook_requests, timeout
+        )
+        if notification_before == notification_after:
+            raise RuntimeError("distinct events reused a notification idempotency key")
 
         result.update(
             {
@@ -286,6 +367,11 @@ raise SystemExit(cmd_worker(args))
                 "handler_succeeded_before_restart": True,
                 "handler_succeeded_after_restart": True,
                 "both_events_claimed_by_same_worker": True,
+                "notification_succeeded_before_restart": True,
+                "notification_succeeded_after_restart": True,
+                "notification_attempts_succeeded": True,
+                "loopback_idempotency_keys_unique": True,
+                "loopback_webhook_calls": 2,
                 "worker_id": worker_id,
                 "migrations_replayed": [
                     "116_event_bus.sql",
@@ -294,8 +380,8 @@ raise SystemExit(cmd_worker(args))
                 ],
                 "limitations": [
                     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
-                    "A real allowlisted alert-notification handler ran in the worker's spawned child process, but the synthetic payload had no configured destination and produced no outbox row.",
-                    "All optional provider switches and notification destinations were explicitly disabled; notification processing queried the empty outbox and made no external delivery calls.",
+                    "The real allowlisted alert-notification handler ran in its spawned child process and queued a webhook to a temporary HTTP server bound to 127.0.0.1; no remote provider was contacted.",
+                    "Notification outbox and attempt rows were verified as succeeded, and both loopback requests carried their matching durable notification IDs as idempotency keys.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
             }
@@ -309,6 +395,11 @@ raise SystemExit(cmd_worker(args))
                 process.kill()
                 process.wait(timeout=5)
         _docker("rm", "--force", name, check=False)
+        if webhook_server is not None:
+            webhook_server.shutdown()
+            webhook_server.server_close()
+        if webhook_thread is not None:
+            webhook_thread.join(timeout=2)
 
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0
