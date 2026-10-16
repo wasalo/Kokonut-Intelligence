@@ -689,7 +689,10 @@ atomic due-job claim filters by that location before acquiring a lease. The
 optional Prefect adapter uses the existing active Kokonut Network location
 fan-out; the direct operator CLI retains its unscoped queue behavior. Source
 tests cover location forwarding, SQL binding, missing-scope rejection, and
-Prefect fan-out. Provider credentials, provider outcomes, signed worker context,
+Prefect fan-out. A disposable PostgreSQL 16 fixture also confirms that scoped
+claims lease only the requested location, while the direct operator claim stays
+global ([database evidence](builds/2026-10-16-recovery/remote-sensing-location-postgres.json);
+[reusable check](../scripts/check-remote-sensing-location-claim-disposable.py)). Provider credentials, provider outcomes, signed worker context,
 database authorization, persisted-task reconciliation, and MAN-CAP acceptance
 remain open. No schedule or database state was accessed ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);
 [operation map](worker-operation-map.json); [JobSpec inventory](worker-job-contract-inventory.json)).

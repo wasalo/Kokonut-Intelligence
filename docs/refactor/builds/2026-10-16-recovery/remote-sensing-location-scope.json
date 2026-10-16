@@ -30,6 +30,10 @@
       "result": "passed: 15 JobSpecs; nine no-input defaults, five required-location jobs, one source-contract-missing sensor job"
     },
     {
+      "command": "python3 scripts/check-remote-sensing-location-claim-disposable.py",
+      "result": "passed against disposable PostgreSQL 16: each scoped claim leased only a row for its target location; the unscoped operator claim remained global; no rows remained unclaimed"
+    },
+    {
       "command": "python3 scripts/check-capability-matrix.py",
       "result": "passed: 66 capability rows; no MAN-CAP acceptance status changed"
     },
@@ -43,10 +47,10 @@
     }
   ],
   "not_performed": [
-    "No candidate or legacy database was accessed.",
+    "No candidate or legacy database was accessed; the only database used was a temporary no-volume PostgreSQL 16 container on loopback.",
     "No Prefect server, provider API, external schedule, or persisted task was accessed.",
     "No Raspberry Pi or ARM64 device acceptance was performed.",
-    "The SQL claim predicate was verified with source-level tests and static inventory checks, not a live PostgreSQL query."
+    "The SQL claim predicate was exercised against a synthetic table matching the worker's claim columns; this does not verify the full repository schema, provider parity, worker identity, or RLS."
   ],
   "remaining_gates": [
     "Provider credentials and successful provider outcome parity",

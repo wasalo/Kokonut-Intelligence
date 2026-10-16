@@ -56,11 +56,15 @@ and leases a queue row. The optional Prefect flow fans out over active
 Kokonut Network locations through the shared location dispatcher. The direct
 operator CLI remains able to process its global queue. Source tests cover
 claim-query binding, dispatcher forwarding, schedule-contract rejection of a
-missing location, and Prefect routing. The updated inventory now contains nine
+missing location, and Prefect routing. The actual claim function also passed a
+disposable PostgreSQL 16 probe using two locations, verifying scoped leases and
+the direct operator's global queue behavior. The updated inventory now contains nine
 no-input jobs, five required-location jobs, and one sensor job without a source
-contract. No persisted task, Prefect deployment, provider, or database was
-accessed. This is code-level scope only; signed worker identity and RLS remain
+contract. No persisted task, Prefect deployment, provider, candidate database,
+or legacy database was accessed; the probe used a temporary no-volume local
+PostgreSQL database. This is code-level scope only; signed worker identity and RLS remain
 open ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);
+[PostgreSQL evidence](builds/2026-10-16-recovery/remote-sensing-location-postgres.json);
 [JobSpec inventory](worker-job-contract-inventory.json);
 [operation map](worker-operation-map.json)).
 
