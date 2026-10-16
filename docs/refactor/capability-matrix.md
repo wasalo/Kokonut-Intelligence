@@ -39,7 +39,11 @@ permission was broadened ([role evidence](builds/2026-10-16-recovery/farm-activi
 **16 October 2026 native farm-activity operations (CAP-001):** migration 404
 and the Gateway now add bounded non-Field-Collector record reads, draft
 creation/editing, and human lifecycle decisions with tenant-qualified grants
-and a separate append-only operator audit ledger. Thirteen focused HTTP,
+and a separate append-only operator audit ledger. A separate operator-console
+panel now exposes these operations according to the current location grants.
+Six focused console contract and JavaScript syntax checks pass, including
+grant-filtered reads/actions, CSRF-protected writes, and safe detail rendering.
+Thirteen focused HTTP,
 service, and route-policy tests pass; an isolated PostgreSQL 16 fixture passes
 11 migration, tenant-grant, lifecycle-separation, and ledger-boundary checks.
 Historical rows without Gateway actor history remain ineligible for lifecycle

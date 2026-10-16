@@ -1,8 +1,11 @@
 # Gateway farm-activity operations contract
 
-**Status:** implemented in source; migration 404 and acceptance are limited to
-a fresh disposable PostgreSQL 16 database. The local candidate has not been
-migrated or rebuilt for this slice.
+**Status:** Gateway routes and a separate operator-console panel are implemented
+in source; migration 404 and database acceptance are limited to a fresh
+disposable PostgreSQL 16 database. Six focused console contract and inline
+JavaScript syntax checks pass. The local candidate has not been migrated or
+rebuilt for this slice; browser and live authenticated Gateway acceptance
+remain open.
 
 ## Boundary
 
@@ -42,6 +45,13 @@ Database guards verify plot/crop location, valid lifecycle transitions, current
 tenant grants, and separation of submitter, verifier, reviewer, and publisher.
 Reject, rework, and exception-close require a bounded reason.
 
+The operator console includes a separate panel for these records. It selects
+the ordinary or published-only API from the operator's location grants, shows
+detail and decision history only with a corresponding detail grant, and renders
+draft/lifecycle controls only for matching grants and record state. Mutations
+use same-origin credentials, `no-store`, and the console CSRF token. The
+Field Collector intake and consent workflow remains a separate panel.
+
 ## Audit and database boundary
 
 Migration 404 adds `farm_activity_operator_event`, a separate append-only ledger
@@ -62,8 +72,10 @@ or recorded here.
 
 ## Verification evidence
 
-Thirteen focused HTTP, service, and OIDC route-policy tests pass. Ruff and
-Python compilation pass. The disposable migration check passes 11 cases on a
+Thirteen focused HTTP, service, and OIDC route-policy tests pass. Five focused
+console contract and inline JavaScript syntax checks pass, and Ruff passes for
+the console test. Python compilation passes for the API/migration slice. The
+disposable migration check passes 11 cases on a
 fresh PostgreSQL 16 container with no mounted volumes, using a random host port
 bound to `127.0.0.1`. Its tenant setter is a synthetic fixture function; signed
 tenant-context cryptography is covered by separate checks. The runtime SQL
@@ -71,6 +83,7 @@ inventory is refreshed. Candidate and legacy databases were not touched
 ([evidence](builds/2026-10-16-recovery/gateway-farm-activity-operations-disposable.json)).
 
 These checks establish source and disposable-database behavior only. They do
-not establish configured OIDC, candidate rollout, populated legacy-row
-reconciliation, UI parity, wider Directus parity, RLS readiness, or MAN-CAP-001
-acceptance.
+not establish configured OIDC, browser/runtime interaction, live authenticated
+Gateway behavior, candidate rollout, populated legacy-row reconciliation,
+wider Directus parity, RLS readiness, or MAN-CAP-001 acceptance ([console
+evidence](builds/2026-10-16-recovery/operator-console-farm-activity-contract.json)).

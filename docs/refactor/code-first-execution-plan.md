@@ -4,7 +4,7 @@
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Remote head before this local batch:** `6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`
 **Status at batch start (checked 16 October 2026):** CI #336 was pending and Security #60 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299381); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38859299385)).
-**Latest pushed batch:** `8c7a053eeda37d42e229eacf4c18ec6e7943c9d6`; CI #337 and Security #61 are in progress.
+**Latest pushed batch:** `a1f45da634133ff8c94f643dcd245dea52d9b7b1`; Security #65 passed and CI #341 is in progress.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -15,11 +15,19 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **379 checked and 19 open items (398 total)**,
+- The execution checklist has **384 checked and 19 open items (403 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
+- Since the previous `8c7a053` accounting, commit `a1f45da` was pushed to PR #68.
+  It adds the native Gateway farm-activity API and migration 404, with 13 focused
+  service/HTTP/policy tests and 11 disposable PostgreSQL 16 checks passing. A
+  separate operator-console panel for these routes is implemented locally;
+  six focused console contract checks pass, including inline JavaScript syntax
+  validation. Migration 404 has not
+  been applied to the candidate, and no MAN-CAP check was accepted. Security
+  #65 passed and CI #341 remains in progress for the pushed SHA.
 - When this local batch began, the remote PR head was
   [`6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f`](https://github.com/wasalo/Kokonut-Intelligence/commit/6edc14ebe12fa1b983bf74fcb0e3b03d69d28b9f)
   on `feat/mobile-offline-acceptance`, PR #68. CI #336 was pending and
