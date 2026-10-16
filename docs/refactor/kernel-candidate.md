@@ -14,7 +14,8 @@ the legacy volume. Always use a separate project name:
     docker compose -p kokonut-kernel-candidate -f docker-compose.kernel-candidate.yml build
 
 Do not combine this manifest with legacy Compose or use the legacy project name.
-No automatic seeding, migration, restore, or worker execution is configured.
+No automatic seeding, migration, or restore is configured. The image supervisor
+starts enabled workers alongside the API only after schema readiness passes.
 The image supervisor requires the complete bundled schema ledger and read
 contracts before spawning the API or workers. On a fresh volume, the app
 container stays in Compose's restart loop until the separate host-side

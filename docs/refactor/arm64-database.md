@@ -35,10 +35,13 @@ database restart. After an intentional app SIGKILL, explicit Compose `up`
 restored health to 200 and protected writes still returned 401. This refresh
 used no seeds, farm data, or candidate/legacy volumes, and had no explicit
 CPU/memory caps. The app started before migrations, so background workers logged
-missing-schema errors during bootstrap. The image and standard-profile commands
-now require schema readiness before spawning API or worker children; a fresh
-QEMU replay is still needed to confirm the guard in the ARM64 container runtime.
-Physical Pi and 24-hour/provider recovery remain open
+missing-schema errors during bootstrap. A follow-up isolated ARM64 project then
+confirmed the image guard: no API, scheduler, or event child started while the
+ledger was empty; after all 393 schemas applied, the children started, `/health`
+returned 200, the anonymous Data Stream write returned 401, and Docker reported
+the app healthy. The disposable app used 1 GiB/two CPUs and PostgreSQL used
+1.5 GiB/two CPUs; its empty database and volumes were removed. Physical Pi and
+24-hour/provider recovery remain open
 ([runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json);
 [startup guard evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
 

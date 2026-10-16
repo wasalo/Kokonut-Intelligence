@@ -68,10 +68,13 @@ The default and OIDC image commands and both standard-profile roles now pass
 are missing, it exits before spawning API or worker children; Compose retries
 after the separate host migration runner completes. The focused regression
 confirms a readiness failure launches no child, and profile checks cover each
-declared runtime command. ARM64 QEMU has not yet been rerun with the guard, so
-the earlier schema-402 worker error remains a historical observation pending
-container-level confirmation. No database, candidate, legacy service, or
-migration state was changed
+declared runtime command. The bounded ARM64 QEMU follow-up confirmed no child
+starts on an empty ledger; after 393 ordered schemas, API/scheduler/event
+children started, `/health` was 200, the anonymous Data Stream write was 401,
+and the app reached Docker healthy with a 1 GiB/two-CPU limit. PostgreSQL used
+1.5 GiB/two CPUs. No seeds ran, and the disposable project/volumes were removed;
+the healthy candidate remained running. Physical Pi behavior, 24-hour recovery,
+and provider outages remain open
 ([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json);
 [ARM64 record](arm64-database.md)).
 

@@ -1,7 +1,7 @@
 {
   "date": "2026-10-15",
   "scope": "Kernel supervisor schema readiness before API/worker process creation",
-  "result": "focused source and profile checks passed",
+  "result": "focused source/profile checks and bounded ARM64 QEMU runtime acceptance passed",
   "changes": [
     "Default and OIDC image runtime commands require schema readiness.",
     "Standard API and worker Compose commands require schema readiness.",
@@ -26,11 +26,37 @@
       ]
     }
   ],
+  "arm64_qemu_runtime": {
+    "compose_project": "kokonut-kernel-arm64-guard-20261015",
+    "platform": "linux/arm64 under Docker emulation",
+    "images": {
+      "app": "sha256:4859810192b2f6f04a4de12f3fe1e26f508823ece3154885c82b3e14f880a28c",
+      "postgis": "sha256:c23ad651877fc7cb527e20f571b6e8b99d757d3c5c538ae6422564cc2e3c095c"
+    },
+    "empty_ledger": "readiness failed and no API/scheduler/event child started",
+    "schema_migrations_applied": 393,
+    "schema_plan_pending": 0,
+    "after_migration": "API, scheduler, and event children started",
+    "health": 200,
+    "docker_health": "healthy",
+    "anonymous_data_stream_write": 401,
+    "resource_limits": {
+      "database_memory_bytes": 1610612736,
+      "app_memory_bytes": 1073741824,
+      "cpus_each": 2
+    },
+    "scheduled_task_rows": 0,
+    "platform_event_rows": 0,
+    "seed_migrations_applied": 0,
+    "temporary_project_and_volumes_removed": true,
+    "candidate_containers_healthy_after_cleanup": true
+  },
   "limitations": [
-    "ARM64 QEMU bootstrap has not yet been repeated with the guard.",
-    "This does not establish physical Raspberry Pi behavior or MAN-CAP acceptance."
+    "This does not establish physical Raspberry Pi behavior or MAN-CAP acceptance.",
+    "The bounded QEMU runtime is not a performance benchmark; long-duration recovery, provider outage, power-loss, and replica acceptance remain open."
   ],
   "candidate_or_legacy_database_changed": false,
-  "migration_applied": false,
-  "containers_started": false
+  "disposable_schema_migrations_applied": 393,
+  "seed_migrations_applied": 0,
+  "containers_started_and_removed": true
 }

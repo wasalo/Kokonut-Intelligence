@@ -648,6 +648,17 @@ resource limits or seeds. Raspberry Pi hardware, 24-hour recovery, and real
 provider/lease outages remain open
 ([evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json)).
 
+**Schema-gated startup follow-up (15 October 2026):** the image default and
+standard-role commands now pass `--require-schema`. In a new ARM64 QEMU project,
+the app remained child-free while the ledger was empty; after 393 ordered
+schemas applied and a zero-pending plan, API/scheduler/event children started,
+health returned 200, a protected write returned 401, and Docker reported the
+app healthy. The app was limited to 1 GiB/two CPUs and PostgreSQL to 1.5
+GiB/two CPUs. The disposable project and volumes were removed. This closes the
+worker-before-migration source/runtime path under emulation, not physical Pi,
+24-hour, or provider-outage acceptance
+([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
+
 ### Batch G — Reconcile ledgers, then request only owner decisions
 
 Update `batches.md`, `progress.md`, `capability-matrix.md`, the relevant

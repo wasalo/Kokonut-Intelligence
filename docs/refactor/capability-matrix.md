@@ -132,8 +132,11 @@ it. Physical Pi performance is not claimed ([profile evidence](builds/2026-10-15
 image commands and both standard-profile roles now require complete schema
 readiness before spawning API or worker processes. A focused supervisor test
 proves a readiness failure launches no child, and profile checks cover the
-image/Compose commands. ARM64 startup has not yet been rerun with this guard;
-no MAN-CAP acceptance or hardware claim follows
+image/Compose commands. The isolated linux/arm64 QEMU replay confirmed zero
+child starts against an empty ledger and API/scheduler/event startup after 393
+schemas; health was 200, anonymous write was 401, and the app reached Docker
+healthy under a 1 GiB/two-CPU limit. The disposable volume was removed. This
+does not accept MAN-CAP-047 or physical Pi behavior
 ([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
 
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
