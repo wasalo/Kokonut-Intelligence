@@ -1,24 +1,24 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 15 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
+**Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
 The report review audience now records the owner's direction to involve
 liquidity providers, DAO members, guild members, and the wider community across
 the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-The last pushed PR head is `d01941abad13c5128fca85acb0f4b5645a4322b4`.
-This local batch is 15 commits ahead of that head and includes the CI #325
-regression fixes, read-only candidate seed confirmation, report/tenant source
-inventories, scheduled-weather input guard, Directus relation-expansion guard,
-and schema-gated startup plus its ARM64 QEMU acceptance. Security #49 passed;
-CI #325 failed on the previous pushed head with four tests. The local CI repair
-restores the flow-metric seed to the normal seed set, aligns the OIDC `Vary`
-test with CORS, refreshes the worker SQL expectation, and asserts retention-lock
-ordering. It passed 31 focused tests; two DB-dependent flow-metric tests skipped
-because no local test database was available
-([evidence](builds/2026-10-15-recovery/ci-325-regression-fix.json)).
-This batch has not yet received hosted CI/Security results. The candidate now has 393 applied schema migrations through 402, six
+The last pushed PR head is `d37b5868f0428dc856eb62a4a49bd977dda1ba4d`.
+That 15-commit batch includes the CI #325 regression fixes, read-only candidate
+seed confirmation, report/tenant source inventories, scheduled-weather input
+guard, Directus relation-expansion guard, and schema-gated startup with ARM64
+QEMU acceptance. Gitleaks passed on `d37b586`. CI failed before the test
+suite because `Dockerfile.kernel` changed while its SHA-256 release-input lock
+was stale. The only Dockerfile changes add `--require-schema` to the default
+and OIDC runtime commands; the lock now matches the reviewed file. The release
+input gate and 14 Kernel profile/startup tests pass locally; hosted
+reverification is pending on the next PR head
+([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
+The candidate now has 393 applied schema migrations through 402, six
 recorded seed migrations, zero pending schema migrations, 115 unselected seed
 sources pending, and no failed ledger rows. The five approved reference catalogs
 and configurable retention/legal-hold schema are applied; no retention period,

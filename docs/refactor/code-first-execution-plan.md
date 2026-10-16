@@ -1,9 +1,9 @@
 # Code-first refactor execution plan
 
-**Updated:** 15 October 2026
+**Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `d01941abad13c5128fca85acb0f4b5645a4322b4`
-**Latest pushed head status (checked 15 October 2026):** Security #49 passed; CI #325 failed on the pushed head. Four focused regressions are fixed locally; the repair batch remains unpushed and needs a fresh hosted CI/Security run.
+**Latest pushed head:** `d37b5868f0428dc856eb62a4a49bd977dda1ba4d`
+**Latest pushed head status (checked 16 October 2026):** Gitleaks passed; CI failed before tests because the reviewed SHA-256 lock for `Dockerfile.kernel` was stale after adding `--require-schema` to the default and OIDC image commands. The lock is now refreshed locally; the release-input gate and 14 focused Kernel checks pass, pending hosted rerun on the next PR head ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,30 +20,23 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
-  [`d01941abad13c5128fca85acb0f4b5645a4322b4`](https://github.com/wasalo/Kokonut-Intelligence/commit/d01941abad13c5128fca85acb0f4b5645a4322b4)
-  on `feat/mobile-offline-acceptance`, PR #68. Security #49 passed; CI #325
-  failed with four tests after 5,010 passed and 84 subtests passed. The failures
-  were a missing flow-metric seed in the normal seed path, a stale exact `Vary`
-  header expectation, a worker SQL inventory test missing the remote-sensing
-  source, and a workflow test that prohibited the retention/legal-hold
-  serialization lock. The four fixes now pass 31 focused tests locally; two
-  database-dependent flow-metric checks skipped because no local test database
-  was available. See the [CI repair evidence](builds/2026-10-15-recovery/ci-325-regression-fix.json).
-  This push carried the previous 17
-  local commits, including retention-policy and optional Directus role/profile
-  work, fresh-volume Directus overlay acceptance, worker effect and SQL
-  reachability inventories, and the five-seed/retention rollout evidence.
-  Ten local commits sit above that pushed head and have not been evaluated by
-  CI: eight earlier commits covering ZITADEL image pins; report-review
-  tenant-context tests;
-  report-generator, direct-query, and helper-query inventories; the report
-  review-audience record; the indirect location-scope correction; and current
-  ARM64 schema-402 evidence, followed by the CI #325 repair and its read-only
-  candidate seed confirmation. The pushed batch
-  includes report calculation and scheduler worker
-  recovery, EventBus reconnect/retry, KGP reconnect, and Directus organization
-  permission work. See the relevant evidence below and the current CI status
-  above; do not treat it as validation of the local commits.
+  [`d37b5868f0428dc856eb62a4a49bd977dda1ba4d`](https://github.com/wasalo/Kokonut-Intelligence/commit/d37b5868f0428dc856eb62a4a49bd977dda1ba4d)
+  on `feat/mobile-offline-acceptance`, PR #68. Gitleaks passed on this head. CI on this
+  head stopped before tests because the schema-readiness change altered
+  `Dockerfile.kernel` without refreshing the SHA-256 release-input lock. The
+  lock now matches the reviewed Dockerfile, the release-input gate passes, and
+  14 focused Kernel checks pass locally; hosted reverification is pending on
+  the next PR head ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
+  This 15-commit push includes the prior CI #325 repair; ZITADEL image pins;
+  report-review tenant-context checks and report/query inventories; the report
+  review-audience record; the indirect location-scope correction; current
+  ARM64 schema-402 evidence; read-only candidate seed confirmation; and the
+  schema-readiness startup guard. It also includes retention-policy and
+  optional Directus role/profile work, fresh-volume Directus overlay acceptance,
+  worker effect and SQL reachability inventories, report calculation and
+  scheduler recovery, EventBus reconnect/retry, KGP reconnect, and Directus
+  organization permission work. The pending local lock correction has not been
+  covered by hosted CI or Security.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
   isolated PostgreSQL check pass; the latter proved rejected calculations
@@ -235,12 +228,12 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** The latest pushed head is `d01941abad13c5128fca85acb0f4b5645a4322b4`.
-Security #49 passed; CI #325 failed with four tests, and the local repair passes
-31 focused tests with two database-dependent skips. The repair evidence is
-[`ci-325-regression-fix.json`](builds/2026-10-15-recovery/ci-325-regression-fix.json).
-The fix is not yet covered by hosted CI; inspect the next run against its exact
-pushed SHA before changing the checklist status.
+**Action:** CI on pushed SHA `d37b5868f0428dc856eb62a4a49bd977dda1ba4d`
+stopped at the Kernel release-input check because the `Dockerfile.kernel`
+digest lock was stale. The lock now matches the reviewed schema-readiness
+change. The local release-input gate and 14 focused Kernel profile/startup tests
+pass; hosted verification is still required on the next pushed SHA. See
+[`ci-d37b586-release-lock-fix.json`](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json).
 
 **Acceptance:** require passing CI and Security on the current PR head before
 merging. The scheduler runtime acceptance is source/disposable evidence only;
