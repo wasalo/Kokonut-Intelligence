@@ -2018,3 +2018,17 @@ handler still uses the direct EventBus path; no worker login, candidate
 rollout, RLS, or MAN-CAP acceptance is claimed
 ([migration](../schemas/postgres/408_sensor_alert_event_function.sql);
 [evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).
+
+### CAP-040/047 bounded sensor-alert notification intent — 16 October 2026
+
+Migration 409 adds a separate non-login enqueue function for the webhook,
+Directus, and email contracts used by the existing notification adapter. The
+function requires the signed location, matching sensor-reading receipt and
+published alert event, a fixed primary destination, and an allowlisted,
+bounded payload. It inserts only a pending outbox intent; exact retries are
+no-ops and conflicts fail closed. Twelve disposable PostgreSQL 16 checks pass,
+including delivery-state preservation, role boundaries, direct table denial,
+and migration replay. The handler is not wired to this function; notification
+delivery remains separately owned and no MAN-CAP acceptance is claimed
+([migration](../schemas/postgres/409_sensor_alert_notification_intent.sql);
+[evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).

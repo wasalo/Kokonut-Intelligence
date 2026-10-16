@@ -2,9 +2,9 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Remote head before this local batch:** `1c5c76149768da454f2aa6268ee4d6f43609af26`
-**Status at batch start (checked 16 October 2026):** CI #349 was in progress and Security #73 passed.
-**Latest pushed batch at batch start:** `1c5c76149768da454f2aa6268ee4d6f43609af26`; CI #349 was in progress and Security #73 passed.
+**Remote head before this local batch:** `7ff80d2a08f10b0002319b43e719acab4319e16b`
+**Status at batch start (checked 16 October 2026):** CI #350 was pending and Security #74 was in progress.
+**Latest pushed batch at batch start:** `7ff80d2a08f10b0002319b43e719acab4319e16b`; CI #350 was pending and Security #74 was in progress.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -15,23 +15,25 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **397 checked and 19 open items (416 total)**,
+- The execution checklist has **398 checked and 19 open items (417 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
-- Latest pushed work on 16 October at the start of this batch was `1c5c761`
-  (migration 407's dormant signed-scope anomaly receipt functions), after
-  `ba0c47bc` (migration 406 sensor anomaly location lineage) and `0bafc419` (anomaly
-  handler source and transaction boundaries), `4e471638` (signed worker tenant
-  context), `a0ec3f45` (batch status refresh), and `78580cd4` (anomaly effect
-  contract). CI #349 was in progress and Security #73 passed at batch start.
-  This local batch adds migration 408's canonical sensor-alert event publisher;
-  eleven event-function checks pass in disposable PostgreSQL 16, complementing
-  migration 407's nine receipt checks from the preceding batch. The worker can
-  execute only the functions and has no direct receipt/event-table access.
-  Handler integration is still open; no credential, candidate rollout, RLS, or
-  MAN-CAP acceptance was added.
+- Latest pushed work on 16 October at this batch's start was `7ff80d2`
+  (migration 408's dormant signed-scope sensor-alert event publisher), after
+  `1c5c761` (migration 407's receipt functions), `ba0c47bc` (migration 406
+  sensor anomaly location lineage), `0bafc419` (anomaly handler source and
+  transaction boundaries), `4e471638` (signed worker tenant context),
+  `a0ec3f45` (batch status refresh), and `78580cd4` (anomaly effect contract).
+  CI #350 was pending and Security #74 was in progress at batch start. This
+  local batch adds migration 409's bounded notification-intent function.
+  Twelve checks pass in disposable PostgreSQL 16 for source/alert validation,
+  webhook/Directus/email contracts, allowlists, idempotency and delivery-state
+  preservation, ACL boundaries, and replay. The worker can execute the bounded
+  function only and cannot directly access notification or attempt rows.
+  Handler integration, actuation-intent function, isolated credentials,
+  candidate rollout, RLS, and MAN-CAP acceptance remain open.
   Migration 405 and its adapter pass 17 disposable PostgreSQL acceptance
   checks and unit coverage. The focused anomaly/transaction checks pass.
   Migration 405 is not applied to the candidate, no worker credential or

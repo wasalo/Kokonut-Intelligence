@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (16 October 2026):** 397 checklist items complete and 19
-open (416 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
+**Current snapshot (16 October 2026):** 398 checklist items complete and 19
+open (417 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
 baseline-retained, 7 deployed, and 4 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -786,8 +786,9 @@ reporting views.
 - [ ] Extend the tenant map for any additional locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
-  Migrations 405, 407, and 408 and the worker adapter have disposable database
-  acceptance; the receipt and event-publisher functions remain dormant. Handler integration
+  Migrations 405 and 407–409 and the worker adapter have disposable database
+  acceptance; the receipt, event-publisher, and notification-intent functions
+  remain dormant. Handler integration
   and per-worker credential isolation, control-plane
   separation, remaining operation scopes, and application-table RLS acceptance
   remain open
@@ -803,6 +804,7 @@ reporting views.
   review is still open.
   - [x] Add and verify migration 407's dormant signed-scope anomaly receipt functions. Nine disposable PostgreSQL 16 checks pass for scope and source matching, duplicate suppression, allowed transitions, alert linkage, privilege separation, and migration replay. This does not integrate the handler, provision a worker login, roll out to the candidate, or enable RLS ([migration](../../schemas/postgres/407_sensor_anomaly_effect_functions.sql); [runner](../../scripts/check-sensor-anomaly-effect-functions-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
   - [x] Add migration 408's signed-scope event publisher. Eleven disposable PostgreSQL 16 checks pass for canonical event payload/priority, source and alert linkage, retry/collision behavior, queue-state preservation, function ACLs, direct table denial, and replay. The publisher is not wired into the handler ([migration](../../schemas/postgres/408_sensor_alert_event_function.sql); [runner](../../scripts/check-sensor-alert-event-function-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).
+  - [x] Add migration 409's signed-scope notification-intent function. Twelve disposable PostgreSQL 16 checks pass for source/alert linkage, webhook/Directus/email payload contracts, channel and destination allowlists, idempotency/collision handling, preservation of delivery state, bounded ACLs, and replay. Handler enqueueing remains direct until the worker credential and event-before-notification transaction flow are integrated ([migration](../../schemas/postgres/409_sensor_alert_notification_intent.sql); [runner](../../scripts/check-sensor-alert-notification-intent-disposable.py); [evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).
   - [x] Add this operations overview with exact dual-grant route policy, same-transaction signed tenant context, SQL scope rechecks, and a content-free queue summary. The 83-test service/route/console check passes; live OIDC, database-role, and browser acceptance remain open ([console contract](kernel-operations-console.md); [evidence](builds/2026-10-14-recovery/mobile-operations-inventory-route.json)).
   - [x] Ignore stale inventory responses and errors after the operator changes locations, so an older request cannot replace the selected location's view ([evidence](builds/2026-10-15-recovery/operator-inventory-stale-response-guard.json)).
   - [x] Add direct service regressions for the OIDC report-review queue/detail

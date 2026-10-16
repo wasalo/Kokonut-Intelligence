@@ -92,7 +92,7 @@
       "access": "insert_sensor_alert_intent",
       "class": "tenant_notification_intent",
       "required_boundary": "Enqueue an intent for the signed location and newly published sensor_alert event. Do not claim, edit, replay, dispose, or deliver notification rows or attempts.",
-      "current_enforcement": "Migration 406 adds a nullable location_id and backfills through the linked sensor_alert event. The anomaly handler persists canonical location on enqueue and rejects conflicting retry scope; direct insertion remains and delivery has a separate worker."
+      "current_enforcement": "Migration 409 adds a SECURITY DEFINER enqueue function requiring signed location, a matching source receipt and published alert event, fixed primary destination, and channel-specific payload allowlists. It inserts only a pending location-bound intent; identical retries do not mutate delivery state. The handler still uses direct enqueue until credential-isolated integration reorders alert-event publication before notification enqueue. Delivery claims and attempts remain separate."
     },
     {
       "relation": "public.actuation_log",

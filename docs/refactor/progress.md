@@ -6442,3 +6442,29 @@ databases were not contacted
 [fixture](../tests/fixtures/sensor_alert_event_function_disposable.sql);
 [runner](../scripts/check-sensor-alert-event-function-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).
+
+### Bounded sensor-alert notification intent — 16 October 2026
+
+Migration 409 adds the bounded sensor-alert notification enqueue function
+behind a separate non-login owner. It requires signed sensor_reading/process
+location scope and validates the original reading event, source reading/device,
+alert_created receipt, linked alert, and published sensor_alert event. It
+accepts only the existing webhook, Directus, and email payload shapes, limits
+payloads to 16 KiB, and fixes the destination key to primary. It inserts a
+pending outbox row only; it cannot update delivery status or touch attempt
+history. Exact retries are no-ops, while payload collisions fail closed.
+
+Twelve focused PostgreSQL 16 checks pass in a loopback-only disposable
+container, including all three channel contracts, scope/source mismatches,
+invalid fields/destinations, stable-identity conflict, completed-delivery
+retry preservation, function-owner and worker ACLs, runtime/auth denial, direct
+outbox/attempt denial, and migration replay. Ruff, Python compilation, and
+diff checks pass. The handler still writes notifications directly and
+currently enqueues before publishing the alert event; integration must reorder
+these effects within its existing transaction after an isolated worker
+credential is provisioned. No candidate rollout, provider delivery, RLS, or
+MAN-CAP acceptance was added. Candidate and legacy databases were not contacted
+([migration](../schemas/postgres/409_sensor_alert_notification_intent.sql);
+[fixture](../tests/fixtures/sensor_alert_notification_intent_disposable.sql);
+[runner](../scripts/check-sensor-alert-notification-intent-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).
