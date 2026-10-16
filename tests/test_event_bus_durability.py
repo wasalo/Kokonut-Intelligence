@@ -100,6 +100,28 @@ def test_handler_child_environment_allows_only_exact_anomaly_worker_identity():
     }
 
 
+def test_cache_handlers_receive_only_their_exact_worker_identity():
+    source = {
+        "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
+        "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "cache-secret",
+        "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://anomaly-worker",
+        "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "anomaly-secret",
+        "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler",
+        "KOKONUT_SCHEDULER_WORKER_CREDENTIAL": "scheduler-secret",
+        "PG_PASSWORD": "legacy-runtime-secret",
+    }
+
+    for function_name in ("handle_metric_computed", "handle_crisp_scored"):
+        env = _handler_child_environment(
+            "services.cache.events", function_name, source
+        )
+        assert env == {
+            "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
+            "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "cache-secret",
+            "PG_PASSWORD": "legacy-runtime-secret",
+        }
+
+
 def test_unmapped_event_handler_receives_no_worker_identity():
     env = _handler_child_environment(
         "services.events.handlers",

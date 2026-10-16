@@ -27,8 +27,8 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 267,
-    "sites_with_static_operation_path": 203,
+    "execution_site_count": 268,
+    "sites_with_static_operation_path": 204,
     "sites_without_static_function_match": 64,
     "site_refs_for_review": [
       {
@@ -189,17 +189,17 @@
       {
         "site": "services/common/tenant_context.py:215:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 2
+        "import_closure_operation_count": 4
       },
       {
         "site": "services/common/tenant_context.py:295:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 2
+        "import_closure_operation_count": 4
       },
       {
         "site": "services/common/tenant_context.py:361:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 2
+        "import_closure_operation_count": 4
       },
       {
         "site": "services/credit_class/chain_sync.py:176:12",

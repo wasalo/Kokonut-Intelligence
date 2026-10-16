@@ -930,6 +930,17 @@ syntax checks pass. This does not complete the platform-integrity acceptance
 row or provide worker DB isolation; see the source audit in
 [`mobile-tenant-rls-callsite-audit.md`](mobile-tenant-rls-callsite-audit.md).
 
+**16 October 2026 signed cache-worker slice (CAP-040 / CAP-047):** the two
+registered EventBus cache handlers now have an opt-in signed worker path, and
+migration 415 limits invalidation to the matching event, location, and
+analytics/CRISP cache type. Seventy-four focused Python tests and six
+network-isolated PostgreSQL 16 checks pass, including replay, forced RLS, retry
+idempotency, and direct-table denial. The feature remains off by default; no
+worker credential or active location grant is provisioned, migration 415 is
+not deployed to candidate, and MAN-CAP status does not change
+([evidence](builds/2026-10-16-recovery/cache-invalidation-worker-disposable.json);
+[migration](../schemas/postgres/415_signed_cache_invalidation_worker.sql)).
+
 Current focus: **Phase 7, native public API reads**. CAP-053's tenant preflight
 now gates counts on schema completeness; the guard passed against a populated
 archived restore, reported 11 missing columns, and skipped lineage counts; its

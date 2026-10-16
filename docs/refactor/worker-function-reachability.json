@@ -6,8 +6,8 @@
     "operation_roots": 20,
     "source_files": 81,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 382,
-    "direct_call_edges": 528,
+    "function_memberships": 398,
+    "direct_call_edges": 546,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -234,7 +234,7 @@
           "qualname": "EventBus._claim",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 103
+          "line": 104
         },
         {
           "key": "services.events.bus:EventBus._complete",
@@ -242,7 +242,7 @@
           "qualname": "EventBus._complete",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 265
+          "line": 266
         },
         {
           "key": "services.events.bus:EventBus._get_conn",
@@ -250,7 +250,7 @@
           "qualname": "EventBus._get_conn",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 61
+          "line": 62
         },
         {
           "key": "services.events.bus:EventBus._invoke_handler",
@@ -258,7 +258,7 @@
           "qualname": "EventBus._invoke_handler",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 221
+          "line": 222
         },
         {
           "key": "services.events.bus:EventBus._process_event",
@@ -266,7 +266,7 @@
           "qualname": "EventBus._process_event",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 154
+          "line": 155
         },
         {
           "key": "services.events.bus:EventBus._retry_or_dead_letter",
@@ -274,7 +274,7 @@
           "qualname": "EventBus._retry_or_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 278
+          "line": 279
         },
         {
           "key": "services.events.bus:EventBus.cleanup_old_events",
@@ -282,7 +282,7 @@
           "qualname": "EventBus.cleanup_old_events",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 361
+          "line": 362
         },
         {
           "key": "services.events.bus:EventBus.close",
@@ -290,7 +290,7 @@
           "qualname": "EventBus.close",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 69
+          "line": 70
         },
         {
           "key": "services.events.bus:EventBus.dispose_dead_letter",
@@ -298,7 +298,7 @@
           "qualname": "EventBus.dispose_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 336
+          "line": 337
         },
         {
           "key": "services.events.bus:EventBus.get_stats",
@@ -306,7 +306,7 @@
           "qualname": "EventBus.get_stats",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 354
+          "line": 355
         },
         {
           "key": "services.events.bus:EventBus.process_pending",
@@ -314,7 +314,7 @@
           "qualname": "EventBus.process_pending",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 127
+          "line": 128
         },
         {
           "key": "services.events.bus:EventBus.replay_dead_letter",
@@ -322,7 +322,7 @@
           "qualname": "EventBus.replay_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 303
+          "line": 304
         },
         {
           "key": "services.events.bus:_handler_child_environment",
@@ -330,7 +330,7 @@
           "qualname": "_handler_child_environment",
           "class_scope": null,
           "source": "services/events/bus.py",
-          "line": 29
+          "line": 30
         },
         {
           "key": "services.events.cli:_get_conn",
@@ -706,115 +706,115 @@
           "caller": "services.events.bus:EventBus._claim",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 105
+          "line": 106
         },
         {
           "caller": "services.events.bus:EventBus._complete",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 266
+          "line": 267
         },
         {
           "caller": "services.events.bus:EventBus._get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/bus.py",
-          "line": 65
+          "line": 66
         },
         {
           "caller": "services.events.bus:EventBus._invoke_handler",
           "callee": "services.events.bus:_handler_child_environment",
           "source": "services/events/bus.py",
-          "line": 242
+          "line": 243
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._complete",
           "source": "services/events/bus.py",
-          "line": 169
+          "line": 170
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._complete",
           "source": "services/events/bus.py",
-          "line": 219
+          "line": 220
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 155
+          "line": 156
         },
         {
           "caller": "services.events.bus:EventBus._process_event",
           "callee": "services.events.bus:EventBus._invoke_handler",
           "source": "services/events/bus.py",
-          "line": 198
+          "line": 199
         },
         {
           "caller": "services.events.bus:EventBus._retry_or_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 279
+          "line": 280
         },
         {
           "caller": "services.events.bus:EventBus.cleanup_old_events",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 367
+          "line": 368
         },
         {
           "caller": "services.events.bus:EventBus.cleanup_old_events",
           "callee": "services.events.retention:require_event_retention_cleanup",
           "source": "services/events/bus.py",
-          "line": 366
+          "line": 367
         },
         {
           "caller": "services.events.bus:EventBus.dispose_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 343
+          "line": 344
         },
         {
           "caller": "services.events.bus:EventBus.get_stats",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 355
+          "line": 356
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._claim",
           "source": "services/events/bus.py",
-          "line": 131
+          "line": 132
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 129
+          "line": 130
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._process_event",
           "source": "services/events/bus.py",
-          "line": 134
+          "line": 135
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
           "callee": "services.events.bus:EventBus._retry_or_dead_letter",
           "source": "services/events/bus.py",
-          "line": 144
+          "line": 145
         },
         {
           "caller": "services.events.bus:EventBus.replay_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 306
+          "line": 307
         },
         {
           "caller": "services.events.bus:_handler_child_environment",
           "callee": "services.common.worker_environment:worker_subprocess_environment",
           "source": "services/events/bus.py",
-          "line": 37
+          "line": 38
         },
         {
           "caller": "services.events.cli:_get_conn",
@@ -1461,7 +1461,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 112
+          "line": 118
         },
         {
           "key": "services.core.features:require_feature",
@@ -1469,7 +1469,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         },
         {
           "key": "services.export.dataset_refresh:get_pg",
@@ -1515,7 +1515,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 137
+          "line": 143
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -1675,7 +1675,7 @@
           "qualname": "EventBus._get_conn",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 61
+          "line": 62
         },
         {
           "key": "services.events.bus:EventBus.publish",
@@ -1683,7 +1683,7 @@
           "qualname": "EventBus.publish",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 74
+          "line": 75
         },
         {
           "key": "services.events.notification_outbox:_notification_payloads",
@@ -2003,13 +2003,13 @@
           "caller": "services.events.bus:EventBus._get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/events/bus.py",
-          "line": 65
+          "line": 66
         },
         {
           "caller": "services.events.bus:EventBus.publish",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 85
+          "line": 86
         },
         {
           "caller": "services.events.notification_outbox:_notification_payloads",
@@ -6406,14 +6406,17 @@
         "services/common/db.py",
         "services/common/env.py",
         "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py"
       ],
       "entry_functions": [
         {
           "function": "services.cache.events:handle_crisp_scored",
           "source": "services/cache/events.py",
-          "line": 43
+          "line": 123
         }
       ],
       "reachable_functions": [
@@ -6442,12 +6445,20 @@
           "line": 156
         },
         {
+          "key": "services.cache.events:_invalidate_event_cache",
+          "module": "services.cache.events",
+          "qualname": "_invalidate_event_cache",
+          "class_scope": null,
+          "source": "services/cache/events.py",
+          "line": 31
+        },
+        {
           "key": "services.cache.events:_require_location_id",
           "module": "services.cache.events",
           "qualname": "_require_location_id",
           "class_scope": null,
           "source": "services/cache/events.py",
-          "line": 18
+          "line": 23
         },
         {
           "key": "services.cache.events:handle_crisp_scored",
@@ -6455,7 +6466,7 @@
           "qualname": "handle_crisp_scored",
           "class_scope": null,
           "source": "services/cache/events.py",
-          "line": 43
+          "line": 123
         },
         {
           "key": "services.cache.ports:ComputationCacheBackend.invalidate",
@@ -6472,6 +6483,62 @@
           "class_scope": null,
           "source": "services/common/database.py",
           "line": 33
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 27
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 33
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 63
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 118
         }
       ],
       "direct_call_edges": [
@@ -6488,28 +6555,82 @@
           "line": 163
         },
         {
-          "caller": "services.cache.events:handle_crisp_scored",
+          "caller": "services.cache.events:_invalidate_event_cache",
           "callee": "services.cache.backend:get_computation_cache",
           "source": "services/cache/events.py",
-          "line": 50
+          "line": 57
         },
         {
-          "caller": "services.cache.events:handle_crisp_scored",
+          "caller": "services.cache.events:_invalidate_event_cache",
           "callee": "services.cache.cache:ComputationCache.invalidate",
           "source": "services/cache/events.py",
-          "line": 52
+          "line": 58
         },
         {
-          "caller": "services.cache.events:handle_crisp_scored",
+          "caller": "services.cache.events:_invalidate_event_cache",
           "callee": "services.cache.events:_require_location_id",
           "source": "services/cache/events.py",
-          "line": 49
+          "line": 39
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "source": "services/cache/events.py",
+          "line": 45
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/cache/events.py",
+          "line": 76
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/cache/events.py",
+          "line": 73
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/cache/events.py",
+          "line": 74
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/cache/events.py",
+          "line": 54
         },
         {
           "caller": "services.cache.events:handle_crisp_scored",
-          "callee": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "callee": "services.cache.events:_invalidate_event_cache",
           "source": "services/cache/events.py",
-          "line": 52
+          "line": 131
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 152
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 143
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 44
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 80
         }
       ],
       "callback_edges": [],
@@ -6527,14 +6648,17 @@
         "services/common/db.py",
         "services/common/env.py",
         "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py"
       ],
       "entry_functions": [
         {
           "function": "services.cache.events:handle_metric_computed",
           "source": "services/cache/events.py",
-          "line": 26
+          "line": 105
         }
       ],
       "reachable_functions": [
@@ -6563,12 +6687,20 @@
           "line": 156
         },
         {
+          "key": "services.cache.events:_invalidate_event_cache",
+          "module": "services.cache.events",
+          "qualname": "_invalidate_event_cache",
+          "class_scope": null,
+          "source": "services/cache/events.py",
+          "line": 31
+        },
+        {
           "key": "services.cache.events:_require_location_id",
           "module": "services.cache.events",
           "qualname": "_require_location_id",
           "class_scope": null,
           "source": "services/cache/events.py",
-          "line": 18
+          "line": 23
         },
         {
           "key": "services.cache.events:handle_metric_computed",
@@ -6576,7 +6708,7 @@
           "qualname": "handle_metric_computed",
           "class_scope": null,
           "source": "services/cache/events.py",
-          "line": 26
+          "line": 105
         },
         {
           "key": "services.cache.ports:ComputationCacheBackend.invalidate",
@@ -6593,6 +6725,62 @@
           "class_scope": null,
           "source": "services/common/database.py",
           "line": 33
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 27
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 33
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 63
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 118
         }
       ],
       "direct_call_edges": [
@@ -6609,28 +6797,82 @@
           "line": 163
         },
         {
-          "caller": "services.cache.events:handle_metric_computed",
+          "caller": "services.cache.events:_invalidate_event_cache",
           "callee": "services.cache.backend:get_computation_cache",
           "source": "services/cache/events.py",
-          "line": 33
+          "line": 57
         },
         {
-          "caller": "services.cache.events:handle_metric_computed",
+          "caller": "services.cache.events:_invalidate_event_cache",
           "callee": "services.cache.cache:ComputationCache.invalidate",
           "source": "services/cache/events.py",
-          "line": 35
+          "line": 58
         },
         {
-          "caller": "services.cache.events:handle_metric_computed",
+          "caller": "services.cache.events:_invalidate_event_cache",
           "callee": "services.cache.events:_require_location_id",
           "source": "services/cache/events.py",
-          "line": 32
+          "line": 39
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "source": "services/cache/events.py",
+          "line": 45
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/cache/events.py",
+          "line": 76
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/cache/events.py",
+          "line": 73
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/cache/events.py",
+          "line": 74
+        },
+        {
+          "caller": "services.cache.events:_invalidate_event_cache",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/cache/events.py",
+          "line": 54
         },
         {
           "caller": "services.cache.events:handle_metric_computed",
-          "callee": "services.cache.ports:ComputationCacheBackend.invalidate",
+          "callee": "services.cache.events:_invalidate_event_cache",
           "source": "services/cache/events.py",
-          "line": 35
+          "line": 113
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 152
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 143
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 44
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 80
         }
       ],
       "callback_edges": [],

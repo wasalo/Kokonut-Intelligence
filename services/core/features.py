@@ -106,6 +106,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "governance",
         "description": "Destructive event cleanup; requires approved retention and implemented legal-hold enforcement",
     },
+    "signed_cache_invalidation": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated worker login and signed location grant for EventBus cache invalidation",
+    },
 }
 
 

@@ -18,11 +18,12 @@ logger = get_logger("events.bus")
 
 
 _HANDLER_WORKER_KEYS = {
-    # The allowlisted anomaly handler is the only event handler currently
-    # provisioned with the signed worker identity needed for sensor writes.
+    # Worker credentials are passed only to exact source-controlled handlers.
     ("services.ingestion.anomaly_detector", "handle_sensor_reading"): (
         "sensor_anomaly",
     ),
+    ("services.cache.events", "handle_metric_computed"): ("cache_invalidation",),
+    ("services.cache.events", "handle_crisp_scored"): ("cache_invalidation",),
 }
 
 

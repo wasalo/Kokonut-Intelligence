@@ -296,13 +296,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 64,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 364,
+          "line": 365,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -533,7 +533,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 47,
           "kind": "dynamic module expression"
         }
       ]
@@ -758,13 +758,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 64,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 364,
+          "line": 365,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -947,7 +947,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 47,
           "kind": "dynamic module expression"
         }
       ]
@@ -2459,13 +2459,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 64,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 364,
+          "line": 365,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -2594,7 +2594,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 47,
           "kind": "dynamic module expression"
         }
       ]
@@ -2946,13 +2946,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 64,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 364,
+          "line": 365,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -3195,7 +3195,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 47,
           "kind": "dynamic module expression"
         }
       ]
@@ -3215,7 +3215,10 @@
         "services.common.db",
         "services.common.env",
         "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
         "services.common.worker_environment",
+        "services.core.features",
         "services.core.providers"
       ],
       "source_files": [
@@ -3227,7 +3230,10 @@
         "services/common/db.py",
         "services/common/env.py",
         "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py"
       ],
       "local_import_edges": [
@@ -3269,25 +3275,37 @@
         },
         {
           "source": "services/cache/events.py",
-          "line": 30,
+          "line": 52,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/events.py",
+          "line": 55,
           "target": "services.cache.backend",
           "kind": "from"
         },
         {
           "source": "services/cache/events.py",
-          "line": 47,
+          "line": 70,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/events.py",
+          "line": 71,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/events.py",
+          "line": 148,
           "target": "services.cache.backend",
           "kind": "from"
         },
         {
           "source": "services/cache/events.py",
-          "line": 64,
-          "target": "services.cache.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/cache/events.py",
-          "line": 81,
+          "line": 167,
           "target": "services.cache.backend",
           "kind": "from"
         },
@@ -3319,6 +3337,12 @@
           "source": "services/common/env.py",
           "line": 180,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
           "kind": "from"
         }
       ],
@@ -3340,7 +3364,10 @@
         "services.common.db",
         "services.common.env",
         "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
         "services.common.worker_environment",
+        "services.core.features",
         "services.core.providers"
       ],
       "source_files": [
@@ -3352,7 +3379,10 @@
         "services/common/db.py",
         "services/common/env.py",
         "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py"
       ],
       "local_import_edges": [
@@ -3394,25 +3424,37 @@
         },
         {
           "source": "services/cache/events.py",
-          "line": 30,
+          "line": 52,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/events.py",
+          "line": 55,
           "target": "services.cache.backend",
           "kind": "from"
         },
         {
           "source": "services/cache/events.py",
-          "line": 47,
+          "line": 70,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/events.py",
+          "line": 71,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/events.py",
+          "line": 148,
           "target": "services.cache.backend",
           "kind": "from"
         },
         {
           "source": "services/cache/events.py",
-          "line": 64,
-          "target": "services.cache.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/cache/events.py",
-          "line": 81,
+          "line": 167,
           "target": "services.cache.backend",
           "kind": "from"
         },
@@ -3444,6 +3486,12 @@
           "source": "services/common/env.py",
           "line": 180,
           "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
           "kind": "from"
         }
       ],
@@ -3819,13 +3867,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 63,
+          "line": 64,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 364,
+          "line": 365,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -4008,7 +4056,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 46,
+          "line": 47,
           "kind": "dynamic module expression"
         }
       ]

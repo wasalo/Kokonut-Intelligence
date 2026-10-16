@@ -277,23 +277,23 @@
       "module": "services.cache.events",
       "function": "handle_metric_computed",
       "event_type": "metric_computed",
-      "scope": "Requires and canonicalizes one payload location UUID before invalidating analytics cache entries; does not establish database tenant context.",
-      "reads": ["public.cache_entry"],
+      "scope": "Requires the matching event ID and one canonical payload location; when signed cache invalidation is enabled, establishes computation_cache/invalidate worker context and the database function rechecks event type/location before touching that location's analytics rows. The default flag preserves the existing scoped runtime-cache path.",
+      "reads": ["public.platform_event", "public.cache_entry"],
       "writes": ["public.cache_entry invalidation state"],
       "idempotency": "Repeated invalidation of the same location is idempotent; concurrent and crash/retry evidence exists for this handler.",
       "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeated location-scoped invalidation is safe and does not affect other locations.",
-      "sources": ["services/cache/events.py", "docs/refactor/event-handler-concurrency.md"]
+      "sources": ["services/cache/events.py", "services/common/tenant_context.py", "services/common/worker_database.py", "services/core/features.py", "services/events/bus.py", "services/events/handler_runner.py", "schemas/postgres/415_signed_cache_invalidation_worker.sql", "docs/refactor/event-handler-concurrency.md"]
     },
     {
       "module": "services.cache.events",
       "function": "handle_crisp_scored",
       "event_type": "crisp_scored",
-      "scope": "Requires and canonicalizes one payload location UUID before invalidating CRISP cache entries; does not establish database tenant context.",
-      "reads": ["public.cache_entry"],
+      "scope": "Requires the matching event ID and one canonical payload location; when signed cache invalidation is enabled, establishes computation_cache/invalidate worker context and the database function rechecks event type/location before touching that location's CRISP rows. The default flag preserves the existing scoped runtime-cache path.",
+      "reads": ["public.platform_event", "public.cache_entry"],
       "writes": ["public.cache_entry invalidation state"],
       "idempotency": "Repeated invalidation of the same location is idempotent; concurrency, timeout, lease takeover and crash/retry evidence exists for this handler.",
       "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeated location-scoped invalidation is safe and does not affect other locations.",
-      "sources": ["services/cache/events.py", "docs/refactor/event-handler-concurrency.md"]
+      "sources": ["services/cache/events.py", "services/common/tenant_context.py", "services/common/worker_database.py", "services/core/features.py", "services/events/bus.py", "services/events/handler_runner.py", "schemas/postgres/415_signed_cache_invalidation_worker.sql", "docs/refactor/event-handler-concurrency.md"]
     },
     {
       "module": "services.events.handlers",

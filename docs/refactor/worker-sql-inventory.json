@@ -5,8 +5,8 @@
   "summary": {
     "operation_roots": 20,
     "source_files": 81,
-    "execution_sites": 267,
-    "static_literal_sites": 227,
+    "execution_sites": 268,
+    "static_literal_sites": 228,
     "composed_or_variable_sites": 40
   },
   "execution_sites": [
@@ -775,6 +775,22 @@
       ]
     },
     {
+      "id": "services/cache/events.py:84:12",
+      "source": "services/cache/events.py",
+      "line": 84,
+      "column": 12,
+      "scope": "_invalidate_event_cache",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "f7d7f40d11afbdf1d6a7fee264553f65d0deedf14315de247e7c1002b29a2f00",
+      "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed"
+      ]
+    },
+    {
       "id": "services/common/database.py:71:15",
       "source": "services/common/database.py",
       "line": 71,
@@ -888,6 +904,8 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -904,6 +922,8 @@
       "candidate_relations": [],
       "static_sql_sha256": "24fc3a6d2722aec0c79b77a02e1c934443f41889f22f9a014cad82eb69311d67",
       "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -922,6 +942,8 @@
       ],
       "static_sql_sha256": "a6bc4b7812a18547b53d1f5cc97449e35b48ee4ec9bf93e1f0e3b0557ded64a4",
       "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -940,6 +962,8 @@
       ],
       "static_sql_sha256": "d537c38e81889d8c9c589dcbde55655ffcbc6b58f9da329f5b79f324fd74a4b0",
       "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -958,6 +982,8 @@
       ],
       "static_sql_sha256": "81ca588b00a848671d9b5acab7dbea2024c41a7e41b710a90a58e7e9bcf36f9b",
       "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -976,6 +1002,8 @@
       ],
       "static_sql_sha256": "a0672a7f91650cac43993fd0ed95997fbfb4dfc1ea3015596588d841228d408c",
       "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -992,6 +1020,8 @@
       "candidate_relations": [],
       "static_sql_sha256": "e3e4c413fce8753db132b245d90630657bd9eedd390b945007e41120e12fd5d9",
       "operation_refs": [
+        "event_handler:services.cache.events.handle_crisp_scored",
+        "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -1287,9 +1317,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:88:16",
+      "id": "services/events/bus.py:89:16",
       "source": "services/events/bus.py",
-      "line": 88,
+      "line": 89,
       "column": 16,
       "scope": "EventBus.publish",
       "method": "execute",
@@ -1308,9 +1338,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:107:12",
+      "id": "services/events/bus.py:108:12",
       "source": "services/events/bus.py",
-      "line": 107,
+      "line": 108,
       "column": 12,
       "scope": "EventBus._claim",
       "method": "execute",
@@ -1331,9 +1361,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:157:12",
+      "id": "services/events/bus.py:158:12",
       "source": "services/events/bus.py",
-      "line": 157,
+      "line": 158,
       "column": 12,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1353,9 +1383,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:176:16",
+      "id": "services/events/bus.py:177:16",
       "source": "services/events/bus.py",
-      "line": 176,
+      "line": 177,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1374,9 +1404,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:188:16",
+      "id": "services/events/bus.py:189:16",
       "source": "services/events/bus.py",
-      "line": 188,
+      "line": 189,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1396,9 +1426,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:204:16",
+      "id": "services/events/bus.py:205:16",
       "source": "services/events/bus.py",
-      "line": 204,
+      "line": 205,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1417,9 +1447,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:209:16",
+      "id": "services/events/bus.py:210:16",
       "source": "services/events/bus.py",
-      "line": 209,
+      "line": 210,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1438,9 +1468,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:268:12",
+      "id": "services/events/bus.py:269:12",
       "source": "services/events/bus.py",
-      "line": 268,
+      "line": 269,
       "column": 12,
       "scope": "EventBus._complete",
       "method": "execute",
@@ -1459,9 +1489,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:283:12",
+      "id": "services/events/bus.py:284:12",
       "source": "services/events/bus.py",
-      "line": 283,
+      "line": 284,
       "column": 12,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1480,9 +1510,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:292:16",
+      "id": "services/events/bus.py:293:16",
       "source": "services/events/bus.py",
-      "line": 292,
+      "line": 293,
       "column": 16,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1503,9 +1533,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:308:12",
+      "id": "services/events/bus.py:309:12",
       "source": "services/events/bus.py",
-      "line": 308,
+      "line": 309,
       "column": 12,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
@@ -1528,9 +1558,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:345:12",
+      "id": "services/events/bus.py:346:12",
       "source": "services/events/bus.py",
-      "line": 345,
+      "line": 346,
       "column": 12,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
@@ -1549,9 +1579,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:357:12",
+      "id": "services/events/bus.py:358:12",
       "source": "services/events/bus.py",
-      "line": 357,
+      "line": 358,
       "column": 12,
       "scope": "EventBus.get_stats",
       "method": "execute",
@@ -1570,9 +1600,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:370:16",
+      "id": "services/events/bus.py:371:16",
       "source": "services/events/bus.py",
-      "line": 370,
+      "line": 371,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1589,9 +1619,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:373:16",
+      "id": "services/events/bus.py:374:16",
       "source": "services/events/bus.py",
-      "line": 373,
+      "line": 374,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1610,9 +1640,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:414:16",
+      "id": "services/events/bus.py:415:16",
       "source": "services/events/bus.py",
-      "line": 414,
+      "line": 415,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1635,9 +1665,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:443:16",
+      "id": "services/events/bus.py:444:16",
       "source": "services/events/bus.py",
-      "line": 443,
+      "line": 444,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1656,9 +1686,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:451:16",
+      "id": "services/events/bus.py:452:16",
       "source": "services/events/bus.py",
-      "line": 451,
+      "line": 452,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",

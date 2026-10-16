@@ -4,9 +4,10 @@
 
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
-Python adapter are implemented. Runtime effect authorization and dispatcher
-integration remain open. Migration 405 is deliberately not applied to the
-candidate, and no worker credential is provisioned. See the
+Python adapter are implemented. Source integration now exists for the sensor
+anomaly handler and the two registered cache invalidation handlers; signed
+cache invalidation remains opt-in. Runtime grants, worker credentials, and
+candidate rollout remain open. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
@@ -15,18 +16,20 @@ the exact 15 modules in `ALLOWED_SCHEDULED_MODULES` and all five pairs in
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
 
-The first handler's reads, writes, row scope, and required authorization
-boundaries are tracked in the proposed
+The sensor anomaly handler's reads, writes, row scope, and required
+authorization boundaries are tracked in the
 [sensor anomaly effect contract](worker-sensor-anomaly-effects.json), with a
 regression check against this operation inventory. Those effects are not yet
 enforced by database grants or policies.
 
 ## What this establishes
 
-- Scheduler and spawned event-handler processes still inherit the configured
-  shared runtime PostgreSQL identity. Migration 405 and the adapter can
-  establish signed worker context for a dedicated connection, but neither
-  dispatch path establishes it and no dispatch credential is isolated.
+- Scheduler tasks and EventBus queue/receipt control still use the shared
+  runtime PostgreSQL identity. The anomaly handler and the two registered
+  cache invalidators have exact source-controlled worker credential routing
+  and dedicated connection paths; the cache path remains disabled by default.
+  No actual worker credential or location grant is provisioned, and migrations
+  405–415 have not been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
   code-owned job runs, and subprocess creation.

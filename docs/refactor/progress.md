@@ -6689,3 +6689,27 @@ database was used. This secures the current no-secret default; no identity-
 specific secret is delivered and no handler is yet integrated with the worker
 database/context helpers
 ([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
+
+### Signed cache invalidation worker — 16 October 2026
+
+The two registered EventBus cache handlers now support an opt-in signed worker
+path. Migration 415 verifies the durable event ID, exact event type and signed
+location before invalidating only the associated analytics or CRISP cache
+rows. The feature stays disabled by default, and Compose passes its worker DSN
+and credential only to the worker supervisor; EventBus forwards them only to
+the two exact handler pairs.
+
+Seventy-four focused cache/EventBus/runner/environment and operation-map tests
+pass. Six checks on network-isolated disposable PostgreSQL 16 pass for
+migration replay, event/type/location mismatch denial, cache/location scoping,
+retry idempotency, forced-RLS behavior, and direct-table denial. Ruff, Python
+compilation, migration-source validation, Compose profile validation, and
+worker SQL/source inventory checks pass. Evidence:
+[cache-invalidation-worker-disposable.json](builds/2026-10-16-recovery/cache-invalidation-worker-disposable.json).
+
+No worker credential or active location grant is provisioned, migration 415
+has not been applied to the candidate, and the feature flag remains off. This
+closes the source/disposable acceptance slice only; MAN-CAP status, candidate
+rollout, production identity provisioning, and application-wide RLS do not
+change. The checklist now records 410 complete items and 19 open; the validated
+capability matrix remains at 66 rows, with MAN-CAP acceptance separately gated.
