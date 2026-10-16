@@ -238,11 +238,12 @@ and the focused test named in any failure log.
 
 **Action:** CI #330 is in progress and Security #54 passed on pushed SHA
 `fb835f141b8105df32206a6b889abff99c0c3806`; the preceding pushed revision
-passed both checks. The latest local commits `03b949b` and `3f804f7` add
-disposable PostgreSQL restart recovery for the KGP and EventBus workers. The
-KGP script plus four focused tests, the EventBus runtime script plus 20 focused
-tests, Ruff, compilation, and capability-matrix validation pass locally. The
-retained ARM64 evidence covers software emulation only; live provider and
+passed both checks. The latest local commits `03b949b`, `3f804f7`, and `51fe6a3`
+add disposable PostgreSQL restart recovery for KGP, EventBus, and the real
+SchedulerEngine. The KGP script plus four focused tests, the EventBus runtime
+script plus 20 focused tests, and the SchedulerEngine runtime script plus 10
+focused tests pass with Ruff, compilation, and capability-matrix validation.
+The retained ARM64 evidence covers software emulation only; live provider and
 production acceptance remain separate gates.
 
 **Acceptance:** require passing CI and Security on the current PR head before
@@ -710,8 +711,8 @@ physical acceptance record rather than revising emulation evidence.
 
 Keep related code changes in local commits and push in reviewable batches, as
 requested. The current push is `fb835f1`; CI #330 is in progress and Security
-#54 passed on that head. Local commits `03b949b` and `3f804f7` are waiting for
-the next batch push. Continue local work while CI runs and accumulate related changes
+#54 passed on that head. Local commits `03b949b`, `3f804f7`, and `51fe6a3` are
+waiting for the next batch push. Continue local work while CI runs and accumulate related changes
 before the next push so the repository does
 not start CI for each small commit. Never push directly to
 `main`. Keep each candidate database
