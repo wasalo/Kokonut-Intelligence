@@ -16,6 +16,16 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
+**16 October 2026 scheduled anomaly scope (CAP-040 / CAP-047):** hourly
+scheduled anomaly scans and baseline checks now require one explicit location;
+the Prefect adapter fans out over active Kokonut Network locations. Scoped
+scans avoid bootstrapping shared alert-rule references, while an unscoped
+interactive run retains its existing behavior. Focused source, scheduler,
+inventory, and Prefect checks pass 167 tests. This is source-level scoping only:
+the shared runtime identity remains, so signed worker context, RLS, external
+schedule reconciliation, and MAN-CAP acceptance stay open
+([evidence](builds/2026-10-16-recovery/anomaly-location-scoping.json)).
+
 **16 October 2026 Gateway farm-activity role bridge (CAP-001 / CAP-047 / CAP-053):**
 the owner selected Gateway operations while keeping Directus optional. Six
 legacy farm-activity roles now expand atomically into explicit organization-
@@ -764,8 +774,10 @@ the dedicated check now requires exactly one location in the CLI, shared job
 dispatcher, disabled schedule planner, and database-driven command contract.
 The scheduler contract rejects missing scope before process creation, and the
 CLI rejects it before opening a database connection. Ninety-three focused
-command/contract checks pass; the generated JobSpec inventory now distinguishes
+command/contract checks pass; the then-current JobSpec inventory distinguished
 nine no-input jobs, five required-location jobs, and one source-less sensor job.
+The later anomaly-scope slice moves the current inventory to eight no-input and
+six required-location jobs.
 This remains a source contract: workers inherit the shared runtime identity
 without signed tenant context, RLS remains blocked, and no MAN-CAP status or
 acceptance count changes ([evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json);

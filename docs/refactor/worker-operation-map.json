@@ -71,13 +71,13 @@
     },
     {
       "module": "services.ingestion.anomaly_detector",
-      "scope": "The scheduled check can scan all active rules/readings or accept a sensor filter; the event handler is source-reading scoped.",
+      "scope": "Scheduled JobSpec execution requires one explicit --location-id; recent sensor readings and baseline rows are filtered to it, and cooldown/alert/ingestion-lineage operations retain that location. The hourly Prefect adapter fans out over active Kokonut Network locations. Scoped runs do not bootstrap shared alert-rule reference rows. The standalone CLI remains unscoped when no location is provided; the event handler is source-reading scoped.",
       "reads": ["public.alert_rule", "public.sensor_reading", "public.sensor_device", "public.sensor_type", "public.environmental_baseline", "public.platform_event"],
       "writes": ["public.sensor_anomaly_effect", "public.sensor_alert", "public.mrv_claim", "public.ingestion_log", "public.platform_event", "public.notification_outbox", "public.actuation_log"],
       "external_effects": ["Scheduled CLI mode can send email and Directus notifications; event mode queues notifications durably. Actuation is recorded for later approval/execution in PostgreSQL; this module does not publish MQTT commands."],
-      "idempotency": "The event handler reserves a per-source-reading/rule effect receipt and commits alert/claim/notification intent atomically. Actuation remains behind approval policy.",
-      "retry_boundary": "A same-reading/rule retry is deduplicated; broader scheduled batch and external-provider recovery remain at-least-once.",
-      "sources": ["services/ingestion/anomaly_detector.py", "services/events/notification_outbox.py", "services/ingestion/mqtt_actuator.py", "schemas/postgres/081_oracle_infrastructure.sql", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+      "idempotency": "The event handler reserves a per-source-reading/rule effect receipt and commits alert/claim/notification intent atomically. Scheduled window scans are now location-scoped but remain at-least-once; duplicate alert behavior across retries requires separate populated-data review. Actuation remains behind approval policy.",
+      "retry_boundary": "The handler deduplicates same-reading/rule retries. Scheduled retries may repeat readings within the same location and the current code does not establish batch-window idempotency; direct external notification delivery remains at-least-once.",
+      "sources": ["services/ingestion/anomaly_detector.py", "services/events/notification_outbox.py", "services/ingestion/mqtt_actuator.py", "schemas/postgres/081_oracle_infrastructure.sql", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md", "services/core/jobs.py", "services/flows/anomaly_detection.py", "services/security/scheduled_command_contracts.py"]
     },
     {
       "module": "services.metrics",

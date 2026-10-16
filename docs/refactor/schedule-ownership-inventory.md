@@ -63,8 +63,8 @@ location-required catalog jobs by selecting active `location` rows whose
 `organization_id` resolves to the active organization with key
 `kokonut-network`, then invoking each job once with that location UUID. The
 lookup uses a read-only transaction and excludes unassigned or other-organization
-locations. Weather, metrics, credit-adjustment, climate, and remote-sensing
-adapters use this filter. A caller may still request one explicit location on
+locations. Anomaly, weather, metrics, credit-adjustment, climate, and
+remote-sensing adapters use this filter. A caller may still request one explicit location on
 weather, metrics, or credit-adjustment flows; climate and remote sensing remain
 sequential.
 
@@ -95,7 +95,7 @@ a job is currently running.
 | `eas` | Deprecated cron and seed every 15 minutes; EAS flow is included in the manual full ingestion pipeline | Native scheduler only after cursor/finality and duplicate-attestation handling are verified. Resume from the persisted indexed block; inspect reorg and duplicate behavior before replay. |
 | `rpc` | Deprecated cron and seed every 30 minutes; RPC flow is included in the manual full ingestion pipeline | Native scheduler only after cursor, confirmation depth, and idempotent upsert behavior are verified. Resume from a reviewed checkpoint; do not replay irreversible external actions. |
 | `gnosis` | Deprecated cron and seed every two hours; Gnosis flow is included in the manual full ingestion pipeline | Native scheduler after chain cursor and reorg recovery are verified. Replay from the canonical checkpoint after reconciling affected indexed rows. |
-| `anomaly` | Prefect hourly; deprecated cron and seed hourly | Native scheduler after alert/claim/outbox writes are shown idempotent per source window. Retry the same window only; inspect emitted alerts and actuation approvals first. |
+| `anomaly` | Prefect hourly; deprecated cron and seed hourly | Scheduled execution now requires one location and the Prefect adapter fans out over active Kokonut Network locations; unscoped interactive CLI behavior remains. Scoped runs do not bootstrap shared alert-rule references. Native scheduler activation still requires signed worker context, per-location effect/idempotency review, and reconciliation of active external schedules. Retry the same source window only; inspect emitted alerts and actuation approvals first. |
 | `freshness` | Prefect hourly; deprecated cron and seed hourly | Native scheduler after its read/alert effects are classified. Recompute the missed interval only if any emitted notification can be deduplicated. |
 | `metrics` | Prefect daily at 06:00 UTC; deprecated cron and seed every four hours; legacy seed uses `--all-locations` | The Prefect adapter fans out over active Kokonut Network locations. Native scheduler requires one location and uses `--compute --all`; the database-driven contract rejects `--all-locations`. Reconcile cadence and duplicate output keys before cutover. Recompute creates drafts only; verification remains an independent human action. Do not promote computed output automatically. |
 | `noi_snapshots` | Prepared daily native job; not registered in the candidate; no legacy cron/Prefect deployment | Native scheduler after owner approval, exact next-run selection, and reconciliation parity. Upsert by crop-cycle key; rerun reconciliation for the same source state rather than replaying every missed cadence. |

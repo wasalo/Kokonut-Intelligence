@@ -3,7 +3,7 @@
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Batch base (last pushed head before this work):** `30f996624ad9e9f4f908b41f1d5f55b86efb2620` on PR #68.
-**Current local batch:** Local commits after `30f9966` split EventBus dispatch and notification delivery into independently runnable workers, preserve the combined CLI mode, and gate each worker before database connection. The focused worker/supervisor/contract suite passed 160 tests and 3 subtests, with Ruff, compilation, Compose parsing, and regenerated worker inventories. A separate dashboard-refresh boundary now rejects disabled execution before database access; eight focused CLI checks pass. Migration 416 extends signed, default-off cache invalidation to all four registered handlers; 80 focused checks and eight network-isolated PostgreSQL 16 checks pass. The latest source slice removes source-less sensor ingestion from composite Prefect flows and cron guidance while preserving other ingestion jobs plus hourly anomaly/freshness; 116 focused Prefect/scheduler checks, the generated JobSpec inventory, and Ruff pass. The worker operation map and EventBus effect trace now match the signed anomaly and four cache integrations; 46 focused checks and seven generated source/SQL/boundary inventory checks pass. The checklist now has 413 checked / 19 open items; the capability matrix remains at 66 rows. Migrations 405–416 are not applied to the candidate, no worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No candidate or legacy database, external provider, or live Prefect deployment was changed. Real worker identity, generic outbox authorization, provider delivery, other worker scopes, and production acceptance remain open.
+**Current local batch:** Local commits after `30f9966` include the EventBus worker split, disabled dashboard-refresh boundary, signed default-off cache invalidation, removal of source-less sensor ingestion from composite Prefect flows, and the worker operation map/effect trace refresh (commit `0761353`). The current anomaly slice requires an explicit location for scheduled anomaly and baseline scans, applies location filters to reading/baseline and resulting alert paths, and fans out hourly Prefect work over active Kokonut Network locations. The focused anomaly, scheduler, Prefect, and worker-inventory suites pass 167 tests; the generated JobSpec inventory and capability-matrix validator pass. The checklist now has 414 checked / 19 open items; the capability matrix remains at 66 rows. Migrations 405–416 are not applied to the candidate, no worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. This source filter does not establish signed worker context or RLS. No candidate or legacy database, external provider, or live Prefect deployment was changed. Real worker identity, generic outbox authorization, provider delivery, other worker scopes, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -14,7 +14,7 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **413 checked and 19 open items (432 total)**,
+- The execution checklist has **414 checked and 19 open items (433 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -355,9 +355,10 @@ before protected reads and writes, and make direct database access fail closed.
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
-  covers 15 shared JobSpecs: nine no-input defaults pass, while climate, weather,
-  metrics, credit adjustment, and remote sensing require a schema-validated location per
-  scheduled task; recurring sensor ingestion still lacks a source contract.
+  covers 15 shared JobSpecs: eight no-input defaults pass, while anomaly,
+  climate, weather, metrics, credit adjustment, and remote sensing require a
+  schema-validated location per scheduled task; recurring sensor ingestion
+  still lacks a source contract.
   The optional Prefect adapters preserve multi-location behavior by dispatching
   one task per active Kokonut Network location. Remote sensing is available only as a
   bounded sequential batch (1–10 jobs, default one) restricted by location for

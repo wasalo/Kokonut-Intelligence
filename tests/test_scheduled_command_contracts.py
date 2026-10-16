@@ -31,8 +31,8 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.ingestion.eas_indexer", ["--chain", "celo"]),
         ("services.ingestion.rpc_indexer", ["--wallet", "0x" + "a" * 40]),
         ("services.ingestion.gnosis_indexer", ["--from-block", "1", "--to-block", "2"]),
-        ("services.ingestion.anomaly_detector", []),
-        ("services.ingestion.anomaly_detector", ["--baseline-check"]),
+        ("services.ingestion.anomaly_detector", ["--location-id", str(uuid4())]),
+        ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--metric", "value_flowed", "--location-id", str(uuid4())]),
         ("services.metrics", ["--reconcile-noi-snapshots"]),
@@ -66,6 +66,8 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.sensor_ingester", ["--file", "/tmp/readings.csv"]),
         ("services.analytics.carbon_credit_adjustment_check", []),
         ("services.ingestion.weather", []),
+        ("services.ingestion.anomaly_detector", []),
+        ("services.ingestion.anomaly_detector", ["--baseline-check"]),
         ("services.ingestion.climate_data", ["--all"]),
         ("services.ingestion.climate_data", ["--all", "--location-id", "invalid"]),
         ("services.ingestion.climate_data", ["--all", "--worldclim", "--location-id", str(uuid4())]),
@@ -174,6 +176,25 @@ def test_weather_job_requires_one_explicit_location_before_dispatch():
 
     with pytest.raises(ValueError, match="Weather schedule planning requires one location"):
         build_job_plan("weather", "daily")
+
+
+def test_anomaly_job_requires_one_explicit_location_before_dispatch():
+    job = JOBS["anomaly"]
+
+    assert job.module == "services.ingestion.anomaly_detector"
+    assert job.required_inputs == ("location_id",)
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="Anomaly refresh requires a location"):
+            run_job("anomaly")
+    run.assert_not_called()
+
+    with pytest.raises(ValueError, match="Anomaly schedule planning requires one location"):
+        build_job_plan("anomaly", "hourly")
+
+    location_id = str(uuid4())
+    plan = build_job_plan("anomaly", "hourly", location_id=location_id)
+    assert plan["scheduled_task"]["command_args"] == ["--location-id", location_id]
+    assert plan["scheduled_task"]["is_enabled"] is False
 
 
 def test_remote_sensing_job_defaults_to_one_due_job_batch():

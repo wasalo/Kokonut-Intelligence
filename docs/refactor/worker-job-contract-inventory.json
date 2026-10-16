@@ -6,8 +6,8 @@
     "catalog_jobs": 15,
     "allowlisted_modules": 15,
     "outcomes": {
-      "default_arguments_accepted": 9,
-      "required_runtime_inputs_validated": 5,
+      "default_arguments_accepted": 8,
+      "required_runtime_inputs_validated": 6,
       "source_contract_missing": 1
     }
   },
@@ -16,9 +16,11 @@
       "job": "anomaly",
       "module": "services.ingestion.anomaly_detector",
       "argument_count": 0,
-      "required_inputs": [],
-      "status": "default_arguments_accepted",
-      "reason": null
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
     },
     {
       "job": "climate",

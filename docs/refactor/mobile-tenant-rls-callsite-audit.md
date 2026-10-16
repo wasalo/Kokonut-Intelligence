@@ -166,9 +166,9 @@ passed through the shared CLI `run(main)` wrapper. Remaining code-only work is
 to reconcile each candidate against its exact scheduler command contract,
 inspect dynamic/provider callbacks and transitive effect wrappers, then
 reconcile persisted task rows with those contracts. The
-source-only JobSpec inventory now identifies nine accepted no-input templates,
-five validated required-location inputs (weather, climate, metrics, credit
-adjustment, and remote sensing), and one missing sensor source contract. Native scheduled metric
+source-only JobSpec inventory now identifies eight accepted no-input templates,
+six validated required-location inputs (anomaly, weather, climate, metrics,
+credit adjustment, and remote sensing), and one missing sensor source contract. Native scheduled metric
 computation uses `--compute --all --location-id` and rejects the old global
 `--all-locations` command. Optional Prefect adapters preserve multi-location
 behavior by querying active locations directly assigned to the

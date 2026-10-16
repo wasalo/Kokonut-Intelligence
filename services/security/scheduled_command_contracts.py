@@ -46,6 +46,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--sensor": "uuid",
         "--since": "datetime",
         "--baseline-check": None,
+        "--location-id": "uuid",
     },
     "services.metrics": {
         "--compute": None,
@@ -186,7 +187,9 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("Gnosis block range start must not exceed its end")
 
     elif module_path == "services.ingestion.anomaly_detector":
-        if "--baseline-check" in options and len(options) != 1:
+        if "--location-id" not in options:
+            raise _reject("scheduled anomaly detection requires one explicit location")
+        if "--baseline-check" in options and options != {"--baseline-check", "--location-id"}:
             raise _reject("baseline check cannot be combined with sensor-window options")
 
     elif module_path == "services.metrics":

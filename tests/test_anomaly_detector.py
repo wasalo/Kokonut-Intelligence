@@ -229,6 +229,55 @@ def test_interactive_run_check_keeps_default_alert_rule_bootstrap():
     db.close.assert_called_once()
 
 
+def test_scoped_run_check_requires_a_valid_location_before_database_access():
+    from services.ingestion.anomaly_detector import run_check
+
+    with patch("services.ingestion.anomaly_detector.get_db") as get_db:
+        with pytest.raises(ValueError, match="location_id must be a valid UUID"):
+            run_check(location_id="not-a-location")
+
+    get_db.assert_not_called()
+
+
+def test_scoped_run_check_filters_readings_and_does_not_bootstrap_shared_rules():
+    from services.ingestion.anomaly_detector import run_check
+
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchall.side_effect = [[("rule-1", "rule", "type-1", "soil_moisture", "value", "gt", 50.0,
+                                     None, "warning", 30, False, None)], []]
+
+    with (
+        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
+        patch("services.ingestion.anomaly_detector.ensure_alert_rules") as ensure_rules,
+    ):
+        run_check(location_id=location_id)
+
+    reading_query, reading_parameters = cursor.execute.call_args_list[1].args
+    assert "sr.location_id = %s::uuid" in reading_query
+    assert reading_parameters[-2:] == (location_id, location_id)
+    ensure_rules.assert_not_called()
+    db.close.assert_called_once()
+
+
+def test_scoped_baseline_check_filters_baselines_before_database_access():
+    from services.ingestion.anomaly_detector import run_baseline_check
+
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = []
+
+    with patch("services.ingestion.anomaly_detector.get_db", return_value=db):
+        run_baseline_check(location_id)
+
+    statement, parameters = cursor.execute.call_args.args
+    assert "eb.location_id = %s::uuid" in statement
+    assert parameters == (location_id, location_id)
+    db.close.assert_called_once()
+
+
 class _AnomalyWorkerCursor:
     def __init__(self, connection):
         self.connection = connection

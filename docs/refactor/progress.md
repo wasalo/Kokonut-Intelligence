@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Scheduled anomaly location scope — 16 October 2026
+
+The shared `anomaly` JobSpec now requires one location, and hourly Prefect
+execution fans out only across active locations assigned to Kokonut Network.
+The scanner binds reading, baseline, cooldown, alert creation, and ingestion
+lineage to that location; scoped runs do not bootstrap shared alert-rule
+reference rows. The unscoped interactive CLI retains its prior behavior. The
+focused anomaly, scheduler-contract, JobSpec inventory, and Prefect suites pass
+167 tests. The generated JobSpec inventory, 66-row capability-matrix validator,
+Ruff, compilation, and whitespace checks pass. No database, provider, schedule,
+candidate, legacy target, or external Prefect deployment was accessed. The
+current checklist is 414 complete / 19 open; no MAN-CAP status changed. Signed
+worker context and RLS remain open
+([evidence](builds/2026-10-16-recovery/anomaly-location-scoping.json);
+[checklist](batches.md); [schedule inventory](schedule-ownership-inventory.md)).
+
 ### Worker identity operation map and EventBus trace — 16 October 2026
 
 Updated the machine-readable and narrative worker maps to reflect the signed
@@ -317,9 +333,11 @@ created. The native metric JobSpec is now also one-location-per-task, rejecting
 the legacy global `--all-locations` scheduler command. The Prefect adapter keeps
 its aggregate intent by fanning out over active locations assigned to the
 owner-confirmed Kokonut Network organization; weather, credit, climate, and
-remote sensing use the same selector. The 126-test scheduler/Prefect slice passes. The static
-JobSpec inventory records nine no-input jobs, five jobs with validated required
-location inputs, and one source-less sensor job. No persisted task was read or
+remote sensing use the same selector. The 126-test scheduler/Prefect slice passes. At
+that checkpoint, the static JobSpec inventory recorded nine no-input jobs,
+five jobs with validated required location inputs, and one source-less sensor
+job; the later anomaly-scope slice changes the current totals to eight and six.
+No persisted task was read or
 changed. Existing task rows need reconciliation before activation, and the
 shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);
 [operation map](worker-operation-map.json);
@@ -335,9 +353,10 @@ operator CLI remains able to process its global queue. Source tests cover
 claim-query binding, dispatcher forwarding, schedule-contract rejection of a
 missing location, and Prefect routing. The actual claim function also passed a
 disposable PostgreSQL 16 probe using two locations, verifying scoped leases and
-the direct operator's global queue behavior. The updated inventory now contains nine
-no-input jobs, five required-location jobs, and one sensor job without a source
-contract. No persisted task, Prefect deployment, provider, candidate database,
+the direct operator's global queue behavior. At that checkpoint, the inventory
+contained nine no-input jobs, five required-location jobs, and one sensor job
+without a source contract; the later anomaly-scope slice changes the current
+totals to eight and six. No persisted task, Prefect deployment, provider, candidate database,
 or legacy database was accessed; the probe used a temporary no-volume local
 PostgreSQL database. This is code-level scope only; signed worker identity and RLS remain
 open ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);

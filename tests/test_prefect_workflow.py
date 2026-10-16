@@ -82,6 +82,21 @@ def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() 
     sensor.assert_not_called()
 
 
+def test_anomaly_prefect_flow_uses_owner_scoped_location_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.anomaly_detection import anomaly_detection_flow
+
+    with patch(
+        "services.flows.anomaly_detection.run_job_for_kokonut_network_locations",
+        return_value={"status": "success", "locations_processed": 2},
+    ) as run_job:
+        result = anomaly_detection_flow.fn()
+
+    assert result == {"status": "success", "locations_processed": 2}
+    run_job.assert_called_once_with("anomaly")
+
+
 def test_flows_have_retry_config() -> None:
     for f in Path("services/flows").glob("*.py"):
         content = f.read_text()

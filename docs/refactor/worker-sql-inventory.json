@@ -2656,9 +2656,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:702:16",
+      "id": "services/ingestion/anomaly_detector.py:708:16",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 702,
+      "line": 708,
       "column": 16,
       "scope": "run_check",
       "method": "execute",
@@ -2675,9 +2675,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:740:12",
+      "id": "services/ingestion/anomaly_detector.py:746:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 740,
+      "line": 746,
       "column": 12,
       "scope": "run_check",
       "method": "execute",
@@ -2694,9 +2694,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:771:20",
+      "id": "services/ingestion/anomaly_detector.py:777:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 771,
+      "line": 777,
       "column": 20,
       "scope": "run_check",
       "method": "execute",
@@ -2705,16 +2705,16 @@
       "candidate_relations": [
         "sensor_reading"
       ],
-      "static_sql_sha256": "242a47186dd426a0d107a8a3c7db1412b72b89f0418b817eb4adce3fcd8bb1f8",
+      "static_sql_sha256": "69d0a1489f0020ed95f3bc2b90feadf517e7bc2276a9e2662c669ef7ecb5e1f7",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:782:20",
+      "id": "services/ingestion/anomaly_detector.py:789:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 782,
+      "line": 789,
       "column": 20,
       "scope": "run_check",
       "method": "execute",
@@ -2723,16 +2723,16 @@
       "candidate_relations": [
         "sensor_reading"
       ],
-      "static_sql_sha256": "d499709abd55804d99bba4ee2bfa14675b4df458b81ebd9e7d52c896c349034a",
+      "static_sql_sha256": "7fdd7145991b8fb0aa6a9b2c3d15e46fd51376ed4a61c1504768866d9ed252a3",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:814:24",
+      "id": "services/ingestion/anomaly_detector.py:822:24",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 814,
+      "line": 822,
       "column": 24,
       "scope": "run_check",
       "method": "execute",
@@ -2748,9 +2748,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:834:24",
+      "id": "services/ingestion/anomaly_detector.py:842:24",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 834,
+      "line": 842,
       "column": 24,
       "scope": "run_check",
       "method": "execute",
@@ -2766,9 +2766,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:860:28",
+      "id": "services/ingestion/anomaly_detector.py:868:28",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 860,
+      "line": 868,
       "column": 28,
       "scope": "run_check",
       "method": "execute",
@@ -2784,9 +2784,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:902:24",
+      "id": "services/ingestion/anomaly_detector.py:910:24",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 902,
+      "line": 910,
       "column": 24,
       "scope": "run_check",
       "method": "execute",
@@ -2802,9 +2802,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:928:28",
+      "id": "services/ingestion/anomaly_detector.py:936:28",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 928,
+      "line": 936,
       "column": 28,
       "scope": "run_check",
       "method": "execute",
@@ -2820,9 +2820,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:991:12",
+      "id": "services/ingestion/anomaly_detector.py:1006:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 991,
+      "line": 1006,
       "column": 12,
       "scope": "run_baseline_check",
       "method": "execute",
@@ -2831,16 +2831,16 @@
       "candidate_relations": [
         "environmental_baseline"
       ],
-      "static_sql_sha256": "690ad98da3e5b8210fb7630d93fe53b59fd7a03e622f9c931f930a1c35efd734",
+      "static_sql_sha256": "682d84bb2dd38aa3177e9f6ca7064636750549393872eed23ae05f7b3af700b4",
       "operation_refs": [
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:1019:16",
+      "id": "services/ingestion/anomaly_detector.py:1035:16",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 1019,
+      "line": 1035,
       "column": 16,
       "scope": "run_baseline_check",
       "method": "execute",
@@ -2856,9 +2856,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:1044:20",
+      "id": "services/ingestion/anomaly_detector.py:1060:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 1044,
+      "line": 1060,
       "column": 20,
       "scope": "run_baseline_check",
       "method": "execute",
@@ -2874,9 +2874,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:1058:20",
+      "id": "services/ingestion/anomaly_detector.py:1074:20",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 1058,
+      "line": 1074,
       "column": 20,
       "scope": "run_baseline_check",
       "method": "execute",
@@ -2893,9 +2893,9 @@
       ]
     },
     {
-      "id": "services/ingestion/anomaly_detector.py:1127:12",
+      "id": "services/ingestion/anomaly_detector.py:1146:12",
       "source": "services/ingestion/anomaly_detector.py",
-      "line": 1127,
+      "line": 1146,
       "column": 12,
       "scope": "list_rules",
       "method": "execute",

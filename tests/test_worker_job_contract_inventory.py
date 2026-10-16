@@ -17,8 +17,8 @@ def test_inventory_distinguishes_location_input_from_missing_sensor_source():
     jobs = {entry["job"]: entry for entry in inventory["jobs"]}
 
     assert inventory["summary"]["outcomes"] == {
-        "default_arguments_accepted": 9,
-        "required_runtime_inputs_validated": 5,
+        "default_arguments_accepted": 8,
+        "required_runtime_inputs_validated": 6,
         "source_contract_missing": 1,
     }
     assert jobs["weather"]["required_inputs"] == ["location_id"]
@@ -32,3 +32,5 @@ def test_inventory_distinguishes_location_input_from_missing_sensor_source():
     assert jobs["metrics"]["status"] == "required_runtime_inputs_validated"
     assert jobs["sensors"]["status"] == "source_contract_missing"
     assert jobs["sensors"]["reason"] == "sensor ingestion has no recurring source contract"
+    assert jobs["anomaly"]["required_inputs"] == ["location_id"]
+    assert jobs["anomaly"]["status"] == "required_runtime_inputs_validated"

@@ -1687,42 +1687,42 @@
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1175
+          "line": 1194
         },
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1180
+          "line": 1199
         },
         {
           "function": "services.ingestion.anomaly_detector:list_rules",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1164
+          "line": 1183
         },
         {
           "function": "services.ingestion.anomaly_detector:run_baseline_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1166
+          "line": 1185
         },
         {
           "function": "services.ingestion.anomaly_detector:run_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1184
+          "line": 1203
         },
         {
           "function": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1171
+          "line": 1190
         },
         {
           "function": "services.ingestion.ml_anomaly_detector:run_ml_check",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1174
+          "line": 1193
         },
         {
           "function": "services.ingestion.ml_anomaly_detector:save_models",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1179
+          "line": 1198
         }
       ],
       "reachable_functions": [
@@ -1868,7 +1868,7 @@
           "qualname": "list_rules",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1122
+          "line": 1141
         },
         {
           "key": "services.ingestion.anomaly_detector:run_baseline_check",
@@ -1876,7 +1876,7 @@
           "qualname": "run_baseline_check",
           "class_scope": null,
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 982
+          "line": 990
         },
         {
           "key": "services.ingestion.anomaly_detector:run_check",
@@ -2162,115 +2162,115 @@
           "caller": "services.ingestion.anomaly_detector:list_rules",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1124
+          "line": 1143
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:_get_event_bus",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1095
+          "line": 1114
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:check_cooldown",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1075
+          "line": 1091
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:create_alert",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1078
+          "line": 1096
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:get_sensor_device_info",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1083
+          "line": 1102
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.anomaly_detector:send_notifications",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1093
+          "line": 1112
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_baseline_check",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 988
+          "line": 1003
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.events.bus:EventBus.publish",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 953
+          "line": 961
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.events.notification_outbox:enqueue_event_notification",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 943
+          "line": 951
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:check_cooldown",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 851
+          "line": 859
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:create_alert",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 874
+          "line": 882
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:ensure_alert_rules",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 736
+          "line": 742
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:evaluate_metric",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 871
+          "line": 879
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:get_sensor_device_info",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 881
+          "line": 889
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:send_actuation_commands",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 950
+          "line": 958
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.anomaly_detector:send_notifications",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 925
+          "line": 933
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 697
+          "line": 703
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 894
+          "line": 902
         },
         {
           "caller": "services.ingestion.anomaly_detector:run_check",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 887
+          "line": 895
         },
         {
           "caller": "services.ingestion.anomaly_detector:send_actuation_commands",

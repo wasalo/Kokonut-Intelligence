@@ -862,25 +862,25 @@
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 802,
+          "line": 810,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 941,
+          "line": 949,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1168,
+          "line": 1187,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1169,
+          "line": 1188,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },
@@ -4221,25 +4221,25 @@
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 802,
+          "line": 810,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 941,
+          "line": 949,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1168,
+          "line": 1187,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/anomaly_detector.py",
-          "line": 1169,
+          "line": 1188,
           "target": "services.ingestion.ml_anomaly_detector",
           "kind": "from"
         },

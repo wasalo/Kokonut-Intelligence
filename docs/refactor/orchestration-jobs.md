@@ -6,7 +6,8 @@
 `run_job(job_id, location_id=...)`. It imports no orchestration SDK or domain
 service. Commands use the current Python interpreter, fixed module names,
 fixed arguments, and the existing operation timeouts. Weather and climate accept
-a location override, validated as a UUID; climate requires it. Results retain the legacy status and
+a location override, validated as a UUID; anomaly, weather, and climate require
+it for scheduled runs. Results retain the legacy status and
 last 500 stdout characters. Nonzero exits and timeouts propagate to the owner.
 Captured subprocess output still uses memory; this is not a bounded log store.
 
@@ -45,6 +46,10 @@ weekly, and manual deployment definitions have not changed.
 
 Metrics still compute draft values; independent human verification is required.
 Credit operations use `--check-adjustments`; this does not confirm retirements.
+The scheduled anomaly JobSpec requires one location, and its Prefect adapter
+fans out over active Kokonut Network locations. Scoped anomaly and baseline
+checks keep their sensor/baseline reads and resulting alert records on that
+location. An unscoped interactive CLI run retains the all-location behavior.
 The hourly Prefect flow and full-ingestion composite no longer call the
 source-less sensor operation. The hourly schedule now covers anomaly detection
 and freshness only. Sensor scheduling remains rejected because there is no

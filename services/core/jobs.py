@@ -48,7 +48,15 @@ JOBS = MappingProxyType(
         "eas": JobSpec("services.ingestion.eas_indexer", (), 120, 3, 60, "EAS indexing"),
         "rpc": JobSpec("services.ingestion.rpc_indexer", (), 300, 3, 120, "RPC indexing"),
         "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
-        "anomaly": JobSpec("services.ingestion.anomaly_detector", (), 300, 2, 300, "Anomaly detection"),
+        "anomaly": JobSpec(
+            "services.ingestion.anomaly_detector",
+            (),
+            300,
+            2,
+            300,
+            "Anomaly detection",
+            required_inputs=("location_id",),
+        ),
         "freshness": JobSpec("services.ingestion.data_freshness", ("--check",), 120, 2, 120, "Freshness check"),
         "metrics": JobSpec(
             "services.metrics",

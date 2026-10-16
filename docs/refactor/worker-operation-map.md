@@ -40,7 +40,7 @@ application-wide RLS or proof for other workers.
   They check supported options, value formats, required arguments and option
   relationships. Human-review commands, unbounded event workers, event cleanup
   without a retention decision, source-less recurring sensor ingestion, and
-  scheduled weather scans without an explicit location are rejected.
+  scheduled weather/anomaly scans without an explicit location are rejected.
 - A rejected runtime command fails without spawning a process or scheduling a
   retry. The task row is not automatically rewritten; active legacy rows need
   operator review before deployment.
@@ -188,7 +188,7 @@ application-wide RLS or proof for other workers.
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
   compares all 15 shared job templates with the Kernel module allowlist and
-  command validation. Nine no-input defaults pass, five jobs require a
+  command validation. Eight no-input defaults pass, six jobs require a
   validated location, and sensor ingestion still lacks a recurring source
   contract. Remote sensing requires one `--location-id` for scheduled runs and
   is limited to a sequential `--run-jobs --limit` batch of 1–10 due jobs (the
