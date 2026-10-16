@@ -128,20 +128,27 @@ def _start_loopback_webhook() -> tuple[
     queue.Queue[dict[str, str]],
 ]:
     received: queue.Queue[dict[str, str]] = queue.Queue()
+    request_number = 0
+    request_lock = threading.Lock()
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self) -> None:
+            nonlocal request_number
             size = int(self.headers.get("Content-Length", "0"))
             payload = self.rfile.read(size).decode("utf-8")
+            with request_lock:
+                request_number += 1
+                status_code = 503 if request_number == 1 else 200
             received.put(
                 {
                     "idempotency_key": self.headers.get("Idempotency-Key", ""),
                     "payload": payload,
+                    "status_code": str(status_code),
                 }
             )
-            self.send_response(200)
+            self.send_response(status_code)
             self.end_headers()
-            self.wfile.write(b"accepted")
+            self.wfile.write(b"temporarily unavailable" if status_code == 503 else b"accepted")
 
         def log_message(self, format: str, *args: object) -> None:
             return
@@ -170,14 +177,14 @@ def _wait_for_completed(name: str, event_id: str, timeout: float) -> tuple[str, 
     raise TimeoutError("EventBus worker did not complete the synthetic event")
 
 
-def _wait_for_notification_delivery(
+def _wait_for_notification_state(
     name: str,
     event_id: str,
-    received: queue.Queue[dict[str, str]],
+    outbox_status: str,
+    attempt_status: str,
     timeout: float,
 ) -> str:
     deadline = time.monotonic() + timeout
-    notification_id = ""
     while time.monotonic() < deadline:
         values = _sql(
             name,
@@ -188,19 +195,31 @@ def _wait_for_notification_delivery(
             ") a ON TRUE "
             f"WHERE o.source_event_id = '{event_id}'",
         ).split("|")
-        if len(values) == 3 and values[1:] == ["succeeded", "succeeded"]:
-            notification_id = values[0]
-            break
+        if len(values) == 3 and values[1:] == [outbox_status, attempt_status]:
+            return values[0]
         time.sleep(0.25)
-    if not notification_id:
-        raise TimeoutError("loopback notification was not durably acknowledged")
+    raise TimeoutError(
+        f"notification did not reach outbox={outbox_status}, attempt={attempt_status}"
+    )
+
+
+def _wait_for_webhook(
+    received: queue.Queue[dict[str, str]], timeout: float
+) -> dict[str, str]:
     try:
-        delivery = received.get(timeout=max(0.1, deadline - time.monotonic()))
+        return received.get(timeout=timeout)
     except queue.Empty as exc:
         raise TimeoutError("the local webhook did not receive a delivery") from exc
-    if delivery["idempotency_key"] != notification_id:
-        raise RuntimeError("webhook idempotency key did not match the durable notification ID")
-    return notification_id
+
+
+def _make_notification_retryable_now(name: str, notification_id: str) -> None:
+    updated_id = _sql(
+        name,
+        "UPDATE notification_outbox SET available_at = NOW() "
+        f"WHERE id = '{notification_id}' AND status = 'retryable' RETURNING id",
+    )
+    if updated_id != notification_id:
+        raise RuntimeError("failed to release the synthetic notification retry")
 
 
 def main() -> int:
@@ -334,9 +353,22 @@ raise SystemExit(cmd_worker(args))
         if before_handler_status != "success":
             raise RuntimeError("allowlisted pre-outage handler did not succeed")
         assert webhook_requests is not None
-        notification_before = _wait_for_notification_delivery(
-            name, event_before, webhook_requests, timeout
+        notification_before = _wait_for_notification_state(
+            name, event_before, "retryable", "failed", timeout
         )
+        failed_delivery = _wait_for_webhook(webhook_requests, timeout)
+        if failed_delivery["status_code"] != "503":
+            raise RuntimeError("the loopback webhook did not simulate its first-attempt outage")
+        if failed_delivery["idempotency_key"] != notification_before:
+            raise RuntimeError("failed webhook attempt used the wrong notification idempotency key")
+        _make_notification_retryable_now(name, notification_before)
+        if _wait_for_notification_state(name, event_before, "succeeded", "succeeded", timeout) != notification_before:
+            raise RuntimeError("notification retry changed its durable notification identity")
+        retry_delivery = _wait_for_webhook(webhook_requests, timeout)
+        if retry_delivery["status_code"] != "200":
+            raise RuntimeError("the loopback webhook did not accept the retried delivery")
+        if retry_delivery["idempotency_key"] != notification_before:
+            raise RuntimeError("notification retry did not reuse its idempotency key")
 
         _docker("stop", "--time", "1", name)
         _wait_for_log(process, lines, output, "Event worker iteration failed", timeout)
@@ -351,9 +383,14 @@ raise SystemExit(cmd_worker(args))
             raise RuntimeError("synthetic post-outage event was not claimed by the probe worker")
         if after_handler_status != "success":
             raise RuntimeError("allowlisted post-outage handler did not succeed")
-        notification_after = _wait_for_notification_delivery(
-            name, event_after, webhook_requests, timeout
+        notification_after = _wait_for_notification_state(
+            name, event_after, "succeeded", "succeeded", timeout
         )
+        accepted_after_restart = _wait_for_webhook(webhook_requests, timeout)
+        if accepted_after_restart["status_code"] != "200":
+            raise RuntimeError("post-restart loopback delivery was not accepted")
+        if accepted_after_restart["idempotency_key"] != notification_after:
+            raise RuntimeError("post-restart delivery used the wrong notification idempotency key")
         if notification_before == notification_after:
             raise RuntimeError("distinct events reused a notification idempotency key")
 
@@ -369,9 +406,11 @@ raise SystemExit(cmd_worker(args))
                 "both_events_claimed_by_same_worker": True,
                 "notification_succeeded_before_restart": True,
                 "notification_succeeded_after_restart": True,
-                "notification_attempts_succeeded": True,
-                "loopback_idempotency_keys_unique": True,
-                "loopback_webhook_calls": 2,
+                "latest_notification_attempts_succeeded": True,
+                "notification_retry_after_transient_failure": True,
+                "retry_reused_idempotency_key": True,
+                "source_notification_idempotency_keys_distinct": True,
+                "loopback_webhook_calls": 3,
                 "worker_id": worker_id,
                 "migrations_replayed": [
                     "116_event_bus.sql",
@@ -380,8 +419,9 @@ raise SystemExit(cmd_worker(args))
                 ],
                 "limitations": [
                     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
-                    "The real allowlisted alert-notification handler ran in its spawned child process and queued a webhook to a temporary HTTP server bound to 127.0.0.1; no remote provider was contacted.",
-                    "Notification outbox and attempt rows were verified as succeeded, and both loopback requests carried their matching durable notification IDs as idempotency keys.",
+                    "The real allowlisted alert-notification handler ran in its spawned child process and queued webhooks to a temporary HTTP server bound to 127.0.0.1; no remote provider was contacted.",
+                    "The local server returned one synthetic 503, then accepted the retry and the post-restart notification. The first notification recovered from retryable/failed to succeeded/succeeded; its retry reused the same durable notification ID as the idempotency key.",
+                    "All three loopback requests carried the matching durable notification IDs as idempotency keys; the two source events used distinct IDs.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
             }

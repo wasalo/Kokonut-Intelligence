@@ -1,7 +1,7 @@
 {
   "date": "2026-10-16",
   "result": "passed",
-  "check": "EventBus worker, alert handler, and durable loopback notification delivery across disposable PostgreSQL stop/start",
+  "check": "EventBus worker, alert handler, and durable loopback notification retry across disposable PostgreSQL stop/start",
   "command": "python3 scripts/check-event-worker-reconnect-disposable.py",
   "database_image": "postgres:16-alpine",
   "database_port_binding": "127.0.0.1 only",
@@ -18,9 +18,11 @@
   "allowlisted_handler_invoked": "services.events.handlers.handle_alert_notification",
   "notification_succeeded_before_restart": true,
   "notification_succeeded_after_restart": true,
-  "notification_attempts_succeeded": true,
-  "loopback_webhook_calls": 2,
-  "loopback_idempotency_keys_unique": true,
+  "latest_notification_attempts_succeeded": true,
+  "notification_retry_after_transient_failure": true,
+  "retry_reused_idempotency_key": true,
+  "loopback_webhook_calls": 3,
+  "source_notification_idempotency_keys_distinct": true,
   "external_provider_calls": 0,
   "migrations_replayed": [
     "116_event_bus.sql",
@@ -29,8 +31,9 @@
   ],
   "limitations": [
     "Only the event, durable-handler, and notification table migrations were replayed in the disposable database; the full ordered schema ledger was not applied.",
-    "The real allowlisted alert-notification handler ran in its spawned child process. A temporary HTTP server bound to 127.0.0.1 accepted the two notification deliveries; no remote provider was contacted.",
-    "Both notification outbox rows and their latest attempt rows were verified as succeeded. Each loopback request carried its matching durable notification ID as the Idempotency-Key, and the two keys were distinct.",
+    "The real allowlisted alert-notification handler ran in its spawned child process. A temporary HTTP server bound to 127.0.0.1 received all three notification requests; no remote provider was contacted.",
+    "The local server returned one synthetic 503, then accepted the retry and the post-restart notification. The first notification attempt was durably marked failed with the outbox retryable, then recovered to succeeded with its latest attempt succeeded; the retry reused the same durable notification ID as its idempotency key.",
+    "All three loopback requests carried the matching durable notification IDs as idempotency keys; the retry reused its source notification ID, while the two source events used distinct IDs.",
     "The PostgreSQL container had no volume and was bound only to loopback."
   ]
 }
