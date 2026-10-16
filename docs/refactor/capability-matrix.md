@@ -241,11 +241,14 @@ compilation. A stronger scheduler check replays migrations 116, 117, 164, 165,
 EventBus tasks before and after restart under one worker ID. The task used an
 empty queue and no provider. The EventBus worker check replays migrations 116,
 165, and 375, invokes the real allowlisted alert-notification handler, and
-completes synthetic events before and after restart; provider switches are
-disabled and its outbox remained empty. The KGP process stays alive through a
+completes synthetic events before and after restart. A fake webhook bound to
+`127.0.0.1` returns one synthetic `503`; the outbox records a failed attempt
+and retryable row, then succeeds on retry with the same idempotency key. A
+second event is delivered after the database restart with a distinct
+notification ID. No remote provider is contacted. The KGP process stays alive through a
 current-source stop/start and advances its durable cursor lease heartbeat,
 using a synthetic cursor schema and stubbed chain height. Mid-task lease
-reclaim, handler/provider delivery, production KGP schema parity and RPC/event
+reclaim, real-provider delivery, production KGP schema parity and RPC/event
 processing, and long-duration acceptance remain open. MAN-CAP-047 is not
 accepted
 ([scheduler unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [stub-engine runtime evidence](builds/2026-10-16-recovery/scheduler-worker-postgres-reconnect.json); [real-engine runtime evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json); [event worker evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json); [EventBus runtime evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json); [KGP evidence](builds/2026-10-15-recovery/kgp-worker-connection-recovery.json); [KGP runtime evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).

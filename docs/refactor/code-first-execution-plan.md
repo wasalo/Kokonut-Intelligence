@@ -3,7 +3,7 @@
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `fb835f141b8105df32206a6b889abff99c0c3806`
-**Latest pushed head status (checked 16 October 2026):** CI #330 is in progress and Security #54 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785849); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785888)). The preceding pushed head passed both required checks.
+**Latest pushed head status (checked 16 October 2026):** CI #330 passed and Security #54 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785849); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38850785888)). The preceding pushed head passed both required checks.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -21,7 +21,7 @@ MAN-CAP checks open until each has its own retained evidence.
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
   [`fb835f141b8105df32206a6b889abff99c0c3806`](https://github.com/wasalo/Kokonut-Intelligence/commit/fb835f141b8105df32206a6b889abff99c0c3806)
-  on `feat/mobile-offline-acceptance`, PR #68. CI #330 is running and Security
+  on `feat/mobile-offline-acceptance`, PR #68. CI #330 passed and Security
   #54 passed. This batch enables verified ARM64 optional profiles for ClickHouse
   analytics, Directus, and HTTP sensors; the app and pinned service images
   passed bounded Buildx/QEMU architecture and runtime-smoke checks. The current
@@ -55,10 +55,14 @@ MAN-CAP checks open until each has its own retained evidence.
   compilation. A disposable PostgreSQL stop/start check replays migrations
   116, 165, and 375 and confirms the actual worker completes synthetic
   events before and after restart under one worker identity while invoking the
-  real allowlisted alert-notification child handler. All provider switches were
-  disabled and the synthetic payload created no outbox row. External provider
-  delivery, full migration-ledger parity, and long-duration recovery remain
-  open ([evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
+  real allowlisted alert-notification child handler. A fake webhook bound to
+  `127.0.0.1` returned one synthetic `503`; the outbox recorded retryable/failed
+  and then recovered to succeeded/succeeded after retry with the same
+  idempotency key. The post-restart notification also succeeded with a distinct
+  ID. No remote provider was contacted. Full migration-ledger parity, real
+  provider delivery, in-flight lease recovery, and long-duration recovery
+  remain open
+  ([evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 - A local KGP indexer change now reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
@@ -236,13 +240,16 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI #330 is in progress and Security #54 passed on pushed SHA
-`fb835f141b8105df32206a6b889abff99c0c3806`; the preceding pushed revision
-passed both checks. The latest local commits `03b949b`, `3f804f7`, and `51fe6a3`
-add disposable PostgreSQL restart recovery for KGP, EventBus, and the real
-SchedulerEngine. The KGP script plus four focused tests, the EventBus runtime
-script plus 20 focused tests, and the SchedulerEngine runtime script plus 10
-focused tests pass with Ruff, compilation, and capability-matrix validation.
+**Action:** CI #330 passed and Security #54 passed on pushed SHA
+  `fb835f141b8105df32206a6b889abff99c0c3806`; the preceding pushed revision
+  passed both checks. Local commits `03b949b`, `3f804f7`, `51fe6a3`, `58f1966`,
+  and `e28c4a3` add disposable PostgreSQL restart recovery for KGP, EventBus,
+  and the real SchedulerEngine. EventBus acceptance now includes loopback
+  notification delivery across restart and a synthetic `503` that recovers on
+  retry with the same idempotency key. The KGP script plus four focused tests,
+  the EventBus runtime script plus 20 focused tests, and the SchedulerEngine
+  runtime script plus 10 focused tests pass with Ruff, compilation, and
+  capability-matrix validation.
 The retained ARM64 evidence covers software emulation only; live provider and
 production acceptance remain separate gates.
 
@@ -710,8 +717,9 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The current push is `fb835f1`; CI #330 is in progress and Security
-#54 passed on that head. Local commits `03b949b`, `3f804f7`, and `51fe6a3` are
+requested. The current push is `fb835f1`; CI #330 passed and Security
+#54 passed on that head. Local commits `03b949b`, `3f804f7`, `51fe6a3`,
+`58f1966`, and `e28c4a3` are
 waiting for the next batch push. Continue local work while CI runs and accumulate related changes
 before the next push so the repository does
 not start CI for each small commit. Never push directly to

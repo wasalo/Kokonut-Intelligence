@@ -9,14 +9,16 @@ reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
 The last pushed PR head is `fb835f141b8105df32206a6b889abff99c0c3806`.
 That batch adds verified ARM64 optional profiles for ClickHouse analytics,
-Directus, and HTTP sensors. CI #330 is running and Security #54 passed. Local
+Directus, and HTTP sensors. CI #330 passed and Security #54 passed. Local
 scheduler, EventBus, and KGP worker runtime slices now confirm scheduled task
 completion, durable event completion, and lease-heartbeat recovery after
 disposable PostgreSQL stop/start; their bounded synthetic fixtures do not close
 provider, full-schema, mid-task lease-reclaim, or live-chain acceptance. The
-working tree also
-contains this new runtime evidence and the checklist refresh; those changes are
-not pushed yet. The previous `46945f7` head passed both required checks. The
+previous `46945f7` head passed both required checks. Local commits `58f1966`
+and `e28c4a3` strengthen EventBus recovery evidence with loopback notification
+delivery across the restart and a synthetic `503`/retry using the same
+idempotency key. The capability, checklist, and progress-document refresh is
+local and not pushed yet. The
 preceding Dockerfile digest correction and local 14-test repair are recorded
 separately ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
@@ -50,10 +52,16 @@ The actual EventBus worker invoked the allowlisted alert-notification handler
 for one synthetic event before a PostgreSQL stop and another after restart,
 both under the same worker identity. The isolated database replayed migrations
 116, 165, and 375. The handler ran in its spawned child process and opened a
-database connection; all optional providers were disabled, so it created no
-notification row. The worker completed both events through real lease and
-completion SQL. External provider delivery, the full migration ledger, and
-long outages remain open ([script](../../scripts/check-event-worker-reconnect-disposable.py);
+database connection. It queued durable notifications to a temporary fake
+webhook bound only to `127.0.0.1`; the real outbox worker delivered one before
+restart and one after restart. The receiver returned a synthetic `503` for the
+first attempt; the outbox recorded `retryable` plus a failed attempt, then
+recovered to `succeeded` after the receiver accepted the retry. The retry
+reused the same notification UUID in `Idempotency-Key`; the post-restart event
+used a distinct notification ID. No remote provider was contacted. Full
+migration-ledger parity, real provider delivery, in-flight worker-loss/lease
+reclaim, and long outages remain open
+([script](../../scripts/check-event-worker-reconnect-disposable.py);
 [evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
 The current local slice also closes a generic-retention preview hazard: the
 outbox, attempt, and operator-audit tables now skip before row inspection in
