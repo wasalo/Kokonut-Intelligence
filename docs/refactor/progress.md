@@ -1,5 +1,24 @@
 # Kokonut Kernel implementation progress
 
+### Source-less sensor excluded from composite Prefect runs — 16 October 2026
+
+Removed the sensor JobSpec from the composite ingestion pipeline and the
+hourly schedule, which continues to run anomaly detection and freshness checks.
+The standalone sensor flow still fails closed through the source-contract
+guard; explicit CLI/CSV, HTTP, and MQTT capture paths remain. Removed the
+misleading no-input sensor cron example from worker guidance and documented
+that a recurring source adapter is required before scheduling sensor ingestion.
+
+The focused Prefect and scheduler-contract suites pass 116 tests, including
+checks that all five remaining ingestion jobs are submitted and awaited, and
+that hourly anomaly/freshness work is preserved without calling the sensor flow.
+The generated worker-job contract inventory and Ruff pass. No database,
+provider, external Prefect server, persisted schedule, or deployment was
+accessed. The checklist now records 413 complete items and 19 open; the
+66-row capability matrix is unchanged
+([evidence](builds/2026-10-16-recovery/source-less-sensor-prefect-exclusion.json);
+[checklist](batches.md); [schedule ownership](schedule-ownership-inventory.md)).
+
 ### Legacy dashboard refresh invocation boundary — 16 October 2026
 
 Moved the `legacy_dataset_sql` feature check to the CLI boundary for explicit

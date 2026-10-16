@@ -45,15 +45,17 @@ weekly, and manual deployment definitions have not changed.
 
 Metrics still compute draft values; independent human verification is required.
 Credit operations use `--check-adjustments`; this does not confirm retirements.
-Sensor scheduling remains rejected because there is no recurring source
-contract. The CLI now rejects missing, incomplete, and conflicting input modes
-instead of printing help and exiting successfully; its help and validation
+The hourly Prefect flow and full-ingestion composite no longer call the
+source-less sensor operation. The hourly schedule now covers anomaly detection
+and freshness only. Sensor scheduling remains rejected because there is no
+recurring source contract. The CLI rejects missing, incomplete, and conflicting
+input modes instead of printing help and exiting successfully; its help and validation
 paths also avoid loading SOPS/database configuration. Explicit CSV,
 single-reading, list, and calibration operations retain their dispatch. The
 shared `sensors` JobSpec fails before subprocess launch, so the Prefect wrapper
-cannot report a successful no-op. This closes false-success reporting only; a
-source/input contract is still required before hourly sensor scheduling can be
-ported.
+cannot report a successful no-op. HTTP and MQTT device transports remain
+available. A reviewed source/input contract is required before recurring
+sensor ingestion is added to a composite workflow.
 
 Remote sensing now delegates to the shared job catalog without changing its
 internal durable job claims or retry state. It remains outside the scheduler

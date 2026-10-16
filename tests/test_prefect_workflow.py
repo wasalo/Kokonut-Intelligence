@@ -43,10 +43,43 @@ def test_flows_have_flow_decorators() -> None:
 def test_flows_import_existing_cli_tools() -> None:
     content = Path("services/flows/pipelines.py").read_text()
     assert "weather_ingestion_flow" in content
-    assert "sensor_ingestion_flow" in content
+    assert "sensor_ingestion_flow" not in content
     assert "market_data_flow" in content
     assert "metrics_computation_flow" in content
     assert "dashboard_refresh_flow" in content
+
+
+def test_ingestion_pipeline_skips_source_less_sensor_job_and_waits_for_other_jobs() -> None:
+    from unittest.mock import Mock, call, patch
+
+    from services.flows.pipelines import ingestion_pipeline
+
+    jobs = ("weather", "market_data", "eas", "rpc", "gnosis")
+    futures = {job_id: Mock() for job_id in jobs}
+
+    with patch("services.flows.pipelines._submit_job", side_effect=futures.__getitem__) as submit:
+        result = ingestion_pipeline.fn()
+
+    assert result == {"status": "success", "ingestion": "complete"}
+    assert submit.call_args_list == [call(job_id) for job_id in jobs]
+    assert all(future.result.call_count == 1 for future in futures.values())
+
+
+def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import scheduled_hourly
+
+    with (
+        patch("services.flows.anomaly_detection.anomaly_detection_flow") as anomaly,
+        patch("services.flows.freshness.freshness_check_flow") as freshness,
+        patch("services.flows.sensors.sensor_ingestion_flow") as sensor,
+    ):
+        scheduled_hourly.fn()
+
+    anomaly.assert_called_once_with()
+    freshness.assert_called_once_with()
+    sensor.assert_not_called()
 
 
 def test_flows_have_retry_config() -> None:

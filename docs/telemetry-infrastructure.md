@@ -230,8 +230,9 @@ python3 -m services.flows.pipelines full_pipeline
 
 The implemented flow structure is:
 
-1. Ingestion: weather, sensors, market data, direct EAS, RPC, and Gnosis flows
-   run in parallel.
+1. Ingestion: weather, market data, direct EAS, RPC, and Gnosis flows run in
+   parallel. Sensor capture remains a source-driven CSV/manual, HTTP, or MQTT
+   operation and is not invoked without a recurring source.
 2. Monitoring: anomaly detection and freshness checks run after ingestion.
 3. Analytics: metrics, dashboard refresh, and credit adjustment run after
    monitoring.
@@ -239,7 +240,7 @@ The implemented flow structure is:
 
 The scheduled flows are:
 
-- `scheduled-hourly`: sensors, anomaly detection, freshness.
+- `scheduled-hourly`: anomaly detection and freshness.
 - `scheduled-every-6h`: weather, dashboards, remote sensing.
 - `scheduled-daily`: market data, metrics, credit adjustment.
 - `scheduled-weekly`: climate refresh. The function description mentions ML

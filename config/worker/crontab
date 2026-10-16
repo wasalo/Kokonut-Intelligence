@@ -32,8 +32,8 @@
 # RPC wallet indexer — every 30 minutes
 # */30 * * * * cd /app && python3 -m services.ingestion.rpc_indexer >> /var/log/cron.log 2>&1
 
-# Sensor ingester — every 5 minutes
-# */5 * * * * cd /app && python3 -m services.ingestion.sensor_ingester >> /var/log/cron.log 2>&1
+# Sensor ingestion is source-driven (CSV/manual, HTTP, or MQTT), not a
+# no-argument recurring job. Configure a real source adapter before scheduling.
 
 # Gnosis Chain indexer — every 2 hours
 # 0 */2 * * * cd /app && python3 -m services.ingestion.gnosis_indexer >> /var/log/cron.log 2>&1

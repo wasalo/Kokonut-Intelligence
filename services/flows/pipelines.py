@@ -30,7 +30,6 @@ def ingestion_pipeline():
 
     # Ingestion tasks run in parallel (no dependencies)
     weather_future = _submit_job("weather")
-    sensor_future = _submit_job("sensors")
     market_future = _submit_job("market_data")
     eas_future = _submit_job("eas")
     rpc_future = _submit_job("rpc")
@@ -38,7 +37,6 @@ def ingestion_pipeline():
 
     # Wait for all ingestion
     weather_future.result()
-    sensor_future.result()
     market_future.result()
     eas_future.result()
     rpc_future.result()
@@ -99,12 +97,14 @@ def full_pipeline():
 
 @flow(name="scheduled-hourly", retries=1)
 def scheduled_hourly():
-    """Hourly tasks: sensor ingestion, anomaly detection, freshness check."""
+    """Hourly tasks: anomaly detection and freshness check.
+
+    Sensor data is push/manual input. The sensor CLI has no recurring source
+    adapter, so it must not gate scheduled ingestion or monitoring workflows.
+    """
     from .anomaly_detection import anomaly_detection_flow
     from .freshness import freshness_check_flow
-    from .sensors import sensor_ingestion_flow
 
-    sensor_ingestion_flow()
     anomaly_detection_flow()
     freshness_check_flow()
 

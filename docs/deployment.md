@@ -299,8 +299,8 @@ Example cron entries for host-based scheduling (adjust paths and timezone as nee
 # RPC wallet indexer — every 30 minutes
 */30 * * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.rpc_indexer >> /var/log/kokonut/rpc.log 2>&1
 
-# Sensor ingester — every 5 minutes (when devices are active)
-*/5 * * * * cd /opt/Kokonut-Intelligence && python3 -m services.ingestion.sensor_ingester >> /var/log/kokonut/sensors.log 2>&1
+# Sensor readings are source-driven (CSV/manual, HTTP, or MQTT); do not schedule
+# sensor_ingester without a configured recurring source adapter.
 ```
 
 Ensure `KOKONUT_ENV=production` and all required secrets are set in the environment used by the scheduler. Use `./scripts/health-check.sh` after deploy to verify service connectivity.
