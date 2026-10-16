@@ -42,7 +42,6 @@ def test_every_scheduled_module_has_a_command_contract():
         ),
         ("services.events", ["--process"]),
         ("services.events", ["--notification-process", "--batch-size", "50"]),
-        ("services.analytics.carbon_credit_adjustment_check", []),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs"]),
         ("services.ingestion.remote_sensing_fetcher", ["--run-jobs", "--limit", "10"]),
         ("services.ingestion.clickhouse_outbox", ["--run-once"]),
@@ -63,6 +62,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("os", ["--help"]),
         ("services.ingestion.sensor_ingester", []),
         ("services.ingestion.sensor_ingester", ["--file", "/tmp/readings.csv"]),
+        ("services.analytics.carbon_credit_adjustment_check", []),
         ("services.ingestion.weather", []),
         ("services.ingestion.climate_data", ["--all"]),
         ("services.ingestion.climate_data", ["--all", "--location-id", "invalid"]),
@@ -107,7 +107,25 @@ def test_credit_adjustment_job_uses_dedicated_read_only_entrypoint():
 
     assert job.module == "services.analytics.carbon_credit_adjustment_check"
     assert job.scheduler_allowed
-    assert validate_scheduled_command(job.module, list(job.arguments)) == ()
+    assert job.required_inputs == ("location_id",)
+    with pytest.raises(ScheduledCommandRejected, match="requires one explicit location"):
+        validate_scheduled_command(job.module, list(job.arguments))
+    location_id = str(uuid4())
+    assert validate_scheduled_command(job.module, ["--location-id", location_id]) == (
+        "--location-id",
+        location_id,
+    )
+
+
+def test_credit_adjustment_schedule_plan_requires_one_location():
+    with pytest.raises(ValueError, match="schedule planning requires one location"):
+        build_job_plan("credit_adjustment", "daily")
+
+    location_id = str(uuid4())
+    plan = build_job_plan("credit_adjustment", "daily", location_id=location_id)
+    task = plan["scheduled_task"]
+    assert task["command_args"] == ["--location-id", location_id]
+    assert not task["is_enabled"]
 
 
 def test_interactive_carbon_credit_cli_is_not_scheduler_allowlisted():

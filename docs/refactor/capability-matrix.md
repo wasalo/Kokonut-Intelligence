@@ -106,9 +106,9 @@ runtime SQL inventory now covers 806 service source files. A follow-up worker
 inventory refresh after dynamic-retention, projection, and remote-sensing
 contracts now records 257 SQL sites across 20 roots, including four
 event-retention queries. The source-only JobSpec inventory now distinguishes
-13 accepted default argument lists, climate's required per-schedule location
-input (schema-validated with a synthetic UUID), and the still-missing recurring
-sensor source contract. External-provider operations remain limited to explicit
+11 accepted default argument lists, three validated per-schedule location
+inputs for climate, weather, and credit adjustment, and the still-missing
+recurring sensor source contract. External-provider operations remain limited to explicit
 bounded contracts. No provider, database, Prefect server, or schedule was accessed
 for this source refresh. Live retry/recovery, provider outcomes, and
 MAN-CAP-040/047 remain
@@ -648,16 +648,28 @@ report ownership/reference fixtures, and tenant scope remain open. No
 MAN-CAP status or acceptance count changes ([evidence](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json)).
 
 **15 October 2026 bounded carbon-credit scheduler operation (CAP-040 / CAP-047):**
-the existing `credit_adjustment` job is now eligible only with
-`--check-adjustments` and an optional location UUID. Automatic adjustment and
-retirement review actions remain rejected. The check reads verified/published
-credit and carbon-balance inputs and performs no writes; no job was registered
-or activated. The 76 focused command/worker tests and generated static
-inventories pass. This adds a source-level operation contract only: workers
-still inherit the shared runtime identity without signed tenant context, RLS
-remains blocked, and no MAN-CAP status or acceptance count changes
-([evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json);
-[operation map](worker-operation-map.json)).
+the existing `credit_adjustment` job was initially restricted to a read-only
+operation. The dedicated entrypoint and required single-location check are
+recorded in the 16 October follow-on. Automatic adjustment and retirement
+review actions remain rejected. No job was registered or activated.
+
+**16 October 2026 location-scoped carbon-credit scheduler follow-on (CAP-040 / CAP-047):**
+the dedicated check now requires exactly one location in the CLI, shared job
+dispatcher, disabled schedule planner, and database-driven command contract.
+The scheduler contract rejects missing scope before process creation, and the
+CLI rejects it before opening a database connection. Ninety-three focused
+command/contract checks pass; the generated JobSpec inventory now distinguishes
+11 default jobs, three required-location jobs, and one source-less sensor job.
+This remains a source contract: workers inherit the shared runtime identity
+without signed tenant context, RLS remains blocked, and no MAN-CAP status or
+acceptance count changes ([evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json);
+[operation map](worker-operation-map.json);
+[JobSpec inventory](worker-job-contract-inventory.json)).
+
+The read-only check reads verified/published credit and carbon-balance inputs
+and performs no writes. No job was registered or activated. MAN-CAP-020 credit
+custody/retirement parity, worker identity, and tenant context remain unaccepted
+([historical command evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json)).
 
 **14 October 2026 worker boundary update:** a machine-readable inventory now
 matches the scheduler and event-handler allowlists and records their
@@ -749,7 +761,7 @@ acceptance remain open.
 | CAP-017 | Emergency response | services/analytics/ | MAN-CAP-017: Incident, response and recovery workflow retains approval/evidence history | tests/test_emergency_response.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-018 | EAS on Celo | services/attestation/ | MAN-CAP-018: Prepare and verify proof metadata without broadcasting or exposing private evidence | tests/test_attestation.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-019 | Ecocredit module | services/credit_class/ | MAN-CAP-019: Class, batch, basket, fee, enrollment and bridge state preserve supply and custody | tests/test_credit_batch_manager.py; tests/test_credit_balance.py | B — baseline code retained; Kernel capability path and parity unassessed. |
-| CAP-020 | Credit custody & retirement | services/analytics/carbon_credits.py; services/certificates/ | MAN-CAP-020: Atomic retirement reservation and independent confirmation prevent duplicate balance changes | tests/test_carbon_credits.py | B — baseline credit issuance/retirement capability remains unaccepted; scheduled adjustment review now uses a separate database-enforced read-only entrypoint, which does not verify custody or retirement parity. |
+| CAP-020 | Credit custody & retirement | services/analytics/carbon_credits.py; services/certificates/ | MAN-CAP-020: Atomic retirement reservation and independent confirmation prevent duplicate balance changes | tests/test_carbon_credits.py | B — baseline credit issuance/retirement capability remains unaccepted; scheduled adjustment review uses a separate database-enforced read-only entrypoint and requires one location per run, which does not verify custody or retirement parity. |
 | CAP-021 | Linked data infrastructure | services/iri/; services/rdf/; services/storage/ | MAN-CAP-021: Resolve versioned IRI, hashes, RDF and lineage without private data disclosure | tests/test_linked_data.py; tests/test_evidence_lineage_integrity.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-022 | Data Stream | services/data_stream/ | MAN-CAP-022: Post, search, file references and proof verification preserve scope | tests/test_data_stream.py | B — baseline code retained. Protected Gateway draft creation now establishes signed DB tenant context before INSERT and attributes `created_by` to the database-verified Gateway credential. Focused route/service checks and disposable forced-RLS owner/location/actor insert and cross-location denial pass. Search, file, proof, broader output parity, and candidate credential provisioning remain open. |
 | CAP-023 | Governance framework abstraction | services/governance/ | MAN-CAP-023: Read Baal configuration/proposals/members; legacy Moloch identity remains distinct | tests/test_governance_framework.py | B — baseline code retained; Kernel capability path and parity unassessed. |

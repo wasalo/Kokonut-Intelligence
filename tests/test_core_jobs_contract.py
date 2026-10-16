@@ -11,7 +11,7 @@ from services.security.scheduled_command_contracts import ScheduledCommandReject
 
 _LOCATION_ID = "a9aa6466-0754-4b7c-b20c-155a81134eaa"
 _DISPATCHES = [
-    (job_id, _LOCATION_ID if job_id in {"climate", "weather"} else None)
+    (job_id, _LOCATION_ID if job_id in {"climate", "weather", "credit_adjustment"} else None)
     for job_id in JOBS
     if job_id != "sensors"
 ]
@@ -49,6 +49,14 @@ def test_weather_dispatch_requires_a_location_before_subprocess():
     with patch("services.core.jobs.subprocess.run") as run:
         with pytest.raises(ValueError, match="requires a location"):
             run_job("weather")
+
+    run.assert_not_called()
+
+
+def test_credit_adjustment_dispatch_requires_one_location_before_subprocess():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="requires a location"):
+            run_job("credit_adjustment")
 
     run.assert_not_called()
 

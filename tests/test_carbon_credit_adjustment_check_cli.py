@@ -15,7 +15,7 @@ def _connection() -> MagicMock:
     return connection
 
 
-def test_scheduled_check_uses_read_only_connection_and_optional_location():
+def test_scheduled_check_uses_read_only_connection_and_one_required_location():
     connection = _connection()
     location_id = uuid4()
     results = [{"credit_code": "KKNT-TEST", "needs_adjustment": True}]
@@ -36,6 +36,15 @@ def test_invalid_location_fails_before_database_access():
     with patch.object(command, "get_connection") as get_connection:
         with pytest.raises(SystemExit) as exc:
             command.main(["--location-id", "not-a-uuid"])
+
+    assert exc.value.code == 2
+    get_connection.assert_not_called()
+
+
+def test_missing_location_fails_before_database_access():
+    with patch.object(command, "get_connection") as get_connection:
+        with pytest.raises(SystemExit) as exc:
+            command.main([])
 
     assert exc.value.code == 2
     get_connection.assert_not_called()

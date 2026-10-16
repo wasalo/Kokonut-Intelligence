@@ -232,6 +232,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         if len(operations) != 1:
             raise _reject("scheduled event command must select --process or --notification-process")
 
+    elif module_path == "services.analytics.carbon_credit_adjustment_check":
+        if "--location-id" not in options:
+            raise _reject("scheduled carbon-credit check requires one explicit location")
+
     elif module_path == "services.ingestion.remote_sensing_fetcher":
         if "--run-jobs" not in options:
             raise _reject("scheduled remote-sensing operation must run due jobs")

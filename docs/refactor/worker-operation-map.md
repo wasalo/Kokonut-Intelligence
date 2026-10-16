@@ -144,8 +144,9 @@ data effects, and an idempotency/retry note.
   migration-discovery, and PostgreSQL restored-checkpoint replay coverage; live
   provider acceptance remains open.
 - The carbon-credit job's `credit_adjustment` JobSpec uses a dedicated
-  `services.analytics.carbon_credit_adjustment_check` entrypoint with an
-  optional `--location-id`. It runs inside a database-enforced read-only
+  `services.analytics.carbon_credit_adjustment_check` entrypoint and requires
+  one explicit `--location-id` at the CLI, schedule-plan, and scheduler-command
+  boundaries. Unscoped cross-location scans fail before database access. It runs inside a database-enforced read-only
   transaction and only calls the recompute-and-report path. The interactive
   credit-management module is no longer scheduler-allowlisted, so its issuance,
   mutation, retirement, and review paths do not enter the worker graph. The job

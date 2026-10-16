@@ -33,6 +33,17 @@ the scheduled job. Candidate, legacy, provider, and persisted schedule state
 were not accessed. This does not establish worker tenant context or RLS readiness
 ([evidence](builds/2026-10-16-recovery/worker-credit-check-isolation.json)).
 
+The local follow-up now requires a single location for each credit-adjustment
+run. The CLI, shared job dispatcher, disabled plan builder, and database-driven
+command contract reject missing scope before a connection or child process is
+created. Ninety-three focused command and contract checks pass; the static
+JobSpec inventory records 11 default jobs, three jobs with validated required
+location inputs, and one source-less sensor job. No persisted task was read or
+changed. Existing task rows need reconciliation before activation, and the
+shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);
+[operation map](worker-operation-map.json);
+[evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json)).
+
 ### KGP indexer PostgreSQL restart recovery — 16 October 2026
 
 A current-source runtime check applied all 393 ordered PostgreSQL schema

@@ -221,7 +221,7 @@
     },
     {
       "module": "services.analytics.carbon_credit_adjustment_check",
-      "scope": "Dedicated scheduled entrypoint recomputes and reports potential adjustment differences; it can scan all verified/published credits or filter to one --location-id. The interactive credit-management CLI is not scheduler-allowlisted.",
+      "scope": "Dedicated scheduled entrypoint recomputes and reports potential adjustment differences for exactly one required --location-id. The CLI and scheduler contract reject an unscoped all-location scan; the interactive credit-management CLI is not scheduler-allowlisted.",
       "reads": ["public.carbon_credit", "public.climate_impact_summary", "public.tree_inventory", "public.soil_carbon_measurement", "public.ghg_emissions_inventory"],
       "writes": [],
       "external_effects": [],

@@ -16,13 +16,18 @@ from services.common.cli import get_connection, print_json, run
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Read-only carbon-credit adjustment check")
-    parser.add_argument("--location-id", type=UUID, help="Optionally limit the check to one location")
+    parser.add_argument(
+        "--location-id",
+        type=UUID,
+        required=True,
+        help="Limit the check to exactly one location",
+    )
     args = parser.parse_args(argv)
 
     with get_connection(readonly=True) as connection:
         results = check_adjustments(
             connection,
-            location_id=str(args.location_id) if args.location_id is not None else None,
+            location_id=str(args.location_id),
         )
     print_json(results)
 
