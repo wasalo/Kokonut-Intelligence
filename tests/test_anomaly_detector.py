@@ -160,5 +160,99 @@ def test_event_run_check_accepts_source_reading_at_requested_location():
     db.close.assert_called_once()
 
 
+def test_event_run_check_does_not_bootstrap_shared_alert_rules():
+    from services.ingestion.anomaly_detector import run_check
+
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (
+        "reading-1", "sensor-1", "soil_moisture", 12.5, None, None,
+        "a0000000-0000-0000-0000-000000000001", None,
+    )
+    cursor.fetchall.return_value = []
+    event_id = "a0000000-0000-0000-0000-000000000002"
+    location_id = "a0000000-0000-0000-0000-000000000001"
+
+    with (
+        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
+        patch("services.ingestion.anomaly_detector.ensure_alert_rules") as ensure_rules,
+    ):
+        run_check(sensor_id="sensor-1", event_id=event_id, location_id=location_id)
+
+    ensure_rules.assert_not_called()
+    db.close.assert_called_once()
+
+
+def test_interactive_run_check_keeps_default_alert_rule_bootstrap():
+    from services.ingestion.anomaly_detector import run_check
+
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchall.return_value = []
+
+    with (
+        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
+        patch("services.ingestion.anomaly_detector.ensure_alert_rules") as ensure_rules,
+    ):
+        run_check()
+
+    ensure_rules.assert_called_once_with(db)
+    db.close.assert_called_once()
+
+
+def test_anomaly_event_publishes_without_committing_the_handler_transaction():
+    from datetime import datetime, timezone
+
+    from services.ingestion.anomaly_detector import run_check
+
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.fetchone.side_effect = [
+        (
+            "reading-1", "sensor-1", "soil_moisture", 12.5, None, None,
+            "a0000000-0000-0000-0000-000000000001", None,
+        ),
+        ("reading-1",),
+        ("sensor-1",),
+        (None, datetime.now(timezone.utc)),
+    ]
+    cursor.fetchall.return_value = [
+        (
+            "rule-1", "Soil Moisture Low", "type-1", "soil_moisture", "value",
+            "lt", 15.0, None, "warning", 0, False, None,
+        ),
+    ]
+    event_bus = MagicMock()
+    location_id = "a0000000-0000-0000-0000-000000000001"
+    event_id = "a0000000-0000-0000-0000-000000000002"
+
+    with (
+        patch("services.ingestion.anomaly_detector.get_db", return_value=db),
+        patch("services.ingestion.anomaly_detector.ensure_alert_rules"),
+        patch("services.ingestion.anomaly_detector.check_cooldown", return_value=False),
+        patch("services.ingestion.anomaly_detector.evaluate_metric", return_value=True),
+        patch("services.ingestion.anomaly_detector.create_alert", return_value="alert-1"),
+        patch("services.ingestion.anomaly_detector.log_ingestion"),
+        patch(
+            "services.ingestion.anomaly_detector.get_sensor_device_info",
+            return_value={
+                "sensor_name": "Sensor 1",
+                "sensor_type": "soil_moisture",
+                "location_name": "Test Farm",
+                "location_id": location_id,
+            },
+        ),
+        patch("services.events.notification_outbox.enqueue_event_notification"),
+        patch("services.ingestion.anomaly_detector.send_actuation_commands"),
+        patch("services.events.bus.EventBus", return_value=event_bus),
+    ):
+        run_check(sensor_id="sensor-1", event_id=event_id, location_id=location_id)
+
+    event_bus.publish.assert_called_once()
+    assert event_bus.publish.call_args.kwargs["commit"] is False
+    db.commit.assert_called_once()
+    db.close.assert_called_once()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -63,8 +63,8 @@ class EventBus:
 
     def publish(self, event_type: str, payload: dict[str, Any], *, event_id=None,
                 source_table=None, source_id=None, priority="normal", max_retries=3,
-                metadata=None) -> str:
-        """Persist an event, optionally using an ID allocated by its transaction owner."""
+                metadata=None, commit: bool = True) -> str:
+        """Persist an event, optionally leaving transaction control to the caller."""
         if event_id is None:
             event_id = str(uuid.uuid4())
         else:
@@ -82,10 +82,12 @@ class EventBus:
                     VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s, %s)
                 """, (event_id, event_type, source_table, source_id, json.dumps(payload),
                       priority, max_retries, json.dumps(metadata) if metadata else None))
-            conn.commit()
+            if commit:
+                conn.commit()
             return event_id
         except Exception:
-            conn.rollback()
+            if commit:
+                conn.rollback()
             raise
 
     def _claim(self, batch_size: int, worker_id: str):

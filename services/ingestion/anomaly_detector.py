@@ -680,7 +680,10 @@ def run_check(
             if sensor_id and str(event_reading[1]) != str(sensor_id):
                 raise ValueError("sensor-reading payload does not match its source reading")
 
-        ensure_alert_rules(db)
+        # Event workers treat shared alert rules as read-only reference data.
+        # Only the interactive all-readings CLI may bootstrap the defaults.
+        if stable_event_id is None:
+            ensure_alert_rules(db)
 
         rules = []
         with db.cursor() as cur:
@@ -883,6 +886,7 @@ def run_check(
                         source_table="sensor_alert",
                         source_id=alert_id,
                         priority=priority,
+                        commit=False,
                     )
 
                     alerts_triggered += 1

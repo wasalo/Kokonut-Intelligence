@@ -89,16 +89,56 @@ must:
    ID, event type, source table, source row, sensor ID, and authorized location.
 4. Preserve the current event receipt, alert idempotency, notification outbox,
    and human-approved actuation boundaries. Shared alert-rule configuration is
-   a read-only reference input; default rule creation must not be performed by
-   the tenant worker.
+   a read-only reference input; event execution now skips the default-rule
+   bootstrap, which remains available to the interactive CLI.
 5. Keep queue claim, lease renewal, acknowledgement, retry, and dead-letter
    operations in the control-plane boundary. Do not broaden the anomaly
    execution identity to claim or complete arbitrary events.
 
 The first location-lineage source change is in
-`services/ingestion/anomaly_detector.py`. Focused regression checks have not yet
-been added or run; the repository checklist requires explicit owner approval
-before that verification step.
+`services/ingestion/anomaly_detector.py`. With explicit owner approval, the
+focused anomaly and pilot seed-guard suites passed 19 tests, the EventBus
+durability suite passed 17 tests, and two focused EventBus transaction tests
+passed. They cover missing and malformed location
+selectors, validation before DB access, source/event location mismatch, seed
+lineage guards, read-only alert-rule behavior for event execution, and
+caller-owned transaction success/error paths. Ruff, Python compilation, and
+`git diff --check` passed. These were mocked/source checks only; signed worker
+identity and disposable authorization acceptance remain open
+([evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).
+
+### Observed effect boundary for the first handler
+
+Source review of `run_check`, `create_alert`, notification enqueue, and the
+shared EventBus shows that location-bound source validation is only one part of
+the authorization contract:
+
+- Reads include the source `platform_event`, its `sensor_reading`, sensor
+  metadata, shared `alert_rule` reference data, recent `sensor_alert` rows for
+  cooldown, and optional sensor history used by rate-of-change rules.
+- Writes include the idempotency row in `sensor_anomaly_effect`, new
+  `sensor_alert` rows, optional draft `mrv_claim` rows, ingestion audit rows,
+  notification outbox intents, and a new `platform_event` for the alert. These
+  paths share the handler's connection. `EventBus.publish` now accepts an
+  explicit caller-owned transaction mode, and anomaly handling uses it so the
+  final handler commit controls all effects.
+- The event path does not call the direct email or Directus notifier. It
+  enqueues configured notifications and records any configured actuator
+  action through the existing human-approval gate. External delivery remains
+  the responsibility of separate workers.
+- `alert_rule` defaults are now bootstrapped only by the interactive CLI;
+  event execution reads existing rules without creating global configuration.
+  Focused regressions verify both paths.
+
+The signed worker operation must authorize the location-bound table access and
+route shared queue/audit mutations through bounded database operations. A
+single `sensor_reading:process` grant does not by itself authorize global
+notification, event-bus, or audit writes. Before adding the migration, map each
+effect to a tenant-qualified row policy or a database function that derives
+scope from the signed context; keep event claim/receipt and queue acknowledgement
+in the separate control-plane identity. Any database-backed effect added to
+this handler must use the same transaction or a bounded function that preserves
+that transaction boundary.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.

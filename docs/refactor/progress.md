@@ -6310,3 +6310,18 @@ and secret, confirming cross-tenant read scope, and limiting who can invoke
 the inventory remain deployment gates ([source evidence](builds/2026-10-16-recovery/tenant-preflight-identity-source.json);
 [PostgreSQL evidence](builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json);
 [call-site audit](mobile-tenant-rls-callsite-audit.md)).
+
+### Anomaly worker source and transaction boundaries — 16 October 2026
+
+The event-driven anomaly path now validates its location against the joined
+source reading before processing, treats shared alert rules as read-only, and
+publishes its alert event without taking ownership of the handler transaction.
+The interactive CLI retains default-rule bootstrap. `EventBus.publish` keeps
+its existing commit/rollback behavior by default and supports explicit
+caller-owned transaction control. Focused anomaly and seed-guard checks passed
+19 tests, EventBus durability passed 17 tests, and two transaction tests passed;
+Ruff, Python compilation, and diff checks are clean. These checks used mocks
+only and touched no database. Signed worker identity, effect-specific
+authorization, least-privilege grants, and disposable database acceptance
+remain open ([contract](worker-tenant-context-contract.md);
+[evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).

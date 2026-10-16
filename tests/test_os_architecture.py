@@ -55,6 +55,34 @@ class TestEventBus:
             bus.publish("test_event", {"key": "value"})
         mock_conn.rollback.assert_called_once()
 
+    def test_publish_can_leave_injected_transaction_to_caller(self):
+        from services.events.bus import EventBus
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        EventBus(conn=mock_conn).publish("sensor_alert", {"alert_id": "alert-1"}, commit=False)
+
+        mock_conn.commit.assert_not_called()
+        mock_conn.rollback.assert_not_called()
+
+    def test_publish_leaves_failed_caller_owned_transaction_for_caller_rollback(self):
+        from services.events.bus import EventBus
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.execute.side_effect = Exception("DB error")
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        with pytest.raises(Exception, match="DB error"):
+            EventBus(conn=mock_conn).publish("sensor_alert", {"alert_id": "alert-1"}, commit=False)
+
+        mock_conn.commit.assert_not_called()
+        mock_conn.rollback.assert_not_called()
+
     def test_process_pending_handles_empty(self):
         """process_pending() returns zero stats when no pending events."""
         from services.events.bus import EventBus
