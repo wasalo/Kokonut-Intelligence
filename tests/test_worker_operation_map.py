@@ -6,6 +6,7 @@ import json
 from inspect import getsourcefile
 from pathlib import Path
 
+from services.events.bus import _HANDLER_WORKER_KEYS
 from services.metrics.calculators import CALCULATORS
 from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,
@@ -51,13 +52,42 @@ def test_worker_map_states_shared_identity_and_open_authorization_boundaries():
     inventory = _load_map()
     boundary = inventory["shared_boundary"]
 
-    assert "inherit" in boundary["database_identity"]
+    assert "configured runtime PG_USER and PG_PASSWORD" in boundary["database_identity"]
+    assert "worker-specific secrets are filtered" in boundary["database_identity"]
+    assert "exact source-controlled mapping" in boundary["database_identity"]
     assert "Migration 405" in boundary["signed_tenant_context"]
-    assert "dispatch and generic event-handler spawn do not establish it" in boundary["signed_tenant_context"]
+    assert "Scheduler dispatch and the EventBus parent do not establish it" in boundary["signed_tenant_context"]
     assert "validate command_args" in boundary["module_argument_validation"]
-    assert any("separate worker database principal" in item for item in inventory["known_open_items"])
+    assert any("principals, credentials, and exact grants for remaining operations" in item
+               for item in inventory["known_open_items"])
     assert any("existing enabled scheduled_task rows" in item for item in inventory["known_open_items"])
     assert "does not change grants" in boundary["deployment_effect"]
+
+
+def test_signed_worker_routing_is_limited_to_integrated_handler_pairs():
+    assert _HANDLER_WORKER_KEYS == {
+        ("services.ingestion.anomaly_detector", "handle_sensor_reading"): ("sensor_anomaly",),
+        ("services.cache.events", "handle_metric_computed"): ("cache_invalidation",),
+        ("services.cache.events", "handle_crisp_scored"): ("cache_invalidation",),
+        ("services.cache.events", "handle_sensor_reading"): ("cache_invalidation",),
+        ("services.cache.events", "handle_harvest_recorded"): ("cache_invalidation",),
+    }
+
+
+def test_effect_inventory_traces_current_event_runner_and_worker_secret_filter():
+    effect_inventory = json.loads(EFFECT_PATH.read_text(encoding="utf-8"))
+    dispatches = effect_inventory["callback_dispatches"]
+
+    assert len(dispatches) == 1
+    dispatch = dispatches[0]
+    assert dispatch["child_entrypoint"] == "services.events.handler_runner:main"
+    assert dispatch["request_executor"] == "services.events.handler_runner:execute_request"
+    assert dispatch["worker_secret_filter"] == "services.events.bus:_handler_child_environment"
+    assert dispatch["allowlist_validator"] == "services.security.execution_allowlist.validate_event_handler"
+    assert dispatch["validation_precedes_dynamic_import"] is True
+    assert dispatch["allowlisted_handler_targets"] == sorted(
+        f"{module}.{function}" for module, function in ALLOWED_EVENT_HANDLERS
+    )
 
 
 def test_sensor_anomaly_effect_contract_matches_source_operation_map():
@@ -73,7 +103,7 @@ def test_sensor_anomaly_effect_contract_matches_source_operation_map():
     )
     effects = contract["effects"]
 
-    assert contract["status"] == "proposed_not_enforced"
+    assert contract["status"] == "implemented_disposable_accepted"
     assert contract["operation"]["event_type"] == handler["event_type"]
     assert (contract["operation"]["module"], contract["operation"]["function"]) == (
         handler["module"], handler["function"]
@@ -85,6 +115,12 @@ def test_sensor_anomaly_effect_contract_matches_source_operation_map():
     assert all(item["class"] for item in effects)
     assert "commit=False" in contract["transaction"]["event_publication"]
     assert "integrated anomaly worker establishes it" in contract["transaction"]["context"]
+    assert "dedicated sensor_anomaly database URL and credential" in handler["scope"]
+    assert "signed transaction context" in handler["scope"]
+    assert "services/ingestion/sensor_anomaly_worker.py" in handler["sources"]
+    assert "schemas/postgres/414_sensor_anomaly_worker_delivery.sql" in handler["sources"]
+    assert "services/common/worker_environment.py" in handler["sources"]
+    assert "services/events/handler_runner.py" in handler["sources"]
 
     by_relation = {item["relation"]: item for item in effects}
     assert "select_enabled_reference" in by_relation["public.alert_rule"]["access"]

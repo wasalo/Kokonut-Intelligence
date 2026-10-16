@@ -23,11 +23,11 @@ informational KGP policy projection and did not recreate the candidate app. The
 candidate reports 394 applied schema migrations through 403, zero pending,
 health 200, and a protected-route 401. No migration enables application-table
 RLS, which remains disabled. The current generated service SQL inventory
-records 3,862 call sites across 815 Python modules, with 267 sites linked to
-20 worker operation roots across 81 source files. The worker SQL graph links 203
-unique sites to static operation paths and leaves 64 without a static function
-match; these counts are review aids, not an authorization allowlist or proof of
-tenant isolation. It is a static review aid, not a grant allowlist
+records 3,863 call sites across 815 Python modules, with 268 sites linked to
+22 worker operation roots across 81 source files. The worker SQL graph links 204
+unique sites across 244 operation/site memberships and leaves 64 without a
+static function match; these counts are review aids, not an authorization
+allowlist or proof of tenant isolation. It is a static review aid, not a grant allowlist
 ([inventory](runtime-sql-inventory.json); [refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)). Migration 395 removes runtime-role access to
 `operator_session` and gives OIDC a separate auth login for bounded session
 functions. Runtime provisioning
@@ -109,29 +109,33 @@ not bind a scheduled module or event handler to a database role or tenant.
   `PG_USER=${KOKONUT_RUNTIME_USER:-kokonut}` and one runtime password.
 - `services.scheduler.engine.SchedulerEngine._execute_task` validates the
   configured module against `ALLOWED_SCHEDULED_MODULES`, then runs it as a
-  subprocess without an explicit environment. The module inherits the
-  scheduler's full environment and database identity.
+  subprocess with standard application settings and the shared runtime database
+  identity. `worker_subprocess_environment()` strips worker-specific DSN and
+  credential variables from scheduled children.
 - `services.events.bus.EventBus._invoke_handler` starts each allowlisted
-  handler in a spawned process. The allowlist narrows module/function names,
-  but the child inherits the event worker's environment. Handlers such as
-  `services.ingestion.anomaly_detector.handle_sensor_reading` can initiate
-  tenant data reads and draft/alert/claim writes; notification handlers write
-  the global durable notification outbox; cache handlers route through the
-  configured cache provider.
-- The legacy worker overlay also defaults `PG_USER` to `kokonut`. The
-  portability worker uses its app connection configuration. No worker-specific
-  database principal or worker tenant-context setter is currently present in
-  these dispatch paths.
+  handler in a spawned process. The child receives standard application
+  settings, while worker-specific DSN and credential variables are filtered
+  unless an exact source-controlled module/function mapping allows them. The
+  anomaly handler and four cache handlers use dedicated worker database helpers;
+  other handlers still use the shared runtime database identity. Notification
+  handlers write the global durable notification outbox.
+- The legacy worker overlay and portability worker remain legacy execution
+  paths. The Kernel scheduler and EventBus control plane still use shared runtime
+  PostgreSQL identity; dedicated worker identity is integrated only for the
+  anomaly handler and optional cache path.
 - The four cache invalidation handlers now require and canonicalize a valid
   location UUID before selecting the cache adapter. Missing/malformed scope
   fails before provider construction, preventing an event from becoming an
   all-location invalidation. The durable bus records the handler failure and
   applies its existing bounded retry/dead-letter policy. This narrows one
-  worker side effect but still does not establish signed DB tenant context or
-  a worker-specific database role.
+  worker side effect. When signed cache invalidation is enabled, migrations
+  415–416 and the handler adapter establish `computation_cache/invalidate`
+  context through the dedicated `cache_invalidation` identity. The flag remains
+  off by default, no credential/grant is provisioned, and migration 416 is not
+  deployed to the candidate.
 
 The [worker operation map](worker-operation-map.md) now covers all 15
-allowlisted scheduled modules and five event-handler pairs, including their
+allowlisted scheduled modules and seven event-handler pairs, including their
 source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
 executable allowlists and every entry has source references. This is an
@@ -145,17 +149,17 @@ Therefore, the current allowlists protect against arbitrary module/function
 dispatch but do not make worker SQL safe under application RLS. Do not assign a
 single inferred tenant to a cross-location batch job, and do not enable RLS or
 remove runtime grants on this evidence. The current source-level effect inventory now
-records 38 unique high-confidence process, filesystem, HTTP, email, dynamic
-import, and EVM call sites across 44 operation/site memberships and 20 roots
+records 33 unique high-confidence process, filesystem, HTTP, email, and EVM
+call sites across 36 operation/site memberships and 22 roots
 ([inventory](worker-effect-inventory.json)).
 It can overcount mutually exclusive CLI branches in other workers and miss
 effects behind callbacks or provider adapters. The scheduled credit adjustment
 path is now a separate read-only entrypoint, and its graph excludes the
-interactive retirement/chain-sync code. The graph
-now follows the EventBus process target into the local child and resolver, and
-the callback inventory traces its validator, dynamic import, and five
-source-allowlisted handlers. Runtime string selection and persisted handler
-configuration remain unverified.
+interactive retirement/chain-sync code. The function graph does not follow
+EventBus's `subprocess.Popen` request into the child. The separate effect
+inventory traces `handler_runner`, its worker-secret filter, resolver,
+allowlist validation, dynamic import, and all seven source-allowlisted handler
+pairs. Persisted handler configuration and runtime dispatch remain unverified.
 The actuation helper reachable from a worker only records an approval-gated
 command; it does not publish MQTT. The function graph now follows callbacks
 passed through the shared CLI `run(main)` wrapper. Remaining code-only work is

@@ -398,11 +398,11 @@ through 397 and no application-table RLS. The later candidate state is recorded
 below; implementation progress does not accept any named MAN-CAP check
 ([historical evidence](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
 
-The current runtime SQL inventory covers 3,862 direct execution sites across
+The current runtime SQL inventory covers 3,863 direct execution sites across
 815 service modules, includes summaries for 67 packages, and identifies 1,041
-regex-derived relation-name candidates. It records 267 sites with worker
+regex-derived relation-name candidates. It records 268 sites with worker
 operation references. Literal SQLAlchemy `text()` and psycopg `SQL()` wrappers
-are unwrapped; 134 unknown-statement sites, 24 `WITH` sites, 370 sites without
+are unwrapped; 134 unknown-statement sites, 24 `WITH` sites, 371 sites without
 relation candidates, 480 non-literal sites, and dynamic or indirect paths
 require review before narrowing runtime grants. The
 report is not an ACL and does not accept a MAN-CAP check ([inventory](runtime-sql-inventory.json);
@@ -2215,8 +2215,8 @@ not change MAN-CAP status ([adapter](../services/ingestion/sensor_anomaly_worker
 
 ### CAP-040/047 worker SQL inventory reconciliation — 16 October 2026
 
-The current static inventories cover 20 operation roots, 81 source files, and
-267 SQL execution sites. The call graph links 203 unique sites across 222
+The current static inventories cover 22 operation roots, 81 source files, and
+268 SQL execution sites. The call graph links 204 unique sites across 244
 operation/site memberships and leaves 64 without a static function match.
 Source-pattern review now covers all 40 composed/variable SQL sites, including
 the signed-context cleanup and anomaly worker query wrappers added with the

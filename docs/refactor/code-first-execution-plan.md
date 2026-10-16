@@ -3,7 +3,7 @@
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Batch base (last pushed head before this work):** `30f996624ad9e9f4f908b41f1d5f55b86efb2620` on PR #68.
-**Current local batch:** Local commits after `30f9966` split EventBus dispatch and notification delivery into independently runnable workers, preserve the combined CLI mode, and gate each worker before database connection. The focused worker/supervisor/contract suite passed 160 tests and 3 subtests, with Ruff, compilation, Compose parsing, and regenerated worker inventories. A separate dashboard-refresh boundary now rejects disabled execution before database access; eight focused CLI checks pass. Migration 416 extends signed, default-off cache invalidation to all four registered handlers; 80 focused checks and eight network-isolated PostgreSQL 16 checks pass. The latest source slice removes source-less sensor ingestion from composite Prefect flows and cron guidance while preserving other ingestion jobs plus hourly anomaly/freshness; 116 focused Prefect/scheduler checks, the generated JobSpec inventory, and Ruff pass. The checklist now has 413 checked / 19 open items; the capability matrix remains at 66 rows. Migrations 415–416 are not applied to the candidate, no worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No candidate or legacy database, external provider, or live Prefect deployment was changed. Real worker identity, generic outbox authorization, provider delivery, other worker scopes, and production acceptance remain open.
+**Current local batch:** Local commits after `30f9966` split EventBus dispatch and notification delivery into independently runnable workers, preserve the combined CLI mode, and gate each worker before database connection. The focused worker/supervisor/contract suite passed 160 tests and 3 subtests, with Ruff, compilation, Compose parsing, and regenerated worker inventories. A separate dashboard-refresh boundary now rejects disabled execution before database access; eight focused CLI checks pass. Migration 416 extends signed, default-off cache invalidation to all four registered handlers; 80 focused checks and eight network-isolated PostgreSQL 16 checks pass. The latest source slice removes source-less sensor ingestion from composite Prefect flows and cron guidance while preserving other ingestion jobs plus hourly anomaly/freshness; 116 focused Prefect/scheduler checks, the generated JobSpec inventory, and Ruff pass. The worker operation map and EventBus effect trace now match the signed anomaly and four cache integrations; 46 focused checks and seven generated source/SQL/boundary inventory checks pass. The checklist now has 413 checked / 19 open items; the capability matrix remains at 66 rows. Migrations 405–416 are not applied to the candidate, no worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. Notification location remains payload-derived lineage only; it does not establish tenant authorization. No candidate or legacy database, external provider, or live Prefect deployment was changed. Real worker identity, generic outbox authorization, provider delivery, other worker scopes, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -347,11 +347,11 @@ before protected reads and writes, and make direct database access fail closed.
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
   [worker operation map](worker-operation-map.md) inventories all 15 scheduled
-   modules and five event-handler pairs, with a test guarding allowlist parity.
+  modules and seven event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
-   open. The source-only effect index now records 38 unique direct effect sites
-  (44 operation/site memberships) across 20 worker roots. The scheduled carbon
+   open. The source-only effect index now records 33 unique direct effect sites
+  (36 operation/site memberships) across 22 worker roots. The scheduled carbon
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
@@ -392,8 +392,8 @@ before protected reads and writes, and make direct database access fail closed.
    and proved a table/sequence created after provisioning is inaccessible to
    the runtime login. A new whole-services SQL inventory covers all 807 Python
    source files and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The current generated inventory covers 3,862
-   SQL execution sites across 815 source files, including 267 worker-linked
+   names without becoming an ACL. The current generated inventory covers 3,863
+   SQL execution sites across 815 source files, including 268 worker-linked
    sites; literal query wrappers are unwrapped while parameter values remain
    unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and

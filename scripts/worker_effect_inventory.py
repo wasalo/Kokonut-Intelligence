@@ -79,39 +79,56 @@ def _function_calls(node: ast.AST) -> list[ast.Call]:
 
 
 def _event_process_dispatch(graph: dict, function_nodes: dict[str, dict[str, ast.AST]]) -> list[dict]:
-    """Describe the statically named EventBus child callback and allowlist path."""
+    """Describe the EventBus subprocess runner, exact handler lookup, and filter."""
     source = "services/events/bus.py"
     nodes = function_nodes.get(source, {})
     invoke = nodes.get("EventBus._invoke_handler")
-    child = nodes.get("_handler_process")
     resolver = nodes.get("resolve_handler")
-    if not invoke or not child or not resolver:
+    runner_source = "services/events/handler_runner.py"
+    runner_nodes = function_nodes.get(runner_source)
+    if runner_nodes is None:
+        runner_tree = ast.parse((ROOT / runner_source).read_text(encoding="utf-8"), filename=runner_source)
+        runner_collector = _FunctionNodes()
+        runner_collector.visit(runner_tree)
+        runner_nodes = runner_collector.nodes
+    runner_main = runner_nodes.get("main")
+    runner_execute = runner_nodes.get("execute_request")
+    if not invoke or not resolver or not runner_main or not runner_execute:
         return []
 
     invoke_calls = _function_calls(invoke)
-    child_calls = _function_calls(child)
+    runner_main_calls = _function_calls(runner_main)
+    runner_execute_calls = _function_calls(runner_execute)
     resolver_calls = _function_calls(resolver)
     process_call = next(
         (
             call
             for call in invoke_calls
-            if (_dotted(call.func) or "").split(".")[-1] == "Process"
+            if _dotted(call.func) == "subprocess.Popen"
+            and call.args
+            and isinstance(call.args[0], (ast.List, ast.Tuple))
             and any(
-                keyword.arg == "target"
-                and isinstance(keyword.value, ast.Name)
-                and keyword.value.id == "_handler_process"
-                for keyword in call.keywords
+                isinstance(item, ast.Constant) and item.value == "services.events.handler_runner"
+                for item in call.args[0].elts
             )
         ),
         None,
     )
-    resolve_call = next((call for call in child_calls if _dotted(call.func) == "resolve_handler"), None)
+    secret_filter_call = next(
+        (call for call in invoke_calls if _dotted(call.func) == "_handler_child_environment"), None
+    )
+    parse_call = next(
+        (call for call in runner_main_calls if _dotted(call.func) == "execute_request"), None
+    )
+    resolve_call = next(
+        (call for call in runner_execute_calls if _dotted(call.func) == "resolve_handler"), None
+    )
     validate_call = next(
         (call for call in resolver_calls if (_dotted(call.func) or "").endswith("validate_event_handler")), None
     )
     import_call = next((call for call in resolver_calls if (_dotted(call.func) or "").endswith("import_module")), None)
-    handler_calls = [call for call in child_calls if _dotted(call.func) == "handler"]
-    required = (process_call, resolve_call, validate_call, import_call)
+    handler_calls = [call for call in runner_execute_calls if _dotted(call.func) == "handler"]
+    required = (process_call, secret_filter_call, parse_call, resolve_call, validate_call, import_call)
     if not all(required) or not handler_calls:
         return []
 
@@ -123,7 +140,12 @@ def _event_process_dispatch(graph: dict, function_nodes: dict[str, dict[str, ast
             "dispatcher": "services.events.bus:EventBus._invoke_handler",
             "source": source,
             "process_creation_line": process_call.lineno,
-            "process_callback": "services.events.bus:_handler_process",
+            "child_module": "services.events.handler_runner",
+            "child_entrypoint": "services.events.handler_runner:main",
+            "worker_secret_filter": "services.events.bus:_handler_child_environment",
+            "worker_secret_filter_line": secret_filter_call.lineno,
+            "request_executor": "services.events.handler_runner:execute_request",
+            "request_executor_call_line": parse_call.lineno,
             "callback_resolver": "services.events.bus:resolve_handler",
             "resolver_call_line": resolve_call.lineno,
             "allowlist_validator": "services.security.execution_allowlist.validate_event_handler",
@@ -278,12 +300,13 @@ def build_effect_inventory() -> dict:
     return {
         "version": 1,
         "generated_by": "scripts/worker_effect_inventory.py",
-        "reviewed": "2026-10-15",
+        "reviewed": "2026-10-16",
         "scope": (
             "High-confidence direct call patterns found inside the current static worker function-reachability graph. "
             "The operation graph conservatively includes some CLI branches that runtime command contracts reject. "
             "A listed call is a review candidate, not proof it executes; absence is not proof of no effect. "
-            "Callbacks, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. "
+            "The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, "
+            "arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. "
             "This is not an authorization, idempotency, or least-privilege policy."
         ),
         "summary": {

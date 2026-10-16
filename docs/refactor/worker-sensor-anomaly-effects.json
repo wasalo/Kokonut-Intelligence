@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "status": "proposed_not_enforced",
-  "purpose": "Source-visible effect contract and implementation status for the first signed worker integration; this is not a grant list, global RLS policy, or deployment approval.",
+  "status": "implemented_disposable_accepted",
+  "purpose": "Source-visible effect contract for the first signed worker integration, accepted against disposable PostgreSQL; this is not a grant list, global RLS policy, or deployment approval.",
   "operation": {
     "module": "services.ingestion.anomaly_detector",
     "function": "handle_sensor_reading",
@@ -105,7 +105,7 @@
   "implementation_constraints": [
     "Do not grant the shared kokonut_runtime role worker execution or worker authorization-table access.",
     "Prefer bounded SECURITY DEFINER functions for shared event/notification intents and other writes that otherwise expose global queue state.",
-    "Migration 406 adds nullable direct location lineage and leaves unresolved history NULL; before worker authorization, enforce these keys and keep NULL rows inaccessible to this worker.",
+    "Migration 406 leaves unresolved historical location lineage NULL; bounded worker functions reject unresolved or mismatched rows, and this worker cannot access those rows directly.",
     "Do not enable application-table FORCE ROW LEVEL SECURITY or roll migration changes onto the candidate as part of this source contract.",
     "The dispatcher allowlist forwards this worker identity only to the exact anomaly handler; provision the real login, credential, and active location grant before enabling it in a deployment."
   ]

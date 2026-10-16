@@ -27,8 +27,9 @@ invalidation handlers are now verified. Eighty focused cache/EventBus/allowlist
 and operation-map tests pass. Eight checks on network-isolated disposable
 PostgreSQL 16 cover migration replay, signed event/type/location agreement,
 location and computation-type isolation, idempotent retry, forced RLS, direct
-table denial, and handler registration. The worker-specific DSN and credential
-reach only the exact four registered handlers. The flag remains off by default;
+table denial, and handler registration. The shared dedicated
+`cache_invalidation` DSN and credential reach only the exact four registered
+handlers. The flag remains off by default;
 no credential or active grant is provisioned, and migration 416 is not deployed
 to the candidate.
 
@@ -324,7 +325,7 @@ Remaining worker-permission work before broader integration:
    login/credential and verify that it cannot read worker grants, sign operator
    context, issue another worker identity, or access unrelated tenant rows.
    Real deployment login, credential, and grant provisioning remain open.
-9. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
+9. Expand one operation at a time. Reconcile the 22 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
 
@@ -347,8 +348,9 @@ shared runtime or existing event/notification dispatchers.
 Migrations 415–416 and source integration cover all four registered cache
 invalidation handlers: `metric_computed`, `crisp_scored`, `sensor_reading`, and
 `harvest_recorded`. The default-off path retains existing behavior; when
-enabled, each handler uses its own worker DSN, an exact EventBus credential
-allowlist entry, and a signed `computation_cache/invalidate` scope. The bounded
+enabled, each handler uses the shared dedicated `cache_invalidation` worker
+identity through an exact EventBus credential allowlist entry and a signed
+`computation_cache/invalidate` scope. The bounded
 function rechecks the durable event ID, event type, and location before
 invalidating only the corresponding analytics, CRISP, or metric cache rows.
 Focused handler and disposable PostgreSQL 16 acceptance pass; migration 416
@@ -411,7 +413,7 @@ authorization contract to it.
     matching, cache-type scoping, retry safety, forced RLS, role boundaries,
     handler registration, and migrations 415–416 replay. Credential and active
     grant provisioning remain an activation gate.
-12. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
+12. Expand one operation at a time. Reconcile the 22 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
 

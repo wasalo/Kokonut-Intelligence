@@ -1,5 +1,27 @@
 # Kokonut Kernel implementation progress
 
+### Worker identity operation map and EventBus trace — 16 October 2026
+
+Updated the machine-readable and narrative worker maps to reflect the signed
+sensor-anomaly handler and all four opt-in cache invalidation handlers. The map
+now distinguishes the shared scheduler/EventBus control-plane identity from
+dedicated handler credentials, records the exact secret-forwarding allowlist,
+and links the current migration and adapter sources. Corrected the stale
+EventBus effect analyzer to follow `subprocess.Popen` into
+`services.events.handler_runner`, the worker-secret filter, resolver, and
+allowlist validation. Refreshed the generated effect inventory and corrected
+the current counts to 22 operation roots, 268 worker SQL sites, and 33 effect
+candidates.
+
+The focused operation-map, worker-environment, and EventBus suites pass 46
+tests. Seven generated source/SQL/boundary inventories, runtime SQL inventory,
+Ruff, JSON parsing, and `git diff --check` pass. The checklist remains 413
+complete / 19 open; the capability matrix remains at 66 rows, with MAN-CAP
+statuses unchanged. No candidate or legacy database, live provider, or external
+worker deployment was touched
+([evidence](builds/2026-10-16-recovery/worker-operation-map-signed-routing-source.json);
+[operation map](worker-operation-map.md); [checklist](batches.md)).
+
 ### Source-less sensor excluded from composite Prefect runs — 16 October 2026
 
 Removed the sensor JobSpec from the composite ingestion pipeline and the

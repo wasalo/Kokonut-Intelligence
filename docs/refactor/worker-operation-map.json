@@ -3,8 +3,8 @@
   "reviewed": "2026-10-16",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Kernel worker and spawned children inherit the configured runtime PG_USER and PG_PASSWORD.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide an opt-in signed worker context; scheduler dispatch and generic event-handler spawn do not establish it, and credentials are not isolated per operation.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -255,12 +255,12 @@
       "module": "services.ingestion.anomaly_detector",
       "function": "handle_sensor_reading",
       "event_type": "sensor_reading",
-      "scope": "One event/source reading and its location; event execution still inherits the shared runtime database identity without signed tenant context.",
+      "scope": "One event/source reading and its location. The handler receives a dedicated sensor_anomaly database URL and credential through exact source-controlled routing, then establishes signed transaction context and uses bounded database functions through migrations 405-414. It has no shared-DSN fallback or direct access to protected source/effect tables.",
       "reads": ["public.platform_event", "public.sensor_reading", "public.alert_rule", "public.sensor_type", "public.sensor_device", "public.sensor_alert", "public.location"],
       "writes": ["public.sensor_anomaly_effect", "public.sensor_alert", "public.mrv_claim", "public.ingestion_log", "public.platform_event", "public.notification_outbox", "public.actuation_log"],
-      "idempotency": "Per-reading/rule receipt; effects commit atomically before the parent worker stores its delivery receipt.",
+      "idempotency": "A signed per-reading/rule receipt fences the bounded effects; the handler commits its source, alert, audit, event, notification, and optional draft/actuation intents atomically before the parent worker stores its delivery receipt.",
       "retry_boundary": "The handler may run again after crash or lease expiry; its source-reading/rule effect receipt suppresses duplicate database effects, while notification delivery remains at-least-once.",
-      "sources": ["services/ingestion/anomaly_detector.py", "services/events/notification_outbox.py", "services/ingestion/mqtt_actuator.py", "schemas/postgres/081_oracle_infrastructure.sql", "schemas/postgres/375_notification_outbox.sql", "docs/refactor/event-handler-concurrency.md"]
+      "sources": ["services/ingestion/anomaly_detector.py", "services/ingestion/sensor_anomaly_worker.py", "services/common/tenant_context.py", "services/common/worker_database.py", "services/common/worker_environment.py", "services/events/bus.py", "services/events/handler_runner.py", "services/events/notification_outbox.py", "services/ingestion/mqtt_actuator.py", "schemas/postgres/081_oracle_infrastructure.sql", "schemas/postgres/375_notification_outbox.sql", "schemas/postgres/405_signed_worker_tenant_context.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql", "schemas/postgres/407_sensor_anomaly_effect_functions.sql", "schemas/postgres/408_sensor_alert_event_function.sql", "schemas/postgres/409_sensor_alert_notification_intent.sql", "schemas/postgres/410_sensor_alert_actuation_intent.sql", "schemas/postgres/411_sensor_alert_draft_claim_intent.sql", "schemas/postgres/412_sensor_anomaly_worker_reads.sql", "schemas/postgres/413_sensor_anomaly_alert_write.sql", "schemas/postgres/414_sensor_anomaly_worker_delivery.sql", "docs/refactor/event-handler-concurrency.md", "docs/refactor/sensor-anomaly-delivery.md"]
     },
     {
       "module": "services.events.handlers",
@@ -282,7 +282,7 @@
       "writes": ["public.cache_entry invalidation state"],
       "idempotency": "Repeated invalidation of the same location is idempotent; concurrent and crash/retry evidence exists for this handler.",
       "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeated location-scoped invalidation is safe and does not affect other locations.",
-      "sources": ["services/cache/events.py", "services/common/tenant_context.py", "services/common/worker_database.py", "services/core/features.py", "services/events/bus.py", "services/events/handler_runner.py", "schemas/postgres/415_signed_cache_invalidation_worker.sql", "schemas/postgres/416_sensor_harvest_cache_invalidation.sql", "docs/refactor/event-handler-concurrency.md"]
+      "sources": ["services/cache/events.py", "services/common/tenant_context.py", "services/common/worker_database.py", "services/common/worker_environment.py", "services/core/features.py", "services/events/bus.py", "services/events/handler_runner.py", "schemas/postgres/415_signed_cache_invalidation_worker.sql", "schemas/postgres/416_sensor_harvest_cache_invalidation.sql", "docs/refactor/event-handler-concurrency.md"]
     },
     {
       "module": "services.cache.events",
@@ -332,7 +332,7 @@
   "known_open_items": [
     "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision a separate worker database principal and non-forgeable context contract before worker SQL can be trusted under RLS.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; anomaly and opt-in cache handler integrations are source-integrated and accepted only in disposable checks.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]
 }
