@@ -138,6 +138,16 @@ def main():
     parser.add_argument("--all", action="store_true", help="Refresh all active datasets")
     args = parser.parse_args()
 
+    # Listing is a read-only inventory operation and remains available while
+    # the legacy SQL runner is disabled. Reject refresh requests before opening
+    # the application database so an off feature has no connection side effect.
+    if not args.list and (args.all or args.dataset_id):
+        require_feature("legacy_dataset_sql")
+
+    if not (args.list or args.all or args.dataset_id):
+        parser.print_help()
+        return
+
     conn = get_pg()
 
     if args.list:
@@ -194,11 +204,6 @@ def main():
         print(f"\nDone: {success} refreshed, {failed} failed")
         conn.close()
         return
-
-    # Default: show help
-    parser.print_help()
-    conn.close()
-
 
 if __name__ == "__main__":
     main()

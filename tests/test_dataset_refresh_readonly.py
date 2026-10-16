@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from typing import Any
 
 import pytest
@@ -50,6 +51,7 @@ class FakeApplicationConnection:
         self.statements: list[tuple[str, Any]] = []
         self.commits = 0
         self.rollbacks = 0
+        self.closed = False
         self._first_cursor = True
 
     def cursor(self, *args, **kwargs):
@@ -63,6 +65,9 @@ class FakeApplicationConnection:
 
     def rollback(self):
         self.rollbacks += 1
+
+    def close(self):
+        self.closed = True
 
 
 def test_refresh_executes_saved_sql_only_through_reporting_reader(monkeypatch):
@@ -148,3 +153,54 @@ def test_changed_dataset_query_does_not_receive_stale_refresh_metadata(monkeypat
     assert update_params[1:] == ("dataset-1", conn.query_sql)
     assert conn.commits == 0
     assert conn.rollbacks == 1
+
+
+@pytest.mark.parametrize("arguments", [["--all"], ["--dataset-id", "dataset-1"]])
+def test_disabled_refresh_fails_before_opening_database(monkeypatch, arguments):
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", *arguments])
+    requested_features: list[str] = []
+
+    def reject_feature(feature_name: str) -> None:
+        requested_features.append(feature_name)
+        raise RuntimeError("legacy dataset SQL is disabled")
+
+    monkeypatch.setattr(dataset_refresh, "require_feature", reject_feature)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "get_pg",
+        lambda: pytest.fail("disabled refresh must fail before opening PostgreSQL"),
+    )
+
+    with pytest.raises(RuntimeError, match="legacy dataset SQL is disabled"):
+        dataset_refresh.main()
+
+    assert requested_features == ["legacy_dataset_sql"]
+
+
+def test_list_remains_available_when_refresh_feature_is_disabled(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", "--list"])
+    conn = FakeApplicationConnection()
+    monkeypatch.setattr(
+        dataset_refresh,
+        "require_feature",
+        lambda feature_name: pytest.fail("listing must not require the refresh feature"),
+    )
+    monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
+
+    dataset_refresh.main()
+
+    assert "No active datasets found." in capsys.readouterr().out
+    assert conn.closed
+
+
+def test_no_operation_prints_help_without_opening_database(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh"])
+    monkeypatch.setattr(
+        dataset_refresh,
+        "get_pg",
+        lambda: pytest.fail("help output must not open PostgreSQL"),
+    )
+
+    dataset_refresh.main()
+
+    assert "Dashboard Dataset Refresh Engine" in capsys.readouterr().out

@@ -744,6 +744,15 @@ This narrows the repository-owned runner boundary; external dashboard roles,
 report ownership/reference fixtures, and tenant scope remain open. No
 MAN-CAP status or acceptance count changes ([evidence](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json)).
 
+**16 October 2026 CLI boundary:** explicit `--all` and `--dataset-id` refresh
+requests now reject the disabled compatibility feature before opening the
+application connection. `--list` remains available while disabled, and
+invoking the CLI without an operation prints help without connecting. This is
+an invocation-boundary improvement only; it does not approve saved SQL, grant
+tenant scope, or close external dashboard/report parity. Eight focused CLI
+tests pass, and the capability matrix remains valid at 66 rows
+([evidence](builds/2026-10-16-recovery/dashboard-refresh-cli-boundary.json)).
+
 **15 October 2026 bounded carbon-credit scheduler operation (CAP-040 / CAP-047):**
 the existing `credit_adjustment` job was initially restricted to a read-only
 operation. The dedicated entrypoint and required single-location check are

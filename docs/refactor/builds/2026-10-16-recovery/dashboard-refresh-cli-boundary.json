@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-16",
+  "scope": "Legacy dashboard refresh feature preflight",
+  "command": "python3 -m pytest tests/test_dataset_refresh_readonly.py -q",
+  "result": {
+    "passed": 8,
+    "failed": 0
+  },
+  "focused_checks": [
+    "Disabled --all refresh rejects the request before opening PostgreSQL.",
+    "Disabled --dataset-id refresh rejects the request before opening PostgreSQL.",
+    "Read-only --list remains available without requiring the refresh feature.",
+    "No-operation invocation prints help without opening PostgreSQL."
+  ],
+  "static_checks": [
+    "Ruff on services/export/dataset_refresh.py and tests/test_dataset_refresh_readonly.py",
+    "Python compilation on changed Python files",
+    "Capability matrix integrity: 66 rows; 55 baseline-retained, 7 deployed, 4 prepared",
+    "git diff --check"
+  ],
+  "limitations": [
+    "The CLI checks use a fake connection and do not access any database.",
+    "No saved SQL was executed; the feature remains disabled by default.",
+    "This does not establish location parameterization, tenant scope, or external dashboard parity."
+  ]
+}

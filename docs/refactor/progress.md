@@ -1,5 +1,24 @@
 # Kokonut Kernel implementation progress
 
+### Legacy dashboard refresh invocation boundary — 16 October 2026
+
+Moved the `legacy_dataset_sql` feature check to the CLI boundary for explicit
+refresh requests. `--all` and `--dataset-id` now fail before opening the
+application database while the compatibility feature is off. Read-only
+`--list` remains available, and an invocation with no operation prints help
+without connecting. Updated the reporting inventory to distinguish the source
+SQL's missing query-ID parser from the existing database-enforced relation
+allowlist: enabled SQL still uses the separate `kokonut_analytics_ro` role,
+read-only transaction, and statement/lock timeouts, but it has no location
+parameter binding and does not prove tenant scope. Eight focused CLI checks
+pass for disabled-feature preflight, offline help, and listing; Ruff, Python
+compilation, and capability-matrix integrity also pass. The checks use fakes;
+no candidate, legacy database, provider, or saved SQL was touched
+([runner](../../services/export/dataset_refresh.py);
+[tests](../../tests/test_dataset_refresh_readonly.py);
+[evidence](builds/2026-10-16-recovery/dashboard-refresh-cli-boundary.json);
+[inventory](reporting-parity-inventory.md)).
+
 ### Event dispatch and notification delivery split — 16 October 2026
 
 Added `--event-worker` and `--notification-worker` modes and kept `--worker` as
