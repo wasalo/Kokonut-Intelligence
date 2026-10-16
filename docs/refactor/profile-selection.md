@@ -15,11 +15,12 @@ PostgreSQL/PostGIS 16 image, and uses the distinct project
 `kokonut-kernel-candidate-arm64`; this keeps its database volume separate from
 the AMD64 candidate. The standard profile also appends the ARM64 worker
 override. Current ARM64 command selection supports minimal, edge, and standard.
-The HTTPS proxy, Gateway OIDC application, and self-hosted ZITADEL profile are
-also selectable: their default Caddy, ZITADEL API/Login, and identity database
-images have verified ARM64 manifests and dedicated platform overlays. Other
-optional service overlays and analytics remain rejected until separately
-verified. Image environment overrides must preserve the selected architecture.
+The HTTPS proxy, Gateway OIDC application, self-hosted ZITADEL profile, gRPC,
+and MQTT are also selectable on ARM64. Their Caddy, ZITADEL API/Login and
+database, gRPC and MQTT application targets, and Mosquitto broker have verified
+ARM64 manifests/builds and dedicated platform overlays. ClickHouse analytics,
+Directus, and HTTP-sensor overlays remain rejected until separately verified.
+Image environment overrides must preserve the selected architecture.
 Current-source minimal ARM64 runtime,
 schema replay through migration 402, restore, and short recovery checks now pass
 under QEMU; this does not certify Raspberry Pi hardware. See the
@@ -44,8 +45,8 @@ unless selected. These options do not enable providers in unrelated services
 or promise capability parity. OIDC and ZITADEL require provider values in the
 SOPS-loaded environment; the planner only prints the command and does not read
 or expose them. For ARM64, the planner appends explicit overlays for verified
-proxy and ZITADEL services; registry/build evidence is not live service
-acceptance. MQTT requires separately provisioned credentials,
+proxy, ZITADEL, gRPC, and MQTT services; registry/build evidence is not live
+service acceptance. MQTT requires separately provisioned credentials,
 certificates, persistent client identity, and migration 372. Standard/current
 scheduler source requires migration 371. Neither migration is applied by this
 planner. Read the individual overlay execution records before adoption.
@@ -60,6 +61,8 @@ python3 scripts/kernel-profile.py edge --mqtt --action up
 python3 scripts/kernel-profile.py minimal --proxy --oidc --action config
 python3 scripts/kernel-profile.py minimal --zitadel --action config
 python3 scripts/kernel-profile.py standard --target-platform linux/arm64 --zitadel --action config
+python3 scripts/kernel-profile.py minimal --target-platform linux/arm64 --grpc --action config
+python3 scripts/kernel-profile.py edge --target-platform linux/arm64 --mqtt --action config
 ```
 
 Review the printed command, load encrypted secrets, and execute it separately

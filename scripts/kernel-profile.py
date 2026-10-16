@@ -13,6 +13,8 @@ ARM64 = "docker-compose.kernel-arm64.yml"
 ARM64_STANDARD = "docker-compose.kernel-arm64-standard.yml"
 ARM64_PROXY = "docker-compose.kernel-arm64-proxy.yml"
 ARM64_ZITADEL = "docker-compose.kernel-arm64-zitadel.yml"
+ARM64_GRPC = "docker-compose.kernel-arm64-grpc.yml"
+ARM64_MQTT = "docker-compose.kernel-arm64-mqtt.yml"
 PROFILES = {
     "minimal": [],
     "edge": ["docker-compose.kernel-edge.yml"],
@@ -45,7 +47,7 @@ def main() -> None:
     if is_arm64 and args.profile not in {"minimal", "edge", "standard"}:
         parser.error("ARM64 currently supports only minimal, edge, and standard profiles")
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
-    arm64_verified_optional = {"proxy", "oidc", "zitadel"}
+    arm64_verified_optional = {"proxy", "oidc", "zitadel", "grpc", "mqtt"}
     unverified_arm64_optional = selected_optional - arm64_verified_optional
     if is_arm64 and unverified_arm64_optional:
         parser.error(
@@ -79,6 +81,10 @@ def main() -> None:
             files.append(ARM64_PROXY)
         if args.zitadel:
             files.append(ARM64_ZITADEL)
+        if "grpc" in selected_optional:
+            files.append(ARM64_GRPC)
+        if "mqtt" in selected_optional:
+            files.append(ARM64_MQTT)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")

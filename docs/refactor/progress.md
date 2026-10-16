@@ -6024,3 +6024,14 @@ function reachability, SQL reachability, boundary preflight, worker SQL
 inventory, and runtime SQL inventory checks all pass. This is static review
 evidence; it does not prove authorization, role isolation, tenant context, or
 RLS safety ([inventory evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh.json)).
+
+### ARM64 gRPC and MQTT profile checks — 16 October 2026
+
+Buildx built the optional gRPC and MQTT subscriber targets for ARM64. Their
+network-disabled QEMU checks passed CLI help, gRPC generated-stub imports, and
+the Paho MQTT import; the pinned Mosquitto ARM64 broker binary reported
+`aarch64`. The planner now selects explicit ARM64 overlays for each transport,
+and merged Compose checks resolve every service to `linux/arm64`. Twenty-five
+focused planner/Compose checks, Ruff, compilation, and matrix validation pass.
+No gRPC/PostgreSQL server, MQTT traffic, credentials, or mTLS session was
+exercised; this is not Raspberry Pi hardware acceptance ([evidence](builds/2026-10-16-recovery/kernel-arm64-transport-smokes.json)).

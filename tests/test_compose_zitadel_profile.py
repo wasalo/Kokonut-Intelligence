@@ -36,6 +36,12 @@ TEST_ENV = {
     "KOKONUT_ZITADEL_ADMIN_PASSWORD": "compose-test-admin-password",
     "KOKONUT_ZITADEL_LOGIN_CLIENT_PAT_EXPIRATION": "2027-10-15T00:00:00Z",
     "KOKONUT_ZITADEL_LOGIN_COOKIE_SECRET": "compose-test-login-cookie-secret-32-bytes",
+    "KOKONUT_MQTT_CERTS_DIR": "/tmp/kokonut-mqtt-certs",
+    "KOKONUT_MQTT_PASSWORD_FILE": "/tmp/kokonut-mqtt-password-file",
+    "KOKONUT_MQTT_SUBSCRIBER_CERTS_DIR": "/tmp/kokonut-mqtt-subscriber-certs",
+    "MQTT_USERNAME": "compose-test-mqtt-user",
+    "MQTT_PASSWORD": "compose-test-mqtt-password",
+    "MQTT_CLIENT_ID": "compose-test-mqtt-client",
 }
 
 
@@ -202,6 +208,48 @@ def test_standard_zitadel_arm64_planner_command_resolves_all_services_for_arm64(
         "postgres:17.10-alpine@sha256:"
         "742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
     )
+
+
+def test_arm64_grpc_and_mqtt_planner_commands_resolve_service_platforms() -> None:
+    for optional, expected_services in (
+        ("grpc", {"app", "database", "grpc"}),
+        ("mqtt", {"app", "database", "mosquitto", "mqtt-subscriber"}),
+    ):
+        planned = subprocess.run(
+            [
+                sys.executable,
+                str(PLANNER),
+                "minimal",
+                "--target-platform",
+                "linux/arm64",
+                f"--{optional}",
+                "--action",
+                "config",
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert planned.returncode == 0, planned.stderr
+        command = shlex.split(planned.stdout)
+        assert command[-2:] == ["config", "--quiet"]
+        command[-2:] = ["config", "--format", "json"]
+        rendered = subprocess.run(
+            command,
+            cwd=ROOT,
+            env=TEST_ENV,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert rendered.returncode == 0, rendered.stderr
+        services = json.loads(rendered.stdout)["services"]
+
+        assert set(services) == expected_services
+        assert all(service.get("platform") == "linux/arm64" for service in services.values())
+        if optional == "grpc":
+            assert services["grpc"]["build"]["target"] == "grpc"
 
 
 def test_database_bootstrap_creates_only_a_bounded_login_role_and_owned_database() -> None:

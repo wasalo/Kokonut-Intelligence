@@ -152,6 +152,16 @@ overlays and the merged profile config passes with synthetic, process-only
 values. Live provider, login, secret, and browser acceptance remain open
 ([evidence](builds/2026-10-16-recovery/zitadel-arm64-profile.json)).
 
+**16 October 2026 ARM64 optional transport smoke (CAP-047):** Buildx built the
+gRPC and MQTT subscriber targets for `linux/arm64`; network-disabled QEMU runs
+passed CLI help, generated gRPC stub imports, and the Paho MQTT import. The
+pinned Mosquitto image exposes an ARM64 child and its broker binary reported
+`aarch64`. Compose/planner checks confirm every selected gRPC/MQTT service is
+configured for ARM64. No gRPC/PostgreSQL server, MQTT traffic, credentials, or
+mTLS session was exercised. The ARM64 software image/profile path is now
+prepared; live adapter behavior, physical Pi operation, and the named MAN-CAP
+checks remain open ([evidence](builds/2026-10-16-recovery/kernel-arm64-transport-smokes.json)).
+
 **15 October 2026 Kernel startup schema gate (CAP-047):** the default and OIDC
 image commands and both standard-profile roles now require complete schema
 readiness before spawning API or worker processes. A focused supervisor test

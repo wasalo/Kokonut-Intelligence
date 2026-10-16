@@ -9,9 +9,10 @@ versions, pins the app and database build/runtime platforms to `linux/arm64`,
 and uses project `kokonut-kernel-candidate-arm64`. The separate Compose project
 creates a separate database volume, so an AMD64 data volume is not reused.
 Minimal, edge, and standard selections are supported; analytics and unverified
-optional service images are rejected. The HTTPS proxy, Gateway OIDC app, and
-self-hosted ZITADEL provider are now architecture-verified exceptions with
-explicit ARM64 overlays. Standard adds an ARM64 worker override.
+optional service images are rejected. The HTTPS proxy, Gateway OIDC app,
+self-hosted ZITADEL provider, gRPC, and MQTT now have architecture-verified
+ARM64 images/builds and explicit Compose overlays. Standard adds an ARM64 worker
+override.
 
 The planner tests pass, and Compose merged configuration passed for minimal,
 edge, and standard with the expected ARM64 app/database/worker settings and an
@@ -98,12 +99,14 @@ short health/restart checks are recorded above. Keep the ARM64 volume separate
 from existing candidate or legacy data directories. Never upgrade extensions
 or database versions implicitly as part of architecture selection.
 
-Application ARM64 builds now pass for the default and OIDC targets. Hardware
-memory/CPU/storage measurements, offline recovery, and 24-hour operation remain
-separate gates. MQTT, gRPC, and ClickHouse still need their own ARM64 image and
-profile evidence. Proxy and ZITADEL have manifest/config evidence, but not live
-service or identity acceptance. Keep the profile limited to verified ARM64
-image paths; build success alone does not certify physical hardware.
+Application ARM64 builds now pass for the default, OIDC, gRPC, and MQTT targets;
+the pinned Mosquitto broker also runs as `aarch64`. Hardware memory/CPU/storage
+measurements, offline recovery, and 24-hour operation remain separate gates.
+ClickHouse analytics, Directus, and HTTP-sensor overlays still need their own
+ARM64 image/profile evidence. The gRPC server was not started against
+PostgreSQL, and MQTT broker/client traffic and mTLS remain untested. Keep the
+profile limited to verified ARM64 image paths; build success does not certify
+physical hardware.
 
 At initial registry inspection, no runtime tests, image builds, migrations,
 hardware runs, or data changes had been performed. The later current-state

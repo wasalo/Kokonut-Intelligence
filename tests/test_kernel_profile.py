@@ -109,6 +109,18 @@ def test_arm64_external_oidc_requires_verified_proxy_and_selects_platform_overla
     assert "docker-compose.kernel-arm64-zitadel.yml" not in result.stdout
 
 
+def test_arm64_transport_profiles_select_explicit_architecture_overlays() -> None:
+    grpc = _run_planner("minimal", "--target-platform", "linux/arm64", "--grpc")
+    mqtt = _run_planner("edge", "--target-platform", "linux/arm64", "--mqtt")
+
+    assert grpc.returncode == 0
+    assert "docker-compose.kernel-grpc.yml" in grpc.stdout
+    assert "docker-compose.kernel-arm64-grpc.yml" in grpc.stdout
+    assert mqtt.returncode == 0
+    assert "docker-compose.kernel-mqtt.yml" in mqtt.stdout
+    assert "docker-compose.kernel-arm64-mqtt.yml" in mqtt.stdout
+
+
 def test_directus_option_selects_only_the_optional_directus_overlay() -> None:
     result = _run_planner("minimal", "--directus")
 
@@ -145,12 +157,12 @@ def test_standard_arm64_profile_selects_the_arm64_worker_override() -> None:
 
 def test_arm64_planner_rejects_unverified_analytics_and_optional_images() -> None:
     analytics = _run_planner("analytics", "--target-platform", "linux/arm64")
-    grpc = _run_planner("minimal", "--target-platform", "linux/arm64", "--grpc")
+    directus = _run_planner("minimal", "--target-platform", "linux/arm64", "--directus")
 
     assert analytics.returncode != 0
     assert "only minimal, edge, and standard" in analytics.stderr
-    assert grpc.returncode != 0
-    assert "ARM64 does not verify these optional overlays: grpc" in grpc.stderr
+    assert directus.returncode != 0
+    assert "ARM64 does not verify these optional overlays: directus" in directus.stderr
 
 
 def test_arm64_identity_overlays_pin_each_supported_service_architecture() -> None:
@@ -164,6 +176,19 @@ def test_arm64_identity_overlays_pin_each_supported_service_architecture() -> No
     assert "postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193" in provider[
         "services"
     ]["zitadel-db"]["image"]
+
+
+def test_arm64_transport_overlays_force_platform_for_all_selected_services() -> None:
+    grpc = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-grpc.yml").read_text())
+    mqtt = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-mqtt.yml").read_text())
+    mqtt_profile = yaml.safe_load((ROOT / "docker-compose.kernel-mqtt.yml").read_text())
+
+    assert grpc["services"]["grpc"]["platform"] == "linux/arm64"
+    assert set(mqtt["services"]) == {"mosquitto", "mqtt-subscriber"}
+    assert all(service["platform"] == "linux/arm64" for service in mqtt["services"].values())
+    assert "sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797" in mqtt_profile[
+        "services"
+    ]["mosquitto"]["image"]
 
 
 def test_arm64_overlay_pins_platform_package_versions_and_worker_profile() -> None:
