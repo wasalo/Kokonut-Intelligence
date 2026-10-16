@@ -10,8 +10,8 @@ Migration 413 creates a source-validated alert, appends its ingestion audit
 row, and advances the reserved receipt atomically. Nine focused disposable
 PostgreSQL 16 checks pass, including forced-RLS writes and rollback on audit
 failure. Migration 414 completes the handler's bounded effect sequence and
-event/notification payload parity; seven end-to-end disposable PostgreSQL
-checks pass. Migration 405 and the transaction-bound Python adapter establish
+event/notification payload parity; eight end-to-end disposable PostgreSQL
+checks pass, including EventBus child-process crash recovery. Migration 405 and the transaction-bound Python adapter establish
 an opt-in worker context; migrations 407–414 add bounded receipt, source-read,
 rule/evaluation/cooldown, event-publication, notification-intent,
 actuation-intent, draft-claim, and worker-delivery operations for
@@ -131,8 +131,8 @@ alert-rule references, caller-owned transaction semantics, and human-approved
 actuation. Event execution skips default-rule bootstrap; the interactive CLI
 retains it. Queue claim, lease, acknowledgement, retry, and dead-letter work
 remain in the control-plane boundary. The source integration passes seven
-end-to-end checks on disposable PostgreSQL; real worker provisioning, candidate
-rollout, and live crash/recovery acceptance remain open.
+end-to-end checks on disposable PostgreSQL; real worker provisioning and
+candidate rollout remain open. Isolated EventBus crash/recovery now passes.
 
 The first location-lineage source change is in
 `services/ingestion/anomaly_detector.py`. Migration 405 adds private worker
@@ -194,10 +194,11 @@ worker-specific DSN and opaque credential only to the exact anomaly handler.
 The runner applies/replays migrations 405–414, invokes the Python worker with
 synthetic credentials under forced RLS, verifies canonical notification
 payload parity, draft claims, approval-only actuation intent, idempotent
-retries, and direct-table denial, and passes seven checks. No candidate or
+retries, and direct-table denial, and passes eight checks, including a real
+EventBus child-process crash and idempotent attempt-two recovery. No candidate or
 legacy database was accessed. A real login, secret, active location grant,
-candidate rollout, global application RLS, and live provider/worker crash
-acceptance are still required
+candidate rollout, global application RLS, and live provider acceptance are
+still required; isolated worker crash/retry acceptance passes
 ([migration](../../schemas/postgres/414_sensor_anomaly_worker_delivery.sql);
 [runner](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json)).
@@ -307,8 +308,8 @@ Remaining worker-permission work before broader integration:
    creation, receipt update, claim creation, alert publication, notification
    enqueue, and actuation intent creation in one caller-owned transaction; the
    worker must not submit, verify, publish, reject, or transmit actuator
-   commands. Seven end-to-end checks pass; live recovery against this adapter
-   remains open.
+   commands. Eight end-to-end checks pass, including process crash after
+   handler commit and attempt-two recovery without duplicate effects.
 8. Provision an isolated worker login/credential in a restored disposable
    database. Verify that it cannot read worker grants, sign operator context,
    issue another worker identity, or access unrelated tenant rows.

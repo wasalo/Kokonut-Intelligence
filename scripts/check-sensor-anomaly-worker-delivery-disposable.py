@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,6 +21,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 FIXTURES_AND_MIGRATIONS = (
+    (None, "schemas/postgres/116_event_bus.sql"),
+    (None, "schemas/postgres/165_event_bus_durability.sql"),
     ("tests/fixtures/worker_tenant_context_disposable.sql", "schemas/postgres/405_signed_worker_tenant_context.sql"),
     ("tests/fixtures/sensor_anomaly_effect_functions_disposable.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql"),
     (None, "schemas/postgres/407_sensor_anomaly_effect_functions.sql"),
@@ -113,6 +116,12 @@ def main() -> int:
             "ALERT_SMTP_HOST",
             "ALERT_EMAIL_TO",
             "KOKONUT_FEATURE_DIRECTUS",
+            "PG_HOST",
+            "PG_PORT",
+            "PG_DB",
+            "PG_USER",
+            "PG_PASSWORD",
+            "KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT",
         )
     }
     try:
@@ -167,6 +176,15 @@ def main() -> int:
         os.environ["ALERT_SMTP_HOST"] = ""
         os.environ["ALERT_EMAIL_TO"] = ""
         os.environ["KOKONUT_FEATURE_DIRECTUS"] = "false"
+        os.environ["PG_HOST"] = "127.0.0.1"
+        os.environ["PG_PORT"] = str(port)
+        os.environ["PG_DB"] = "postgres"
+        os.environ["PG_USER"] = "postgres"
+        os.environ["PG_PASSWORD"] = admin_password
+        # The subprocess receives only this runner's synthetic database
+        # settings. Skip project dotenv discovery so it cannot decrypt the
+        # developer's .env.sops during an isolated acceptance.
+        os.environ["KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT"] = "true"
 
         from services.ingestion.sensor_anomaly_worker import process_sensor_reading
 
@@ -277,6 +295,158 @@ def main() -> int:
             raise AssertionError(f"worker retry duplicated a durable effect: {counts}")
         checks.append("source event replay suppresses duplicate alert, notification, and actuator records")
 
+        # Exercise the real EventBus subprocess boundary with a fresh source
+        # event. The first parent exits after the handler commits and before
+        # it can write delivery success or acknowledge the source event.
+        recovery_reading_id = str(uuid.uuid4())
+        recovery_event_id = str(uuid.uuid4())
+        with admin.cursor() as cursor:
+            cursor.execute(
+                "UPDATE public.platform_event SET status = 'completed', "
+                "lease_owner = NULL, lease_expires_at = NULL"
+            )
+            cursor.execute(
+                "UPDATE public.alert_rule SET cooldown_minutes = 0 WHERE id = %s::uuid",
+                (RULE_ID,),
+            )
+            cursor.execute(
+                """INSERT INTO public.sensor_reading
+                    (id, sensor_id, location_id, sensor_type, value,
+                     reading_date, reading_time, quality)
+                   VALUES (%s, %s, %s, 'soil_moisture', 18, CURRENT_DATE,
+                           TIME '12:46', 'good')""",
+                (recovery_reading_id, SENSOR_ID, LOCATION_ID),
+            )
+            cursor.execute(
+                """INSERT INTO public.platform_event
+                    (id, event_type, source_table, source_id, payload, status)
+                   VALUES (%s, 'sensor_reading', 'sensor_reading', %s, %s::jsonb, 'pending')""",
+                (
+                    recovery_event_id,
+                    recovery_reading_id,
+                    json.dumps({
+                        "sensor_id": SENSOR_ID,
+                        "sensor_device_id": SENSOR_ID,
+                        "sensor_type": "soil_moisture",
+                        "location_id": LOCATION_ID,
+                    }),
+                ),
+            )
+        admin.commit()
+
+        crash_worker_id = f"anomaly-crash-{secrets.token_hex(6)}"
+        crash_env = os.environ.copy()
+        crashed = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--crash-worker",
+             recovery_event_id, crash_worker_id],
+            env=crash_env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+        if crashed.returncode != 86:
+            raise AssertionError(
+                "expected the EventBus supervisor to crash after committed handler "
+                f"effects and before acknowledgement; got {crashed.returncode}: {crashed.stderr}"
+            )
+
+        recovery_before = query(
+            admin,
+            """SELECT
+                    (SELECT count(*) FROM public.sensor_alert WHERE reading_id = %s::uuid),
+                    (SELECT count(*) FROM public.mrv_claim WHERE sensor_alert_id IN
+                        (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid)),
+                    (SELECT count(*) FROM public.sensor_anomaly_effect WHERE source_reading_id = %s::uuid
+                        AND outcome = 'alert_created'),
+                    (SELECT count(*) FROM public.notification_outbox WHERE source_event_id IN
+                        (SELECT id FROM public.platform_event WHERE event_type = 'sensor_alert'
+                         AND source_id IN (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid))),
+                    (SELECT count(*) FROM public.platform_event WHERE event_type = 'sensor_alert'
+                        AND source_id IN (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid)),
+                    (SELECT count(*) FROM public.actuation_log WHERE sensor_alert_id IN
+                        (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid)),
+                    (SELECT count(*) FROM public.ingestion_log WHERE source_system = 'anomaly_detector'
+                        AND source_id = %s)""",
+            (recovery_reading_id,) * 7,
+        )
+        expected_recovery_effects = (1, 1, 1, 1, 1, 1, 1)
+        if recovery_before != [expected_recovery_effects]:
+            raise AssertionError(
+                "signed handler effects were not durable before supervisor ack crash: "
+                f"{recovery_before}"
+            )
+        delivery_before = query(
+            admin,
+            """SELECT event.status, event.lease_owner, delivery.status,
+                      delivery.attempt_count, count(log.id)
+                 FROM public.platform_event AS event
+                 JOIN public.event_handler_delivery AS delivery ON delivery.event_id = event.id
+                 JOIN public.event_handler AS handler ON handler.id = delivery.handler_id
+                 LEFT JOIN public.event_handler_log AS log
+                   ON log.event_id = delivery.event_id AND log.handler_id = delivery.handler_id
+                WHERE event.id = %s::uuid AND handler.handler_name = 'anomaly_detector'
+                GROUP BY event.status, event.lease_owner, delivery.status, delivery.attempt_count""",
+            (recovery_event_id,),
+        )
+        if delivery_before != [("processing", crash_worker_id, "processing", 1, 0)]:
+            raise AssertionError(f"crash did not preserve the unacknowledged first delivery: {delivery_before}")
+
+        query(
+            admin,
+            "UPDATE public.platform_event SET lease_expires_at = NOW() - INTERVAL '1 second' "
+            "WHERE id = %s::uuid AND lease_owner = %s RETURNING id",
+            (recovery_event_id, crash_worker_id),
+        )
+        from services.events.bus import EventBus
+
+        recovered = EventBus(conn=admin).process_pending(
+            batch_size=10, worker_id=f"anomaly-recovery-{secrets.token_hex(6)}"
+        )
+        if recovered != {"processed": 1, "failed": 0, "skipped": 1, "lease_lost": 0}:
+            raise AssertionError(f"EventBus did not recover the leased source event: {recovered}")
+        recovery_after = query(
+            admin,
+            """SELECT
+                    (SELECT count(*) FROM public.sensor_alert WHERE reading_id = %s::uuid),
+                    (SELECT count(*) FROM public.mrv_claim WHERE sensor_alert_id IN
+                        (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid)),
+                    (SELECT count(*) FROM public.sensor_anomaly_effect WHERE source_reading_id = %s::uuid
+                        AND outcome = 'alert_created'),
+                    (SELECT count(*) FROM public.notification_outbox WHERE source_event_id IN
+                        (SELECT id FROM public.platform_event WHERE event_type = 'sensor_alert'
+                         AND source_id IN (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid))),
+                    (SELECT count(*) FROM public.platform_event WHERE event_type = 'sensor_alert'
+                        AND source_id IN (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid)),
+                    (SELECT count(*) FROM public.actuation_log WHERE sensor_alert_id IN
+                        (SELECT id FROM public.sensor_alert WHERE reading_id = %s::uuid)),
+                    (SELECT count(*) FROM public.ingestion_log WHERE source_system = 'anomaly_detector'
+                        AND source_id = %s)""",
+            (recovery_reading_id,) * 7,
+        )
+        if recovery_after != recovery_before:
+            raise AssertionError(
+                f"recovered source retry duplicated effects: before={recovery_before}, after={recovery_after}"
+            )
+        delivery_after = query(
+            admin,
+            """SELECT event.status, delivery.status, delivery.attempt_count, count(log.id)
+                 FROM public.platform_event AS event
+                 JOIN public.event_handler_delivery AS delivery ON delivery.event_id = event.id
+                 JOIN public.event_handler AS handler ON handler.id = delivery.handler_id
+                 LEFT JOIN public.event_handler_log AS log
+                   ON log.event_id = delivery.event_id AND log.handler_id = delivery.handler_id
+                WHERE event.id = %s::uuid AND handler.handler_name = 'anomaly_detector'
+                GROUP BY event.status, delivery.status, delivery.attempt_count""",
+            (recovery_event_id,),
+        )
+        if delivery_after != [("completed", "success", 2, 1)]:
+            raise AssertionError(f"retry did not complete the source delivery on attempt two: {delivery_after}")
+        checks.append(
+            "real EventBus child commits signed effects, crashes before acknowledgement, "
+            "then retries on attempt two without duplicate effects"
+        )
+
         with worker.cursor() as cursor:
             cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
             try:
@@ -323,4 +493,24 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 4 and sys.argv[1] == "--crash-worker":
+        event_id, worker_id = sys.argv[2], sys.argv[3]
+        from services.common.database import get_db
+        from services.events.bus import EventBus
+
+        class CrashAfterHandlerBus(EventBus):
+            def _invoke_handler(
+                self, module_path, function_name, event_type, payload, timeout_seconds,
+                *, event_id=None,
+            ):
+                result = super()._invoke_handler(
+                    module_path, function_name, event_type, payload, timeout_seconds,
+                    event_id=event_id,
+                )
+                if event_type == "sensor_reading" and result[0] == "success":
+                    os._exit(86)
+                return result
+
+        CrashAfterHandlerBus(conn=get_db()).process_pending(batch_size=1, worker_id=worker_id)
+        raise SystemExit("crash injection did not run")
     raise SystemExit(main())

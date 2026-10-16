@@ -5,6 +5,8 @@
   "database": "isolated disposable PostgreSQL 16 container",
   "migration_414_sha256": "e322316c3f1507828f12cff89b6b5e259a18a1f1e2d7fce6a6fde9a64f409b1b",
   "migrations": [
+    "schemas/postgres/116_event_bus.sql",
+    "schemas/postgres/165_event_bus_durability.sql",
     "schemas/postgres/405_signed_worker_tenant_context.sql",
     "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
     "schemas/postgres/407_sensor_anomaly_effect_functions.sql",
@@ -41,6 +43,10 @@
     {
       "result": "passed",
       "description": "source event replay suppresses duplicate alert, notification, and actuator records"
+    },
+    {
+      "result": "passed",
+      "description": "real EventBus child commits signed effects, crashes before acknowledgement, then retries on attempt two without duplicate effects"
     },
     {
       "result": "passed",

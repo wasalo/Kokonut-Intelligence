@@ -23,11 +23,14 @@ later notification handler deduplicates them. The source receipt suppresses
 event retries.
 
 Forty-five focused anomaly and event-bus tests pass. The isolated PostgreSQL 16
-runner applies and replays migrations 405–414, then exercises the Python worker
-with synthetic credentials and a disposable database. Seven checks pass for
+runner applies EventBus migrations 116/165 and worker migrations 405–414, then
+exercises the Python worker with synthetic credentials and a disposable
+database. Eight checks pass for
 signed scope, forced-RLS function use, source-derived alert/claim linkage,
 notification parity/idempotency, approval-only actuation intent, receipt
-retry suppression, and direct-table denial. Ruff, Python compilation, provider
+retry suppression, direct-table denial, and actual EventBus crash/retry on
+attempt two after effects commit but before delivery acknowledgement. Ruff,
+Python compilation, provider
 boundaries, dependency alignment, static worker inventories, and diff checks
 pass. No external provider, candidate database, or legacy database was
 accessed. The worker login, credential, and location grant are not provisioned;

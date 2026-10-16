@@ -1,6 +1,6 @@
 # Sensor anomaly idempotency and delivery
 
-Status: the signed worker integration is implemented and passed seven
+Status: the signed worker integration is implemented and passed eight
 synthetic end-to-end PostgreSQL 16 checks. The separate crash/replay exercise
 below passed against the earlier handler path; it does not yet establish live
 process recovery for the new signed adapter. Broader event-bus, provider, and
@@ -91,10 +91,12 @@ Machine record: [sensor anomaly crash/retry](builds/2026-10-11-recovery/sensor-a
 
 The current signed adapter was exercised by
 [`check-sensor-anomaly-worker-delivery-disposable.py`](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py)
-against isolated PostgreSQL 16 after migrations 405–414. Its seven checks cover
-migration replay, signed forced-RLS operations, alert/claim/notification and
-approval-intent writes, notification payload parity, retry suppression, and
-worker direct-table denial. Evidence:
+against isolated PostgreSQL 16 after EventBus migrations 116/165 and worker
+migrations 405–414. Its eight checks cover migration replay, signed forced-RLS
+operations, alert/claim/notification and approval-intent writes, notification
+payload parity, retry suppression, direct-table denial, and a real EventBus
+child-process crash followed by lease reclaim and attempt-two completion
+without duplicate effects. Evidence:
 [sensor-anomaly-worker-delivery-disposable.json](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json).
 
 Migration 376 is additive. To roll back application behavior, disable the
@@ -104,8 +106,7 @@ rollback shortcut. Candidate and legacy application databases were not changed.
 
 Remaining gates: provision a real isolated worker login, secret, and active
 location grant; roll migration 414 onto the candidate after a fresh checkpoint;
-exercise process crash/retry on this adapter; verify external provider
-delivery; accept authenticated operator approval/replay policies; establish
+verify candidate recovery and external provider delivery; accept authenticated operator approval/replay policies; establish
 dynamic receipt/notification retention policy; and expand recovery coverage
 for other handlers and runtime conditions. No MAN-CAP status is implied by the
 disposable implementation checks.

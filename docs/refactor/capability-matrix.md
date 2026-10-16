@@ -2134,7 +2134,8 @@ routing is allowlisted for this exact handler. Migration 414 adds canonical
 notification context to published alert events, a signed boolean-only check
 for configured actuation, and no-login function-owner policies needed when
 source tables already enforce RLS. Forty-five focused anomaly/EventBus tests
-and seven disposable PostgreSQL 16 end-to-end checks pass. The worker login,
+and eight disposable PostgreSQL 16 end-to-end checks pass, including EventBus
+child-process crash recovery with idempotent attempt-two completion. The worker login,
 credential and location grant are not provisioned; migration 414 is not on the
 candidate, global RLS is not enabled, and live EventBus recovery, provider
 delivery and human actuation acceptance remain open. This implementation does
