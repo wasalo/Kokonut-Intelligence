@@ -336,7 +336,7 @@ Commands:
 - Prefect workflow tests: `python3 -m tests.test_prefect_workflow`
 - Prefect pipeline: `python3 -m services.flows.pipelines full_pipeline`
 - Field data collection guide: `docs/field-data-collection-guide.md`
-- Weather forecast ingestion: `python3 -m services.ingestion.weather_forecast`
+- Weather forecast ingestion (all locations): `python3 -m services.ingestion.weather_forecast --all-locations`
 - Weather forecast ingestion (single location): `python3 -m services.ingestion.weather_forecast --location-id UUID`
 - Weather forecast daily summary: `python3 -c "from services.ingestion.weather_forecast import get_daily_summary, get_db; print(get_daily_summary(get_db(), 'UUID'))"`
 - Weather forecast spray windows: `python3 -c "from services.ingestion.weather_forecast import get_spray_windows, get_db; print(get_spray_windows(get_db(), 'UUID'))"`

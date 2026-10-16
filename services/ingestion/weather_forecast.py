@@ -6,15 +6,16 @@ Fetches 5-day weather forecasts for all active locations and inserts into
 weather_forecast (PostgreSQL) and weather_events (ClickHouse).
 
 Usage:
-    python -m services.ingestion.weather_forecast
     python -m services.ingestion.weather_forecast --location-id <uuid>
+    python -m services.ingestion.weather_forecast --all-locations
 """
 
 import argparse
 import json
 import sys
 import time
-from datetime import date, datetime, timezone
+import uuid
+from datetime import datetime, timezone
 
 from services.common.http import http
 
@@ -240,8 +241,18 @@ def get_spray_windows(db, location_id: str, days: int = 5) -> list[dict]:
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
-def run(location_id: str = None):
+def run(location_id: str = None, *, all_locations: bool = False):
     """Main forecast ingestion entry point."""
+    if all_locations and location_id is not None:
+        raise ValueError("choose one location or the explicit all-locations mode")
+    if not all_locations and location_id is None:
+        raise ValueError("provide --location-id or explicitly select all locations")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("location_id must be a UUID") from None
+
     if not OPENWEATHERMAP_API_KEY:
         logger.error("OPENWEATHERMAP_API_KEY not set in .env")
         sys.exit(1)
@@ -251,7 +262,7 @@ def run(location_id: str = None):
         if location_id:
             cur.execute(
                 "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
-                "FROM location WHERE id = %s AND status = 'active'",
+                "FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
                 (location_id,),
             )
         else:
@@ -263,6 +274,7 @@ def run(location_id: str = None):
 
     if not locations:
         logger.info("No active locations with coordinates found.")
+        db.close()
         return
 
     logger.info("Fetching 5-day forecasts for %d locations...", len(locations))
@@ -320,8 +332,26 @@ def run(location_id: str = None):
                 success, errors, len(all_records))
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Weather forecast ingestion (5-day / 3-hour)")
-    parser.add_argument("--location-id", help="Specific location UUID to fetch")
-    args = parser.parse_args()
-    run(location_id=args.location_id)
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument("--location-id", help="Specific location UUID to fetch")
+    scope.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Fetch forecasts for every active location (explicit aggregate operation)",
+    )
+    args = parser.parse_args(argv)
+
+    if args.location_id is None and not args.all_locations:
+        parser.print_help()
+        return
+
+    try:
+        run(location_id=args.location_id, all_locations=args.all_locations)
+    except ValueError as exc:
+        parser.error(str(exc))
+
+
+if __name__ == "__main__":
+    main()

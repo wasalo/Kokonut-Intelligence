@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### Explicit manual weather-forecast scope — 16 October 2026
+
+The forecast ingestion CLI now requires one canonical `--location-id` or the
+explicit aggregate `--all-locations` flag. Missing scope prints help, malformed
+UUIDs fail before database access, and location queries exclude rows without
+coordinates. Existing location-bound summary/spray APIs are unchanged. Eighteen
+focused forecast CLI/unit checks pass with mocked DB/provider boundaries;
+Ruff, compilation, the refreshed whole-service SQL/repository inventories, and
+the 66-row capability validator pass. No provider, candidate/legacy database,
+or schedule was accessed; this is a selector, not tenant authorization or RLS
+([evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json);
+[implementation](../../services/ingestion/weather_forecast.py)). Checklist
+accounting remains 414 complete / 19 open; no MAN-CAP status changes.
+
 ### Explicit manual anomaly CLI scope — 16 October 2026
 
 The standalone anomaly detector now prints help when called without an

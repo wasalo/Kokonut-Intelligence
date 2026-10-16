@@ -847,6 +847,11 @@ reporting views.
   Deprecated cron examples opt into aggregate mode, while the scheduler
   contract rejects it. Eighty-six focused mocked weather/scheduler checks pass
   ([evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json)).
+  The separate five-day forecast CLI now uses the same explicit scope, rejects
+  malformed UUIDs before DB access, and filters out locations without
+  coordinates. Its existing location-bound summary API remains intact; 18
+  focused forecast CLI/unit checks pass
+  ([evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json)).
   The UUID is only a query filter and does not authenticate the operator or
   establish signed context/RLS; recurring sensor ingestion remains disabled
   until a real source contract exists.

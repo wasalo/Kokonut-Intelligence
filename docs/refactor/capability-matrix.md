@@ -818,14 +818,18 @@ and MAN-CAP acceptance remain open; the capability status is unchanged
 [operation map](worker-operation-map.json); [JobSpec inventory](worker-job-contract-inventory.json)).
 
 **16 October 2026 explicit manual weather scope (CAP-040 / CAP-047):** manual
-weather calls now require one canonical `--location-id` or deliberate
+current-weather ingestion requires one canonical `--location-id` or deliberate
 `--all-locations`; omitted scope prints offline help and invalid UUIDs fail
 before database access. The aggregate query is explicit, and the Kernel
 scheduler continues to reject aggregate mode. Eighty-six focused mocked
-weather/scheduler checks pass. This is a CLI/query contract only: it does not
-establish operator authorization, signed worker context, provider success,
-persisted schedule state, or RLS. No MAN-CAP acceptance is implied
-([evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json)).
+weather/scheduler checks pass. Forecast ingestion now follows the same manual
+contract, with 18 focused mocked CLI/unit checks passing; its location-bound
+summary helpers remain unchanged. These are CLI/query contracts only: they do
+not establish operator
+authorization, signed worker context, provider success, persisted schedule
+state, or RLS. No MAN-CAP acceptance is implied
+([current-weather evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json);
+[forecast evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json)).
 
 **16 October 2026 explicit manual anomaly scope (CAP-040 / CAP-047):** the
 standalone anomaly CLI now prints help without scope; anomaly, baseline, and ML
