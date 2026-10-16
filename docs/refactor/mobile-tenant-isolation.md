@@ -1,6 +1,6 @@
 # Field Collector tenant and row-isolation boundary
 
-Updated: 14 October 2026. This is the target security contract for tenant
+Updated: 16 October 2026. This is the target security contract for tenant
 isolation. The current Field Collector remains location-scoped and does not yet
 have database-enforced tenant RLS.
 
@@ -49,7 +49,14 @@ access. No current mobile route claims general database RLS protection.
    existing device/location behavior but deny tenant-protected operations
    until an accountable owner resolves the mapping. Do not silently retag
    historical collections.
-6. For new tenant-owned rows, store an explicit tenant key or enforce an
+6. The repository owner confirmed Kokonut Network as the operating tenant for
+   Genesis, Seeds, Adelphi, Terra Viva, and V1. Seed 122 reconciles only exact
+   existing name/slug matches and leaves missing future source records absent;
+   the read-only tenant preflight reports aggregate presence/verification
+   counts without returning names or identifiers. This does not establish
+   legal land title or map additional locations
+   ([reconciliation procedure](tenant-owner-map-reconciliation.md)).
+7. For new tenant-owned rows, store an explicit tenant key or enforce an
    equivalent immutable parent relationship. For existing location-bound
    rows, RLS may resolve the tenant through the location only after ownership
    immutability or audited transfer semantics are in place. Migration 390 and

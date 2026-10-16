@@ -71,6 +71,15 @@ class _PreflightConnection:
             return _Result([self.unlocated_row])
         if normalized.startswith("select (select count(*)::int from operator_identity)"):
             return _Result([self.operator_row])
+        if normalized.startswith("with expected(location_name, location_slug) as"):
+            return _Result([{
+                "expected_location_count": 5,
+                "present_exact_identity_count": 2,
+                "owner_confirmed_count": 2,
+                "missing_location_count": 3,
+                "identity_mismatch_count": 0,
+                "owner_mismatch_count": 0,
+            }])
         return _Result([])
 
 
@@ -148,9 +157,21 @@ def test_preflight_reports_aggregate_operator_access_without_identifiers(monkeyp
     assert access["invalid_tenant_qualified_operator_grant"] == 2
     assert inventory["operator_affiliations_and_grants"]["identity_and_membership_counts"] == _operator_row()
     assert inventory["operator_affiliations_and_grants"]["identifiers_emitted"] is False
+    assert inventory["confirmed_operating_tenant_map"] == {
+        "expected_location_count": 5,
+        "present_exact_identity_count": 2,
+        "owner_confirmed_count": 2,
+        "missing_location_count": 3,
+        "identity_mismatch_count": 0,
+        "owner_mismatch_count": 0,
+        "identifiers_emitted": False,
+    }
     assert location_id not in json.dumps(inventory)
     assert owner_id not in json.dumps(inventory)
+    assert "Kokonut Genesis" not in json.dumps(inventory)
+    assert "kokonut-genesis" not in json.dumps(inventory)
     assert any("operator_scope_grant_allows" in query for query in connection.queries)
+    assert any("kokonut-terra-viva" in query for query in connection.queries)
 
 
 def test_missing_authorization_function_stops_before_inventory_queries(monkeypatch):

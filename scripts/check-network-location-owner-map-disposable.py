@@ -12,6 +12,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from services.mobile.tenant_preflight import (  # noqa: E402
+    _CONFIRMED_OPERATING_TENANT_MAP_SQL,
+)
+
 SEED = ROOT / "schemas" / "seeds" / "122_kokonut_network_operating_tenant_map.sql"
 EVIDENCE = (
     ROOT
@@ -35,7 +40,8 @@ CREATE TABLE location (
     id uuid PRIMARY KEY,
     name text NOT NULL,
     slug text UNIQUE NOT NULL,
-    organization_id uuid REFERENCES organization(id)
+    organization_id uuid REFERENCES organization(id),
+    status text NOT NULL DEFAULT 'active'
 );
 CREATE TABLE organization_member (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -120,6 +126,14 @@ def seed(container: str, *, check: bool = True) -> subprocess.CompletedProcess[s
     return sql(container, SEED.read_text(), check=check)
 
 
+def owner_map_values(container: str) -> list[int]:
+    output = sql(container, _CONFIRMED_OPERATING_TENANT_MAP_SQL).stdout.strip()
+    values = output.split("|")
+    if len(values) != 6:
+        raise RuntimeError(f"owner-map preflight returned an unexpected row: {output!r}")
+    return [int(value) for value in values]
+
+
 def wait_ready(container: str) -> None:
     for _ in range(60):
         result = run(["docker", "exec", container, "pg_isready", "-U", "postgres"], check=False)
@@ -152,6 +166,8 @@ def main() -> int:
             "2",
             "absent planned locations are skipped",
         )
+        if owner_map_values(container) != [5, 2, 2, 3, 0, 0]:
+            raise RuntimeError("aggregate preflight did not report two confirmed and three missing locations")
         checks.append({"id": "missing_future_locations", "result": "passed"})
 
         sql(
@@ -204,7 +220,21 @@ def main() -> int:
             "1",
             "unmapped locations remain unassigned",
         )
+        if owner_map_values(container) != [5, 5, 5, 0, 0, 0]:
+            raise RuntimeError("aggregate preflight did not report all five exact verified locations")
         checks.append({"id": "five_location_mapping", "result": "passed"})
+
+        sql(
+            container,
+            "UPDATE location SET status = 'inactive' WHERE slug = 'kokonut-v1';",
+        )
+        if owner_map_values(container) != [5, 5, 4, 0, 0, 1]:
+            raise RuntimeError("aggregate preflight counted an inactive location as owner-confirmed")
+        sql(
+            container,
+            "UPDATE location SET status = 'active' WHERE slug = 'kokonut-v1';",
+        )
+        checks.append({"id": "inactive_location_not_owner_confirmed", "result": "passed"})
 
         seed(container)
         assert_value(
@@ -219,6 +249,8 @@ def main() -> int:
             "5",
             "replay does not duplicate current owner confirmations",
         )
+        if owner_map_values(container) != [5, 5, 5, 0, 0, 0]:
+            raise RuntimeError("aggregate preflight changed after idempotent replay")
         checks.append({"id": "idempotent_replay", "result": "passed"})
 
         sql(
@@ -267,6 +299,14 @@ def main() -> int:
             "legacy_database_touched": False,
             "repository_secrets_read": False,
             "checks": checks,
+        "aggregate_preflight_fields": [
+            "expected_location_count",
+            "present_exact_identity_count",
+            "owner_confirmed_count",
+            "missing_location_count",
+            "identity_mismatch_count",
+            "owner_mismatch_count",
+        ],
             "cleanup": {"container_removed": True, "volume_retained": False},
             "scope_limit": "Synthetic records only; absent source locations are skipped, and this check does not backfill any candidate or production database.",
         }

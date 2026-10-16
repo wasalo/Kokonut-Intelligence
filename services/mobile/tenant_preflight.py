@@ -401,8 +401,81 @@ SELECT (SELECT COUNT(*)::int FROM operator_identity) AS operator_identity_count,
            AS enabled_operators_with_active_membership_count
 """
 
+_CONFIRMED_OPERATING_TENANT_MAP_SQL = """
+WITH expected(location_name, location_slug) AS (
+    VALUES
+        ('Kokonut Genesis', 'kokonut-genesis'),
+        ('Kokonut Seeds', 'kokonut-seeds'),
+        ('Kokonut Adelphi', 'kokonut-adelphi'),
+        ('Kokonut Terra Viva', 'kokonut-terra-viva'),
+        ('Kokonut V1', 'kokonut-v1')
+), state AS (
+    SELECT expected.location_name,
+           expected.location_slug,
+           location.id AS location_id,
+           location.name AS actual_name,
+           organization.org_key AS actual_org_key,
+           (
+               organization.org_key = 'kokonut-network'
+               AND organization.status = 'active'
+               AND location.organization_id = organization.id
+               AND location.status = 'active'
+               AND (
+                   SELECT COUNT(*)
+                     FROM organization_member AS member
+                    WHERE member.location_id = location.id
+                      AND member.organization_id = organization.id
+                      AND member.membership_type = 'owned'
+                      AND member.role = 'primary'
+                      AND member.status = 'active'
+               ) = 1
+               AND EXISTS (
+                   SELECT 1
+                     FROM location_tenant_owner_verification AS owner
+                    WHERE owner.location_id = location.id
+                      AND owner.organization_id = organization.id
+                      AND owner.revoked_at IS NULL
+               )
+           ) IS TRUE AS owner_confirmed
+      FROM expected
+      LEFT JOIN location ON location.slug = expected.location_slug
+      LEFT JOIN organization ON organization.id = location.organization_id
+)
+SELECT COUNT(*)::int AS expected_location_count,
+       COUNT(*) FILTER (
+           WHERE location_id IS NOT NULL AND actual_name = location_name
+       )::int AS present_exact_identity_count,
+       COUNT(*) FILTER (
+           WHERE location_id IS NOT NULL
+             AND actual_name = location_name
+             AND owner_confirmed
+       )::int AS owner_confirmed_count,
+       COUNT(*) FILTER (
+           WHERE location_id IS NULL
+             AND NOT EXISTS (
+                 SELECT 1 FROM location AS name_match
+                  WHERE name_match.name = state.location_name
+             )
+       )::int AS missing_location_count,
+       COUNT(*) FILTER (
+           WHERE (location_id IS NOT NULL AND actual_name <> location_name)
+              OR (location_id IS NULL AND EXISTS (
+                  SELECT 1 FROM location AS name_match
+                   WHERE name_match.name = state.location_name
+              ))
+       )::int AS identity_mismatch_count,
+       COUNT(*) FILTER (
+           WHERE location_id IS NOT NULL
+             AND actual_name = location_name
+             AND NOT owner_confirmed
+       )::int AS owner_mismatch_count
+  FROM state
+"""
+
 _REQUIRED_COLUMNS = (
     ("location", "id"),
+    ("location", "name"),
+    ("location", "slug"),
     ("location", "status"),
     ("location", "organization_id"),
     ("organization_member", "location_id"),
@@ -434,6 +507,7 @@ _REQUIRED_COLUMNS = (
     ("operator_organization_membership", "organization_id"),
     ("operator_organization_membership", "revoked_at"),
     ("organization", "id"),
+    ("organization", "org_key"),
     ("organization", "status"),
     ("offline_collection", "id"),
     ("offline_collection", "location_id"),
@@ -952,6 +1026,7 @@ def collect_inventory(
             ).all()
             unlocated_rows = conn.execute(_UNLOCATED_SQL).all()
             operator_globals = conn.execute(_OPERATOR_GLOBAL_SQL).first()
+            confirmed_owner_map = conn.execute(_CONFIRMED_OPERATING_TENANT_MAP_SQL).first()
 
     if schema_coverage["status"] != "complete":
         return {
@@ -1023,6 +1098,8 @@ def collect_inventory(
         )
         for field in _OPERATOR_ACCESS_COUNT_FIELDS
     }
+    if confirmed_owner_map is None:
+        raise RuntimeError("confirmed operating-tenant map query returned no result")
     unlocated = {
         "mobile_device": int(unlocated_rows[0]["mobile_device_count"]),
         "active_unlocated_device": int(unlocated_rows[0]["active_unlocated_device_count"]),
@@ -1055,12 +1132,26 @@ def collect_inventory(
             "grant_counts_at_locations": operator_access_totals,
             "identifiers_emitted": False,
         },
+        "confirmed_operating_tenant_map": {
+            field: int(confirmed_owner_map[field])
+            for field in (
+                "expected_location_count",
+                "present_exact_identity_count",
+                "owner_confirmed_count",
+                "missing_location_count",
+                "identity_mismatch_count",
+                "owner_mismatch_count",
+            )
+        }
+        | {"identifiers_emitted": False},
         "records_without_location": unlocated,
         "locations": locations,
         "limitations": [
             "Organization relationships are review evidence, not authorization or automatic owner assignment.",
             "Opaque references are stable only for this inventory format; no "
             "location or organization identifiers are returned.",
+            "The confirmed operating-tenant summary covers only the five named "
+            "locations and does not infer ownership for other records.",
             "Counts cover listed direct relations only and do not prove complete "
             "downstream, export, or backup lineage.",
             "Relation row counts can include one collection in multiple lineage "

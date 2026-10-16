@@ -582,7 +582,11 @@ pending import, and fails closed on identity, owner, or revoked-verification
 conflicts. Five disposable PostgreSQL checks pass for missing locations,
 all-five reconciliation, replay, unknown-location preservation, and
 transactional rollback. This records operating-tenant access and does not
-assert land title or grant sharing. No candidate/legacy database was changed;
+assert land title or grant sharing. The read-only tenant preflight now reports
+aggregate mapping readiness without emitting location names or identifiers.
+Its owner-confirmed count excludes inactive locations, matching the runtime
+tenant-context contract.
+No candidate/legacy database was changed;
 operator affiliations, imported source data, remaining Gateway/worker scopes,
 and direct-database/RLS boundaries remain open. MAN-CAP-001 and MAN-CAP-053
 remain not run ([seed](../../schemas/seeds/122_kokonut_network_operating_tenant_map.sql);

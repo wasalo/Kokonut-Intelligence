@@ -123,6 +123,7 @@ def test_confirmed_operating_tenant_map_runs_last_and_skips_future_locations() -
     ownership_seed = Path(
         "schemas/seeds/122_kokonut_network_operating_tenant_map.sql"
     ).read_text()
+    preflight = Path("services/mobile/tenant_preflight.py").read_text()
     for location_name, location_slug in (
         ("Kokonut Genesis", "kokonut-genesis"),
         ("Kokonut Seeds", "kokonut-seeds"),
@@ -132,6 +133,8 @@ def test_confirmed_operating_tenant_map_runs_last_and_skips_future_locations() -
     ):
         assert location_name in ownership_seed
         assert location_slug in ownership_seed
+        assert location_name in preflight
+        assert location_slug in preflight
     assert "IF NOT FOUND THEN" in ownership_seed
     assert "CONTINUE;" in ownership_seed
     assert "not_a_land_title_assertion" in ownership_seed

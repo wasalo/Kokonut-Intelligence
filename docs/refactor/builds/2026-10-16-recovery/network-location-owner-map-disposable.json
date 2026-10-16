@@ -1,6 +1,6 @@
 {
   "result": "passed",
-  "checked_at": "2026-10-16T18:42:34.102962+00:00",
+  "checked_at": "2026-10-16T18:51:09.882676+00:00",
   "database": "PostgreSQL 16 disposable container with networking disabled",
   "seed": "schemas/seeds/122_kokonut_network_operating_tenant_map.sql",
   "candidate_database_touched": false,
@@ -16,6 +16,10 @@
       "result": "passed"
     },
     {
+      "id": "inactive_location_not_owner_confirmed",
+      "result": "passed"
+    },
+    {
       "id": "idempotent_replay",
       "result": "passed"
     },
@@ -27,6 +31,14 @@
       "id": "conflicting_assignment_rollback",
       "result": "passed"
     }
+  ],
+  "aggregate_preflight_fields": [
+    "expected_location_count",
+    "present_exact_identity_count",
+    "owner_confirmed_count",
+    "missing_location_count",
+    "identity_mismatch_count",
+    "owner_mismatch_count"
   ],
   "cleanup": {
     "container_removed": true,

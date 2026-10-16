@@ -97,6 +97,15 @@ class _PreflightConnection:
                 "active_membership_for_disabled_operator_count": 0,
                 "enabled_operators_with_active_membership_count": 0,
             }])
+        if normalized.startswith("with expected(location_name, location_slug) as"):
+            return _Result([{
+                "expected_location_count": 5,
+                "present_exact_identity_count": 0,
+                "owner_confirmed_count": 0,
+                "missing_location_count": 5,
+                "identity_mismatch_count": 0,
+                "owner_mismatch_count": 0,
+            }])
         return _Result([])
 
 

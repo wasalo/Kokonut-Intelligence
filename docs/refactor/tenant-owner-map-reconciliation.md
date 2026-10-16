@@ -38,3 +38,8 @@ disposable PostgreSQL acceptance covers absent locations, all five mapped
 locations, idempotent replay, unknown-location preservation, identity mismatch
 rollback, and conflicting-organization rollback
 ([evidence](builds/2026-10-16-recovery/network-location-owner-map-disposable.json)).
+
+The read-only tenant preflight reports aggregate expected, present, verified,
+missing, identity-mismatch, and owner-mismatch counts for the same five rows.
+It does not expose location names, slugs, or identifiers, and it does not infer
+ownership for other locations.

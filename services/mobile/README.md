@@ -147,6 +147,14 @@ installation. Review a populated deployment's output with accountable data
 owners before any ownership backfill, tenant grant, or RLS migration. See the
 [tenant isolation contract](../../docs/refactor/mobile-tenant-isolation.md).
 
+The report also returns aggregate status for the five owner-confirmed Kokonut
+Network locations: expected, present with exact name/slug, currently owner
+verified on active locations, missing for later import, identity mismatch, and
+owner mismatch counts. It emits none of the location names, slugs, or UUIDs and
+does not infer owners for other locations. After importing a named future location, run the
+exact reconciliation seed through the ordered migration runner; see the
+[owner map procedure](../../docs/refactor/tenant-owner-map-reconciliation.md).
+
 Before counting rows, the command checks that every required relation/column
 exists. An older or partial schema returns `inventory_status: schema_incomplete`,
 lists the missing `relation.column` requirements and latest applied migration
@@ -155,8 +163,10 @@ an isolated copy through the ordered migrations before treating its inventory as
 complete. This guard was exercised against a fresh populated archived restore:
 it listed 11 missing inventory columns and skipped all ownership/lineage counts
 ([sanitized evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json)).
-The complete-schema path also returned 27/27 required columns and migration 385
-against the empty local candidate ([evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)).
+The historical complete-schema check returned 27/27 required columns at that
+point in the inventory's evolution ([evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)).
+The current source validates 48 required columns before it runs the ownership,
+lineage, or operating-tenant summary queries.
 
 A separate internal-only restore of the populated archive then applied all 32
 pending schema migrations through 385 with zero failures and zero pending

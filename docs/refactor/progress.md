@@ -12,10 +12,15 @@ creates no sharing or operator account grants. It skips missing locations so
 Seeds, Terra Viva, and V1 can be mapped after their imported records exist; it
 does not create placeholder locations or assert land title. Conflicting names,
 owners, and revoked verification history fail the entire transaction. The
-17-test impact-network source suite passes; five disposable PostgreSQL checks
-pass for mapping, absent locations, replay, unknown-location preservation, and
-rollback on identity/owner conflicts. No candidate or legacy database was
-accessed ([seed](../../schemas/seeds/122_kokonut_network_operating_tenant_map.sql);
+read-only tenant preflight now reports aggregate expected/present/verified/
+missing/mismatch counts for those five entries, without returning names, slugs,
+or UUIDs. An entry counts as owner-confirmed only when the location and
+organization are active and the exact owner relationship and verification are
+current. The focused map/preflight source suite passes (32 tests); the
+network-disabled PostgreSQL check exercises absent, present, inactive,
+replayed, identity-mismatch, and conflicting-owner states. No candidate or
+legacy database was accessed ([seed](../../schemas/seeds/122_kokonut_network_operating_tenant_map.sql);
+[preflight](../../services/mobile/tenant_preflight.py);
 [runner](../../scripts/check-network-location-owner-map-disposable.py);
 [evidence](builds/2026-10-16-recovery/network-location-owner-map-disposable.json);
 [application contract](tenant-owner-map-reconciliation.md)).
