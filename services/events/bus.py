@@ -3,18 +3,38 @@
 from __future__ import annotations
 
 import importlib
-import inspect
 import json
-import multiprocessing
+import os
+import re
+import subprocess
+import sys
 import uuid
 from datetime import datetime, timezone
-from queue import Empty
 from typing import Any
 
 from services.common.logging import get_logger
 from services.security.execution_allowlist import validate_event_handler
 
 logger = get_logger("events.bus")
+_WORKER_SECRET_ENV = re.compile(
+    r"^KOKONUT_[A-Z][A-Z0-9_]*_(?:DATABASE_URL|WORKER_CREDENTIAL)$"
+)
+
+
+def _handler_child_environment(environ=None):
+    """Copy the runtime environment without worker-only secrets.
+
+    Event handlers are configured independently, so the dispatcher cannot
+    safely infer which worker identity a handler may use. Until a handler has
+    an explicit trusted identity mapping, child processes receive no worker
+    DSNs or credentials.
+    """
+    source = os.environ if environ is None else environ
+    return {
+        name: value
+        for name, value in source.items()
+        if not _WORKER_SECRET_ENV.fullmatch(name)
+    }
 
 
 def resolve_handler(module_path: str, function_name: str):
@@ -24,19 +44,6 @@ def resolve_handler(module_path: str, function_name: str):
     if not callable(handler):
         raise TypeError(f"Event handler is not callable: {module_path}.{function_name}")
     return handler
-
-
-def _handler_process(result_queue, module_path, function_name, event_type, payload, event_id=None):
-    """Invoke a handler in an isolated process so its deadline is enforceable."""
-    try:
-        handler = resolve_handler(module_path, function_name)
-        if "event_id" in inspect.signature(handler).parameters:
-            handler(event_type, payload, event_id=event_id)
-        else:
-            handler(event_type, payload)
-        result_queue.put((True, None))
-    except BaseException as exc:  # Child must report all handler failures.
-        result_queue.put((False, f"{type(exc).__name__}: {exc}"))
 
 
 class EventBus:
@@ -211,22 +218,46 @@ class EventBus:
     def _invoke_handler(
         self, module_path, function_name, event_type, payload, timeout_seconds, *, event_id=None
     ):
-        ctx = multiprocessing.get_context("spawn")
-        result_queue = ctx.Queue(maxsize=1)
-        process = ctx.Process(target=_handler_process, args=(
-            result_queue, module_path, function_name, event_type, payload, event_id
-        ))
-        process.start()
-        process.join(timeout_seconds)
-        if process.is_alive():
-            process.terminate()
-            process.join()
-            return "timeout", f"Handler exceeded {timeout_seconds}s timeout"
+        request = {
+            "module_path": module_path,
+            "function_name": function_name,
+            "event_type": event_type,
+            "payload": payload,
+            "event_id": event_id,
+        }
         try:
-            succeeded, error = result_queue.get(timeout=1)
-        except Empty:
-            return "error", f"Handler process exited with code {process.exitcode}"
-        return ("success", None) if succeeded else ("error", error[:500])
+            request_body = json.dumps(request)
+        except (TypeError, ValueError):
+            return "error", "Handler request could not be encoded"
+        try:
+            process = subprocess.Popen(
+                [sys.executable, "-m", "services.events.handler_runner"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=None,
+                text=True,
+                env=_handler_child_environment(),
+            )
+        except OSError as exc:
+            return "error", f"Handler process could not start: {type(exc).__name__}"
+        try:
+            output, _ = process.communicate(request_body, timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate()
+            return "timeout", f"Handler exceeded {timeout_seconds}s timeout"
+        if process.returncode != 0:
+            return "error", f"Handler process exited with code {process.returncode}"
+        try:
+            result = json.loads(output)
+        except (TypeError, json.JSONDecodeError):
+            return "error", "Handler process returned an invalid result"
+        if not isinstance(result, dict):
+            return "error", "Handler process returned an invalid result"
+        if result.get("succeeded") is True:
+            return "success", None
+        error = result.get("error")
+        return "error", str(error or "Handler failed")[:500]
 
     def _complete(self, event_id, worker_id):
         conn = self._get_conn()

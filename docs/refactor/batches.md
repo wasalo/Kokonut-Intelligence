@@ -800,7 +800,11 @@ reporting views.
   Twenty-one focused unit tests cover both components; Ruff, Python compilation,
   and validation of 523 migration sources pass ([factory evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json); [credential evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
   No real credential is provisioned or delivered to a handler. Handler
-  integration remains open.
+  integration remains open. EventBus handler children now start through a
+  subprocess environment that removes all worker-specific DSNs and credentials
+  before exec; no worker credential is currently delivered to any handler.
+  The handler request stays on stdin and timeout/error handling is covered by
+  26 focused EventBus/runner checks ([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
   The legacy `services.analytics.mobile_offline` service helpers and historic
   CLI commands have now been retired: they fail before opening a database
   connection because they have no authenticated tenant identity. Capture and

@@ -1922,7 +1922,12 @@ Twenty-one focused unit checks cover the factory and resolver, with Ruff,
 compilation, and migration-source validation passing
 ([evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
 No real worker secret is provisioned or delivered, and the handler still uses
-the shared runtime path. These source checks do not establish runtime worker
+the shared runtime path. The EventBus now launches handlers through a child
+process environment that strips worker-specific DSNs and credentials before
+exec; 26 mocked EventBus/runner checks cover environment filtering, request
+transport, compatibility, failure handling, and timeout cleanup
+([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
+This does not deliver an identity-specific secret or establish runtime worker
 identity, bounded source/effect integration, direct-database isolation, or RLS
 readiness. CAP-040/047 statuses and MAN-CAP acceptance counts remain unchanged.
 

@@ -90,11 +90,23 @@ The existing worker operation inventory shows two distinct kinds of work:
    authorization in SQL.
 
 The scheduler currently launches allowlisted modules in subprocesses, and the
-EventBus starts allowlisted handlers in spawned child processes. Neither path
+EventBus starts allowlisted handlers in subprocesses. Neither path
 establishes a signed tenant context today. The child must receive only the
 credential for its own execution identity. Credentials must not be inherited
 from a process that can dispatch unrelated operations; deployment-level
 principal separation is required before claiming isolation between handlers.
+
+The current EventBus launch step now builds an explicit child environment that
+removes every worker-specific database URL and worker credential before exec.
+It sends the handler request on stdin, not command-line arguments, and uses a
+small JSON result channel so handler stdout does not corrupt status reporting.
+The runner validates the allowlisted module/function, preserves both legacy
+two-argument and `event_id` handler signatures, and kills/reaps timed-out
+children. Twenty-six mocked unit checks pass
+([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
+No secret is yet delivered to a handler; the dispatcher has no trusted
+handler-to-worker identity mapping, and handlers still use their existing
+shared runtime database path.
 
 ## First implementation slice
 
@@ -128,8 +140,10 @@ context setter, and an exact-scope accessor. `services/common/tenant_context.py`
 hashes the supplied worker secret in memory, clears prior context, assumes the
 dedicated role locally, and requires a non-autocommit transaction. The adapter
 is not yet connected to an event or scheduled handler: no worker-only credential
-is provisioned, and the current EventBus dispatcher must not pass one shared
-secret to unrelated handler processes.
+is provisioned, and the EventBus currently filters worker secrets from all
+handler children. A future static policy may deliver only the credential
+selected for the handler's trusted worker identity after the handler's
+signed-context integration is complete.
 
 The focused anomaly and pilot seed-guard suites passed 19 tests, the EventBus
 durability suite passed 17 tests, and two transaction tests passed. They cover

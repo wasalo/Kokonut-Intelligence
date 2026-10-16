@@ -1,8 +1,11 @@
 """Focused unit tests for durable event delivery semantics."""
 
+import json
+import subprocess
+import sys
 from unittest.mock import MagicMock, patch
 
-from services.events.bus import EventBus, resolve_handler
+from services.events.bus import EventBus, _handler_child_environment, resolve_handler
 
 REGISTERED_HANDLERS = (
     ("services.ingestion.anomaly_detector", "handle_sensor_reading"),
@@ -73,19 +76,116 @@ def test_successful_delivery_is_not_invoked_again():
     invoke.assert_not_called()
 
 
-def test_handler_timeout_terminates_child():
+def test_handler_child_environment_removes_all_worker_secrets():
+    env = _handler_child_environment(
+        {
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+            "KOKONUT_OTHER_WORKER_DATABASE_URL": "postgresql://other",
+            "KOKONUT_OTHER_WORKER_WORKER_CREDENTIAL": "other-secret",
+            "PG_PASSWORD": "legacy-runtime-secret",
+            "KOKONUT_OPERATOR_AUTH_PASSWORD": "operator-secret",
+            "DATABASE_URL": "application-config",
+        }
+    )
+
+    assert env == {
+        "PG_PASSWORD": "legacy-runtime-secret",
+        "KOKONUT_OPERATOR_AUTH_PASSWORD": "operator-secret",
+        "DATABASE_URL": "application-config",
+    }
+
+
+def test_handler_success_uses_filtered_environment_and_stdin_request():
     bus = EventBus(conn=MagicMock())
     process = MagicMock()
-    process.is_alive.return_value = True
-    context = MagicMock()
-    context.Process.return_value = process
+    process.communicate.return_value = ('{"succeeded":true}', "")
+    process.returncode = 0
 
-    with patch("services.events.bus.multiprocessing.get_context", return_value=context):
+    with patch.dict(
+        "os.environ",
+        {
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+            "PG_PASSWORD": "runtime-secret",
+        },
+        clear=True,
+    ), patch("services.events.bus.subprocess.Popen", return_value=process) as popen:
+        status, error = bus._invoke_handler(
+            "module", "function", "kind", {"value": 2}, 5, event_id="event-1"
+        )
+
+    assert (status, error) == ("success", None)
+    args, kwargs = popen.call_args
+    assert args[0] == [sys.executable, "-m", "services.events.handler_runner"]
+    assert kwargs["env"] == {"PG_PASSWORD": "runtime-secret"}
+    assert kwargs["stdin"] == subprocess.PIPE
+    assert kwargs["stdout"] == subprocess.PIPE
+    assert kwargs["text"] is True
+    request = json.loads(process.communicate.call_args.args[0])
+    assert request == {
+        "module_path": "module",
+        "function_name": "function",
+        "event_type": "kind",
+        "payload": {"value": 2},
+        "event_id": "event-1",
+    }
+    assert "worker-secret" not in repr(args)
+
+
+def test_handler_error_result_is_bounded():
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.return_value = (
+        json.dumps({"succeeded": False, "error": "RuntimeError: handler failed"}),
+        "",
+    )
+    process.returncode = 0
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
+        status, error = bus._invoke_handler("module", "function", "kind", {}, 5)
+
+    assert (status, error) == ("error", "RuntimeError: handler failed")
+
+
+def test_handler_timeout_kills_and_reaps_child():
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.side_effect = [
+        subprocess.TimeoutExpired("handler", 1),
+        ("", ""),
+    ]
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
         status, error = bus._invoke_handler("module", "function", "kind", {}, 1)
 
     assert status == "timeout"
     assert "exceeded" in error
-    process.terminate.assert_called_once()
+    process.kill.assert_called_once()
+    assert process.communicate.call_count == 2
+
+
+def test_handler_nonzero_exit_does_not_expose_stderr_or_environment():
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.return_value = ("", "worker-secret")
+    process.returncode = 7
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
+        status, error = bus._invoke_handler("module", "function", "kind", {}, 5)
+
+    assert (status, error) == ("error", "Handler process exited with code 7")
+    assert "worker-secret" not in error
+
+
+def test_unserializable_handler_request_fails_before_process_start():
+    bus = EventBus(conn=MagicMock())
+
+    with patch("services.events.bus.subprocess.Popen") as popen:
+        status, error = bus._invoke_handler("module", "function", "kind", {"value": object()}, 5)
+
+    assert (status, error) == ("error", "Handler request could not be encoded")
+    popen.assert_not_called()
 
 
 def test_replay_preserves_successful_handler_delivery_state():

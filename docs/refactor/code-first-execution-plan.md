@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `7bb17e52b33f51ddbe08da5173371978bf85f690`; CI #354 is pending and Security #78 is in progress (checked 16 October 2026).
-**Current local batch:** the worker-only database connection factory and worker-specific secret resolver are implemented. All 21 focused unit checks for both pass; per-handler secret delivery and bounded handler integration remain open.
+**Latest pushed head:** `12d3e94cb86922128cc9bc36da740b9ffe2fb217`; its Gitleaks check was queued and no CI check had appeared at last check (16 October 2026).
+**Current local batch:** EventBus now launches handlers with worker-specific DSN/credential variables stripped from the subprocess environment. The handler runner uses a stdin JSON request and a bounded JSON result; 26 focused EventBus/runner checks pass. No per-handler secret is delivered until an explicit trusted identity mapping and handler integration are ready.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live

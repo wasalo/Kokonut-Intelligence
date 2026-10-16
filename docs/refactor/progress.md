@@ -6554,3 +6554,20 @@ worker-specific lookup; the combined worker database/credential file passes
 all 21 tests. Ruff, compilation, migration-source validation (523 files), and
 `git diff --check`
 pass ([evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
+
+### EventBus worker-secret subprocess boundary — 16 October 2026
+
+EventBus handler execution now uses `subprocess.Popen` with a copied child
+environment that strips every worker-specific `KOKONUT_<WORKER>_DATABASE_URL`
+and `KOKONUT_<WORKER>_WORKER_CREDENTIAL`. The request travels over stdin rather
+than process arguments; a dedicated runner validates the existing handler
+allowlist, preserves both supported handler signatures, redirects handler
+stdout away from the JSON result channel, and returns bounded error data. A
+timeout kills and reaps the child. All 22 EventBus durability tests and four
+runner tests pass, including environment filtering, request transport,
+success/failure handling, malformed input, and timeout cleanup. Ruff,
+Python compilation, and `git diff --check` pass. No real worker credential or
+database was used. This secures the current no-secret default; no identity-
+specific secret is delivered and no handler is yet integrated with the worker
+database/context helpers
+([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
