@@ -899,9 +899,15 @@ reporting views.
   context, and database adapter suites pass (55 tests); Ruff passes. The
   migration-396 disposable PostgreSQL 16 forced-RLS fixture also passes a
   matching tenant/location/actor insert, cross-location denial, denial cleanup,
-  and migration replay. No candidate or legacy database was touched. Search,
-  file/proof routes, environment-key database provisioning, and other Gateway
-  handlers remain open ([evidence](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)).
+  and migration replay. A location-required Gateway list/search route now
+  validates the exact `data_stream_post:read:<location>` grant in the same
+  transaction, filters every query by that location, bounds pagination, and
+  returns a fixed projection that excludes source lineage, arbitrary metadata,
+  evidence URLs, and file identifiers. Focused adapter, route-policy, and
+  gateway-auth checks pass. No candidate or legacy database was touched.
+  File/proof routes, environment-key database provisioning, and other Gateway
+  handlers remain open ([search contract evidence](builds/2026-10-16-recovery/gateway-data-stream-search-contract.json);
+  [tenant-context evidence](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)).
 - [x] Fail closed on unscoped worker cache invalidation. The allowlisted cache
   event handlers now require a canonical location UUID before creating the
   cache provider, so a malformed event cannot flush every location's cached

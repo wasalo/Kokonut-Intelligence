@@ -75,6 +75,7 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/federation/nodes$"), "federation_node", "read", True),
     ("GET", re.compile(r"^/api/drivers$"), "driver", "read", True),
     ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", True),
+    ("GET", re.compile(r"^/api/data-stream/posts$"), "data_stream_post", "read", False),
     ("POST", re.compile(r"^/api/data-stream/post$"), "data_stream_post", "create", False),
 )
 
@@ -322,6 +323,41 @@ async def get_public_crisp_v1(location_id: str):
 )
 async def get_public_analytics_summary_v1(location_id: str):
     return _versioned_envelope(await get_analytics_summary(location_id))
+
+
+@router.get("/data-stream/posts")
+async def list_data_stream_posts(request: Request):
+    """List or search tenant-scoped Data Stream posts."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        location_id = request.query_params.get("location_id")
+        query_text = request.query_params.get("q")
+        try:
+            limit = int(request.query_params.get("limit", "20"))
+            offset = int(request.query_params.get("offset", "0"))
+        except ValueError as exc:
+            raise ValueError("limit and offset must be integers") from exc
+
+        from services.gateway.data_stream import list_gateway_data_stream_posts
+
+        rows = await run_in_threadpool(
+            list_gateway_data_stream_posts,
+            location_id,
+            request.state.gateway_authorization,
+            query_text=query_text,
+            limit=limit,
+            offset=offset,
+        )
+        return {"data": rows}
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+        return _internal_error(exc)
 
 
 @router.post("/data-stream/post")

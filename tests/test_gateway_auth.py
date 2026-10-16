@@ -236,6 +236,47 @@ def test_authenticated_write_passes_verified_middleware_context(monkeypatch):
     }
 
 
+def test_data_stream_post_search_requires_location_read_scope(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    other_location_id = "44444444-4444-4444-8444-444444444444"
+    monkeypatch.setenv("KOKONUT_API_KEYS", "reader-key:reader")
+    monkeypatch.setenv(
+        "KOKONUT_API_KEY_SCOPES",
+        f"reader:data_stream_post:read:{location_id}",
+    )
+    with patch(
+        "services.gateway.data_stream.list_gateway_data_stream_posts",
+        return_value=[{"id": "post-1", "location_id": location_id}],
+    ) as list_posts:
+        with TestClient(create_app()) as client:
+            response = client.get(
+                "/api/data-stream/posts",
+                headers={"x-api-key": "reader-key"},
+                params={"location_id": location_id, "q": "soil cover"},
+            )
+            denied = client.get(
+                "/api/data-stream/posts",
+                headers={"x-api-key": "reader-key"},
+                params={"location_id": other_location_id},
+            )
+
+    assert response.status_code == 200
+    assert response.json() == {"data": [{"id": "post-1", "location_id": location_id}]}
+    assert list_posts.call_count == 1
+    assert list_posts.call_args.args == (
+        location_id,
+        {
+            "resource": "data_stream_post",
+            "action": "read",
+            "location_id": location_id,
+            "credential_type": "api_key",
+            "credential_hash": hashlib.sha256(b"reader-key").hexdigest(),
+        },
+    )
+    assert list_posts.call_args.kwargs["query_text"] == "soil cover"
+    assert denied.status_code == 403
+
+
 def test_database_tenant_denial_returns_forbidden(monkeypatch):
     from services.common.tenant_context import TenantContextDenied
 

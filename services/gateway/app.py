@@ -48,6 +48,13 @@ async def _request_location(request, policy: dict) -> str | None:
             return None
     if policy.get("resource") != "data_stream_post":
         return None
+    if request.method == "GET":
+        from uuid import UUID
+
+        try:
+            return str(UUID(request.query_params.get("location_id", "")))
+        except ValueError:
+            return None
     try:
         body = await request.body()
         request._body = body

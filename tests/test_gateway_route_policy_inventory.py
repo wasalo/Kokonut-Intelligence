@@ -1,13 +1,18 @@
 """Keep registered Gateway routes aligned with their reviewed auth policies."""
 
+import asyncio
 import re
+from types import SimpleNamespace
 
 import pytest
 
 pytest.importorskip("fastapi")
 from starlette.testclient import TestClient  # noqa: E402
 
-from services.gateway.app import create_app  # noqa: E402
+from services.gateway.app import (
+    _request_location,  # noqa: E402
+    create_app,  # noqa: E402
+)
 from services.gateway.router import get_route_policy  # noqa: E402
 from services.gateway.router import router as gateway_router
 from services.mobile.api import router as mobile_router  # noqa: E402
@@ -32,6 +37,7 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/v1/metrics/{location_id}"): ("metric", "read", True),
     ("GET", "/api/v1/crisp/{location_id}"): ("crisp_risk_assessment", "read", True),
     ("GET", "/api/v1/analytics/{location_id}/summary"): ("analytics", "read", True),
+    ("GET", "/api/data-stream/posts"): ("data_stream_post", "read", False),
     ("POST", "/api/data-stream/post"): ("data_stream_post", "create", False),
     ("GET", "/api/iri/resolve"): ("iri", "read", True),
     ("GET", "/api/federation/nodes"): ("federation_node", "read", True),
@@ -77,6 +83,16 @@ def test_registered_api_routes_have_exact_reviewed_policy_coverage():
                     assert policy["location_id"] == _LOCATION_ID
 
     assert actual == _EXPECTED_ROUTE_POLICIES
+
+
+def test_data_stream_read_policy_extracts_and_normalizes_query_location():
+    policy = get_route_policy("GET", "/api/data-stream/posts")
+    request = SimpleNamespace(
+        method="GET",
+        query_params={"location_id": "11111111-1111-4111-8111-111111111111"},
+    )
+
+    assert asyncio.run(_request_location(request, policy)) == _LOCATION_ID
 
 
 def test_registered_private_api_routes_reject_anonymous_requests(tmp_path, monkeypatch):
