@@ -99,3 +99,37 @@ def test_cli_forwards_single_and_aggregate_modes():
     with patch.object(weather_forecast, "run") as run:
         weather_forecast.main(["--all-locations"])
         run.assert_called_once_with(location_id=None, all_locations=True)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [weather_forecast.get_daily_summary, weather_forecast.get_spray_windows],
+)
+def test_forecast_read_helpers_reject_invalid_scope_before_query(query):
+    db = MagicMock()
+
+    with pytest.raises(ValueError, match="location_id must be a UUID"):
+        query(db, "not-a-uuid")
+
+    db.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("query", "view"),
+    [
+        (weather_forecast.get_daily_summary, "v_weather_forecast_daily"),
+        (weather_forecast.get_spray_windows, "v_spray_window"),
+    ],
+)
+def test_forecast_read_helpers_bind_canonical_location_scope(query, view):
+    db = MagicMock()
+    cursor = db.cursor.return_value.__enter__.return_value
+    cursor.description = [("forecast_date",)]
+    cursor.fetchall.return_value = []
+
+    query(db, str(UUID(LOCATION_ID)).upper())
+
+    sql, params = cursor.execute.call_args.args
+    assert f"FROM {view}" in sql
+    assert "WHERE location_id = %s" in sql
+    assert params == (LOCATION_ID, 5)

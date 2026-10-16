@@ -10,14 +10,15 @@
     "omitted_scope": "Prints CLI help without loading a provider key or opening a database connection.",
     "single_location_query": "Binds the canonical UUID and selects only active locations with coordinates.",
     "aggregate_query": "Remains available only through the explicit --all-locations option.",
-    "helper_api": "Location-bound summary and spray-window helpers are unchanged."
+    "helper_api": "Daily-summary and spray-window helpers canonicalize location UUIDs before opening a cursor and bind the canonical location to their view queries. Malformed location IDs are rejected without executing SQL."
   },
   "verification": {
     "pytest": {
       "command": "python3 -m pytest tests/test_weather_forecast_cli_scope.py tests/test_weather_forecast.py -q",
       "result": "passed",
-      "tests": 18
+      "tests": 22
     },
+    "query_scope": "Both summary views use a bound location_id predicate; malformed selectors are rejected before cursor acquisition.",
     "ruff": "passed",
     "compileall": "passed",
     "inventories": [

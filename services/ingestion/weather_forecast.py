@@ -206,6 +206,7 @@ def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
 
 def get_daily_summary(db, location_id: str, days: int = 5) -> list[dict]:
     """Query daily forecast summary view."""
+    location_id = _canonical_location_id(location_id)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -225,6 +226,7 @@ def get_daily_summary(db, location_id: str, days: int = 5) -> list[dict]:
 
 def get_spray_windows(db, location_id: str, days: int = 5) -> list[dict]:
     """Query spray window view for suitable days."""
+    location_id = _canonical_location_id(location_id)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -330,6 +332,14 @@ def run(location_id: str = None, *, all_locations: bool = False):
 
     logger.info("Done: %d success, %d errors, %d total forecast points",
                 success, errors, len(all_records))
+
+
+def _canonical_location_id(location_id: str) -> str:
+    """Return a canonical location UUID or reject an unscoped query."""
+    try:
+        return str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("location_id must be a UUID") from None
 
 
 def main(argv: list[str] | None = None) -> None:
