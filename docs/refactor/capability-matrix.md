@@ -43,6 +43,9 @@ and a separate append-only operator audit ledger. A separate operator-console
 panel now exposes these operations according to the current location grants.
 Six focused console contract and JavaScript syntax checks pass, including
 grant-filtered reads/actions, CSRF-protected writes, and safe detail rendering.
+Create/edit forms cover all Gateway-editable content fields, including
+location-checked plot/crop-cycle identifiers, bounded materials JSON, and
+evidence URLs.
 Thirteen focused HTTP,
 service, and route-policy tests pass; an isolated PostgreSQL 16 fixture passes
 11 migration, tenant-grant, lifecycle-separation, and ledger-boundary checks.

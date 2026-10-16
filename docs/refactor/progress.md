@@ -25,9 +25,10 @@ relation parity, hook/schedule parity, populated legacy-row reconciliation,
 configured-provider acceptance, or RLS readiness
 ([contract](gateway-farm-activity-operations.md); [source inventory](directus-parity-inventory.md)).
 The operator console now has a separate grant-filtered panel for this API,
-including draft creation/editing and human lifecycle controls. Its focused UI
-contract and JavaScript syntax checks pass (6 tests); browser and live
-authenticated Gateway acceptance remain open ([evidence](builds/2026-10-16-recovery/operator-console-farm-activity-contract.json)).
+including draft creation/editing for all API-editable content and human
+lifecycle controls. Its focused UI contract and JavaScript syntax checks pass
+(6 tests); browser and live authenticated Gateway acceptance remain open
+([evidence](builds/2026-10-16-recovery/operator-console-farm-activity-contract.json)).
 
 The report review audience now records the owner's direction to involve
 liquidity providers, DAO members, guild members, and the wider community across

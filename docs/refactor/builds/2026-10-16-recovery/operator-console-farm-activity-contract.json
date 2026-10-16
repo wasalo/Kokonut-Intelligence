@@ -1,6 +1,6 @@
 {
   "status": "passed",
-  "checked_at": "2026-10-16T13:36:13Z",
+  "checked_at": "2026-10-16T13:42:05Z",
   "scope": "operator-console farm-activity operations panel source contract and inline JavaScript syntax",
   "command": "python3 -m pytest -q tests/test_operator_console_farm_activity.py",
   "result": {
@@ -10,6 +10,7 @@
       "console panel remains separate from Field Collector consent/review workflow",
       "location selection and list/detail reads follow explicit operator grants",
       "record and audit content use safe text rendering and no-store same-origin reads",
+      "draft creation/editing expose the full API content allowlist, with bounded plot/crop-cycle UUID, materials JSON, and evidence URL inputs",
       "draft creation/editing use same-origin CSRF-protected requests and correction reasons",
       "lifecycle buttons follow state-specific grants, confirmation, and reason requirements",
       "panel DOM IDs are unique and refresh, queue-detail, and create-detail flows are wired",

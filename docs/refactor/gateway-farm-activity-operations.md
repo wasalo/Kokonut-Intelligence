@@ -50,7 +50,9 @@ the ordinary or published-only API from the operator's location grants, shows
 detail and decision history only with a corresponding detail grant, and renders
 draft/lifecycle controls only for matching grants and record state. Mutations
 use same-origin credentials, `no-store`, and the console CSRF token. The
-Field Collector intake and consent workflow remains a separate panel.
+create/edit forms expose all Gateway-editable content fields, including
+location-checked plot/crop-cycle IDs, bounded materials JSON, and evidence URLs.
+The Field Collector intake and consent workflow remains a separate panel.
 
 ## Audit and database boundary
 

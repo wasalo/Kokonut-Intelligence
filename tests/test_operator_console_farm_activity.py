@@ -92,14 +92,29 @@ def test_draft_creation_and_correction_are_csrf_protected_and_audited():
     assert 'cache: "no-store"' in handlers
     assert '"X-CSRF-Token": csrf' in handlers
     assert "body: JSON.stringify({ content })" in handlers
+    assert 'farmActivityRecordFormContent("create")' in handlers
     assert "Private draft created with an append-only operator event." in handlers
     assert "farmActivityRecordEditLocations.has(locationId)" in editor
     assert '"PATCH"' in editor
     assert '`/operator/api/farm-activity-records/${encodeURIComponent(activity.id)}/draft?${params}`' in editor
     assert '"X-CSRF-Token": csrf' in editor
     assert "body: JSON.stringify({ content, reason })" in editor
+    assert 'farmActivityRecordFormContent("edit")' in editor
     assert 'if (!reason)' in editor
     assert "Correction saved with an append-only operator event." in editor
+
+    content_builder = _function(
+        source,
+        "function farmActivityRecordFormContent(mode)",
+        "async function refreshFarmActivityRecords()",
+    )
+    assert 'plot_id: optionalUuid("plot", "Plot ID")' in content_builder
+    assert 'crop_cycle_id: optionalUuid("crop-cycle", "Crop cycle ID")' in content_builder
+    assert "materials_used: materials" in content_builder
+    assert "evidence_urls: evidence" in content_builder
+    assert "JSON.parse(materialsText)" in content_builder
+    assert "evidence.length > 100" in content_builder
+    assert "url.length > 2048" in content_builder
 
 
 def test_lifecycle_buttons_follow_state_grants_and_human_reason_boundaries():
@@ -158,7 +173,15 @@ def test_panel_dom_ids_and_refresh_detail_actions_are_wired():
         "farm-activity-record-detail",
         "farm-activity-record-events",
         "farm-activity-record-create-form",
+        "farm-activity-record-create-plot",
+        "farm-activity-record-create-crop-cycle",
+        "farm-activity-record-create-materials",
+        "farm-activity-record-create-evidence",
         "farm-activity-record-edit-form",
+        "farm-activity-record-edit-plot",
+        "farm-activity-record-edit-crop-cycle",
+        "farm-activity-record-edit-materials",
+        "farm-activity-record-edit-evidence",
         "farm-activity-record-transition-actions",
     ):
         assert f'id="{element_id}"' in source

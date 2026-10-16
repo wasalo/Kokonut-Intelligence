@@ -199,12 +199,20 @@
             <input id="farm-activity-record-create-type" type="text" maxlength="100" required>
             <label for="farm-activity-record-create-date">Activity date</label>
             <input id="farm-activity-record-create-date" type="date" required>
+            <label for="farm-activity-record-create-plot">Plot ID (optional)</label>
+            <input id="farm-activity-record-create-plot" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+            <label for="farm-activity-record-create-crop-cycle">Crop cycle ID (optional)</label>
+            <input id="farm-activity-record-create-crop-cycle" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
             <label for="farm-activity-record-create-description">Description</label>
             <textarea id="farm-activity-record-create-description" maxlength="10000"></textarea>
             <label for="farm-activity-record-create-hours">Labor hours</label>
             <input id="farm-activity-record-create-hours" type="number" min="0" step="0.01">
             <label for="farm-activity-record-create-cost">Labor cost</label>
             <input id="farm-activity-record-create-cost" type="number" min="0" step="0.01">
+            <label for="farm-activity-record-create-materials">Materials used (JSON object or array)</label>
+            <textarea id="farm-activity-record-create-materials" maxlength="65536" spellcheck="false" placeholder='{"seed":"variety and amount"}'></textarea>
+            <label for="farm-activity-record-create-evidence">Evidence URLs (one per line)</label>
+            <textarea id="farm-activity-record-create-evidence" maxlength="204800"></textarea>
             <label for="farm-activity-record-create-notes">Notes</label>
             <textarea id="farm-activity-record-create-notes" maxlength="10000"></textarea>
             <button type="submit">Create private draft</button>
@@ -225,12 +233,20 @@
               <input id="farm-activity-record-edit-type" type="text" maxlength="100" required>
               <label for="farm-activity-record-edit-date">Activity date</label>
               <input id="farm-activity-record-edit-date" type="date" required>
+              <label for="farm-activity-record-edit-plot">Plot ID (optional)</label>
+              <input id="farm-activity-record-edit-plot" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+              <label for="farm-activity-record-edit-crop-cycle">Crop cycle ID (optional)</label>
+              <input id="farm-activity-record-edit-crop-cycle" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
               <label for="farm-activity-record-edit-description">Description</label>
               <textarea id="farm-activity-record-edit-description" maxlength="10000"></textarea>
               <label for="farm-activity-record-edit-hours">Labor hours</label>
               <input id="farm-activity-record-edit-hours" type="number" min="0" step="0.01">
               <label for="farm-activity-record-edit-cost">Labor cost</label>
               <input id="farm-activity-record-edit-cost" type="number" min="0" step="0.01">
+              <label for="farm-activity-record-edit-materials">Materials used (JSON object or array)</label>
+              <textarea id="farm-activity-record-edit-materials" maxlength="65536" spellcheck="false"></textarea>
+              <label for="farm-activity-record-edit-evidence">Evidence URLs (one per line)</label>
+              <textarea id="farm-activity-record-edit-evidence" maxlength="204800"></textarea>
               <label for="farm-activity-record-edit-notes">Notes</label>
               <textarea id="farm-activity-record-edit-notes" maxlength="10000"></textarea>
               <label for="farm-activity-record-edit-reason">Correction reason</label>
@@ -1001,6 +1017,46 @@
         return value === "" ? null : Number(value);
       }
 
+      function farmActivityRecordFormContent(mode) {
+        const field = (name) => document.querySelector(`#farm-activity-record-${mode}-${name}`).value;
+        const optionalUuid = (name, label) => {
+          const value = field(name).trim();
+          if (!value) return null;
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+            throw new Error(`${label} must be a UUID.`);
+          }
+          return value;
+        };
+        const materialsText = field("materials").trim();
+        let materials = null;
+        if (materialsText) {
+          try {
+            materials = JSON.parse(materialsText);
+          } catch {
+            throw new Error("Materials used must be valid JSON.");
+          }
+          if (materials === null || typeof materials !== "object") {
+            throw new Error("Materials used must be a JSON object or array.");
+          }
+        }
+        const evidence = field("evidence").split(/\r?\n/).map((url) => url.trim()).filter(Boolean);
+        if (evidence.length > 100 || evidence.some((url) => url.length > 2048)) {
+          throw new Error("Enter no more than 100 evidence URLs, each at most 2048 characters.");
+        }
+        return {
+          activity_type: field("type"),
+          activity_date: field("date"),
+          plot_id: optionalUuid("plot", "Plot ID"),
+          crop_cycle_id: optionalUuid("crop-cycle", "Crop cycle ID"),
+          description: field("description") || null,
+          labor_hours: farmActivityRecordContentValue(`#farm-activity-record-${mode}-hours`),
+          labor_cost: farmActivityRecordContentValue(`#farm-activity-record-${mode}-cost`),
+          materials_used: materials,
+          evidence_urls: evidence,
+          notes: field("notes") || null
+        };
+      }
+
       async function refreshFarmActivityRecords() {
         const locationId = farmActivityRecordLocation.value;
         farmActivityRecordQueue.replaceChildren();
@@ -1102,9 +1158,17 @@
           }
           document.querySelector("#farm-activity-record-edit-type").value = currentFarmActivityRecord.activity_type || "";
           document.querySelector("#farm-activity-record-edit-date").value = currentFarmActivityRecord.activity_date || "";
+          document.querySelector("#farm-activity-record-edit-plot").value = currentFarmActivityRecord.plot_id || "";
+          document.querySelector("#farm-activity-record-edit-crop-cycle").value = currentFarmActivityRecord.crop_cycle_id || "";
           document.querySelector("#farm-activity-record-edit-description").value = currentFarmActivityRecord.description || "";
           document.querySelector("#farm-activity-record-edit-hours").value = currentFarmActivityRecord.labor_hours ?? "";
           document.querySelector("#farm-activity-record-edit-cost").value = currentFarmActivityRecord.labor_cost ?? "";
+          document.querySelector("#farm-activity-record-edit-materials").value = currentFarmActivityRecord.materials_used
+            ? JSON.stringify(currentFarmActivityRecord.materials_used, null, 2)
+            : "";
+          document.querySelector("#farm-activity-record-edit-evidence").value = Array.isArray(currentFarmActivityRecord.evidence_urls)
+            ? currentFarmActivityRecord.evidence_urls.join("\n")
+            : "";
           document.querySelector("#farm-activity-record-edit-notes").value = currentFarmActivityRecord.notes || "";
           document.querySelector("#farm-activity-record-edit-reason").value = "";
           document.querySelector("#farm-activity-record-transition-reason").value = "";
@@ -1171,16 +1235,13 @@
           farmActivityRecordDetailStatus.textContent = "A correction reason is required.";
           return;
         }
-        const hours = farmActivityRecordContentValue("#farm-activity-record-edit-hours");
-        const cost = farmActivityRecordContentValue("#farm-activity-record-edit-cost");
-        const content = {
-          activity_type: document.querySelector("#farm-activity-record-edit-type").value,
-          activity_date: document.querySelector("#farm-activity-record-edit-date").value,
-          description: document.querySelector("#farm-activity-record-edit-description").value || null,
-          labor_hours: hours,
-          labor_cost: cost,
-          notes: document.querySelector("#farm-activity-record-edit-notes").value || null
-        };
+        let content;
+        try {
+          content = farmActivityRecordFormContent("edit");
+        } catch (error) {
+          farmActivityRecordDetailStatus.textContent = error.message;
+          return;
+        }
         const csrf = csrfToken();
         if (!csrf) {
           farmActivityRecordDetailStatus.textContent = "The security token is unavailable. Reload the console and try again.";
@@ -1465,14 +1526,13 @@
           farmActivityRecordStatus.textContent = "The security token is unavailable. Reload the console and try again.";
           return;
         }
-        const content = {
-          activity_type: document.querySelector("#farm-activity-record-create-type").value,
-          activity_date: document.querySelector("#farm-activity-record-create-date").value,
-          description: document.querySelector("#farm-activity-record-create-description").value || null,
-          labor_hours: farmActivityRecordContentValue("#farm-activity-record-create-hours"),
-          labor_cost: farmActivityRecordContentValue("#farm-activity-record-create-cost"),
-          notes: document.querySelector("#farm-activity-record-create-notes").value || null
-        };
+        let content;
+        try {
+          content = farmActivityRecordFormContent("create");
+        } catch (error) {
+          farmActivityRecordStatus.textContent = error.message;
+          return;
+        }
         const params = new URLSearchParams({ location_id: locationId });
         farmActivityRecordStatus.textContent = "Creating a private, attributed draft…";
         try {
