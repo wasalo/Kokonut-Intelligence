@@ -1,5 +1,17 @@
 # ARM64 Kernel application build evidence
 
+## Current source smoke — 16 October 2026
+
+On `04bf2a85dffd8f2b5a28051d940f8c9ed4407ec9`, Docker Buildx built the
+default Kernel target for `linux/arm64` and exported manifest
+`sha256:6b99f76d7190cc2078d15468974f7f89e0038652921f004711e85388e640bde5`.
+The loaded image reports `linux/arm64` and user `appuser`. Under QEMU, with
+networking disabled, the runtime CLI help and Kernel image-manifest command
+both completed successfully. The temporary image and archives were removed;
+no Compose service was started or replaced. This refreshes the code-only ARM64
+build/import smoke, not physical Pi, database, ingress, or provider acceptance
+([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
+
 ## Build and runtime status — 15 October 2026
 
 GitHub Actions run 287 built the default and ClickHouse-enabled application

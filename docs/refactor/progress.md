@@ -5970,3 +5970,14 @@ suite passes 52 tests and 49 subtests; Ruff, Python compilation, and
 not authenticated, periods remain unconfigured, and no policy or hold data
 was changed. No candidate/legacy database, provider, or Docker resource was
 accessed ([evidence](builds/2026-10-16-recovery/retention-audit-input-validation.json)).
+
+### Current-source ARM64 QEMU image smoke — 16 October 2026
+
+Built the default Kernel image for `linux/arm64` from the current pushed
+revision using the configured Buildx/QEMU builder. The exported image reports
+ARM64 and the configured non-root `appuser`; runtime CLI help and image
+manifest generation passed with networking disabled. Temporary image and
+archives were removed, and no Compose service was changed. This satisfies a
+current-source software build/import check only; Raspberry Pi hardware,
+database-backed startup, external ingress, and power-loss checks remain open
+([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).

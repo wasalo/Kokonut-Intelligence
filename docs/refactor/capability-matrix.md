@@ -128,6 +128,13 @@ it. Physical Pi performance is not claimed ([profile evidence](builds/2026-10-15
 [runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json);
 [deployment record](arm64-database.md)).
 
+**16 October 2026 current-source ARM64 smoke (CAP-047):** Buildx exported the
+default Kernel target for `linux/arm64` from the current source. The loaded
+image reported ARM64 and its configured non-root user; runtime CLI help and
+the image-manifest command passed in a network-disabled QEMU container. This
+does not claim Raspberry Pi performance, power-loss, storage, or full service
+acceptance ([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
+
 **15 October 2026 Kernel startup schema gate (CAP-047):** the default and OIDC
 image commands and both standard-profile roles now require complete schema
 readiness before spawning API or worker processes. A focused supervisor test
