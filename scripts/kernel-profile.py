@@ -11,6 +11,8 @@ ROOT = Path(__file__).resolve().parent.parent
 BASE = "docker-compose.kernel-candidate.yml"
 ARM64 = "docker-compose.kernel-arm64.yml"
 ARM64_STANDARD = "docker-compose.kernel-arm64-standard.yml"
+ARM64_PROXY = "docker-compose.kernel-arm64-proxy.yml"
+ARM64_ZITADEL = "docker-compose.kernel-arm64-zitadel.yml"
 PROFILES = {
     "minimal": [],
     "edge": ["docker-compose.kernel-edge.yml"],
@@ -43,8 +45,13 @@ def main() -> None:
     if is_arm64 and args.profile not in {"minimal", "edge", "standard"}:
         parser.error("ARM64 currently supports only minimal, edge, and standard profiles")
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
-    if is_arm64 and selected_optional:
-        parser.error("ARM64 optional service images remain unverified; select a base profile without optional overlays")
+    arm64_verified_optional = {"proxy", "oidc", "zitadel"}
+    unverified_arm64_optional = selected_optional - arm64_verified_optional
+    if is_arm64 and unverified_arm64_optional:
+        parser.error(
+            "ARM64 does not verify these optional overlays: "
+            + ", ".join(sorted(unverified_arm64_optional))
+        )
     if args.profile == "scale":
         parser.error("Scale is not implemented: shared rate limits and replica recovery acceptance are pending")
     if args.separate_workers and args.profile != "analytics":
@@ -68,6 +75,10 @@ def main() -> None:
         files.append(ARM64)
         if args.profile == "standard":
             files.append(ARM64_STANDARD)
+        if "proxy" in selected_optional:
+            files.append(ARM64_PROXY)
+        if args.zitadel:
+            files.append(ARM64_ZITADEL)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")

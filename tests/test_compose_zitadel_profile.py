@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -151,6 +152,56 @@ def test_zitadel_planner_selects_only_the_required_optional_overlays() -> None:
     assert "docker-compose.kernel-zitadel.yml" in result.stdout
     assert "docker-compose.kernel-analytics.yml" not in result.stdout
     assert "docker-compose.kernel-metabase.yml" not in result.stdout
+
+
+def test_standard_zitadel_arm64_planner_command_resolves_all_services_for_arm64() -> None:
+    planned = subprocess.run(
+        [
+            sys.executable,
+            str(PLANNER),
+            "standard",
+            "--target-platform",
+            "linux/arm64",
+            "--zitadel",
+            "--action",
+            "config",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert planned.returncode == 0, planned.stderr
+
+    command = shlex.split(planned.stdout)
+    assert command[-2:] == ["config", "--quiet"]
+    command[-2:] = ["config", "--format", "json"]
+    rendered = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=TEST_ENV,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert rendered.returncode == 0, rendered.stderr
+    services = json.loads(rendered.stdout)["services"]
+
+    assert set(services) == {
+        "app",
+        "database",
+        "worker",
+        "proxy",
+        "zitadel-db",
+        "zitadel-api",
+        "zitadel-login",
+    }
+    assert all(service.get("platform") == "linux/arm64" for service in services.values())
+    assert services["app"]["build"]["target"] == "oidc"
+    assert services["zitadel-db"]["image"] == (
+        "postgres:17.10-alpine@sha256:"
+        "742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193"
+    )
 
 
 def test_database_bootstrap_creates_only_a_bounded_login_role_and_owned_database() -> None:

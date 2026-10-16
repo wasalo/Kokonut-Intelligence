@@ -5988,3 +5988,19 @@ network-disabled QEMU container passed runtime CLI help and OIDC image-manifest
 generation. The temporary image and archive were removed. This verifies the
 Kernel OIDC application target only; ZITADEL image manifests and full login
 acceptance remain open ([evidence](builds/2026-10-16-recovery/kernel-arm64-oidc-smoke.json)).
+
+### Self-hosted ZITADEL ARM64 profile selection — 16 October 2026
+
+Read-only registry inspection verified the digest-pinned ZITADEL API, Login,
+identity PostgreSQL, and Caddy defaults all provide ARM64 manifests. The
+identity PostgreSQL default is now digest-pinned; dedicated Compose overlays
+force ARM64 for the proxy and all three provider services. The planner permits
+verified proxy/OIDC/ZITADEL combinations on ARM64 while keeping unverified
+optional services and analytics blocked. A merged standard+ZITADEL config
+check confirms `app`, database, worker, proxy, and the three identity services
+resolve to ARM64 using process-only placeholders. Twenty-two profile and
+Compose tests, Ruff,
+compilation, and diff validation pass. No provider container or credential was
+used; hostname selection, live login, browser flow, and real resource behavior
+remain open ([evidence](builds/2026-10-16-recovery/zitadel-arm64-profile.json);
+[deployment plan](zitadel-provider.md)).

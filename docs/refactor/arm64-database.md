@@ -1,6 +1,6 @@
 # ARM64 Kernel candidate profile
 
-## Current planner status — 15 October 2026
+## Current planner status — 16 October 2026
 
 The base candidate Compose file retains its AMD64-only PostGIS digest for the
 default profile. The planner now selects a separate ARM64 overlay that builds
@@ -8,9 +8,10 @@ PostgreSQL 16/PostGIS 3.6.4 from the locked multi-platform base and package
 versions, pins the app and database build/runtime platforms to `linux/arm64`,
 and uses project `kokonut-kernel-candidate-arm64`. The separate Compose project
 creates a separate database volume, so an AMD64 data volume is not reused.
-Minimal, edge, and standard selections are supported; analytics and optional
-service images are rejected until their manifests are verified. Standard adds
-an ARM64 worker override.
+Minimal, edge, and standard selections are supported; analytics and unverified
+optional service images are rejected. The HTTPS proxy, Gateway OIDC app, and
+self-hosted ZITADEL provider are now architecture-verified exceptions with
+explicit ARM64 overlays. Standard adds an ARM64 worker override.
 
 The planner tests pass, and Compose merged configuration passed for minimal,
 edge, and standard with the expected ARM64 app/database/worker settings and an
@@ -75,7 +76,9 @@ At that date, the primary `docker-compose.kernel-candidate.yml` still used the p
 AMD64-only `postgis/postgis:16-3.4` digest above when selected alone. The
 profile planner appends the ARM64 custom-image override for minimal, edge, and
 standard, and uses a separate project from the AMD64 candidate. Analytics and
-optional service images remain blocked for ARM64. No existing candidate or
+unverified optional service images remain blocked for ARM64. The separately
+verified HTTPS/OIDC/ZITADEL profile is now an explicit exception with its own
+ARM64 overlays ([manifest/config evidence](builds/2026-10-16-recovery/zitadel-arm64-profile.json)). No existing candidate or
 legacy data volume is attached to the custom image. The local application build
 record at that date was for commit `c2a5354`: AMD64 built, but ARM64 dependency resolution failed after
 the package host timed out, so the PostGIS target was not attempted. CI run 287
@@ -95,11 +98,12 @@ short health/restart checks are recorded above. Keep the ARM64 volume separate
 from existing candidate or legacy data directories. Never upgrade extensions
 or database versions implicitly as part of architecture selection.
 
-Application ARM64 wheels/builds, hardware memory/CPU/storage measurements,
-offline recovery, and 24-hour operation remain separate gates. Optional MQTT,
-gRPC, ClickHouse, and proxy image platforms also require their own evidence.
-Keep the profile limited to the verified ARM64 image path; build success alone
-does not certify current-schema runtime or physical hardware.
+Application ARM64 builds now pass for the default and OIDC targets. Hardware
+memory/CPU/storage measurements, offline recovery, and 24-hour operation remain
+separate gates. MQTT, gRPC, and ClickHouse still need their own ARM64 image and
+profile evidence. Proxy and ZITADEL have manifest/config evidence, but not live
+service or identity acceptance. Keep the profile limited to verified ARM64
+image paths; build success alone does not certify physical hardware.
 
 At initial registry inspection, no runtime tests, image builds, migrations,
 hardware runs, or data changes had been performed. The later current-state

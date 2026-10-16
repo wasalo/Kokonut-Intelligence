@@ -1,0 +1,10 @@
+# Select the verified ARM64 manifests for the self-hosted identity services.
+services:
+  zitadel-db:
+    platform: linux/arm64
+
+  zitadel-api:
+    platform: linux/arm64
+
+  zitadel-login:
+    platform: linux/arm64

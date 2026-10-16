@@ -87,6 +87,28 @@ def test_zitadel_option_does_not_duplicate_explicit_proxy_or_oidc_overlays() -> 
     assert result.stdout.count("docker-compose.kernel-zitadel.yml") == 1
 
 
+def test_arm64_zitadel_profile_selects_pinned_architecture_overlays() -> None:
+    result = _run_planner("minimal", "--target-platform", "linux/arm64", "--zitadel")
+
+    assert result.returncode == 0
+    assert "docker-compose.kernel-arm64.yml" in result.stdout
+    assert "docker-compose.kernel-arm64-proxy.yml" in result.stdout
+    assert "docker-compose.kernel-arm64-zitadel.yml" in result.stdout
+    assert result.stdout.index("docker-compose.kernel-zitadel.yml") < result.stdout.index(
+        "docker-compose.kernel-arm64-zitadel.yml"
+    )
+
+
+def test_arm64_external_oidc_requires_verified_proxy_and_selects_platform_overlay() -> None:
+    result = _run_planner(
+        "standard", "--target-platform", "linux/arm64", "--proxy", "--oidc",
+    )
+
+    assert result.returncode == 0
+    assert "docker-compose.kernel-arm64-proxy.yml" in result.stdout
+    assert "docker-compose.kernel-arm64-zitadel.yml" not in result.stdout
+
+
 def test_directus_option_selects_only_the_optional_directus_overlay() -> None:
     result = _run_planner("minimal", "--directus")
 
@@ -100,7 +122,7 @@ def test_directus_option_is_rejected_for_unverified_arm64_optional_images() -> N
     result = _run_planner("minimal", "--target-platform", "linux/arm64", "--directus")
 
     assert result.returncode != 0
-    assert "optional service images remain unverified" in result.stderr
+    assert "ARM64 does not verify these optional overlays: directus" in result.stderr
 
 
 def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:
@@ -123,12 +145,25 @@ def test_standard_arm64_profile_selects_the_arm64_worker_override() -> None:
 
 def test_arm64_planner_rejects_unverified_analytics_and_optional_images() -> None:
     analytics = _run_planner("analytics", "--target-platform", "linux/arm64")
-    proxy = _run_planner("minimal", "--target-platform", "linux/arm64", "--proxy")
+    grpc = _run_planner("minimal", "--target-platform", "linux/arm64", "--grpc")
 
     assert analytics.returncode != 0
     assert "only minimal, edge, and standard" in analytics.stderr
-    assert proxy.returncode != 0
-    assert "optional service images remain unverified" in proxy.stderr
+    assert grpc.returncode != 0
+    assert "ARM64 does not verify these optional overlays: grpc" in grpc.stderr
+
+
+def test_arm64_identity_overlays_pin_each_supported_service_architecture() -> None:
+    proxy = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-proxy.yml").read_text())
+    zitadel = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-zitadel.yml").read_text())
+    provider = yaml.safe_load((ROOT / "docker-compose.kernel-zitadel.yml").read_text())
+
+    assert proxy["services"]["proxy"]["platform"] == "linux/arm64"
+    assert set(zitadel["services"]) == {"zitadel-db", "zitadel-api", "zitadel-login"}
+    assert all(service["platform"] == "linux/arm64" for service in zitadel["services"].values())
+    assert "postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193" in provider[
+        "services"
+    ]["zitadel-db"]["image"]
 
 
 def test_arm64_overlay_pins_platform_package_versions_and_worker_profile() -> None:
