@@ -106,8 +106,8 @@ runtime SQL inventory now covers 806 service source files. A follow-up worker
 inventory refresh after dynamic-retention, projection, and remote-sensing
 contracts now records 257 SQL sites across 20 roots, including four
 event-retention queries. The source-only JobSpec inventory now distinguishes
-11 accepted default argument lists, three validated per-schedule location
-inputs for climate, weather, and credit adjustment, and the still-missing
+10 accepted default argument lists, four validated per-schedule location
+inputs for climate, weather, metrics, and credit adjustment, and the still-missing
 recurring sensor source contract. External-provider operations remain limited to explicit
 bounded contracts. No provider, database, Prefect server, or schedule was accessed
 for this source refresh. Live retry/recovery, provider outcomes, and
@@ -659,7 +659,7 @@ dispatcher, disabled schedule planner, and database-driven command contract.
 The scheduler contract rejects missing scope before process creation, and the
 CLI rejects it before opening a database connection. Ninety-three focused
 command/contract checks pass; the generated JobSpec inventory now distinguishes
-11 default jobs, three required-location jobs, and one source-less sensor job.
+10 default jobs, four required-location jobs, and one source-less sensor job.
 This remains a source contract: workers inherit the shared runtime identity
 without signed tenant context, RLS remains blocked, and no MAN-CAP status or
 acceptance count changes ([evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json);
@@ -670,6 +670,18 @@ The read-only check reads verified/published credit and carbon-balance inputs
 and performs no writes. No job was registered or activated. MAN-CAP-020 credit
 custody/retirement parity, worker identity, and tenant context remain unaccepted
 ([historical command evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json)).
+
+**16 October 2026 per-location metric schedule contract (CAP-040 / CAP-047):**
+the native scheduled `metrics` JobSpec now uses `--compute --all` with one
+required `--location-id`; its command contract rejects `--all-locations`.
+Disabled plan generation requires one UUID. The optional Prefect adapter
+preserves its prior aggregate intent by invoking the scoped job once for each
+active location assigned to `kokonut-network`; the weather, credit, and climate
+adapters use the same location selector. Synthetic tests cover the owner filter,
+empty inventory, one-location dispatch, and schedule planning. The selection is
+code-level scope only: workers have no signed tenant context, RLS remains
+blocked, and none of the 66 manual capability checks is accepted ([evidence](builds/2026-10-16-recovery/prefect-location-scoped-job-fanout.json);
+[schedule inventory](schedule-ownership-inventory.md)).
 
 **14 October 2026 worker boundary update:** a machine-readable inventory now
 matches the scheduler and event-handler allowlists and records their

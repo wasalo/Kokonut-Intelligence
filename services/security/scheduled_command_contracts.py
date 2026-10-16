@@ -51,7 +51,6 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--compute": None,
         "--metric": "metric_key",
         "--all": None,
-        "--all-locations": None,
         "--location-id": "uuid",
         "--period-start": "date",
         "--period-end": "date",
@@ -196,16 +195,12 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             return
         if "--compute" not in options:
             raise _reject("scheduled metric operation requires --compute")
-        all_locations = "--all-locations" in options
         all_metrics = "--all" in options
         one_metric = "--metric" in options
-        if sum((all_locations, all_metrics, one_metric)) != 1:
-            raise _reject("compute requires exactly one of --all-locations, --all, or --metric")
-        if all_locations:
-            if "--location-id" in options:
-                raise _reject("--all-locations cannot be combined with --location-id")
-        elif "--location-id" not in options:
-            raise _reject("single-location metric computation requires --location-id")
+        if sum((all_metrics, one_metric)) != 1:
+            raise _reject("scheduled compute requires exactly one of --all or --metric")
+        if "--location-id" not in options:
+            raise _reject("scheduled metric computation requires one explicit location")
         if all_metrics and one_metric:
             raise _reject("--all and --metric are mutually exclusive")
         if "--period-start" in options and "--period-end" in options:

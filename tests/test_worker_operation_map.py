@@ -77,6 +77,8 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
 
     assert "public.noi_snapshot" in metrics["writes"]
     assert "public.v_crop_cycle_noi" in metrics["reads"]
+    assert "requires exactly one --location-id" in metrics["scope"]
+    assert "--all-locations mode is rejected" in metrics["scope"]
     assert "public.notification_outbox" in events["reads"]
     assert "public.notification_outbox_attempt" in events["writes"]
     assert set(credit_adjustments["reads"]) == {

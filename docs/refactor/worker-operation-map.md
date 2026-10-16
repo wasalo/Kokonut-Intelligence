@@ -138,6 +138,12 @@ data effects, and an idempotency/retry note.
   establish least-privilege grants or tenant context. The freshness operation
   also maps all seven fixed source-table identifiers to required reads, with a
   regression test tying that list to the code map.
+- Scheduled metric computation uses `--compute --all` or a single
+  `--metric` with one required `--location-id`. The scheduler rejects the
+  service CLI's `--all-locations` mode. The optional Prefect adapter preserves
+  its all-location behavior by running one bounded catalog command for each
+  active location directly assigned to `kokonut-network`; the lookup is
+  read-only and does not establish signed worker tenant context.
 - The climate worker entry names all five provider-output relations and records
   that `--worldclim` is a latitude proxy, while four other branches call Google
   Earth Engine. The proxy upsert and location fallback have focused source,
@@ -146,12 +152,15 @@ data effects, and an idempotency/retry note.
 - The carbon-credit job's `credit_adjustment` JobSpec uses a dedicated
   `services.analytics.carbon_credit_adjustment_check` entrypoint and requires
   one explicit `--location-id` at the CLI, schedule-plan, and scheduler-command
-  boundaries. Unscoped cross-location scans fail before database access. It runs inside a database-enforced read-only
-  transaction and only calls the recompute-and-report path. The interactive
+  boundaries. Unscoped cross-location scans fail before database access. It
+  runs inside a database-enforced read-only transaction and only calls the
+  recompute-and-report path. The interactive
   credit-management module is no longer scheduler-allowlisted, so its issuance,
-  mutation, retirement, and review paths do not enter the worker graph. The job
-  does not register or enable the Prefect flow; cadence, tenant identity, output
-  handling, and owner acceptance remain open.
+  mutation, retirement, and review paths do not enter the worker graph. The
+  optional Prefect flow fans out only over active locations assigned to
+  `kokonut-network`; native plans remain one disabled task per location.
+  Cadence, signed worker identity, output handling, and owner acceptance remain
+  open.
 - The legacy schedule seed contains known mismatches: the sensor task has no
   declared input source, and its empty argument list does not create a sensor
   reading; the climate CLI requires one `--location-id`, while the old seed

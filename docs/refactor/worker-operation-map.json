@@ -81,7 +81,7 @@
     },
     {
       "module": "services.metrics",
-      "scope": "Metric compute supports one location or an --all-locations fanout; the separately contracted NOI snapshot reconciliation is global.",
+      "scope": "Scheduled metric compute requires exactly one --location-id and uses --all or --metric; its --all-locations mode is rejected by the scheduler contract. The optional Prefect adapter fans out over active locations directly assigned to Kokonut Network. The separately contracted NOI snapshot reconciliation is global.",
       "reads": [
         "public.agent_task",
         "public.ai_summary",

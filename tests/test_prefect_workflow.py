@@ -88,8 +88,42 @@ def test_metrics_flow_wraps_cli() -> None:
 
     spec = JOBS["metrics"]
     assert spec.module == "services.metrics"
-    assert spec.arguments == ("--compute", "--all-locations")
+    assert spec.arguments == ("--compute", "--all")
+    assert spec.required_inputs == ("location_id",)
     assert "--verify" not in spec.arguments
+
+
+def test_metrics_and_credit_prefect_flows_preserve_owner_scoped_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.credit_adjustment import credit_adjustment_flow
+    from services.flows.metrics import metrics_computation_flow
+
+    with (
+        patch("services.flows.metrics.run_job_for_kokonut_network_locations", return_value={"status": "success"}) as metrics_fanout,
+        patch("services.flows.credit_adjustment.run_job_for_kokonut_network_locations", return_value={"status": "success"}) as credit_fanout,
+    ):
+        metrics_computation_flow.fn()
+        credit_adjustment_flow.fn()
+
+    metrics_fanout.assert_called_once_with("metrics")
+    credit_fanout.assert_called_once_with("credit_adjustment")
+
+
+def test_pipeline_dispatch_routes_required_location_jobs_through_owner_fanout() -> None:
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.pipelines.run_job_for_kokonut_network_locations", return_value={"status": "success"}) as fanout,
+        patch("services.flows.pipelines.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("weather")
+
+    assert result == {"status": "success"}
+    fanout.assert_called_once_with("weather")
+    run_job.assert_not_called()
 
 
 def test_pipeline_has_dependency_chains() -> None:

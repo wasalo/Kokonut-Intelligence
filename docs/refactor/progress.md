@@ -36,13 +36,17 @@ were not accessed. This does not establish worker tenant context or RLS readines
 The local follow-up now requires a single location for each credit-adjustment
 run. The CLI, shared job dispatcher, disabled plan builder, and database-driven
 command contract reject missing scope before a connection or child process is
-created. Ninety-three focused command and contract checks pass; the static
-JobSpec inventory records 11 default jobs, three jobs with validated required
+created. The native metric JobSpec is now also one-location-per-task, rejecting
+the legacy global `--all-locations` scheduler command. The Prefect adapter keeps
+its aggregate intent by fanning out over active locations assigned to the
+owner-confirmed Kokonut Network organization; weather, credit, and climate use
+the same selector. The 126-test scheduler/Prefect slice passes. The static
+JobSpec inventory records 10 default jobs, four jobs with validated required
 location inputs, and one source-less sensor job. No persisted task was read or
 changed. Existing task rows need reconciliation before activation, and the
 shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);
 [operation map](worker-operation-map.json);
-[evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json)).
+[evidence](builds/2026-10-16-recovery/prefect-location-scoped-job-fanout.json)).
 
 ### KGP indexer PostgreSQL restart recovery — 16 October 2026
 

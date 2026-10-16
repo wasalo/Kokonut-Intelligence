@@ -1,0 +1,32 @@
+{
+  "checked_at_utc": "2026-10-16T07:17:19Z",
+  "source_revision_before_batch_commit": "a146188",
+  "working_tree_changes_included": true,
+  "scope": "Source and focused test acceptance for preserving optional Prefect fan-out while requiring one location per native scheduled job. No candidate or legacy database, persisted schedule, Prefect server, external provider, or secret was accessed.",
+  "changes": {
+    "location_selector": "Uses a read-only query for active locations directly assigned to active organization org_key kokonut-network",
+    "job_fanout": "Dispatches each location-required JobSpec once with one validated UUID; an empty owner inventory produces a no-work skipped result",
+    "native_metrics_contract": "Metrics schedules use --compute --all --location-id; database-driven --all-locations is rejected; direct metrics CLI aggregate mode remains unchanged",
+    "prefect_adapters": [
+      "weather",
+      "metrics",
+      "credit_adjustment",
+      "climate",
+      "full-pipeline catalog dispatch"
+    ],
+    "schedule_policy": "Native plans remain one disabled task per location; no schedule was registered or activated"
+  },
+  "verification": {
+    "pytest": "126 passed",
+    "ruff": "passed for changed Python files",
+    "python_compile": "passed for changed service modules",
+    "worker_job_contract_inventory": "passed; 15 jobs classified as 10 defaults, four required-location jobs, and one source-less sensor job",
+    "capability_matrix": "passed; 66 rows and no MAN-CAP acceptance",
+    "git_diff_check": "passed"
+  },
+  "limits": [
+    "The organization filter is source-level scope only; there is no signed worker tenant context or database-enforced authorization, so application-table RLS remains blocked.",
+    "No persisted tasks or external Prefect deployments were inspected or reconciled. Existing global metrics seed rows fail the new native scheduler contract and require reviewed per-location replacement before activation.",
+    "No populated metric/weather/climate/credit output parity or external provider behavior was exercised."
+  ]
+}

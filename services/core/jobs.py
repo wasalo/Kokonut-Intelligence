@@ -49,7 +49,15 @@ JOBS = MappingProxyType(
         "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
         "anomaly": JobSpec("services.ingestion.anomaly_detector", (), 300, 2, 300, "Anomaly detection"),
         "freshness": JobSpec("services.ingestion.data_freshness", ("--check",), 120, 2, 120, "Freshness check"),
-        "metrics": JobSpec("services.metrics", ("--compute", "--all-locations"), 1800, 2, 600, "Metrics computation"),
+        "metrics": JobSpec(
+            "services.metrics",
+            ("--compute", "--all"),
+            1800,
+            2,
+            600,
+            "Metrics computation",
+            required_inputs=("location_id",),
+        ),
         "noi_snapshots": JobSpec(
             "services.metrics", ("--reconcile-noi-snapshots",), 300, 2, 600, "Crop-cycle NOI snapshot reconciliation"
         ),
@@ -128,3 +136,45 @@ def run_job(job_id: str, *, location_id: str | None = None) -> dict[str, str]:
     if result.returncode != 0:
         raise JobFailed(spec.label, result)
     return {"status": "success", "output": result.stdout[-500:]}
+
+
+def kokonut_network_location_ids() -> list[str]:
+    """List active locations assigned to the owner-selected Kokonut Network org."""
+    from services.common.database import get_connection
+
+    with get_connection(readonly=True) as connection:
+        rows = connection.execute(
+            """
+            SELECT location.id
+            FROM location
+            JOIN organization ON organization.id = location.organization_id
+            WHERE location.status = 'active'
+              AND organization.status = 'active'
+              AND organization.org_key = :org_key
+            ORDER BY location.id
+            """,
+            {"org_key": "kokonut-network"},
+        ).all()
+    return [str(row["id"]) for row in rows]
+
+
+def run_job_for_kokonut_network_locations(job_id: str) -> dict:
+    """Run a location-scoped catalog job for active Kokonut Network locations.
+
+    Native scheduled commands still take one explicit location per task. This
+    helper preserves the optional Prefect adapter's historical fan-out without
+    selecting unassigned or other-organization locations.
+    """
+    spec = JOBS[job_id]
+    if "location_id" not in spec.required_inputs:
+        raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not location-scoped")
+
+    location_ids = kokonut_network_location_ids()
+    if not location_ids:
+        return {"status": "skipped", "reason": "No active Kokonut Network locations are assigned"}
+
+    results = [
+        {"location_id": location_id, **run_job(job_id, location_id=location_id)}
+        for location_id in location_ids
+    ]
+    return {"status": "success", "locations_processed": len(results), "results": results}

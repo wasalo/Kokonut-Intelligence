@@ -32,7 +32,8 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.ingestion.gnosis_indexer", ["--from-block", "1", "--to-block", "2"]),
         ("services.ingestion.anomaly_detector", []),
         ("services.ingestion.anomaly_detector", ["--baseline-check"]),
-        ("services.metrics", ["--compute", "--all-locations"]),
+        ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
+        ("services.metrics", ["--compute", "--metric", "value_flowed", "--location-id", str(uuid4())]),
         ("services.metrics", ["--reconcile-noi-snapshots"]),
         ("services.ingestion.data_freshness", ["--check"]),
         ("services.export.dataset_refresh", ["--all"]),
@@ -72,6 +73,8 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.rpc_indexer", ["--wallet", "not-an-address"]),
         ("services.ingestion.gnosis_indexer", ["--from-block", "10", "--to-block", "9"]),
         ("services.metrics", ["--verify-value", str(uuid4()), "--verified-by", str(uuid4())]),
+        ("services.metrics", ["--compute", "--all-locations"]),
+        ("services.metrics", ["--compute", "--all"]),
         ("services.metrics", ["--compute", "--all-locations", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--metric", "value_flowed"]),
         ("services.events", ["--cleanup"]),
@@ -125,6 +128,21 @@ def test_credit_adjustment_schedule_plan_requires_one_location():
     plan = build_job_plan("credit_adjustment", "daily", location_id=location_id)
     task = plan["scheduled_task"]
     assert task["command_args"] == ["--location-id", location_id]
+    assert not task["is_enabled"]
+
+
+def test_metric_compute_schedule_plan_requires_one_location():
+    job = JOBS["metrics"]
+    assert job.arguments == ("--compute", "--all")
+    assert job.required_inputs == ("location_id",)
+
+    with pytest.raises(ValueError, match="schedule planning requires one location"):
+        build_job_plan("metrics", "daily")
+
+    location_id = str(uuid4())
+    plan = build_job_plan("metrics", "daily", location_id=location_id)
+    task = plan["scheduled_task"]
+    assert task["command_args"] == ["--compute", "--all", "--location-id", location_id]
     assert not task["is_enabled"]
 
 

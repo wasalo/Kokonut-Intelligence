@@ -4,7 +4,14 @@ Defines the orchestration DAG for all Kokonut Intelligence workflows.
 """
 
 from services.core.adapters.prefect import flow, task
-from services.core.jobs import JOBS, run_job
+from services.core.jobs import JOBS, run_job, run_job_for_kokonut_network_locations
+
+
+def _dispatch_catalog_job(job_id):
+    """Fan out location-required jobs through the confirmed operating org."""
+    if "location_id" in JOBS[job_id].required_inputs:
+        return run_job_for_kokonut_network_locations(job_id)
+    return run_job(job_id)
 
 
 def _submit_job(job_id):
@@ -13,7 +20,7 @@ def _submit_job(job_id):
     operation = task(
         name=job_id, retries=spec.retries,
         retry_delay_seconds=spec.retry_delay_seconds,
-    )(run_job)
+    )(_dispatch_catalog_job)
     return operation.submit(job_id)
 
 

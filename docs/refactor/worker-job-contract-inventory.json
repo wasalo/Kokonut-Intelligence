@@ -6,8 +6,8 @@
     "catalog_jobs": 15,
     "allowlisted_modules": 15,
     "outcomes": {
-      "default_arguments_accepted": 11,
-      "required_runtime_inputs_validated": 3,
+      "default_arguments_accepted": 10,
+      "required_runtime_inputs_validated": 4,
       "source_contract_missing": 1
     }
   },
@@ -84,9 +84,11 @@
       "job": "metrics",
       "module": "services.metrics",
       "argument_count": 2,
-      "required_inputs": [],
-      "status": "default_arguments_accepted",
-      "reason": null
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
     },
     {
       "job": "noi_snapshots",

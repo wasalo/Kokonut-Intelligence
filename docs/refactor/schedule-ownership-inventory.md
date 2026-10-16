@@ -1,6 +1,6 @@
 # Batch 4 job schedule ownership and cutover inventory
 
-**Reviewed:** 15 October 2026
+**Reviewed:** 16 October 2026
 **Status:** Source-level inventory and target ownership policy; no schedule was
 registered, enabled, paused, or executed by this review.
 
@@ -27,6 +27,12 @@ This seed is not applied by normal bootstrap; do not add or manually apply it to
 a Kernel target without first disabling its schedules and reviewing their
 contracts. Reconcile live provider state immediately before any cutover.
 
+The legacy metrics row in seed 050 uses `--compute --all-locations`; the
+database-driven Kernel command contract now rejects that cross-location mode.
+Translate it to one disabled location-scoped task per approved location only
+after reconciling active schedules and outputs. Do not edit or apply the legacy
+seed as part of that translation.
+
 A read-only status query inside the healthy local candidate app on 12 October
 local time (13 October UTC) reported zero enabled, disabled, running, or failing
 native scheduler tasks. The candidate project has no Prefect container. This
@@ -45,10 +51,27 @@ state remains unknown.
 | Declared owner | UTC schedule | Work declared by the flow | Cutover/replay notes |
 | --- | --- | --- | --- |
 | Prefect `scheduled-hourly` | `0 * * * *` | sensors, anomaly detection, freshness | Sensor's shared job has no recurring source contract. The CLI now rejects missing input and the shared job runner blocks before subprocess launch; do not transfer hourly sensor scheduling until a real source is defined. |
-| Prefect `scheduled-every-6h` | `0 */6 * * *` | weather, dashboard refresh, remote-sensing flow | Remote sensing has its own durable job claims and provider-level outcomes. Keep one outer trigger and let the internal worker own child attempts; inspect `no_data`, skipped, retryable, and terminal outcomes before replay. |
-| Prefect `scheduled-daily` | `0 6 * * *` | market data, metrics, credit-adjustment check | Metrics create draft, unverified values. The old cron/seed cadence is every four hours, so reconcile the intended cadence and existing output before cutover. Credit adjustment is now allowlisted only for its read-only `--check-adjustments` operation; cadence, output handling, tenant scope, and accountable operator still need review before native registration. |
-| Prefect `scheduled-weekly` | `0 3 * * 0` | climate-data flow | The flow fans out across active locations; each invocation of the climate CLI uses `--all` to select datasets and a required `--location-id`. Native planning currently describes one location per scheduled task, so cutover must preserve the fan-out without duplicate all-location runs. The flow docstring mentions ML retraining, but the flow body does not run it. |
+| Prefect `scheduled-every-6h` | `0 */6 * * *` | weather, dashboard refresh, remote-sensing flow | The weather adapter now fans out per location assigned to the owner-confirmed Kokonut Network organization. Remote sensing has its own durable job claims and provider-level outcomes. Keep one outer trigger and let the internal worker own child attempts; inspect `no_data`, skipped, retryable, and terminal outcomes before replay. |
+| Prefect `scheduled-daily` | `0 6 * * *` | market data, metrics, credit-adjustment check | Metrics create draft, unverified values; metrics and credit checks now fan out one location at a time over active Kokonut Network locations. The old metrics cron/seed cadence is every four hours and its global `--all-locations` seed command is rejected by the Kernel scheduler contract. Reconcile cadence and existing output before cutover. Credit checks use the dedicated read-only entrypoint; output handling, signed worker context, and accountable operator remain open. |
+| Prefect `scheduled-weekly` | `0 3 * * 0` | climate-data flow | The flow now fans out over active locations assigned to Kokonut Network; each climate invocation uses `--all` to select datasets and a required `--location-id`. Native plans remain one location per scheduled task. The flow docstring mentions ML retraining, but the flow body does not run it. |
 | Prefect `full-pipeline` | Manual only | ingestion, monitoring, analytics, then remote sensing | Manual runs can overlap scheduled deployments. Require an operator to check current run state or route through a single guarded workflow before enabling native schedules. |
+
+## Owner-scoped Prefect fan-out
+
+The optional Prefect adapter preserves all-location intent for
+location-required catalog jobs by selecting active `location` rows whose
+`organization_id` resolves to the active organization with key
+`kokonut-network`, then invoking each job once with that location UUID. The
+lookup uses a read-only transaction and excludes unassigned or other-organization
+locations. Weather, metrics, credit-adjustment, and climate adapters use this
+filter. A caller may still request one explicit location on weather, metrics,
+or credit-adjustment flows; climate refresh remains sequential.
+
+This selection is code-level scope based on the owner's mapping of Genesis,
+Seeds, Adelphi, Terra Viva, and V1 to Kokonut Network. It is not signed worker
+tenant context or a database authorization boundary. No scheduled task or
+Prefect deployment was inspected or changed, and application-table RLS remains
+blocked until worker-specific identity and grants are implemented.
 
 The deployment file does not declare schedules for EAS, RPC, Gnosis indexing,
 NOI snapshots, or ClickHouse projections. The full pipeline includes EAS, RPC,
@@ -65,7 +88,7 @@ a job is currently running.
 
 | JobSpec | Current source declarations | Target owner and cutover/replay policy |
 | --- | --- | --- |
-| `weather` | Prefect every six hours; deprecated cron and seed also say every six hours | Native scheduler in the minimal profile after provider/checkpoint idempotency review. Do not auto-catch-up missed windows; reconcile the source watermark and duplicate keys first. |
+| `weather` | Prefect every six hours; deprecated cron and seed also say every six hours | The Prefect adapter now fans out over active locations assigned to Kokonut Network; native scheduler uses one explicit location per task after provider/checkpoint idempotency review. Do not auto-catch-up missed windows; reconcile the source watermark and duplicate keys first. |
 | `sensors` | Prefect hourly; deprecated cron and seed say every five minutes | No transfer yet. The CLI now rejects missing/contradictory input and the shared JobSpec rejects the source-less recurring call before subprocess launch; the old false-success path is closed. Define the actual sensor source/input contract before scheduling. Replay only by sensor identity and source timestamp after duplicate handling is verified ([evidence](builds/2026-10-15-recovery/sensor-ingester-explicit-input-contract.json)). |
 | `market_data` | Prefect daily at 06:00 UTC; deprecated cron and seed match | Native scheduler after source-period upsert and provider-failure behavior are verified. Reconcile the requested periods before replay; no blind backlog. |
 | `eas` | Deprecated cron and seed every 15 minutes; EAS flow is included in the manual full ingestion pipeline | Native scheduler only after cursor/finality and duplicate-attestation handling are verified. Resume from the persisted indexed block; inspect reorg and duplicate behavior before replay. |
@@ -73,12 +96,12 @@ a job is currently running.
 | `gnosis` | Deprecated cron and seed every two hours; Gnosis flow is included in the manual full ingestion pipeline | Native scheduler after chain cursor and reorg recovery are verified. Replay from the canonical checkpoint after reconciling affected indexed rows. |
 | `anomaly` | Prefect hourly; deprecated cron and seed hourly | Native scheduler after alert/claim/outbox writes are shown idempotent per source window. Retry the same window only; inspect emitted alerts and actuation approvals first. |
 | `freshness` | Prefect hourly; deprecated cron and seed hourly | Native scheduler after its read/alert effects are classified. Recompute the missed interval only if any emitted notification can be deduplicated. |
-| `metrics` | Prefect daily at 06:00 UTC; deprecated cron and seed every four hours | Native scheduler after reconciling cadence and duplicate output keys. Recompute creates drafts only; verification remains an independent human action. Do not promote computed output automatically. |
+| `metrics` | Prefect daily at 06:00 UTC; deprecated cron and seed every four hours; legacy seed uses `--all-locations` | The Prefect adapter fans out over active Kokonut Network locations. Native scheduler requires one location and uses `--compute --all`; the database-driven contract rejects `--all-locations`. Reconcile cadence and duplicate output keys before cutover. Recompute creates drafts only; verification remains an independent human action. Do not promote computed output automatically. |
 | `noi_snapshots` | Prepared daily native job; not registered in the candidate; no legacy cron/Prefect deployment | Native scheduler after owner approval, exact next-run selection, and reconciliation parity. Upsert by crop-cycle key; rerun reconciliation for the same source state rather than replaying every missed cadence. |
 | `dashboards` | Prefect every six hours; deprecated cron and seed every six hours | Native scheduler after named-view and saved-card output parity. Refresh is rebuild-oriented; compare the affected time range and published-only filters before accepting a rerun. |
-| `credit_adjustment` | Prefect daily check and manual full-pipeline path; no legacy cron/seed entry | The native command contract now permits only `--check-adjustments` (optionally one `--location-id`). That path reads current verified/published credits and recomputes source values without writes; `--adjust`, issuance, retirement, and review actions remain rejected. Do not register a schedule until cadence, output handling, tenant scope, and accountable operator are reviewed. Never auto-confirm retirement. |
+| `credit_adjustment` | Prefect daily check and manual full-pipeline path; no legacy cron/seed entry | The dedicated read-only command requires one `--location-id`; Prefect fans out over active Kokonut Network locations, and native plans remain one disabled task per location. The path reads current verified/published credits and recomputes source values without writes; issuance, retirement, and review actions remain outside the scheduler allowlist. Do not register a schedule until cadence, output handling, signed worker context, and accountable operator are reviewed. Never auto-confirm retirement. |
 | `remote_sensing` | Prefect every six hours and manual full-pipeline path; internal durable fetch jobs | One reviewed outer trigger only. Prefer the internal durable job system as execution/retry owner; do not also create scheduler rows for the same provider jobs. Reconcile per-provider terminal and no-data states before replay. |
-| `climate` | Prefect weekly; deprecated cron and seed weekly | `--all` selects all climate datasets for one required location; the Prefect flow fans out over active locations sequentially. Preserve that fan-out in native scheduling with one reviewed task per location or an explicitly allowlisted durable fan-out. Resume per location and avoid repeating completed locations without idempotency evidence. |
+| `climate` | Prefect weekly; deprecated cron and seed weekly | `--all` selects all climate datasets for one required location; the Prefect flow fans out sequentially over active Kokonut Network locations. Preserve that fan-out in native scheduling with one reviewed task per location or an explicitly allowlisted durable fan-out. Resume per location and avoid repeating completed locations without idempotency evidence. |
 | `projections` | One-shot ClickHouse outbox command; not declared in Prefect, cron, or seed schedules | Keep under the durable outbox/projection delivery owner. Do not add periodic scheduler rows until the worker, module policy, sink checkpoint, and reconciliation behavior are explicitly defined. Replay from the durable outbox cursor, never from an untracked wall-clock window. |
 
 ## Work outside the 15-job catalog
