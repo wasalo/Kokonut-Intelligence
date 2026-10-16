@@ -85,6 +85,20 @@ def _normalize_retention_scope_code(value: str | None, field_name: str) -> str |
     return normalized
 
 
+def _normalize_retention_audit_text(
+    value: str, field_name: str, *, max_length: int | None = None,
+) -> str:
+    """Validate operator-supplied retention audit text before opening a cursor."""
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    normalized = value.strip()
+    if not normalized:
+        raise ValueError(f"{field_name} is required")
+    if max_length is not None and len(normalized) > max_length:
+        raise ValueError(f"{field_name} must be at most {max_length} characters")
+    return normalized
+
+
 # ============================================================
 # Consent Management
 # ============================================================
@@ -767,10 +781,8 @@ def set_retention_policy(
     """Create an inert draft retention policy, optionally with a proposed window."""
     if not isinstance(data_category, str) or not data_category.strip():
         raise ValueError("data_category is required")
-    if not actor or not actor.strip():
-        raise ValueError("actor is required")
-    if not reason or not reason.strip():
-        raise ValueError("reason is required")
+    actor = _normalize_retention_audit_text(actor, "actor", max_length=200)
+    reason = _normalize_retention_audit_text(reason, "reason")
     if auto_enforce:
         raise ValueError("new policies must be approved before auto_enforce can be enabled")
     if retention_days is not None and (
@@ -823,8 +835,8 @@ def set_retention_policy(
             """,
             (
                 policy_id,
-                actor.strip(),
-                reason.strip(),
+                actor,
+                reason,
                 json.dumps({
                     "data_category": data_category.strip(),
                     "entity_type": entity_type,
@@ -867,10 +879,10 @@ def approve_retention_policy(
     reason: str = None,
 ) -> dict:
     """Approve a fully specified draft; enforcement still needs its feature gate."""
-    if not approved_by or not approved_by.strip():
-        raise ValueError("approved_by is required")
-    if not reason or not reason.strip():
-        raise ValueError("reason is required")
+    approved_by = _normalize_retention_audit_text(
+        approved_by, "approved_by", max_length=200,
+    )
+    reason = _normalize_retention_audit_text(reason, "reason")
     if not isinstance(auto_enforce, bool):
         raise ValueError("auto_enforce must be a boolean")
     try:
@@ -926,7 +938,7 @@ def approve_retention_policy(
                       deletion_method, auto_enforce, approved_by, approval_date,
                       policy_owner
             """,
-            (approved_by.strip(), auto_enforce, auto_enforce, normalized_policy_id),
+            (approved_by, auto_enforce, auto_enforce, normalized_policy_id),
         )
         row = cur.fetchone()
         if row is not None:
@@ -938,8 +950,8 @@ def approve_retention_policy(
                 """,
                 (
                     str(row[0]),
-                    approved_by.strip(),
-                    reason.strip(),
+                    approved_by,
+                    reason,
                     json.dumps({
                         "data_category": row[1],
                         "entity_type": row[2],
@@ -996,10 +1008,8 @@ def retire_retention_policy(
     reason: str,
 ) -> dict:
     """Disable an active policy with an append-only operator record."""
-    if not actor or not actor.strip():
-        raise ValueError("actor is required")
-    if not reason or not reason.strip():
-        raise ValueError("reason is required")
+    actor = _normalize_retention_audit_text(actor, "actor", max_length=200)
+    reason = _normalize_retention_audit_text(reason, "reason")
     try:
         normalized_policy_id = str(uuid.UUID(str(policy_id)))
     except (ValueError, TypeError, AttributeError) as exc:
@@ -1018,7 +1028,7 @@ def retire_retention_policy(
                       jurisdiction_code, purpose_code, retention_days,
                       deletion_method, approved_by, approval_date, policy_owner
             """,
-            (reason.strip(), normalized_policy_id),
+            (reason, normalized_policy_id),
         )
         row = cur.fetchone()
         if row is None:
@@ -1032,8 +1042,8 @@ def retire_retention_policy(
             """,
             (
                 str(row[0]),
-                actor.strip(),
-                reason.strip(),
+                actor,
+                reason,
                 json.dumps({
                     "data_category": row[1],
                     "entity_type": row[2],
@@ -1069,10 +1079,8 @@ def place_retention_legal_hold(
     """Place an audited hold on a UUID-backed entity."""
     if not isinstance(entity_type, str) or not re.fullmatch(r"[a-z_]+", entity_type):
         raise ValueError("entity_type must be a lowercase table name")
-    if not actor or not actor.strip():
-        raise ValueError("actor is required")
-    if not reason or not reason.strip():
-        raise ValueError("reason is required")
+    actor = _normalize_retention_audit_text(actor, "actor", max_length=200)
+    reason = _normalize_retention_audit_text(reason, "reason")
     try:
         normalized_entity_id = str(uuid.UUID(str(entity_id)))
     except (ValueError, TypeError, AttributeError) as exc:
@@ -1113,7 +1121,7 @@ def place_retention_legal_hold(
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id, placed_at
             """,
-            (hold_id, entity_type, normalized_entity_id, reason.strip(), actor.strip()),
+            (hold_id, entity_type, normalized_entity_id, reason, actor),
         )
         row = cur.fetchone()
         conn.commit()
@@ -1121,7 +1129,7 @@ def place_retention_legal_hold(
             "hold_id": str(row[0]),
             "entity_type": entity_type,
             "entity_id": normalized_entity_id,
-            "placed_by": actor.strip(),
+            "placed_by": actor,
             "placed_at": row[1].isoformat() if row and row[1] else None,
             "status": "active",
         }
@@ -1139,10 +1147,8 @@ def release_retention_legal_hold(
     reason: str,
 ) -> dict:
     """Release an active hold once, retaining its immutable action history."""
-    if not actor or not actor.strip():
-        raise ValueError("actor is required")
-    if not reason or not reason.strip():
-        raise ValueError("reason is required")
+    actor = _normalize_retention_audit_text(actor, "actor", max_length=200)
+    reason = _normalize_retention_audit_text(reason, "reason")
     try:
         normalized_hold_id = str(uuid.UUID(str(hold_id)))
     except (ValueError, TypeError, AttributeError) as exc:
@@ -1158,7 +1164,7 @@ def release_retention_legal_hold(
             WHERE id = %s AND released_at IS NULL
             RETURNING id, entity_type, entity_id, released_at
             """,
-            (actor.strip(), reason.strip(), normalized_hold_id),
+            (actor, reason, normalized_hold_id),
         )
         row = cur.fetchone()
         conn.commit()

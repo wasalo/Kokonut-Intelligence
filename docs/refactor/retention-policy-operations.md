@@ -1,6 +1,6 @@
 # Dynamic retention policy and legal holds
 
-Updated: 15 October 2026. This document defines the Kernel's configurable
+Updated: 16 October 2026. This document defines the Kernel's configurable
 retention boundary. It intentionally does not choose a retention period or
 interpret legal requirements for the United States or Dominican Republic.
 
@@ -68,6 +68,10 @@ The CLI records supplied actor and approver identifiers; it does not
 authenticate them or prove that the actor has a retention-administration
 grant. Keep these commands inside the protected operator environment until an
 authenticated, least-privilege policy-management surface is available.
+All policy and hold mutations reject blank or non-string audit reasons and
+reject blank, non-string, or over-200-character actor identifiers before
+opening a database cursor. This matches the persisted audit columns; it does
+not authenticate the supplied identity.
 
 ```bash
 python3 -m services.analytics.data_governance place-retention-hold \

@@ -1509,6 +1509,13 @@ enable pruning or change capability status
 [evidence](builds/2026-10-15-recovery/retention-policy-disposable.json);
 [candidate rollout](builds/2026-10-15-recovery/candidate-retention-401-402-rollout.json)).
 
+The same pre-database validation now applies to policy creation, approval,
+retirement, and legal-hold placement/release. Actor values are trimmed and
+bounded to the persisted 200-character columns; blank or non-string reasons
+are rejected before a cursor opens. Fifty-two focused tests and 49 subcases pass;
+retention periods remain unconfigured and MAN-CAP acceptance is unchanged
+([evidence](builds/2026-10-16-recovery/retention-audit-input-validation.json)).
+
 ### CAP-047 sensor anomaly crash/replay — 11 October 2026
 
 Migration `376_sensor_anomaly_delivery.sql` adds per-reading/rule effect receipts,

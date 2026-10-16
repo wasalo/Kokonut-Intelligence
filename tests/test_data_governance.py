@@ -25,8 +25,11 @@ from services.analytics.data_governance import (
     get_portability_requests,
     get_sharing_agreements,
     log_access,
+    place_retention_legal_hold,
     record_consent,
+    release_retention_legal_hold,
     request_portability,
+    retire_retention_policy,
     set_retention_policy,
     withdraw_consent,
 )
@@ -414,6 +417,15 @@ class TestSetRetentionPolicy(unittest.TestCase):
         self.conn.commit.assert_called_once()
         self.mock_cursor.close.assert_called_once()
 
+    def test_set_retention_policy_trims_audit_actor_and_reason(self):
+        set_retention_policy(
+            self.conn, "soil", 42,
+            actor=" operator-1 ", reason=" draft for review ",
+        )
+
+        event_params = self.mock_cursor.execute.call_args_list[1].args[1]
+        self.assertEqual(event_params[1:3], ("operator-1", "draft for review"))
+
     def test_set_retention_policy_rejects_invalid_windows_before_database_access(self):
         for retention_days in (0, -1, True, 1.5):
             with self.subTest(retention_days=retention_days):
@@ -460,6 +472,27 @@ class TestSetRetentionPolicy(unittest.TestCase):
 
 
 class TestApproveRetentionPolicy(unittest.TestCase):
+    def test_approval_trims_audit_actor_and_reason(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchone.return_value = (
+            "a0000000-0000-0000-0000-000000000402", "soil", "soil_sample",
+            None, None, None, 42, "soft_delete", False,
+            "reviewer", date(2026, 10, 15), "owner",
+        )
+
+        approve_retention_policy(
+            conn,
+            "a0000000-0000-0000-0000-000000000402",
+            " reviewer ",
+            reason=" approved proposal ",
+        )
+
+        self.assertEqual(cursor.execute.call_args_list[2].args[1][0], "reviewer")
+        event_params = cursor.execute.call_args_list[3].args[1]
+        self.assertEqual(event_params[1:3], ("reviewer", "approved proposal"))
+
     def test_approval_preserves_scope_and_marks_resolver_requirement(self):
         conn = MagicMock()
         cursor = MagicMock()
@@ -505,6 +538,54 @@ class TestApproveRetentionPolicy(unittest.TestCase):
             "reviewer", True, True,
             "a0000000-0000-0000-0000-000000000402",
         ))
+
+
+class TestRetentionAuditInputValidation(unittest.TestCase):
+    POLICY_ID = "a0000000-0000-0000-0000-000000000402"
+    ENTITY_ID = "a0000000-0000-0000-0000-000000000403"
+
+    def _mutations(self, conn, *, actor, reason):
+        return (
+            lambda: set_retention_policy(
+                conn, "soil", actor=actor, reason=reason,
+            ),
+            lambda: approve_retention_policy(
+                conn, self.POLICY_ID, actor, reason=reason,
+            ),
+            lambda: retire_retention_policy(
+                conn, self.POLICY_ID, actor, reason,
+            ),
+            lambda: place_retention_legal_hold(
+                conn, "location", self.ENTITY_ID, actor, reason,
+            ),
+            lambda: release_retention_legal_hold(
+                conn, self.POLICY_ID, actor, reason,
+            ),
+        )
+
+    def test_actor_fields_reject_invalid_values_before_database_access(self):
+        for actor in (None, 123, "   ", "x" * 201):
+            for mutation_index in range(5):
+                with self.subTest(actor=actor, mutation=mutation_index):
+                    conn = MagicMock()
+                    mutation = self._mutations(
+                        conn, actor=actor, reason="review",
+                    )[mutation_index]
+                    with self.assertRaises(ValueError):
+                        mutation()
+                    conn.cursor.assert_not_called()
+
+    def test_reason_fields_reject_invalid_values_before_database_access(self):
+        for reason in (None, 123, "   "):
+            for mutation_index in range(5):
+                with self.subTest(reason=reason, mutation=mutation_index):
+                    conn = MagicMock()
+                    mutation = self._mutations(
+                        conn, actor="operator-1", reason=reason,
+                    )[mutation_index]
+                    with self.assertRaises(ValueError):
+                        mutation()
+                    conn.cursor.assert_not_called()
 
 
 class TestRetentionSweep(unittest.TestCase):

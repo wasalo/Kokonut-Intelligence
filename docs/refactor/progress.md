@@ -5958,3 +5958,15 @@ and two report-source inventory tests pass with Ruff and generated-inventory
 checks. No service module, database,
 stored SQL, provider, or secret was accessed. The report-owner and populated-output gates stay open ([inventory](report-generator-query-scope-inventory.json);
 [evidence](builds/2026-10-15-recovery/report-generator-query-scope-inventory.json)).
+
+### Retention mutation audit-input validation — 16 October 2026
+
+Applied one validator to retention policy creation, approval, retirement, and
+legal-hold placement/release. Actor identifiers are normalized and capped at
+the persisted 200-character limit; reasons must be nonblank strings. Invalid
+values fail before the database cursor is opened. The focused data-governance
+suite passes 52 tests and 49 subtests; Ruff, Python compilation, and
+`git diff --check` pass. This is input-shape validation only: actor values are
+not authenticated, periods remain unconfigured, and no policy or hold data
+was changed. No candidate/legacy database, provider, or Docker resource was
+accessed ([evidence](builds/2026-10-16-recovery/retention-audit-input-validation.json)).
