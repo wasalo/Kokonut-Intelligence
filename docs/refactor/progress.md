@@ -6035,3 +6035,22 @@ and merged Compose checks resolve every service to `linux/arm64`. Twenty-five
 focused planner/Compose checks, Ruff, compilation, and matrix validation pass.
 No gRPC/PostgreSQL server, MQTT traffic, credentials, or mTLS session was
 exercised; this is not Raspberry Pi hardware acceptance ([evidence](builds/2026-10-16-recovery/kernel-arm64-transport-smokes.json)).
+
+### ARM64 analytics, Directus, and HTTP sensor profile checks — 16 October 2026
+
+Expanded the Kernel profile planner with dedicated ARM64 overlays for the HTTP
+sensor receiver, Directus service/bootstrap images, and ClickHouse analytics,
+including analytics with a separate worker. The ClickHouse-enabled application
+image built from the current worktree under QEMU, runs as `appuser`, imports
+`clickhouse-connect 1.10.0` with networking disabled, and starts the runtime
+CLI. The digest-pinned ClickHouse server reports 25.8.28.1 in a one-shot
+network-disabled container. The pinned Directus image's Node runtime reports
+`arm64` and v22.23.1. The default ARM64 application image already passed the
+HTTP sensor CLI smoke. Merged Compose configurations and 27 focused planner/
+Compose tests resolve selected services to ARM64; Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. Temporary smoke images were
+removed and the candidate stack remained healthy. This does not exercise a live
+analytics database/projection, Directus bootstrap/hooks/permissions, or
+transport against PostgreSQL. It is QEMU software evidence only; Raspberry Pi
+resource/performance, physical recovery, and long-duration behavior remain
+open ([evidence](builds/2026-10-16-recovery/kernel-arm64-optional-profiles.json)).

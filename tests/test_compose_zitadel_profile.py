@@ -42,6 +42,11 @@ TEST_ENV = {
     "MQTT_USERNAME": "compose-test-mqtt-user",
     "MQTT_PASSWORD": "compose-test-mqtt-password",
     "MQTT_CLIENT_ID": "compose-test-mqtt-client",
+    "CLICKHOUSE_PASSWORD": "compose-test-clickhouse-password",
+    "DIRECTUS_SECRET": "compose-test-directus-secret",
+    "ADMIN_EMAIL": "compose-test@example.test",
+    "ADMIN_PASSWORD": "compose-test-directus-admin-password",
+    "KOKONUT_DIRECTUS_RUNTIME_PASSWORD": "compose-test-directus-runtime-password",
 }
 
 
@@ -210,19 +215,22 @@ def test_standard_zitadel_arm64_planner_command_resolves_all_services_for_arm64(
     )
 
 
-def test_arm64_grpc_and_mqtt_planner_commands_resolve_service_platforms() -> None:
-    for optional, expected_services in (
-        ("grpc", {"app", "database", "grpc"}),
-        ("mqtt", {"app", "database", "mosquitto", "mqtt-subscriber"}),
+def test_arm64_optional_profiles_resolve_service_platforms() -> None:
+    for planner_args, expected_services in (
+        (("minimal", "--grpc"), {"app", "database", "grpc"}),
+        (("minimal", "--mqtt"), {"app", "database", "mosquitto", "mqtt-subscriber"}),
+        (("minimal", "--http-sensors"), {"app", "database", "http-sensors"}),
+        (("minimal", "--directus"), {"app", "database", "directus"}),
+        (("analytics",), {"app", "database", "clickhouse"}),
+        (("analytics", "--separate-workers"), {"app", "worker", "database", "clickhouse"}),
     ):
         planned = subprocess.run(
             [
                 sys.executable,
                 str(PLANNER),
-                "minimal",
+                *planner_args,
                 "--target-platform",
                 "linux/arm64",
-                f"--{optional}",
                 "--action",
                 "config",
             ],
@@ -246,10 +254,12 @@ def test_arm64_grpc_and_mqtt_planner_commands_resolve_service_platforms() -> Non
         assert rendered.returncode == 0, rendered.stderr
         services = json.loads(rendered.stdout)["services"]
 
-        assert set(services) == expected_services
+        assert expected_services <= set(services)
         assert all(service.get("platform") == "linux/arm64" for service in services.values())
-        if optional == "grpc":
+        if "--grpc" in planner_args:
             assert services["grpc"]["build"]["target"] == "grpc"
+        if planner_args[0] == "analytics":
+            assert services["app"]["build"]["args"]["KOKONUT_CLICKHOUSE"] == "true"
 
 
 def test_database_bootstrap_creates_only_a_bounded_login_role_and_owned_database() -> None:

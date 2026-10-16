@@ -15,6 +15,9 @@ ARM64_PROXY = "docker-compose.kernel-arm64-proxy.yml"
 ARM64_ZITADEL = "docker-compose.kernel-arm64-zitadel.yml"
 ARM64_GRPC = "docker-compose.kernel-arm64-grpc.yml"
 ARM64_MQTT = "docker-compose.kernel-arm64-mqtt.yml"
+ARM64_HTTP_SENSORS = "docker-compose.kernel-arm64-http-sensors.yml"
+ARM64_DIRECTUS = "docker-compose.kernel-arm64-directus.yml"
+ARM64_ANALYTICS = "docker-compose.kernel-arm64-analytics.yml"
 PROFILES = {
     "minimal": [],
     "edge": ["docker-compose.kernel-edge.yml"],
@@ -44,10 +47,12 @@ def main() -> None:
     parser.add_argument("--action", choices=["config", "build", "up", "ps"], default="config")
     args = parser.parse_args()
     is_arm64 = args.target_platform == "linux/arm64"
-    if is_arm64 and args.profile not in {"minimal", "edge", "standard"}:
-        parser.error("ARM64 currently supports only minimal, edge, and standard profiles")
+    if is_arm64 and args.profile not in {"minimal", "edge", "standard", "analytics"}:
+        parser.error("ARM64 currently supports only minimal, edge, standard, and analytics profiles")
     selected_optional = {name for name in OPTIONAL if getattr(args, name)}
-    arm64_verified_optional = {"proxy", "oidc", "zitadel", "grpc", "mqtt"}
+    arm64_verified_optional = {
+        "proxy", "oidc", "zitadel", "grpc", "mqtt", "http_sensors", "directus"
+    }
     unverified_arm64_optional = selected_optional - arm64_verified_optional
     if is_arm64 and unverified_arm64_optional:
         parser.error(
@@ -75,8 +80,10 @@ def main() -> None:
     files.extend(path for name, path in OPTIONAL.items() if name in selected_optional)
     if is_arm64:
         files.append(ARM64)
-        if args.profile == "standard":
+        if args.profile == "standard" or args.separate_workers:
             files.append(ARM64_STANDARD)
+        if args.profile == "analytics":
+            files.append(ARM64_ANALYTICS)
         if "proxy" in selected_optional:
             files.append(ARM64_PROXY)
         if args.zitadel:
@@ -85,6 +92,10 @@ def main() -> None:
             files.append(ARM64_GRPC)
         if "mqtt" in selected_optional:
             files.append(ARM64_MQTT)
+        if "http_sensors" in selected_optional:
+            files.append(ARM64_HTTP_SENSORS)
+        if "directus" in selected_optional:
+            files.append(ARM64_DIRECTUS)
     for filename in files:
         if not (ROOT / filename).is_file():
             parser.error(f"Required manifest is missing: {filename}")

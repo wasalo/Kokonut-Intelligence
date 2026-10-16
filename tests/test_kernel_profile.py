@@ -112,6 +112,9 @@ def test_arm64_external_oidc_requires_verified_proxy_and_selects_platform_overla
 def test_arm64_transport_profiles_select_explicit_architecture_overlays() -> None:
     grpc = _run_planner("minimal", "--target-platform", "linux/arm64", "--grpc")
     mqtt = _run_planner("edge", "--target-platform", "linux/arm64", "--mqtt")
+    http_sensors = _run_planner(
+        "minimal", "--target-platform", "linux/arm64", "--http-sensors"
+    )
 
     assert grpc.returncode == 0
     assert "docker-compose.kernel-grpc.yml" in grpc.stdout
@@ -119,6 +122,31 @@ def test_arm64_transport_profiles_select_explicit_architecture_overlays() -> Non
     assert mqtt.returncode == 0
     assert "docker-compose.kernel-mqtt.yml" in mqtt.stdout
     assert "docker-compose.kernel-arm64-mqtt.yml" in mqtt.stdout
+    assert http_sensors.returncode == 0
+    assert "docker-compose.kernel-http-sensors.yml" in http_sensors.stdout
+    assert "docker-compose.kernel-arm64-http-sensors.yml" in http_sensors.stdout
+
+
+def test_arm64_directus_selects_its_platform_overlay() -> None:
+    directus = _run_planner("minimal", "--target-platform", "linux/arm64", "--directus")
+
+    assert directus.returncode == 0
+    assert "docker-compose.kernel-directus.yml" in directus.stdout
+    assert "docker-compose.kernel-arm64-directus.yml" in directus.stdout
+
+
+def test_arm64_analytics_selects_clickhouse_and_worker_platform_overlays() -> None:
+    analytics = _run_planner("analytics", "--target-platform", "linux/arm64")
+    separate = _run_planner(
+        "analytics", "--target-platform", "linux/arm64", "--separate-workers"
+    )
+
+    assert analytics.returncode == 0
+    assert "docker-compose.kernel-analytics.yml" in analytics.stdout
+    assert "docker-compose.kernel-arm64-analytics.yml" in analytics.stdout
+    assert separate.returncode == 0
+    assert "docker-compose.kernel-standard-analytics.yml" in separate.stdout
+    assert "docker-compose.kernel-arm64-standard.yml" in separate.stdout
 
 
 def test_directus_option_selects_only_the_optional_directus_overlay() -> None:
@@ -130,11 +158,10 @@ def test_directus_option_selects_only_the_optional_directus_overlay() -> None:
     assert "docker-compose.kernel-zitadel.yml" not in result.stdout
 
 
-def test_directus_option_is_rejected_for_unverified_arm64_optional_images() -> None:
-    result = _run_planner("minimal", "--target-platform", "linux/arm64", "--directus")
-
-    assert result.returncode != 0
-    assert "ARM64 does not verify these optional overlays: directus" in result.stderr
+def test_arm64_planner_rejects_scale_profile() -> None:
+    scale = _run_planner("scale", "--target-platform", "linux/arm64")
+    assert scale.returncode != 0
+    assert "only minimal, edge, standard, and analytics profiles" in scale.stderr
 
 
 def test_profile_planner_selects_isolated_arm64_images_for_edge() -> None:
@@ -155,14 +182,14 @@ def test_standard_arm64_profile_selects_the_arm64_worker_override() -> None:
     assert "docker-compose.kernel-arm64-standard.yml" in result.stdout
 
 
-def test_arm64_planner_rejects_unverified_analytics_and_optional_images() -> None:
+def test_arm64_analytics_and_directus_profiles_select_verified_overlays() -> None:
     analytics = _run_planner("analytics", "--target-platform", "linux/arm64")
     directus = _run_planner("minimal", "--target-platform", "linux/arm64", "--directus")
 
-    assert analytics.returncode != 0
-    assert "only minimal, edge, and standard" in analytics.stderr
-    assert directus.returncode != 0
-    assert "ARM64 does not verify these optional overlays: directus" in directus.stderr
+    assert analytics.returncode == 0
+    assert "docker-compose.kernel-arm64-analytics.yml" in analytics.stdout
+    assert directus.returncode == 0
+    assert "docker-compose.kernel-arm64-directus.yml" in directus.stdout
 
 
 def test_arm64_identity_overlays_pin_each_supported_service_architecture() -> None:
@@ -182,6 +209,14 @@ def test_arm64_transport_overlays_force_platform_for_all_selected_services() -> 
     grpc = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-grpc.yml").read_text())
     mqtt = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-mqtt.yml").read_text())
     mqtt_profile = yaml.safe_load((ROOT / "docker-compose.kernel-mqtt.yml").read_text())
+    http_sensors = yaml.safe_load(
+        (ROOT / "docker-compose.kernel-arm64-http-sensors.yml").read_text()
+    )
+    directus = yaml.safe_load((ROOT / "docker-compose.kernel-arm64-directus.yml").read_text())
+    analytics = yaml.safe_load(
+        (ROOT / "docker-compose.kernel-arm64-analytics.yml").read_text()
+    )
+    directus_profile = yaml.safe_load((ROOT / "docker-compose.kernel-directus.yml").read_text())
 
     assert grpc["services"]["grpc"]["platform"] == "linux/arm64"
     assert set(mqtt["services"]) == {"mosquitto", "mqtt-subscriber"}
@@ -189,6 +224,17 @@ def test_arm64_transport_overlays_force_platform_for_all_selected_services() -> 
     assert "sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797" in mqtt_profile[
         "services"
     ]["mosquitto"]["image"]
+    assert http_sensors["services"]["http-sensors"]["platform"] == "linux/arm64"
+    assert set(directus["services"]) == {
+        "directus-role-bootstrap",
+        "directus-bootstrap",
+        "directus",
+    }
+    assert all(service["platform"] == "linux/arm64" for service in directus["services"].values())
+    assert "sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d" in directus_profile[
+        "services"
+    ]["directus"]["image"]
+    assert analytics["services"]["clickhouse"]["platform"] == "linux/arm64"
 
 
 def test_arm64_overlay_pins_platform_package_versions_and_worker_profile() -> None:

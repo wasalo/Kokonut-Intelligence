@@ -1812,3 +1812,18 @@ expectations. The AST-only inventory and freshness checks pass without
 executing report code. Populated output parity and owner selection remain open;
 capability status and counts do not change
 ([inventory](report-generator-source-inventory.json); [evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).
+
+### Phase 8 optional ARM64 service/profile coverage — 16 October 2026
+
+The profile planner and explicit Compose overlays now cover HTTP sensors,
+Directus, and ClickHouse analytics on ARM64 in addition to the previously
+verified core, proxy, OIDC/ZITADEL, gRPC, and MQTT selections. A ClickHouse-
+enabled Kernel image built under QEMU and passed a no-network ARM64 import of
+`clickhouse-connect`; the pinned ClickHouse image reports version 25.8.28.1.
+The pinned Directus image's Node runtime reports `arm64` and version 22.23.1.
+All selected services in the affected Compose configurations resolve to
+`linux/arm64`, and 27 focused planner/Compose tests pass. This verifies code and
+image compatibility only. No live ClickHouse profile, projection parity,
+Directus bootstrap/hooks/authorization, or physical Raspberry Pi behavior was
+tested; capability row statuses and MAN-CAP acceptance counts are unchanged
+([evidence](builds/2026-10-16-recovery/kernel-arm64-optional-profiles.json)).

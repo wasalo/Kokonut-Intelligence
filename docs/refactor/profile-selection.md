@@ -14,12 +14,14 @@ the planner appends `docker-compose.kernel-arm64.yml`, selects the custom
 PostgreSQL/PostGIS 16 image, and uses the distinct project
 `kokonut-kernel-candidate-arm64`; this keeps its database volume separate from
 the AMD64 candidate. The standard profile also appends the ARM64 worker
-override. Current ARM64 command selection supports minimal, edge, and standard.
-The HTTPS proxy, Gateway OIDC application, self-hosted ZITADEL profile, gRPC,
-and MQTT are also selectable on ARM64. Their Caddy, ZITADEL API/Login and
-database, gRPC and MQTT application targets, and Mosquitto broker have verified
-ARM64 manifests/builds and dedicated platform overlays. ClickHouse analytics,
-Directus, and HTTP-sensor overlays remain rejected until separately verified.
+override. Current ARM64 command selection supports minimal, edge, standard, and
+analytics. The HTTPS proxy, Gateway OIDC application, self-hosted ZITADEL
+profile, gRPC, MQTT, HTTP sensor receiver, and Directus adapter are also
+selectable on ARM64. ClickHouse analytics is supported as a combined or
+separate-worker profile. The app targets and pinned service images have ARM64
+build/runtime evidence and dedicated platform overlays. This is software
+compatibility evidence under QEMU, not a Raspberry Pi resource/performance
+recommendation.
 Image environment overrides must preserve the selected architecture.
 Current-source minimal ARM64 runtime,
 schema replay through migration 402, restore, and short recovery checks now pass
@@ -35,8 +37,8 @@ under QEMU; this does not certify Raspberry Pi hardware. See the
 | analytics --separate-workers | Standard + ClickHouse settings for both roles | Same gates plus worker analytics parity |
 | scale | Rejected with an explanation | Multi-host failover, replica concurrency, recovery and measured sizing |
 
-Add `--proxy`, `--oidc`, `--zitadel`, `--grpc`, `--mqtt`, or `--http-sensors`
-explicitly for the corresponding optional overlay. `--oidc` requires `--proxy`
+Add `--proxy`, `--oidc`, `--zitadel`, `--grpc`, `--mqtt`, `--http-sensors`, or
+`--directus` explicitly for the corresponding optional overlay. `--oidc` requires `--proxy`
 so Secure operator-session cookies use the HTTPS origin. `--zitadel` selects
 the proxy, Gateway OIDC client, and self-hosted ZITADEL overlays together. It
 uses a separate private PostgreSQL service and exposes its HTTP/2 API and
@@ -44,9 +46,9 @@ Login V2 UI only through Caddy. ZITADEL remains absent from minimal and edge
 unless selected. These options do not enable providers in unrelated services
 or promise capability parity. OIDC and ZITADEL require provider values in the
 SOPS-loaded environment; the planner only prints the command and does not read
-or expose them. For ARM64, the planner appends explicit overlays for verified
-proxy, ZITADEL, gRPC, and MQTT services; registry/build evidence is not live
-service acceptance. MQTT requires separately provisioned credentials,
+or expose them. For ARM64, the planner appends explicit overlays for each
+verified optional service and analytics profile; registry/build evidence is not
+live service acceptance. MQTT requires separately provisioned credentials,
 certificates, persistent client identity, and migration 372. Standard/current
 scheduler source requires migration 371. Neither migration is applied by this
 planner. Read the individual overlay execution records before adoption.

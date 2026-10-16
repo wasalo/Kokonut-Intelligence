@@ -99,13 +99,12 @@ short health/restart checks are recorded above. Keep the ARM64 volume separate
 from existing candidate or legacy data directories. Never upgrade extensions
 or database versions implicitly as part of architecture selection.
 
-Application ARM64 builds now pass for the default, OIDC, gRPC, and MQTT targets;
-the pinned Mosquitto broker also runs as `aarch64`. Hardware memory/CPU/storage
-measurements, offline recovery, and 24-hour operation remain separate gates.
-ClickHouse analytics, Directus, and HTTP-sensor overlays still need their own
-ARM64 image/profile evidence. The gRPC server was not started against
-PostgreSQL, and MQTT broker/client traffic and mTLS remain untested. Keep the
-profile limited to verified ARM64 image paths; build success does not certify
+Current ARM64 optional-profile evidence is appended below. At the time of the
+earlier transport check, ClickHouse analytics, Directus, and HTTP-sensor profile
+evidence was still pending; that historical status has since been superseded.
+Hardware memory/CPU/storage measurements, offline recovery, and 24-hour
+operation remain separate gates. The gRPC server was not started against
+PostgreSQL, MQTT traffic/mTLS is untested, and build success does not certify
 physical hardware.
 
 At initial registry inspection, no runtime tests, image builds, migrations,
@@ -279,3 +278,22 @@ its counterpart and record actual artifact/package versions. An image build
 does not start a database or demonstrate Pi resource usage. The primary profile
 planner remains guarded, the default candidate remains on the legacy-compatible
 database image, and no existing volume, migration, or extension was changed.
+
+## Optional ARM64 profiles — 16 October 2026
+
+The current profile planner now selects ARM64 overlays for the HTTP sensor,
+Directus, and ClickHouse analytics services, including analytics with a
+separate worker. The ClickHouse-enabled application image built from this
+worktree and passed no-network QEMU checks for `appuser`, the
+`clickhouse-connect` import, and runtime CLI help. The pinned ClickHouse
+server passed a one-shot `--version` check. The pinned Directus image passed a
+Node architecture/version check. Twenty-seven focused planner/Compose tests
+confirmed that every selected service resolves to `linux/arm64`; temporary
+smoke images were removed and the running candidate containers remained
+healthy. No Compose services, candidate or legacy database, volumes, or data
+were changed ([evidence](builds/2026-10-16-recovery/kernel-arm64-optional-profiles.json)).
+
+This closes image/profile selection checks only. ClickHouse schema/projection
+parity, Directus bootstrap/extensions/permissions, HTTP sensor-to-PostgreSQL
+traffic, Pi resource/performance behavior, physical power/storage/network
+recovery, 24-hour operation, and scale/failover remain open.
