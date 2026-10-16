@@ -6501,3 +6501,30 @@ remains dormant until handler/credential integration is separately accepted
 [fixture](../tests/fixtures/sensor_alert_actuation_intent_disposable.sql);
 [runner](../scripts/check-sensor-alert-actuation-intent-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).
+
+### Bounded sensor-alert draft claim — 16 October 2026
+
+Migration 411 adds a separate non-login function owner and
+`create_sensor_alert_draft_claim`. It requires signed
+`sensor_reading/process` scope and verifies the source event, source reading,
+anomaly receipt, device/location, enabled rule relationship, and alert. It
+creates only a `draft` claim from rule and alert data, records both sensor
+reading provenance fields, and links the claim to the alert. A composite unique
+identity uses the source-reading event and alert. If the old handler already
+linked an exact sensor claim, the function attaches this source identity while
+preserving lifecycle, review, and attestation state. The operation follows the
+`alert_created` receipt and precedes downstream notification construction; the
+separate alert-event payload does not include `claim_id`. The worker receives
+function EXECUTE only; it has no direct `mrv_claim` or `sensor_alert` access.
+
+Fourteen focused disposable PostgreSQL 16 checks pass for missing and
+mismatched scope/source, canonical draft creation, retries, exact legacy-claim
+adoption without lifecycle mutation, role boundaries, direct-table denial, and
+migration replay. Candidate and legacy databases were not accessed. Handler
+integration, worker credential isolation, candidate rollout, RLS, and MAN-CAP
+acceptance remain open. The checklist now has 401 complete items and 19 open;
+the capability matrix remains at 66 rows with no additional MAN-CAP acceptance
+([migration](../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
+[fixture](../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql);
+[runner](../scripts/check-sensor-alert-draft-claim-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).

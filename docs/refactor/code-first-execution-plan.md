@@ -2,9 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Remote head before this local batch:** `08227f1cb4886ccc6bc31bc397d3b61f96e7c87a`
-**Status at batch start (checked 16 October 2026):** CI #351 was in progress and Security #75 had passed.
-**Latest pushed batch at batch start:** `08227f1cb4886ccc6bc31bc397d3b61f96e7c87a`; CI #351 was in progress and Security #75 had passed.
+**Latest pushed head:** `1f6cefc1c352420caf22717eb66457a139f116bc`; CI #352 is in progress and Security #76 passed (checked 16 October 2026).
+**Current local batch:** migration 411 adds a bounded signed-scope draft-claim operation. Fourteen focused disposable PostgreSQL 16 checks pass; the candidate and legacy databases were untouched.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -15,25 +14,25 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-- The execution checklist has **399 checked and 19 open items (418 total)**,
+- The execution checklist has **401 checked and 19 open items (420 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
-- Latest pushed work on 16 October at this batch's start was `08227f1`
-  (migration 409's dormant signed-scope sensor-alert notification intent), after
+- The latest pushed work is `1f6cefc1` (migration 410's dormant signed-scope
+  actuation intent), following `08227f1` (migration 409's notification intent), after
   `1c5c761` (migration 407's receipt functions), `ba0c47bc` (migration 406
   sensor anomaly location lineage), `0bafc419` (anomaly handler source and
   transaction boundaries), `4e471638` (signed worker tenant context),
   `a0ec3f45` (batch status refresh), and `78580cd4` (anomaly effect contract).
-  CI #351 was in progress and Security #75 had passed at batch start. This
-  local batch adds migration 410's bounded actuation-intent function. Fifteen
-  disposable PostgreSQL 16 checks pass for signed scope/source linkage,
-  rule-derived command and approval state, one-intent idempotency, retry
-  preservation, role boundaries, direct table denial, and migration replay.
-  The worker can execute the bounded function only and cannot directly access
-  actuation rows. Handler integration, isolated credentials, candidate rollout,
-  RLS, and MAN-CAP acceptance remain open.
+  Security #76 passed and CI #352 is in progress. This local batch adds
+  migration 411's bounded draft-claim operation, keyed by source-reading event
+  plus alert. It creates only draft claims and adopts an exact legacy-linked
+  claim without changing lifecycle state. The intended order is receipt update,
+  claim operation, alert publication, then downstream notification and
+  actuation intents; the alert-event payload itself omits claim ID. Fourteen
+  disposable PostgreSQL acceptance checks pass. Handler integration, isolated credentials,
+  candidate rollout, RLS, and MAN-CAP acceptance remain open.
   Migration 405 and its adapter pass 17 disposable PostgreSQL acceptance
   checks and unit coverage. The focused anomaly/transaction checks pass.
   Migration 405 is not applied to the candidate, no worker credential or

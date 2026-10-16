@@ -198,14 +198,25 @@ Remaining worker-permission work before broader integration:
    16 checks pass for scope/linkage, canonical command, critical and configured
    approval, retry state preservation, role boundaries, direct table denial,
    and migration replay.
-5. Integrate the anomaly handler only after its credential is isolated from
-   unrelated dispatch. The handler must create the alert event before calling
-   notification and actuation intent functions in the same transaction; it
-   must not transition MRV lifecycle state or transmit actuator commands.
-6. Provision an isolated worker login/credential in a restored disposable
+5. **Complete:** migration 411 adds a bounded draft-MRV
+   claim operation. Its idempotency key is the source sensor-reading event plus
+   the alert. It validates signed scope and the `alert_created` source receipt,
+   inserts only a `draft` claim, links the claim to the alert, and can adopt the
+   exact legacy-linked claim without changing its lifecycle or review state.
+   The future handler must call it after recording the alert receipt and before building
+   downstream notification intent data. The alert-event payload itself omits
+   `claim_id`; notification and actuation intents follow event publication.
+   Fourteen focused disposable PostgreSQL 16 checks pass, including replay,
+   role boundaries, and direct-table denial.
+6. Integrate the anomaly handler only after its credential is isolated from
+   unrelated dispatch. Keep alert creation, receipt update, claim creation,
+   alert publication, notification enqueue, and actuation intent creation in
+   one caller-owned transaction; the worker must not submit, verify, publish,
+   reject, or transmit actuator commands.
+7. Provision an isolated worker login/credential in a restored disposable
    database. Verify that it cannot read worker grants, sign operator context,
    issue another worker identity, or access unrelated tenant rows.
-7. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
+8. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
    inventory, worker effects, external task state, and the control-plane
    identity before reducing runtime grants or enabling any RLS policy.
 
@@ -221,9 +232,10 @@ functions; nine disposable acceptance checks pass. Migration 408 adds the
 canonical alert-event publisher; eleven checks pass. Migration 409 adds the
 bounded notification-intent function; twelve checks pass. Migration 410 adds
 the bounded actuation-intent function, accepted in fifteen disposable checks.
-The Python context adapter can set signed scope, but no worker login or
-dispatcher integration exists. No access is granted to the shared runtime or
-existing event/notification dispatchers.
+Migration 411 adds the bounded draft-claim function; fourteen disposable
+PostgreSQL acceptance checks pass. The Python context adapter can set signed
+scope, but no worker login or dispatcher integration exists. No access is granted to the shared
+runtime or existing event/notification dispatchers.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.

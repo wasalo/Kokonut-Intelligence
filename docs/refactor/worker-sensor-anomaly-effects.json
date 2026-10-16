@@ -64,7 +64,7 @@
       "access": "select_cooldown; insert; update_claim_link",
       "class": "tenant_data",
       "required_boundary": "Cooldown reads must remain within the signed location and device. Inserts must match the source device, reading, and location. The only update is linking the newly created alert to its newly created draft claim.",
-      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migration 408 reads only the alert linked by a matching alert_created receipt to derive the canonical event; no direct worker table grant exists. Existing handler cooldown reads/inserts remain application-scoped."
+      "current_enforcement": "Migration 406 adds a nullable location_id and conservatively backfills matching device/reading pairs. Migrations 408 and 411 bound canonical alert event publication and the alert's claim_id link behind separate SECURITY DEFINER operations. The claim operation follows the alert_created receipt and precedes downstream notification construction; migration 408's event payload does not include claim_id. No direct worker table grant exists. Existing handler cooldown reads/inserts remain application-scoped."
     },
     {
       "relation": "public.sensor_anomaly_effect",
@@ -75,10 +75,10 @@
     },
     {
       "relation": "public.mrv_claim",
-      "access": "insert_draft",
+      "access": "insert_draft; adopt_legacy_draft_source_identity",
       "class": "tenant_governed_data",
-      "required_boundary": "Create a claim only for the signed location and source reading, with status draft. The anomaly worker must not submit, verify, publish, reject, or otherwise transition lifecycle state.",
-      "current_enforcement": "Existing insert explicitly sets draft and location from the sensor device; no worker-specific permission exists."
+      "required_boundary": "Create or adopt one claim only for the signed location, source-reading event and linked alert, with status draft. The anomaly worker must not submit, verify, publish, reject, or otherwise transition lifecycle state or edit review/attestation fields.",
+      "current_enforcement": "Migration 411 adds a separate non-login function owner and create_sensor_alert_draft_claim. The function validates signed location, reading event/receipt, reading/device/rule/alert lineage, creates an idempotent draft claim, links it to the alert, and can adopt the exact legacy-linked claim without changing its lifecycle. Fourteen disposable PostgreSQL 16 checks pass for source/scope enforcement, creation, retry and adoption preservation, role boundaries, direct table denial, event publication, and migration replay. kokonut_worker_execution receives function EXECUTE only and no direct mrv_claim or sensor_alert access; handler integration and isolated worker credentials remain absent."
     },
     {
       "relation": "public.ingestion_log",

@@ -2047,3 +2047,20 @@ direct table denial, and migration replay. No handler integration, worker
 credential, candidate rollout, RLS, or MAN-CAP acceptance is claimed
 ([migration](../schemas/postgres/410_sensor_alert_actuation_intent.sql);
 [evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).
+
+### CAP-040/047 bounded sensor-alert draft claim — 16 October 2026
+
+Migration 411 adds `create_sensor_alert_draft_claim` behind a separate
+non-login owner. It validates the signed reading event, anomaly receipt,
+location, device, rule, and linked alert, then inserts only a `draft` MRV claim
+or adopts the exact legacy claim already linked to that alert. Its stable key
+uses the source-reading event plus alert. The handler can invoke it after the
+`alert_created` receipt and before building notification intent data; the
+alert-event publisher remains separate and its payload omits `claim_id`.
+The worker receives function EXECUTE only; it has no direct MRV-claim or
+sensor-alert access. Fourteen focused disposable PostgreSQL 16 checks pass for
+scope and source linkage, draft creation, lifecycle-preserving retries and
+legacy adoption, role boundaries, direct table denial, and replay. This is not
+a newly accepted capability and no MAN-CAP row is closed
+([migration](../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
+[evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
