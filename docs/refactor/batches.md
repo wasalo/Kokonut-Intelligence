@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (16 October 2026):** 390 checklist items complete and 19
-open (409 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
+**Current snapshot (16 October 2026):** 393 checklist items complete and 19
+open (412 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 55
 baseline-retained, 7 deployed, and 4 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -774,16 +774,20 @@ reporting views.
   gate; cross-tenant read scope needs review before RLS.
   ([source evidence](builds/2026-10-16-recovery/tenant-preflight-identity-source.json); [PostgreSQL evidence](builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json)).
 - [x] Record the owner's operating-tenant mapping for Kokonut Genesis, Kokonut Seeds, Kokonut Adelphi, Kokonut Terra Viva, and Kokonut V1 as Kokonut Network. Sharing remains ungranted unless separately confirmed; no location or operator identity was backfilled into a database ([owner decision](open-follow-ups.md#decisions-and-source-data)).
-- [x] Specify the non-forgeable `system_worker` tenant-context contract, including exact location/resource/action grants, database-resolved ownership, separate global control-plane work, and a sensor-event handler as the first integration slice. No source integration, migration, worker credential, candidate change, or RLS policy is included yet ([contract](worker-tenant-context-contract.md)).
-- [x] Require the allowlisted sensor-reading event handler to receive a canonical location UUID and match it against the joined database source row before anomaly processing. Six focused anomaly regressions pass; two seed-guard regressions also pass. This establishes source-location consistency only; signed worker identity and tenant authorization remain open ([contract](worker-tenant-context-contract.md); [CI #342 repair evidence](builds/2026-10-16-recovery/ci-342-pilot-seed-guard-fix.json)).
+- [x] Specify the non-forgeable `system_worker` tenant-context contract, including exact location/resource/action grants, database-resolved ownership, separate global control-plane work, and a sensor-event handler as the first integration slice. The contract keeps credentials out of event/job payloads and defers handler integration until per-worker secret isolation is available ([contract](worker-tenant-context-contract.md)).
+- [x] Require the allowlisted sensor-reading event handler to receive a canonical location UUID and match it against the joined database source row before anomaly processing. Six focused anomaly regressions pass; two seed-guard regressions also pass. This establishes source-location consistency; the signed worker adapter now exists, but handler integration and effect-specific database authorization remain open ([contract](worker-tenant-context-contract.md); [CI #342 repair evidence](builds/2026-10-16-recovery/ci-342-pilot-seed-guard-fix.json)).
 - [x] Keep event-driven anomaly processing read-only with respect to shared alert-rule configuration; only the interactive CLI may create default rules. Focused regressions verify event execution skips bootstrap and the interactive path retains it ([contract](worker-tenant-context-contract.md); [evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).
 - [x] Preserve the handler's caller-owned transaction while publishing the alert event. `EventBus.publish(commit=False)` is wired into anomaly processing; two focused checks verify it leaves commit/rollback to the caller on success and error, the handler passes this mode, and the 17-test EventBus durability suite passes ([contract](worker-tenant-context-contract.md); [evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).
+- [x] Add migration 405 for private worker principals, SHA-256 credential digests, exact tenant/location/resource/action grants, a separate non-login execution role, and signed `system_worker` transaction context. It does not provision credentials, grant access to the shared runtime role, enable application-table RLS, or change the candidate ([migration](../../schemas/postgres/405_signed_worker_tenant_context.sql); [contract](worker-tenant-context-contract.md)).
+- [x] Add the transaction-bound worker adapter. It clears previous context, validates canonical scope and a high-entropy credential, hashes the secret in memory, switches locally to the dedicated worker role, and calls the bounded setter without reading credentials from event/job data ([implementation](../../services/common/tenant_context.py); [unit tests](../../tests/test_tenant_context.py)).
+- [x] Replay migration 405 in isolated PostgreSQL 16 with forced RLS on synthetic authorization tables. Seventeen checks cover exact grants, tamper/replay denial, private credential/key access, shared-runtime separation, owner transfer, inactive state, expiry/revocation, transaction cleanup, and lock serialization. Migration and tenant-context unit suites pass (31 and 30 tests); Ruff, source validation, and compilation pass. No candidate or legacy database was accessed ([runner](../../scripts/check-worker-tenant-context-disposable.py); [evidence](builds/2026-10-16-recovery/worker-tenant-context-disposable.json)).
 - [ ] Extend the tenant map for any additional locations and legacy operator affiliations, extend the
   same-transaction context pattern across remaining Gateway routes and worker
   jobs, and establish least-privilege direct-database boundaries before RLS.
-  Worker implementation now has a concrete identity/scope contract and first
-  adapter target; source integration, per-worker credentials, control-plane
-  isolation, and disposable authorization acceptance remain open
+  Migration 405 and the worker adapter have disposable database acceptance;
+  handler integration and per-worker credential isolation, control-plane
+  separation, remaining operation scopes, and application-table RLS acceptance
+  remain open
   ([contract](worker-tenant-context-contract.md)).
   The legacy `services.analytics.mobile_offline` service helpers and historic
   CLI commands have now been retired: they fail before opening a database

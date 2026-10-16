@@ -1,7 +1,8 @@
-"""Unit checks for transaction-local operator tenant context setup."""
+"""Unit checks for transaction-local tenant context setup."""
 
 from __future__ import annotations
 
+import hashlib
 from contextlib import contextmanager
 
 import pytest
@@ -11,12 +12,14 @@ from services.common.tenant_context import (
     MobileDeviceTenantContext,
     OperatorTenantContext,
     TenantContextDenied,
+    WorkerTenantContext,
     bind_operator_session_token_hash,
     clear_operator_tenant_context,
     reset_operator_session_token_hash,
     set_gateway_tenant_context,
     set_mobile_device_tenant_context,
     set_operator_tenant_context,
+    set_worker_tenant_context,
 )
 
 TENANT_ID = "a0000000-0000-0000-0000-000000000801"
@@ -422,3 +425,93 @@ def test_gateway_context_clears_old_scope_before_rejecting_invalid_inputs(
 
     assert len(connection.calls) == 1
     assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
+
+
+def test_sets_worker_context_with_secret_hash_and_exact_role_scope():
+    raw_credential = "worker-secret-with-at-least-32-bytes"
+    connection = FakeConnection((TENANT_ID, LOCATION_ID, OPERATOR_ID, "system_worker"))
+
+    context = set_worker_tenant_context(
+        connection,
+        credential=raw_credential,
+        location_id=LOCATION_ID,
+        resource="sensor_reading",
+        action="process",
+    )
+
+    assert context == WorkerTenantContext(
+        TENANT_ID, LOCATION_ID, OPERATOR_ID, "sensor_reading", "process"
+    )
+    assert len(connection.calls) == 3
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
+    assert connection.calls[1] == ("SET LOCAL ROLE kokonut_worker_execution", ())
+    context_sql, context_params = connection.calls[2]
+    assert "kokonut_security.set_worker_tenant_context" in context_sql
+    assert context_params == (
+        hashlib.sha256(raw_credential.encode("utf-8")).hexdigest(),
+        LOCATION_ID,
+        "sensor_reading",
+        "process",
+    )
+    assert raw_credential not in repr(context_params)
+
+
+def test_worker_context_denial_clears_scope_and_never_sends_raw_credential():
+    raw_credential = "worker-secret-with-at-least-32-bytes"
+    connection = FakeConnection(scope_row=None)
+
+    with pytest.raises(TenantContextDenied, match="active grant"):
+        set_worker_tenant_context(
+            connection,
+            credential=raw_credential,
+            location_id=LOCATION_ID,
+            resource="sensor_reading",
+            action="process",
+        )
+
+    assert len(connection.calls) == 3
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
+    assert raw_credential not in repr(connection.calls)
+
+
+@pytest.mark.parametrize(
+    ("credential", "location_id", "resource", "action"),
+    [
+        ("short", LOCATION_ID, "sensor_reading", "process"),
+        ("\ud800" * 32, LOCATION_ID, "sensor_reading", "process"),
+        ("x" * 40, "not-a-uuid", "sensor_reading", "process"),
+        ("x" * 40, LOCATION_ID, "Sensor_Reading", "process"),
+        ("x" * 40, LOCATION_ID, "sensor_reading", "Process"),
+    ],
+)
+def test_worker_context_clears_scope_before_rejecting_invalid_inputs(
+    credential, location_id, resource, action
+):
+    connection = FakeConnection()
+
+    with pytest.raises(ValueError):
+        set_worker_tenant_context(
+            connection,
+            credential=credential,
+            location_id=location_id,
+            resource=resource,
+            action=action,
+        )
+
+    assert len(connection.calls) == 1
+    assert "set_config(%s, '', TRUE)" in connection.calls[0][0]
+
+
+def test_worker_context_rejects_autocommit_before_database_access():
+    connection = FakeConnection(autocommit=True)
+
+    with pytest.raises(ValueError, match="non-autocommit transaction"):
+        set_worker_tenant_context(
+            connection,
+            credential="worker-secret-with-at-least-32-bytes",
+            location_id=LOCATION_ID,
+            resource="sensor_reading",
+            action="process",
+        )
+
+    assert connection.calls == []

@@ -6311,6 +6311,35 @@ the inventory remain deployment gates ([source evidence](builds/2026-10-16-recov
 [PostgreSQL evidence](builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json);
 [call-site audit](mobile-tenant-rls-callsite-audit.md)).
 
+### Signed worker tenant context — 16 October 2026
+
+Migration 405 adds private worker principals, SHA-256 credential digests,
+expiring and revocable exact tenant/location/resource/action grants, a separate
+non-login execution role, and the bounded setter for database-signed
+`system_worker` context. The existing accessor now verifies that actor type;
+`current_worker_scope(resource, action)` exposes only the exact signed operation.
+The adapter in `services/common/tenant_context.py` clears old scope, requires a
+non-autocommit transaction and worker-only secret, hashes it in memory, assumes
+the dedicated role locally, and calls the setter. It does not load credentials
+from event/job payloads, and the shared EventBus handler dispatch is not wired
+to it while per-handler credentials are not isolated.
+
+The migration replayed in a disposable PostgreSQL 16 fixture with forced RLS on
+the synthetic ownership and worker authorization tables. Seventeen acceptance
+checks pass: exact grant, HMAC tamper and cross-transaction replay denial,
+credential/key secrecy, shared runtime-role denial, grant lock serialization,
+owner transfer, inactive location/tenant/principal, expiry and revocation, and
+transaction cleanup. Migration unit tests pass 31 cases and tenant-context
+unit tests pass 30. Migration-source validation covers 396 inputs; Ruff,
+compilation, JSON parsing, and diff checks pass. No candidate or legacy
+database was contacted. Worker-handler integration, per-worker credential
+provisioning, effect-specific application RLS, control-plane isolation, and
+candidate rollout remain open
+([migration](../schemas/postgres/405_signed_worker_tenant_context.sql);
+[adapter](../services/common/tenant_context.py);
+[disposable acceptance](builds/2026-10-16-recovery/worker-tenant-context-disposable.json);
+[runner](../scripts/check-worker-tenant-context-disposable.py)).
+
 ### Anomaly worker source and transaction boundaries — 16 October 2026
 
 The event-driven anomaly path now validates its location against the joined
@@ -6321,7 +6350,8 @@ its existing commit/rollback behavior by default and supports explicit
 caller-owned transaction control. Focused anomaly and seed-guard checks passed
 19 tests, EventBus durability passed 17 tests, and two transaction tests passed;
 Ruff, Python compilation, and diff checks are clean. These checks used mocks
-only and touched no database. Signed worker identity, effect-specific
-authorization, least-privilege grants, and disposable database acceptance
-remain open ([contract](worker-tenant-context-contract.md);
+only and touched no database. The signed worker setter and disposable context
+acceptance are recorded above; handler integration, effect-specific
+application authorization, least-privilege table grants, and isolated
+per-handler credentials remain open ([contract](worker-tenant-context-contract.md);
 [evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).

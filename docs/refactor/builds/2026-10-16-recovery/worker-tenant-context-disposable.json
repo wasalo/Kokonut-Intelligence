@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Migration 405 signed worker context and execution-role acceptance",
+  "database": "isolated disposable PostgreSQL 16 container",
+  "migration_file": "schemas/postgres/405_signed_worker_tenant_context.sql",
+  "migration_replay": "passed",
+  "command": "python3 scripts/check-worker-tenant-context-disposable.py",
+  "container_network": "loopback-only published port; runner makes no external requests",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "valid exact worker grant signs tenant/location/actor and operation"
+    },
+    {
+      "result": "passed",
+      "description": "tampered worker context payload fails HMAC validation"
+    },
+    {
+      "result": "passed",
+      "description": "worker role cannot read credentials or the HMAC signing key"
+    },
+    {
+      "result": "passed",
+      "description": "signed worker context expires at transaction end"
+    },
+    {
+      "result": "passed",
+      "description": "signed worker context cannot be replayed in a later transaction"
+    },
+    {
+      "result": "passed",
+      "description": "cross-location and non-exact resource/action grants fail closed"
+    },
+    {
+      "result": "passed",
+      "description": "a denied setter clears an earlier signed scope in the transaction"
+    },
+    {
+      "result": "passed",
+      "description": "shared runtime login cannot execute or assume worker execution role"
+    },
+    {
+      "result": "passed",
+      "description": "worker grant lock serializes revocation with an active context"
+    },
+    {
+      "result": "passed",
+      "description": "owner transfer invalidates a still-active worker grant"
+    },
+    {
+      "result": "passed",
+      "description": "inactive location is denied"
+    },
+    {
+      "result": "passed",
+      "description": "inactive owner tenant is denied"
+    },
+    {
+      "result": "passed",
+      "description": "expired worker grant is denied"
+    },
+    {
+      "result": "passed",
+      "description": "inactive worker principal is denied"
+    },
+    {
+      "result": "passed",
+      "description": "expired worker credential is denied"
+    },
+    {
+      "result": "passed",
+      "description": "revoked worker grant is denied"
+    },
+    {
+      "result": "passed",
+      "description": "revoked worker credential is denied"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "worker_credential_printed": false,
+  "limitations": [
+    "Only the worker context migration ran against a minimal synthetic prior-schema fixture.",
+    "No application-table RLS policy, handler integration, worker deployment, provider, candidate, or legacy database was changed or exercised."
+  ]
+}

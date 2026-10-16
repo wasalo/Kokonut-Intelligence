@@ -9,6 +9,7 @@ prior local context first.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from contextvars import ContextVar, Token
@@ -81,6 +82,18 @@ class GatewayTenantContext:
     actor_type: str = "gateway_api_key"
 
 
+@dataclass(frozen=True)
+class WorkerTenantContext:
+    """Database-derived scope for one worker transaction and operation."""
+
+    tenant_id: str
+    location_id: str
+    actor_id: str
+    resource: str
+    action: str
+    actor_type: str = "system_worker"
+
+
 def _normalize_uuid(value: str, label: str) -> str:
     try:
         return str(UUID(str(value)))
@@ -88,8 +101,8 @@ def _normalize_uuid(value: str, label: str) -> str:
         raise ValueError(f"{label} must be a UUID") from exc
 
 
-def clear_operator_tenant_context(connection: Any) -> None:
-    """Clear context within the current transaction; never commits it."""
+def clear_tenant_context(connection: Any) -> None:
+    """Clear signed context within the current transaction; never commits it."""
     if getattr(connection, "autocommit", True):
         raise ValueError("tenant context requires a non-autocommit transaction")
 
@@ -99,6 +112,75 @@ def clear_operator_tenant_context(connection: Any) -> None:
             + ", ".join("set_config(%s, '', TRUE)" for _ in _CONTEXT_SETTINGS),
             _CONTEXT_SETTINGS,
         )
+
+
+def clear_operator_tenant_context(connection: Any) -> None:
+    """Compatibility alias retained for existing operator request paths."""
+    clear_tenant_context(connection)
+
+
+def set_worker_tenant_context(
+    connection: Any,
+    *,
+    credential: str,
+    location_id: str,
+    resource: str,
+    action: str,
+) -> WorkerTenantContext:
+    """Set database-signed scope for one worker operation in this transaction.
+
+    The raw high-entropy credential is hashed in memory and is never sent to
+    PostgreSQL. The caller must provide it from a worker-only secret source;
+    event payloads and scheduler arguments are not credential sources. The
+    transaction-local role switch also prevents the shared runtime login from
+    calling the worker context setter.
+    """
+    if getattr(connection, "autocommit", True):
+        raise ValueError("tenant context requires a non-autocommit transaction")
+
+    # Clear first so a caught validation or role-switch failure cannot leave a
+    # prior request's signed scope available on a reused connection.
+    clear_tenant_context(connection)
+    if not isinstance(credential, str) or len(credential) > 4096:
+        raise ValueError("worker credential must contain 32 to 4096 UTF-8 bytes")
+    try:
+        credential_bytes = credential.encode("utf-8")
+    except UnicodeEncodeError as exc:
+        raise ValueError("worker credential must be valid UTF-8 text") from exc
+    if not 32 <= len(credential_bytes) <= 4096:
+        raise ValueError("worker credential must contain 32 to 4096 UTF-8 bytes")
+    requested_location_id = _normalize_uuid(location_id, "location-id")
+    if not isinstance(resource, str) or not _IDENTIFIER_RE.fullmatch(resource):
+        raise ValueError("resource must be a lowercase identifier")
+    if not isinstance(action, str) or not _IDENTIFIER_RE.fullmatch(action):
+        raise ValueError("action must be a lowercase identifier")
+
+    credential_hash = hashlib.sha256(credential_bytes).hexdigest()
+    with connection.cursor() as cursor:
+        cursor.execute("SET LOCAL ROLE kokonut_worker_execution")
+        cursor.execute(
+            """
+            SELECT tenant_id::text, location_id::text, actor_id::text, actor_type
+              FROM kokonut_security.set_worker_tenant_context(%s, %s::uuid, %s, %s)
+            """,
+            (credential_hash, requested_location_id, resource, action),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            raise TenantContextDenied(
+                "worker credential lacks an active grant for this location and operation"
+            )
+        tenant_id, validated_location_id, actor_id, actor_type = map(str, row)
+        if actor_type != "system_worker":
+            raise TenantContextDenied("database returned an invalid worker context")
+
+    return WorkerTenantContext(
+        tenant_id=tenant_id,
+        location_id=validated_location_id,
+        actor_id=actor_id,
+        resource=resource,
+        action=action,
+    )
 
 
 def set_mobile_device_tenant_context(

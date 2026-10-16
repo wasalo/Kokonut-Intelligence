@@ -1,7 +1,9 @@
 # Worker tenant-context contract
 
-**Status:** implementation contract, 16 October 2026. No migration, runtime
-identity, candidate database, or worker deployment was changed for this design.
+**Status:** first database/source adapter implemented, 16 October 2026. Migration
+405 and a transaction-bound Python adapter now establish an opt-in worker
+context. No candidate database, worker credential, worker deployment, handler
+dispatch, or application-table RLS policy was changed.
 
 ## Decision
 
@@ -96,16 +98,30 @@ must:
    execution identity to claim or complete arbitrary events.
 
 The first location-lineage source change is in
-`services/ingestion/anomaly_detector.py`. With explicit owner approval, the
-focused anomaly and pilot seed-guard suites passed 19 tests, the EventBus
-durability suite passed 17 tests, and two focused EventBus transaction tests
-passed. They cover missing and malformed location
-selectors, validation before DB access, source/event location mismatch, seed
-lineage guards, read-only alert-rule behavior for event execution, and
-caller-owned transaction success/error paths. Ruff, Python compilation, and
-`git diff --check` passed. These were mocked/source checks only; signed worker
-identity and disposable authorization acceptance remain open
-([evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).
+`services/ingestion/anomaly_detector.py`. Migration 405 adds private worker
+principals, SHA-256 credential digests, exact tenant/location/resource/action
+grants, a dedicated `kokonut_worker_execution` group role, the bounded signed
+context setter, and an exact-scope accessor. `services/common/tenant_context.py`
+hashes the supplied worker secret in memory, clears prior context, assumes the
+dedicated role locally, and requires a non-autocommit transaction. The adapter
+is not yet connected to an event or scheduled handler: no worker-only credential
+is provisioned, and the current EventBus dispatcher must not pass one shared
+secret to unrelated handler processes.
+
+The focused anomaly and pilot seed-guard suites passed 19 tests, the EventBus
+durability suite passed 17 tests, and two transaction tests passed. They cover
+missing/malformed location selectors, validation before DB access, source/event
+location mismatch, seed lineage guards, read-only alert-rule behavior, and
+caller-owned transaction success/error paths. The worker-context unit suite
+passed 30 tests. The migration was applied and replayed in isolated PostgreSQL
+16 with forced RLS on synthetic ownership and private grant tables; 17 checks
+passed for exact scope, payload tampering, transaction cleanup, private key and
+credential access denial, runtime-role separation, owner transfer, grant expiry
+and revocation, credential revocation, and authorization-row lock behavior.
+Ruff, Python compilation, migration source validation, and diff checks passed.
+No candidate or legacy database was accessed
+([anomaly evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json);
+[worker database evidence](builds/2026-10-16-recovery/worker-tenant-context-disposable.json)).
 
 ### Observed effect boundary for the first handler
 
@@ -133,7 +149,7 @@ the authorization contract:
 The signed worker operation must authorize the location-bound table access and
 route shared queue/audit mutations through bounded database operations. A
 single `sensor_reading:process` grant does not by itself authorize global
-notification, event-bus, or audit writes. Before adding the migration, map each
+notification, event-bus, or audit writes. Before handler integration, map each
 effect to a tenant-qualified row policy or a database function that derives
 scope from the signed context; keep event claim/receipt and queue acknowledgement
 in the separate control-plane identity. Any database-backed effect added to
@@ -149,15 +165,15 @@ producer against this contract.
 
 ## Planned code and migration sequence
 
-1. Add an ordered migration for worker principal/grant storage, the bounded
-   signed-context setter, and accessor support for `system_worker`. Do not
-   enable RLS or change existing runtime grants in this migration.
-2. Add a small Python adapter beside
-   `services/common/tenant_context.py` that validates transaction state,
-   canonical location/resource/action inputs, hashes the credential in memory,
-   clears prior context, calls the database setter, and returns a typed worker
-   context. It must not read credentials from event/job payloads.
-3. Integrate only the sensor-reading handler, add a regression inventory for
+1. **Complete:** migration 405 adds worker principal/grant storage, the bounded
+   signed-context setter, and `system_worker` accessor support. It does not
+   enable application-table RLS or grant access to `kokonut_runtime`.
+2. **Complete:** the adapter in `services/common/tenant_context.py` validates
+   transaction state and canonical selectors, hashes the credential in memory,
+   clears prior context, calls the database setter through the dedicated role,
+   and returns typed scope. It never reads a credential from event/job payloads.
+3. Integrate only the sensor-reading handler after its credential is isolated
+   from unrelated dispatch, add a regression inventory for
    producers and dispatch, and add disposable PostgreSQL checks for valid grant,
    cross-location denial, inactive/transfer/revocation denial, stale-context
    clearing, same-transaction signature, and transaction cleanup.
@@ -175,10 +191,12 @@ gates.
 
 ## Acceptance for the first slice
 
-- Missing/malformed location and missing/invalid worker credential fail before
-  tenant SQL or provider construction.
+- Missing/malformed location and invalid scope fail before the worker setter
+  call or provider construction. The Python adapter requires a separate secret
+  argument; handler-level missing-credential denial remains unintegrated.
 - Database-selected tenant scope matches the current owner and exact worker
-  resource/action grant; caller tenant input is never accepted.
+  resource/action grant; caller tenant input is never accepted. Migration 405
+  acceptance verifies the exact scope in disposable PostgreSQL.
 - Cross-tenant, cross-location, revoked-grant, transferred-owner, inactive
   location, and replayed-transaction contexts fail closed and clear prior local
   context.
@@ -186,8 +204,9 @@ gates.
   location before alert processing.
 - Event receipt semantics, idempotency, retries, and outbox effects remain
   unchanged under disposable PostgreSQL and source-level checks.
-- No migration is applied to the candidate, no worker is activated, and no RLS
-  policy is enabled as part of this first source slice.
+- Migration 405 is tested only in a disposable database. No migration is
+  applied to the candidate, no worker is activated, and no application-table
+  RLS policy is enabled as part of this source slice.
 
 ## Rollback
 
