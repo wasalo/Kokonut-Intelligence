@@ -532,6 +532,76 @@ class TestRetentionSweep(unittest.TestCase):
         self.assertEqual(result["total"], 0)
         conn.commit.assert_called_once()
 
+    def test_notification_retention_dry_run_skips_until_archive_workflow_exists(self):
+        targets = (
+            "notification_outbox",
+            "notification_outbox_attempt",
+            "notification_outbox_operator_audit",
+        )
+        for entity_type in targets:
+            for dry_run in (True, False):
+                with self.subTest(entity_type=entity_type, dry_run=dry_run):
+                    conn = MagicMock()
+                    cursor = MagicMock()
+                    conn.cursor.return_value = cursor
+                    cursor.fetchall.return_value = [
+                        (
+                            "pol-notification", "notification_delivery", entity_type,
+                            None, None, None, 90, "hard_delete", False, True, "active",
+                            "reviewer-1", date(2026, 10, 15), "owner-1",
+                        ),
+                    ]
+
+                    environment = (
+                        {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"}
+                        if not dry_run else {}
+                    )
+                    with patch.dict(os.environ, environment, clear=True):
+                        result = enforce_retention_policies(
+                            conn, "operator-1", dry_run=dry_run
+                        )
+
+                    policy = result["policies"][0]
+                    self.assertEqual(policy["status"], "skipped")
+                    self.assertEqual(policy["candidates"], 0)
+                    self.assertEqual(policy["affected"], 0)
+                    self.assertTrue(any(
+                        "data_retention_enforcement_log" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+                    self.assertFalse(any(
+                        "information_schema.columns" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+                    self.assertFalse(any(
+                        "last_enforced_at" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+                    self.assertFalse(any(
+                        "DELETE FROM" in call.args[0]
+                        or "UPDATE \"notification_" in call.args[0]
+                        for call in cursor.execute.call_args_list
+                    ))
+
+    def test_generic_dry_run_does_not_mark_policy_as_enforced(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [
+            (
+                "pol-generic", "fixture", "retention_fixture", None, None, None,
+                90, "soft_delete", False, True, "active", "reviewer-1",
+                date(2026, 10, 15), "owner-1",
+            ),
+        ]
+        cursor.fetchone.side_effect = [(0,), (True,), (1, 1), (3,)]
+
+        result = enforce_retention_policies(conn, "operator-1", dry_run=True)
+
+        self.assertEqual(result["policies"][0]["status"], "dry_run")
+        self.assertEqual(result["policies"][0]["candidates"], 3)
+        self.assertFalse(any("last_enforced_at" in call.args[0] for call in cursor.execute.call_args_list))
+
     @patch.dict(os.environ, {"KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT": "true"})
     def test_sweep_records_legal_hold_as_skipped(self):
         conn = MagicMock()
@@ -551,6 +621,10 @@ class TestRetentionSweep(unittest.TestCase):
         self.assertEqual(result["policies"][0]["status"], "skipped")
         self.assertEqual(result["policies"][0]["affected"], 0)
         conn.commit.assert_called_once()
+        self.assertFalse(any(
+            "last_enforced_at" in call.args[0]
+            for call in cursor.execute.call_args_list
+        ))
         self.assertFalse(
             any(
                 "FROM data_retention_policy overlap" in call.args[0]

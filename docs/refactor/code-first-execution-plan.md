@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `d37b5868f0428dc856eb62a4a49bd977dda1ba4d`
-**Latest pushed head status (checked 16 October 2026):** Gitleaks passed; CI failed before tests because the reviewed SHA-256 lock for `Dockerfile.kernel` was stale after adding `--require-schema` to the default and OIDC image commands. The lock is now refreshed locally; the release-input gate and 14 focused Kernel checks pass, pending hosted rerun on the next PR head ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
+**Latest pushed head:** `3b9ae044a5fa08f42f59b28fc360fd2bf945a3d7`
+**Latest pushed head status (checked 16 October 2026):** Gitleaks #51 passed; CI #327 is in progress. The previous head failed before tests because its `Dockerfile.kernel` SHA-256 lock was stale after adding `--require-schema` to the default and OIDC image commands. The lock correction is pushed; the release-input gate and 14 focused Kernel checks pass locally ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,14 +20,11 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
-  [`d37b5868f0428dc856eb62a4a49bd977dda1ba4d`](https://github.com/wasalo/Kokonut-Intelligence/commit/d37b5868f0428dc856eb62a4a49bd977dda1ba4d)
-  on `feat/mobile-offline-acceptance`, PR #68. Gitleaks passed on this head. CI on this
-  head stopped before tests because the schema-readiness change altered
-  `Dockerfile.kernel` without refreshing the SHA-256 release-input lock. The
-  lock now matches the reviewed Dockerfile, the release-input gate passes, and
-  14 focused Kernel checks pass locally; hosted reverification is pending on
-  the next PR head ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
-  This 15-commit push includes the prior CI #325 repair; ZITADEL image pins;
+  [`3b9ae044a5fa08f42f59b28fc360fd2bf945a3d7`](https://github.com/wasalo/Kokonut-Intelligence/commit/3b9ae044a5fa08f42f59b28fc360fd2bf945a3d7)
+  on `feat/mobile-offline-acceptance`, PR #68. Gitleaks #51 passed; CI #327 is
+  in progress. The prior head's release-input lock mismatch was corrected and
+  pushed after the local release gate and 14 focused Kernel checks passed.
+  This 16-commit push includes the prior CI #325 repair; ZITADEL image pins;
   report-review tenant-context checks and report/query inventories; the report
   review-audience record; the indirect location-scope correction; current
   ARM64 schema-402 evidence; read-only candidate seed confirmation; and the
@@ -35,8 +32,8 @@ MAN-CAP checks open until each has its own retained evidence.
   optional Directus role/profile work, fresh-volume Directus overlay acceptance,
   worker effect and SQL reachability inventories, report calculation and
   scheduler recovery, EventBus reconnect/retry, KGP reconnect, and Directus
-  organization permission work. The pending local lock correction has not been
-  covered by hosted CI or Security.
+  organization permission work. The retention preview guard is a new local
+  change and has not been covered by hosted CI or Security.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
   isolated PostgreSQL check pass; the latter proved rejected calculations
@@ -228,11 +225,11 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI on pushed SHA `d37b5868f0428dc856eb62a4a49bd977dda1ba4d`
-stopped at the Kernel release-input check because the `Dockerfile.kernel`
-digest lock was stale. The lock now matches the reviewed schema-readiness
-change. The local release-input gate and 14 focused Kernel profile/startup tests
-pass; hosted verification is still required on the next pushed SHA. See
+**Action:** CI #327 is running on pushed SHA
+`3b9ae044a5fa08f42f59b28fc360fd2bf945a3d7`; Gitleaks #51 passed. The prior
+head stopped at the Kernel release-input check because the `Dockerfile.kernel`
+digest lock was stale. That lock correction is now pushed. The local
+release-input gate and 14 focused Kernel profile/startup tests pass. See
 [`ci-d37b586-release-lock-fix.json`](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json).
 
 **Acceptance:** require passing CI and Security on the current PR head before
@@ -690,7 +687,7 @@ deployment or semantic acceptance:
   applied to the local candidate after separate approval. The earlier 30-file
   proposal is superseded; pilot rows remain held. Migrations 392–400 are rolled
   out; runtime credential provisioning remains tracked under OFU-19. The
-  candidate has six recorded seed entries; 117 unselected seed sources remain pending.
+  candidate has six recorded seed entries; 115 unselected seed sources remain pending.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only
 scope and lack of hardware. If the owner later supplies a Pi, add a separate
@@ -699,11 +696,10 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The current push is `72ab775`; Security #48 passed and CI #324 is in
-progress. It includes report calculation and scheduler worker recovery,
-EventBus reconnect/retry, KGP reconnect, and Directus organization permissions.
-Accumulate new changes with the next coherent code batch before pushing so the
-repository does not start CI for each small commit. Never push directly to
+requested. The current push is `3b9ae04`; Gitleaks #51 passed and CI #327 is in
+progress. The next local batch includes the notification retention preview
+guard. Accumulate related changes before the next push so the repository does
+not start CI for each small commit. Never push directly to
 `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable
 acceptance are complete.

@@ -1497,7 +1497,11 @@ focused data-governance/EventBus tests and four subtests pass. The ordered
 migration acceptance for 401 and 402 passes on an internal-only synthetic
 PostgreSQL fixture. The candidate now has both migrations applied after a fresh
 restore-rehearsed checkpoint; no periods, scoped policies, or holds are active,
-and named MAN-CAP checks remain unaccepted
+and named MAN-CAP checks remain unaccepted. The generic sweeper now explicitly
+skips the notification outbox, attempts, and operator audit until an
+archive/idempotency workflow exists; dry runs do not mark policies as enforced
+([source evidence](builds/2026-10-16-recovery/retention-notification-sweeper-guard.json)).
+This source guard does not enable pruning or change capability status
 ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
 [operations](retention-policy-operations.md);
 [evidence](builds/2026-10-15-recovery/retention-policy-disposable.json);

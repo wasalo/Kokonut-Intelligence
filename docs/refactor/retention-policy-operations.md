@@ -98,6 +98,15 @@ authenticated administrative authorization. It is not a general erasure executor
 outbox, handler attempt history, operator-audit records, media, exports,
 backups, and Field Collector disposition do not have automatic pruning paths.
 
+The generic sweeper explicitly skips `notification_outbox`,
+`notification_outbox_attempt`, and `notification_outbox_operator_audit` in both
+preview and enforcement modes until an archive workflow can preserve the
+outbox's idempotency tombstone, parent/child relationships, and applicable
+legal holds. A skipped policy is logged but does not update
+`last_enforced_at`; a dry-run records its preview without marking the policy as
+enforced. Focused source tests cover all three targets in both modes
+([evidence](builds/2026-10-16-recovery/retention-notification-sweeper-guard.json)).
+
 No periods have been configured. Migrations 401 and 402 are applied to the
 local candidate after an encrypted checkpoint and isolated restore/replay;
 the rollout left policy and hold tables empty and did not recreate the app.

@@ -16,6 +16,10 @@ data-retention and archive requirements are approved.
   retention interval and an archive that preserves the identity/audit evidence.
 - There is no outbox pruning command. PostgreSQL backup and restore includes
   these tables as canonical operational state.
+- The generic data-governance retention sweeper skips the outbox, attempt, and
+  operator-audit tables in both preview and enforcement modes. A future
+  retention operation must preserve the idempotency key and parent/child links,
+  honor record-level legal holds, and use owner-approved policy windows.
 
 This is a non-expiring default, not a claim that indefinite retention is suitable
 for every jurisdiction or deployment. Before enabling automated retention,

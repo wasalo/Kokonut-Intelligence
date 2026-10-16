@@ -48,6 +48,21 @@ _REVIEWED_DISPOSITION_ENTITIES = frozenset({
     "stakeholder_consent",
 })
 
+_ARCHIVE_REQUIRED_RETENTION_ENTITIES = {
+    "notification_outbox": (
+        "notification outbox requires an archive workflow that preserves its "
+        "event/channel/destination idempotency tombstone"
+    ),
+    "notification_outbox_attempt": (
+        "notification attempts require an archive workflow coordinated with "
+        "their outbox parent and legal holds"
+    ),
+    "notification_outbox_operator_audit": (
+        "notification operator audit requires an archive workflow coordinated "
+        "with its outbox parent and legal holds"
+    ),
+}
+
 
 def _requires_reviewed_disposition(entity_type: str | None) -> bool:
     return (
@@ -1195,6 +1210,9 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
             if _requires_reviewed_disposition(entity_type):
                 status = "skipped"
                 error = "protected entity requires a dedicated reviewed disposition workflow"
+            elif entity_type in _ARCHIVE_REQUIRED_RETENTION_ENTITIES:
+                status = "skipped"
+                error = _ARCHIVE_REQUIRED_RETENTION_ENTITIES[entity_type]
             elif jurisdiction_code is not None or purpose_code is not None:
                 status = "skipped"
                 error = "jurisdiction or purpose scope requires a configured scope resolver"
@@ -1324,7 +1342,12 @@ def enforce_retention_policies(conn, actor: str, dry_run: bool = False) -> dict:
                     (policy_id, actor, dry_run, status, candidates, affected, error)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
             """, (policy_id, actor, dry_run, status, candidates, affected, error))
-            cur.execute("UPDATE data_retention_policy SET last_enforced_at = NOW(), updated_at = NOW() WHERE id = %s", (policy_id,))
+            if status == "completed" and not dry_run:
+                cur.execute(
+                    "UPDATE data_retention_policy "
+                    "SET last_enforced_at = NOW(), updated_at = NOW() WHERE id = %s",
+                    (policy_id,),
+                )
             results.append({"policy_id": str(policy_id), "status": status, "candidates": candidates, "affected": affected, "error": error})
         conn.commit()
         return {"actor": actor, "dry_run": dry_run, "policies": results, "total": len(results)}

@@ -7,17 +7,23 @@ the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
 grant to view every report. Per-report exposure, scope, measures, and populated
 reference outputs remain open until owners can review the ingested farm data
 ([reporting contract](reporting-parity-inventory.md)).
-The last pushed PR head is `d37b5868f0428dc856eb62a4a49bd977dda1ba4d`.
-That 15-commit batch includes the CI #325 regression fixes, read-only candidate
+The last pushed PR head is `3b9ae044a5fa08f42f59b28fc360fd2bf945a3d7`.
+That 16-commit batch includes the CI #325 regression fixes, read-only candidate
 seed confirmation, report/tenant source inventories, scheduled-weather input
-guard, Directus relation-expansion guard, and schema-gated startup with ARM64
-QEMU acceptance. Gitleaks passed on `d37b586`. CI failed before the test
-suite because `Dockerfile.kernel` changed while its SHA-256 release-input lock
-was stale. The only Dockerfile changes add `--require-schema` to the default
-and OIDC runtime commands; the lock now matches the reviewed file. The release
-input gate and 14 Kernel profile/startup tests pass locally; hosted
-reverification is pending on the next PR head
+guard, Directus relation-expansion guard, schema-gated startup with ARM64 QEMU
+acceptance, and the reviewed Kernel input-lock correction. Gitleaks #51 passed;
+CI #327 is running on this head. The prior head's CI stopped before tests
+because the `Dockerfile.kernel` schema-readiness change was not reflected in
+its SHA-256 release-input lock. The lock was refreshed and pushed; the
+release-input gate and 14 Kernel profile/startup tests pass locally
 ([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
+The current local slice also closes a generic-retention preview hazard: the
+outbox, attempt, and operator-audit tables now skip before row inspection in
+both preview and enforcement until archive/idempotency handling exists. Dry
+runs and skipped policies no longer refresh `last_enforced_at`. The focused
+data-governance suite passes 47 tests and 10 subtests with Ruff/compile checks;
+this source guard does not configure or execute pruning
+([evidence](builds/2026-10-16-recovery/retention-notification-sweeper-guard.json)).
 The candidate now has 393 applied schema migrations through 402, six
 recorded seed migrations, zero pending schema migrations, 115 unselected seed
 sources pending, and no failed ledger rows. The five approved reference catalogs

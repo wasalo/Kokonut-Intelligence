@@ -1,0 +1,27 @@
+{
+  "checked_at_utc": "2026-10-16T02:29:00Z",
+  "scope": "generic dynamic retention sweeper safety for notification records",
+  "targets": [
+    "notification_outbox",
+    "notification_outbox_attempt",
+    "notification_outbox_operator_audit"
+  ],
+  "behavior": {
+    "preview_and_enforcement": "skipped before schema introspection or candidate-row queries",
+    "reason": "these records require an archive workflow that preserves outbox idempotency identity, parent/child links, and active legal holds",
+    "policy_last_enforced_at": "unchanged for dry runs and skipped policies",
+    "record_deletion": "none"
+  },
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_data_governance.py -q",
+      "passed": 47,
+      "subtests": 10
+    },
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "environment": "unit mocks only; no candidate or legacy database, provider, or Docker resource was accessed",
+  "retention_periods": "none configured or selected; all policy windows remain runtime data"
+}
