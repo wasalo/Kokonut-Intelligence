@@ -3,7 +3,7 @@
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Batch base head:** `6d07c231929323c288dc9a4b79f72807e6a4dc06` on PR #68; Security #87 is running and CI #363 is pending.
-**Current local batch:** Reconciled the worker contract and code-first plan with the implemented migrations 405–414: the signed anomaly handler, per-handler secret forwarding, disposable role checks, and EventBus crash/retry acceptance are complete. The real deployment login/secret/grant, candidate migration rollout, external delivery, control-plane separation, and other worker scopes remain open. No code or candidate database changed in this documentation follow-up.
+**Current local batch:** Reconciled worker acceptance documentation and refreshed the static runtime SQL inventory after tenant-preflight changes. All six worker/source/SQL inventory checks pass; the current report records 3,862 sites across 815 service files, including 267 worker-linked sites. Migrations 405–414 and the signed anomaly handler remain the verified scope. Real deployment login/secret/grant, candidate migration rollout, external delivery, control-plane separation, and other worker scopes remain open. No application code or candidate database changed.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -393,9 +393,10 @@ before protected reads and writes, and make direct database access fail closed.
    and proved a table/sequence created after provisioning is inaccessible to
    the runtime login. A new whole-services SQL inventory covers all 807 Python
    source files and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The current generated inventory covers 3,799
-   SQL execution sites across 807 source files; literal query wrappers are
-   unwrapped while parameter values remain unobserved. The report is static
+   names without becoming an ACL. The current generated inventory covers 3,862
+   SQL execution sites across 815 source files, including 267 worker-linked
+   sites; literal query wrappers are unwrapped while parameter values remain
+   unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and
    indirect-query surfaces before deriving explicit grants; worker, Directus,
    and RLS boundaries remain open ([role evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json); [SQL inventory](runtime-sql-inventory.json); [latest inventory check](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json)).

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Static worker and runtime SQL inventory refresh after signed sensor worker integration and tenant-preflight changes",
+  "result": "passed",
+  "runtime_sql_inventory": {
+    "source_files": 815,
+    "execution_sites": 3862,
+    "worker_operation_referenced_sites": 267,
+    "relation_candidates": 1041,
+    "unknown_statement_sites": 134,
+    "with_review_sites": 24,
+    "sites_without_relation_candidates": 370,
+    "non_literal_sites": 480,
+    "service_packages": 67
+  },
+  "checks": [
+    {
+      "name": "worker_source_closure",
+      "result": "passed"
+    },
+    {
+      "name": "worker_function_reachability",
+      "result": "passed"
+    },
+    {
+      "name": "worker_sql_reachability",
+      "result": "passed"
+    },
+    {
+      "name": "worker_boundary_preflight",
+      "result": "passed"
+    },
+    {
+      "name": "worker_sql_inventory",
+      "result": "passed"
+    },
+    {
+      "name": "runtime_sql_inventory",
+      "result": "passed"
+    }
+  ],
+  "limitations": [
+    "Static relation/function references are not parsed authorization policy or an ACL.",
+    "The report does not establish transaction-bound tenant context, runtime grants, or RLS safety.",
+    "Candidate and legacy databases were not accessed."
+  ]
+}

@@ -21,6 +21,20 @@ rollout remain open. No MAN-CAP acceptance is claimed
 [runtime evidence](builds/2026-10-15-recovery/directus-profile-disposable.json);
 [parity inventory](directus-parity-inventory.md)).
 
+### Runtime SQL inventory refreshed after worker integration — 16 October 2026
+
+Refreshed the direct-SQL inventory after the signed sensor-anomaly worker and
+tenant-preflight updates. All six static checks pass: worker source closure,
+function reachability, SQL reachability, boundary preflight, worker SQL
+inventory, and runtime SQL inventory freshness. The report now records 3,862
+SQL execution sites across 815 Python service files, 267 worker-linked sites,
+and 1,041 regex-derived relation candidates. It flags 134 unknown statements,
+24 `WITH` sites requiring review, 370 sites with no relation candidates, and
+480 non-literal calls. These counts guide review; they do not form an ACL or
+prove tenant isolation. No candidate or legacy database was accessed
+([inventory](runtime-sql-inventory.json);
+[evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)).
+
 ### Owner-confirmed location operating-tenant map — 16 October 2026
 
 The pilot data flow now includes a new rerunnable owner reconciliation seed for
