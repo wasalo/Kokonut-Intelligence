@@ -1,7 +1,7 @@
 {
   "date": "2026-10-16",
   "result": "passed",
-  "check": "KGP indexer process and durable lease heartbeat across disposable PostgreSQL stop/start",
+  "check": "KGP indexer restart reconnect and durable lease recovery after worker crash",
   "command": "python3 scripts/check-kgp-worker-reconnect-disposable.py",
   "database_image": "postgres:16-alpine",
   "database_port_binding": "127.0.0.1 only",
@@ -10,10 +10,14 @@
   "worker_id": "kgp-reconnect-probe",
   "worker_alive_during_outage": true,
   "database_restart_reconnected": true,
-  "lease_heartbeat_before_restart": "2026-10-16T04:35:53.112291Z",
-  "lease_heartbeat_after_restart": "2026-10-16T04:35:56.866307Z",
+  "lease_heartbeat_before_restart": "2026-10-16T05:05:28.906213",
+  "lease_heartbeat_after_restart": "2026-10-16T05:05:30.299725",
+  "worker_killed_and_lease_reclaimed": true,
+  "lease_owner_before_reclaim": "kgp-reconnect-probe",
+  "lease_owner_after_reclaim": "kgp-crash-recovery",
+  "lease_heartbeat_after_reclaim": "2026-10-16T05:05:31.921905",
   "limitations": [
-    "The cursor schema and row were synthetic. The check exercised the current KGP worker lease claim, heartbeat, release, and connection loop, not production migrations or chain event processing.",
+    "The cursor schema and row were synthetic. The check exercised the current KGP worker lease claim, heartbeat, release, connection loop, and forced-expiry reclaim, not production migrations or chain event processing.",
     "Web3 block height was stubbed below the first cursor block, so no RPC or event queries were made.",
     "The disposable PostgreSQL container had no volume and was bound only to loopback."
   ]

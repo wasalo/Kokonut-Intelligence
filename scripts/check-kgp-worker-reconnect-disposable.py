@@ -15,6 +15,7 @@ import threading
 import time
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 
 def _docker(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -76,7 +77,9 @@ def _wait_until_ready(name: str, timeout: float) -> None:
     raise TimeoutError("disposable PostgreSQL did not become ready")
 
 
-def _heartbeat(name: str, deployment_id: str, timeout: float) -> str:
+def _heartbeat(
+    name: str, deployment_id: str, expected_worker: str, timeout: float
+) -> str:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         result = _docker(
@@ -101,10 +104,23 @@ def _heartbeat(name: str, deployment_id: str, timeout: float) -> str:
         )
         if result.returncode == 0:
             values = result.stdout.strip().split("|")
-            if len(values) == 2 and values[0] == "kgp-reconnect-probe" and values[1]:
+            if len(values) == 2 and values[0] == expected_worker and values[1]:
                 return values[1]
         time.sleep(0.25)
     raise TimeoutError("KGP worker did not claim and heartbeat its disposable lease")
+
+
+def _worker_code(deployment_id: str, worker_id: str) -> str:
+    return f"""
+from types import SimpleNamespace
+from services.guilds.indexer import KGPIndexer
+
+indexer = object.__new__(KGPIndexer)
+indexer.deployment_id = {deployment_id!r}
+indexer.contract_addresses = {{}}
+indexer.w3 = SimpleNamespace(eth=SimpleNamespace(block_number=0))
+indexer.run_forever(poll_interval=0.25, worker_id={worker_id!r})
+"""
 
 
 def main() -> int:
@@ -114,6 +130,7 @@ def main() -> int:
     port = _free_port()
     password = secrets.token_urlsafe(24)
     deployment_id = str(uuid.uuid4())
+    worker_id = "kgp-reconnect-probe"
     process: subprocess.Popen[str] | None = None
     lines: list[str] = []
     output: queue.Queue[str | None] = queue.Queue()
@@ -190,18 +207,8 @@ def main() -> int:
                 "KGP_CONFIRMATIONS": "12",
             }
         )
-        worker_code = f"""
-from types import SimpleNamespace
-from services.guilds.indexer import KGPIndexer
-
-indexer = object.__new__(KGPIndexer)
-indexer.deployment_id = {deployment_id!r}
-indexer.contract_addresses = {{}}
-indexer.w3 = SimpleNamespace(eth=SimpleNamespace(block_number=0))
-indexer.run_forever(poll_interval=0.25, worker_id="kgp-reconnect-probe")
-"""
         process = subprocess.Popen(
-            [sys.executable, "-u", "-c", worker_code],
+            [sys.executable, "-u", "-c", _worker_code(deployment_id, worker_id)],
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -209,15 +216,17 @@ indexer.run_forever(poll_interval=0.25, worker_id="kgp-reconnect-probe")
             bufsize=1,
         )
 
-        def collect_output() -> None:
-            assert process is not None and process.stdout is not None
-            for output_line in process.stdout:
+        initial_process = process
+
+        def collect_output(worker_process=initial_process) -> None:
+            assert worker_process is not None and worker_process.stdout is not None
+            for output_line in worker_process.stdout:
                 output.put(output_line.rstrip())
             output.put(None)
 
         threading.Thread(target=collect_output, daemon=True).start()
         try:
-            heartbeat_before = _heartbeat(name, deployment_id, timeout)
+            heartbeat_before = _heartbeat(name, deployment_id, worker_id, timeout)
         except TimeoutError as exc:
             while True:
                 try:
@@ -241,7 +250,7 @@ indexer.run_forever(poll_interval=0.25, worker_id="kgp-reconnect-probe")
         heartbeat_after = ""
         while time.monotonic() < deadline:
             try:
-                candidate = _heartbeat(name, deployment_id, min(2, timeout))
+                candidate = _heartbeat(name, deployment_id, worker_id, min(2, timeout))
             except TimeoutError:
                 continue
             if candidate > heartbeat_before:
@@ -251,6 +260,61 @@ indexer.run_forever(poll_interval=0.25, worker_id="kgp-reconnect-probe")
         if not heartbeat_after:
             raise TimeoutError("KGP worker did not renew its lease after PostgreSQL restart")
 
+        process.kill()
+        process.wait(timeout=5)
+        expired = _docker(
+            "exec",
+            name,
+            "psql",
+            "-XAt",
+            "-h",
+            "127.0.0.1",
+            "-U",
+            "kokonut",
+            "-d",
+            "kokonut_intelligence",
+            "-c",
+            (
+                "UPDATE kgp_indexer_cursor SET lease_expires_at = NOW() - INTERVAL '1 second' "
+                f"WHERE deployment_id = '{deployment_id}' AND lease_owner = '{worker_id}' "
+                "RETURNING deployment_id"
+            ),
+        )
+        if not expired.stdout.splitlines() or expired.stdout.splitlines()[0].strip() != deployment_id:
+            raise RuntimeError(
+                "could not expire the killed KGP worker lease "
+                f"(stdout={expired.stdout.strip()!r}, stderr={expired.stderr.strip()!r})"
+            )
+
+        recovery_worker_id = "kgp-crash-recovery"
+        process = subprocess.Popen(
+            [sys.executable, "-u", "-c", _worker_code(deployment_id, recovery_worker_id)],
+            cwd=Path(__file__).resolve().parents[1],
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        heartbeat_after_reclaim = ""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                candidate = _heartbeat(
+                    name, deployment_id, recovery_worker_id, min(2, timeout)
+                )
+            except TimeoutError:
+                if process.poll() is not None:
+                    raise RuntimeError(
+                        f"replacement KGP worker exited with status {process.returncode}"
+                    )
+                continue
+            if candidate > heartbeat_after:
+                heartbeat_after_reclaim = candidate
+                break
+            time.sleep(0.25)
+        if not heartbeat_after_reclaim:
+            raise TimeoutError("replacement KGP worker did not reclaim and heartbeat its lease")
+
         result.update(
             {
                 "result": "passed",
@@ -258,9 +322,13 @@ indexer.run_forever(poll_interval=0.25, worker_id="kgp-reconnect-probe")
                 "database_restart_reconnected": True,
                 "lease_heartbeat_before_restart": heartbeat_before,
                 "lease_heartbeat_after_restart": heartbeat_after,
-                "worker_id": "kgp-reconnect-probe",
+                "worker_killed_and_lease_reclaimed": True,
+                "lease_owner_before_reclaim": worker_id,
+                "lease_owner_after_reclaim": recovery_worker_id,
+                "lease_heartbeat_after_reclaim": heartbeat_after_reclaim,
+                "worker_id": worker_id,
                 "limitations": [
-                    "The cursor schema and row were synthetic; the test exercises the real KGP lease claim, heartbeat, release, and connection loop, not production migrations or chain event processing.",
+                    "The cursor schema and row were synthetic; the test exercises the real KGP lease claim, heartbeat, release, connection loop, and forced-expiry reclaim, not production migrations or chain event processing.",
                     "The Web3 block height was stubbed below the first cursor block, so no RPC or event queries were made.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
