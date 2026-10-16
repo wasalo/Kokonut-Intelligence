@@ -190,6 +190,11 @@ python3 -m services.ingestion.climate_data --worldclim --location-id LOCATION_UU
 python3 -m services.ingestion.climate_data --all --location-id LOCATION_UUID
 ```
 
+Choose exactly one dataset mode and provide one UUID-formatted location ID.
+The CLI canonicalizes the UUID and rejects invalid IDs or conflicting dataset
+modes before opening PostgreSQL. This is a location selector, not operator
+authorization or tenant isolation.
+
 The current data model includes:
 
 | Table | Intended source | Purpose |

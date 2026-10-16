@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "e237db4fa1715aea587630e6b7341e5fcb19822c",
+  "baseline_commit": "ea68a8f58b139dcfc75c92a750a1f2f49615d118",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3178,6 +3178,7 @@
         "tests/test_clickhouse_failure_injection.py",
         "tests/test_clickhouse_outbox.py",
         "tests/test_climate_data.py",
+        "tests/test_climate_data_cli_scope.py",
         "tests/test_competitive_landscape.py",
         "tests/test_competitive_report.py",
         "tests/test_coordination.py",
@@ -4020,6 +4021,7 @@
     "tests/test_clickhouse_failure_injection.py",
     "tests/test_clickhouse_outbox.py",
     "tests/test_climate_data.py",
+    "tests/test_climate_data_cli_scope.py",
     "tests/test_common_cli_lazy_database.py",
     "tests/test_common_commands.py",
     "tests/test_common_database.py",

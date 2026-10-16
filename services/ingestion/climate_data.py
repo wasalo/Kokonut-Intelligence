@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import uuid
 from typing import Any, Dict, List, Optional
 
 import psycopg2
@@ -304,12 +305,13 @@ def run_all(conn, location_id: str) -> Dict[str, Any]:
 def main(argv: Optional[List[str]] = None) -> int:
     """Run the climate-data CLI and return its process status."""
     parser = argparse.ArgumentParser(description="Climate data ingestion")
-    parser.add_argument("--worldclim", action="store_true", help="Fetch WorldClim data")
-    parser.add_argument("--ncep", action="store_true", help="Fetch NCEP data")
-    parser.add_argument("--modis", action="store_true", help="Fetch MODIS data")
-    parser.add_argument("--smap", action="store_true", help="Fetch SMAP data")
-    parser.add_argument("--sentinel1", action="store_true", help="Fetch Sentinel-1 data")
-    parser.add_argument("--all", action="store_true", help="Fetch all climate data")
+    operation = parser.add_mutually_exclusive_group()
+    operation.add_argument("--worldclim", action="store_true", help="Fetch WorldClim data")
+    operation.add_argument("--ncep", action="store_true", help="Fetch NCEP data")
+    operation.add_argument("--modis", action="store_true", help="Fetch MODIS data")
+    operation.add_argument("--smap", action="store_true", help="Fetch SMAP data")
+    operation.add_argument("--sentinel1", action="store_true", help="Fetch Sentinel-1 data")
+    operation.add_argument("--all", action="store_true", help="Fetch all climate data")
     parser.add_argument("--location-id", required=True, help="Location UUID")
     args = parser.parse_args(argv)
 
@@ -317,20 +319,25 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.print_help()
         return 1
 
+    try:
+        location_id = str(uuid.UUID(args.location_id))
+    except (TypeError, ValueError, AttributeError):
+        parser.error("--location-id must be a UUID")
+
     conn = get_db()
     try:
         if args.all:
-            result = run_all(conn, args.location_id)
+            result = run_all(conn, location_id)
         elif args.worldclim:
-            result = fetch_worldclim(conn, args.location_id)
+            result = fetch_worldclim(conn, location_id)
         elif args.ncep:
-            result = fetch_ncep(conn, args.location_id)
+            result = fetch_ncep(conn, location_id)
         elif args.modis:
-            result = fetch_modis(conn, args.location_id)
+            result = fetch_modis(conn, location_id)
         elif args.smap:
-            result = fetch_smap(conn, args.location_id)
+            result = fetch_smap(conn, location_id)
         else:
-            result = fetch_sentinel1(conn, args.location_id)
+            result = fetch_sentinel1(conn, location_id)
         print_json(result)
     finally:
         conn.close()

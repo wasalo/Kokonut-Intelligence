@@ -309,7 +309,8 @@ Commands:
 - gRPC tests: `python3 -m tests.test_grpc`
 - Data freshness check: `python3 -m services.ingestion.data_freshness --check`
 - Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`
-- Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`
+- Climate data ingestion (all datasets for one location): `python3 -m services.ingestion.climate_data --all --location-id UUID`
+- Climate data ingestion (one dataset): use exactly one of `--worldclim`, `--ncep`, `--modis`, `--smap`, or `--sentinel1` with `--location-id UUID`
 - Remote sensing tests: `python3 -m tests.test_telemetry_freshness`
 - Climate data tests: `python3 -m tests.test_climate_data`
 - Remote sensing automation tests: `python3 -m tests.test_remote_sensing_automation`

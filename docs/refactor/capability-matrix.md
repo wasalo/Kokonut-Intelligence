@@ -824,12 +824,15 @@ before database access. The aggregate query is explicit, and the Kernel
 scheduler continues to reject aggregate mode. Eighty-six focused mocked
 weather/scheduler checks pass. Forecast ingestion now follows the same manual
 contract, with 18 focused mocked CLI/unit checks passing; its location-bound
-summary helpers remain unchanged. These are CLI/query contracts only: they do
-not establish operator
-authorization, signed worker context, provider success, persisted schedule
-state, or RLS. No MAN-CAP acceptance is implied
+summary helpers remain unchanged. Climate-data ingestion also canonicalizes
+its required location UUID and rejects conflicting dataset modes before DB
+access; 116 focused climate/CLI/scheduler/import checks pass. These are
+CLI/query contracts only: they do not establish operator authorization, signed
+worker context, provider success, persisted schedule state, or RLS. No MAN-CAP
+acceptance is implied
 ([current-weather evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json);
-[forecast evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json)).
+[forecast evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json);
+[climate evidence](builds/2026-10-16-recovery/climate-cli-location-preflight.json)).
 
 **16 October 2026 explicit manual anomaly scope (CAP-040 / CAP-047):** the
 standalone anomaly CLI now prints help without scope; anomaly, baseline, and ML

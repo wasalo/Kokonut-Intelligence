@@ -852,6 +852,11 @@ reporting views.
   coordinates. Its existing location-bound summary API remains intact; 18
   focused forecast CLI/unit checks pass
   ([evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json)).
+  Manual climate ingestion already required one location; it now also
+  canonicalizes UUIDs and rejects malformed IDs or conflicting dataset modes
+  before database access. One hundred sixteen focused climate, CLI, scheduler,
+  and import checks pass
+  ([evidence](builds/2026-10-16-recovery/climate-cli-location-preflight.json)).
   The UUID is only a query filter and does not authenticate the operator or
   establish signed context/RLS; recurring sensor ingestion remains disabled
   until a real source contract exists.

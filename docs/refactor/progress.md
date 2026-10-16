@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### Climate-data CLI location preflight — 16 October 2026
+
+The climate-data CLI already required one location; it now canonicalizes the
+UUID before database access and rejects malformed IDs or conflicting dataset
+selectors. Four new mocked cases plus the existing climate, runtime-import,
+and scheduler-contract suites pass (116 tests). Ruff, compilation, refreshed
+repository/runtime-SQL inventories, and the 66-row capability validator pass.
+No provider, database, or schedule was accessed. This is input/query scoping,
+not tenant authorization or RLS ([evidence](builds/2026-10-16-recovery/climate-cli-location-preflight.json);
+[implementation](../../services/ingestion/climate_data.py)). Checklist stays
+414 complete / 19 open; MAN-CAP status is unchanged.
+
 ### Explicit manual weather-forecast scope — 16 October 2026
 
 The forecast ingestion CLI now requires one canonical `--location-id` or the
