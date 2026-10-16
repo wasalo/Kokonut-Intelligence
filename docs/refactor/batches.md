@@ -904,9 +904,16 @@ reporting views.
   transaction, filters every query by that location, bounds pagination, and
   returns a fixed projection that excludes source lineage, arbitrary metadata,
   evidence URLs, and file identifiers. Focused adapter, route-policy, and
-  gateway-auth checks pass. No candidate or legacy database was touched.
-  File/proof routes, environment-key database provisioning, and other Gateway
-  handlers remain open ([search contract evidence](builds/2026-10-16-recovery/gateway-data-stream-search-contract.json);
+  gateway-auth checks pass. Separate file-metadata and recorded-attestation
+  reads now use `data_stream_file:read:<location>` and
+  `data_stream_proof:read:<location>` grants in their own same-transaction
+  signed contexts. Attachment output omits object URLs and Directus identifiers;
+  attestation output reports database-recorded state and does not claim live
+  chain verification. No candidate or legacy database was touched. Signed
+  media-byte delivery, live EAS validity checks, environment-key database
+  provisioning, and other Gateway handlers remain open
+  ([attachment/attestation evidence](builds/2026-10-16-recovery/gateway-data-stream-attachment-attestation-contract.json);
+  [search contract evidence](builds/2026-10-16-recovery/gateway-data-stream-search-contract.json);
   [tenant-context evidence](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)).
 - [x] Fail closed on unscoped worker cache invalidation. The allowlisted cache
   event handlers now require a canonical location UUID before creating the

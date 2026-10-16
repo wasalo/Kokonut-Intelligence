@@ -20,6 +20,7 @@ from services.mobile.api import router as mobile_router  # noqa: E402
 _LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 _PARAMETER_SAMPLES = {
     "location_id": _LOCATION_ID,
+    "post_id": "33333333-3333-4333-8333-333333333333",
     "enrollment_id": "22222222-2222-4222-8222-222222222222",
     "device_id": "collector-1",
 }
@@ -38,6 +39,12 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/v1/crisp/{location_id}"): ("crisp_risk_assessment", "read", True),
     ("GET", "/api/v1/analytics/{location_id}/summary"): ("analytics", "read", True),
     ("GET", "/api/data-stream/posts"): ("data_stream_post", "read", False),
+    ("GET", "/api/data-stream/posts/{post_id}/files"): ("data_stream_file", "read", False),
+    ("GET", "/api/data-stream/posts/{post_id}/attestation"): (
+        "data_stream_proof",
+        "read",
+        False,
+    ),
     ("POST", "/api/data-stream/post"): ("data_stream_post", "create", False),
     ("GET", "/api/iri/resolve"): ("iri", "read", True),
     ("GET", "/api/federation/nodes"): ("federation_node", "read", True),
@@ -92,6 +99,25 @@ def test_data_stream_read_policy_extracts_and_normalizes_query_location():
         query_params={"location_id": "11111111-1111-4111-8111-111111111111"},
     )
 
+    assert asyncio.run(_request_location(request, policy)) == _LOCATION_ID
+
+
+@pytest.mark.parametrize(
+    ("path", "resource"),
+    [
+        ("/api/data-stream/posts/33333333-3333-4333-8333-333333333333/files", "data_stream_file"),
+        (
+            "/api/data-stream/posts/33333333-3333-4333-8333-333333333333/attestation",
+            "data_stream_proof",
+        ),
+    ],
+)
+def test_data_stream_file_and_proof_policies_extract_query_location(path, resource):
+    policy = get_route_policy("GET", path)
+    request = SimpleNamespace(method="GET", query_params={"location_id": _LOCATION_ID})
+
+    assert policy["resource"] == resource
+    assert policy["location_id"] is None
     assert asyncio.run(_request_location(request, policy)) == _LOCATION_ID
 
 

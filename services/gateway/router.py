@@ -76,6 +76,8 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/drivers$"), "driver", "read", True),
     ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", True),
     ("GET", re.compile(r"^/api/data-stream/posts$"), "data_stream_post", "read", False),
+    ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/files$"), "data_stream_file", "read", False),
+    ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/attestation$"), "data_stream_proof", "read", False),
     ("POST", re.compile(r"^/api/data-stream/post$"), "data_stream_post", "create", False),
 )
 
@@ -350,6 +352,58 @@ async def list_data_stream_posts(request: Request):
             offset=offset,
         )
         return {"data": rows}
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+        return _internal_error(exc)
+
+
+@router.get("/data-stream/posts/{post_id}/files")
+async def list_data_stream_post_files(post_id: str, request: Request):
+    """List safe, tenant-scoped metadata for a post's attachments."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        from services.gateway.data_stream import list_gateway_data_stream_files
+
+        rows = await run_in_threadpool(
+            list_gateway_data_stream_files,
+            post_id,
+            request.query_params.get("location_id"),
+            request.state.gateway_authorization,
+        )
+        return {"data": rows}
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+        return _internal_error(exc)
+
+
+@router.get("/data-stream/posts/{post_id}/attestation")
+async def get_data_stream_post_attestation(post_id: str, request: Request):
+    """Read the stored attestation record; this endpoint does not query the chain."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        from services.gateway.data_stream import get_gateway_data_stream_attestation
+
+        row = await run_in_threadpool(
+            get_gateway_data_stream_attestation,
+            post_id,
+            request.query_params.get("location_id"),
+            request.state.gateway_authorization,
+        )
+        if row is None:
+            return JSONResponse(status_code=404, content={"error": "Data Stream post not found"})
+        return {"data": row}
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"error": str(exc)})
     except Exception as exc:

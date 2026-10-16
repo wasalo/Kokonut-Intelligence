@@ -8,6 +8,8 @@ import pytest
 from services.common.tenant_context import TenantContextDenied
 from services.gateway.data_stream import (
     create_gateway_data_stream_post,
+    get_gateway_data_stream_attestation,
+    list_gateway_data_stream_files,
     list_gateway_data_stream_posts,
 )
 
@@ -21,6 +23,15 @@ AUTHORIZATION = {
     "credential_hash": "a" * 64,
 }
 READ_AUTHORIZATION = {**AUTHORIZATION, "action": "read"}
+FILE_READ_AUTHORIZATION = {
+    **READ_AUTHORIZATION,
+    "resource": "data_stream_file",
+}
+PROOF_READ_AUTHORIZATION = {
+    **READ_AUTHORIZATION,
+    "resource": "data_stream_proof",
+}
+POST_ID = "33333333-3333-4333-8333-333333333333"
 
 
 class FakeConnection(AbstractContextManager):
@@ -42,6 +53,9 @@ class FakeQueryResult:
 
     def mappings(self):
         return self
+
+    def first(self):
+        return self.rows[0] if self.rows else None
 
     def __iter__(self):
         return iter(self.rows)
@@ -327,6 +341,124 @@ def test_invalid_post_read_scope_and_query_fail_before_database(
             query_text=query_text,
             limit=limit,
             offset=offset,
+            connection_factory=factory,
+        )
+
+    assert opened is False
+
+
+def test_gateway_file_list_sets_separate_context_and_omits_storage_locators(monkeypatch):
+    events = []
+    row = {
+        "id": "55555555-5555-4555-8555-555555555555",
+        "post_id": POST_ID,
+        "file_name": "soil-photo.jpg",
+        "media_type": "image",
+    }
+    connection = FakeQueryConnection(events, [row])
+
+    def set_context(actual_connection, **kwargs):
+        assert actual_connection is connection
+        events.append(("context", kwargs))
+        return SimpleNamespace(location_id=LOCATION_ID, actor_id=ACTOR_ID)
+
+    monkeypatch.setattr(
+        "services.common.tenant_context.set_gateway_tenant_context", set_context
+    )
+    result = list_gateway_data_stream_files(
+        POST_ID,
+        LOCATION_ID,
+        FILE_READ_AUTHORIZATION,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == [row]
+    assert events[1] == (
+        "context",
+        {
+            "credential_type": "api_key",
+            "credential_hash": "a" * 64,
+            "location_id": LOCATION_ID,
+            "resource": "data_stream_file",
+            "action": "read",
+        },
+    )
+    _, sql, params = events[2]
+    assert "post.location_id = :location_id" in sql
+    assert "file.post_id = :post_id" in sql
+    assert "file.deleted_at IS NULL" in sql
+    assert "file_url" not in sql
+    assert "directus_file_id" not in sql
+    assert "metadata" not in sql
+    assert params == {"post_id": POST_ID, "location_id": LOCATION_ID}
+
+
+def test_gateway_attestation_read_is_tenant_scoped_and_database_only(monkeypatch):
+    events = []
+    row = {
+        "post_id": POST_ID,
+        "location_id": LOCATION_ID,
+        "is_anchored": True,
+        "attestation_uid": "0xabc",
+        "request_status": "confirmed",
+    }
+    connection = FakeQueryConnection(events, [row])
+
+    def set_context(actual_connection, **kwargs):
+        assert actual_connection is connection
+        events.append(("context", kwargs))
+        return SimpleNamespace(location_id=LOCATION_ID, actor_id=ACTOR_ID)
+
+    monkeypatch.setattr(
+        "services.common.tenant_context.set_gateway_tenant_context", set_context
+    )
+    result = get_gateway_data_stream_attestation(
+        POST_ID,
+        LOCATION_ID,
+        PROOF_READ_AUTHORIZATION,
+        connection_factory=lambda: connection,
+    )
+
+    assert result == row
+    assert events[1] == (
+        "context",
+        {
+            "credential_type": "api_key",
+            "credential_hash": "a" * 64,
+            "location_id": LOCATION_ID,
+            "resource": "data_stream_proof",
+            "action": "read",
+        },
+    )
+    _, sql, params = events[2]
+    assert "post.location_id = :location_id" in sql
+    assert "attestation.subject_id = post.id" in sql
+    assert "LEFT JOIN LATERAL" in sql
+    assert "request.tx_hash" in sql
+    assert "FROM attestation_request AS attestation" in sql
+    assert params == {"post_id": POST_ID, "location_id": LOCATION_ID}
+
+
+@pytest.mark.parametrize(
+    ("reader", "authorization"),
+    [
+        (list_gateway_data_stream_files, FILE_READ_AUTHORIZATION),
+        (get_gateway_data_stream_attestation, PROOF_READ_AUTHORIZATION),
+    ],
+)
+def test_invalid_related_post_id_fails_before_database(reader, authorization):
+    opened = False
+
+    def factory():
+        nonlocal opened
+        opened = True
+        raise AssertionError("database must not open for invalid post ID")
+
+    with pytest.raises(ValueError, match="post_id must be a UUID"):
+        reader(
+            "not-a-uuid",
+            LOCATION_ID,
+            authorization,
             connection_factory=factory,
         )
 

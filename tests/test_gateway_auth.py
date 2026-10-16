@@ -277,6 +277,51 @@ def test_data_stream_post_search_requires_location_read_scope(monkeypatch):
     assert denied.status_code == 403
 
 
+def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkeypatch):
+    location_id = "11111111-1111-4111-8111-111111111111"
+    post_id = "33333333-3333-4333-8333-333333333333"
+    monkeypatch.setenv("KOKONUT_API_KEYS", "reader-key:reader")
+    monkeypatch.setenv(
+        "KOKONUT_API_KEY_SCOPES",
+        ",".join(
+            [
+                f"reader:data_stream_file:read:{location_id}",
+                f"reader:data_stream_proof:read:{location_id}",
+            ]
+        ),
+    )
+    with (
+        patch(
+            "services.gateway.data_stream.list_gateway_data_stream_files",
+            return_value=[{"id": "file-1", "file_name": "field-note.jpg"}],
+        ) as list_files,
+        patch(
+            "services.gateway.data_stream.get_gateway_data_stream_attestation",
+            return_value={"post_id": post_id, "request_status": "confirmed"},
+        ) as read_attestation,
+    ):
+        with TestClient(create_app()) as client:
+            files = client.get(
+                f"/api/data-stream/posts/{post_id}/files",
+                headers={"x-api-key": "reader-key"},
+                params={"location_id": location_id},
+            )
+            proof = client.get(
+                f"/api/data-stream/posts/{post_id}/attestation",
+                headers={"x-api-key": "reader-key"},
+                params={"location_id": location_id},
+            )
+
+    assert files.status_code == 200
+    assert files.json() == {"data": [{"id": "file-1", "file_name": "field-note.jpg"}]}
+    assert proof.status_code == 200
+    assert proof.json() == {"data": {"post_id": post_id, "request_status": "confirmed"}}
+    assert list_files.call_args.args[1] == location_id
+    assert list_files.call_args.args[2]["resource"] == "data_stream_file"
+    assert read_attestation.call_args.args[1] == location_id
+    assert read_attestation.call_args.args[2]["resource"] == "data_stream_proof"
+
+
 def test_database_tenant_denial_returns_forbidden(monkeypatch):
     from services.common.tenant_context import TenantContextDenied
 
