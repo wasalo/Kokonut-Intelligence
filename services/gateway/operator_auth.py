@@ -592,6 +592,91 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    farm_activity_record_published_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/published(?:/([0-9a-fA-F-]{36}))?",
+        path,
+    )
+    if farm_activity_record_published_match and method.upper() == "GET" and enabled:
+        activity_id = farm_activity_record_published_match.group(1)
+        return {
+            "resource": "farm_activity",
+            "action": "read_published_detail" if activity_id else "read_published",
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_collection_match = re.fullmatch(
+        r"/operator/api/farm-activity-records",
+        path,
+    )
+    if farm_activity_record_collection_match and enabled:
+        if method.upper() == "GET":
+            action = "read"
+            additional_scopes = []
+        elif method.upper() == "POST":
+            action = "create_draft"
+            additional_scopes = [{"resource": "farm_activity", "action": "read_detail"}]
+        else:
+            return None
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            "additional_scopes": additional_scopes,
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_edit_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})/draft",
+        path,
+    )
+    if farm_activity_record_edit_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "edit_draft",
+            "additional_scopes": [{"resource": "farm_activity", "action": "read_detail"}],
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_transition_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})/(submit|verify|reject|request-rework|publish|close-exception)",
+        path,
+    )
+    if farm_activity_record_transition_match and method.upper() == "POST" and enabled:
+        _, route_action = farm_activity_record_transition_match.groups()
+        action = {
+            "submit": "submit",
+            "verify": "verify",
+            "reject": "reject",
+            "request-rework": "rework",
+            "publish": "publish",
+            "close-exception": "close_exception",
+        }[route_action]
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_detail_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if farm_activity_record_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "read_detail",
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
     routes = {
         ("GET", "/operator/"): ("console", True, False),
         ("GET", "/operator/auth/login"): ("login", True, False),
@@ -1896,4 +1981,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                                samesite="strict")
         return response
 
+    from services.gateway.farm_activity_routes import register_farm_activity_record_routes
+
+    register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
     return router

@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "checked_at": "2026-10-16T13:14:35.432022+00:00",
+  "postgres_version": "16.15",
+  "migration": "404_gateway_farm_activity_operations.sql",
+  "database_scope": "fresh temporary PostgreSQL 16 container with no mounted volumes",
+  "connection_scope": "random host port bound to 127.0.0.1 only",
+  "tenant_context": "synthetic fixture function; signed-context cryptography is covered separately",
+  "checks": [
+    "tenant-qualified create creates a Gateway-owned draft and audit event",
+    "draft edit is reasoned and atomically appended",
+    "submission records the human actor",
+    "submitter/verifier separation rejects a self-review",
+    "independent verifier and publisher can complete the governed lifecycle",
+    "cross-location plot references are rejected",
+    "organization/location grants deny a different tenant",
+    "cross-tenant updates are denied by the row guard",
+    "runtime role has read-only access to the append-only ledger",
+    "append-only trigger rejects mutation even when table UPDATE is temporarily granted",
+    "optional Directus cannot access the ledger and runtime cannot insert"
+  ],
+  "candidate_or_legacy_database_touched": false
+}

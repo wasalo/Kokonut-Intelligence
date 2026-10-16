@@ -102,6 +102,33 @@ _EXPECTED_OPERATOR_POLICIES = {
         ),
     ),
     ("GET", "/operator/api/farm-activities"): _expected("farm_activity", "read", scoped=True),
+    ("GET", "/operator/api/farm-activity-records"): _expected("farm_activity", "read", scoped=True),
+    (
+        "GET",
+        "/operator/api/farm-activity-records/55555555-5555-4555-8555-555555555555",
+    ): _expected("farm_activity", "read_detail", scoped=True),
+    ("POST", "/operator/api/farm-activity-records"): _expected(
+        "farm_activity",
+        "create_draft",
+        scoped=True,
+        additional=(("farm_activity", "read_detail"),),
+    ),
+    (
+        "PATCH",
+        "/operator/api/farm-activity-records/55555555-5555-4555-8555-555555555555/draft",
+    ): _expected(
+        "farm_activity",
+        "edit_draft",
+        scoped=True,
+        additional=(("farm_activity", "read_detail"),),
+    ),
+    ("GET", "/operator/api/farm-activity-records/published"): _expected(
+        "farm_activity", "read_published", scoped=True
+    ),
+    (
+        "GET",
+        "/operator/api/farm-activity-records/published/55555555-5555-4555-8555-555555555555",
+    ): _expected("farm_activity", "read_published_detail", scoped=True),
     (
         "GET",
         "/operator/api/farm-activities/55555555-5555-4555-8555-555555555555",
@@ -109,8 +136,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "farm_activity",
         "read_detail",
         scoped=True,
-        additional=(("mobile_collection_review", "read_detail"),),
     ),
+    ("GET", "/operator/api/farm-activities/published"): _expected(
+        "farm_activity", "read_published", scoped=True
+    ),
+    (
+        "GET",
+        "/operator/api/farm-activities/published/55555555-5555-4555-8555-555555555555",
+    ): _expected("farm_activity", "read_published_detail", scoped=True),
     (
         "PATCH",
         "/operator/api/farm-activities/55555555-5555-4555-8555-555555555555/draft",
@@ -159,6 +192,12 @@ for _route_action, _policy_action in _TRANSITION_ACTIONS.items():
         (
             "POST",
             f"/operator/api/farm-activities/55555555-5555-4555-8555-555555555555/{_route_action}",
+        )
+    ] = _expected("farm_activity", _policy_action, scoped=True)
+    _EXPECTED_OPERATOR_POLICIES[
+        (
+            "POST",
+            f"/operator/api/farm-activity-records/55555555-5555-4555-8555-555555555555/{_route_action}",
         )
     ] = _expected("farm_activity", _policy_action, scoped=True)
 

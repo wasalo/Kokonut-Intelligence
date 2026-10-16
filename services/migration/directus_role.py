@@ -141,6 +141,15 @@ def provision_directus_role(
                     ).format(admin_ident, schema_ident, directus_ident)
                 )
 
+            cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
+            if cur.fetchone()[0] is not None:
+                cur.execute(
+                    sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+                        sql.Identifier("public", "farm_activity_operator_event"),
+                        directus_ident,
+                    )
+                )
+
             _verify_role_attributes(cur, directus_user)
             cur.execute(
                 "SELECT datname, has_database_privilege(%s, oid, 'CONNECT') "
@@ -166,6 +175,18 @@ def provision_directus_role(
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("Directus runtime role must not own database objects")
+
+            cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
+            if cur.fetchone()[0] is not None:
+                cur.execute(
+                    """SELECT has_table_privilege(%s, 'public.farm_activity_operator_event', 'SELECT')
+                           OR has_table_privilege(%s, 'public.farm_activity_operator_event', 'INSERT')
+                           OR has_table_privilege(%s, 'public.farm_activity_operator_event', 'UPDATE')
+                           OR has_table_privilege(%s, 'public.farm_activity_operator_event', 'DELETE')""",
+                    (directus_user, directus_user, directus_user, directus_user),
+                )
+                if cur.fetchone()[0]:
+                    raise RuntimeError("Directus runtime role must not access the farm activity operator ledger")
         conn.commit()
     except BaseException:
         conn.rollback()
@@ -177,6 +198,9 @@ def provision_directus_role(
         "runtime_user": directus_user,
         "schemas": app_schemas,
         "privileges": ["SELECT", "INSERT", "UPDATE", "DELETE", "sequence USAGE/SELECT/UPDATE"],
+        "privilege_exceptions": {
+            "farm_activity_operator_event": "no direct access; Gateway trigger owner appends the ledger",
+        },
         "ddl": False,
         "owns_relations": False,
         "connect_scope": [database],

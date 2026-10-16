@@ -32,6 +32,7 @@ _OPERATOR_CONTEXT_FUNCTION = (
 _MOBILE_DEVICE_REVOKE_FUNCTION = (
     "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
 )
+_FARM_ACTIVITY_EVENT_OWNER = "kokonut_farm_activity_event_owner"
 _SECURITY_DEFINER_OWNERS = (
     (
         "kokonut_security.resolve_mobile_device_token(text)",
@@ -67,6 +68,9 @@ _SECURITY_DEFINER_OWNERS = (
         "kokonut_gateway_context_owner",
     ),
     (_MOBILE_DEVICE_REVOKE_FUNCTION, "kokonut_mobile_device_revoke_owner"),
+    ("public.guard_farm_activity_operator_event_insert()", _FARM_ACTIVITY_EVENT_OWNER),
+    ("public.record_gateway_farm_activity_create()", _FARM_ACTIVITY_EVENT_OWNER),
+    ("public.record_farm_activity_gateway_operation()", _FARM_ACTIVITY_EVENT_OWNER),
 )
 _PRIVATE_RUNTIME_FUNCTIONS = (
     *_SESSION_FUNCTIONS,
@@ -314,6 +318,69 @@ def _verify_security_definer_owners(cur) -> None:
             )
 
 
+def _restore_farm_activity_event_owner(cur) -> bool:
+    """Rebind the bounded event trigger owner after a database-only restore."""
+    cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
+    if cur.fetchone()[0] is None:
+        return False
+    cur.execute("SELECT oid FROM pg_roles WHERE rolname = %s", (_FARM_ACTIVITY_EVENT_OWNER,))
+    if cur.fetchone() is None:
+        cur.execute(
+            sql.SQL(
+                "CREATE ROLE {} NOLOGIN NOINHERIT NOSUPERUSER NOCREATEDB "
+                "NOCREATEROLE NOREPLICATION NOBYPASSRLS"
+            ).format(sql.Identifier(_FARM_ACTIVITY_EVENT_OWNER))
+        )
+    cur.execute(
+        """SELECT rolcanlogin, rolsuper, rolcreatedb, rolcreaterole,
+                  rolreplication, rolbypassrls, rolinherit,
+                  EXISTS (SELECT 1 FROM pg_auth_members WHERE member = role.oid OR roleid = role.oid)
+             FROM pg_roles AS role WHERE rolname = %s""",
+        (_FARM_ACTIVITY_EVENT_OWNER,),
+    )
+    if cur.fetchone() != (False, False, False, False, False, False, False, False):
+        raise RuntimeError("farm activity event function owner has unsafe role attributes")
+
+    owner = sql.Identifier(_FARM_ACTIVITY_EVENT_OWNER)
+    cur.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(owner))
+    cur.execute(sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(owner))
+    cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(owner))
+    cur.execute(
+        sql.SQL("GRANT SELECT, INSERT ON TABLE public.farm_activity_operator_event TO {}").format(owner)
+    )
+    cur.execute(
+        sql.SQL(
+            "GRANT SELECT ON TABLE public.farm_activity, public.location, "
+            "public.operator_identity TO {}"
+        ).format(owner)
+    )
+    cur.execute(
+        sql.SQL(
+            "GRANT SELECT ON TABLE public.operator_scope_grant, "
+            "public.operator_organization_membership, public.location_tenant_owner_verification, "
+            "public.location_organization_share, public.organization TO {}"
+        ).format(owner)
+    )
+    cur.execute(
+        sql.SQL(
+            "GRANT EXECUTE ON FUNCTION public.operator_scope_grant_allows(UUID, TEXT, TEXT, UUID) TO {}"
+        ).format(owner)
+    )
+    cur.execute(sql.SQL("GRANT CREATE ON SCHEMA public TO {}").format(owner))
+    for function in (
+        "guard_farm_activity_operator_event_insert()",
+        "record_gateway_farm_activity_create()",
+        "record_farm_activity_gateway_operation()",
+    ):
+        function_ident = sql.SQL("public.{}()").format(sql.SQL(function[:-2]))
+        cur.execute(sql.SQL("ALTER FUNCTION {} OWNER TO {}").format(function_ident, owner))
+        cur.execute(sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(function_ident))
+        cur.execute(sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(function_ident, owner))
+    cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(owner))
+    cur.execute("REVOKE ALL ON TABLE public.farm_activity_operator_event FROM PUBLIC")
+    return True
+
+
 def _apply_mobile_credential_boundary(cur, runtime_ident: sql.Identifier) -> dict[str, object]:
     """Replace broad runtime grants on mobile credentials with call-site grants."""
     policies = {
@@ -521,6 +588,44 @@ def _verify_api_key_boundary(cur, role_name: str) -> None:
         raise RuntimeError(f"{role_name} retains column-level API-key write privileges")
 
 
+def _apply_farm_activity_operator_event_boundary(
+    cur, runtime_ident: sql.Identifier
+) -> dict[str, object]:
+    """Allow event reads/appends while denying mutation of the append-only ledger."""
+    cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
+    if cur.fetchone()[0] is None:
+        return {"installed": False, "select": False, "insert": False, "update": False, "delete": False}
+    table_ident = sql.Identifier("public", "farm_activity_operator_event")
+    cur.execute(
+        sql.SQL("REVOKE ALL PRIVILEGES ON TABLE {} FROM {}").format(
+            table_ident, runtime_ident
+        )
+    )
+    cur.execute(
+        sql.SQL("GRANT SELECT ON TABLE {} TO {}").format(
+            table_ident, runtime_ident
+        )
+    )
+    return {"installed": True, "select": True, "insert": False, "update": False, "delete": False}
+
+
+def _verify_farm_activity_operator_event_boundary(cur, role_name: str) -> None:
+    cur.execute("SELECT to_regclass('public.farm_activity_operator_event')")
+    if cur.fetchone()[0] is None:
+        return
+    cur.execute(
+        """SELECT has_table_privilege(%s, 'public.farm_activity_operator_event', 'SELECT'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'INSERT'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'UPDATE'),
+                  has_table_privilege(%s, 'public.farm_activity_operator_event', 'DELETE')""",
+        (role_name, role_name, role_name, role_name),
+    )
+    if cur.fetchone() != (True, False, False, False):
+        raise RuntimeError(
+            f"{role_name} does not have append-only farm activity operator event privileges"
+        )
+
+
 def provision_runtime_role(
     conn,
     *,
@@ -654,8 +759,10 @@ def provision_runtime_role(
                 runtime_ident
             )
         )
+        farm_activity_event_owner_ready = _restore_farm_activity_event_owner(cur)
         mobile_credential_grants = _apply_mobile_credential_boundary(cur, runtime_ident)
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
+        farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)
         cur.execute(
             sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(auth_ident)
         )
@@ -766,6 +873,7 @@ def provision_runtime_role(
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
+        _verify_farm_activity_operator_event_boundary(cur, runtime_user)
         _verify_no_runtime_default_privileges(
             cur, admin_user=admin_user, runtime_user=runtime_user
         )
@@ -791,6 +899,13 @@ def provision_runtime_role(
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
             _verify_no_public_function_execute(cur, function)
         _verify_security_definer_owners(cur)
+        if farm_activity_event_owner_ready:
+            for function in (
+                "public.guard_farm_activity_operator_event_insert()",
+                "public.record_gateway_farm_activity_create()",
+                "public.record_farm_activity_gateway_operation()",
+            ):
+                _verify_no_public_function_execute(cur, function)
 
         cur.execute(
             """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -825,9 +940,12 @@ def provision_runtime_role(
             "mobile_device": "read plus telemetry-only UPDATE columns; revocation uses a bounded function",
             "mobile_device_enrollment": "explicit column allowlist; no table-wide UPDATE or DELETE",
             "operator_session": "bounded functions only",
+            "farm_activity_operator_event": "read-only SELECT; trigger owner appends; no direct write",
         },
         "runtime_mobile_credential_privileges": mobile_credential_grants,
         "runtime_api_key_privileges": api_key_grants,
+        "runtime_farm_activity_operator_event_privileges": farm_activity_event_grants,
+        "farm_activity_event_owner_restored": farm_activity_event_owner_ready,
         "operator_session_access": "bounded functions only",
         "security_definer_owners_verified": True,
         "operator_auth_functions": ["create", "authenticate", "revoke"],

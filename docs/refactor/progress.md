@@ -1,6 +1,30 @@
 # Kokonut Kernel implementation progress
 
 **Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
+
+### Native Gateway operations for farm activity — 16 October 2026
+
+The owner-selected Gateway path now has bounded list/detail, draft create/edit,
+submit, independent verify, reject, request-rework, publish, and exception-close
+routes for non-Field-Collector `farm_activity` records. Migration 404 adds a
+separate append-only operator audit ledger, signed organization/location grant
+guards, plot/crop location checks, and a no-login function-owner role. Field
+Collector rows stay on their consent-aware API. Historical non-Field-Collector
+rows without attributable Gateway audit history fail closed for lifecycle
+review; they need an explicit reconciliation path before transition.
+
+Thirteen focused service, HTTP, and route-policy tests pass; Ruff and Python
+compilation pass. A disposable PostgreSQL 16 run applied migration 404 and
+passed 11 checks covering tenant grants, audit/event atomicity, distinct
+submitter/verifier/publisher actors, and runtime/Directus ledger permissions
+([evidence](builds/2026-10-16-recovery/gateway-farm-activity-operations-disposable.json)).
+The runtime SQL inventory is refreshed. Migration 404 has not been applied to
+the candidate or legacy database; no candidate rollout or MAN-CAP-001
+acceptance is claimed. This slice does not close Directus collection/field/
+relation parity, hook/schedule parity, populated legacy-row reconciliation,
+configured-provider acceptance, or RLS readiness
+([contract](gateway-farm-activity-operations.md); [source inventory](directus-parity-inventory.md)).
+
 The report review audience now records the owner's direction to involve
 liquidity providers, DAO members, guild members, and the wider community across
 the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
@@ -14,11 +38,13 @@ grants; Analyst reads use dedicated verified/published-only routes and exclude
 Field Collector records that are no longer eligible for use. Canonical activity
 detail now uses its own scope, separate from private capture-detail access. The
 104-test focused role/route/query/lifecycle suite and four-case disposable
-PostgreSQL provisioning check pass. This closes the
-unlicensed Directus permission blocker only for native Field Collector 1.2.0
-workflow operations; arbitrary legacy-source CRUD, other collections, full
-field/relation parity, and hooks/schedules remain open ([inventory](directus-parity-inventory.md);
-[evidence](builds/2026-10-16-recovery/farm-activity-gateway-role-mapping.json)).
+PostgreSQL provisioning check pass. This closes the unlicensed Directus
+permission blocker for native Field Collector 1.2.0 workflow operations. The
+separate migration-404 Gateway slice now covers bounded non-Field-Collector
+farm-activity operations; historical-row reconciliation and other collections,
+full field/relation parity, and hooks/schedules remain open ([inventory](directus-parity-inventory.md);
+[role evidence](builds/2026-10-16-recovery/farm-activity-gateway-role-mapping.json);
+[operations evidence](builds/2026-10-16-recovery/gateway-farm-activity-operations-disposable.json)).
 
 The local Kernel candidate now also has an explicit development Compose overlay
 for host-side PostgreSQL tools. The candidate database listens on
