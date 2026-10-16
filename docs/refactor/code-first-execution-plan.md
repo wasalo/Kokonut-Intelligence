@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `f99db449bd0d5a696bd84a1e5d230f389651601e`
-**Latest pushed head status (checked 16 October 2026):** CI #332 is in progress and Security #56 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38853798783); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38853798777)). The preceding pushed head passed both required checks.
+**Latest pushed head:** `943c9605c1ec43563e425bcd1105c3f524c39d2e`
+**Latest pushed head status (checked 16 October 2026):** CI #333 is in progress and Security #57 passed ([CI run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38854297414); [Security run](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38854297422)). The preceding pushed head passed both required checks.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -20,16 +20,17 @@ MAN-CAP checks open until each has its own retained evidence.
   populated report parity, policy activation, external delivery,
   long-duration recovery, and release/cutover gates.
 - The latest pushed head is
-  [`f99db449bd0d5a696bd84a1e5d230f389651601e`](https://github.com/wasalo/Kokonut-Intelligence/commit/f99db449bd0d5a696bd84a1e5d230f389651601e)
-  on `feat/mobile-offline-acceptance`, PR #68. CI #332 is in progress and Security
-  #56 passed. This batch enables verified ARM64 optional profiles for ClickHouse
-  analytics, Directus, and HTTP sensors; the app and pinned service images
-  passed bounded Buildx/QEMU architecture and runtime-smoke checks. The current
-  local KGP recovery slice also passes a disposable PostgreSQL stop/start check
-  with durable lease-heartbeat advancement; it uses a synthetic cursor schema
-  and stubbed chain height. ARM64 hardware behavior and live KGP RPC/event
-  processing remain unverified. Earlier owner, tenant, report, retention,
-  Directus, and worker-boundary work remains in the PR.
+  [`943c9605c1ec43563e425bcd1105c3f524c39d2e`](https://github.com/wasalo/Kokonut-Intelligence/commit/943c9605c1ec43563e425bcd1105c3f524c39d2e)
+  on `feat/mobile-offline-acceptance`, PR #68. CI #333 is in progress and
+  Security #57 passed. The pushed batch includes verified ARM64 optional
+  profiles for ClickHouse analytics, Directus, and HTTP sensors, plus restart
+  recovery for KGP, EventBus, and SchedulerEngine. The new local KGP acceptance
+  commit replays all 393 ordered schema sources and verifies restart and
+  lease-reclaim behavior against the real KGP cursor table. It uses synthetic
+  deployment rows and stubbed chain height, with no seed, RPC, or provider
+  calls. ARM64 hardware behavior and live KGP RPC/event processing remain
+  unverified. Earlier owner, tenant, report, retention, Directus, and
+  worker-boundary work remains in the PR.
 - The report generator now rejects read-only escapes through transaction
   settings, autocommit, and `cursor.connection`. Nine focused tests and an
   isolated PostgreSQL check pass; the latter proved rejected calculations
@@ -75,13 +76,12 @@ MAN-CAP checks open until each has its own retained evidence.
 - A local KGP indexer change now reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
-  Fourteen KGP service/indexer tests pass. A new disposable PostgreSQL
-  stop/start check confirms process survival and lease-heartbeat advancement.
-  A second probe kills the worker, forces expiry of its synthetic lease, and
-  confirms a replacement worker takes ownership and advances the heartbeat.
-  The current local recovery code/evidence commit is `cc65907`. The check uses a
-  synthetic cursor schema and stubbed chain height; production migration
-  parity, production-duration lease reclaim, and live RPC/event recovery remain
+  Fourteen KGP service/indexer tests pass. Local commit `28f6f3f` replays all
+  393 ordered PostgreSQL schema sources in separate transactions, records
+  checksums, then verifies database restart reconnect and replacement-worker
+  lease reclaim against the real KGP cursor table. The deployment/cursor rows
+  are synthetic and chain height is stubbed; no seed, RPC, or provider call is
+  made. Production-duration lease reclaim and live RPC/event recovery remain
   open ([evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
 - Directus source permissions now align with organization/location grants: the
   seed removes its obsolete user-level location filter while preserving other
@@ -250,19 +250,13 @@ database, then used as the rollback reference for the separately approved five-f
 **Repository surface:** `.github/workflows/ci.yml`, `scripts/run-github-ci.sh`,
 and the focused test named in any failure log.
 
-**Action:** CI #332 is in progress and Security #56 passed on pushed SHA
-  `f99db449bd0d5a696bd84a1e5d230f389651601e`; the preceding pushed revision
-  passed both checks. The local batch adds disposable PostgreSQL crash recovery
-  for EventBus notifications, SchedulerEngine tasks, and KGP leases. The
-  EventBus receiver test reuses the notification key on retry; the scheduler
-  replacement completes the claimed task as attempt two; the KGP replacement
-  takes an expired lease under its own worker ID. These three recovery commits
-  are waiting for the next batch push.
-  The KGP script plus four focused tests, the EventBus runtime script plus 20
-  focused tests, and the SchedulerEngine runtime script plus 10 focused tests
-  pass with Ruff, compilation, and capability-matrix validation.
-The retained ARM64 evidence covers software emulation only; live provider and
-production acceptance remain separate gates.
+**Action:** CI #333 is in progress and Security #57 passed on pushed SHA
+  `943c9605c1ec43563e425bcd1105c3f524c39d2e`; the preceding pushed revision
+  passed both checks. The latest local recovery commit (`28f6f3f`) replays all
+  393 ordered PostgreSQL schema sources and verifies KGP worker restart and
+  lease reclaim against the real cursor table. The checker, four focused KGP
+  tests, Ruff, compilation, and capability-matrix validation pass. This local
+  commit and the checklist refresh await the next batch push.
 
 **Acceptance:** require passing CI and Security on the current PR head before
 merging. The scheduler runtime acceptance is source/disposable evidence only;
@@ -728,11 +722,11 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related code changes in local commits and push in reviewable batches, as
-requested. The current push is `f99db44`; CI #332 is in progress and Security
-#56 passed on that head. Local commits `839a04c`, `9c5fe8b`, and `cc65907` are
-waiting for the next batch push. Continue local work while CI runs and accumulate related changes
-before the next push so the repository does
-not start CI for each small commit. Never push directly to
+requested. The current push is `943c960`; CI #333 is in progress and Security
+#57 passed on that head. Local commit `28f6f3f` and the checklist refresh are
+waiting for the next batch push. Continue local work while CI runs and
+accumulate related changes before the next push so the repository does not
+start CI for each small commit. Never push directly to
 `main`. Keep each candidate database
 rollout separately gated even when the corresponding migration and disposable
 acceptance are complete.
