@@ -99,7 +99,7 @@
       "access": "insert_pending_intent",
       "class": "tenant_safety_intent",
       "required_boundary": "Record only an intent at the signed location and linked alert. Preserve the existing approval-required state; the anomaly worker cannot approve, send, execute, or access MQTT transport.",
-      "current_enforcement": "send_actuation_commands writes an intent in the handler transaction; approval and transport are separate operations. No worker-specific INSERT boundary exists."
+      "current_enforcement": "Migration 410 adds a separate non-login function owner and create_sensor_alert_actuation_intent. The function validates signed location, the source reading event/receipt, the alert, and its sensor_alert event, then derives command fields from the enabled rule. Fifteen disposable PostgreSQL 16 checks pass. It creates one idempotent intent, preserves approval/transport state on retry, and gives kokonut_worker_execution function EXECUTE without direct actuation_log access. The handler still writes through its current helper, and no worker credential or dispatch integration exists."
     }
   ],
   "implementation_constraints": [

@@ -2032,3 +2032,18 @@ and migration replay. The handler is not wired to this function; notification
 delivery remains separately owned and no MAN-CAP acceptance is claimed
 ([migration](../schemas/postgres/409_sensor_alert_notification_intent.sql);
 [evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).
+
+### CAP-040/047 bounded sensor-alert actuation intent — 16 October 2026
+
+Migration 410 now contains a separate non-login function owner and
+`create_sensor_alert_actuation_intent`. The function source validates signed
+location, source-event/reading/receipt lineage, the linked alert, its recorded
+`sensor_alert` event, and the currently enabled actuator rule. It derives the
+command from that rule, requires human approval for critical alerts, and uses a
+partial unique key to return the existing intent on retries without resetting
+approval or transport state. Fifteen focused disposable PostgreSQL 16 checks
+pass for lineage, approval behavior, retry preservation, role boundaries,
+direct table denial, and migration replay. No handler integration, worker
+credential, candidate rollout, RLS, or MAN-CAP acceptance is claimed
+([migration](../schemas/postgres/410_sensor_alert_actuation_intent.sql);
+[evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).

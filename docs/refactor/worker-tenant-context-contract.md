@@ -2,9 +2,11 @@
 
 **Status:** first database/source adapter and dormant anomaly receipt/event/
 notification functions implemented and accepted on 16 October 2026. Migration
-405 and a transaction-bound Python adapter establish an opt-in worker context;
-migrations 407–409 add bounded receipt, canonical event-publication, and
-notification-intent functions for `sensor_reading/process`.
+410 adds a bounded actuation-intent function, accepted in fifteen focused
+disposable PostgreSQL checks. Migration 405 and a transaction-bound Python
+adapter establish an opt-in worker context; migrations 407–410 add bounded
+receipt, canonical event-publication, notification-intent, and actuation-intent
+functions for `sensor_reading/process`.
 No candidate database, worker credential, worker deployment, handler dispatch,
 or application-table RLS policy was changed.
 
@@ -186,25 +188,42 @@ Remaining worker-permission work before broader integration:
    payload size, inserts pending intent only, and preserves delivery state on
    retry. Twelve disposable PostgreSQL 16 checks pass. The handler remains
    unwired and must publish the alert event before enqueueing notification.
-4. Add a bounded `SECURITY DEFINER` operation for pending actuation-intent
-   creation. Do not grant direct mutation of event lease/delivery state,
-   notification attempt state, or actuation approval/transport state to the
-   anomaly worker.
-5. Grant the anomaly operation only the draft-claim and pending-actuation
-   effects listed by its exact scope. It must not transition MRV lifecycle
-   state or transmit an actuator command.
-6. Replay the permissions on disposable PostgreSQL with wrong-location rows,
-   malformed lineage, duplicate/retry, owner transfer, and denied-write cases.
-   No base application RLS or candidate rollout follows automatically.
+4. **Complete:** migration 410 adds a separate non-login
+   actuation-function owner and `create_sensor_alert_actuation_intent`. It
+   validates the source event, reading, receipt, alert, recorded alert event,
+   enabled rule, and signed location, then derives the command from the rule.
+   Critical alerts always require approval; retries return the existing intent
+   without resetting approval or transport state. A partial unique key limits
+   the operation to one intent per alert event. Fifteen disposable PostgreSQL
+   16 checks pass for scope/linkage, canonical command, critical and configured
+   approval, retry state preservation, role boundaries, direct table denial,
+   and migration replay.
+5. Integrate the anomaly handler only after its credential is isolated from
+   unrelated dispatch. The handler must create the alert event before calling
+   notification and actuation intent functions in the same transaction; it
+   must not transition MRV lifecycle state or transmit actuator commands.
+6. Provision an isolated worker login/credential in a restored disposable
+   database. Verify that it cannot read worker grants, sign operator context,
+   issue another worker identity, or access unrelated tenant rows.
+7. Expand one operation at a time. Reconcile the 20 worker roots, direct SQL
+   inventory, worker effects, external task state, and the control-plane
+   identity before reducing runtime grants or enabling any RLS policy.
+
+Migration-410 acceptance covers wrong/missing scope, source and alert lineage,
+canonical rule-derived payload, critical/configured approval, one-intent
+uniqueness, retry preservation after approval/delivery state changes, role
+separation, direct table denial, and migration replay. No base application RLS
+or candidate rollout follows automatically.
 
 Migrations 405 and 406 implement the identity primitive and additive source
 lineage columns. Migration 407 adds bounded anomaly-receipt reserve/outcome
 functions; nine disposable acceptance checks pass. Migration 408 adds the
 canonical alert-event publisher; eleven checks pass. Migration 409 adds the
-bounded notification-intent function; twelve checks pass. The Python context
-adapter can set signed scope, but no worker login or dispatcher integration
-exists. Actuation intent still needs a bounded function. No access is granted
-to the shared runtime or existing event/notification dispatchers.
+bounded notification-intent function; twelve checks pass. Migration 410 adds
+the bounded actuation-intent function, accepted in fifteen disposable checks.
+The Python context adapter can set signed scope, but no worker login or
+dispatcher integration exists. No access is granted to the shared runtime or
+existing event/notification dispatchers.
 
 The event producers in `services/ingestion/sensor_ingester.py` and
 `services/ingestion/http_sensor_receiver.py` already include the location ID.

@@ -6468,3 +6468,36 @@ MAN-CAP acceptance was added. Candidate and legacy databases were not contacted
 [fixture](../tests/fixtures/sensor_alert_notification_intent_disposable.sql);
 [runner](../scripts/check-sensor-alert-notification-intent-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).
+
+### Bounded sensor-alert actuation intent — 16 October 2026
+
+Migration 410 adds a source-alert-event identity to `actuation_log` and a
+partial unique index so a published sensor-alert event can create at most one
+bounded actuation intent. The SECURITY DEFINER function requires the signed
+`sensor_reading/process` location and verifies the source event, source reading,
+anomaly receipt, linked alert, recorded alert event, current enabled rule, and
+device/location relationship. It derives command, topic, and payload from the
+canonical alert and rule; configured approval is preserved and `critical`
+severity always requires approval. Exact retries return the existing intent
+without changing approval, delivery, response, or lifecycle state. The worker
+role receives function EXECUTE only and no direct `actuation_log` access.
+
+Fifteen focused PostgreSQL 16 checks pass in a loopback-only disposable
+container. They cover migration apply/replay, missing and wrong scope, source
+and alert mismatches, canonical rule-derived command/topic/payload, critical
+approval override, configured warning approval, warning auto-pending behavior,
+retry preservation after simulated approval and delivery, changed-command
+collision rejection, disabled-rule denial, legacy-row preservation, role
+attributes/column boundaries, runtime/operator-auth denial, and direct worker
+table access denial. Migration validation reports 522 ordered source files;
+Ruff, Python compilation, capability-matrix validation, requirement-group
+alignment, JSON parsing, and diff checks pass.
+
+No handler integration, MQTT activity, worker credential, candidate rollout,
+RLS, or MAN-CAP acceptance occurred; candidate and legacy databases were not
+contacted. The checklist now has 399 complete items and 19 open. The function
+remains dormant until handler/credential integration is separately accepted
+([migration](../schemas/postgres/410_sensor_alert_actuation_intent.sql);
+[fixture](../tests/fixtures/sensor_alert_actuation_intent_disposable.sql);
+[runner](../scripts/check-sensor-alert-actuation-intent-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).
