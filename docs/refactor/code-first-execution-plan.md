@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Batch base (last pushed head before this work):** `f7d8bd9d062cedff933d1b315bb1e5f792987bac` on PR #68.
-**Current local batch:** Migration 417 and an opt-in isolated enqueue path now cover the global `data_stale` and `threshold_breached` handlers. Seven network-isolated disposable PostgreSQL 16 checks and 136 focused migration/event/worker/map/runtime-role tests pass; Ruff, compilation, generated worker/SQL inventories, and Compose resolution pass. The SQL runner promoted only its synthetic login directly; full runtime-role bootstrap acceptance, migration 417's distinct encrypted login credential, and candidate rollout remain open, so the feature stays off. The prior local work continues to cover the EventBus worker split, disabled dashboard-refresh boundary, signed default-off cache invalidation, removal of source-less sensor ingestion from composite Prefect flows, and the worker operation map/effect trace refresh. Local commits `b0882b4`, `5523e68`, and `b228d00` scope scheduled anomaly work, manual sensor ingestion, and device-manager operations by location. The remote-sensing CLI/helper slice requires location for every operational mode and passes 152 focused tests plus a disposable PostgreSQL 16 claim check. Current-weather and anomaly CLI selectors, forecast summary/spray-query UUID validation, forecast insert/savepoint atomicity, and climate-ingestion UUID preflight each have focused mocked evidence. Ruff, compilation, generated worker/runtime inventories, the capability validator, JSON parsing, and whitespace checks pass. The repository inventory records 465 test files. The checklist has 416 checked / 20 open items; the capability matrix remains at 66 rows, and zero MAN-CAP checks are accepted. Migrations 405–417 are not applied to the candidate, no worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. These source/query filters do not establish authenticated tenant grants, signed worker context, or RLS. No candidate or legacy database, external provider, persisted schedule, or live Prefect deployment was changed. Real worker identity, generic outbox authorization, provider delivery, other worker scopes, and production acceptance remain open.
+**Batch base (last pushed head before this work):** `e0f2157df0498b3245c68236eb31caf5feab8e8f` on PR #68.
+**Current local batch:** Migrations 418–419 close inherited `PUBLIC EXECUTE` access on mobile credential and signed worker-context functions. The disposable PostgreSQL 16 runner now provisions the notification login through the actual `provision_runtime_role` path and verifies the exact runtime, worker, and notification function ACLs. Nineteen no-egress database checks and 49 focused pytest checks pass; Ruff, compilation, migration checks, and whitespace checks pass. The default-off notification enqueue remains unprovisioned and has not been rolled out to the candidate. Prior local work covers the EventBus worker split, disabled dashboard-refresh boundary, signed default-off cache invalidation, removal of source-less sensor ingestion from composite Prefect flows, worker operation/effect inventories, location-scoped manual ingestion, forecast transaction atomicity, and climate-ingestion UUID preflight. The repository inventory records 465 test files. The checklist has 417 checked / 20 open items; the capability matrix remains at 66 rows, and zero MAN-CAP checks are accepted. Candidate remains through migration 403; migrations 405–419 are supported by source/disposable evidence only. No worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. Query filters and focused tests do not establish authenticated tenant grants or application-wide RLS. No candidate or legacy database, external provider, persisted schedule, or live Prefect deployment was changed. Credential provisioning, reviewed candidate rollout, other worker scopes, provider delivery, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -46,7 +46,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **416 checked and 20 open items (436 total)**,
+- The execution checklist has **417 checked and 20 open items (437 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -831,7 +831,9 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related changes in local commits and push reviewable batches, as
-requested. The latest pushed batch is `30f9966`; Security #89 passed and CI
-#365 is pending. Continue independent code-first work while CI runs.
+requested. The latest pushed head is `e0f2157` on PR #68. The connected
+GitHub status query returned no associated workflow runs or combined checks
+for that head, so CI status is unverified. Continue independent code-first
+work while hosted checks run.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.

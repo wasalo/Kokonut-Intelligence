@@ -43,6 +43,38 @@ def test_runtime_provisioner_rebuilds_operator_function_acl_after_restore():
     assert "acl_entry.grantee = 0" in source
 
 
+def test_mobile_credential_functions_are_private_to_the_runtime_login():
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/418_mobile_credential_function_acl.sql"
+    ).read_text()
+
+    assert set(runtime_role._MOBILE_CREDENTIAL_FUNCTIONS).issubset(
+        runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    )
+    assert migration.count("REVOKE ALL ON FUNCTION") == 4
+    assert migration.count("FROM PUBLIC") == 4
+    assert migration.count("TO kokonut_runtime") == 4
+    assert "GRANT EXECUTE ON FUNCTION {} TO {}" in (
+        Path(__file__).resolve().parents[1]
+        / "services/migration/runtime_role.py"
+    ).read_text()
+
+
+def test_worker_context_helpers_are_private_to_worker_execution():
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/419_private_worker_context_functions.sql"
+    ).read_text()
+
+    assert runtime_role._WORKER_CONTEXT_FUNCTION in runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    assert runtime_role._WORKER_SCOPE_FUNCTION in runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    assert migration.count("FROM PUBLIC") == 3
+    assert migration.count("TO kokonut_worker_execution") == 3
+    assert "kokonut_runtime" in migration
+    assert "kokonut_worker_context_owner" in migration
+
+
 def test_notification_enqueue_login_is_removed_from_both_sides_of_role_memberships():
     class Cursor:
         def __init__(self):

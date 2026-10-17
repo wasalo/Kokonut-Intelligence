@@ -25,10 +25,17 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/394_signed_operator_tenant_context.sql",
     ROOT / "schemas/postgres/395_operator_session_auth_boundary.sql",
     ROOT / "schemas/postgres/396_signed_gateway_credential_tenant_context.sql",
+    ROOT / "schemas/postgres/398_bounded_mobile_device_revocation.sql",
+    ROOT / "schemas/postgres/399_runtime_security_schema_usage.sql",
+    ROOT / "schemas/postgres/400_operator_auth_security_schema_usage.sql",
+    ROOT / "schemas/postgres/405_signed_worker_tenant_context.sql",
+    ROOT / "schemas/postgres/417_isolated_notification_enqueue.sql",
+    ROOT / "schemas/postgres/418_mobile_credential_function_acl.sql",
+    ROOT / "schemas/postgres/419_private_worker_context_functions.sql",
 )
 DEFAULT_OUTPUT = (
     ROOT
-    / "docs/refactor/builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json"
+    / "docs/refactor/builds/2026-10-16-recovery/runtime-notification-enqueue-role-disposable.json"
 )
 OPERATOR_ID = "a0000000-0000-0000-0000-000000000901"
 ISSUER = "https://identity.example"
@@ -49,7 +56,17 @@ def run(command: list[str], *, input_text: str | None = None) -> str:
     )
     if result.returncode:
         details = "\n".join(part for part in (result.stdout, result.stderr) if part)
-        raise RuntimeError(f"command failed ({result.returncode}): {' '.join(command)}\n{details}")
+        safe_command = [
+            (
+                f"{item.split('=', 1)[0]}=<redacted>"
+                if item.startswith(("POSTGRES_PASSWORD=", "PGPASSWORD="))
+                else item
+            )
+            for item in command
+        ]
+        raise RuntimeError(
+            f"command failed ({result.returncode}): {' '.join(safe_command)}\n{details}"
+        )
     return result.stdout
 
 
@@ -90,6 +107,7 @@ def provision_roles(
     container: str,
     runtime_password: str,
     auth_password: str,
+    notification_password: str,
     admin_password: str,
 ) -> tuple[dict, int]:
     published = run(["docker", "port", container, "5432/tcp"]).strip().splitlines()
@@ -116,6 +134,8 @@ def provision_roles(
             runtime_password=runtime_password,
             operator_auth_user="kokonut_operator_auth",
             operator_auth_password=auth_password,
+            notification_enqueue_user="kokonut_notification_enqueue_login",
+            notification_enqueue_password=notification_password,
         )
         return result, host_port
     finally:
@@ -132,6 +152,38 @@ def force_operator_rls(container: str) -> None:
         ALTER TABLE public.operator_session FORCE ROW LEVEL SECURITY;
         """,
     )
+
+
+def assert_public_protected_function_acl(container: str) -> None:
+    functions = (
+        "kokonut_security.resolve_mobile_device_token(text)",
+        "kokonut_security.redeem_mobile_enrollment(text,text,text,text,text,text,text,text)",
+        "kokonut_security.set_mobile_device_context(text,text,uuid)",
+        "kokonut_security.current_tenant_context()",
+        "kokonut_security.set_worker_tenant_context(text,uuid,text,text)",
+        "kokonut_security.current_worker_scope(text,text)",
+    )
+    procedures = ", ".join(
+        "to_regprocedure('" + function.replace("'", "''") + "')"
+        for function in functions
+    )
+    result = docker_sql(
+        container,
+        f"""SELECT count(*) FILTER (WHERE EXISTS (
+                   SELECT 1
+                     FROM aclexplode(coalesce(
+                         procedure.proacl,
+                         acldefault('f', procedure.proowner)
+                     )) AS entry
+                    WHERE entry.grantee = 0 AND entry.privilege_type = 'EXECUTE'
+               ))
+              FROM pg_proc AS procedure
+             WHERE procedure.oid IN ({procedures});""",
+    ).strip()
+    if result != "0":
+        raise AssertionError(
+            "migrations 418/419 did not remove PUBLIC EXECUTE from protected context functions"
+        )
 
 
 def expect_privilege_denial(connection, statement: str, parameters=None) -> None:
@@ -277,14 +329,14 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
             if cursor.fetchone()[0] != enrollment_id:
                 raise AssertionError("runtime role lost enrollment revocation columns")
             cursor.execute(
-                """UPDATE public.mobile_device
-                      SET status = 'revoked', device_token_hash = NULL,
-                          revoked_at = NOW(), updated_at = NOW()
-                    WHERE device_id = 'role-boundary-device' AND status = 'active'
-                    RETURNING device_id"""
+                """SELECT result, device_id
+                     FROM kokonut_security.revoke_mobile_device(
+                         'a0000000-0000-0000-0000-000000000001'::uuid,
+                         'role-boundary-device', 'api_key', repeat('c', 64), NULL, NULL
+                     )"""
             )
-            if cursor.fetchone()[0] != "role-boundary-device":
-                raise AssertionError("runtime role lost device revocation columns")
+            if cursor.fetchone() != ("revoked", "role-boundary-device"):
+                raise AssertionError("runtime role could not revoke a device through its bounded function")
         runtime.commit()
         for statement in (
             "SELECT device_token_hash FROM public.mobile_device LIMIT 1",
@@ -293,6 +345,7 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
             "SELECT * FROM public.mobile_device LIMIT 1",
             "INSERT INTO public.mobile_device (device_id) VALUES ('runtime-device')",
             "DELETE FROM public.mobile_device WHERE device_id = 'role-boundary-device'",
+            "UPDATE public.mobile_device SET status = 'revoked', device_token_hash = NULL, revoked_at = NOW() WHERE device_id = 'role-boundary-device'",
             "SELECT code_hash FROM public.mobile_device_enrollment LIMIT 1",
             "SELECT * FROM public.mobile_device_enrollment LIMIT 1",
             "SELECT name FROM public.api_key LIMIT 1",
@@ -375,6 +428,71 @@ def assert_roles(host_port: int, runtime_password: str, auth_password: str) -> l
     ]
 
 
+def assert_notification_enqueue_role(host_port: int, password: str) -> list[str]:
+    connection = psycopg2.connect(
+        host="127.0.0.1", port=host_port, dbname="postgres",
+        user="kokonut_notification_enqueue_login", password=password,
+        connect_timeout=5,
+    )
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT current_user")
+            if cursor.fetchone()[0] != "kokonut_notification_enqueue_login":
+                raise AssertionError("notification enqueue login did not authenticate")
+            cursor.execute(
+                """SELECT kokonut_security.enqueue_notification_intents(
+                       'a0000000-0000-0000-0000-000000000501'::uuid,
+                       'threshold_breached',
+                       'b0000000-0000-0000-0000-000000000501'::uuid,
+                       '[{"channel":"webhook","destination_key":"primary","payload":{"text":"Synthetic"}}]'::jsonb
+                   )"""
+            )
+            if cursor.fetchone()[0] != 1:
+                raise AssertionError("dedicated login could not enqueue a bounded notification")
+            cursor.execute(
+                """SELECT kokonut_security.enqueue_notification_intents(
+                       'a0000000-0000-0000-0000-000000000501'::uuid,
+                       'threshold_breached',
+                       'b0000000-0000-0000-0000-000000000501'::uuid,
+                       '[{"channel":"webhook","destination_key":"primary","payload":{"text":"Synthetic"}}]'::jsonb
+                   )"""
+            )
+            if cursor.fetchone()[0] != 0:
+                raise AssertionError("notification retry was not idempotent")
+        connection.commit()
+        for statement in (
+            "SELECT id FROM public.platform_event LIMIT 1",
+            "SELECT id FROM public.notification_outbox LIMIT 1",
+            "INSERT INTO public.notification_outbox (source_event_id,event_type,channel,destination_key,payload) VALUES ('a0000000-0000-0000-0000-000000000501','threshold_breached','email','primary','{}')",
+            "UPDATE public.notification_outbox SET location_id = NULL",
+            "DELETE FROM public.notification_outbox",
+            "SELECT * FROM kokonut_security.resolve_mobile_device_token(repeat('a', 64))",
+            "SELECT * FROM kokonut_security.redeem_mobile_enrollment(repeat('b',64),'device','name','phone',NULL,NULL,'1.0.0',repeat('c',64))",
+            "SELECT * FROM kokonut_security.set_mobile_device_context(repeat('a',64),'device','a0000000-0000-0000-0000-000000000001'::uuid)",
+            "SELECT * FROM kokonut_security.current_tenant_context()",
+            "SELECT * FROM kokonut_security.set_worker_tenant_context(repeat('d',64),'a0000000-0000-0000-0000-000000000001'::uuid,'sensor_reading','process')",
+            "SELECT * FROM kokonut_security.current_worker_scope('sensor_reading','process')",
+        ):
+            expect_privilege_denial(connection, statement)
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT has_schema_privilege(current_user, 'kokonut_security', 'CREATE'), "
+                "has_function_privilege(current_user, "
+                "'kokonut_security.enqueue_notification_intents(uuid,text,uuid,jsonb)', 'EXECUTE')"
+            )
+            if cursor.fetchone() != (False, True):
+                raise AssertionError("notification role does not have the exact schema/function boundary")
+        connection.commit()
+    finally:
+        connection.close()
+    return [
+        "runtime-role bootstrap provisions the notification login with an isolated secret",
+        "dedicated notification login connects and invokes only the bounded enqueue function",
+        "notification enqueue is idempotent through the provisioned login under forced RLS",
+        "provisioned notification login cannot read source/outbox tables or mutate delivery state",
+    ]
+
+
 def main() -> int:
     import argparse
 
@@ -421,14 +539,43 @@ def main() -> int:
         )
         for migration in MIGRATIONS:
             sql_text = migration.read_text()
+            if migration.name == "417_isolated_notification_enqueue.sql":
+                docker_sql(
+                    container,
+                    """CREATE TABLE public.platform_event (
+                           id UUID PRIMARY KEY,
+                           event_type TEXT NOT NULL,
+                           payload JSONB NOT NULL DEFAULT '{}'::JSONB
+                       );
+                       CREATE TABLE public.notification_outbox (
+                           id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                           source_event_id UUID NOT NULL,
+                           event_type VARCHAR(100) NOT NULL,
+                           channel VARCHAR(30) NOT NULL,
+                           destination_key VARCHAR(100) NOT NULL,
+                           payload JSONB NOT NULL,
+                           location_id UUID,
+                           UNIQUE (source_event_id, channel, destination_key)
+                       );
+                       INSERT INTO public.platform_event (id, event_type, payload) VALUES
+                           ('a0000000-0000-0000-0000-000000000501', 'threshold_breached',
+                            '{"location_id":"b0000000-0000-0000-0000-000000000501"}');
+                       ALTER TABLE public.platform_event ENABLE ROW LEVEL SECURITY;
+                       ALTER TABLE public.platform_event FORCE ROW LEVEL SECURITY;
+                       ALTER TABLE public.notification_outbox ENABLE ROW LEVEL SECURITY;
+                       ALTER TABLE public.notification_outbox FORCE ROW LEVEL SECURITY;""",
+                )
             docker_sql(container, sql_text)
             docker_sql(container, sql_text)
+        assert_public_protected_function_acl(container)
         force_operator_rls(container)
 
         runtime_password = secrets.token_urlsafe(32)
         auth_password = secrets.token_urlsafe(32)
+        notification_password = secrets.token_urlsafe(32)
         role_result, host_port = provision_roles(
-            container, runtime_password, auth_password, DOCKER_ADMIN_PASSWORD
+            container, runtime_password, auth_password, notification_password,
+            DOCKER_ADMIN_PASSWORD,
         )
         docker_sql(
             container,
@@ -440,6 +587,25 @@ def main() -> int:
                VALUES ('admin-seeded-after-provisioning');""",
         )
         checks = assert_roles(host_port, runtime_password, auth_password)
+        checks.extend(assert_notification_enqueue_role(host_port, notification_password))
+        worker_acl = docker_sql(
+            container,
+            """SELECT has_function_privilege('kokonut_worker_execution',
+                       'kokonut_security.current_tenant_context()', 'EXECUTE')
+                      AND has_function_privilege('kokonut_worker_execution',
+                       'kokonut_security.set_worker_tenant_context(text,uuid,text,text)', 'EXECUTE')
+                      AND has_function_privilege('kokonut_worker_execution',
+                       'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'),
+                      has_function_privilege('kokonut_runtime',
+                       'kokonut_security.current_worker_scope(text,text)', 'EXECUTE'),
+                      has_function_privilege('kokonut_notification_enqueue_login',
+                       'kokonut_security.current_worker_scope(text,text)', 'EXECUTE');""",
+        ).strip()
+        if worker_acl != "t|f|f":
+            raise AssertionError(f"worker context ACLs do not preserve the isolated execution role: {worker_acl}")
+        checks.append(
+            "signed worker context functions remain available only to kokonut_worker_execution, not shared runtime or notification login"
+        )
         report = {
             "result": "passed",
             "checked_at": datetime.now(timezone.utc).isoformat(),
@@ -452,10 +618,21 @@ def main() -> int:
                 "395_operator_session_auth_boundary.sql",
                 "396_signed_gateway_credential_tenant_context.sql",
                 "396_signed_gateway_credential_tenant_context.sql (idempotency replay)",
+                "398_bounded_mobile_device_revocation.sql",
+                "399_runtime_security_schema_usage.sql",
+                "400_operator_auth_security_schema_usage.sql",
+                "405_signed_worker_tenant_context.sql",
+                "417_isolated_notification_enqueue.sql",
+                "417_isolated_notification_enqueue.sql (idempotency replay)",
+                "418_mobile_credential_function_acl.sql",
+                "418_mobile_credential_function_acl.sql (idempotency replay)",
+                "419_private_worker_context_functions.sql",
+                "419_private_worker_context_functions.sql (idempotency replay)",
             ],
             "provisioner_status": role_result["status"],
             "runtime_user": role_result["runtime_user"],
             "operator_auth_user": role_result["operator_auth_user"],
+            "notification_enqueue_user": role_result["notification_enqueue_user"],
             "checks": checks,
             "candidate_database_touched": False,
             "legacy_database_touched": False,
@@ -464,7 +641,7 @@ def main() -> int:
             "candidate_application_table_rls_enabled": False,
             "disposable_operator_table_rls_forced": True,
             "synthetic_rows_remaining": 0,
-            "scope_limit": "Verifies the general runtime role cannot read browser or mobile credential material, cannot manage API keys, and retains only declared mobile/API-key columns required by current handlers. This is not the final application-table allowlist, Directus boundary, or candidate RLS acceptance.",
+            "scope_limit": "Verifies the general runtime role cannot read browser credential material or manage API keys; mobile credential SECURITY DEFINER functions are no longer executable by PUBLIC and are explicitly granted to the runtime login. The notification login has the migration 417 enqueue function only and cannot directly access source/outbox tables. This is not the final application-table allowlist, Directus boundary, or candidate RLS acceptance.",
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n")

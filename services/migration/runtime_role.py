@@ -32,6 +32,16 @@ _OPERATOR_CONTEXT_FUNCTION = (
 _MOBILE_DEVICE_REVOKE_FUNCTION = (
     "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
 )
+_WORKER_CONTEXT_FUNCTION = (
+    "kokonut_security.set_worker_tenant_context(text,uuid,text,text)"
+)
+_WORKER_SCOPE_FUNCTION = "kokonut_security.current_worker_scope(text,text)"
+_MOBILE_CREDENTIAL_FUNCTIONS = (
+    "kokonut_security.resolve_mobile_device_token(text)",
+    "kokonut_security.redeem_mobile_enrollment(text,text,text,text,text,text,text,text)",
+    "kokonut_security.set_mobile_device_context(text,text,uuid)",
+    "kokonut_security.current_tenant_context()",
+)
 _FARM_ACTIVITY_EVENT_OWNER = "kokonut_farm_activity_event_owner"
 _NOTIFICATION_ENQUEUE_FUNCTION = (
     "kokonut_security.enqueue_notification_intents(uuid,text,uuid,jsonb)"
@@ -71,6 +81,8 @@ _SECURITY_DEFINER_OWNERS = (
         "kokonut_gateway_context_owner",
     ),
     (_MOBILE_DEVICE_REVOKE_FUNCTION, "kokonut_mobile_device_revoke_owner"),
+    (_WORKER_CONTEXT_FUNCTION, "kokonut_worker_context_owner"),
+    (_WORKER_SCOPE_FUNCTION, "kokonut_worker_context_owner"),
     (_NOTIFICATION_ENQUEUE_FUNCTION, "kokonut_notification_enqueue_owner"),
     ("public.guard_farm_activity_operator_event_insert()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_gateway_farm_activity_create()", _FARM_ACTIVITY_EVENT_OWNER),
@@ -81,6 +93,9 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _GATEWAY_CONTEXT_FUNCTION,
     _OPERATOR_CONTEXT_FUNCTION,
     _MOBILE_DEVICE_REVOKE_FUNCTION,
+    *_MOBILE_CREDENTIAL_FUNCTIONS,
+    _WORKER_CONTEXT_FUNCTION,
+    _WORKER_SCOPE_FUNCTION,
     _NOTIFICATION_ENQUEUE_FUNCTION,
 )
 _MOBILE_DEVICE_READ_COLUMNS = (
@@ -308,6 +323,9 @@ def _verify_no_runtime_default_privileges(
 
 
 def _revoke_public_function_execute(cur, function: str) -> None:
+    cur.execute("SELECT to_regprocedure(%s)", (function,))
+    if cur.fetchone()[0] is None:
+        return
     cur.execute(
         sql.SQL("REVOKE ALL ON FUNCTION {} FROM PUBLIC").format(sql.SQL(function))
     )
@@ -758,6 +776,23 @@ def provision_runtime_role(
                 "migrations 394/396 tenant-context and 398 bounded device-revocation "
                 "functions must be applied before role provisioning"
             )
+        cur.execute(
+            "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _MOBILE_CREDENTIAL_FUNCTIONS),
+            _MOBILE_CREDENTIAL_FUNCTIONS,
+        )
+        if any(procedure is None for procedure in cur.fetchone()):
+            raise RuntimeError(
+                "migrations 392/393 mobile credential functions must be applied before role provisioning"
+            )
+        cur.execute(
+            "SELECT to_regprocedure(%s), to_regprocedure(%s)",
+            (_WORKER_CONTEXT_FUNCTION, _WORKER_SCOPE_FUNCTION),
+        )
+        worker_functions = cur.fetchone()
+        if (worker_functions[0] is None) != (worker_functions[1] is None):
+            raise RuntimeError(
+                "worker tenant-context migrations must provide both bounded context functions"
+            )
         if notification_enqueue_user is not None:
             cur.execute("SELECT to_regprocedure(%s)", (_NOTIFICATION_ENQUEUE_FUNCTION,))
             if cur.fetchone()[0] is None:
@@ -770,12 +805,37 @@ def provision_runtime_role(
             _revoke_public_function_execute(cur, function)
 
         _ensure_login_role(cur, name=runtime_user, identifier=runtime_ident, password=runtime_password)
+        for function in _MOBILE_CREDENTIAL_FUNCTIONS:
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(function), runtime_ident
+                )
+            )
         _ensure_login_role(
             cur,
             name=operator_auth_user,
             identifier=auth_ident,
             password=operator_auth_password,
         )
+        if worker_functions[0] is not None:
+            cur.execute("SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_execution'")
+            if cur.fetchone() is None:
+                raise RuntimeError(
+                    "worker tenant-context functions exist without kokonut_worker_execution"
+                )
+            worker_execution_ident = _role_identifier(
+                "kokonut_worker_execution", "worker execution role"
+            )
+            for function in (
+                _MOBILE_CREDENTIAL_FUNCTIONS[-1],
+                _WORKER_CONTEXT_FUNCTION,
+                _WORKER_SCOPE_FUNCTION,
+            ):
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), worker_execution_ident
+                    )
+                )
         if notification_enqueue_user is not None:
             assert enqueue_ident is not None and notification_enqueue_password is not None
             _ensure_login_role(

@@ -7,8 +7,9 @@ local-import closure, signed worker identity primitive, and transaction-bound
 Python adapter are implemented. Source integration now exists for the sensor
 anomaly handler, all four registered cache invalidation handlers, and the two
 global notification enqueue handlers. Signed cache invalidation and isolated
-notification enqueue remain opt-in. Runtime grants, worker credentials, and
-candidate rollout remain open. See the
+notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
+bootstrap now enforce the mobile/worker function ACL boundary in disposable
+PostgreSQL. Production credentials and candidate rollout remain open. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
@@ -36,7 +37,7 @@ application-wide RLS or proof for other workers.
   The `data_stale` and `threshold_breached` handlers can opt into a distinct
   notification-enqueue login and bounded function. That path also remains off
   by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned, and migrations 405–417 have not
+  credential or location grant is provisioned, and migrations 405–419 have not
   been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted

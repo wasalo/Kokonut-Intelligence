@@ -179,6 +179,17 @@ The adapter is opt-in through
 and its distinct login are provisioned. It does not fall back to shared
 `PG_*` settings when enabled.
 
+The runtime-role bootstrap integration uncovered inherited `PUBLIC EXECUTE`
+grants on mobile credential helpers and signed worker-context functions.
+Migrations 418–419 revoke those public grants and restore execution only to
+`kokonut_runtime`, `kokonut_worker_execution`, and the bounded function owners
+that require them. The disposable role acceptance now invokes the real
+`provision_runtime_role` path and verifies that the notification login can
+execute only its enqueue function. Nineteen isolated PostgreSQL checks and 49
+focused tests pass. No encrypted worker credential was provisioned; the
+feature remains disabled and migrations 405–419 remain unapplied to the
+candidate.
+
 The first location-lineage source change is in
 `services/ingestion/anomaly_detector.py`. Migration 405 adds private worker
 principals, SHA-256 credential digests, exact tenant/location/resource/action

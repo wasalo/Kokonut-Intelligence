@@ -1,5 +1,33 @@
 # Kokonut Kernel implementation progress
 
+### Runtime and notification function identity boundary — 16 October 2026
+
+The disposable integration check for migration 417 exposed an inherited
+`PUBLIC EXECUTE` path: before the worker context profile was included, the
+notification login could invoke mobile credential `SECURITY DEFINER` functions
+from migrations 392–393; migration 405 also grants `PUBLIC EXECUTE` to the
+signed worker context accessors. Migrations 418–419 now remove those public
+grants. The runtime bootstrap restores mobile helper execution only to
+`kokonut_runtime`, and worker context helpers only to
+`kokonut_worker_execution` plus their bounded function owners. The bootstrap
+also repairs these ACLs after database-only restore and verifies the isolated
+notification login has no other executable `SECURITY DEFINER` function.
+
+The disposable PostgreSQL 16 acceptance applied and replayed migrations
+391–396, 398–400, 405, and 417–419, then ran the real
+`provision_runtime_role` function with synthetic credentials. It verified the
+notification login can enqueue idempotently under FORCE RLS, cannot access
+source/outbox tables or protected helper functions, and worker context APIs
+remain available only to the worker execution role. Nineteen database checks,
+49 focused pytest checks, Ruff, compilation, migration checks, and whitespace
+checks pass ([runner](../../scripts/check-operator-session-role-disposable.py);
+[evidence](builds/2026-10-16-recovery/runtime-notification-enqueue-role-disposable.json)).
+No SOPS secret was created, no provider was contacted, and candidate/legacy
+databases were not accessed. Candidate migrations 405–419 remain unapplied;
+the feature stays disabled until credentials and a reviewed rollout are
+available. Checklist count is now 417 complete / 20 open. No MAN-CAP status
+changes.
+
 ### Isolated global notification enqueue — 16 October 2026
 
 Added a default-off handler path for `data_stale` and `threshold_breached`
@@ -22,10 +50,10 @@ and candidate/overlay Compose parsing pass. Evidence:
 [notification-enqueue-worker-disposable.json](builds/2026-10-16-recovery/notification-enqueue-worker-disposable.json).
 No candidate or legacy database was accessed, migration 417 has not been
 applied to either, and no delivery provider was contacted. The feature flag is
-off; secret provisioning, full runtime-role bootstrap integration acceptance,
-and candidate rollout remain open. The SQL runner promoted only its synthetic
-test login directly. Checklist count is now 416 complete / 20 open, and no
-MAN-CAP status changes.
+off; encrypted secret/DSN provisioning and candidate rollout remain open. The
+initial SQL runner promoted only its synthetic test login directly; the full
+bootstrap integration and its ACL follow-up are recorded above. Checklist
+count is now 417 complete / 20 open, and no MAN-CAP status changes.
 
 ### ClickHouse outbox bounded retry backoff — 16 October 2026
 
