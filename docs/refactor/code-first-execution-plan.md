@@ -46,13 +46,23 @@ endpoint was queried ([error evidence](builds/2026-10-17-recovery/eas-provider-g
 [cursor-scan evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
 The worker now also rejects absent, null, boolean, negative, fractional,
 malformed, and out-of-range attestation timestamps before persistence or cursor
-advancement; seven focused cases pass within the combined 35-test EAS suite. An optional
+advancement; seven focused cases pass within the combined 36-test EAS suite. An optional
 `--replay-lookback-seconds` enables operator-selected idempotent replay below a
 saved cursor without lowering it; zero remains the default. Six focused
 replay/argument/output checks pass, and successful worker output reports the
 selected interval. This does not recover arrivals beyond a requested
 interval or close concurrent offset-page movement ([timestamp evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json);
 [replay evidence](builds/2026-10-17-recovery/eas-explicit-replay-lookback.json)).
+**Local code-first follow-up — 17 October 2026:** the isolated worker detects
+an identical attestation-ID fingerprint on consecutive full provider pages and
+stops before another page write or cursor advancement. It keeps only one page
+fingerprint in memory, so the guard stays bounded; already persisted pages
+remain safe for idempotent retry. The repeated-page regression, all 36 EAS
+provider/worker/cursor tests, 130 scheduled-command contract tests, and 50
+worker/runtime inventory tests pass. Ruff, compilation, capability-matrix
+validation, and all generated inventory checks pass. The branch has three
+local commits ahead of the remote; CI #408 is still running on pushed commit
+`4f5be68d`, and this follow-up awaits the next batch push ([evidence](builds/2026-10-17-recovery/eas-repeated-page-guard.json)).
 **Code-first follow-up — 17 October 2026:** the legacy freshness-alert
 sender now closes webhook responses on success and failure, retains only an
 HTTP status or exception class for webhook/SMTP failures, and preserves the last

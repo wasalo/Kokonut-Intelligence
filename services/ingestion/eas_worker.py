@@ -54,6 +54,7 @@ def _fetch_wallet_pages(
     scan_floor = max(0, cursor_time - replay_lookback_seconds)
     inserted = 0
     previous_attestation_time: int | None = None
+    previous_full_page_fingerprint: str | None = None
     while True:
         response = query_eas(
             chain,
@@ -74,6 +75,7 @@ def _fetch_wallet_pages(
             break
 
         page = []
+        page_attestation_ids = []
         reached_cursor = False
         for attestation in attestations:
             if not isinstance(attestation, dict):
@@ -104,6 +106,10 @@ def _fetch_wallet_pages(
                 # The order check above should make this unreachable. Keep the
                 # guard explicit so malformed pages can never add older rows.
                 raise ValueError("EAS provider page is not ordered newest first")
+            attestation_id = attestation.get("id")
+            if not isinstance(attestation_id, str) or not attestation_id.strip():
+                raise ValueError("EAS provider attestation ID is invalid")
+            page_attestation_ids.append(attestation_id.lower())
             max_time = max(max_time, attestation_time)
             page.append(
                 {
@@ -111,6 +117,16 @@ def _fetch_wallet_pages(
                     "payload_hash": _hash_payload(attestation),
                 }
             )
+
+        if len(attestations) == 100 and not reached_cursor:
+            page_fingerprint = _hash_payload(sorted(page_attestation_ids))
+            # Offset pagination can repeat a page if the provider ignores or
+            # misapplies `skip`. Stop before cursor advancement instead of
+            # retrying the same full page forever. Already persisted pages are
+            # safe to retry because the bounded writer is idempotent by UID.
+            if page_fingerprint == previous_full_page_fingerprint:
+                raise ValueError("EAS provider pagination did not advance")
+            previous_full_page_fingerprint = page_fingerprint
 
         if page:
             try:

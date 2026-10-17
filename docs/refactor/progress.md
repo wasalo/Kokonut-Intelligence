@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### EAS repeated-page guard — 17 October 2026
+
+The isolated EAS worker now detects an attestation-ID fingerprint repeated on
+consecutive full provider pages. It stops instead of following the same
+`skip` response indefinitely while retaining only the prior page fingerprint.
+The already persisted first page remains safe for idempotent retry, and the
+cursor is not advanced. The focused mocked regression passes within the
+36-test EAS provider/worker/cursor suite. The
+130-test scheduled-command contract suite, Ruff, compilation, and refreshed
+worker/runtime inventories pass. No provider or database was contacted. This
+does not resolve concurrent offset movement or earlier-than-cursor arrivals.
+The checklist now records 454 complete and 20 open items (474 total); the
+66-row capability matrix and MAN-CAP classifications are unchanged
+([evidence](builds/2026-10-17-recovery/eas-repeated-page-guard.json)).
+
 ### Worker inventory refresh — 17 October 2026
 
 Refreshing generated maps after the EAS provider extraction/timestamp/replay changes and
@@ -59,7 +74,7 @@ fractional, malformed, or out-of-range attestation timestamps before persisting 
 page or advancing a recipient cursor. This prevents an invalid timestamp from
 being coerced to zero and silently discarded as older than the saved cursor.
 Seven focused malformed-timestamp cases pass; the combined EAS provider/worker/
-cursor suite passes 35 tests with Ruff and compilation. All provider responses
+cursor suite passes 36 tests with Ruff and compilation. All provider responses
 were mocked; no EAS endpoint or database was contacted. Concurrent offset-page
 movement, earlier-than-cursor arrivals, and live provider acceptance remain
 open ([evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json)).
@@ -72,7 +87,7 @@ recipient cursor. Replayed pages use the existing idempotent database function,
 and the saved cursor never regresses. The zero-second default preserves normal
 scheduled behavior; negative, boolean, and fractional direct-call values fail
 before database access, and the CLI rejects negative input before connecting.
-Six focused replay/argument/output checks pass within the combined 35-test EAS suite,
+Six focused replay/argument/output checks pass within the combined 36-test EAS suite,
 with Ruff and compilation; the successful worker result names the selected
 interval. The 130-test scheduled-command contract suite also
 confirms scheduler invocations still accept only the explicit chain and reject

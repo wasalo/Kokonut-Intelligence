@@ -1,0 +1,43 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked EAS worker pages only; no provider or database access",
+  "files": [
+    "services/ingestion/eas_worker.py",
+    "tests/test_eas_worker.py"
+  ],
+  "focused_tests": 1,
+  "result": "passed",
+  "checks": [
+    "The same full-page attestation ID fingerprint on consecutive offsets is detected after the first idempotent write",
+    "The worker stops instead of fetching the same full page indefinitely while retaining bounded fingerprint memory",
+    "The repeated page is not persisted again and the recipient cursor is not advanced"
+  ],
+  "combined_suite": {
+    "files": [
+      "tests/test_eas_worker.py",
+      "tests/test_eas_provider.py",
+      "tests/test_eas_indexer_recovery.py"
+    ],
+    "tests": 36,
+    "result": "passed",
+    "pytest_plugin_autoload": "disabled because the local platformdirs.pytest_plugin entry point references a missing module"
+  },
+  "scheduled_command_contract": {
+    "file": "tests/test_scheduled_command_contracts.py",
+    "tests": 130,
+    "result": "passed",
+    "check": "Scheduled EAS commands remain limited to one explicit chain and cannot pass the manual replay option"
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "generated_worker_and_runtime_inventories": "refreshed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live EAS endpoint or database was contacted",
+    "Offset-page stability under concurrent provider mutations and earlier-than-cursor arrivals remain open",
+    "Live provider parity and MAN-CAP acceptance remain open"
+  ]
+}

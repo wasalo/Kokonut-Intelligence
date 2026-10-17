@@ -22,7 +22,7 @@
       "tests/test_eas_provider.py",
       "tests/test_eas_indexer_recovery.py"
     ],
-    "tests": 35,
+    "tests": 36,
     "result": "passed"
   },
   "scheduled_command_contract": {

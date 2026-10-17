@@ -233,6 +233,36 @@ def test_provider_failure_does_not_advance_the_cursor_after_prior_page():
     assert connection.commits == 1
 
 
+def test_repeated_consecutive_full_provider_page_fails_without_advancing_cursor():
+    connection = _Connection()
+    repeated_page = [_attestation(uid=index + 1, timestamp=150) for index in range(100)]
+    with (
+        patch.object(
+            eas_worker,
+            "query_eas",
+            side_effect=[{"attestations": repeated_page}, {"attestations": repeated_page}],
+        ) as query,
+        pytest.raises(ValueError, match="pagination did not advance"),
+    ):
+        eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=100,
+            sleep=lambda _seconds: None,
+        )
+
+    assert query.call_count == 2
+    assert [call.args[2]["after"] for call in query.call_args_list] == [0, 100]
+    statements = [statement for statement, _ in connection.statements]
+    assert statements.count(
+        "SELECT kokonut_security.store_eas_indexer_page(%s, %s::uuid, %s::jsonb)"
+    ) == 1
+    assert not any("advance_eas_indexer_cursor" in statement for statement in statements)
+    assert connection.commits == 1
+
+
 def test_wallet_scan_stops_after_inclusive_cursor_boundary():
     connection = _Connection()
     page = [_attestation(uid=index + 1, timestamp=200) for index in range(99)]
