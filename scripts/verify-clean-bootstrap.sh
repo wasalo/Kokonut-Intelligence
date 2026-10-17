@@ -57,24 +57,11 @@ if [[ "$START_DATABASE" == "true" ]]; then
 fi
 
 # These optional deployment identities are referenced by REVOKE statements in
-# signed-worker migrations. Fresh schema replay must have the role names even
-# when the deployment has not enabled their logins yet. Keep placeholders
-# locked and leave any already-provisioned role attributes untouched.
+# signed-worker migrations. Fresh schema replay must have the locked role names
+# even when the deployment has not enabled their logins yet.
 compose exec -T "$DB_SERVICE" \
-    psql -X -U kokonut -d postgres -v ON_ERROR_STOP=1 <<'SQL'
-DO $bootstrap_roles$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_runtime') THEN
-        EXECUTE 'CREATE ROLE kokonut_runtime NOLOGIN NOINHERIT NOSUPERUSER '
-            || 'NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS';
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_login') THEN
-        EXECUTE 'CREATE ROLE kokonut_worker_login NOLOGIN NOINHERIT NOSUPERUSER '
-            || 'NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS';
-    END IF;
-END;
-$bootstrap_roles$;
-SQL
+    psql -X -U kokonut -d postgres -v ON_ERROR_STOP=1 \
+    < "$SCRIPT_DIR/bootstrap-optional-roles.sql"
 
 compose exec -T "$DB_SERVICE" \
     psql -X -U kokonut -d postgres -v ON_ERROR_STOP=1 \

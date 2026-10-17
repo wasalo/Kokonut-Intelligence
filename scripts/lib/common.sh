@@ -61,7 +61,10 @@ compose() {
 
 wait_for_postgres() {
     local attempt=1
-    until docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_isready -U kokonut -d kokonut_intelligence > /dev/null 2>&1; do
+    # Use TCP, not the default Unix socket. The PostGIS entrypoint runs a
+    # temporary socket-only server while initializing extensions; socket
+    # readiness can become true before the final server is started.
+    until docker compose -f "$COMPOSE_FILE" exec -T "$DB_SERVICE" pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence > /dev/null 2>&1; do
         if [ "$attempt" -ge "$DB_WAIT_ATTEMPTS" ]; then
             echo "ERROR: PostgreSQL service '$DB_SERVICE' is not ready after $((DB_WAIT_ATTEMPTS * 2)) seconds."
             return 1

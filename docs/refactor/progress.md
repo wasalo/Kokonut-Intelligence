@@ -41,12 +41,34 @@ bootstrap harness: the fresh database had no `kokonut_runtime` role for a
 missing optional `kokonut_runtime` and `kokonut_worker_login` names as locked
 `NOLOGIN` roles, preserving existing roles. A new isolated replay applied all
 423 schemas through migration 432 with zero failures; the temporary project
-and volume were confirmed removed. GitHub CI #393 caught the original issue;
-Security #117 passed on the previous pushed head. The local fix is ready for a
-new hosted run after push ([clean-bootstrap evidence](builds/2026-10-17-recovery/clean-bootstrap-role-prerequisites.json)).
-This does not verify Raspberry Pi
+and volume were confirmed removed. GitHub CI #393 caught the original issue.
+CI #394 passed clean bootstrap but failed later in the separate `seed.sh`
+database because that path had not created the optional role names. This follow-
+up is detailed below. This does not verify Raspberry Pi
 hardware, live providers, persisted schedule parity, or production recovery
 ([rollout evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json)).
+
+### CI #394 seed-path replay and PostgreSQL first-boot readiness — 17 October 2026
+
+CI #394 passed the clean-bootstrap check but failed later, after the CI script
+removed that Compose project and started a second fresh database for `seed.sh`.
+That path applied migrations without creating the optional `kokonut_runtime`
+and `kokonut_worker_login` role names; migration 427 then failed on its `REVOKE`.
+The role bootstrap SQL is now shared by `seed.sh` and
+`verify-clean-bootstrap.sh`, creating only absent locked `NOLOGIN` roles and
+preserving already-provisioned role attributes.
+
+The isolated first replay also exposed a separate first-boot race: PostGIS's
+temporary Unix-socket-only initialization server could satisfy the old
+`pg_isready` healthcheck before the final PostgreSQL server started. Compose
+healthchecks and the shared wait now require the final TCP listener, and
+`seed.sh` waits again after extension initialization. With curated seeds
+disabled, the complete `seed.sh` path applied all 423 schemas through migration
+432 with zero failures. The disposable project and volume were removed; the
+candidate services remained healthy and the legacy stack was not targeted.
+Hosted CI for the queued fix is pending push ([replay evidence](builds/2026-10-17-recovery/seed-bootstrap-423-replay.json)).
+Checklist totals remain 441 complete and 21 open; no capability acceptance
+status changed.
 
 ### Current-schema ARM64/QEMU replay through migration 432 — 17 October 2026
 

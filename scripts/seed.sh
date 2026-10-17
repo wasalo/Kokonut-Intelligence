@@ -48,6 +48,12 @@ wait_for_postgres
 echo "PostgreSQL is ready."
 
 if [ "$REFERENCE_ONLY" = "false" ]; then
+    # Migration revocations reference optional worker/runtime roles. Bootstrap
+    # locked placeholders before replay so fresh deployments and CI seed runs
+    # share the same role prerequisites as the clean-bootstrap check.
+    echo "Bootstrapping optional PostgreSQL role placeholders..."
+    psql_exec "$SCRIPT_DIR/bootstrap-optional-roles.sql"
+
     # Apply init.sql and extensions.sql (bind mounts removed from docker-compose.yml
     # to fix DinD failures where the source paths resolve to executor host directories).
     echo ""
@@ -60,6 +66,8 @@ if [ "$REFERENCE_ONLY" = "false" ]; then
     # Seed data is selected explicitly in CURATED_SEEDS below and uses the same
     # checksum ledger after schema application.
     echo ""
+    echo "Waiting for PostgreSQL after initialization..."
+    wait_for_postgres
     echo "Applying PostgreSQL schema migrations..."
     python3 -m services.migration migrate --schemas-only
     echo "PostgreSQL schema migrations applied successfully."

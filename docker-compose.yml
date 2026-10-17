@@ -11,7 +11,9 @@ services:
     networks:
       - databases
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      # Require the final TCP listener; the PostGIS init entrypoint also starts
+      # a temporary Unix-socket-only server during first-boot initialization.
+      test: ["CMD-SHELL", "test \"$(cat /proc/1/comm)\" = postgres && pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence"]
       interval: 10s
       timeout: 5s
       retries: 5

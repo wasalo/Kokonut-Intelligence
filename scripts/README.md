@@ -13,7 +13,7 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `check-requirement-groups.py` | Keep candidate groups aligned with legacy dependency constraints | CI, manual |
 | `setup.sh` | First-run bootstrap: prerequisites check, `.env` creation, data directories, infrastructure startup | Manual |
 | `load-secrets.sh` | Decrypt `.env.sops` via SOPS/age and export into current shell. **Must be sourced**, not executed. | Manual |
-| `seed.sh` | Apply PostgreSQL schema migrations + ClickHouse schemas + Directus permissions + curated seeds | Manual, CI |
+| `seed.sh` | Bootstrap locked placeholders for optional worker/runtime role names, wait for the final PostgreSQL TCP listener, then apply PostgreSQL schema migrations + ClickHouse schemas + Directus permissions + curated seeds | Manual, CI |
 | `seed-pilot.sh` | Load pilot farm data (`*_pilot_*.sql` seeds + CRISP + alignment + dashboards) | Manual, CI |
 | `seed-metabase.sh` | Configure Metabase with database connection (prints manual setup instructions) | Manual |
 
@@ -29,7 +29,8 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 |--------|---------|---------|
 | `verify-platform.sh` | Validate platform definition of done via `tests/test_platform_done.py` | Manual |
 | `verify-ci-toolchain.sh` | Verify all required CI tools are installed (python3, node, npm, forge, slither, aderyn, semgrep, ruff, pip-audit) | CI |
-| `verify-clean-bootstrap.sh` | Create temp database, apply schema-only migrations, drop it. Seeds locked `NOLOGIN` placeholders for optional role names referenced by migration revocations while preserving already-provisioned roles. Optional `KOKONUT_BOOTSTRAP_COMPOSE_PROJECT` and `KOKONUT_BOOTSTRAP_COMPOSE_FILE` select an isolated Compose target; set `KOKONUT_BOOTSTRAP_START_DATABASE=true` and `KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true` to start and remove a disposable project. | CI (via `ci-check.sh`), isolated acceptance |
+| `bootstrap-optional-roles.sql` | Idempotently create locked `NOLOGIN` placeholders for optional runtime/worker roles referenced by signed-worker migration revocations; preserve existing roles | `seed.sh`, `verify-clean-bootstrap.sh` |
+| `verify-clean-bootstrap.sh` | Create temp database, apply schema-only migrations, drop it. Uses the same locked optional-role bootstrap as `seed.sh`, preserving already-provisioned roles. Optional `KOKONUT_BOOTSTRAP_COMPOSE_PROJECT` and `KOKONUT_BOOTSTRAP_COMPOSE_FILE` select an isolated Compose target; set `KOKONUT_BOOTSTRAP_START_DATABASE=true` and `KOKONUT_BOOTSTRAP_REMOVE_PROJECT=true` to start and remove a disposable project. | CI (via `ci-check.sh`), isolated acceptance |
 | `check-directus-role-disposable.py` | Provision and replay the Directus DML-only role on a temporary internal-only PostgreSQL instance; check existing/future DML, DDL denial, stale ACL removal, and database isolation; always removes its Compose project and volume. | Isolated acceptance |
 | `check-directus-profile-disposable.py` | Build the Directus hook, provision its dedicated role, bootstrap a fresh Kernel database, start the actual optional Directus overlay on loopback, verify health/admin login/runtime DB identity, and remove the complete disposable project and volume. | Isolated acceptance |
 | `check-scheduler-engine-reconnect-disposable.py` | Exercise real SchedulerEngine PostgreSQL outage/reconnect, pre-dispatch lease recovery, and post-effect crash/reclaim idempotency with synthetic events on a disposable PostgreSQL 16 container; no provider requests, candidate/legacy access, or retained container. | Isolated acceptance |
