@@ -1,5 +1,42 @@
 # Kokonut Kernel implementation progress
 
+### Cross-runner PostgreSQL TCP readiness contract — 17 October 2026
+
+Follow-up source review found that the PostGIS init-server readiness race also
+affected disposable acceptance scripts beyond the `seed.sh` path. Compose
+healthchecks, disposable PostgreSQL probes, and shell readiness loops now wait
+for PostgreSQL on `127.0.0.1` over TCP. A focused regression inventories all
+Compose files, Python subprocess probes, generated retention healthchecks, and
+shell probes so socket-only checks cannot silently return. The focused
+readiness and Compose profile suites pass 25 tests; targeted Ruff, shell syntax,
+Compose config, and whitespace checks pass. `tests/test_compose_metabase_profile.py`
+now stubs host disk usage so its profile decision is deterministic across
+developer machines. This is a harness/runtime-readiness correction; it does
+not change capability acceptance or require a migration. No candidate or
+legacy database was touched by this follow-up.
+
+The fix is pushed in `6bd53a9e9e9e21615bb556e19dc18e38a40898c6` on PR #68.
+Security #120 passed and CI #396 is in progress. The previous head's
+Security #119 passed; CI #395 was cancelled after the branch advanced.
+
+### ARM64 app host-loopback ingress — 17 October 2026
+
+The previous QEMU ingress attempt published the ARM64 app on loopback but used
+an internal Docker network, which prevented Docker Desktop from reaching the
+published port. A fresh normal-bridge project applied all 423 ordered schemas
+through migration 432 and ran the ARM64 app on `127.0.0.1:18119`. Host requests
+returned HTTP 200 from `/health` and HTTP 401 `credentials_required` from the
+anonymous farm-activity route. The database ran natively as AMD64 to avoid
+emulated migration latency; separate evidence covers ARM64 PostGIS and full
+schema replay. No seeds or provider credentials were used. The disposable
+containers, network, and volumes were removed, and the existing candidate
+remained healthy ([evidence](builds/2026-10-17-recovery/arm64-loopback-ingress.json)).
+
+This closes the host-loopback code check, not physical Pi, public ingress, or
+current-schema resource-limit acceptance. The checklist is now 442 complete
+and 20 open (462 total); the capability matrix remains 54 baseline-retained,
+7 deployed, and 5 prepared, with no MAN-CAP acceptance changes.
+
 ### Candidate schema rollout through migration 432 — 17 October 2026
 
 The local Kernel candidate was checkpointed with encrypted backup
@@ -66,9 +103,12 @@ healthchecks and the shared wait now require the final TCP listener, and
 disabled, the complete `seed.sh` path applied all 423 schemas through migration
 432 with zero failures. The disposable project and volume were removed; the
 candidate services remained healthy and the legacy stack was not targeted.
-Hosted CI for the queued fix is pending push ([replay evidence](builds/2026-10-17-recovery/seed-bootstrap-423-replay.json)).
-Checklist totals remain 441 complete and 21 open; no capability acceptance
-status changed.
+The shared role/readiness fix was pushed as `0ad9e5e6`; Security #119 passed,
+and CI #395 was cancelled after the next batch advanced the branch. Its
+successful isolated seed replay remains recorded here ([replay evidence](builds/2026-10-17-recovery/seed-bootstrap-423-replay.json)).
+At that batch boundary, checklist totals were 441 complete and 21 open. The
+later ARM64 host-loopback check above closes one execution item; no capability
+acceptance status changed.
 
 ### Current-schema ARM64/QEMU replay through migration 432 — 17 October 2026
 

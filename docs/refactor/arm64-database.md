@@ -54,11 +54,19 @@ disabled. A fresh internal-network QEMU recheck then applied all 423 schemas,
 started the ARM64 app, and observed a healthy Compose status. HTTP requests from
 inside the app container returned `/health` 200 and 401 `credentials_required`
 for the anonymous farm-activity route. Host-side curl could not reach the
-configured `127.0.0.1:18118` mapping while the network was internal, so host
-ingress remains unverified. The temporary project, network, and volumes were
-removed and verified absent. This run used no explicit CPU/memory limits, so it
-does not close the bounded resource check or certify physical Pi behavior
-([evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
+configured `127.0.0.1:18118` mapping while the network was internal.
+
+**Host-loopback ingress follow-up (17 October 2026):** a separate disposable
+project replayed all 423 schemas and ran the ARM64 app on the normal Compose
+bridge network. The app was published only at `127.0.0.1:18119`; host curl
+returned `/health` 200 and anonymous farm-activity read 401. PostgreSQL ran
+natively as linux/amd64 for this ingress-only check to avoid QEMU migration
+latency; the independent ARM64 PostGIS/schema replay remains the evidence for
+the database architecture. The project containers, network, and volumes were
+removed; the existing candidate remained healthy. This closes the host-loopback
+ingress check, but not non-loopback/public ingress, CPU/memory limits, or
+physical Pi behavior ([ingress evidence](builds/2026-10-17-recovery/arm64-loopback-ingress.json);
+[ARM64 schema evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
 
 On 10 October 2026 registry metadata was inspected for the candidate's exact
 database reference:
