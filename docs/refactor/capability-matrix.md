@@ -112,12 +112,13 @@ Kernel EAS work now has a default-off worker identity and bounded migration 433
 functions. The dedicated login has no direct application-table privileges;
 forced-RLS disposable PostgreSQL 16 checks pass for recipient lookup, cursor
 advance, attestation plus outbox atomicity, replay suppression, status audit,
-and migration replay. Prefect intentionally stays on the legacy entrypoint
-until the worker feature and credentials are provisioned. Migration 433 has
-not been applied to the candidate, no worker login or grant is enabled, and no
-EAS endpoint or persisted schedule was used. Existing task reconciliation,
-offset-pagination movement, earlier-arrival recovery, provider parity, and
-live runtime acceptance remain open ([worker](../../services/ingestion/eas_worker.py);
+and migration replay. Migration 433 is applied on the local candidate after an
+age-encrypted checkpoint was restore-rehearsed; both EAS roles remain `NOLOGIN`,
+and no worker credential, endpoint, or persisted schedule was enabled or used.
+Prefect intentionally stays on the legacy entrypoint until feature and
+credential provisioning. Existing task reconciliation, offset-pagination
+movement, earlier-arrival recovery, provider parity, and live runtime
+acceptance remain open ([worker](../../services/ingestion/eas_worker.py);
 [migration](../../schemas/postgres/433_isolated_eas_indexer.sql);
 [disposable runner](../../scripts/check-eas-indexer-worker-disposable.py);
 [evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json)).

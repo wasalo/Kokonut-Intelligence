@@ -3,9 +3,9 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch before this work — 17 October 2026:** Commit
-`ba8762aada28854b7bc93821f77a6abac893bcf9` refreshed worker SQL reachability
-evidence on the PR branch. Security #127 passed; CI #403 was still running at
-the latest check. The preceding ARM64 acceptance commit
+`f59148b735623e5f768d1c7ff7ad291e0d481c9a` isolated scheduled worker imports
+from shared PostgreSQL configuration. CI status for this revision has not yet
+been checked. Earlier the ARM64 acceptance commit
 `a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema app
 execution under QEMU with a 1 GiB/two-CPU app and a 1.5 GiB/two-CPU native
 AMD64 database; health returned 200 and an anonymous protected read returned
@@ -21,14 +21,16 @@ GraphQL contract is extracted from the shared-database legacy module so the
 isolated child can start with shared PostgreSQL settings stripped. The 277-test
 focused EAS/scheduler/runtime-role/source-map suite, Ruff, compilation,
 generated worker/runtime inventories, and disposable PostgreSQL 16 forced-RLS
-and migration-replay check pass. No candidate migration, worker credential,
-persisted task, or live EAS endpoint was used. The candidate remains at
-migration 432; feature and grants stay off. Task reconciliation, provider
-pagination/recovery parity, live runtime acceptance, and MAN-CAP acceptance
-remain open ([migration](../../schemas/postgres/433_isolated_eas_indexer.sql);
+and migration-replay check pass. After an age-encrypted checkpoint and isolated
+restore rehearsal, migration 433 is applied to the local candidate; the app
+was rebuilt and health/protected-route behavior verified. Both EAS roles remain
+NOLOGIN, and no worker credential, persisted task, or live EAS endpoint was
+used. Task reconciliation, provider pagination/recovery parity, live runtime
+acceptance, and MAN-CAP acceptance remain open ([migration](../../schemas/postgres/433_isolated_eas_indexer.sql);
 [worker](../../services/ingestion/eas_worker.py);
 [provider contract](../../services/ingestion/eas_provider.py);
-[disposable evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json)).
+[disposable evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json);
+[candidate rollout](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
 **Current code-first follow-up — 17 October 2026:** scheduled worker import
 paths now remain usable with shared PostgreSQL settings stripped. An internal
 worker marker prevents shared dotenv decryption and shared production DB

@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Candidate rollout: isolated EAS indexer migration 433 — 17 October 2026
+
+Applied only `schema:433_isolated_eas_indexer.sql` to the local candidate with
+the ordered schema runner. Before the write, a fresh age-encrypted PostgreSQL
+checkpoint was restored into a separate internal-network PostgreSQL target;
+all 423 migration rows, the migration-ledger digest, 10 extensions, 1,396
+public relations, and representative row counts matched. The first disposable
+restore exposed a missing disabled role prerequisite; that bootstrap now covers
+all role references in migrations and has focused regression coverage. A fresh
+restore then passed. The candidate now has 424 applied schema migrations and
+zero pending; its rebuilt app returns health 200 and an anonymous protected
+route returns 401. Both EAS roles remain `NOLOGIN` non-superusers. No seeds,
+provider access, worker credential, or schedule were enabled. The encrypted
+checkpoint and previous app image tag are retained for rollback. Checklist
+count is 446 complete / 20 open (466 total); capability status and MAN-CAP
+acceptance are unchanged ([rollout evidence](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
+
 ### Isolated-worker import boundary — 17 October 2026
 
 Scheduled workers imported legacy ingestion helpers before reaching their CLI
@@ -14,8 +31,9 @@ shared database environment. The focused worker, common-environment,
 EventBus, operation-map and scheduler suite passes 130 tests. All eight
 scheduled worker `--help` subprocess checks, Ruff, compilation and diff checks
 pass. Only synthetic credential strings were used; no database or provider was
-accessed. Recounting the checklist gives 445 complete / 20 open (465 total), with no
-capability status changes ([evidence](builds/2026-10-17-recovery/isolated-worker-import-boundary.json)).
+accessed. At that batch boundary the checklist was 445 complete / 20 open
+(465 total), with no capability status changes
+([evidence](builds/2026-10-17-recovery/isolated-worker-import-boundary.json)).
 
 ### Dedicated EventBus handler environment isolation — 17 October 2026
 
