@@ -2,11 +2,12 @@
 
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed batch before this work — 17 October 2026:** Commit
-`47dc15270dbd8a8c9b781171c028f392db49f892` recorded the candidate migration 433
-rollout. Security #130 passed; CI #406 failed on stale generated line references
-in the report-generator helper-scope inventory. The artifact has been refreshed
-locally, and a fresh hosted run is pending the next batch push. Earlier the ARM64 acceptance commit
+**Latest pushed batch — 17 October 2026:** Commit
+`e8d895a1797c64fe400c403972c878a59d804464` includes the candidate migration 433
+rollout and EAS provider/cursor hardening. Security #131 passed; CI #407 is in
+progress. CI #406 exposed stale generated line references in the report-generator
+helper-scope inventory; the artifact was regenerated and its exact local check
+passes. Earlier the ARM64 acceptance commit
 `a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema app
 execution under QEMU with a 1 GiB/two-CPU app and a 1.5 GiB/two-CPU native
 AMD64 database; health returned 200 and an anonymous protected read returned
@@ -41,6 +42,11 @@ provider/worker/cursor tests plus Ruff and compilation pass. This does not close
 concurrent offset-page stability or earlier-than-cursor recovery; no live
 endpoint was queried ([error evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json);
 [cursor-scan evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
+**Local code-first follow-up — 17 October 2026:** the legacy freshness-alert
+sender now closes webhook responses on success and failure and retains only an
+HTTP status or exception class for webhook/SMTP failures. Thirty-two focused
+tests pass with Ruff and compilation; no destination was contacted. This
+follow-up is local and not included in the current PR run ([evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json)).
 **Current code-first follow-up — 17 October 2026:** scheduled worker import
 paths now remain usable with shared PostgreSQL settings stripped. An internal
 worker marker prevents shared dotenv decryption and shared production DB

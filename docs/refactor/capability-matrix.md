@@ -609,6 +609,14 @@ parsing with failure/lease-loss exit codes. No real provider or database was
 used; this does not accept MAN-CAP-047 or provider availability
 ([evidence](builds/2026-10-14-recovery/notification-outbox-failure-injection.json)).
 
+**17 October 2026 freshness alert failure containment (CAP-047):** the legacy
+data-freshness sender closes webhook responses on success and failure, and
+reduces webhook/SMTP error details to an HTTP status or exception class before
+logging or persistence. Thirty-two focused freshness checks pass with mocked
+providers; no destination or database was used. This does not verify production
+delivery, destination ownership, retention, or MAN-CAP-047 acceptance
+([evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json)).
+
 **14 October 2026 runtime default-privilege boundary (CAP-047 / CAP-053):**
 the opt-in runtime bootstrap now removes default table and sequence privileges
 for future public objects while retaining existing-table behavior. The

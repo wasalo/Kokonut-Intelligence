@@ -1,0 +1,26 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked webhook and SMTP delivery only; no network provider or database access",
+  "files": [
+    "services/ingestion/data_freshness.py",
+    "tests/test_telemetry_freshness.py"
+  ],
+  "focused_tests": 32,
+  "result": "passed",
+  "checks": [
+    "Webhook responses close after success and HTTP failure",
+    "Provider exception messages are not logged or persisted in delivery-attempt error fields",
+    "SMTP failure details are reduced to exception class before logging or persistence",
+    "Existing freshness schema, thresholds, scope query, and alert-transition checks remain passing"
+  ],
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live alert destination was configured or contacted",
+    "Destination ownership, production delivery, and MAN-CAP-047 acceptance remain open"
+  ]
+}

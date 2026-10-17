@@ -302,6 +302,15 @@ def _insert_check_result(
     return check_id
 
 
+def _safe_delivery_error(exc: Exception) -> str:
+    """Return bounded provider failure metadata without response/credential text."""
+    response = getattr(exc, "response", None)
+    status_code = getattr(response, "status_code", None)
+    if isinstance(status_code, int) and 100 <= status_code <= 599:
+        return f"HTTP {status_code}"
+    return type(exc).__name__
+
+
 def _send_alert(
     source_system: str,
     status: str,
@@ -324,6 +333,7 @@ def _send_alert(
     # Webhook alert
     webhook_url = os.environ.get("ALERT_WEBHOOK_URL")
     if webhook_url:
+        response = None
         try:
             from services.common.http import http
 
@@ -337,9 +347,16 @@ def _send_alert(
                 attempts.append({"channel": "webhook", "error": None})
             return "webhook"
         except Exception as e:
-            logger.warning("Webhook alert failed: %s", e)
+            safe_error = _safe_delivery_error(e)
+            logger.warning("Webhook alert failed (%s)", safe_error)
             if attempts is not None:
-                attempts.append({"channel": "webhook", "error": str(e)})
+                attempts.append({"channel": "webhook", "error": safe_error})
+        finally:
+            if response is not None:
+                try:
+                    response.close()
+                except Exception as e:
+                    logger.debug("Webhook response close failed (%s)", _safe_delivery_error(e))
 
     # Email alert
     smtp_host = os.environ.get("ALERT_SMTP_HOST")
@@ -356,9 +373,10 @@ def _send_alert(
                 attempts.append({"channel": "email", "error": None})
             return "email"
         except Exception as e:
-            logger.warning("Email alert failed: %s", e)
+            safe_error = _safe_delivery_error(e)
+            logger.warning("Email alert failed (%s)", safe_error)
             if attempts is not None:
-                attempts.append({"channel": "email", "error": str(e)})
+                attempts.append({"channel": "email", "error": safe_error})
 
     if attempts is not None and not attempts:
         attempts.append({"channel": "none", "error": "no alert channel configured"})

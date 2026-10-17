@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
 SEED = Path("schemas/seeds/077_telemetry_infrastructure.sql")
@@ -47,6 +48,56 @@ def test_freshness_persists_delivery_attempts() -> None:
     content = Path("services/ingestion/data_freshness.py").read_text()
     assert "_persist_delivery_attempt" in content
     assert 'attempt["error"]' in content
+
+
+def test_webhook_response_is_closed_after_success(monkeypatch) -> None:
+    from services.ingestion.data_freshness import _send_alert
+
+    monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://example.test/secret-token")
+    monkeypatch.delenv("ALERT_SMTP_HOST", raising=False)
+    monkeypatch.delenv("ALERT_EMAIL_TO", raising=False)
+    response = MagicMock()
+    attempts = []
+    with patch("services.common.http.http.post", return_value=response):
+        channel = _send_alert("weather", "stale", 45, None, attempts=attempts)
+
+    assert channel == "webhook"
+    assert attempts == [{"channel": "webhook", "error": None}]
+    response.close.assert_called_once_with()
+
+
+def test_webhook_failure_persists_sanitized_error_and_closes_response(monkeypatch, caplog) -> None:
+    from services.ingestion.data_freshness import _send_alert
+
+    monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://example.test/secret-token")
+    monkeypatch.delenv("ALERT_SMTP_HOST", raising=False)
+    monkeypatch.delenv("ALERT_EMAIL_TO", raising=False)
+    response = MagicMock()
+    response.raise_for_status.side_effect = RuntimeError("secret-token response body")
+    attempts = []
+    with patch("services.common.http.http.post", return_value=response):
+        channel = _send_alert("weather", "critical", 90, None, attempts=attempts)
+
+    assert channel == "none"
+    assert attempts == [{"channel": "webhook", "error": "RuntimeError"}]
+    assert "secret-token" not in caplog.text
+    response.close.assert_called_once_with()
+
+
+def test_email_failure_persists_only_error_type(monkeypatch) -> None:
+    from services.ingestion.data_freshness import _send_alert
+
+    monkeypatch.delenv("ALERT_WEBHOOK_URL", raising=False)
+    monkeypatch.setenv("ALERT_SMTP_HOST", "smtp.example.test")
+    monkeypatch.setenv("ALERT_EMAIL_TO", "private-recipient@example.test")
+    server = MagicMock()
+    server.__enter__.return_value.send_message.side_effect = OSError("private-recipient smtp-secret")
+    attempts = []
+    with patch("smtplib.SMTP", return_value=server):
+        channel = _send_alert("weather", "stale", 45, None, attempts=attempts)
+
+    assert channel == "none"
+    assert attempts == [{"channel": "email", "error": "OSError"}]
 
 
 def test_determine_status_fresh() -> None:

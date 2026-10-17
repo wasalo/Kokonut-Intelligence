@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### Freshness alert failure containment — 17 October 2026
+
+The legacy data-freshness alert sender now closes webhook responses after both
+successful and failed requests. It records only an HTTP status or exception
+class for webhook/SMTP failures, avoiding raw provider response, recipient, or
+endpoint text in logs and delivery-attempt records. Thirty-two focused freshness
+tests pass with Ruff, compilation, and diff checks; all provider calls were
+mocked and no database was used. Destination ownership and live delivery remain
+open. Checklist count is 449 complete / 20 open (469 total); no MAN-CAP
+acceptance changed
+([evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json)).
+
 ### CI #406 report-helper inventory refresh — 17 October 2026
 
 Hosted CI #406 on pushed commit `47dc1527` failed one fast-fail check because
