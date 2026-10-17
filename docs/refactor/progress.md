@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### Gnosis provider error containment — 17 October 2026
+
+The Gnosis indexer no longer stores raw block-range, RPC, or ClickHouse outbox
+exception text in its status row or scheduler-facing errors. It reports the
+exception class for general failures and fixed summaries for reorg/outbox
+failures; latest-block lookup errors are also sanitized. The existing
+checkpoint/rollback behavior is preserved. Thirteen focused mocked Gnosis
+recovery tests pass with Ruff and compilation. No RPC provider or database was
+contacted. This does not reconcile old receipts or implement removed-log/deep
+reorg rollback, and the Gnosis schedule remains gated
+([evidence](builds/2026-10-17-recovery/gnosis-error-sanitization.json)).
+
 ### EAS offset-page overlap guard — 17 October 2026
 
 The isolated EAS worker now rejects duplicate attestation IDs within an

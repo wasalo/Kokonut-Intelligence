@@ -6,7 +6,11 @@
 `4f5be68d42070e8cb9cd8be465d11d5b008832da` adds freshness-alert containment,
 current worker/runtime inventory refresh, fail-closed EAS timestamp bounds,
 and explicit EAS cursor replay to the prior candidate migration 433 rollout
-and EAS provider/cursor hardening. Security #132 passed; CI #408 is pending.
+and EAS provider/cursor hardening. Security #132 passed; CI #408 failed after
+5,715 tests passed, with two stale test-contract failures. Both fixes pass the
+43 tests in the affected climate-worker and oracle-infrastructure modules and
+are staged in the next local batch; hosted
+confirmation is still required ([CI evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
 CI #406 exposed stale generated line references in the report-generator
 helper-scope inventory; the artifact was regenerated and its exact local check
 passes. Earlier the ARM64 acceptance commit
@@ -60,9 +64,9 @@ fingerprint in memory, so the guard stays bounded; already persisted pages
 remain safe for idempotent retry. The repeated-page regression, all 36 EAS
 provider/worker/cursor tests, 130 scheduled-command contract tests, and 50
 worker/runtime inventory tests pass. Ruff, compilation, capability-matrix
-validation, and all generated inventory checks pass. The branch has three
-local commits ahead of the remote; CI #408 is still running on pushed commit
-`4f5be68d`, and this follow-up awaits the next batch push ([evidence](builds/2026-10-17-recovery/eas-repeated-page-guard.json)).
+validation, and all generated inventory checks pass. CI #408 later failed on
+two stale test contracts in the pushed baseline; both local test corrections
+pass and await the next batch push ([evidence](builds/2026-10-17-recovery/eas-repeated-page-guard.json)).
 **Local EAS offset-stability follow-up — 17 October 2026:** the worker now
 compares each in-scope page with the preceding full page and fails before
 persistence on any shared attestation ID. It also rejects duplicate IDs within
@@ -73,8 +77,18 @@ inventory suites pass 219 tests (39, 130, and 50 respectively), with Ruff,
 compilation, capability-matrix validation, and generated inventory checks
 passing. No provider or database was contacted. Gaps without adjacent overlap,
 non-adjacent cycles, earlier-than-cursor arrivals, and live endpoint behavior
-remain open. Four local commits are ahead of remote; CI #408 remains in
-progress on pushed commit `4f5be68d` ([evidence](builds/2026-10-17-recovery/eas-offset-overlap-guard.json)).
+remain open. CI #408 failed on two stale test contracts in pushed commit
+`4f5be68d`; their corrections pass the affected local tests and await hosted
+confirmation ([evidence](builds/2026-10-17-recovery/eas-offset-overlap-guard.json)).
+**Local Gnosis error-containment follow-up — 17 October 2026:** Gnosis RPC
+block-height and block-range exceptions no longer expose raw provider details
+in scheduler errors or `chain_indexer_status`; ClickHouse outbox errors retain
+their type but use a fixed message. The 13-test mocked Gnosis recovery suite,
+Ruff, and compilation pass. No provider or database was contacted. CI #408
+failed on two stale test contracts in pushed commit `4f5be68d`; both fixes are
+in the next local batch. Historical receipt reconciliation, removed-log/deep-reorg
+recovery, and live provider acceptance remain open
+([evidence](builds/2026-10-17-recovery/gnosis-error-sanitization.json)).
 **Code-first follow-up — 17 October 2026:** the legacy freshness-alert
 sender now closes webhook responses on success and failure, retains only an
 HTTP status or exception class for webhook/SMTP failures, and preserves the last

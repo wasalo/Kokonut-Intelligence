@@ -179,8 +179,8 @@ def test_gee_climate_has_modis_dataset() -> None:
 
 def test_gee_climate_has_smap_dataset() -> None:
     content = Path("services/ingestion/gee_climate.py").read_text()
-    assert "NASA/SMAP/SPL3SMP_E/005" in content
-    assert "sm_pm" in content
+    assert "NASA/SMAP/SPL3SMP_E/006" in content
+    assert "soil_moisture_pm" in content
 
 
 def test_gee_climate_has_sentinel1_dataset() -> None:

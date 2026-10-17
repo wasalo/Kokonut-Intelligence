@@ -77,15 +77,18 @@ class _ReceiptConnection:
 
 
 class _Eth:
-    def __init__(self, failures=None, logs=None):
+    def __init__(self, failures=None, logs=None, block_number_error=None):
         self.failures = failures or {}
         self.logs = logs or []
+        self.block_number_error = block_number_error
         self.calls = []
         self.block_number_reads = 0
 
     @property
     def block_number(self):
         self.block_number_reads += 1
+        if self.block_number_error:
+            raise self.block_number_error
         return 20
 
     def get_logs(self, query):
@@ -237,6 +240,21 @@ def test_gnosis_explicit_checkpoint_reviews_inherited_cursor_after_success(monke
     assert connection.closed
 
 
+def test_gnosis_latest_block_failure_does_not_expose_provider_details(monkeypatch):
+    connection = _Connection(last_synced=9)
+    secret = "rpc-secret-token"
+    web3 = _Web3(_Eth(block_number_error=OSError(f"request failed at https://rpc.example/{secret}")))
+    status_calls = []
+    _run_with(monkeypatch, connection, web3, status_calls, [])
+
+    with pytest.raises(RuntimeError, match=r"Gnosis latest block lookup failed \(OSError\)") as error:
+        gnosis_indexer.run()
+
+    assert secret not in str(error.value)
+    assert status_calls == []
+    assert connection.closed
+
+
 @pytest.mark.parametrize(
     ("from_block", "to_block", "message"),
     [
@@ -288,11 +306,12 @@ def test_gnosis_run_skips_previously_claimed_log_before_projecting(monkeypatch):
 
 def test_gnosis_failed_range_rolls_back_and_preserves_last_checkpoint(monkeypatch):
     connection = _Connection(last_synced=9)
-    web3 = _Web3(_Eth({16: OSError("provider failed")}))
+    secret = "rpc-secret-token"
+    web3 = _Web3(_Eth({16: OSError(f"request failed at https://rpc.example/{secret}")}))
     status_calls = []
     _run_with(monkeypatch, connection, web3, status_calls, [(10, 15), (16, 20)])
 
-    with pytest.raises(RuntimeError, match="Gnosis block range 16-20 failed"):
+    with pytest.raises(RuntimeError, match="Gnosis block range 16-20 failed") as error:
         gnosis_indexer.run()
 
     assert len(web3.eth.calls) == 2
@@ -302,18 +321,21 @@ def test_gnosis_failed_range_rolls_back_and_preserves_last_checkpoint(monkeypatc
     assert [call[0][2] for call in status_calls] == [15, 15]
     assert [call[0][3] for call in status_calls] == ["syncing", "error"]
     assert all(call[0][1] == gnosis_indexer.INDEXER_TYPE for call in status_calls)
-    assert "provider failed" in status_calls[-1][0][4]
+    assert status_calls[-1][0][4] == "OSError during Gnosis block processing"
+    assert secret not in str(error.value)
+    assert secret not in status_calls[-1][0][4]
     assert all(call[1]["db"] is connection for call in status_calls)
 
 
 def test_gnosis_outbox_failure_propagates_without_advancing_failed_range(monkeypatch):
     connection = _Connection(last_synced=9)
-    failure = OutboxEnqueueError("outbox unavailable")
+    secret = "rpc-secret-token"
+    failure = OutboxEnqueueError(f"outbox request failed https://clickhouse.example/{secret}")
     web3 = _Web3(_Eth({10: failure}))
     status_calls = []
     _run_with(monkeypatch, connection, web3, status_calls, [(10, 15)])
 
-    with pytest.raises(OutboxEnqueueError, match="outbox unavailable"):
+    with pytest.raises(OutboxEnqueueError, match="ClickHouse outbox enqueue failed") as error:
         gnosis_indexer.run()
 
     assert connection.commits == 1  # Error status only; failed range stays rolled back.
@@ -321,5 +343,8 @@ def test_gnosis_outbox_failure_propagates_without_advancing_failed_range(monkeyp
     assert connection.closed
     assert [call[0][2] for call in status_calls] == [9]
     assert [call[0][3] for call in status_calls] == ["error"]
+    assert status_calls[-1][0][4] == "ClickHouse outbox enqueue failed"
+    assert secret not in str(error.value)
+    assert secret not in status_calls[-1][0][4]
     assert all(call[0][1] == gnosis_indexer.INDEXER_TYPE for call in status_calls)
 

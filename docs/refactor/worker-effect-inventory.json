@@ -293,42 +293,42 @@
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 149,
+          "line": 158,
           "function": "services.ingestion.gnosis_indexer:load_abi",
           "category": "filesystem",
           "call": "open"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 155,
+          "line": 164,
           "function": "services.ingestion.gnosis_indexer:get_web3",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 162,
+          "line": 171,
           "function": "services.ingestion.gnosis_indexer:get_moloch_contract",
           "category": "evm_client_setup",
           "call": "w3.eth.contract"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 169,
+          "line": 178,
           "function": "services.ingestion.gnosis_indexer:get_treasury_contract",
           "category": "evm_client_setup",
           "call": "w3.eth.contract"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 174,
+          "line": 183,
           "function": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
           "category": "evm_rpc",
           "call": "w3.eth.get_block"
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 624,
+          "line": 638,
           "function": "services.ingestion.gnosis_indexer:run",
           "category": "evm_rpc",
           "call": "w3.eth.get_logs"

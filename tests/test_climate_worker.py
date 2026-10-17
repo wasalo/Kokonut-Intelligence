@@ -36,17 +36,18 @@ def test_climate_worker_secrets_are_forwarded_only_to_exact_module():
         isolated_database_credentials=True,
         environ=source,
     )
-    unrelated_env = worker_subprocess_environment(
-        isolated_database_credentials=True,
-        environ=source,
-    )
-
     assert climate_env["KOKONUT_CLIMATE_DATABASE_URL"] == "postgresql://climate-only"
     assert climate_env["KOKONUT_CLIMATE_WORKER_CREDENTIAL"] == "climate-credential"
     assert climate_env["KOKONUT_CLIMATE_GEE_SERVICE_ACCOUNT_KEY"] == "/run/secrets/climate.json"
     assert "KOKONUT_WEATHER_DATABASE_URL" not in climate_env
     assert "PG_PASSWORD" not in climate_env
-    assert not any(key.startswith("KOKONUT_CLIMATE_") for key in unrelated_env)
+    weather_env = worker_subprocess_environment(
+        allowed_worker_keys=("weather",),
+        isolated_database_credentials=True,
+        environ=source,
+    )
+    assert weather_env["KOKONUT_WEATHER_DATABASE_URL"] == "postgresql://weather-only"
+    assert not any(key.startswith("KOKONUT_CLIMATE_") for key in weather_env)
 
 
 def test_climate_jobs_require_one_location_and_use_signed_worker():

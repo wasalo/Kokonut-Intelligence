@@ -4319,9 +4319,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:104:8",
+      "id": "services/ingestion/gnosis_indexer.py:113:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 104,
+      "line": 113,
       "column": 8,
       "scope": "claim_gnosis_event_log",
       "method": "execute",
@@ -4336,9 +4336,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:118:8",
+      "id": "services/ingestion/gnosis_indexer.py:127:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 118,
+      "line": 127,
       "column": 8,
       "scope": "claim_gnosis_event_log",
       "method": "execute",
@@ -4353,9 +4353,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:181:8",
+      "id": "services/ingestion/gnosis_indexer.py:190:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 181,
+      "line": 190,
       "column": 8,
       "scope": "get_wallet_id",
       "method": "execute",
@@ -4370,9 +4370,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:192:8",
+      "id": "services/ingestion/gnosis_indexer.py:201:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 192,
+      "line": 201,
       "column": 8,
       "scope": "insert_governance_event",
       "method": "execute",
@@ -4387,9 +4387,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:224:8",
+      "id": "services/ingestion/gnosis_indexer.py:233:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 224,
+      "line": 233,
       "column": 8,
       "scope": "insert_treasury_event",
       "method": "execute",
@@ -4404,9 +4404,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:400:8",
+      "id": "services/ingestion/gnosis_indexer.py:409:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 400,
+      "line": 409,
       "column": 8,
       "scope": "get_location_from_wallet",
       "method": "execute",
@@ -4421,9 +4421,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:411:8",
+      "id": "services/ingestion/gnosis_indexer.py:420:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 411,
+      "line": 420,
       "column": 8,
       "scope": "insert_dlego_usage",
       "method": "execute",
@@ -4438,9 +4438,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:559:12",
+      "id": "services/ingestion/gnosis_indexer.py:568:12",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 559,
+      "line": 568,
       "column": 12,
       "scope": "run",
       "method": "execute",
@@ -4455,9 +4455,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:704:24",
+      "id": "services/ingestion/gnosis_indexer.py:718:24",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 704,
+      "line": 718,
       "column": 24,
       "scope": "run",
       "method": "execute",

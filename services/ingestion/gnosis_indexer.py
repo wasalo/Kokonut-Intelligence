@@ -70,6 +70,15 @@ class GnosisEventReorgError(RuntimeError):
     """A previously claimed event identity now points at a different block."""
 
 
+def _safe_indexer_failure(exc: Exception) -> str:
+    """Return an operator-useful error label without provider or query details."""
+    if isinstance(exc, GnosisEventReorgError):
+        return "Gnosis canonical event identity changed"
+    if isinstance(exc, OutboxEnqueueError):
+        return "ClickHouse outbox enqueue failed"
+    return f"{type(exc).__name__} during Gnosis block processing"
+
+
 def _normalize_hash(value, name: str) -> str:
     """Normalize a Web3 hash to lowercase 0x-prefixed 32-byte hex."""
     if hasattr(value, "hex"):
@@ -575,7 +584,12 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 "review the canonical checkpoint and pass --from-block explicitly"
             )
 
-        latest_block = to_block if to_block is not None else w3.eth.block_number
+        try:
+            latest_block = to_block if to_block is not None else w3.eth.block_number
+        except Exception as exc:
+            raise RuntimeError(
+                f"Gnosis latest block lookup failed ({type(exc).__name__})"
+            ) from None
         if from_block is not None:
             start_block = from_block
         elif last_synced is not None:
@@ -747,24 +761,30 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 last_committed_block = checkpoint
             except Exception as exc:
                 db.rollback()
+                safe_error = _safe_indexer_failure(exc)
                 try:
                     update_indexer_status(
                         chain,
                         INDEXER_TYPE,
                         last_committed_block,
                         "error",
-                        str(exc),
+                        safe_error,
                         db=db,
                     )
                     db.commit()
-                except Exception:
+                except Exception as status_exc:
                     db.rollback()
-                    logger.exception("Could not persist Gnosis indexer error status")
-                if isinstance(exc, (OutboxEnqueueError, GnosisEventReorgError)):
-                    raise
+                    logger.error(
+                        "Could not persist Gnosis indexer error status (%s)",
+                        type(status_exc).__name__,
+                    )
+                if isinstance(exc, GnosisEventReorgError):
+                    raise GnosisEventReorgError(safe_error) from None
+                if isinstance(exc, OutboxEnqueueError):
+                    raise OutboxEnqueueError(safe_error) from None
                 raise RuntimeError(
-                    f"Gnosis block range {batch_start}-{batch_end} failed"
-                ) from exc
+                    f"Gnosis block range {batch_start}-{batch_end} failed ({safe_error})"
+                ) from None
 
         final_checkpoint = max(last_committed_block, end_block)
         update_indexer_status(

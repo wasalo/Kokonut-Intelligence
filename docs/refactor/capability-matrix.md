@@ -193,6 +193,15 @@ backfilled; removed-log/deep reorg rollback remains unresolved. Migrations
 [receipt evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json);
 [cursor evidence](builds/2026-10-16-recovery/gnosis-indexer-cursor-disposable.json)).
 
+**17 October 2026 Gnosis error containment (CAP-023 / CAP-047):** RPC and
+ClickHouse outbox exception details are no longer persisted in the indexer
+status or returned through scheduler errors; fixed summaries preserve the
+failure category without logging endpoint URLs or secret-bearing provider
+text. The 13-test mocked Gnosis recovery suite passes. No provider or database
+was contacted. Reorg receipt reconciliation, live provider acceptance, and
+MAN-CAP-023/047 remain open
+([evidence](builds/2026-10-17-recovery/gnosis-error-sanitization.json)).
+
 **16 October 2026 forecast projection atomicity (CAP-040 / CAP-047):** the
 weather-forecast producer now rolls back a whole location batch to a PostgreSQL
 savepoint on any row failure, records ingestion audit state in the same
