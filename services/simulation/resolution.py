@@ -27,6 +27,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 
 import numpy as np
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger(__name__)
@@ -131,14 +132,19 @@ def monte_carlo(
             result = sim_callable(draw_conn, **params)
             if isinstance(result, dict) and "error" in result:
                 with lock:
-                    failures.append({"draw": draw_index, "error": result["error"]})
+                    failures.append({"draw": draw_index, "error": "simulation returned an error"})
                 return
             value = _get_metric(result, metric)
             with lock:
                 samples.append(value)
         except Exception as exc:  # isolated per-draw failure
             with lock:
-                failures.append({"draw": draw_index, "error": str(exc)})
+                failures.append(
+                    {
+                        "draw": draw_index,
+                        "error": f"simulation failed ({safe_exception_class(exc)})",
+                    }
+                )
         finally:
             if conn_factory is not None and draw_conn is not None:
                 try:
@@ -289,7 +295,10 @@ def clash_sweep(
                 results[idx] = outcome
         except Exception as exc:
             with lock:
-                results[idx] = {"label": scenario.get("label", str(idx)), "error": str(exc)}
+                results[idx] = {
+                    "label": scenario.get("label", str(idx)),
+                    "error": f"clash resolution failed ({safe_exception_class(exc)})",
+                }
 
     if max_workers > 1 and len(scenarios) > 1:
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:

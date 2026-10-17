@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Simulation and variogram error containment — 17 October 2026
+
+Monte Carlo failures and simulator-returned errors now use bounded summaries;
+clash sweeps preserve continuation and failure counts. Variogram model-fit
+results omit raw numerical-library diagnostics. Their 11-test focused suites
+pass with Ruff and compilation; checks used in-process synthetic inputs only
+([simulation](builds/2026-10-17-recovery/simulation-error-redaction.json);
+[variogram](builds/2026-10-17-recovery/variogram-error-redaction.json)).
+
 ### Capital-accounting error containment — 17 October 2026
 
 Capacity, diversion, capture-risk, and deferred-credit section failures now

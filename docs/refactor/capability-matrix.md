@@ -460,6 +460,18 @@ failures. Successful section output remains intact; focused mocked section
 failures and the existing accounting suite pass with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/capital-accounting-error-redaction.json)).
 
+**17 October 2026 advisory simulation error containment (CAP-011 / CAP-047):**
+Monte Carlo draw exceptions and simulator-returned error strings are bounded;
+tactical clash sweeps retain their failure count and scenario continuation.
+The 11-test simulation resolution suite passes with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/simulation-error-redaction.json)).
+
+**17 October 2026 variogram fit error containment (CAP-041 / CAP-047):**
+parametric model-fit failures return only a stable operation label and
+exception class. The 11-test variogram suite passes with Ruff and compilation
+on synthetic coordinates and an injected model failure
+([evidence](builds/2026-10-17-recovery/variogram-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

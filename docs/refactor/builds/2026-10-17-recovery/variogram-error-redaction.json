@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-17",
+  "scope": "Parametric variogram model fitting failures",
+  "behavior": {
+    "model_fit": "Model-library failure results retain a stable operation label and bounded exception class without returning raw diagnostics."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_variogram_error_redaction.py tests/test_geostatistics.py::TestVariogramAnalyzer -q",
+    "result": "11 passed",
+    "coverage": [
+      "injected model constructor failure omits raw diagnostics",
+      "existing empirical and parametric variogram behavior remains covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; synthetic coordinates and model mock"
+  },
+  "limitations": [
+    "This does not establish variogram fit quality against populated farm measurements."
+  ]
+}

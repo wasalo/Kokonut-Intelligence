@@ -53,8 +53,10 @@ def test_monte_carlo_seed_reproducible():
 
 
 def test_monte_carlo_isolates_failing_draw():
+    secret = "database password=private-token"
+
     def _boom(conn, **params):
-        raise RuntimeError("draw failed")
+        raise RuntimeError(secret)
 
     out = monte_carlo(
         _boom,
@@ -67,6 +69,28 @@ def test_monte_carlo_isolates_failing_draw():
     assert out["failures"] and len(out["failures"]) == 50
     assert out["samples"] == []
     assert out["mean"] is None
+    assert {failure["error"] for failure in out["failures"]} == {
+        "simulation failed (RuntimeError)"
+    }
+    assert secret not in repr(out)
+
+
+def test_monte_carlo_redacts_error_returned_by_simulator():
+    secret = "database password=private-token"
+    out = monte_carlo(
+        lambda *_args, **_kwargs: {"error": secret},
+        {},
+        sampler={"x": {"dist": "uniform", "low": 0.0, "high": 1.0}},
+        metric="y",
+        n=3,
+        seed=1,
+    )
+
+    assert out["failures"] == [
+        {"draw": index, "error": "simulation returned an error"}
+        for index in range(3)
+    ]
+    assert secret not in repr(out)
 
 
 def test_monte_carlo_per_draw_conn_factory():
@@ -127,6 +151,8 @@ def test_clash_sweep_concurrent_and_isolated():
     assert "A" in by_label and "B" in by_label
     assert by_label["A"]["attacker_win_p"] > by_label["B"]["attacker_win_p"]
     assert "error" in by_label["bad"]
+    assert by_label["bad"]["error"] == "clash resolution failed (ValueError)"
+    assert "not-a-number" not in repr(by_label["bad"])
 
 
 def test_distribution_spec_sample_sd():
