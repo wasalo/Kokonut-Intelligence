@@ -122,15 +122,36 @@ def main() -> int:
         ])
         created = True
         wait_ready(docker, container)
-        docker_sql(docker, container, FIXTURE_CONTEXT.read_text(encoding="utf-8"))
+        context_fixture_sql = FIXTURE_CONTEXT.read_text(encoding="utf-8")
+        optional_worker_role = (
+            "CREATE ROLE kokonut_worker_login LOGIN PASSWORD 'worker-execution-fixture'\n"
+            "    NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;\n"
+        )
+        if optional_worker_role not in context_fixture_sql:
+            raise RuntimeError("disposable context fixture no longer declares its optional worker login")
+        context_fixture_sql = context_fixture_sql.replace(optional_worker_role, "", 1)
+        docker_sql(docker, container, context_fixture_sql)
         docker_sql(docker, container, FIXTURE_FORECAST.read_text(encoding="utf-8"))
         docker_sql(docker, container, FIXTURE_WEATHER.read_text(encoding="utf-8"))
         for migration in (MIGRATION_CONTEXT, MIGRATION_PRIVATE_ACL, MIGRATION_FORECAST):
             docker_sql(docker, container, migration.read_text(encoding="utf-8"))
+        checks.append("migrations 405, 419, and 426 apply without a worker login role")
         migration_sql = MIGRATION_WEATHER.read_text(encoding="utf-8")
+        # The service login is deployment configuration, not a migration
+        # prerequisite. Reproduce a clean schema bootstrap where it is absent,
+        # then provision it and replay to verify the explicit revoke path.
         docker_sql(docker, container, migration_sql)
+        checks.append("migration 427 applies cleanly before the optional worker login exists")
+        docker_sql(
+            docker,
+            container,
+            "CREATE ROLE kokonut_worker_login LOGIN PASSWORD 'worker-execution-fixture' "
+            "NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;",
+        )
         docker_sql(docker, container, migration_sql)
-        checks.append("migrations 405, 419, 426, and 427 apply in order; migration 427 replays cleanly")
+        checks.append(
+            "migration 427 replays after optional login provisioning and maintains its revoke boundary"
+        )
 
         docker_sql(
             docker,

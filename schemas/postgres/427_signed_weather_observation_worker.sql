@@ -83,7 +83,20 @@ CREATE POLICY weather_observation_receipt_owner
 GRANT SELECT, INSERT ON kokonut_security.weather_observation_worker_receipt
     TO kokonut_weather_observation_owner;
 REVOKE ALL ON kokonut_security.weather_observation_worker_receipt
-    FROM PUBLIC, kokonut_worker_execution, kokonut_worker_login, kokonut_runtime;
+    FROM PUBLIC, kokonut_worker_execution, kokonut_runtime;
+DO $$
+BEGIN
+    -- The dedicated worker login is optional deployment configuration. A
+    -- clean schema bootstrap must not require it to exist before migrations;
+    -- if it has already been provisioned, remove any direct receipt access.
+    IF EXISTS (
+        SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_login'
+    ) THEN
+        EXECUTE 'REVOKE ALL ON kokonut_security.weather_observation_worker_receipt '
+            || 'FROM kokonut_worker_login';
+    END IF;
+END;
+$$;
 
 -- These narrowly scoped policies allow the no-login function owner to continue
 -- working if application tables later enable forced RLS. It is reachable only

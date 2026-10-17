@@ -6,7 +6,9 @@
     427
   ],
   "checks": [
-    "migrations 405, 419, 426, and 427 apply in order; migration 427 replays cleanly",
+    "migrations 405, 419, and 426 apply without a worker login role",
+    "migration 427 applies cleanly before the optional worker login exists",
+    "migration 427 replays after optional login provisioning and maintains its revoke boundary",
     "signed location function returns only granted active-location coordinates",
     "observation/audit/receipt commit once and an identical legacy projection intent is reused",
     "conflicting outbox identity aborts the whole weather/audit/receipt transaction",
@@ -22,5 +24,5 @@
   "provider_contacted": false,
   "candidate_application_rls_enabled": false,
   "fixture_forced_rls": true,
-  "completed_at_utc": "2026-10-17T04:08:29.625192+00:00"
+  "completed_at_utc": "2026-10-17T12:00:21.410715+00:00"
 }
