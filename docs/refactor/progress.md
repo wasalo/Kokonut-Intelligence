@@ -1,5 +1,25 @@
 # Kokonut Kernel implementation progress
 
+### Gnosis indexer range/checkpoint recovery — 16 October 2026
+
+The Moloch event indexer previously swallowed a failed block range, wrote its
+error status through another database connection, then could mark the requested
+end block healthy. It now commits each successful range's event writes,
+ClickHouse outbox intents, and `chain_indexer_status` checkpoint together.
+Failures roll back the active range, stop the run, preserve the last committed
+boundary, and persist an error status on the same connection. Typed outbox
+failures remain typed and propagate.
+
+The focused Gnosis recovery, outbox producer, and scheduled-command suite passes
+130 tests; Ruff and compilation pass. The new boundary checks mock RPC,
+PostgreSQL, and outbox calls. No provider, candidate/legacy database, or schedule
+was accessed. The existing `rpc` indexer type may share a cursor with the general
+RPC indexer; per-event replay idempotency, reorg behavior, and cursor ownership
+remain open, so the Gnosis schedule remains disabled and MAN-CAP-023/047 remain
+unaccepted ([tests](../../tests/test_gnosis_indexer_recovery.py);
+[evidence](builds/2026-10-16-recovery/gnosis-indexer-checkpoint-atomicity.json);
+[operation map](worker-operation-map.json)).
+
 ### Market-data provider failure and transaction boundaries — 16 October 2026
 
 World Bank Pink Sheet download failures no longer fall back silently to the

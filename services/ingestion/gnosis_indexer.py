@@ -28,7 +28,6 @@ from ..common.logging import get_logger
 from .base import (
     batch_ranges,
     get_db,
-    get_last_synced_block,
     hash_payload,
     now_utc,
     post_clickhouse_rows,
@@ -475,93 +474,155 @@ DECODE_MAP = {
 
 def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
     """Main ingestion entry point."""
-    db = get_db()
     w3 = get_web3()
+    latest_block = to_block if to_block is not None else w3.eth.block_number
+    db = get_db()
 
-    # Determine sync range
     chain = KOKONUT_DAO_CHAIN
-    last_synced = get_last_synced_block(chain, "rpc") if from_block is None else None
-    start_block = from_block or (last_synced + 1 if last_synced else None)
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                "SELECT last_synced_block FROM chain_indexer_status "
+                "WHERE chain = %s AND indexer_type = %s",
+                (chain, "rpc"),
+            )
+            row = cur.fetchone()
+        last_synced = row[0] if row else None
 
-    if start_block is None:
-        # First run — start from a recent block (Gnosis is ~38M blocks as of 2026)
-        start_block = max(0, w3.eth.block_number - 10000)
-        logger.info("First run — starting from block %d", start_block)
+        if from_block is not None:
+            start_block = from_block
+        elif last_synced is not None:
+            start_block = last_synced + 1
+        else:
+            # First run — start from a recent block (Gnosis is ~38M blocks as of 2026).
+            start_block = max(0, latest_block - 10000)
+            logger.info("First run — starting from block %d", start_block)
 
-    end_block = to_block or w3.eth.block_number
-    if start_block > end_block:
-        logger.info("Already synced to block %d", end_block)
-        db.close()
-        return
+        end_block = latest_block
+        last_committed_block = (
+            last_synced if last_synced is not None else start_block - 1
+        )
+        if start_block > end_block:
+            update_indexer_status(
+                chain, "rpc", last_committed_block, "healthy", db=db
+            )
+            db.commit()
+            logger.info("Already synced to block %d", end_block)
+            return
 
-    logger.info("Indexing blocks %d → %d (%d blocks)", start_block, end_block, end_block - start_block + 1)
+        logger.info(
+            "Indexing blocks %d → %d (%d blocks)",
+            start_block,
+            end_block,
+            end_block - start_block + 1,
+        )
 
-    # Get contract instances
-    moloch = get_moloch_contract(w3)
-    treasury = get_treasury_contract(w3)
+        moloch = get_moloch_contract(w3)
+        get_treasury_contract(w3)  # Validate that the configured treasury ABI/address is usable.
+        topic_list = list(EVENT_TOPICS.keys())
+        total_events = 0
 
-    # Build topic filter for all Moloch events
-    topic_list = list(EVENT_TOPICS.keys())
+        for batch_start, batch_end in batch_ranges(start_block, end_block, BLOCK_BATCH):
+            logger.info("  Scanning blocks %d → %d...", batch_start, batch_end)
 
-    total_events = 0
+            try:
+                logs = w3.eth.get_logs({
+                    "fromBlock": batch_start,
+                    "toBlock": batch_end,
+                    "address": Web3.to_checksum_address(
+                        KOKONUT_MOLOCH_ADDRESSES["token_manager"]
+                    ),
+                    "topics": [topic_list],
+                })
 
-    for batch_start, batch_end in batch_ranges(start_block, end_block, BLOCK_BATCH):
-        logger.info("  Scanning blocks %d → %d...", batch_start, batch_end)
+                for log_entry in logs:
+                    topic_hash = log_entry["topics"][0].hex()
+                    event_name = EVENT_TOPICS.get(topic_hash)
+                    if not event_name:
+                        continue
 
-        try:
-            # Query logs for Moloch contract events
-            logs = w3.eth.get_logs({
-                "fromBlock": batch_start,
-                "toBlock": batch_end,
-                "address": Web3.to_checksum_address(KOKONUT_MOLOCH_ADDRESSES["token_manager"]),
-                "topics": [topic_list],
-            })
+                    try:
+                        decoded = moloch.events[event_name]().process_log(log_entry)
+                        args = dict(decoded["args"])
+                    except Exception:
+                        # Fallback: raw topic decoding.
+                        args = {}
 
-            for log_entry in logs:
-                topic_hash = log_entry["topics"][0].hex()
-                event_name = EVENT_TOPICS.get(topic_hash)
+                    tx_hash = log_entry["transactionHash"].hex()
+                    block_number = log_entry["blockNumber"]
+                    block_timestamp = fetch_block_timestamp(w3, block_number)
+                    decoder = DECODE_MAP.get(event_name)
+                    if not decoder:
+                        continue
 
-                if not event_name:
-                    continue
+                    if event_name in ("SubmitProposal", "VoteProposal"):
+                        record = decoder(
+                            args, tx_hash, block_number, block_timestamp, w3
+                        )
+                    elif event_name == "Withdraw":
+                        record = decoder(args, tx_hash, block_number, block_timestamp)
+                        insert_treasury_event(db, record)
+                        insert_activity_clickhouse(record, db)
+                        total_events += 1
 
-                # Decode event args
-                try:
-                    event_abi = moloch.events[event_name]().abi
-                    decoded = moloch.events[event_name]().process_log(log_entry)
-                    args = dict(decoded["args"])
-                except Exception:
-                    # Fallback: raw topic decoding
-                    args = {}
+                        dlego_location = None
+                        if record.get("wallet_id"):
+                            dlego_location = get_location_from_wallet(
+                                db, record["wallet_id"]
+                            )
+                        dlego_record = {
+                            "wallet_id": record.get("wallet_id"),
+                            "protocol_id": record.get("protocol_id"),
+                            "location_id": dlego_location,
+                            "usage_date": block_timestamp.date(),
+                            "action_type": "withdraw",
+                            "amount": record.get("amount"),
+                            "token": record.get("token"),
+                            "tx_hash": tx_hash,
+                            "chain": KOKONUT_DAO_CHAIN,
+                            "block_number": block_number,
+                            "verified": True,
+                        }
+                        insert_dlego_usage(db, dlego_record)
+                        insert_dlego_clickhouse(dlego_record, db)
+                        continue
+                    else:
+                        record = decoder(args, tx_hash, block_number, block_timestamp)
 
-                tx_hash = log_entry["transactionHash"].hex()
-                block_number = log_entry["blockNumber"]
-                block_timestamp = fetch_block_timestamp(w3, block_number)
+                    proposer = (
+                        record.get("metadata", {}).get("proposer", "")
+                        or record.get("metadata", {}).get("member_address", "")
+                        or record.get("metadata", {}).get("voter", "")
+                    )
+                    if proposer:
+                        wallet_id = get_wallet_id(db, proposer, chain)
+                        if wallet_id:
+                            record["wallet_id"] = wallet_id
 
-                # Decode based on event type
-                decoder = DECODE_MAP.get(event_name)
-                if not decoder:
-                    continue
+                    with db.cursor() as cur:
+                        cur.execute(
+                            "SELECT id FROM protocol "
+                            "WHERE slug = 'kokonut-treasury' LIMIT 1"
+                        )
+                        row = cur.fetchone()
+                        if row:
+                            record["protocol_id"] = str(row[0])
 
-                if event_name in ("SubmitProposal", "VoteProposal"):
-                    record = decoder(args, tx_hash, block_number, block_timestamp, w3)
-                elif event_name == "Withdraw":
-                    record = decoder(args, tx_hash, block_number, block_timestamp)
-                    # Withdraw goes to treasury_event
-                    insert_treasury_event(db, record)
+                    insert_governance_event(db, record)
                     insert_activity_clickhouse(record, db)
                     total_events += 1
 
-                    # Also insert as digital_lego_usage
                     dlego_location = None
                     if record.get("wallet_id"):
-                        dlego_location = get_location_from_wallet(db, record["wallet_id"])
-
+                        dlego_location = get_location_from_wallet(
+                            db, record["wallet_id"]
+                        )
                     dlego_record = {
                         "wallet_id": record.get("wallet_id"),
                         "protocol_id": record.get("protocol_id"),
                         "location_id": dlego_location,
                         "usage_date": block_timestamp.date(),
-                        "action_type": "withdraw",
+                        "action_type": event_to_action_type(event_name),
                         "amount": record.get("amount"),
                         "token": record.get("token"),
                         "tx_hash": tx_hash,
@@ -571,67 +632,48 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                     }
                     insert_dlego_usage(db, dlego_record)
                     insert_dlego_clickhouse(dlego_record, db)
-                    continue
-                else:
-                    record = decoder(args, tx_hash, block_number, block_timestamp)
 
-                # Resolve wallet_id from metadata
-                proposer = record.get("metadata", {}).get("proposer", "") or \
-                           record.get("metadata", {}).get("member_address", "") or \
-                           record.get("metadata", {}).get("voter", "")
-                if proposer:
-                    wallet_id = get_wallet_id(db, proposer, chain)
-                    if wallet_id:
-                        record["wallet_id"] = wallet_id
-
-                # Resolve protocol_id (Kokonut Treasury)
-                with db.cursor() as cur:
-                    cur.execute(
-                        "SELECT id FROM protocol WHERE slug = 'kokonut-treasury' LIMIT 1"
+                checkpoint = max(last_committed_block, batch_end)
+                update_indexer_status(
+                    chain, "rpc", checkpoint, "syncing", db=db
+                )
+                db.commit()
+                last_committed_block = checkpoint
+            except Exception as exc:
+                db.rollback()
+                try:
+                    update_indexer_status(
+                        chain,
+                        "rpc",
+                        last_committed_block,
+                        "error",
+                        str(exc),
+                        db=db,
                     )
-                    row = cur.fetchone()
-                    if row:
-                        record["protocol_id"] = str(row[0])
+                    db.commit()
+                except Exception:
+                    db.rollback()
+                    logger.exception("Could not persist Gnosis indexer error status")
+                if isinstance(exc, OutboxEnqueueError):
+                    raise
+                raise RuntimeError(
+                    f"Gnosis block range {batch_start}-{batch_end} failed"
+                ) from exc
 
-                insert_governance_event(db, record)
-                insert_activity_clickhouse(record, db)
-                total_events += 1
+        final_checkpoint = max(last_committed_block, end_block)
+        update_indexer_status(
+            chain, "rpc", final_checkpoint, "healthy", db=db
+        )
+        db.commit()
+    finally:
+        db.close()
 
-                # Also insert as digital_lego_usage (protocol interaction)
-                dlego_location = None
-                if record.get("wallet_id"):
-                    dlego_location = get_location_from_wallet(db, record["wallet_id"])
-
-                dlego_record = {
-                    "wallet_id": record.get("wallet_id"),
-                    "protocol_id": record.get("protocol_id"),
-                    "location_id": dlego_location,
-                    "usage_date": block_timestamp.date(),
-                    "action_type": event_to_action_type(event_name),
-                    "amount": record.get("amount"),
-                    "token": record.get("token"),
-                    "tx_hash": tx_hash,
-                    "chain": KOKONUT_DAO_CHAIN,
-                    "block_number": block_number,
-                    "verified": True,
-                }
-                insert_dlego_usage(db, dlego_record)
-                insert_dlego_clickhouse(dlego_record, db)
-
-        except OutboxEnqueueError:
-            db.rollback()
-            db.close()
-            raise
-        except Exception as e:
-            logger.error("  Block range %d-%d failed: %s", batch_start, batch_end, e)
-            update_indexer_status(chain, "rpc", batch_start, "error", str(e))
-
-    # Update indexer status
-    update_indexer_status(chain, "rpc", end_block, "healthy")
-    db.commit()
-    db.close()
-
-    logger.info("Done: %d events indexed from blocks %d → %d", total_events, start_block, end_block)
+    logger.info(
+        "Done: %d events indexed from blocks %d → %d",
+        total_events,
+        start_block,
+        end_block,
+    )
 
 
 if __name__ == "__main__":

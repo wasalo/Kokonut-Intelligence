@@ -4,9 +4,9 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 816,
-    "execution_sites": 3906,
+    "execution_sites": 3907,
     "worker_operation_roots": 23,
-    "sites_with_worker_operation_refs": 297,
+    "sites_with_worker_operation_refs": 298,
     "sites_without_worker_operation_refs": 3609,
     "statement_kinds": {
       "CREATE": 1,
@@ -15,14 +15,14 @@
       "RELEASE": 6,
       "ROLLBACK": 5,
       "SAVEPOINT": 4,
-      "SELECT": 2488,
+      "SELECT": 2489,
       "SET": 68,
       "UNKNOWN": 145,
       "UPDATE": 442,
       "WITH": 24
     },
     "statement_groups": {
-      "read_candidate": 2488,
+      "read_candidate": 2489,
       "schema_change": 1,
       "transaction_or_session": 83,
       "unknown_requires_manual_review": 145,
@@ -33,7 +33,7 @@
       "composed": 5,
       "composed_or_variable": 216,
       "fstring": 271,
-      "literal": 3414
+      "literal": 3415
     },
     "relation_candidates": 1042,
     "sites_without_relation_candidates": 401,
@@ -452,9 +452,9 @@
     },
     "ingestion": {
       "source_files": 56,
-      "execution_sites": 203,
+      "execution_sites": 204,
       "statement_groups": {
-        "read_candidate": 106,
+        "read_candidate": 107,
         "transaction_or_session": 15,
         "unknown_requires_manual_review": 2,
         "with_requires_manual_review": 3,
@@ -463,7 +463,7 @@
       "candidate_relation_names": 59,
       "sites_without_relation_candidates": 24,
       "non_literal_sites": 17,
-      "sites_with_worker_operation_refs": 129
+      "sites_with_worker_operation_refs": 130
     },
     "innovation": {
       "source_files": 6,
@@ -929,7 +929,7 @@
     "causal_loop": {"execution_site_count": 3,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/systems/causal_loops.py"]},
     "certification_type": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/traceability.py"]},
     "certification_verify": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/traceability.py"]},
-    "chain_indexer_status": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/ingestion/base.py","services/ingestion/status.py","services/ingestion/subgraph_indexer.py"]},
+    "chain_indexer_status": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/ingestion/base.py","services/ingestion/gnosis_indexer.py","services/ingestion/status.py","services/ingestion/subgraph_indexer.py"]},
     "chain_of_custody": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/traceability.py"]},
     "change_point": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/trends/change_points.py"]},
     "channel_config": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/channel_orchestration.py"]},
@@ -4699,12 +4699,13 @@
     {"id": "services/ingestion/gis_import.py:203:8","source": "services/ingestion/gis_import.py","line": 203,"column": 8,"scope": "resolve_target_record","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/ingestion/gis_import.py:219:16","source": "services/ingestion/gis_import.py","line": 219,"column": 16,"scope": "import_record","method": "execute","expression_kind": "fstring","statement_kind": "UPDATE","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/ingestion/gis_import.py:232:16","source": "services/ingestion/gis_import.py","line": 232,"column": 16,"scope": "import_record","method": "execute","expression_kind": "fstring","statement_kind": "UPDATE","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "write_candidate"},
-    {"id": "services/ingestion/gnosis_indexer.py:113:8","source": "services/ingestion/gnosis_indexer.py","line": 113,"column": 8,"scope": "get_wallet_id","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["wallet_profile"],"static_sql_sha256": "a1f1dae71b4799e8750d5c708fe4177d175665d002f5159a25613fcee59fa501","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "read_candidate"},
-    {"id": "services/ingestion/gnosis_indexer.py:124:8","source": "services/ingestion/gnosis_indexer.py","line": 124,"column": 8,"scope": "insert_governance_event","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["governance_event"],"static_sql_sha256": "5eab14efaa7937ca2c69e78f1a267b1ebba3740f0646257f3a5900db63185bc0","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "write_candidate"},
-    {"id": "services/ingestion/gnosis_indexer.py:156:8","source": "services/ingestion/gnosis_indexer.py","line": 156,"column": 8,"scope": "insert_treasury_event","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["treasury_event"],"static_sql_sha256": "7218ad267a4d30bdd65ce7e7a656fd382b1bff8a8441304ce70704e9c2088222","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "write_candidate"},
-    {"id": "services/ingestion/gnosis_indexer.py:332:8","source": "services/ingestion/gnosis_indexer.py","line": 332,"column": 8,"scope": "get_location_from_wallet","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["wallet_profile"],"static_sql_sha256": "fe2475ac26c26a25149aa5922eabd518b7518166cbfb1810492901c508990032","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "read_candidate"},
-    {"id": "services/ingestion/gnosis_indexer.py:343:8","source": "services/ingestion/gnosis_indexer.py","line": 343,"column": 8,"scope": "insert_dlego_usage","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["digital_lego_usage"],"static_sql_sha256": "dc999a7356a32f277740e01b1fdbefccf7f5a6149ebeb866232c4bd5b47a9a63","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "write_candidate"},
-    {"id": "services/ingestion/gnosis_indexer.py:589:20","source": "services/ingestion/gnosis_indexer.py","line": 589,"column": 20,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["protocol"],"static_sql_sha256": "ec1c204480844c6f019496881dcd57f982f9dbcafb20e2a30c475acc729c5c0c","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "read_candidate"},
+    {"id": "services/ingestion/gnosis_indexer.py:112:8","source": "services/ingestion/gnosis_indexer.py","line": 112,"column": 8,"scope": "get_wallet_id","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["wallet_profile"],"static_sql_sha256": "a1f1dae71b4799e8750d5c708fe4177d175665d002f5159a25613fcee59fa501","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "read_candidate"},
+    {"id": "services/ingestion/gnosis_indexer.py:123:8","source": "services/ingestion/gnosis_indexer.py","line": 123,"column": 8,"scope": "insert_governance_event","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["governance_event"],"static_sql_sha256": "5eab14efaa7937ca2c69e78f1a267b1ebba3740f0646257f3a5900db63185bc0","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "write_candidate"},
+    {"id": "services/ingestion/gnosis_indexer.py:155:8","source": "services/ingestion/gnosis_indexer.py","line": 155,"column": 8,"scope": "insert_treasury_event","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["treasury_event"],"static_sql_sha256": "7218ad267a4d30bdd65ce7e7a656fd382b1bff8a8441304ce70704e9c2088222","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "write_candidate"},
+    {"id": "services/ingestion/gnosis_indexer.py:331:8","source": "services/ingestion/gnosis_indexer.py","line": 331,"column": 8,"scope": "get_location_from_wallet","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["wallet_profile"],"static_sql_sha256": "fe2475ac26c26a25149aa5922eabd518b7518166cbfb1810492901c508990032","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "read_candidate"},
+    {"id": "services/ingestion/gnosis_indexer.py:342:8","source": "services/ingestion/gnosis_indexer.py","line": 342,"column": 8,"scope": "insert_dlego_usage","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["digital_lego_usage"],"static_sql_sha256": "dc999a7356a32f277740e01b1fdbefccf7f5a6149ebeb866232c4bd5b47a9a63","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "write_candidate"},
+    {"id": "services/ingestion/gnosis_indexer.py:484:12","source": "services/ingestion/gnosis_indexer.py","line": 484,"column": 12,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["chain_indexer_status"],"static_sql_sha256": "16344b080c79f42de03436dedbe39a5c4e4418b98b15eb579e427b89639179df","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "read_candidate"},
+    {"id": "services/ingestion/gnosis_indexer.py:603:24","source": "services/ingestion/gnosis_indexer.py","line": 603,"column": 24,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["protocol"],"static_sql_sha256": "ec1c204480844c6f019496881dcd57f982f9dbcafb20e2a30c475acc729c5c0c","operation_refs": ["scheduled_module:services.ingestion.gnosis_indexer"],"statement_group": "read_candidate"},
     {"id": "services/ingestion/harvest_manager.py:112:13","source": "services/ingestion/harvest_manager.py","line": 112,"column": 13,"scope": "list_harvest_logs","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": ["harvest_ingestion_log"],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/ingestion/harvest_manager.py:121:13","source": "services/ingestion/harvest_manager.py","line": 121,"column": 13,"scope": "_create_log","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["harvest_ingestion_log"],"static_sql_sha256": "b6988b89c24ec0fc5cb0563d07b6e9a9120a890d6ff2d196654033a681d870b7","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/ingestion/harvest_manager.py:133:4","source": "services/ingestion/harvest_manager.py","line": 133,"column": 4,"scope": "_complete_log","method": "execute","expression_kind": "literal","statement_kind": "UPDATE","candidate_relations": ["harvest_ingestion_log"],"static_sql_sha256": "e46c8537426ed1d019f3ec6a9d42a421102d78bf52babf555ae897bbde9d7287","operation_refs": [],"statement_group": "write_candidate"},

@@ -178,7 +178,7 @@
         "Gnosis JSON-RPC provider"
       ],
       "idempotency": "digital_lego_usage uses conflict suppression; governance_event and treasury_event inserts shown in the indexer do not declare a conflict clause. End-to-end replay idempotency is therefore not established.",
-      "retry_boundary": "The indexer is global and checkpointed, but reorg/duplicate behavior must be verified per event table before automatic replay.",
+      "retry_boundary": "Each scanned block range and its chain_indexer_status checkpoint now commit on the same PostgreSQL connection; a failed range rolls back and stops the run, preserving the last committed boundary. The existing indexer_type=rpc cursor is retained for compatibility but may be shared with the general RPC indexer. Per-event table replay idempotency, reorg handling, and cursor ownership must be resolved before automatic activation.",
       "sources": [
         "services/ingestion/gnosis_indexer.py",
         "services/ingestion/base.py",

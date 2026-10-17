@@ -2,8 +2,10 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed batch:** EAS cursor rebaseline (`272fcde`) and market-data recovery (`46d3ef3`), followed by the execution-plan status correction. CI/Security status for the newest PR #68 head has not yet been checked.
-**Current pushed batch:** Commit `46d3ef3` contains the EAS cursor rebaseline and the market-data failure/atomicity work. For EAS, migration 422 resets inherited recipient cursors to zero, UID conflicts make the recovery scan idempotent, and revisiting the saved timestamp second catches same-second peers; 188 focused tests and disposable PostgreSQL 16 evidence pass. For market data, World Bank failures and unusable payloads fail before PostgreSQL opens, explicit seed rows use a separate source key, and price rows plus accurate ingestion audit commit atomically; 16 focused mocked checks pass with Ruff and compilation. No live provider, candidate, legacy database, or schedule was accessed. The checklist is 424 checked / 21 open (445 total); the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–422 have not been rolled out. Live provider parity/correction policy, earlier-time EAS pagination/late-arrival reconciliation, and production acceptance remain open.
+**Latest pushed batch:** EAS cursor rebaseline (`272fcde`) and market-data recovery (`46d3ef3`), followed by execution-plan status corrections. Latest observed CI #378 is pending and Security #102 is queued on pushed head `9251db8`.
+**Current pushed batch:** Commit `46d3ef3` contains the EAS cursor rebaseline and market-data failure/atomicity work. For EAS, migration 422 resets inherited recipient cursors to zero, UID conflicts make the recovery scan idempotent, and revisiting the saved timestamp second catches same-second peers; 188 focused tests and disposable PostgreSQL 16 evidence pass. For market data, World Bank failures and unusable payloads fail before PostgreSQL opens, explicit seed rows use a separate source key, and price rows plus accurate ingestion audit commit atomically; 16 focused mocked checks pass with Ruff and compilation. No live provider, candidate, legacy database, or schedule was accessed. At push time the checklist was 424 checked / 21 open (445 total); the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–422 have not been rolled out. Live provider parity/correction policy, earlier-time EAS pagination/late-arrival reconciliation, and production acceptance remain open.
+
+**Current local batch:** Gnosis Moloch indexing now commits each successful block range and its checkpoint together. Failed ranges roll back, persist an error at the last committed boundary, and stop instead of marking the requested end healthy; outbox errors remain typed. The Gnosis/outbox/command suite passes 130 tests with mocked boundaries, Ruff, and compilation. No provider, database, or schedule was accessed. The current working checklist is 425 checked / 21 open (446 total); the `rpc` cursor namespace still may be shared with the general RPC indexer, while event replay idempotency and reorg behavior remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -22,6 +24,12 @@ regressions; 158 focused tests pass across outbox, weather, remote-sensing, and
 attestation contracts. This does not close live provider/PostgreSQL recovery
 acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
 
+- The Gnosis indexer now commits each block range and its cursor in one
+  transaction. A failed range rolls back, preserves the last committed
+  boundary, and stops; the typed outbox error remains propagated. The 130-test
+  Gnosis/outbox/command set, Ruff, and compilation pass with provider/database
+  calls mocked. Shared cursor ownership and per-event reorg/replay safety remain
+  open ([evidence](builds/2026-10-16-recovery/gnosis-indexer-checkpoint-atomicity.json)).
 - The market-data importer now propagates World Bank failures instead of
   treating bundled samples as provider success. Live and explicit-seed source
   keys are separate; provider payload validation happens before the database
@@ -54,7 +62,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **424 checked and 21 open items (445 total)**,
+- The execution checklist has **425 checked and 21 open items (446 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,

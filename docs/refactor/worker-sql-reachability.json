@@ -4,11 +4,11 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 23,
-    "sql_execution_sites": 297,
+    "sql_execution_sites": 298,
     "statically_reachable_site_memberships": 272,
     "unique_sites_with_static_operation_path": 226,
-    "sites_without_static_function_match": 71,
-    "unmatched_functions_absent_from_all_worker_graphs": 71,
+    "sites_without_static_function_match": 72,
+    "unmatched_functions_absent_from_all_worker_graphs": 72,
     "sites_reached_by_multiple_operations": 13
   },
   "operations": [
@@ -224,14 +224,14 @@
       "statically_reachable_sql_site_count": 9,
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:207:12",
-        "services/ingestion/base.py:239:12",
         "services/ingestion/clickhouse_outbox.py:53:12",
-        "services/ingestion/gnosis_indexer.py:113:8",
-        "services/ingestion/gnosis_indexer.py:124:8",
-        "services/ingestion/gnosis_indexer.py:156:8",
-        "services/ingestion/gnosis_indexer.py:332:8",
-        "services/ingestion/gnosis_indexer.py:343:8",
-        "services/ingestion/gnosis_indexer.py:589:20"
+        "services/ingestion/gnosis_indexer.py:112:8",
+        "services/ingestion/gnosis_indexer.py:123:8",
+        "services/ingestion/gnosis_indexer.py:155:8",
+        "services/ingestion/gnosis_indexer.py:331:8",
+        "services/ingestion/gnosis_indexer.py:342:8",
+        "services/ingestion/gnosis_indexer.py:484:12",
+        "services/ingestion/gnosis_indexer.py:603:24"
       ]
     },
     {
@@ -4262,12 +4262,10 @@
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.metrics"
       ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.ingestion.gnosis_indexer"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
+      "statically_reachable_operations": [],
+      "static_link_status": "no_static_function_match",
+      "function_in_any_worker_graph": false,
+      "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
       "id": "services/ingestion/clickhouse_outbox.py:53:12",
@@ -5352,9 +5350,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:113:8",
+      "id": "services/ingestion/gnosis_indexer.py:112:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 113,
+      "line": 112,
       "scope": "get_wallet_id",
       "method": "execute",
       "expression_kind": "literal",
@@ -5373,9 +5371,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:124:8",
+      "id": "services/ingestion/gnosis_indexer.py:123:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 124,
+      "line": 123,
       "scope": "insert_governance_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5394,9 +5392,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:156:8",
+      "id": "services/ingestion/gnosis_indexer.py:155:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 156,
+      "line": 155,
       "scope": "insert_treasury_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -5415,9 +5413,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:332:8",
+      "id": "services/ingestion/gnosis_indexer.py:331:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 332,
+      "line": 331,
       "scope": "get_location_from_wallet",
       "method": "execute",
       "expression_kind": "literal",
@@ -5436,9 +5434,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:343:8",
+      "id": "services/ingestion/gnosis_indexer.py:342:8",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 343,
+      "line": 342,
       "scope": "insert_dlego_usage",
       "method": "execute",
       "expression_kind": "literal",
@@ -5457,9 +5455,30 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:589:20",
+      "id": "services/ingestion/gnosis_indexer.py:484:12",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 589,
+      "line": 484,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "chain_indexer_status"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.gnosis_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/gnosis_indexer.py:603:24",
+      "source": "services/ingestion/gnosis_indexer.py",
+      "line": 603,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
