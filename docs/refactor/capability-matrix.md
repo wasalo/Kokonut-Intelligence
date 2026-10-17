@@ -553,13 +553,18 @@ database-write failure logs retain only the exception class. Four
 operator-listing regressions pass within 29 outbox/CLI tests; Impact Office and
 sandbox reads pass within the combined 34-test suite; agent-audit checks report
 11 passed and nine database-dependent tests skipped. Ruff and compilation
-pass, with fake connections only. This source-level display change does not
+pass, with fake connections only. Gateway audit database-write and local
+journal failures now also log only exception classes, retaining the journal
+fallback; both mocked regressions pass within nine Gateway audit checks with
+Ruff, compilation, and targeted Gitleaks. No database or journal was accessed.
+This source-level display change does not
 substitute for live worker retry or dead-letter acceptance
 ([worker history](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json);
 [ClickHouse outbox](builds/2026-10-17-recovery/clickhouse-outbox-history-error-redaction.json);
 [Impact Office](builds/2026-10-17-recovery/impact-office-history-error-redaction.json);
 [sandbox](builds/2026-10-17-recovery/sandbox-history-error-redaction.json);
-[agent action audit](builds/2026-10-17-recovery/agent-action-log-error-redaction.json)).
+[agent action audit](builds/2026-10-17-recovery/agent-action-log-error-redaction.json);
+[Gateway audit fallback](builds/2026-10-17-recovery/gateway-audit-error-log-redaction.json)).
 
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending

@@ -10,6 +10,16 @@ the isolated notification feature remains off until its encrypted password and
 DSN are provisioned and activation is reviewed. No MAN-CAP status changed
 ([rollout evidence](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
 
+### Gateway audit failure-log containment — 17 October 2026
+
+Gateway audit database-write and local-journal failure logs now include only
+the exception class. Database failures still enqueue the event to the bounded
+local journal; journal failures remain visible without raw exception text. The
+two mocked failure branches pass within nine Gateway audit checks with Ruff,
+compilation, and targeted Gitleaks. No database, filesystem journal, or live
+request was accessed
+([evidence](builds/2026-10-17-recovery/gateway-audit-error-log-redaction.json)).
+
 ### Durable worker history output containment — 17 October 2026
 
 Scheduler run history, event dead-letter listings, MQTT delivery recovery, and

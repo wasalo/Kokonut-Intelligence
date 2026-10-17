@@ -87,6 +87,51 @@ def test_gateway_audit_does_not_reuse_closed_owned_connection():
     assert conn.close.call_count == 2
 
 
+def test_gateway_audit_database_failure_log_omits_exception_details():
+    diagnostic = "synthetic database credential diagnostic"
+    audit = GatewayAudit(conn=MagicMock())
+    spool = MagicMock()
+    spool.path.exists.return_value = False
+    spool.pending.return_value = []
+    spool.enqueue.return_value = 1
+    spool.alert_threshold = 100
+    spool.max_pending = 100
+    audit._get_spool = lambda: spool
+    audit._write_record = MagicMock(side_effect=RuntimeError(diagnostic))
+    audit._report_capture_state = MagicMock()
+
+    with patch("services.gateway.audit.logger.error") as log_error:
+        audit.log(caller="caller", path="/api/write", method="POST", status="allowed")
+
+    log_error.assert_called_once_with("Gateway audit database write failed (%s)", "RuntimeError")
+    assert diagnostic not in str(log_error.call_args)
+    spool.enqueue.assert_called_once()
+
+
+def test_gateway_audit_journal_failure_log_omits_exception_details():
+    diagnostic = "synthetic local journal path diagnostic"
+    audit = GatewayAudit(conn=MagicMock())
+    spool = MagicMock()
+    spool.path.exists.return_value = False
+    spool.pending.return_value = []
+    spool.enqueue.side_effect = OSError(diagnostic)
+    audit._get_spool = lambda: spool
+    audit._write_record = MagicMock(side_effect=RuntimeError("database unavailable"))
+    audit._report_capture_state = MagicMock()
+
+    with patch("services.gateway.audit.logger.error") as log_error:
+        audit.log(caller="caller", path="/api/write", method="POST", status="allowed")
+
+    assert log_error.call_count == 2
+    assert log_error.call_args_list[0].args == (
+        "Gateway audit database write failed (%s)", "RuntimeError",
+    )
+    assert log_error.call_args_list[1].args == (
+        "Gateway audit local journal could not retain an event (%s)", "OSError",
+    )
+    assert diagnostic not in str(log_error.call_args_list)
+
+
 def test_request_identity_does_not_return_raw_credentials():
     request = MagicMock()
     request.headers.get.side_effect = lambda key: "secret" if key == "x-api-key" else None

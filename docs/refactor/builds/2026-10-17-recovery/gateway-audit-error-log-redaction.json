@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Gateway audit database-write and local-journal failure logs",
+  "behavior": {
+    "database_write_failure": "Logs retain only the bounded exception class; the event continues to the local journal fallback.",
+    "local_journal_failure": "Logs retain only the bounded exception class when the event cannot be preserved locally."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_gateway_audit.py -q",
+    "result": "9 passed",
+    "coverage": [
+      "database failure diagnostic text is omitted while local journal fallback succeeds",
+      "local journal failure diagnostic text is omitted",
+      "both log records contain only their exception class"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "gitleaks_changed_source_and_test": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_access": "none; mocked exceptions and journal",
+  "limitations": [
+    "No Gateway database, filesystem journal, or live request was accessed.",
+    "The local audit journal fallback and fail-closed capacity policy are unchanged."
+  ]
+}
