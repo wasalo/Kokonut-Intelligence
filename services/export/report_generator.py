@@ -179,6 +179,14 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
         parser.error("--location-id is required (or use --all for network-level reports)")
 
 
+def _report_failure_summary(exc: Exception) -> str:
+    """Return a stable report failure without exposing exception details."""
+    name = type(exc).__name__
+    if not name.isascii() or not name.isidentifier() or len(name) > 64:
+        name = "Exception"
+    return f"report generation failed ({name})"
+
+
 def generate_report_data_read_only(conn, generator, location_arg, period_start, period_end):
     """Calculate a report in a read-only PostgreSQL transaction.
 
@@ -337,13 +345,14 @@ def main():
                     )
                 conn.commit()
                 success += 1
-            except Exception as e:  # noqa: BLE001 - persist this report's failure and continue the batch
-                print(f"  ✗ {report_type}: {e}")
+            except Exception as exc:  # noqa: BLE001 - persist failure and continue the batch
+                safe_error = _report_failure_summary(exc)
+                print(f"  ✗ {report_type}: {safe_error}")
                 conn.rollback()
                 with conn.cursor() as cur:
                     cur.execute(
                         "UPDATE report_generation_run_item SET status = 'failed', error_message = %s, completed_at = NOW() WHERE id = %s",
-                        (str(e)[:4000], item_id),
+                        (safe_error, item_id),
                     )
                 conn.commit()
                 failed += 1
@@ -376,8 +385,9 @@ def main():
         print(f"Hash: {snapshot_hash}")
         print(f"Report type: {args.type}")
     except Exception as exc:
-        print(f"Report generation failed: {exc}")
-        raise
+        safe_error = _report_failure_summary(exc)
+        print(safe_error)
+        raise RuntimeError(safe_error) from None
     finally:
         conn.close()
 

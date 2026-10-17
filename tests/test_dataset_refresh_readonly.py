@@ -204,3 +204,83 @@ def test_no_operation_prints_help_without_opening_database(monkeypatch, capsys):
     dataset_refresh.main()
 
     assert "Dashboard Dataset Refresh Engine" in capsys.readouterr().out
+
+
+def test_dataset_refresh_all_redacts_outer_exception_and_dataset_name(
+    monkeypatch, capsys
+):
+    secret = "database password=private-token"
+    conn = FakeApplicationConnection()
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", "--all"])
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "list_datasets",
+        lambda _conn: [{"id": "dataset-1", "name": "Confidential dashboard name"}],
+    )
+    monkeypatch.setattr(
+        dataset_refresh,
+        "refresh_dataset",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError(secret)),
+    )
+
+    dataset_refresh.main()
+
+    output = capsys.readouterr().out
+    assert "dataset refresh failed (RuntimeError)" in output
+    assert "Confidential dashboard name" not in output
+    assert secret not in output
+    assert "1 failed" in output
+    assert conn.closed
+
+
+def test_single_dataset_refresh_redacts_outer_exception_and_closes(
+    monkeypatch, capsys
+):
+    secret = "database password=private-token"
+    conn = FakeApplicationConnection()
+    monkeypatch.setattr(
+        sys, "argv", ["dataset_refresh", "--dataset-id", "dataset-1"]
+    )
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "refresh_dataset",
+        lambda *_args: (_ for _ in ()).throw(ValueError(secret)),
+    )
+
+    with pytest.raises(RuntimeError, match=r"dataset refresh failed \(ValueError\)") as error:
+        dataset_refresh.main()
+
+    output = capsys.readouterr().out
+    assert secret not in str(error.value)
+    assert secret not in output
+    assert conn.closed
+
+
+@pytest.mark.parametrize("arguments", [["--all"], ["--dataset-id", "dataset-1"]])
+def test_reported_dataset_query_error_is_not_echoed(monkeypatch, capsys, arguments):
+    secret = "database password=private-token"
+    conn = FakeApplicationConnection()
+    monkeypatch.setattr(sys, "argv", ["dataset_refresh", *arguments])
+    monkeypatch.setattr(dataset_refresh, "require_feature", lambda _name: None)
+    monkeypatch.setattr(dataset_refresh, "get_pg", lambda: conn)
+    monkeypatch.setattr(
+        dataset_refresh,
+        "list_datasets",
+        lambda *_args: [{"id": "dataset-1", "name": "Fixture dataset"}],
+    )
+    monkeypatch.setattr(
+        dataset_refresh,
+        "refresh_dataset",
+        lambda *_args: {"status": "error", "error": secret},
+    )
+
+    dataset_refresh.main()
+
+    output = capsys.readouterr().out
+    assert "reported query error" in output
+    assert secret not in output
+    assert conn.closed

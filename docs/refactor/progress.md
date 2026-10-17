@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Report-generator failure containment — 17 October 2026
+
+Single-report CLI failures and automatic report-item errors persisted to the
+run ledger now use bounded operation/exception-class summaries. Automatic mode
+still continues through failed items. Two new regressions pass within the
+22-test report-generator/read-only/CLI suite with Ruff and compilation; mocked
+database and report-generator boundaries only
+([evidence](builds/2026-10-17-recovery/report-generator-error-redaction.json)).
+
+### Saved-dataset refresh failure containment — 17 October 2026
+
+Single and batch refresh output now omits thrown exception contents and
+returned query-error text. Batch refresh continues after a failed dataset, and
+single mode closes its application connection. Four new regressions pass
+within the 12-test read-only/CLI suite with Ruff and compilation; fake
+connections only
+([evidence](builds/2026-10-17-recovery/dataset-refresh-error-redaction.json)).
+
 ### Composite report error containment — 17 October 2026
 
 State, graph, comprehensive-status, and strategic-reserve report sections now

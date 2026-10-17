@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "e9cfa2eb426f747d8bbdafc1ab74107004ca504f",
+  "baseline_commit": "93bba7dbf767671d5e85c74d6a356cb9ae6d113e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2801,6 +2801,7 @@
         "tests/test_regenerative_outcomes.py",
         "tests/test_remaining_gaps.py",
         "tests/test_report_generator_cli.py",
+        "tests/test_report_generator_error_redaction.py",
         "tests/test_report_generator_readonly.py",
         "tests/test_report_governance.py",
         "tests/test_report_state_error_redaction.py",
@@ -4420,6 +4421,7 @@
     "tests/test_remote_sensing_scheduler_contract.py",
     "tests/test_remote_sensing_worker.py",
     "tests/test_report_generator_cli.py",
+    "tests/test_report_generator_error_redaction.py",
     "tests/test_report_generator_helper_scope_inventory.py",
     "tests/test_report_generator_inventory.py",
     "tests/test_report_generator_query_scope_inventory.py",

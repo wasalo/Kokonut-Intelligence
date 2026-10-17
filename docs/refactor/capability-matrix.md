@@ -424,6 +424,20 @@ exception text while preserving partial report generation. Four mocked
 regressions pass with Ruff and compilation; no database was used
 ([evidence](builds/2026-10-17-recovery/report-state-error-redaction.json)).
 
+**17 October 2026 report-generator failure containment (CAP-007 / CAP-047):**
+single-report output/errors and automatic run-item error storage omit raw
+exception details; failed automatic items still allow the batch to finish.
+Two new regressions pass within the 22-test CLI/read-only suite with Ruff and
+compilation using mocked boundaries
+([evidence](builds/2026-10-17-recovery/report-generator-error-redaction.json)).
+
+**17 October 2026 saved-dataset refresh failure containment (CAP-007 / CAP-047):**
+single and batch refresh output omit thrown exception contents and returned
+query-error text; batch refresh continues after a failed item, and single mode
+closes its connection. Four new regressions pass within the 12-test
+read-only/CLI suite with Ruff and compilation using fake connections
+([evidence](builds/2026-10-17-recovery/dataset-refresh-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

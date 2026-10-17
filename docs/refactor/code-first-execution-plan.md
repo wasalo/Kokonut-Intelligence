@@ -254,6 +254,15 @@ Composite state, graph, comprehensive-status, and strategic-reserve report
 failures now use bounded summaries while retaining per-section continuation;
 four mocked report regressions pass with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/report-state-error-redaction.json)).
+The report-generator CLI now stores bounded failure summaries in automatic
+run items and does not print raw single-report exceptions; two new regressions
+pass within the 22-test report/read-only/CLI suite with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/report-generator-error-redaction.json)).
+Saved-dataset refresh CLI failures now omit thrown exception contents and
+returned query-error text, preserve all-mode continuation, and close the
+single-refresh connection; four mocked regressions pass within the 12-test
+read-only/CLI suite with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/dataset-refresh-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

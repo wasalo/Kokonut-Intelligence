@@ -22,6 +22,14 @@ from services.analytics.reporting_reader import count_reporting_rows, safe_query
 from services.core.features import require_feature
 
 
+def _dataset_failure_summary(exc: Exception) -> str:
+    """Return an operator-safe refresh failure without dataset/error contents."""
+    name = type(exc).__name__
+    if not name.isascii() or not name.isidentifier() or len(name) > 64:
+        name = "Exception"
+    return f"dataset refresh failed ({name})"
+
+
 def get_pg():
     from services.common.database import get_db
 
@@ -169,12 +177,21 @@ def main():
     if args.dataset_id:
         # Refresh single dataset
         print(f"Refreshing dataset {args.dataset_id}...")
-        result = refresh_dataset(conn, args.dataset_id)
-        status_icon = "✓" if result["status"] == "active" else "✗"
-        print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
-        if result["error"]:
-            print(f"    Error: {result['error']}")
-        conn.close()
+        try:
+            result = refresh_dataset(conn, args.dataset_id)
+            if result["status"] == "active":
+                print(
+                    f"  ✓ {result['name']}: {result['row_count']} rows "
+                    f"in {result['duration_ms']}ms"
+                )
+            else:
+                print("  ✗ dataset refresh failed (reported query error)")
+        except Exception as exc:
+            safe_error = _dataset_failure_summary(exc)
+            print(f"  ✗ {safe_error}")
+            raise RuntimeError(safe_error) from None
+        finally:
+            conn.close()
         return
 
     if args.all:
@@ -192,13 +209,14 @@ def main():
             try:
                 result = refresh_dataset(conn, str(d["id"]))
                 status_icon = "✓" if result["status"] == "active" else "✗"
-                print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
                 if result["status"] == "active":
+                    print(f"  {status_icon} {result['name']}: {result['row_count']} rows in {result['duration_ms']}ms")
                     success += 1
                 else:
+                    print("  ✗ dataset refresh failed (reported query error)")
                     failed += 1
-            except Exception as e:
-                print(f"  ✗ {d['name']}: {e}")
+            except Exception as exc:
+                print(f"  ✗ {_dataset_failure_summary(exc)}")
                 failed += 1
 
         print(f"\nDone: {success} refreshed, {failed} failed")

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Single and automatic report generation failures",
+  "behavior": {
+    "automatic_batch": "Failed report items persist a bounded operation and exception-class summary, print no raw exception, and allow later reports to continue.",
+    "single_report": "The CLI prints and raises a bounded RuntimeError without chaining the raw source exception."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_report_generator_error_redaction.py tests/test_report_generator_readonly.py tests/test_report_generator_cli.py -q",
+    "result": "22 passed",
+    "coverage": [
+      "automatic report errors are redacted before durable persistence",
+      "automatic batch remains partial and closes its connection",
+      "single-report output and raised error omit exception details",
+      "existing read-only and CLI preflight contracts remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked database and report generators"
+  },
+  "limitations": [
+    "No report generator, PostgreSQL service, or persisted report batch was run.",
+    "This does not establish semantic parity against populated report fixtures."
+  ]
+}
