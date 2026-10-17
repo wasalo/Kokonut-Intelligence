@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Persisted sandbox analysis-run errors returned by AnalysisEnvironment.list_runs",
+  "behavior": {
+    "run_history": "A non-empty stored error_message is replaced with [details redacted].",
+    "preserved_metadata": "Run identity, module, status, timestamps, duration, and error presence remain available."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_sandbox_error_redaction.py tests/test_impact_office_integrity.py tests/test_worker_error_status_cli_redaction.py tests/test_clickhouse_outbox.py -q",
+    "result": "34 passed",
+    "coverage": [
+      "synthetic sandbox diagnostic text is absent from run history",
+      "failed status and duration remain visible",
+      "cursor context closes"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "database_or_provider_access": "none; synthetic row and fake connection only",
+  "limitations": [
+    "No live database or sandbox execution was accessed.",
+    "This redacts diagnostics on the history read path; it does not change sandbox execution or retention."
+  ]
+}

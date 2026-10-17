@@ -5,8 +5,6 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Optional
 
 from services.common.logging import get_logger
 
@@ -237,7 +235,7 @@ class AnalysisEnvironment:
                         "started_at": r[4].isoformat(),
                         "completed_at": r[5].isoformat() if r[5] else None,
                         "duration_ms": r[6],
-                        "error_message": r[7],
+                        "error_message": "[details redacted]" if r[7] else None,
                     }
                     for r in cur.fetchall()
                 ]
