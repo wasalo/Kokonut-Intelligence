@@ -7,7 +7,7 @@ report-source, report-query-scope, and report-helper-scope inventories were
 stale. The three generated JSON artifacts are refreshed and each exact CI
 freshness command now passes locally. No report runtime code or parity
 conclusion changed; the full CI suite did not run after the fast-fail
-failure. The next grouped push will start a new hosted run
+failure. The refreshed batch is now pushed at `09db43b2dd9f4d63425d94ac07017763433e73f9`; CI #431 remains in progress and Security #155 passed
 ([evidence](builds/2026-10-17-recovery/ci-430-report-inventory-refresh.json)).
 
 ### Notification worker candidate migration status — 17 October 2026
@@ -16,9 +16,20 @@ The notification enqueue checklist separated credential provisioning from
 candidate migration rollout. Candidate evidence records 423 migrations through
 432 before migration 433 was applied, so migrations 417–419 were already
 present on that candidate. This closes the stale rollout checklist gate only;
-the isolated notification feature remains off until its encrypted password and
-DSN are provisioned and activation is reviewed. No MAN-CAP status changed
+the isolated notification feature remains off pending role provisioning and
+activation review. No MAN-CAP status changed
 ([rollout evidence](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
+
+### Notification enqueue encrypted credential staged — 17 October 2026
+
+A fresh notification-enqueue password and database URL are now staged in the
+encrypted `.env.sops`. Decryption/round-trip validation and a comparison against
+the prior encrypted file confirm that only the four notification-enqueue
+variables changed; no plaintext values were emitted. The feature flag is
+`false`. No database login or grant was provisioned, no candidate or legacy
+database was touched, and no delivery provider was contacted. Candidate role
+provisioning and separate activation review remain open
+([evidence](builds/2026-10-17-recovery/notification-enqueue-secret-staging.json)).
 
 ### Gateway audit failure-log containment — 17 October 2026
 

@@ -159,10 +159,12 @@ open.
 so signed tenant scope would be an invented authorization context. Migration
 417 instead supplies a separate `kokonut_notification_enqueue_login` and a
 bounded `kokonut_security.enqueue_notification_intents` function. The login is
-created `NOLOGIN`; the runtime-role bootstrap may provision its password only
-when the operator supplies a distinct secret. It receives no direct table or
-sequence privileges; the bootstrap grants only this function and rejects any
-other executable `SECURITY DEFINER` function.
+created `NOLOGIN`. A distinct development password and DSN are staged in
+encrypted `.env.sops`, but no database login or grant has been provisioned.
+The feature remains disabled pending reviewed candidate role provisioning and
+activation. It receives no direct table or sequence privileges; the bootstrap
+grants only this function and rejects any other executable `SECURITY DEFINER`
+function.
 
 The function rechecks source event existence and exact event type, matches the
 optional outbox location to the source payload, and accepts at most three
@@ -175,9 +177,11 @@ worker.
 
 The adapter is opt-in through
 `KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE=true` and the encrypted
-`KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL`. Keep it off until migration 417
-and its distinct login are provisioned. It does not fall back to shared
-`PG_*` settings when enabled.
+`KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL`. The local encrypted DSN is
+staged, but the flag remains false and the distinct login/grant are not
+provisioned. Keep it off until candidate role checks and a separate activation
+review are complete. It does not fall back to shared `PG_*` settings when
+enabled.
 
 The runtime-role bootstrap integration uncovered inherited `PUBLIC EXECUTE`
 grants on mobile credential helpers and signed worker-context functions.
