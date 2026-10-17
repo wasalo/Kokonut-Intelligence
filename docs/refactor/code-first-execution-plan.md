@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Batch base (last pushed head before this work):** `e0f2157df0498b3245c68236eb31caf5feab8e8f` on PR #68.
-**Current local batch:** Migrations 418–419 close inherited `PUBLIC EXECUTE` access on mobile credential and signed worker-context functions. The disposable PostgreSQL 16 runner now provisions the notification login through the actual `provision_runtime_role` path and verifies the exact runtime, worker, and notification function ACLs. Nineteen no-egress database checks and 49 focused pytest checks pass; Ruff, compilation, migration checks, and whitespace checks pass. The default-off notification enqueue remains unprovisioned and has not been rolled out to the candidate. Prior local work covers the EventBus worker split, disabled dashboard-refresh boundary, signed default-off cache invalidation, removal of source-less sensor ingestion from composite Prefect flows, worker operation/effect inventories, location-scoped manual ingestion, forecast transaction atomicity, and climate-ingestion UUID preflight. The repository inventory records 465 test files. The checklist has 417 checked / 20 open items; the capability matrix remains at 66 rows, and zero MAN-CAP checks are accepted. Candidate remains through migration 403; migrations 405–419 are supported by source/disposable evidence only. No worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. Query filters and focused tests do not establish authenticated tenant grants or application-wide RLS. No candidate or legacy database, external provider, persisted schedule, or live Prefect deployment was changed. Credential provisioning, reviewed candidate rollout, other worker scopes, provider delivery, and production acceptance remain open.
+**Batch base (last pushed head before this work):** `54d84d80e06ba25401f8cf1b4350ac91e2af85b2` on PR #68.
+**Current local batch:** The handler runner now keeps configured INFO logs off its JSON stdout protocol, fixing a real case where an event handler could commit an outbox effect and then be reported as failed. Five focused handler-runner tests pass. The real SchedulerEngine disposable PostgreSQL 16 acceptance now kills the scheduler after that handler commits, reclaims the task lease, retries attempt two, and confirms one notification outbox row and one successful handler delivery. It also retains database stop/start and crash-before-dispatch recovery. Ruff, compilation, migration checks, and whitespace checks pass; the container was removed and no provider request or candidate/legacy access occurred. Prior pushed migrations 418–419 close inherited `PUBLIC EXECUTE` access on mobile credential and signed worker-context functions; their 19-check PostgreSQL integration and 49 focused pytest checks pass. The default-off notification enqueue remains unprovisioned and unapplied to the candidate. The repository inventory records 465 test files. The checklist has 418 checked / 20 open items; the capability matrix remains at 66 rows, and zero MAN-CAP checks are accepted. Candidate remains through migration 403; migrations 405–419 are supported by source/disposable evidence only. No worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. Query filters and focused tests do not establish authenticated tenant grants or application-wide RLS. Other worker scopes, provider delivery, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -46,7 +46,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **417 checked and 20 open items (437 total)**,
+- The execution checklist has **418 checked and 20 open items (438 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -655,6 +655,19 @@ unchanged. Fifty-seven focused outbox, failure-injection, and producer tests
 pass. The checks use mocks and source contracts only; no database or ClickHouse
 service was contacted ([evidence](builds/2026-10-16-recovery/clickhouse-outbox-backoff.json)).
 
+**Scheduler crash-after-effect recovery (16 October 2026):** the disposable
+PostgreSQL acceptance now kills the real SchedulerEngine after an allowlisted
+event-processing child commits a notification outbox effect but before task
+completion is recorded. Attempt two observes the completed durable event and
+keeps a single outbox row and one successful handler delivery. This also found
+and fixed the handler-runner stdout protocol bug caused by INFO logs emitted
+after a committed effect. Five focused tests, Ruff, compilation, and the
+disposable PostgreSQL run pass; no provider delivery or candidate/legacy access
+occurred ([runner](../../scripts/check-scheduler-engine-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json);
+[protocol regression](../../tests/test_event_handler_runner.py)). Broader
+provider, worker-process, and long-duration recovery remain open.
+
 **Provider-aware recovery (14 October 2026):** encrypted Compose checkpoints now
 declare their PostgreSQL and ClickHouse contents. PostgreSQL-only backup and
 restore no longer require ClickHouse credentials or a running ClickHouse
@@ -831,9 +844,8 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related changes in local commits and push reviewable batches, as
-requested. The latest pushed head is `e0f2157` on PR #68. The connected
-GitHub status query returned no associated workflow runs or combined checks
-for that head, so CI status is unverified. Continue independent code-first
-work while hosted checks run.
+requested. The latest pushed head is `54d84d8` on PR #68. Security run #93
+passed; CI #369 was in progress when queried on 17 October 2026 at 01:06 UTC.
+Continue independent code-first work while hosted checks run.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.

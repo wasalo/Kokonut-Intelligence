@@ -1,5 +1,27 @@
 # Kokonut Kernel implementation progress
 
+### Scheduler post-effect crash recovery and handler protocol — 16 October 2026
+
+The disposable SchedulerEngine check now covers the crash window after a task
+child commits an effect but before the scheduler records task completion. It
+processes one synthetic `data_stale` event, commits its notification outbox
+row, pauses the parent, kills it, expires the task lease, then retries. The
+replacement completes attempt two without a second outbox row or handler
+delivery attempt. The PostgreSQL 16 acceptance also retains restart recovery
+and the earlier crash-before-dispatch case. The check uses only synthetic rows;
+it made no provider request, did not touch candidate/legacy, and removed its
+temporary Docker database ([runner](../../scripts/check-scheduler-engine-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
+
+The acceptance exposed a real handler-runner defect: configured INFO logs were
+written to the JSON response stream after the handler had already committed,
+so EventBus reported an invalid result and would retry the effect. The runner
+now temporarily redirects service `StreamHandler`s bound to protocol stdout to
+stderr, then restores their streams. Five focused tests pass, including that
+protocol isolation regression; Ruff, compilation, and whitespace checks pass.
+Checklist count is now 418 complete / 20 open. This does not change any MAN-CAP
+status, prove provider delivery, or complete broader recovery acceptance.
+
 ### Runtime and notification function identity boundary — 16 October 2026
 
 The disposable integration check for migration 417 exposed an inherited
@@ -25,7 +47,7 @@ checks pass ([runner](../../scripts/check-operator-session-role-disposable.py);
 No SOPS secret was created, no provider was contacted, and candidate/legacy
 databases were not accessed. Candidate migrations 405–419 remain unapplied;
 the feature stays disabled until credentials and a reviewed rollout are
-available. Checklist count is now 417 complete / 20 open. No MAN-CAP status
+available. Checklist count is now 418 complete / 20 open. No MAN-CAP status
 changes.
 
 ### Isolated global notification enqueue — 16 October 2026
@@ -52,8 +74,9 @@ No candidate or legacy database was accessed, migration 417 has not been
 applied to either, and no delivery provider was contacted. The feature flag is
 off; encrypted secret/DSN provisioning and candidate rollout remain open. The
 initial SQL runner promoted only its synthetic test login directly; the full
-bootstrap integration and its ACL follow-up are recorded above. Checklist
-count is now 417 complete / 20 open, and no MAN-CAP status changes.
+bootstrap integration and its ACL follow-up are recorded above. At that batch
+boundary the checklist was 417 complete / 20 open; the current count appears in
+the newer section above. No MAN-CAP status changes.
 
 ### ClickHouse outbox bounded retry backoff — 16 October 2026
 

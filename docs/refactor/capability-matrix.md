@@ -2342,3 +2342,20 @@ Migrations 405–419 are not applied to the candidate; no encrypted credential
 was provisioned, no provider was contacted, and no application-table RLS or
 MAN-CAP acceptance is claimed. CAP-047 and CAP-053 progress classifications
 remain unchanged.
+
+### CAP-040/047 scheduler post-effect recovery — 16 October 2026
+
+The disposable SchedulerEngine acceptance now kills the real scheduler parent
+after a synthetic `data_stale` handler commits a notification outbox effect but
+before task completion is acknowledged. The replacement worker reclaims the
+task as attempt two; event delivery remains successful with one attempt and the
+outbox retains exactly one row. Five focused handler-runner tests pass. The
+acceptance also found and fixed service INFO logs contaminating the handler
+runner's JSON stdout protocol. It uses selected scheduler/event/notification
+migrations, a synthetic local-only webhook destination, and no delivery worker
+or provider network call; candidate and legacy databases were untouched and the
+disposable container was removed ([runner](../scripts/check-scheduler-engine-reconnect-disposable.py);
+[protocol regression](../tests/test_event_handler_runner.py);
+[evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
+This strengthens implementation/recovery evidence only; CAP-040 and CAP-047
+classifications and MAN-CAP acceptance remain unchanged.

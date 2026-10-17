@@ -5,10 +5,22 @@ from __future__ import annotations
 import contextlib
 import inspect
 import json
+import logging
 import sys
 from typing import Any
 
 from services.events.bus import resolve_handler
+
+
+def _redirect_kokonut_logs_from_protocol_stdout(protocol_stdout):
+    """Keep configured service log handlers from writing into the JSON protocol."""
+    root = logging.getLogger("kokonut")
+    reassigned = []
+    for handler in root.handlers:
+        if isinstance(handler, logging.StreamHandler) and handler.stream is protocol_stdout:
+            handler.setStream(sys.stderr)
+            reassigned.append(handler)
+    return reassigned
 
 
 def execute_request(request: Any) -> dict[str, Any]:
@@ -24,12 +36,20 @@ def execute_request(request: Any) -> dict[str, Any]:
         event_type = request["event_type"]
         payload = request["payload"]
         event_id = request.get("event_id")
-        with contextlib.redirect_stdout(sys.stderr):
-            handler = resolve_handler(module_path, function_name)
-            if "event_id" in inspect.signature(handler).parameters:
-                handler(event_type, payload, event_id=event_id)
-            else:
-                handler(event_type, payload)
+        protocol_stdout = sys.stdout
+        reassigned = []
+        try:
+            with contextlib.redirect_stdout(sys.stderr):
+                reassigned = _redirect_kokonut_logs_from_protocol_stdout(protocol_stdout)
+                handler = resolve_handler(module_path, function_name)
+                if "event_id" in inspect.signature(handler).parameters:
+                    handler(event_type, payload, event_id=event_id)
+                else:
+                    handler(event_type, payload)
+        finally:
+            for log_handler in reassigned:
+                if log_handler.stream is sys.stderr:
+                    log_handler.setStream(protocol_stdout)
         return {"succeeded": True}
     except BaseException as exc:  # The parent needs all handler failures as data.
         return {"succeeded": False, "error": f"{type(exc).__name__}: {exc}"}

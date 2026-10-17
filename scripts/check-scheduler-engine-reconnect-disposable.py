@@ -150,6 +150,66 @@ def _wait_for_running_claim(
     raise TimeoutError("scheduler crash probe did not persist its task lease")
 
 
+def _wait_for_effect_before_task_ack(
+    name: str,
+    task_id: str,
+    event_id: str,
+    worker_id: str,
+    process: subprocess.Popen[str],
+    timeout: float,
+) -> str:
+    """Wait until the child commits its effect while its scheduler parent is paused."""
+    deadline = time.monotonic() + timeout
+    last_state = "not observed"
+    while time.monotonic() < deadline:
+        if process.poll() is not None:
+            raise RuntimeError(
+                f"post-effect scheduler probe exited with status {process.returncode}"
+            )
+        run_id = _sql(
+            name,
+            "SELECT id FROM task_run "
+            f"WHERE task_id = '{task_id}' AND status = 'running' "
+            f"AND worker_id = '{worker_id}' ORDER BY started_at DESC LIMIT 1",
+        )
+        event_status = _sql(
+            name,
+            f"SELECT status FROM platform_event WHERE id = '{event_id}'",
+        )
+        delivery = _sql(
+            name,
+            "SELECT status || '|' || attempt_count::text || '|' "
+            "|| COALESCE(left(last_error, 500), '') FROM event_handler_delivery "
+            f"WHERE event_id = '{event_id}'",
+        )
+        effect_count = _sql(
+            name,
+            "SELECT count(*) FROM notification_outbox "
+            f"WHERE source_event_id = '{event_id}'",
+        )
+        task_state = _sql(
+            name,
+            "SELECT status FROM task_run "
+            f"WHERE task_id = '{task_id}' ORDER BY started_at DESC LIMIT 1",
+        )
+        last_state = (
+            f"task={task_state!r},event={event_status!r},delivery={delivery!r},"
+            f"outbox_rows={effect_count!r}"
+        )
+        if (
+            run_id
+            and event_status == "completed"
+            and delivery.startswith("success|1|")
+            and effect_count == "1"
+        ):
+            return run_id
+        time.sleep(0.25)
+    raise TimeoutError(
+        "scheduler did not pause after the event and notification effect committed; "
+        f"last database state: {last_state}"
+    )
+
+
 def main() -> int:
     image = os.environ.get("SCHEDULER_ENGINE_RECONNECT_POSTGRES_IMAGE", "postgres:16-alpine")
     timeout = float(os.environ.get("SCHEDULER_ENGINE_RECONNECT_TIMEOUT", "45"))
@@ -191,8 +251,10 @@ def main() -> int:
             "117_task_scheduler.sql",
             "164_scheduler_durability.sql",
             "165_event_bus_durability.sql",
+            "297_event_handler_registration_fix.sql",
             "337_scheduler_ownership.sql",
             "371_scheduler_run_windows.sql",
+            "375_notification_outbox.sql",
         )
         for migration in migrations:
             sql = (ROOT / "schemas" / "postgres" / migration).read_text()
@@ -212,6 +274,23 @@ def main() -> int:
                 "kokonut_intelligence",
                 stdin=sql,
             )
+        _docker(
+            "exec",
+            name,
+            "psql",
+            "-X",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-h",
+            "127.0.0.1",
+            "-U",
+            "kokonut",
+            "-d",
+            "kokonut_intelligence",
+            "-c",
+            "ALTER TABLE public.notification_outbox "
+            "ADD COLUMN IF NOT EXISTS location_id UUID",
+        )
 
         env = os.environ.copy()
         env.update(
@@ -235,6 +314,7 @@ def main() -> int:
                 "ALERT_SMTP_HOST": "",
                 "ALERT_EMAIL_TO": "",
                 "DIRECTUS_ADMIN_TOKEN": "",
+                "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE": "false",
             }
         )
         worker_code = f"""
@@ -274,6 +354,10 @@ run_worker(tick_interval=1, worker_id={worker_id!r})
         second_worker = _wait_for_completed(name, task_after, timeout)
         if second_worker != worker_id:
             raise RuntimeError("post-outage task was not claimed by the probe worker")
+
+        process.send_signal(signal.SIGINT)
+        process.wait(timeout=5)
+        process = None
 
         crash_task = _create_task(name, "crash")
         crash_worker_id = "scheduler-engine-crash-probe"
@@ -349,6 +433,119 @@ print(json.dumps(_run_tick("scheduler-engine-crash-recovery")), flush=True)
                 crash_process.kill()
                 crash_process.wait(timeout=5)
 
+        effect_event = str(uuid.uuid4())
+        effect_location = str(uuid.uuid4())
+        effect_task = _create_task(name, "effect_crash")
+        _sql(
+            name,
+            "INSERT INTO platform_event (id, event_type, payload, status, max_retries) VALUES "
+            f"('{effect_event}', 'data_stale', "
+            f"'{{\"severity\":\"warning\",\"metric\":\"synthetic_recovery_probe\","
+            f"\"value\":1,\"threshold\":0,\"location_id\":\"{effect_location}\"}}'::jsonb, "
+            "'pending', 3)",
+        )
+        effect_worker_id = "scheduler-engine-effect-crash-probe"
+        effect_code = f"""
+import time
+import services.scheduler.engine as scheduler_engine
+from services.scheduler.worker import _run_tick
+
+original_run = scheduler_engine.subprocess.run
+def pause_after_child(*args, **kwargs):
+    result = original_run(*args, **kwargs)
+    print("task child returned; scheduler acknowledgement paused", flush=True)
+    time.sleep(60)
+    return result
+
+scheduler_engine.subprocess.run = pause_after_child
+_run_tick({effect_worker_id!r})
+"""
+        effect_process = subprocess.Popen(
+            [sys.executable, "-u", "-c", effect_code],
+            cwd=ROOT,
+            env={**env, "ALERT_WEBHOOK_URL": "https://notifications.invalid/synthetic"},
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        try:
+            effect_run_id = _wait_for_effect_before_task_ack(
+                name,
+                effect_task,
+                effect_event,
+                effect_worker_id,
+                effect_process,
+                timeout,
+            )
+        except Exception as exc:
+            if effect_process.poll() is None:
+                effect_process.kill()
+                effect_process.wait(timeout=5)
+            child_output = (
+                effect_process.stdout.read()[-4000:]
+                if effect_process.stdout is not None
+                else ""
+            )
+            raise RuntimeError(f"{exc}; scheduler probe output: {child_output}") from exc
+        try:
+            effect_process.kill()
+            effect_process.wait(timeout=5)
+            expired = _sql(
+                name,
+                "UPDATE scheduled_task SET lease_expires_at = NOW() - INTERVAL '1 second' "
+                f"WHERE id = '{effect_task}' AND lease_owner = '{effect_worker_id}' "
+                f"AND lease_token = '{effect_run_id}' RETURNING id",
+            )
+            if expired != effect_task:
+                raise RuntimeError("failed to expire the post-effect scheduler task lease")
+            reclaim = subprocess.run(
+                [sys.executable, "-c", reclaim_code],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                check=False,
+            )
+            if reclaim.returncode:
+                raise RuntimeError("replacement scheduler worker failed post-effect recovery")
+            effect_history = _sql(
+                name,
+                "SELECT string_agg(status || ',' || COALESCE(worker_id, '') || ',' "
+                "|| attempt_count::text, ';' ORDER BY started_at) "
+                f"FROM task_run WHERE task_id = '{effect_task}'",
+            )
+            expected_effect_history = (
+                "failed,scheduler-engine-effect-crash-probe,1;"
+                "completed,scheduler-engine-crash-recovery,2"
+            )
+            if effect_history != expected_effect_history:
+                raise RuntimeError(
+                    f"unexpected post-effect scheduler crash history: {effect_history}"
+                )
+            effect_rows = _sql(
+                name,
+                "SELECT count(*), count(DISTINCT id) FROM notification_outbox "
+                f"WHERE source_event_id = '{effect_event}'",
+            )
+            if effect_rows != "1|1":
+                raise RuntimeError(
+                    f"scheduler retry duplicated the committed notification effect: {effect_rows}"
+                )
+            delivery = _sql(
+                name,
+                "SELECT status, attempt_count FROM event_handler_delivery "
+                f"WHERE event_id = '{effect_event}'",
+            )
+            if delivery != "success|1":
+                raise RuntimeError(
+                    f"scheduler retry redelivered the already-committed event handler: {delivery}"
+                )
+        finally:
+            if effect_process.poll() is None:
+                effect_process.kill()
+                effect_process.wait(timeout=5)
+
         result.update(
             {
                 "result": "passed",
@@ -361,14 +558,20 @@ print(json.dumps(_run_tick("scheduler-engine-crash-recovery")), flush=True)
                 "scheduler_worker_killed_after_claim": True,
                 "scheduler_task_lease_reclaimed": True,
                 "scheduler_crash_run_history": run_history,
+                "scheduler_crashed_after_effect_commit": True,
+                "post_effect_task_run_history": effect_history,
+                "post_effect_event_id": effect_event,
+                "post_effect_notification_rows": effect_rows,
+                "post_effect_event_handler_delivery": delivery,
+                "retry_did_not_duplicate_committed_effect": True,
                 "task_command": "python -m services.events --process --batch-size 10",
                 "worker_id": worker_id,
                 "migrations_replayed": list(migrations),
                 "limitations": [
-                    "Only the scheduler, event bus, and durable ownership migrations were replayed; the full schema ledger was not applied.",
+                    "Only the scheduler, event bus, notification, and durable ownership migrations were replayed; the full schema ledger was not applied. The disposable notification table adds the nullable location_id column from migration 406 without applying unrelated anomaly-table changes.",
                     "The bounded task ran EventBus processing against an empty synthetic queue; no domain provider or external service ran.",
-                    "The crash probe killed the scheduler after its durable lease claim but before it launched the task subprocess. Lease expiry was forced in the disposable database rather than waiting the configured timeout; the replacement worker ran the bounded task successfully as attempt two.",
-                    "The synthetic task processes an empty EventBus queue; this does not test duplicate domain effects after a task subprocess commits and the scheduler crashes before recording completion.",
+                    "One crash probe killed the scheduler after its durable lease claim but before it launched the task subprocess. A second killed the parent after the task child processed a synthetic data_stale event and committed its notification outbox effect, while the parent was paused before task completion; the replacement attempt observed the completed event and did not duplicate the notification row.",
+                    "The synthetic webhook destination is configuration only; no delivery worker or external network request was run.",
                     "The PostgreSQL container had no volume and was bound only to loopback.",
                 ],
             }
