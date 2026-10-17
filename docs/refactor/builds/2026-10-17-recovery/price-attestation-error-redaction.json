@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Best-effort EAS submission in commodity price attestation",
+  "behavior": {
+    "exception_log": "EAS client initialization/submission exceptions log only the exception class.",
+    "audit_and_response": "The existing audit commit and success response with a null attestation UID remain unchanged when EAS is unavailable."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_price_provider_error_redaction.py tests/test_oracle_infrastructure.py tests/test_price_attestation.py tests/test_ingestion_base_error_redaction.py tests/test_market_data_recovery.py tests/test_ingestion_outbox_producers.py -q",
+    "result": "76 passed",
+    "new_regressions": 1,
+    "coverage": [
+      "secret-bearing EAS client failure is absent from logs",
+      "price attestation remains best-effort and preserves the committed audit result"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connection and mocked EAS client"
+  },
+  "limitations": [
+    "No live EAS endpoint or database was contacted.",
+    "On-chain price attestation remains unimplemented; this change only contains failure details."
+  ]
+}

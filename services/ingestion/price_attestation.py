@@ -50,8 +50,6 @@ def attest_price(
     Creates an on-chain audit trail of the price data origin.
     """
     now = datetime.now(timezone.utc)
-    price_timestamp = int(now.timestamp())
-    price_scaled = int(price * 1000000)  # Scale to 6 decimals
 
     # Log to oracle_price_log
     cur = conn.cursor()
@@ -81,7 +79,7 @@ def attest_price(
             # In production, would call EAS contract to attest
             # attestation_uid = eas_client.attest(schema_uid, data, recipient)
     except Exception as e:
-        logger.warning("On-chain attestation unavailable: %s", e)
+        logger.warning("On-chain attestation unavailable (%s)", type(e).__name__)
 
     return {
         "status": "success",

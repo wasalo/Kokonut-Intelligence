@@ -310,6 +310,14 @@ price, Oracle, shared-ingestion, market-data, and outbox suite with Ruff and
 compilation. No provider or database was contacted. Live price parity and chain behavior remain open
 ([evidence](builds/2026-10-17-recovery/price-provider-error-redaction.json)).
 
+**17 October 2026 price-attestation error containment (CAP-040 / CAP-047):**
+best-effort EAS initialization failures now log only the exception class while
+preserving the committed audit result and successful response with a null
+attestation UID. One new mocked regression passes within the 76-test combined
+price/Oracle/ingestion suite with Ruff and compilation; no EAS endpoint or
+database was contacted. This does not implement an on-chain attestation
+([evidence](builds/2026-10-17-recovery/price-attestation-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

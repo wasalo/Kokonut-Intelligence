@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from services.ingestion import oracle_price_sync, yahoo_finance
+from services.ingestion import oracle_price_sync, price_attestation, yahoo_finance
 from services.ingestion.oracle_aggregator import PriceReading
 
 SECRET = "price-provider-token-secret"
@@ -79,3 +79,32 @@ def test_oracle_sync_result_and_log_redact_provider_failure(monkeypatch):
     assert result["results"][0]["error"] == "price sync failed (RuntimeError)"
     assert SECRET not in str(result)
     assert SECRET not in str(logger.error.call_args)
+
+
+def test_price_attestation_redacts_eas_failure_and_remains_best_effort(monkeypatch):
+    logger = MagicMock()
+    connection = MagicMock()
+    connection.cursor.return_value.fetchone.return_value = ("price-log-id",)
+    monkeypatch.setattr(price_attestation, "logger", logger)
+    monkeypatch.setitem(
+        sys.modules,
+        "services.attestation.eas_client",
+        SimpleNamespace(
+            get_eas_client=lambda _chain: (_ for _ in ()).throw(
+                RuntimeError(f"RPC URL included token={SECRET}")
+            )
+        ),
+    )
+
+    result = price_attestation.attest_price(
+        connection,
+        commodity="COFFEE",
+        price=100.0,
+        source="manual",
+    )
+
+    assert result["status"] == "success"
+    assert result["attestation_uid"] is None
+    assert connection.commit.called
+    assert SECRET not in str(logger.warning.call_args)
+    assert "RuntimeError" in str(logger.warning.call_args)

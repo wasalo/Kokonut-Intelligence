@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Commodity price attestation error containment — 17 October 2026
+
+The best-effort EAS price-attestation path now logs only the exception class.
+The audit commit and success response with a null attestation UID remain
+unchanged when EAS initialization fails. One new mocked regression passes
+within the 76-test price/Oracle/ingestion suite with Ruff and compilation; no
+live EAS endpoint or database was contacted
+([evidence](builds/2026-10-17-recovery/price-attestation-error-redaction.json)).
+
 ### Commodity price provider error containment — 17 October 2026
 
 Yahoo Finance fetch/audit and Oracle price-sync failures now omit raw exception
