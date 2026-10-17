@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Local harvest source paths and read failures",
+  "behavior": {
+    "missing_file": "Missing-file responses use a fixed message without echoing the requested path.",
+    "source_reference": "Harvest logs store a generic local-file marker instead of a host path.",
+    "read_failure": "Persisted and returned failures include only the exception class."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_harvest_manager_error_redaction.py tests/test_harvest_url_safety.py -q",
+    "result": "7 passed",
+    "coverage": [
+      "missing paths are not returned and do not create log entries",
+      "host paths are absent from stored source references",
+      "read exception details are absent from persisted and returned failures",
+      "remote harvest redaction and URL-validation guidance remain covered"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked connection, filesystem checks, and file open"
+  },
+  "limitations": [
+    "No real file or database was used.",
+    "This does not perform semantic validation of imported local file contents."
+  ]
+}

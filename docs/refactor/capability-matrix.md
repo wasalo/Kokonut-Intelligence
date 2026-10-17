@@ -390,6 +390,20 @@ safe URL validation guidance remains. Two mocked regressions pass with Ruff
 and compilation; no DNS, database, or external request was used
 ([evidence](builds/2026-10-17-recovery/harvest-manager-error-redaction.json)).
 
+**17 October 2026 local harvest path containment (CAP-040 / CAP-047):** local
+file paths are replaced with a generic source marker in ingestion logs and are
+not echoed by missing-file or read-failure responses. Two mocked regressions
+pass within seven harvest tests with Ruff and compilation; no real file or
+database was used
+([evidence](builds/2026-10-17-recovery/local-harvest-error-redaction.json)).
+
+**17 October 2026 spatial cross-validation failure containment (CAP-047):**
+block and leave-one-out fold failures omit raw kriging-library and data details,
+while failed-fold aggregation remains unchanged. Two mocked regressions and six
+existing cross-validator checks pass with Ruff and compilation; no database or
+model-fitting provider was used
+([evidence](builds/2026-10-17-recovery/spatial-cv-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

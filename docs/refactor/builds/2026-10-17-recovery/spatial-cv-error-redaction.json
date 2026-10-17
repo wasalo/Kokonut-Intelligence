@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Spatial block and leave-one-out cross-validation fold failures",
+  "behavior": {
+    "fold_error": "Per-fold errors now include only a bounded message and exception class.",
+    "aggregate_failure": "No-successful-fold behavior and fold counters remain unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_spatial_cv_error_redaction.py -q",
+    "result": "2 passed",
+    "coverage": [
+      "spatial block CV suppresses coordinate and credential-bearing exception details",
+      "leave-one-out CV suppresses coordinate and credential-bearing exception details",
+      "failed-fold collection and aggregate no-success result are preserved"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; prediction function is mocked"
+  },
+  "limitations": [
+    "No gstools model fitting or database access was performed.",
+    "Successful prediction parity remains covered by the existing geostatistics suite."
+  ]
+}

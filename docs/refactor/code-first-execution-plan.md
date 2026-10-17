@@ -231,6 +231,15 @@ Feedback automation now bounds evaluation and full-cycle errors in both API
 responses and persisted logs while preserving rollback and run-state behavior;
 two new regressions pass within its 14-test suite with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/feedback-automation-error-redaction.json)).
+Local harvest no longer stores or returns host file paths; file-read errors are
+bounded in API and durable log values. Two mocked regressions pass within seven
+harvest tests with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/local-harvest-error-redaction.json)).
+Spatial block and leave-one-out cross-validation now suppress raw per-fold
+prediction failures while retaining aggregate fold behavior; two new mocked
+regressions and six existing cross-validator checks pass with Ruff and
+compilation
+([evidence](builds/2026-10-17-recovery/spatial-cv-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

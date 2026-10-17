@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Spatial cross-validation error containment — 17 October 2026
+
+Spatial block and leave-one-out fold failures now return a bounded operation
+and exception-class summary rather than prediction-library details. Failed-fold
+aggregation is preserved. Two new mocked regressions and six existing
+cross-validator checks pass with Ruff and compilation; no database or model
+provider was used
+([evidence](builds/2026-10-17-recovery/spatial-cv-error-redaction.json)).
+
+### Local harvest path containment — 17 October 2026
+
+Local file paths are no longer echoed in missing-file responses or stored in
+harvest logs; local read failures are class-only in both durable error details
+and API results. Two new mocked regressions pass within seven harvest tests
+with Ruff and compilation; no real file or database was used
+([evidence](builds/2026-10-17-recovery/local-harvest-error-redaction.json)).
+
 ### Feedback-automation failure containment — 17 October 2026
 
 Evaluation and full-cycle failures now persist and return bounded

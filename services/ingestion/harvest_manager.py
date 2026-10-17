@@ -106,14 +106,14 @@ def harvest_from_file(conn, location_id: str, filepath: str,
                       source_format: str = None,
                       source_system: str = "manual") -> dict:
     if not os.path.exists(filepath):
-        return {"status": "error", "message": f"File not found: {filepath}"}
+        return {"status": "error", "message": "source file not found"}
 
     if source_format is None:
         ext = filepath.rsplit(".", 1)[-1].lower()
         format_map = {"json": "json", "csv": "csv", "geojson": "geojson", "kml": "kml"}
         source_format = format_map.get(ext, "json")
 
-    log_id = _create_log(conn, location_id, filepath, source_format, source_system)
+    log_id = _create_log(conn, location_id, "[local file]", source_format, source_system)
 
     try:
         with open(filepath, "r") as f:
@@ -129,9 +129,10 @@ def harvest_from_file(conn, location_id: str, filepath: str,
 
         _complete_log(conn, log_id, records_count)
         return {"status": "success", "records_ingested": records_count, "log_id": log_id}
-    except Exception as e:
-        _fail_log(conn, log_id, str(e))
-        return {"status": "error", "message": str(e), "log_id": log_id}
+    except Exception as exc:
+        safe_error = f"file harvest failed ({type(exc).__name__})"
+        _fail_log(conn, log_id, safe_error)
+        return {"status": "error", "message": safe_error, "log_id": log_id}
 
 
 def list_harvest_logs(conn, location_id: str = None, status: str = None) -> list[dict]:

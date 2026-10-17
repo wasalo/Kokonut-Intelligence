@@ -7,7 +7,6 @@ to prevent spatial leakage in prediction accuracy assessment.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -16,9 +15,6 @@ import psycopg2.extras
 
 from .config import (
     CV_STRATEGIES,
-    DEFAULT_MAX_NEIGHBORS,
-    DEFAULT_SEARCH_RADIUS_M,
-    PROPERTY_DEFAULTS,
 )
 
 
@@ -42,7 +38,7 @@ class SpatialCrossValidator:
         nugget: float,
     ):
         """Build a gstools variogram model from parameters."""
-        from gstools import Spherical, Exponential, Gaussian, Matern
+        from gstools import Exponential, Gaussian, Matern, Spherical
 
         model_map = {
             "spherical": Spherical,
@@ -153,11 +149,11 @@ class SpatialCrossValidator:
                 fold_results.append(fold_result)
                 all_predictions.extend(pred.tolist())
                 all_actuals.extend(test_values)
-            except Exception as e:
+            except Exception as exc:
                 fold_results.append({
                     "fold": i + 1,
                     "block_id": int(block_id),
-                    "error": str(e),
+                    "error": f"spatial cross-validation fold failed ({type(exc).__name__})",
                 })
 
         if not all_predictions:
@@ -224,11 +220,11 @@ class SpatialCrossValidator:
                     "error": round(error, 4),
                     "variance": round(float(var[0]), 4),
                 })
-            except Exception as e:
+            except Exception as exc:
                 fold_results.append({
                     "fold": i + 1,
                     "held_out_index": i,
-                    "error": str(e),
+                    "error": f"spatial cross-validation fold failed ({type(exc).__name__})",
                 })
 
         if not all_predictions:
