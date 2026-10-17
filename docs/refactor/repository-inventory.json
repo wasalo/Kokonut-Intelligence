@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "258377faca6be2c7998a80463d4b759e94d46cd1",
+  "baseline_commit": "b2d54bca94579f3946d45dcf44e56976ad2713b4",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3263,6 +3263,7 @@
         "tests/test_metrics.py",
         "tests/test_ml_anomaly.py",
         "tests/test_ml_model_loading_security.py",
+        "tests/test_mqtt_actuator_error_redaction.py",
         "tests/test_mqtt_subscriber_error_redaction.py",
         "tests/test_objective_performance.py",
         "tests/test_odds_engine.py",
@@ -4312,6 +4313,7 @@
     "tests/test_mobile_tenant_database_readiness.py",
     "tests/test_mobile_tenant_operator_preflight.py",
     "tests/test_mobile_vault.py",
+    "tests/test_mqtt_actuator_error_redaction.py",
     "tests/test_mqtt_subscriber_error_redaction.py",
     "tests/test_network_trust.py",
     "tests/test_noi_snapshot_worker.py",

@@ -290,6 +290,10 @@ preserving existing best-effort delivery and cleanup. Critical-severity
 actuation still requires human approval. Three new mocked checks pass within
 the 72-test anomaly/IoT suite with Ruff; no delivery service or database was
 contacted ([evidence](builds/2026-10-17-recovery/anomaly-notification-error-redaction.json)).
+Direct actuator MQTT client-creation and broker publish failures also log only
+exception classes, retaining the prior false-result behavior. Two new mocked
+checks pass within the 64-test actuator/anomaly suite with Ruff; no broker was
+contacted ([evidence](builds/2026-10-17-recovery/mqtt-actuator-error-redaction.json)).
 
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,

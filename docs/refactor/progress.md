@@ -1,5 +1,13 @@
 # Kokonut Kernel implementation progress
 
+### MQTT actuator error containment — 17 October 2026
+
+Direct actuator MQTT client-creation and publish failures now log only the
+exception class, preserving their existing false result and approval
+decisions. Two new mocked checks pass within the 64-test actuator/anomaly
+suite with Ruff; no broker or database was contacted
+([evidence](builds/2026-10-17-recovery/mqtt-actuator-error-redaction.json)).
+
 ### Anomaly notification error containment — 17 October 2026
 
 SMTP, Directus, and owned-connection actuator failure logs now retain only the

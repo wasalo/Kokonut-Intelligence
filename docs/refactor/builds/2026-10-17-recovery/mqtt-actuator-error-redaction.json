@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Direct MQTT actuator client creation and publish failures",
+  "behavior": {
+    "client_creation": "Client initialization errors log only the exception class and preserve the existing false result.",
+    "publish": "Broker connection/publish errors log only the exception class and preserve the existing false result.",
+    "safety": "Command construction, approval persistence, and dispatch decisions are unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_mqtt_actuator_error_redaction.py tests/test_anomaly_notification_error_redaction.py tests/test_anomaly_detector.py tests/test_oracle_infrastructure.py -q",
+    "result": "64 passed",
+    "new_regressions": 2,
+    "coverage": [
+      "secret-bearing MQTT client initialization error is redacted",
+      "secret-bearing broker connection failure is redacted"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "broker_or_database_access": "none; MQTT client is mocked"
+  },
+  "limitations": [
+    "No MQTT broker or database was contacted.",
+    "This does not establish real actuator delivery or device acknowledgement."
+  ]
+}

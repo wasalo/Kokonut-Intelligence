@@ -150,6 +150,10 @@ actuator failure logs retain only exception classes. Critical severity continues
 to force human approval. Three new mocked checks pass within a 72-test
 anomaly/IoT suite with Ruff; no delivery service or database was contacted
 ([evidence](builds/2026-10-17-recovery/anomaly-notification-error-redaction.json)).
+**Local MQTT actuator follow-up — 17 October 2026:** direct client-creation and
+publish failures now log only exception classes. Two new mocked checks pass in
+the 64-test actuator/anomaly suite with Ruff; no broker or database was
+contacted ([evidence](builds/2026-10-17-recovery/mqtt-actuator-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
