@@ -1,5 +1,15 @@
 # Kokonut Kernel implementation progress
 
+### CI #430 report-inventory freshness fix — 17 October 2026
+
+CI #430 on pushed commit `9742905` stopped in the fast-fail gate because the
+report-source, report-query-scope, and report-helper-scope inventories were
+stale. The three generated JSON artifacts are refreshed and each exact CI
+freshness command now passes locally. No report runtime code or parity
+conclusion changed; the full CI suite did not run after the fast-fail
+failure. The next grouped push will start a new hosted run
+([evidence](builds/2026-10-17-recovery/ci-430-report-inventory-refresh.json)).
+
 ### Notification worker candidate migration status — 17 October 2026
 
 The notification enqueue checklist separated credential provisioning from
