@@ -545,12 +545,15 @@ acceptance ([evidence](builds/2026-10-17-recovery/grpc-health-error-redaction.js
 **17 October 2026 durable worker history output containment (CAP-047):**
 scheduler-run, event dead-letter, MQTT delivery, and ClickHouse outbox
 dead-letter listings now retain failure state and record identity while
-redacting persisted raw errors from earlier attempts. Four focused operator
-listing regressions pass within 29 outbox and CLI tests, with Ruff and
+redacting persisted raw errors from earlier attempts. Impact Office status also
+redacts stored run and step errors while preserving failure state. Four
+operator-listing regressions pass within 29 outbox/CLI tests and the Impact
+Office regression passes within eight integrity tests, with Ruff and
 compilation; no database or worker was accessed. This source-level display
 change does not substitute for live worker retry or dead-letter acceptance
 ([worker history](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json);
-[ClickHouse outbox](builds/2026-10-17-recovery/clickhouse-outbox-history-error-redaction.json)).
+[ClickHouse outbox](builds/2026-10-17-recovery/clickhouse-outbox-history-error-redaction.json);
+[Impact Office](builds/2026-10-17-recovery/impact-office-history-error-redaction.json)).
 
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending

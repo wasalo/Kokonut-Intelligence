@@ -4,12 +4,15 @@
 
 Scheduler run history, event dead-letter listings, MQTT delivery recovery, and
 ClickHouse outbox dead-letter listings now show that error details exist
-without printing historical persisted diagnostic text. Record identity,
-event/delivery state, attempt counts, and connection cleanup remain. Four
-focused operator-listing regressions pass within 29 outbox and CLI tests, with
-Ruff and compilation; no database or worker was accessed
+without printing historical persisted diagnostic text. Impact Office run and
+step status likewise retain failure presence without returning historical raw
+diagnostics. Record identity, event/delivery state, attempt counts, and
+connection cleanup remain. Four operator-listing regressions pass within 29
+outbox/CLI tests; the Impact Office regression passes within its eight-test
+integrity slice. Ruff and compilation pass; no database or worker was accessed
 ([worker history](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json);
-[ClickHouse outbox](builds/2026-10-17-recovery/clickhouse-outbox-history-error-redaction.json)).
+[ClickHouse outbox](builds/2026-10-17-recovery/clickhouse-outbox-history-error-redaction.json);
+[Impact Office](builds/2026-10-17-recovery/impact-office-history-error-redaction.json)).
 
 ### Ingestion status output containment — 17 October 2026
 

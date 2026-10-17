@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Stored Impact Office run and step diagnostics returned by the operator status read",
+  "behavior": {
+    "run_status": "A non-empty persisted run error_message is replaced with [details redacted].",
+    "step_status": "A non-empty persisted step error is replaced with [details redacted].",
+    "preserved_metadata": "Run and step identity, status, timestamps, and the presence of an error remain available."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_impact_office_integrity.py tests/test_worker_error_status_cli_redaction.py -q",
+    "result": "8 passed",
+    "coverage": [
+      "synthetic run and step diagnostic text are absent from the returned status object",
+      "failed run and step status remain visible",
+      "the status cursor closes"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "gitleaks_changed_files": "passed"
+  },
+  "database_or_provider_access": "none; mocked connection only",
+  "limitations": [
+    "No live database or Impact Office cycle was accessed.",
+    "Historical stored errors remain in the database; only the operator read response is redacted."
+  ]
+}
