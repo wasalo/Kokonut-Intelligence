@@ -260,7 +260,7 @@ def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time
             columns, rows,
         )
     except Exception as e:
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def run_csv(file_path: str, location_id: str | None = None):
@@ -298,22 +298,22 @@ def run_csv(file_path: str, location_id: str | None = None):
 
             try:
                 timestamp = parse_reading_timestamp(reading_date, reading_time)
-            except ValueError as exc:
+            except ValueError:
                 errors += 1
                 log_ingestion(
                     source_system="csv_upload", source_table="sensor_csv", source_id=f"row_{i + 1}",
                     target_table="sensor_reading", target_id=None, operation="insert",
-                    payload_hash=hash_payload(row), status="failed", error_message=str(exc),
-                    validation_status="rejected", validation_errors=[str(exc)],
+                    payload_hash=hash_payload(row), status="failed", error_message="invalid timestamp",
+                    validation_status="rejected", validation_errors=["invalid timestamp"],
                 )
-                logger.warning("  ✗ Row %d: invalid timestamp: %s", i + 1, exc)
+                logger.warning("  ✗ Row %d: invalid timestamp", i + 1)
                 continue
 
             try:
                 value = float(value_str)
             except ValueError:
                 errors += 1
-                logger.warning("  ✗ Row %d: invalid value '%s'", i + 1, value_str)
+                logger.warning("  ✗ Row %d: invalid numeric value", i + 1)
                 continue
 
             # Look up sensor
@@ -397,9 +397,9 @@ def run_csv(file_path: str, location_id: str | None = None):
                     operation="insert",
                     payload_hash=hash_payload(row),
                     status="failed",
-                    error_message=str(e),
+                    error_message=f"row processing failed ({type(e).__name__})",
                 )
-                logger.error("  ✗ Row %d: %s", i + 1, e)
+                logger.error("  ✗ Row %d processing failed (%s)", i + 1, type(e).__name__)
 
         db.commit()
         logger.info("Done: %d success, %d warnings, %d errors", success, warnings, errors)

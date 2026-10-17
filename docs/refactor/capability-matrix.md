@@ -318,6 +318,15 @@ price/Oracle/ingestion suite with Ruff and compilation; no EAS endpoint or
 database was contacted. This does not implement an on-chain attestation
 ([evidence](builds/2026-10-17-recovery/price-attestation-error-redaction.json)).
 
+**17 October 2026 legacy sensor-ingestion error containment (CAP-040 / CAP-047):**
+CSV parse and row-processing errors no longer expose raw sensor input or
+exception text in warnings/audit; the demo-only direct ClickHouse fallback logs
+only exception classes. Canonical transaction-backed projection failures still
+propagate, and row rollback/connection cleanup remain intact. Four new checks
+pass within an 88-test sensor/driver/outbox suite with Ruff and compilation; no
+live source or service was contacted
+([evidence](builds/2026-10-17-recovery/sensor-ingester-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

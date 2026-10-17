@@ -1,5 +1,15 @@
 # Kokonut Kernel implementation progress
 
+### Sensor-ingestion error containment — 17 October 2026
+
+Legacy CSV sensor processing now avoids putting raw timestamps, numeric cells,
+ClickHouse exceptions, or row-processing exception text in logs/audit messages.
+Canonical transaction-backed projection failures still propagate, and row
+rollback/connection cleanup remain intact. Four new regressions pass within an
+88-test sensor/driver/outbox suite with Ruff and compilation; all inputs and
+connections were synthetic or mocked
+([evidence](builds/2026-10-17-recovery/sensor-ingester-error-redaction.json)).
+
 ### Commodity price attestation error containment — 17 October 2026
 
 The best-effort EAS price-attestation path now logs only the exception class.

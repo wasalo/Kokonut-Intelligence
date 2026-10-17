@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "9a0b4c79e13d535d76bf6b162bfb95fc17cc05af",
+  "baseline_commit": "fcdf061a2807fbd9bbb1796c668d4663d7ee1b63",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3306,6 +3306,7 @@
         "tests/test_sensor_driver_schedule.py",
         "tests/test_sensor_ingester.py",
         "tests/test_sensor_ingester_cli_contract.py",
+        "tests/test_sensor_ingester_error_redaction.py",
         "tests/test_sensor_ingestion_worker.py",
         "tests/test_sequential_evidence.py",
         "tests/test_sequential_integration.py",
@@ -4427,6 +4428,7 @@
     "tests/test_sensor_driver_schedule.py",
     "tests/test_sensor_ingester.py",
     "tests/test_sensor_ingester_cli_contract.py",
+    "tests/test_sensor_ingester_error_redaction.py",
     "tests/test_sensor_ingestion_worker.py",
     "tests/test_sequential_evidence.py",
     "tests/test_sequential_integration.py",

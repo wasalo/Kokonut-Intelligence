@@ -168,6 +168,11 @@ The EAS price-attestation fallback now also logs only the exception class while
 preserving the audit commit and best-effort response; one new mocked regression
 passes in the updated 76-test combined suite
 ([evidence](builds/2026-10-17-recovery/price-attestation-error-redaction.json)).
+Legacy CSV sensor ingestion now redacts invalid source cells and row-processing
+details from logs/audit, while retaining rollback and canonical projection
+failure propagation. Four new mocked regressions pass in an 88-test
+sensor/driver/outbox suite with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/sensor-ingester-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
