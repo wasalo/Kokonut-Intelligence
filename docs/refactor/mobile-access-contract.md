@@ -36,7 +36,9 @@ See the
 This establishes a device-to-location boundary for these routes. The schema
 does not define a general `tenant_id`; location is the mobile scope only. This
 does not establish RLS or tenant isolation for other services, Directus, or
-external integrations.
+external integrations. The target organization/tenant distinction, treatment
+of nullable `location.organization_id`, and fail-closed RLS rollout gates are
+recorded in the [tenant isolation contract](mobile-tenant-isolation.md).
 
 ## Implemented baseline — migration 381 source
 
@@ -54,8 +56,12 @@ Other deployments must use the ordered, checksummed migration workflow.
 - Editing the current `mobile_form` content or consent policy requires a new
   version. The current authoring surface remains the `mobile_form` row; the
   database trigger publishes its immutable snapshot. A policy decision must
-  include reviewer, time, and non-empty evidence. There is not yet a dedicated
-  form-authoring UI or CLI.
+  include reviewer, time, and non-empty evidence. The Directus-independent
+  JSON-manifest CLI validates and previews revisions offline, and explicit
+  publication updates only `mobile_form` so migration 381 creates its immutable
+  snapshot. The OIDC console now provides source-level read-only queue and detail
+  routes for synced review-required/ineligible rows. See the
+  [form operations contract](mobile-form-operations.md).
 - `GET /api/mobile/forms` reads only active snapshots. It exposes the
   participant-required flag and the reviewed data category, purpose, recipient
   type/name, and consent version needed by the collector UI; it does not expose
@@ -77,11 +83,15 @@ Other deployments must use the ordered, checksummed migration workflow.
   `mobile_participant_link`. The link records location, creator, time, and
   evidence. `POST /api/mobile/locations/{location_id}/participants/revoke`
   revokes a reference without deleting the mapping.
-- These routes are protected by location-scoped `mobile_participant:create` or
-  `mobile_participant:revoke`. With OIDC enabled, they require a browser session,
-  matching operator location grant, and CSRF validation. With OIDC disabled,
-  the existing Gateway API key/capability policy applies. Neither route is
-  public, and the collector token cannot manage links.
+- The `/api/mobile/.../participants` routes use location-scoped Gateway API
+  key/capability authorization. OIDC operators use the same-origin
+  `/operator/api/mobile/.../participants` routes with the matching
+  `mobile_participant:create` or `mobile_participant:revoke` grant and CSRF
+  validation. The operator transaction sets tenant context on the same
+  connection before looking up a party or changing a link; legacy or
+  cross-tenant grants fail closed. The create response is no-store and returns
+  the raw reference once. Neither route is public, and the collector token
+  cannot manage links.
 - A form revision has one of three consent classifications: `required`,
   `not_required`, or `unclassified`. The five built-in operational forms are
   classified `not_required` at source and local candidate version `1.2.0`,
@@ -118,11 +128,12 @@ Other deployments must use the ordered, checksummed migration workflow.
   form and workflow.
 - Existing collection rows receive `unassessed` defaults; the migration does
   not infer identity, consent, or form validity for legacy records.
-- The legacy `services.analytics.mobile_offline` CLI is a transport/admin path,
-  not a consent-aware admission path. It can stage rows and mark transport as
-  synced, but after migration 381 its rows remain unassessed and fail the
-  eligibility view. Do not use that transport status as permission to report
-  or publish the row.
+- The legacy `services.analytics.mobile_offline` CLI and its direct service
+  helpers fail closed before database access because they have no authenticated
+  tenant identity and bypass the immutable-form/consent admission path. Use the
+  consent-aware Field Collector Gateway. Historical rows remain unassessed and
+  fail the eligibility view; transport status alone never permits reporting
+  or publication.
 - `v_mobile_collection_use_eligibility` is the consent/form prerequisite for
   downstream use. It also requires transport status `synced`; unassessed,
   retired, and review-required rows are ineligible. A later
@@ -133,8 +144,31 @@ Other deployments must use the ordered, checksummed migration workflow.
   authenticated intake route; it writes only to the private collection queue.
   The source scan found no business, reporting, or publication consumer of
   `offline_collection` outside the Field Collector API and the transport-only
-  CLI. Every future downstream consumer must use this view before reporting,
-  publication, or other use.
+  CLI. Migration 386 adds
+  `farm_activity_source_eligible_for_use(source_system, source_id, source_raw,
+  location_id)`, which fails closed for Field Collector lineage unless the
+  exact collection, active immutable form revision, and current eligibility
+  view all agree. Canonical reports, metrics, analytics, process traces, data
+  quality, repository-owned dashboard queries, and exports apply this
+  predicate. The repository's seeded dashboards and optional Directus weekly
+  snapshot hook were updated; operator-edited dashboard SQL is not rewritten
+  unless it matches the exact repository seed template and requires separate
+  inventory/review. Retirement or inactivation moves
+  linked collections into the existing private review queue. Ineligible
+  canonical activities remain visible only through authorized operator
+  lifecycle reads with an eligibility reason; edits and forward workflow
+  transitions are blocked. Existing rejection/exception actions remain
+  available only where their governed status preconditions allow them; this is
+  not the formal retention-disposition workflow. Directus cannot express this
+  cross-table predicate in its permission DSL, so its farm-activity read
+  policies retain their existing location/status scopes while excluding
+  Field Collector rows; those records use the scoped Gateway reads instead.
+  The migration passed focused PostgreSQL 16 synthetic acceptance both with
+  and without Directus installed, and the focused application/query/console
+  suite passed (56 passed, 18 skipped). Migration 386 also passed the ordered,
+  checksummed runner on a fresh clone of the populated archived database with
+  zero pending schemas and no checksum drift. It is not deployed to the
+  candidate.
 
 ### Withdrawal and retention
 
@@ -144,22 +178,47 @@ delete append-only consent or collection evidence. There is not yet a human
 retention/erasure disposition workflow; that remains a release gate. Do not
 describe these records as erased or resolved after a withdrawal.
 
+The interim operating policy now treats affected records as restricted pending
+human disposition and prohibits automatic purge without an accountable,
+jurisdiction-aware retention owner. The generic retention sweeper explicitly
+rejects/skips protected consent, collection, media, and governed activity
+tables. This guard does not implement erasure; see the
+[retention and disposition contract](mobile-retention-disposition.md).
+An OIDC route now exposes a content-free known-lineage inventory under a
+separate `mobile_collection_retention:inventory` location grant. It is read-only
+and does not close a disposition case; downstream reports, exports, and backups
+still need reconciliation.
+
 ## Remaining policy and operational gates
 
 1. Candidate migrations 380 and 381 and the curated form seed are applied; five
    active `1.2.0` revisions now reject undeclared fields. The immutable `1.1.0`
    revisions remain retired. The pre-rollout candidate had no form or
    collection rows; on other populated databases, backfilled `1.0.0` revisions
-   remain unclassified and legacy collection rows remain unassessed. Complete
-   live device enrollment, form listing, offline capture, media upload, sync,
-   and eligibility acceptance.
-2. Specify organization-wide tenant policy. Location is the scope for this
-   mobile API only; locations must not be treated as interchangeable tenant IDs.
-3. Define the human retention/erasure disposition process for participant-linked
-   records after withdrawal and for operational records generally.
-4. Decide whether a form-authoring CLI/UI and a private review queue are needed
-   before local or production operators classify forms and review retired rows.
-5. Schema validation is implemented, focused-tested, and deployed on the local
+   remain unclassified and legacy collection rows remain unassessed. Isolated
+   HTTP checks now cover trusted enrollment, form listing, private media upload,
+   and sync. A service worker adds an offline app shell while keeping form/API
+   responses and writes network-only. Still complete real-browser offline
+   capture/reconnection, retired and consent-required withdrawal cases, and
+   downstream human disposition before treating CAP-053 as accepted.
+2. Implement the documented organization-wide tenant model and database RLS.
+   Location is the scope for this mobile API only; locations must not be treated
+   as interchangeable tenant IDs. Reconcile nullable/conflicting ownership
+   before tenant enforcement, and do not infer owner access from
+   `organization_member` relationships ([tenant contract](mobile-tenant-isolation.md)).
+3. Implement a human disposition case workflow for participant-linked records
+   after withdrawal and for operational records generally. The interim decision,
+   evidence, dual-control, and lineage requirements are defined in the
+   [retention contract](mobile-retention-disposition.md); accountable retention
+   periods and the reviewed executor remain open.
+4. Manifest validation/publication and the OIDC-scoped queue/detail routes are
+   implemented in source under the [form operations contract](mobile-form-operations.md).
+   Disposable publication and migration-trigger checks and focused source tests
+   passed. Real-provider, browser, full migration, and live grant acceptance remain open.
+5. Append-only reviewer notes are implemented in migration 382 and the OIDC console.
+   The `review` action also requires `read_detail`; notes cannot override consent
+   eligibility or publish records. Isolated PostGIS and focused route/auth checks passed.
+6. Schema validation is implemented, focused-tested, and deployed on the local
    candidate. The rollout changed five form revisions and recreated only the
    app container after a fresh encrypted checkpoint and isolated restore
    rehearsal. The legacy project remains stopped and unchanged.
@@ -182,11 +241,32 @@ active devices. The routes and console are source implementation only; no real
 OIDC provider has been configured and no live operator-to-device workflow has
 been accepted.
 
+## OIDC Field Collector review queue
+
+The optional console provides location-scoped read-only routes for synced
+Field Collector rows that have `form_review_required` or fail
+`v_mobile_collection_use_eligibility`. `mobile_collection_review:read` lists
+bounded summaries; those rows omit payload, participant link, device ID, and
+collector ID. The selected payload route requires a separate
+`mobile_collection_review:read_detail` grant, repeats the grant check in SQL,
+and refuses payloads larger than 512 KiB. It returns the immutable form
+revision, consent state, eligibility reason, timestamps, and JSON payload, but
+only a count for private photo references. It has no media download action.
+The console also appends bounded reviewer notes through a separate `review` grant plus `read_detail`, with CSRF and the
+OIDC operator identity taken from the session. Migration 382 enforces location,
+current review eligibility, evidence shape, and append-only storage. Notes
+cannot alter the eligibility view or governed lifecycle. Gateway audit records
+identify the operator and canonical location for each request; the UI renders
+returned values with `textContent`.
+
+These routes are source implementation only. A real OIDC provider is not
+configured; live grant provisioning, audit storage, location isolation against
+PostgreSQL, browser payload privacy, and media privacy acceptance remain open.
+
 ## Acceptance and rollback
 
 Focused mobile/schema checks passed (60 tests); four targeted Gateway CORS
-checks passed in the previous rollout slice. Candidate schema migrations have
-372 applied rows and zero pending; the app, database, and Metabase are healthy.
+checks passed in the previous rollout slice. The candidate now has 373 applied schema migrations through 382 with zero pending; migration 382's review-event table and two triggers are present with no events recorded. The app, database, and Metabase are healthy after an app-only rebuild ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-review-rollout.json)).
 Five `1.2.0` revisions are active with `additionalProperties: false`; five
 immutable `1.1.0` revisions remain retired, and no mobile collection rows were
 present. The live `/api/mobile/app` route returned HTTP 200 and served all five
@@ -195,17 +275,33 @@ present. The live `/api/mobile/app` route returned HTTP 200 and served all five
 request both returned HTTP 401. A separate current-image HTTP check on an
 isolated database clone used a synthetic active device: an undeclared field
 returned HTTP 422 without echoing its value or creating a row, and a valid
-`1.2.0` field note returned HTTP 200. The fixture was deleted afterward. The
-test inserted its device directly into the clone, so trusted enrollment and
-OIDC remain untested. Still required: successful enrollment-created form
-visibility; route policy and OIDC
-scope/CSRF behavior; create/revoke mapping authorization; collector/participant
-separation; exact consent at collection and sync for active and known-retired
-required revisions; missing, expired, denied, and withdrawn consent; form
-status/version/type/location mismatch; retired revision review; inactive/unknown
-revision rejection; device revocation; cross-location media; idempotent retry
-after link revocation/consent withdrawal; eligibility view behavior; and
+`1.2.0` field note returned HTTP 200. Follow-up checks used a scoped enrollment
+route to create the device, retrieved all five forms, and synced a valid field
+note; the stored record remained `transport_pending` and ineligible. A synthetic
+JPEG was then uploaded through the encrypted local adapter and attached during
+sync. These fixtures were removed. Source route/auth checks cover OIDC console
+route policy, but no real provider or operator browser session is configured.
+Still required: real-browser offline capture/reconnect, live OIDC
+scope/CSRF and enrollment/revocation; exact consent at collection and sync for
+active and known-retired required revisions; missing, expired, denied, and
+withdrawn consent; form status/version/type/location mismatch; retired revision
+review; inactive/unknown revision rejection; cross-location media; idempotent
+retry after link revocation/consent withdrawal; eligibility view behavior; and
 encrypted media recovery.
+
+The offline app-shell implementation adds explicit public Gateway routes for
+the worker alongside each supported mobile entry point. On secure origins, the
+worker stores only the static app HTML and vault helper, updates those resources
+network-first, and falls back to the cached shell for offline navigation. A
+dependency-free Node worker harness verifies offline navigation, valid paired
+shell caching, and rejection of unpaired/cross-origin cache requests; it also
+confirms that forms and sync requests are not intercepted. The focused mobile
+API and Gateway authorization suites passed 51 tests with a private temporary
+audit spool. The Field Collector queue, detail, and append-only note routes pass
+22 focused route/query/auth tests; Ruff and console JavaScript syntax checks
+pass. Migration 382 also passed isolated PostGIS assertions; no candidate app or
+database was rebuilt or changed for this source slice. These checks do not replace an actual browser airplane-mode
+capture and reconnection sync run, which remains open.
 
 The prior app image is retained as
 `kokonut-kernel-candidate-app:pre-form-schema-20261012`. Do not point that older
@@ -224,6 +320,9 @@ See the [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-r
 - Mobile routes and sync policy: `services/mobile/api.py`
 - Location-scoped route/auth policy: `services/gateway/router.py`,
   `services/gateway/operator_auth.py`, and `services/gateway/app.py`
+- OIDC review reads/events: `services/gateway/operator_mobile_review.py`,
+  `schemas/postgres/382_mobile_collection_review_events.sql`, and
+  `apps/operator-console/index.html`
 - Browser queue and participant reference input: `services/mobile/field-collector.html`
 - Additive schema and triggers: `schemas/postgres/381_mobile_consent_form_revisions.sql`
 - Canonical append-only consent: migrations 215, 320, and 322

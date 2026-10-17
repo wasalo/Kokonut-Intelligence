@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-15",
+  "scope": "Sensor CLI and shared scheduled-job no-op prevention",
+  "commands": [
+    "python3 -m pytest tests/test_sensor_ingester_cli_contract.py tests/test_sensor_ingester.py tests/test_scheduled_command_contracts.py -q",
+    "ruff check services/ingestion/sensor_ingester.py tests/test_sensor_ingester_cli_contract.py tests/test_scheduled_command_contracts.py"
+  ],
+  "results": {
+    "status": "passed",
+    "pytest_files": 3,
+    "pytest_tests": 69,
+    "ruff": "passed",
+    "module_help_without_sops_key": "passed",
+    "empty_module_invocation_without_sops_key": "exit 2 with explicit input error"
+  },
+  "covered_contracts": [
+    "Empty or conflicting operations fail before database configuration is loaded",
+    "Incomplete sensor/value and date/time combinations fail before database access",
+    "CSV, single-reading, list, and calibration commands retain their dispatch behavior",
+    "The shared sensors JobSpec rejects the missing recurring source contract before subprocess launch",
+    "Module help and missing-input errors do not require SOPS decryption"
+  ],
+  "runtime_scope": "No database, sensor provider, ClickHouse service, Prefect deployment, or schedule was accessed or changed.",
+  "remaining_gate": "Choose and implement an explicit recurring sensor source contract before enabling the hourly sensor schedule."
+}

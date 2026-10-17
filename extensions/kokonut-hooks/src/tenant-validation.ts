@@ -1,21 +1,21 @@
+import { createError } from '@directus/errors';
+import { TENANT_SCOPED_COLLECTIONS } from './directus-authorization.js';
+
 const REFERENCE_TABLES: Record<string, string[]> = {
   plot_id: ['plot'],
   crop_cycle_id: ['crop_cycle'],
   harvest_id: ['harvest_event'],
 };
 
-const TENANT_SCOPED_COLLECTIONS = [
-  'farm_activity',
-  'harvest_event',
-  'expense_event',
-  'sales_event',
-  'loss_event',
-  'labor_event',
-  'field_note',
-  'stakeholder_feedback',
-  'metric_proposal',
-  'mrv_claim',
-];
+const InvalidTenantPayloadError = createError<{ message: string }>(
+  'INVALID_PAYLOAD',
+  ({ message }) => message,
+  400,
+);
+
+function invalidTenantPayload(message: string): Error {
+  return new InvalidTenantPayloadError({ message });
+}
 
 function isUuid(value: unknown): value is string {
   return typeof value === 'string' &&
@@ -28,24 +28,30 @@ export async function validateTenantReferences(
   collection: string,
   payload: Record<string, any>
 ): Promise<Record<string, any>> {
-  if (!TENANT_SCOPED_COLLECTIONS.includes(collection)) return payload;
+  if (!(TENANT_SCOPED_COLLECTIONS as readonly string[]).includes(collection)) return payload;
 
   const locationId = payload.location_id;
-  if (!isUuid(locationId)) return payload;
+  // The request-level authorization hook rejects missing/null tenant scope;
+  // this helper validates only the explicit scope and its foreign references.
+  // An explicitly supplied but malformed scope must never skip validation.
+  if (locationId !== undefined && locationId !== null && !isUuid(locationId)) {
+    throw invalidTenantPayload('Invalid location_id');
+  }
+  if (locationId === undefined || locationId === null) return payload;
 
   for (const [field, tables] of Object.entries(REFERENCE_TABLES)) {
     const referenceId = payload[field];
     if (referenceId === undefined || referenceId === null) continue;
-    if (!isUuid(referenceId)) throw new Error(`Invalid ${field}`);
+    if (!isUuid(referenceId)) throw invalidTenantPayload(`Invalid ${field}`);
 
     let reference: any;
     for (const table of tables) {
       reference = await database(table).where('id', referenceId).first('location_id');
       if (reference) break;
     }
-    if (!reference) throw new Error(`Unknown ${field}`);
+    if (!reference) throw invalidTenantPayload(`Unknown ${field}`);
     if (reference.location_id !== locationId) {
-      throw new Error(`${field} belongs to a different location`);
+      throw invalidTenantPayload(`${field} belongs to a different location`);
     }
   }
 

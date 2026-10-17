@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-13",
+  "scope": "Migration 387 and pilot owner seed acceptance",
+  "database": {
+    "image": "postgres:16",
+    "image_id": "sha256:33f923b05f64ca54ac4407d14987db24e99a71ef047213d5385fb89ab88ba20e",
+    "network": "none",
+    "fixture": "Minimal PostgreSQL schema containing only the organization, location, farm, and organization_member columns used by the migration and owner seeds.",
+    "container_removed": true
+  },
+  "scenarios": [
+    {
+      "name": "archive-like populated ownership state",
+      "initial_state": "Adelphi assigned to the seeded Kokonut Adelphi organization; Genesis unassigned; no active organization_member rows.",
+      "steps": [
+        "Applied migration 387 twice.",
+        "Applied the final owner seed twice.",
+        "Reapplied the legacy 113 pilot organization seed."
+      ],
+      "result": "PASS: both locations resolve to org_key kokonut-network, each has exactly one active owned-primary relationship, and the legacy Kokonut Adelphi organization remains present."
+    },
+    {
+      "name": "pre-existing legacy owner relationship",
+      "initial_state": "Adelphi has an active owned-primary relationship to the legacy Kokonut Adelphi organization.",
+      "steps": ["Applied migration 387."],
+      "result": "PASS: the legacy relationship is inactive and the new Kokonut Network owned-primary relationship is active."
+    },
+    {
+      "name": "clean bootstrap ordering",
+      "initial_state": "Empty tenant tables before migration; pilot locations and farms inserted afterward.",
+      "steps": [
+        "Applied migration 387 before pilot rows.",
+        "Inserted the two pilot locations and farms.",
+        "Applied the 113 pilot organization seed and final owner seed."
+      ],
+      "result": "PASS: both locations resolve to Kokonut Network with one active owned-primary relationship each."
+    },
+    {
+      "name": "unreviewed existing owner refusal",
+      "initial_state": "Genesis assigned to a synthetic unrelated organization.",
+      "steps": ["Attempted migration 387."],
+      "result": "PASS: PostgreSQL raised 'Seed location ... has an unreviewed existing owner'; the migration transaction rolled back and retained the prior owner."
+    }
+  ],
+  "local_checks": {
+    "direct_source_function_calls": {
+      "result": "PASS",
+      "count": 16,
+      "runner": "Direct invocation of every test function in tests/test_impact_network.py; pytest was unavailable.",
+      "checks": "All 16 test functions in tests/test_impact_network.py passed."
+    },
+    "seed_script_shell_syntax": "PASS",
+    "git_diff_check": "PASS",
+    "migration_runner_discovery_and_transaction_validation": "PASS (497 files; migration 387 discovered and accepted)",
+    "pytest": "Not run: pytest was not installed; package retrieval failed because PyPI DNS/network was unavailable."
+  },
+  "source_sha256": {
+    "schemas/postgres/387_kokonut_network_tenant_ownership.sql": "dfbef3ea1ee409f679e4e2db79c54c4f868e1ae0c5efb7db4830a54df31c1f33",
+    "schemas/seeds/120_kokonut_network_ownership.sql": "b0dff814fb16a0cba2d779d2df6297adf54cba4c5ef64cc591f215acaa608b66",
+    "schemas/seeds/113_pilot_organization.sql": "090e849e8f7637870b20c84e86cf465fa6c4ab44792fb6937f5b9943fda2a635",
+    "schemas/seeds/064-068_impact_network.sql": "d9a7484aa069f2ce84dadcbf08ed4b5679e7c0baf19092103f151a9846774aa4",
+    "scripts/seed-pilot.sh": "a2e66d6cc2ef196315f2d9443d2dfed1317a561f5dbf4f335617d39b226522d1",
+    "tests/test_impact_network.py": "7bc02462d260cf632ce50b8ba510bec5a08e337b182cfc7980dad36df9cb9483"
+  },
+  "limitations": [
+    "The SQL ran against a minimal synthetic compatibility schema, not a full replay of all repository migrations or the archived database.",
+    "No candidate or legacy database was read or changed.",
+    "No tenant grants, report/dashboard backfill, transfer workflow, RLS policy, worker isolation, or application behavior was exercised."
+  ]
+}

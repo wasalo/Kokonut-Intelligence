@@ -1,0 +1,36 @@
+{
+  "date": "2026-10-12",
+  "scope": "Field Collector sync handler with PostgreSQL consent withdrawal and regrant",
+  "target": {
+    "source_compose_project": "kokonut-kernel-candidate",
+    "temporary_database": "codex_ki_consent_20261012_a91c2f5d",
+    "handler": "services.mobile.api.sync_collections"
+  },
+  "method": "Created a disposable restored clone of the candidate database, inserted synthetic location, person, reviewed required-consent form revision, participant link, device token hash, and grant/withdraw/regrant events, then called the real sync handler with the temporary database selected via PG_DB.",
+  "scenario": "A valid grant existed at collection time; withdrawal took effect after collection; a later grant was current when sync ran.",
+  "result": {
+    "handler_rejected": true,
+    "status_code": 403,
+    "detail": "Consent was withdrawn or denied after collection",
+    "offline_collection_rows_for_client": 0,
+    "upload_sync_log_rows_for_device": 0
+  },
+  "source_database_after_test": {
+    "locations": 0,
+    "parties": 0,
+    "devices": 0,
+    "form_revisions": 10,
+    "participant_links": 0,
+    "consent_events": 0,
+    "collections": 0
+  },
+  "cleanup": {
+    "temporary_database_dropped": true,
+    "temporary_dump_removed": true
+  },
+  "limitations": [
+    "The handler function was invoked directly with a real PostgreSQL connection; this did not traverse the Gateway ASGI/HTTP stack or the browser UI.",
+    "The candidate database was not modified; the temporary clone and dump were removed after the check."
+  ],
+  "rollback": "All synthetic rows were confined to the disposable database, which was dropped after the run."
+}

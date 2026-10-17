@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked EAS provider pages and in-process worker persistence fakes only; no external EAS request or database access",
+  "files": [
+    "services/ingestion/eas_worker.py",
+    "tests/test_eas_worker.py",
+    "tests/test_eas_provider.py",
+    "tests/test_eas_indexer_recovery.py"
+  ],
+  "focused_tests": 22,
+  "result": "passed",
+  "checks": [
+    "The scan stops requesting offset pages after a descending page crosses below the saved timestamp cursor",
+    "The cursor timestamp remains inclusive so same-second arrivals are reprocessed",
+    "The complete provider page is validated as newest-first before the cursor boundary is accepted",
+    "An unordered page fails before persistence or cursor advancement",
+    "Previously verified EAS GraphQL failure handling and cursor persistence behavior remain covered"
+  ],
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live provider contract was exercised",
+    "Offset-page movement under concurrent provider indexing and earlier-than-cursor arrivals remain open",
+    "This does not establish EAS runtime/provider parity or MAN-CAP-040/047 acceptance"
+  ]
+}

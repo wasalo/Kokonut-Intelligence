@@ -583,6 +583,9 @@ def intervention_impact(conn, location_id: str) -> Dict[str, Any]:
             COALESCE(SUM(labor_cost), 0) as total_cost
         FROM farm_activity
         WHERE location_id = %s
+          AND farm_activity_source_eligible_for_use(
+              source_system, source_id, source_raw, location_id
+          )
           AND activity_type IN ('irrigation', 'planting', 'spraying')
         GROUP BY activity_type
         ORDER BY activity_type

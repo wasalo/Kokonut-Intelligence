@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-16",
+  "database": "disposable PostgreSQL 16; no volume; dedicated Docker network; loopback-only port",
+  "checks": [
+    "verified-owner role grants are tenant-qualified and idempotent",
+    "active owner-issued location share permits partner-tenant role grants",
+    "conflicting existing tenant grant aborts the bundle without partial writes",
+    "expired location share is denied before any role grant"
+  ],
+  "result": "passed"
+}

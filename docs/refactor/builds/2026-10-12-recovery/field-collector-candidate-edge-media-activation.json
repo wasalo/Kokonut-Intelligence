@@ -1,0 +1,54 @@
+{
+  "acceptance": "candidate-edge-media-provider-activation-and-restart",
+  "date": "2026-10-12",
+  "compose_project": "kokonut-kernel-candidate",
+  "compose_files": [
+    "docker-compose.kernel-candidate.yml",
+    "docker-compose.kernel-metabase.yml",
+    "docker-compose.kernel-edge.yml"
+  ],
+  "scope": {
+    "provider": "local",
+    "provider_selection": "kernel-edge Compose overlay",
+    "compose_environment_source": "scripts/load-secrets.sh from encrypted .env.sops",
+    "media_key_source": "encrypted .env.sops loaded into process/container memory",
+    "media_key_value_emitted": false,
+    "secret_values_printed": false,
+    "media_key_length": 64,
+    "media_volume": "kokonut-kernel-candidate_kernel-private-media",
+    "media_mount": "/app/private-media",
+    "database_upload_rows_before": 0,
+    "database_upload_rows_after": 0,
+    "candidate_database_recreated": false,
+    "metabase_recreated": false
+  },
+  "images": {
+    "previous_image_id": "sha256:4a238b97dd2d6fa68ac68068948857b2cd93c2dbce17267f379991180fc886f8",
+    "previous_rollback_tag": "kokonut-kernel-candidate-app:pre-edge-media-6ce3c3f",
+    "active_image_id": "sha256:819eea6e1135791003a397b3cfd092a44452aa96e9558cc77a842d21207972d4",
+    "platform": "linux/amd64"
+  },
+  "checks": {
+    "edge_compose_config_validated_with_encrypted_secrets": true,
+    "only_candidate_app_recreated_for_activation": true,
+    "provider_selected_inside_running_app": "local",
+    "key_present_without_value_disclosure": true,
+    "private_volume_directory_mode": "0700",
+    "private_volume_directory_owner": "10001:10001",
+    "synthetic_write_head_delete_roundtrip_passed": true,
+    "stored_envelope_used_KKM1_and_excluded_plaintext": true,
+    "stored_object_mode": "0600",
+    "synthetic_object_authenticated_and_sha256_matched_after_app_restart": true,
+    "synthetic_object_removed": true,
+    "candidate_app_health": "healthy",
+    "candidate_database_health": "healthy",
+    "candidate_metabase_health": "healthy"
+  },
+  "limitations": [
+    "The synthetic object was exercised directly through the configured storage adapter; no mobile_media_upload row or authenticated HTTP upload/sync request was created.",
+    "No S3 objects existed in mobile_media_upload, so this did not perform an S3-to-local object migration.",
+    "Only the candidate app was recreated. The edge overlay's PostgreSQL resource limits were not applied to the already-running database container.",
+    "This local linux/amd64 candidate check does not certify ARM64 hardware, production backup retention, orphan reconciliation, tenant policy, or R2 recovery."
+  ],
+  "rollback": "The previous candidate image is retained under kokonut-kernel-candidate-app:pre-edge-media-6ce3c3f. To revert the app, retag it as latest and recreate only the app using the base candidate plus Metabase manifests, without the edge overlay. Preserve the private-media volume and key if any real local objects are written. The synthetic object and database rows are absent."
+}

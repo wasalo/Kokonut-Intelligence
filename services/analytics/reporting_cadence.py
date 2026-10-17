@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-import json
 import shlex
 import subprocess
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import psycopg2
 import psycopg2.extras
 
 from ..common.logging import get_logger
+from ..common.worker_environment import worker_subprocess_environment
 
 logger = get_logger("analytics.reporting_cadence")
 
@@ -34,7 +34,6 @@ def create_cadence(
     **kwargs,
 ) -> str:
     """Define a reporting obligation."""
-    from datetime import date as date_type
 
     freq_days = {
         "weekly": 7, "monthly": 30, "quarterly": 90,
@@ -117,7 +116,6 @@ def mark_completed(
     report_snapshot_id: str = None,
 ) -> Dict[str, Any]:
     """Mark a reporting obligation as completed and schedule next."""
-    from datetime import date as date_type
 
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute("SELECT * FROM reporting_cadence WHERE id = %s", (cadence_id,))
@@ -211,6 +209,7 @@ def trigger_auto_generation(conn, cadence_id: str) -> Dict[str, Any]:
         cmd_parts = shlex.split(command)
         result = subprocess.run(
             cmd_parts, shell=False, capture_output=True, text=True, timeout=300,
+            env=worker_subprocess_environment(),
         )
         success = result.returncode == 0
 

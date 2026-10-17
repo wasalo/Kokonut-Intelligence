@@ -26,6 +26,29 @@ Without these options, legacy ambient Compose selection is preserved. These opti
 select the destination only; checksums, ordering, locks, and transaction handling
 remain enforced. No services are started by the migration CLI.
 
+## Explicit migration selection
+
+`migrate` accepts repeated `--only-migration` options for callers that own a
+reviewed subset, such as the curated reference seeds. IDs use the full discovered
+name, for example:
+
+```bash
+python3 -m services.migration migrate \
+  --only-migration seed:000_expense_categories.sql \
+  --only-migration seed:022_metric_governance.sql
+```
+
+The runner validates all discovered sources and applied checksums, rejects an
+unknown or duplicate selected ID before applying, and preserves the order of
+the supplied IDs. Omit the option to use the regular schema-first full plan.
+Selection does not resolve dependencies: apply required schema migrations
+first. The curated seed script does that in its schema-only pass.
+When the selected list includes seed:140_mobile_forms.sql, the runner allows
+either no matching form/revision rows or a full match of all source columns and
+active revision snapshots. Partial or divergent state blocks the selected
+batch before any member runs and is checked again under table locks in the seed
+transaction. This records a verified no-op without rewriting a governed form.
+
 ## Audited historical checksum repair
 
 The runner rejects any applied migration whose recorded SHA256 differs from
@@ -141,7 +164,11 @@ reviewed execution policy exists.
 ## Modules
 
 - `cli` — Discover, track, and apply PostgreSQL schema and seed migrations.
-- `runtime_role` — Provision a bounded application runtime role.
+- `runtime_role` — Provision the Kernel app role and separate bounded
+  operator-auth login; isolate browser-session table access.
+- `directus_role` — Provision the optional Directus DML-only login on a
+  dedicated Kernel PostgreSQL instance. It revokes `PUBLIC CONNECT` across
+  that instance and restores access only through explicit role grants.
 - `analytics_role` — Provision and verify the optional curated reporting-source login.
 - `metabase_role` — Provision and verify the isolated optional Metabase metadata database/login.
 

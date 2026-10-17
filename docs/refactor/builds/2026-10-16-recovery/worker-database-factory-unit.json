@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "Isolated worker database connection factory unit checks",
+  "command": "python3 -m pytest tests/test_worker_database.py -q",
+  "result": "passed",
+  "test_count": 12,
+  "checks": [
+    "missing worker-specific DSN fails closed even when shared PG credentials are present",
+    "invalid worker keys and connection timeouts fail before connecting",
+    "the named worker DSN is used with a bounded timeout and worker application name",
+    "the authenticated database role must be kokonut_worker_login",
+    "unexpected login and autocommit connections are closed and rejected",
+    "configuration errors do not expose the DSN value"
+  ],
+  "database_access": false,
+  "candidate_or_legacy_database_access": false,
+  "worker_credential_used": false
+}

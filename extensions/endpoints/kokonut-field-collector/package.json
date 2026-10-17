@@ -1,0 +1,12 @@
+{
+  "name": "directus-extension-endpoint-kokonut-field-collector",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.js",
+  "directus:extension": {
+    "type": "endpoint",
+    "path": "index.js",
+    "source": "index.js",
+    "host": "12.1.1"
+  }
+}

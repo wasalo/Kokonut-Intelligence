@@ -20,6 +20,20 @@ logger = get_logger("ingestion.clickhouse_outbox")
 
 MAX_ATTEMPTS = 8
 LEASE_SECONDS = 300
+RETRY_BASE_SECONDS = 60
+RETRY_MAX_SECONDS = 3600
+
+
+class OutboxEnqueueError(RuntimeError):
+    """A canonical source write could not be paired with its projection."""
+
+
+def _retry_delay_seconds(attempt_count: int) -> int:
+    """Return capped exponential delay after a failed delivery attempt."""
+    if isinstance(attempt_count, bool) or not isinstance(attempt_count, int):
+        raise ValueError("Outbox attempt count must be an integer")
+    exponent = min(max(attempt_count - 1, 0), 6)
+    return min(RETRY_MAX_SECONDS, RETRY_BASE_SECONDS * (2**exponent))
 
 
 def enqueue(
@@ -34,35 +48,40 @@ def enqueue(
     payload_hash: str,
 ) -> str:
     """Insert one idempotent delivery record into the caller's transaction."""
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO clickhouse_outbox
-                (event_key, source_table, source_id, target_table, columns, rows, payload_hash)
-            VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s)
-            ON CONFLICT (event_key) DO UPDATE SET updated_at = NOW()
-            WHERE clickhouse_outbox.payload_hash = EXCLUDED.payload_hash
-              AND clickhouse_outbox.source_table = EXCLUDED.source_table
-              AND clickhouse_outbox.source_id = EXCLUDED.source_id
-              AND clickhouse_outbox.target_table = EXCLUDED.target_table
-              AND clickhouse_outbox.columns = EXCLUDED.columns
-              AND clickhouse_outbox.rows = EXCLUDED.rows
-            RETURNING id
-            """,
-            (
-                event_key,
-                source_table,
-                source_id,
-                target_table,
-                json.dumps(columns),
-                json.dumps(rows, default=str),
-                payload_hash,
-            ),
-        )
-        row = cur.fetchone()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO clickhouse_outbox
+                    (event_key, source_table, source_id, target_table, columns, rows, payload_hash)
+                VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s)
+                ON CONFLICT (event_key) DO UPDATE SET updated_at = NOW()
+                WHERE clickhouse_outbox.payload_hash = EXCLUDED.payload_hash
+                  AND clickhouse_outbox.source_table = EXCLUDED.source_table
+                  AND clickhouse_outbox.source_id = EXCLUDED.source_id
+                  AND clickhouse_outbox.target_table = EXCLUDED.target_table
+                  AND clickhouse_outbox.columns = EXCLUDED.columns
+                  AND clickhouse_outbox.rows = EXCLUDED.rows
+                RETURNING id
+                """,
+                (
+                    event_key,
+                    source_table,
+                    source_id,
+                    target_table,
+                    json.dumps(columns),
+                    json.dumps(rows, default=str),
+                    payload_hash,
+                ),
+            )
+            row = cur.fetchone()
         if row is None:
-            raise ValueError("Outbox event key conflicts with an existing projection")
+            raise OutboxEnqueueError("Outbox event key conflicts with an existing projection")
         return str(row[0])
+    except OutboxEnqueueError:
+        raise
+    except Exception as exc:
+        raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from exc
 
 
 def _recover_expired(conn) -> None:
@@ -107,7 +126,16 @@ def claim_batch(conn, worker_id: str, limit: int = 100) -> list[dict[str, Any]]:
     return rows
 
 
-def _finish(conn, row_id: str, worker_id: str, lease_token: str, *, success: bool, error: str | None = None) -> bool:
+def _finish(
+    conn,
+    row_id: str,
+    worker_id: str,
+    lease_token: str,
+    *,
+    success: bool,
+    error: str | None = None,
+    retry_delay_seconds: int = RETRY_BASE_SECONDS,
+) -> bool:
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -115,7 +143,8 @@ def _finish(conn, row_id: str, worker_id: str, lease_token: str, *, success: boo
             SET status = CASE WHEN %s THEN 'succeeded'
                               WHEN attempt_count >= %s THEN 'dead_letter'
                               ELSE 'retryable' END,
-                available_at = CASE WHEN %s THEN available_at ELSE NOW() + INTERVAL '1 minute' END,
+                available_at = CASE WHEN %s THEN available_at
+                                    ELSE NOW() + (%s * INTERVAL '1 second') END,
                 delivered_at = CASE WHEN %s THEN NOW() ELSE delivered_at END,
                 last_error = %s, lease_owner = NULL, lease_token = NULL,
                 lease_expires_at = NULL, updated_at = NOW()
@@ -123,7 +152,8 @@ def _finish(conn, row_id: str, worker_id: str, lease_token: str, *, success: boo
               AND lease_owner = %s AND lease_token = %s
               AND lease_expires_at > NOW()
             """,
-            (success, MAX_ATTEMPTS, success, success, error, row_id, worker_id, lease_token),
+            (success, MAX_ATTEMPTS, success, retry_delay_seconds, success, error,
+             row_id, worker_id, lease_token),
         )
         changed = cur.rowcount == 1
     conn.commit()
@@ -152,7 +182,8 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
             logger.warning("ClickHouse client setup failed (%s)", type(exc).__name__)
             for row in rows:
                 _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),
-                        success=False, error=f"client setup failed: {type(exc).__name__}")
+                        success=False, error=f"client setup failed: {type(exc).__name__}",
+                        retry_delay_seconds=_retry_delay_seconds(row.get("attempt_count", 1)))
             return {"claimed": len(rows), "delivered": 0, "failed": len(rows)}
         for row in rows:
             error = None
@@ -181,7 +212,8 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
             # Database failure is not a transport failure. Let it propagate;
             # durable leases recover unfinished rows after expiry.
             ok = _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),
-                         success=inserted, error=error)
+                         success=inserted, error=error,
+                         retry_delay_seconds=_retry_delay_seconds(row.get("attempt_count", 1)))
             if inserted and ok:
                 delivered += 1
             else:

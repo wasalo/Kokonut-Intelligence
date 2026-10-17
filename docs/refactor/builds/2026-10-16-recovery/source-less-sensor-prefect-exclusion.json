@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-16",
+  "scope": "Source and focused test acceptance for excluding source-less sensor ingestion from composite Prefect flows and cron guidance.",
+  "changes": [
+    "The composite ingestion pipeline submits and waits for weather, market data, EAS, RPC, and Gnosis jobs; it does not submit sensors.",
+    "The hourly schedule continues anomaly detection and freshness checks without invoking the standalone sensor flow.",
+    "The standalone sensor flow retains the recurring-source rejection path.",
+    "Worker cron guidance no longer advertises a no-input sensor ingestion command."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_prefect_workflow.py tests/test_scheduled_command_contracts.py tests/test_core_jobs_contract.py tests/test_worker_job_contract_inventory.py -q",
+    "pytest": {
+      "passed": 116,
+      "failed": 0
+    },
+    "worker_job_contract_inventory": "passed",
+    "ruff": "passed for changed Python source and tests",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No database, provider, external Prefect server, persisted schedule, or deployment was accessed or changed.",
+    "A recurring sensor source adapter and its input contract remain unimplemented; scheduling remains rejected until one is defined.",
+    "This source-level flow check does not verify live Prefect retries, deployment activation, or runtime task state."
+  ]
+}

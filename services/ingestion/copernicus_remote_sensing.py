@@ -38,10 +38,13 @@ def _get_token() -> Optional[str]:
     1. Resource Owner Password Credentials (email + password) — default
     2. Client Credentials (client_id + client_secret) — for registered apps
     """
-    email = os.environ.get("COPERNICUS_EMAIL")
-    password = os.environ.get("COPERNICUS_PASSWORD")
-    client_id = os.environ.get("COPERNICUS_CLIENT_ID")
-    client_secret = os.environ.get("COPERNICUS_CLIENT_SECRET")
+    def credential(name: str) -> Optional[str]:
+        return os.environ.get(f"KOKONUT_REMOTE_SENSING_{name}") or os.environ.get(name)
+
+    email = credential("COPERNICUS_EMAIL")
+    password = credential("COPERNICUS_PASSWORD")
+    client_id = credential("COPERNICUS_CLIENT_ID")
+    client_secret = credential("COPERNICUS_CLIENT_SECRET")
 
     # Method 1: Email/password (Resource Owner Password Credentials)
     if email and password:
@@ -84,27 +87,21 @@ def _get_token() -> Optional[str]:
     return None
 
 
-def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
-    """Fetch Sentinel-2 data via Copernicus Data Space.
-
-    Uses the OData catalog API to search for available products.
-    Downloads are not implemented (would require large data transfer);
-    instead, we catalog available scenes and store metadata.
-
-    Args:
-        conn: PostgreSQL connection.
-        job: Remote sensing job record.
-
-    Returns:
-        Dict with status, observations count, and details.
-    """
+def fetch_copernicus_records(job: Dict[str, Any]) -> tuple[Dict[str, Any], list[Dict[str, Any]]]:
+    """Fetch and normalize Copernicus products without opening a database."""
     token = _get_token()
     if not token:
-        return {"status": "error", "message": "Copernicus token unavailable", "observations": 0, "retryable": False}
+        return (
+            {"status": "error", "message": "Copernicus token unavailable", "observations": 0, "retryable": False},
+            [],
+        )
 
     bbox = _resolve_bbox(job)
     if not bbox:
-        return {"status": "error", "message": "No bbox available", "observations": 0, "retryable": False}
+        return (
+            {"status": "error", "message": "No bbox available", "observations": 0, "retryable": False},
+            [],
+        )
 
     location_id = str(job["location_id"])
     cloud_max = float(job.get("cloud_max_pct", 20))
@@ -115,7 +112,6 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
     start_date = end_date - timedelta(days=job.get("cadence_days", 7) * 2)
 
     # Search for Sentinel-2 L2A products
-    bbox_str = f"{bbox['west']} {bbox['south']} {bbox['east']} {bbox['north']}"
     params = {
         "$filter": (
             f"Collection/Name eq 'SENTINEL-2' "
@@ -136,15 +132,14 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
         logger.error("Copernicus catalog query failed: %s", e)
         status_code = getattr(getattr(e, "response", None), "status_code", None)
         retryable = isinstance(e, (Timeout, ConnectionError)) or status_code in (429, 500, 502, 503, 504)
-        return {"status": "error", "message": str(e), "observations": 0, "retryable": retryable}
+        return ({"status": "error", "message": str(e), "observations": 0, "retryable": retryable}, [])
 
     if not products:
         logger.info("No Copernicus products for location %s", location_id[:8])
-        return {"status": "success", "observations": 0, "message": "No products found"}
+        return ({"status": "success", "observations": 0, "message": "No products found"}, [])
 
-    # Store product metadata as observations
     now = datetime.now(timezone.utc)
-    observations = 0
+    records = []
 
     for product in products:
         product_id = product.get("Id", "")
@@ -171,15 +166,23 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
             }),
         }
 
+        records.append(record)
+
+    return ({"status": "success", "observations": len(records), "products_found": len(products)}, records)
+
+
+def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
+    """Fetch and persist Copernicus products through the interactive adapter."""
+    result, records = fetch_copernicus_records(job)
+    for record in records:
         pg_id = _insert_pg(conn, record)
         record["id"] = pg_id
         if not record.get("_duplicate"):
             _insert_ch(record, conn)
-
         log_ingestion(
             source_system="copernicus_api",
             source_table="sentinel2_product",
-            source_id=product_id,
+            source_id=record["source_id"],
             target_table="remote_sensing_observation",
             target_id=pg_id,
             operation="insert",
@@ -187,9 +190,7 @@ def fetch_copernicus(conn, job: Dict[str, Any]) -> Dict[str, Any]:
             status="success",
             rows_affected=0 if record.get("_duplicate") else 1,
         )
-        observations += 1
-
-    return {"status": "success", "observations": observations, "products_found": len(products)}
+    return result
 
 
 def _resolve_bbox(job: Dict[str, Any]) -> Optional[Dict[str, float]]:
@@ -256,6 +257,8 @@ def _insert_ch(record: dict, conn=None) -> None:
             columns, rows,
         )
     except Exception as e:
+        if conn is not None:
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 

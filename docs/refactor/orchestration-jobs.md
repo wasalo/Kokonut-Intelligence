@@ -2,11 +2,13 @@
 
 ## Implemented boundary
 
-`services/core/jobs.py` defines thirteen immutable command specifications and
-`run_job(job_id, location_id=...)`. It imports no orchestration SDK or domain
+`services/core/jobs.py` defines sixteen immutable command specifications and
+`run_job(job_id, location_id=..., driver_instance_id=...)`. It imports no orchestration SDK or domain
 service. Commands use the current Python interpreter, fixed module names,
-fixed arguments, and the existing operation timeouts. Weather and climate accept
-a location override, validated as a UUID; climate requires it. Results retain the legacy status and
+fixed arguments, and the existing operation timeouts. Location-scoped weather,
+weather forecast, anomaly, climate, metrics, credit checks, remote sensing, and
+sensor pulls validate their required UUID inputs before process creation.
+Results retain the legacy status and
 last 500 stdout characters. Nonzero exits and timeouts propagate to the owner.
 Captured subprocess output still uses memory; this is not a bounded log store.
 
@@ -27,9 +29,16 @@ against the selected Prefect installation remains pending.
 
 The catalog is not a schedule registry and creates no database rows.
 `scheduler_allowed` reports the existing execution allowlist; it does not grant
-permission. Credit adjustment checks remain outside that allowlist. Calling a
-known operation explicitly does not expand database-driven scheduler authority.
-The scheduler must continue validating its stored module paths independently.
+permission. The credit adjustment JobSpec uses a dedicated read-only entrypoint;
+the new weather-forecast module is allowlisted only for its one-location
+command contract. Neither entry permits other interactive operations. Calling a known
+operation explicitly does not expand database-driven scheduler authority. The
+scheduler must continue validating its stored module paths independently.
+
+The source-level dispatcher, cadence, cutover, and replay inventory is in the
+[schedule ownership record](schedule-ownership-inventory.md). It distinguishes
+these operation specifications from Prefect deployments, legacy cron examples,
+historical scheduler seeds, and the long-running event worker.
 
 `run_job` performs one attempt. It owns no leases, retry loops, run state, or
 cron dispatcher. Adoption by the durable PostgreSQL scheduler requires an
@@ -40,10 +49,26 @@ weekly, and manual deployment definitions have not changed.
 
 Metrics still compute draft values; independent human verification is required.
 Credit operations use `--check-adjustments`; this does not confirm retirements.
-Sensor invocation preserves the baseline no-argument command, which prints
-help and exits successfully rather than ingesting readings. Select an explicit
-source/input contract before certifying automated ingestion; do not treat its
-current zero exit code as evidence of sensor work.
+The scheduled anomaly JobSpec requires one location, and its Prefect adapter
+fans out over active Kokonut Network locations. Scoped anomaly and baseline
+checks keep their sensor/baseline reads and resulting alert records on that
+location. An unscoped interactive CLI run retains the all-location behavior.
+The hourly Prefect flow and full-ingestion composite no longer call the
+source-less sensor operation. The hourly schedule now covers anomaly detection
+and freshness only. Sensor ingestion has a disabled native JobSpec only for a
+registered location-bound driver instance; CSV pulls are bounded and MQTT
+remains event-driven. Five-day forecasts have a separate disabled native
+JobSpec requiring one location; the repository has no dedicated Prefect or
+cron forecast schedule. Neither operation is activated or tenant-authorized by
+the JobSpec. The CLI rejects missing, incomplete, and conflicting
+input modes instead of printing help and exiting successfully; its help and validation
+paths also avoid loading SOPS/database configuration. Explicit CSV,
+single-reading, list, and calibration operations retain their dispatch. The
+shared `sensors` JobSpec rejects calls missing either its location or
+driver-instance UUID before subprocess launch, so the Prefect wrapper cannot
+report a successful no-op. HTTP and MQTT transports remain available. Recurring
+sensor execution remains disabled pending real source, identity, tenant, and
+schedule-owner review.
 
 Remote sensing now delegates to the shared job catalog without changing its
 internal durable job claims or retry state. It remains outside the scheduler
@@ -65,13 +90,19 @@ checkpoint; a flow retry repeats completed locations, so idempotency remains a
 cutover gate. Climate CLI zero exits can still contain skipped provider results;
 the fan-out reports process outcomes, not verified acquisition of every dataset.
 
-## Acceptance gates still pending
+## Acceptance status
 
-1. Contract checks for fixed argv, interpreter, timeouts, nonzero exits, and
-   weather/climate UUID validation, with subprocess execution substituted.
+1. **Source dispatcher contract passed:** focused checks cover fixed interpreter,
+   module/argv, configured timeout argument, nonzero exit reporting, climate's required
+   location, and rejection of source-less sensor dispatch before process launch
+   (`tests/test_core_jobs_contract.py` and
+   `tests/test_scheduled_command_contracts.py`). The subprocess is substituted;
+   no provider or database is contacted.
 2. Prefect runtime checks for parallel submission, task retry settings,
    metrics-before-dependent-work ordering, and failure propagation.
-3. Confirm standalone flow names and deployment schedules resolve unchanged.
+3. Confirm standalone flow names and deployment schedules resolve unchanged in
+   the selected Prefect runtime; current tests inspect the checked-in source and
+   deployment file only.
 4. Check climate UUID conversion, cursor/connection cleanup on read failure,
    partial failure reports, timeouts, remaining-location continuation, and empty
    batches. Reconcile sensor input and climate/remote-sensing provider outcomes
@@ -79,9 +110,10 @@ the fan-out reports process outcomes, not verified acquisition of every dataset.
 5. Rehearse restart, lease expiry, duplicate delivery, and rollback before
    transferring any dispatcher ownership to the PostgreSQL scheduler.
 
-No runtime tests, migrations, deployment activation, or dispatcher cutover were
-performed in this slice. Static lint and provider boundary checks are separate
-from these acceptance gates.
+The new dispatcher checks are source-level and substitute subprocess execution.
+No Prefect server, provider, database, schedule activation, migration, or
+dispatcher cutover was exercised. Static lint and provider-boundary checks do
+not close those runtime gates.
 
 ## Rollback
 

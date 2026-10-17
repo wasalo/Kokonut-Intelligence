@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_unit",
+  "report_registry_size_from_source_inventory": 94,
+  "focused_test_file": "tests/test_report_generator_cli.py",
+  "focused_tests": 11,
+  "checks": [
+    "bulk report generation requires an explicit location or explicit all-locations scope",
+    "ordinary report generation requires a location unless the report is in the existing network-level allowlist",
+    "conflicting all-locations and location selectors are rejected",
+    "list and verify commands reject conflicting generation options",
+    "snapshot verification works without a report-type argument"
+  ],
+  "ruff": "passed",
+  "database_accessed": false,
+  "provider_accessed": false,
+  "runtime_or_populated_report_parity": "not established",
+  "named_capability_acceptance": "not established"
+}

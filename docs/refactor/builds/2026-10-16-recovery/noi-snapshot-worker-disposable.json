@@ -1,0 +1,21 @@
+{
+  "schema_migrations": [
+    405,
+    419,
+    425
+  ],
+  "checks": [
+    "migrations 405, 419, and 425 apply in order; migration 425 replays cleanly",
+    "signed location-A worker inserts and idempotently refreshes only its snapshots; a stale cross-location conflict remains unchanged",
+    "bounded function denies a missing signed worker context",
+    "worker context rejects a location without an exact owner/resource/action grant",
+    "bounded function rejects a requested location different from signed context",
+    "worker login and execution role have no direct source/target table access; runtime cannot call the bounded function",
+    "signed worker context is transaction-local and absent after commit"
+  ],
+  "candidate_or_legacy_database_accessed": false,
+  "feature_enabled": false,
+  "worker_credentials_provisioned": false,
+  "application_rls_enabled": false,
+  "completed_at_utc": "2026-10-17T03:32:33.244200+00:00"
+}

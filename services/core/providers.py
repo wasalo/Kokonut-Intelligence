@@ -19,6 +19,7 @@ class ProviderSettings:
     metabase: bool = True
     mqtt: bool = True
     prefect: bool = False
+    legacy_dataset_sql: bool = False
 
     @classmethod
     def from_environment(cls, environment: Mapping[str, str] | None = None) -> ProviderSettings:

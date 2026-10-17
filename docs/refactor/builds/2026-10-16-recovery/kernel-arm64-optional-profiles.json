@@ -1,0 +1,65 @@
+{
+  "checked_at_utc": "2026-10-16T04:25:25Z",
+  "source_revision": "46945f72176535b33caec52ae67336a2b3b0a577",
+  "worktree_contains_uncommitted_profile_changes": true,
+  "scope": "ARM64 software compatibility for ClickHouse analytics, Directus, and HTTP sensor profile selection",
+  "clickhouse_application": {
+    "build_command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=true --tag kokonut-kernel-clickhouse:arm64-smoke-20261016 --load --quiet -f Dockerfile.kernel .",
+    "build_result": "passed",
+    "image_manifest": "sha256:303401414b70d0a963d1952a49c15c9f3cd29253964696d15d5d9f0ab2b78a0d",
+    "runtime": {
+      "platform": "linux/arm64",
+      "reported_architecture": "aarch64",
+      "user": "appuser",
+      "network": "none",
+      "clickhouse_connect_import": "passed",
+      "clickhouse_connect_version": "1.10.0",
+      "runtime_cli_help": "passed"
+    }
+  },
+  "clickhouse_server": {
+    "image": "clickhouse/clickhouse-server:25.8@sha256:a9d328123ff8a61bf6b16448528b577d59deb85758172e13b09054b0727f8adf",
+    "linux_arm64_manifest": "sha256:2173163006e08f6b6670017deff19be554b9a05812d11f1c08b027ecf55d7a60",
+    "runtime_platform": "linux/arm64",
+    "network": "none",
+    "one_shot_version_check": "passed",
+    "version": "25.8.28.1"
+  },
+  "directus": {
+    "image": "directus/directus:12.1.1@sha256:27fd291463f4e746a7911139377a1dbc7a5c09ae82ee15b028b97bcc4950c69d",
+    "linux_arm64_manifest": "sha256:4d4c22d0cfe834d0b521e0ad3630e5d387edc509309d32abd307b39fdf37a93c",
+    "runtime_platform": "linux/arm64",
+    "network": "none",
+    "node_architecture": "arm64",
+    "node_version": "v22.23.1"
+  },
+  "http_sensor": {
+    "kernel_application_image": "sha256:4c80c96e8f18b5029bfa8df4e24b29b6a05fc4caedf315071b9bc0aeab2265ff",
+    "runtime_platform": "linux/arm64",
+    "cli_help": "passed",
+    "compose_service_platform": "linux/arm64"
+  },
+  "compose_and_source_checks": {
+    "command": "python3 -m pytest tests/test_kernel_profile.py tests/test_compose_zitadel_profile.py -q",
+    "tests_passed": 27,
+    "all_selected_services_resolve_to_linux_arm64": true,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "valid; 66 rows; no MAN-CAP acceptance changed",
+    "git_diff_check": "passed"
+  },
+  "runtime_state": {
+    "clickhouse_server_started_as_service": false,
+    "directus_server_or_bootstrap_started": false,
+    "candidate_compose_stack_replaced_or_restarted": false,
+    "candidate_app_database_metabase_and_proxy_remained_healthy": true,
+    "temporary_smoke_images_removed": true
+  },
+  "limitations": [
+    "QEMU/container checks verify software compatibility only; no Raspberry Pi hardware or resource/performance acceptance was performed.",
+    "No live ClickHouse database, projection, or analytics query was run.",
+    "No Directus bootstrap, extension hook, database permission, authorization, or tenant/RLS behavior was exercised.",
+    "The HTTP sensor was checked through the application image and merged profile configuration; no sensor traffic or PostgreSQL write was sent.",
+    "Physical power/storage/network failures, 24-hour behavior, and scale/failover checks remain open."
+  ]
+}

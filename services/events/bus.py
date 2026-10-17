@@ -3,18 +3,40 @@
 from __future__ import annotations
 
 import importlib
-import inspect
 import json
-import multiprocessing
+import subprocess
+import sys
 import uuid
 from datetime import datetime, timezone
-from queue import Empty
 from typing import Any
 
 from services.common.logging import get_logger
+from services.common.worker_environment import (
+    event_handler_worker_policy,
+    worker_subprocess_environment,
+)
 from services.security.execution_allowlist import validate_event_handler
 
 logger = get_logger("events.bus")
+
+
+def _handler_child_environment(module_path, function_name, environ=None):
+    """Copy the environment with only an exact handler's worker identity.
+
+    Handler registrations are database-backed, so worker access must be
+    selected from this source-controlled mapping rather than event metadata or
+    registration fields.
+    """
+    allowed_worker_keys, isolated = event_handler_worker_policy(
+        module_path,
+        function_name,
+        environ=environ,
+    )
+    return worker_subprocess_environment(
+        allowed_worker_keys=allowed_worker_keys,
+        isolated_database_credentials=isolated,
+        environ=environ,
+    )
 
 
 def resolve_handler(module_path: str, function_name: str):
@@ -26,31 +48,21 @@ def resolve_handler(module_path: str, function_name: str):
     return handler
 
 
-def _handler_process(result_queue, module_path, function_name, event_type, payload, event_id=None):
-    """Invoke a handler in an isolated process so its deadline is enforceable."""
-    try:
-        handler = resolve_handler(module_path, function_name)
-        if "event_id" in inspect.signature(handler).parameters:
-            handler(event_type, payload, event_id=event_id)
-        else:
-            handler(event_type, payload)
-        result_queue.put((True, None))
-    except BaseException as exc:  # Child must report all handler failures.
-        result_queue.put((False, f"{type(exc).__name__}: {exc}"))
-
-
 class EventBus:
     """Publish and deliver events with leases and per-handler idempotency."""
 
-    def __init__(self, conn=None, lease_seconds: int = 300):
+    def __init__(self, conn=None, lease_seconds: int = 300, connect_timeout: int | None = None):
         self._conn = conn
         self._owns_conn = conn is None
         self.lease_seconds = lease_seconds
+        self.connect_timeout = connect_timeout
 
     def _get_conn(self):
         if self._conn is None:
             from services.common.database import get_db
-            self._conn = get_db()
+            self._conn = (
+                get_db() if self.connect_timeout is None else get_db(connect_timeout=self.connect_timeout)
+            )
         return self._conn
 
     def close(self):
@@ -60,8 +72,8 @@ class EventBus:
 
     def publish(self, event_type: str, payload: dict[str, Any], *, event_id=None,
                 source_table=None, source_id=None, priority="normal", max_retries=3,
-                metadata=None) -> str:
-        """Persist an event, optionally using an ID allocated by its transaction owner."""
+                metadata=None, commit: bool = True) -> str:
+        """Persist an event, optionally leaving transaction control to the caller."""
         if event_id is None:
             event_id = str(uuid.uuid4())
         else:
@@ -79,10 +91,12 @@ class EventBus:
                     VALUES (%s, %s, %s, %s, %s, %s, 'pending', %s, %s)
                 """, (event_id, event_type, source_table, source_id, json.dumps(payload),
                       priority, max_retries, json.dumps(metadata) if metadata else None))
-            conn.commit()
+            if commit:
+                conn.commit()
             return event_id
         except Exception:
-            conn.rollback()
+            if commit:
+                conn.rollback()
             raise
 
     def _claim(self, batch_size: int, worker_id: str):
@@ -206,22 +220,46 @@ class EventBus:
     def _invoke_handler(
         self, module_path, function_name, event_type, payload, timeout_seconds, *, event_id=None
     ):
-        ctx = multiprocessing.get_context("spawn")
-        result_queue = ctx.Queue(maxsize=1)
-        process = ctx.Process(target=_handler_process, args=(
-            result_queue, module_path, function_name, event_type, payload, event_id
-        ))
-        process.start()
-        process.join(timeout_seconds)
-        if process.is_alive():
-            process.terminate()
-            process.join()
-            return "timeout", f"Handler exceeded {timeout_seconds}s timeout"
+        request = {
+            "module_path": module_path,
+            "function_name": function_name,
+            "event_type": event_type,
+            "payload": payload,
+            "event_id": event_id,
+        }
         try:
-            succeeded, error = result_queue.get(timeout=1)
-        except Empty:
-            return "error", f"Handler process exited with code {process.exitcode}"
-        return ("success", None) if succeeded else ("error", error[:500])
+            request_body = json.dumps(request)
+        except (TypeError, ValueError):
+            return "error", "Handler request could not be encoded"
+        try:
+            process = subprocess.Popen(
+                [sys.executable, "-m", "services.events.handler_runner"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=None,
+                text=True,
+                env=_handler_child_environment(module_path, function_name),
+            )
+        except OSError as exc:
+            return "error", f"Handler process could not start: {type(exc).__name__}"
+        try:
+            output, _ = process.communicate(request_body, timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.communicate()
+            return "timeout", f"Handler exceeded {timeout_seconds}s timeout"
+        if process.returncode != 0:
+            return "error", f"Handler process exited with code {process.returncode}"
+        try:
+            result = json.loads(output)
+        except (TypeError, json.JSONDecodeError):
+            return "error", "Handler process returned an invalid result"
+        if not isinstance(result, dict):
+            return "error", "Handler process returned an invalid result"
+        if result.get("succeeded") is True:
+            return "success", None
+        error = result.get("error")
+        return "error", str(error or "Handler failed")[:500]
 
     def _complete(self, event_id, worker_id):
         conn = self._get_conn()
@@ -319,12 +357,106 @@ class EventBus:
                             WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY status""")
             return dict(cur.fetchall())
 
-    def cleanup_old_events(self, days: int = 30):
+    def cleanup_old_events(self, actor: str = "cli"):
+        if not isinstance(actor, str) or not actor.strip():
+            raise ValueError("actor is required for retention audit")
+        from services.events.retention import require_event_retention_cleanup
+
+        require_event_retention_cleanup()
         conn = self._get_conn()
-        with conn.cursor() as cur:
-            cur.execute("""DELETE FROM platform_event
-                            WHERE created_at < NOW() - (%s * INTERVAL '1 day')
-                              AND status IN ('completed', 'dead_letter')""", (days,))
-            count = cur.rowcount
-        conn.commit()
-        return count
+        try:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT pg_advisory_xact_lock(hashtext('kokonut.retention.legal_hold'))"
+                )
+                cur.execute(
+                    """
+                    SELECT id, retention_days
+                    FROM data_retention_policy
+                    WHERE data_category = 'event_bus'
+                      AND entity_type = 'platform_event'
+                      AND location_id IS NULL
+                      AND jurisdiction_code IS NULL
+                      AND purpose_code IS NULL
+                      AND retention_days > 0
+                      AND deletion_method = 'hard_delete'
+                      AND legal_hold = FALSE
+                      AND auto_enforce = TRUE
+                      AND enforcement_status = 'active'
+                      AND NULLIF(BTRIM(approved_by), '') IS NOT NULL
+                      AND NULLIF(BTRIM(policy_owner), '') IS NOT NULL
+                      AND approval_date IS NOT NULL
+                      AND status = 'active'
+                      AND NOT EXISTS (
+                          SELECT 1 FROM data_retention_policy overlap
+                          WHERE overlap.id <> data_retention_policy.id
+                            AND overlap.data_category = 'event_bus'
+                            AND overlap.entity_type = 'platform_event'
+                            AND overlap.status = 'active'
+                      )
+                    FOR SHARE
+                    """
+                )
+                policies = cur.fetchall()
+                if len(policies) != 1:
+                    raise RuntimeError(
+                        "Event cleanup requires exactly one approved, active "
+                        "event_bus/platform_event hard-delete policy; no pruning was performed."
+                    )
+                policy_id, days = policies[0]
+                if isinstance(days, bool) or not isinstance(days, int) or days < 1:
+                    raise RuntimeError(
+                        "The approved event retention policy has no valid window; "
+                        "no pruning was performed."
+                    )
+
+                cur.execute(
+                    """
+                    WITH removed AS (
+                        DELETE FROM platform_event
+                        WHERE created_at < NOW() - make_interval(days => %s)
+                          AND status IN ('completed', 'dead_letter')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM event_dead_letter dead
+                              WHERE dead.original_event_id = platform_event.id
+                                AND dead.disposition = 'pending'
+                          )
+                          AND NOT EXISTS (
+                              SELECT 1 FROM event_handler_delivery delivery
+                              WHERE delivery.event_id = platform_event.id
+                                AND delivery.status <> 'success'
+                          )
+                          AND NOT EXISTS (
+                              SELECT 1 FROM data_retention_legal_hold hold
+                              WHERE hold.entity_type = 'platform_event'
+                                AND hold.entity_id = platform_event.id
+                                AND hold.released_at IS NULL
+                          )
+                        RETURNING id
+                    )
+                    SELECT COUNT(*) FROM removed
+                    """,
+                    (days,),
+                )
+                count = int(cur.fetchone()[0])
+                cur.execute(
+                    """
+                    INSERT INTO data_retention_enforcement_log
+                        (policy_id, actor, dry_run, status, candidates, affected)
+                    VALUES (%s, %s, FALSE, 'completed', %s, %s)
+                    """,
+                    (policy_id, actor.strip(), count, count),
+                )
+                cur.execute(
+                    """
+                    UPDATE data_retention_policy
+                    SET last_enforced_at = NOW(), updated_at = NOW()
+                    WHERE id = %s
+                    """,
+                    (policy_id,),
+                )
+            conn.commit()
+            return count
+        except Exception:
+            conn.rollback()
+            raise

@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-13",
+  "scope": "Batch 3 native farm-activity draft-edit source verification",
+  "source_commit_base": "62643c4",
+  "result": "passed",
+  "focused_tests": {
+    "command": "PYTHONPATH=. .venv/bin/pytest tests/test_migration.py tests/test_mobile_form_validation.py tests/test_farm_activity_workflow.py tests/test_farm_activity_lifecycle.py tests/test_operator_auth.py tests/test_operator_console_farm_activity.py -q",
+    "result": "95 passed",
+    "coverage": [
+      "ordered migration runner behavior",
+      "immutable form payload validation",
+      "location-scoped intake promotion and grant locks",
+      "draft edit schema validation, canonical field update, grant locks, and rollback behavior",
+      "OIDC route scope combinations, CSRF, and strict request shape",
+      "operator console draft-state, grant filtering, correction reason, and same-origin PATCH contract"
+    ]
+  },
+  "ruff": {
+    "command": ".venv/bin/ruff check services/gateway/farm_activity_lifecycle.py tests/test_farm_activity_lifecycle.py tests/test_farm_activity_workflow.py tests/test_operator_auth.py tests/test_operator_console_farm_activity.py",
+    "result": "All checks passed"
+  },
+  "disposable_postgresql": {
+    "result": "passed",
+    "image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "schema_scope": "All 376 ordered PostgreSQL schema migrations through 385; seeds excluded; applied with services.migration.cli",
+    "isolation": {
+      "data_directory": "tmpfs",
+      "network_mode": "none",
+      "published_ports": false,
+      "persistent_volumes": false
+    },
+    "database_checks": {
+      "synthetic_native_draft_created_with_review_evidence": true,
+      "draft_edit_recorded_same_state_append_only_event": true,
+      "changed_fields_matched_canonical_update": true,
+      "event_content_digest_matched_canonical_fields": true,
+      "free_text_copied_to_event_metadata": false,
+      "event_update_rejected": true,
+      "injected_event_insert_failure_rolled_back_content_update": true,
+      "injected_event_insert_failure_left_event_count_unchanged": true
+    },
+    "cleanup": "Disposable container and ephemeral Compose resources removed; temporary SQL and Compose files removed."
+  },
+  "candidate": {
+    "changed": false,
+    "status": "Migration 385 and the source app were not deployed. The candidate remains on migrations 383–384 pending a separate checkpointed rollout."
+  },
+  "limitations": [
+    "Console verification was source-level; no browser acceptance was run.",
+    "OIDC provider configuration and real login/session acceptance remain open.",
+    "The PostgreSQL trigger fixture exercised actual migration functions and triggers with direct SQL; the service transaction was separately covered by unit tests.",
+    "MAN-CAP-001, populated candidate workflow acceptance, and higher-contention stress remain open."
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "check": "clean_postgresql_schema_bootstrap",
+  "date": "2026-10-14",
+  "result": "passed",
+  "runner": {
+    "script": "scripts/verify-clean-bootstrap.sh",
+    "schema_migrations_discovered": 388,
+    "schema_migrations_applied": 388,
+    "failed": 0,
+    "seeds_applied": false
+  },
+  "isolated_compose": {
+    "compose_file": "docker-compose.kernel-recovery.yml",
+    "project": "kokonut-kernel-bootstrap-20261014",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "internal_network_only": true,
+    "host_ports_published": false,
+    "temporary_database_dropped": true,
+    "container_removed": true,
+    "network_removed": true,
+    "volume_removed": true
+  },
+  "secrets_loader": {
+    "shell_loader_decrypted_environment_once": true,
+    "python_subprocess_reused_exported_environment": true,
+    "secret_values_emitted_or_recorded": false,
+    "focused_environment_tests_passed": 9,
+    "focused_migration_tests_passed": 31
+  },
+  "post_run_isolation_check": {
+    "candidate_services_healthy": true,
+    "candidate_applied_ledger_rows": 383,
+    "candidate_migration_391_present": true,
+    "candidate_migrations_392_through_397_present": false,
+    "legacy_project_touched": false
+  },
+  "static_checks": {
+    "bash_syntax": "passed",
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "This bootstraps schema migrations only; curated seed behavior and populated-data migration behavior are assessed separately.",
+    "No application RLS was enabled and no Raspberry Pi hardware was used."
+  ]
+}

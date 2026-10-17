@@ -9,11 +9,11 @@ All work follows a 3-step branch → PR → merge flow:
    - `git checkout -b feat/my-feature main`
 
 2. **Commit & PR**: Commit locally, push the branch, and open a PR to `main`.
-   - Use TOD agent skills (`work-on-issue`, `submit-pull-request-work`) to create PRs via OneDev.
+   - Open and review pull requests through GitHub; require the repository's CI and Security checks before merging.
    - Never push directly to `main`.
 
 3. **Merge**: When CI passes, merge the PR into `main`.
-   - Use TOD agent skills (`submit-pull-request-work`) or merge via OneDev UI.
+   - Merge through GitHub after required checks and reviews pass.
    - Delete the feature branch after merge.
 
 **Exception**: Hotfixes may be committed directly to `main` with a follow-up PR for any ancillary changes.
@@ -78,15 +78,26 @@ Commands:
 - Scheduler claims, run state, event delivery, notification delivery, retries, and dead-letter disposition are durable database state. Preserve leases, idempotency, bounded retries, and explicit operator replay/disposal.
 - Credit writes must preserve batch/account custody and supply invariants. Retirement reserves quantity atomically and requires an independent human confirmation before final balance mutation or certificate use.
 - Threatcasting/backcasting outputs and Delphi facilitator recommendations are advisory. Preserve governed lifecycle, evidence links, and human approval boundaries.
-- Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
+- Focused platform-integrity tests: `python3 -m pytest tests/test_migration.py tests/test_gateway_auth.py tests/test_scheduler_durability.py tests/test_kgp_worker_durability.py tests/test_event_worker_recovery.py tests/test_event_bus_durability.py tests/test_directus_tenant_permissions.py tests/test_carbon_credits.py tests/test_threatcasting.py tests/test_backcasting_enhancements.py tests/test_delphi.py -v`
 
 ## Local Commands
 
 - Check Kernel dependency group alignment: `python3 scripts/check-requirement-groups.py`
 - Check optional provider import boundaries: `python3 scripts/check-provider-boundaries.py`
+- Check runtime-role boundaries in disposable PostgreSQL: `python3 scripts/check-operator-session-role-disposable.py`
+- Check worker source import closure: `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`
+- Check worker direct function reachability: `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
+- Check worker SQL/function reachability: `python3 scripts/worker_sql_reachability.py --check docs/refactor/worker-sql-reachability.json`
+- Check static worker boundary preflight: `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
+- Exercise aggregate tenant-preflight SQL with synthetic roles on disposable PostgreSQL: `python3 scripts/check-tenant-preflight-disposable.py`
+- Verify report-calculation read-only enforcement against a local disposable PostgreSQL target: `REPORT_GENERATOR_TEST_DSN=postgresql://...@127.0.0.1:PORT/postgres python3 scripts/check-report-generator-readonly-disposable.py`
+- Exercise scheduler worker reconnection across a disposable PostgreSQL stop/start: `python3 scripts/check-scheduler-worker-reconnect-disposable.py`
+- Check worker SQL call inventory: `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
+- Check all service SQL execution sites: `python3 scripts/runtime_sql_inventory.py --check docs/refactor/runtime-sql-inventory.json`
 - Capture static Kernel inventory: `python3 scripts/kernel-inventory.py --output docs/refactor/repository-inventory.json`
 - Start services with encrypted secrets: `source scripts/load-secrets.sh && docker compose up -d`
 - Start services (plaintext .env fallback): `docker compose up -d`
+- Before starting Directus through Compose from a fresh checkout, build its ignored hook artifact: `make hooks-build` (runs locked `npm ci` when dependencies are missing/stale, then the Directus extension bundler).
 - Decrypt secrets to stdout: `sops -d --input-type dotenv --output-type dotenv .env.sops`
 - Edit encrypted secrets: `sops .env.sops`
 - Source secrets into shell: `source scripts/load-secrets.sh`
@@ -111,7 +122,7 @@ Commands:
 - List metrics: `python3 -m services.metrics --list`
 - Event bus process: `python3 -m services.events --process`
 - Event bus stats: `python3 -m services.events --stats`
-- Event bus cleanup: `python3 -m services.events --cleanup`
+- Event bus cleanup (disabled until an approved dynamic retention policy is configured): `KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP=true python3 -m services.events --cleanup --actor OPERATOR`
 - Event bus handlers: `python3 -m services.events --list-handlers`
 - Event bus dead letter: `python3 -m services.events --list-dead-letter`
 - Event bus replay dead letter: `python3 -m services.events --replay-dead-letter --event-id UUID --actor OPERATOR`
@@ -170,13 +181,13 @@ Commands:
 - GIS boundary import: `python3 -m services.ingestion.gis_import --file boundaries.geojson --target location`
 - Market data (live): `python3 -m services.ingestion.market_data --source world_bank`
 - Market data (seed): `python3 -m services.ingestion.market_data --source seed`
-- Sensor ingestion (CSV): `python3 -m services.ingestion.sensor_ingester --file data.csv`
-- Sensor ingestion (single): `python3 -m services.ingestion.sensor_ingester --sensor UUID --value 25.3`
-- Sensor list: `python3 -m services.ingestion.sensor_ingester --list`
-- Sensor calibration: `python3 -m services.ingestion.sensor_ingester --calibration`
-- Anomaly detection: `python3 -m services.ingestion.anomaly_detector`
-- Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --sensor UUID`
-- Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check`
+- Sensor ingestion (CSV): `python3 -m services.ingestion.sensor_ingester --file data.csv --location-id UUID`
+- Sensor ingestion (single): `python3 -m services.ingestion.sensor_ingester --sensor UUID --value 25.3 --location-id UUID`
+- Sensor list: `python3 -m services.ingestion.sensor_ingester --list --location-id UUID`
+- Sensor calibration: `python3 -m services.ingestion.sensor_ingester --calibration --location-id UUID`
+- Anomaly detection (all locations): `python3 -m services.ingestion.anomaly_detector --all-locations`
+- Anomaly detection (sensor): `python3 -m services.ingestion.anomaly_detector --location-id UUID --sensor UUID`
+- Baseline check: `python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations`
 - Alert rules list: `python3 -m services.ingestion.anomaly_detector --list-rules`
 - AI summary: `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined`
 - AI summary (store draft): `python3 -m services.agents.ai_summary --location-id UUID --summary-type combined --store`
@@ -298,18 +309,21 @@ Commands:
 - gRPC tests: `python3 -m tests.test_grpc`
 - Data freshness check: `python3 -m services.ingestion.data_freshness --check`
 - Data freshness summary: `python3 -m services.ingestion.data_freshness --summary`
-- Climate data ingestion: `python3 -m services.ingestion.climate_data --all --location-id UUID`
+- Climate data ingestion (all datasets for one location): `python3 -m services.ingestion.climate_data --all --location-id UUID`
+- Climate data ingestion (one dataset): use exactly one of `--worldclim`, `--ncep`, `--modis`, `--smap`, or `--sentinel1` with `--location-id UUID`
+- Remote-sensing CSV import (one location): `python3 -m services.ingestion.remote_sensing --file data.csv --location-id UUID`
+- Remote-sensing CSV import (all locations): `python3 -m services.ingestion.remote_sensing --file data.csv --all-locations`
 - Remote sensing tests: `python3 -m tests.test_telemetry_freshness`
 - Climate data tests: `python3 -m tests.test_climate_data`
 - Remote sensing automation tests: `python3 -m tests.test_remote_sensing_automation`
-- Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs`
-- Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs`
+- Remote sensing fetch jobs: `python3 -m services.ingestion.remote_sensing_fetcher --list-jobs --location-id UUID`
+- Remote sensing run jobs: `python3 -m services.ingestion.remote_sensing_fetcher --run-jobs --location-id UUID`
 - Remote sensing create job: `python3 -m services.ingestion.remote_sensing_fetcher --location-id UUID --provider gee`
 - MQTT subscriber: `python3 -m services.ingestion.mqtt_subscriber --broker localhost --port 8883`
 - HTTP sensor receiver: `python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056`
-- Device manager list: `python3 -m services.ingestion.device_manager --list`
+- Device manager list: `python3 -m services.ingestion.device_manager --list --location-id UUID`
 - Device manager register: `python3 -m services.ingestion.device_manager --register --device-id sensor001 --sensor-type air_temperature --location-id UUID`
-- Device manager health: `python3 -m services.ingestion.device_manager --health --device-id sensor001`
+- Device manager health: `python3 -m services.ingestion.device_manager --health --device-id sensor001 --location-id UUID`
 - IoT sensor push tests: `python3 -m tests.test_iot_sensor_push`
 - Carbon credit tests: `python3 -m tests.test_carbon_credits`
 - Carbon credit issue: `python3 -m services.analytics.carbon_credits --issue --location-id UUID --vintage-year 2026 --methodology "IPCC 2006 Tier 2"`
@@ -325,7 +339,7 @@ Commands:
 - Prefect workflow tests: `python3 -m tests.test_prefect_workflow`
 - Prefect pipeline: `python3 -m services.flows.pipelines full_pipeline`
 - Field data collection guide: `docs/field-data-collection-guide.md`
-- Weather forecast ingestion: `python3 -m services.ingestion.weather_forecast`
+- Weather forecast ingestion (all locations): `python3 -m services.ingestion.weather_forecast --all-locations`
 - Weather forecast ingestion (single location): `python3 -m services.ingestion.weather_forecast --location-id UUID`
 - Weather forecast daily summary: `python3 -c "from services.ingestion.weather_forecast import get_daily_summary, get_db; print(get_daily_summary(get_db(), 'UUID'))"`
 - Weather forecast spray windows: `python3 -c "from services.ingestion.weather_forecast import get_spray_windows, get_db; print(get_spray_windows(get_db(), 'UUID'))"`
@@ -380,12 +394,7 @@ Commands:
 - Digital twin scenario: `python3 -m services.analytics.digital_twin scenario --twin-id UUID --name "High Irrigation" --params '{"irrigation_mm": 30}'`
 - Digital twin compare: `python3 -m services.analytics.digital_twin compare --twin-id UUID`
 - Digital twin list: `python3 -m services.analytics.digital_twin list --location-id UUID`
-- Mobile device register: `python3 -m services.analytics.mobile_offline register --device-id sensor-phone-001 --name "Field Phone 1"`
-- Mobile queue: `python3 -m services.analytics.mobile_offline queue --device-id sensor-phone-001 --type soil_reading --location-id UUID`
-- Mobile sync: `python3 -m services.analytics.mobile_offline sync --device-id sensor-phone-001`
-- Mobile status: `python3 -m services.analytics.mobile_offline status`
-- Mobile devices: `python3 -m services.analytics.mobile_offline devices`
-- `services.analytics.mobile_offline` is a legacy transport/admin CLI: it does not validate form revisions, participant links, or consent. Use the consent-aware Field Collector API for intake; after migration 381, legacy CLI rows remain unassessed and cannot pass `v_mobile_collection_use_eligibility`.
+- Legacy mobile-offline CLI: historic subcommands remain visible but fail closed before database access because they have no authenticated tenant identity. Use the consent-aware Field Collector Gateway and operator console; historic queued rows remain unassessed and cannot pass `v_mobile_collection_use_eligibility`.
 - LLM chat session: `python3 -m services.analytics.llm_chat session --create --location-id UUID --user admin`
 - LLM chat send: `python3 -m services.analytics.llm_chat chat --session-id UUID --message "What was the maize yield?"`
 - LLM chat intents: `python3 -m services.analytics.llm_chat intents`
@@ -421,7 +430,9 @@ Commands:
 - Data governance portability requests: `python3 -m services.analytics.data_governance portability-requests --farmer-id F001`
 - Data governance create agreement: `python3 -m services.analytics.data_governance create-agreement --provider-id F001 --consumer-id ORG001 --data-categories soil,yield --purpose "research"`
 - Data governance sharing agreements: `python3 -m services.analytics.data_governance sharing-agreements --farmer-id F001`
-- Data governance set retention: `python3 -m services.analytics.data_governance set-retention --data-category soil --retention-days 2555 --action soft_delete`
+- Data governance create a draft retention policy (period omitted until approved): `python3 -m services.analytics.data_governance set-retention --data-category soil --entity-type soil_sample --policy-owner OWNER --actor OPERATOR --reason "draft for review"`
+- Data governance approve/retire a configured policy: `python3 -m services.analytics.data_governance approve-retention --policy-id UUID --approved-by OPERATOR --reason "reviewed schedule"`; `retire-retention --policy-id UUID --actor OPERATOR --reason "schedule replaced"`
+- Data governance place/release an audited legal hold: `python3 -m services.analytics.data_governance place-retention-hold --entity-type platform_event --entity-id UUID --actor OPERATOR --reason "reason"`; `release-retention-hold --hold-id UUID --actor OPERATOR --reason "reason"`
 - Data governance summary: `python3 -m services.analytics.data_governance governance-summary --location-id UUID`
 - Yield monitoring tests: `python3 -m tests.test_yield_monitoring`
 - Digital twin tests: `python3 -m tests.test_digital_twin`
@@ -1247,7 +1258,10 @@ Commands:
 - Directus is accessed through Caddy (`/directus/*`) or directly via internal ports.
 - Directus rate limiting: 100 req/s general, 5 login attempts per 15-min lockout.
 - `PUBLIC_RESTRICT=true` disables unauthenticated data access.
-- `CORS_ORIGIN` defaults to `http://localhost:8055` in `.env.example`; the Compose fallback also allows `http://localhost` and `http://localhost:8055`.
+- Directus CORS uses `CORS_ORIGIN`. FastAPI Gateway CORS uses
+  `KOKONUT_GATEWAY_CORS_ORIGINS`, an explicit comma-separated list that is
+  empty by default; wildcard origins are ignored. Same-origin Gateway clients
+  need no CORS entry.
 - `.env.example` uses placeholder warnings (`replace-with-strong-password-min-24-chars`), not real defaults.
 - Python ingestion services are CLI tools, not Docker services. Use the worker container (`docker-compose.worker.yml` + `Dockerfile.worker`) or host-based cron for scheduling.
 - Health monitoring: `scripts/health-check.sh` supports `--json` and `--alert` flags. `scripts/health-alert.sh` is the cron wrapper.
@@ -1296,7 +1310,7 @@ Commands:
 
 ## Deployment
 
-- Environments: CI (`ki-ci`, disposable), staging (`ki-staging`, cerberus, auto-deploys on merge to main), production (`ki-prod`, dedicated host, manual promotion with `DEPLOY_CONFIRM=yes`). Full matrix: `docs/deployment-topology.md`.
+- Environments: CI (`ki-ci`, disposable, GitHub-hosted runner), staging (`ki-staging`, dedicated self-hosted runner, manual dispatch currently paused), production (`ki-prod`, dedicated host, manual promotion with `DEPLOY_CONFIRM=yes`). Full matrix: `docs/deployment-topology.md`.
 - **Namespace invariant**: every Compose project pins its project name (`-p`/`COMPOSE_PROJECT_NAME`); never derive it from a directory name on a shared host (KI-390).
 - Staging deploy: `deploy/scripts/deploy-staging.sh` (idempotent; secrets via SOPS+age, key on host only).
 - Production deploy: `deploy/scripts/deploy-production.sh` — takes a backup checkpoint first; requires `DEPLOY_CONFIRM=yes`; on failed health check it prints rollback instructions and never auto-rolls back.

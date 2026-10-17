@@ -1,0 +1,107 @@
+# Optional self-hosted operator identity provider. Select via kernel-profile.py
+# so the matching HTTPS Caddy route and Gateway OIDC client are included too.
+# Keep this outside minimal and edge; it owns a separate PostgreSQL instance.
+services:
+  app:
+    environment:
+      KOKONUT_OPERATOR_OIDC_ISSUER: ${KOKONUT_OPERATOR_OIDC_ISSUER:?Set the exact HTTPS issuer shown by ZITADEL}
+
+  proxy:
+    environment:
+      KOKONUT_ZITADEL_DOMAIN: ${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}
+    volumes:
+      - ./config/caddy/Caddyfile.kernel.zitadel:/etc/caddy/Caddyfile:ro
+    depends_on:
+      zitadel-api:
+        condition: service_healthy
+      zitadel-login:
+        condition: service_healthy
+
+  zitadel-db:
+    image: ${KOKONUT_ZITADEL_POSTGRES_IMAGE:-postgres:17.10-alpine@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${KOKONUT_ZITADEL_POSTGRES_ADMIN_PASSWORD:?Set the isolated ZITADEL database administrator secret}
+      KOKONUT_ZITADEL_DATABASE_PASSWORD: ${KOKONUT_ZITADEL_DATABASE_PASSWORD:?Set a URL-safe ZITADEL database role secret}
+    volumes:
+      - kernel-zitadel-postgres-data:/var/lib/postgresql/data
+      - ./scripts/zitadel/init-db.sh:/docker-entrypoint-initdb.d/10-create-zitadel-role.sh:ro
+    networks:
+      - zitadel-data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+
+  zitadel-api:
+    image: ${KOKONUT_ZITADEL_API_IMAGE:-ghcr.io/zitadel/zitadel:v4.19.4@sha256:90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b}
+    restart: unless-stopped
+    command: ["start-from-init", "--masterkeyFromEnv", "--tlsMode", "disabled"]
+    environment:
+      ZITADEL_MASTERKEY: ${KOKONUT_ZITADEL_MASTERKEY:?Set the stable 32-character ZITADEL master key}
+      ZITADEL_EXTERNALDOMAIN: ${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}
+      ZITADEL_EXTERNALPORT: ${KOKONUT_KERNEL_HTTPS_PORT:-8448}
+      ZITADEL_EXTERNALSECURE: "true"
+      ZITADEL_TLS_ENABLED: "false"
+      ZITADEL_DATABASE_POSTGRES_DSN: postgresql://zitadel:${KOKONUT_ZITADEL_DATABASE_PASSWORD:?Set a URL-safe ZITADEL database role secret}@zitadel-db:5432/zitadel?sslmode=disable
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_USERNAME: ${KOKONUT_ZITADEL_ADMIN_USERNAME:?Set the initial ZITADEL administrator username}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORD: ${KOKONUT_ZITADEL_ADMIN_PASSWORD:?Set the initial ZITADEL administrator password}
+      ZITADEL_FIRSTINSTANCE_ORG_HUMAN_PASSWORDCHANGEREQUIRED: "true"
+      ZITADEL_FIRSTINSTANCE_LOGINCLIENTPATPATH: /zitadel/bootstrap/login-client.pat
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_USERNAME: login-client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_MACHINE_NAME: Kokonut Login UI client
+      ZITADEL_FIRSTINSTANCE_ORG_LOGINCLIENT_PAT_EXPIRATIONDATE: ${KOKONUT_ZITADEL_LOGIN_CLIENT_PAT_EXPIRATION:?Set a reviewed Login UI token expiry date}
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_REQUIRED: "true"
+      ZITADEL_DEFAULTINSTANCE_FEATURES_LOGINV2_BASEURI: https://${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}:${KOKONUT_KERNEL_HTTPS_PORT:-8448}/ui/v2/login/
+      ZITADEL_OIDC_DEFAULTLOGINURLV2: https://${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}:${KOKONUT_KERNEL_HTTPS_PORT:-8448}/ui/v2/login/login?authRequest=
+      ZITADEL_OIDC_DEFAULTLOGOUTURLV2: https://${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname}:${KOKONUT_KERNEL_HTTPS_PORT:-8448}/ui/v2/login/logout?post_logout_redirect=
+      ZITADEL_LOGSTORE_ACCESS_STDOUT_ENABLED: "true"
+    volumes:
+      - kernel-zitadel-bootstrap:/zitadel/bootstrap
+    depends_on:
+      zitadel-db:
+        condition: service_healthy
+    networks:
+      - kernel
+      - zitadel-data
+    healthcheck:
+      test: ["CMD", "/app/zitadel", "ready"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 30s
+
+  zitadel-login:
+    image: ${KOKONUT_ZITADEL_LOGIN_IMAGE:-ghcr.io/zitadel/zitadel-login:v4.19.4@sha256:93ffd1395b827f685ba29c02fa70aee881fc21102519c4e2bbb0b89c0e00f42c}
+    restart: unless-stopped
+    environment:
+      ZITADEL_API_URL: http://zitadel-api:8080
+      NEXT_PUBLIC_BASE_PATH: /ui/v2/login
+      ZITADEL_SERVICE_USER_TOKEN_FILE: /zitadel/bootstrap/login-client.pat
+      ZITADEL_SESSION_COOKIE_SECRET: ${KOKONUT_ZITADEL_LOGIN_COOKIE_SECRET:?Set the stable Login V2 cookie secret}
+      CUSTOM_REQUEST_HEADERS: Host:${KOKONUT_ZITADEL_DOMAIN:?Set the ZITADEL public hostname},X-Forwarded-Proto:https
+    volumes:
+      - kernel-zitadel-bootstrap:/zitadel/bootstrap:ro
+    depends_on:
+      zitadel-api:
+        condition: service_healthy
+    networks:
+      - kernel
+    healthcheck:
+      test: ["CMD", "/bin/sh", "-c", "node /app/healthcheck.mjs http://localhost:3000/ui/v2/login/healthy"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 30s
+
+networks:
+  zitadel-data:
+    internal: true
+
+volumes:
+  kernel-zitadel-postgres-data:
+  kernel-zitadel-bootstrap:

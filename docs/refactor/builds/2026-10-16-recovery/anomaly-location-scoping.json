@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-16",
+  "change": "scheduled anomaly scans require one location and the Prefect adapter fans out over active Kokonut Network locations",
+  "job_contract": {
+    "job": "anomaly",
+    "required_inputs": [
+      "location_id"
+    ],
+    "scoped_operations": [
+      "recent sensor-reading selection",
+      "environmental-baseline selection",
+      "cooldown lookup",
+      "alert creation",
+      "ingestion lineage"
+    ],
+    "shared_alert_rule_bootstrap": "skipped for scoped runs; preserved for unscoped interactive runs"
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_anomaly_detector.py tests/test_scheduled_command_contracts.py tests/test_worker_job_contract_inventory.py tests/test_prefect_workflow.py tests/test_worker_operation_map.py tests/test_worker_source_closure.py tests/test_worker_function_reachability.py tests/test_worker_sql_inventory.py tests/test_worker_sql_reachability.py tests/test_worker_boundary_preflight.py -q",
+      "result": "167 passed"
+    },
+    "job_contract_inventory": "passed",
+    "capability_matrix": "66 rows valid; MAN-CAP checks remain separately gated",
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "git_diff_check": "passed",
+    "worker_inventories": "source closure, function reachability, SQL inventory/reachability, effect inventory, boundary preflight, runtime SQL, and JobSpec checks passed"
+  },
+  "scope_limits": [
+    "No database, schedule, provider, candidate, legacy target, or external Prefect service was accessed.",
+    "Location filtering is source-level scoping; scheduler workers still use the shared runtime database identity.",
+    "Signed worker context, RLS, provider outcomes, schedule ownership reconciliation, and live recovery remain open."
+  ]
+}

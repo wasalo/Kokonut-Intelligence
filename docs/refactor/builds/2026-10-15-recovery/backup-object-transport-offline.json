@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-15",
+  "kind": "offline-backup-object-transport-source-acceptance",
+  "status": "passed",
+  "branch": "feat/mobile-offline-acceptance",
+  "base_pushed_head": "72ab775e8b9863795b2c4800c59e9f34ff2ae205",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_backup_remote.py tests/test_backup_optional_providers.py tests/test_upgrade.py -q",
+      "result": "28 passed"
+    },
+    "ruff": "passed",
+    "ruff_security_select_S_BLE_source": "passed; accepted test rules S101/S404 excluded and fixed in-repository verifier invocation has a scoped S603 exemption",
+    "ruff_format": "passed",
+    "shell_syntax": "passed for scripts/backup.sh and scripts/verify-backup.sh",
+    "boto3_model": "installed S3 PutObject input model contains IfNoneMatch"
+  },
+  "test_adapters": [
+    "fake Compose executable",
+    "in-memory fake S3 object store"
+  ],
+  "verified_contracts": [
+    "new manifests authenticate backup ID, providers, and artifact hashes",
+    "unsigned legacy checkpoints remain locally verifiable but are rejected for remote upload",
+    "remote artifacts stage under a unique prefix and are read back for byte hash and length verification",
+    "conditional create-only marker commits only after all artifacts verify",
+    "same checkpoint upload is idempotent and backup IDs cannot be rebound to different contents",
+    "unsigned legacy checkpoints are rejected by remote upload",
+    "interrupted staging has no committed manifest marker and no remote delete is attempted",
+    "download verifies artifact bytes and publishes a new private directory without overwriting an existing one",
+    "an existing restore destination is preserved unchanged",
+    "tampered remote artifact rejects restore and removes the partial local directory"
+  ],
+  "external_effects": {
+    "cloudflare_r2_credentials_loaded": false,
+    "r2_objects_read_written_listed_or_deleted": false,
+    "candidate_or_legacy_database_touched": false,
+    "local_live_services_changed": false
+  },
+  "limitations": [
+    "No live bucket access, R2 restore rehearsal, provider inventory, or production recovery was tested.",
+    "There is no remote listing, deletion, lifecycle, retention, or legal-hold operation.",
+    "Interrupted unique staging prefixes require later operator inventory and disposition under a dynamic approved policy.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

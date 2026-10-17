@@ -1,0 +1,35 @@
+{
+  "record_type": "worker_weather_location_contract",
+  "recorded_at_utc": "2026-10-16T01:48:36Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "scope": {
+    "job": "weather",
+    "change": "Require one explicit location for every Kernel scheduled weather operation and curated job-plan/runner invocation.",
+    "standalone_cli": "The standalone services.ingestion.weather CLI retains its existing all-active-location mode; this mode is not accepted by the Kernel scheduler contract.",
+    "persisted_tasks_inspected": false,
+    "external_schedules_inspected": false,
+    "database_or_provider_accessed": false,
+    "schedule_activated": false
+  },
+  "verification": {
+    "command": "python3 -m pytest tests/test_scheduled_command_contracts.py tests/test_core_jobs_contract.py tests/test_worker_job_contract_inventory.py -q",
+    "result": "passed",
+    "tests_passed": 86,
+    "tests_failed": 0,
+    "ruff": "passed",
+    "worker_job_contract_inventory_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "inventory": {
+    "catalog_jobs": 15,
+    "default_arguments_accepted": 12,
+    "required_runtime_inputs_validated": 2,
+    "source_contract_missing": 1,
+    "required_location_jobs": ["climate", "weather"]
+  },
+  "limitations": [
+    "This prevents the scheduled command contract from launching an all-location weather scan without an explicit location argument; it does not establish a signed worker tenant context or a worker-specific database role.",
+    "Persisted scheduled-task rows and external Prefect schedules still require separate reconciliation; no task row was read or changed.",
+    "Application-table RLS remains disabled and must remain disabled until worker identities, roles, and all data access paths are closed."
+  ]
+}

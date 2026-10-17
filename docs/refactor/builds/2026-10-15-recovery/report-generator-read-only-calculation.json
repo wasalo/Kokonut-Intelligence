@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_unit",
+  "feature": "report_generator_read_only_calculation",
+  "registered_report_generators": 94,
+  "runtime_sql_inventory": {
+    "calculation_sites": 207,
+    "select": 204,
+    "with": 2,
+    "unknown": 1,
+    "snapshot_insert_sites": 1
+  },
+  "requirements": [
+    "single and bulk report calculations start in a PostgreSQL read-only session",
+    "the connection facade blocks psycopg methods that lower session read-only mode",
+    "business-plan best-effort rollback/autocommit remains inside read-only mode",
+    "all registered generators accept the CLI's four-argument invocation",
+    "business-plan reports support single-location and explicit all-location scope",
+    "calculation transaction ends before draft snapshot persistence",
+    "a failed calculation rolls back before run failure status is persisted"
+  ],
+  "focused_tests": 19,
+  "test_command": "python -m pytest tests/test_report_generator_readonly.py tests/test_report_generator_cli.py -q",
+  "ruff": "passed",
+  "python_compile": "passed",
+  "database_accessed": false,
+  "provider_accessed": false,
+  "writer_role_isolation": "not established; calculations use the application connection and session read-only mode is a write-safety guard, not restricted database privileges",
+  "postgres_runtime_acceptance": "not_run",
+  "report_output_parity": "open"
+}

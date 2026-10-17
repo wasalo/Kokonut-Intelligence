@@ -12,7 +12,7 @@ import hmac
 import os
 import re
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Protocol
 from urllib.parse import urlsplit
@@ -20,7 +20,11 @@ from uuid import UUID
 
 from starlette.requests import Request
 
-from services.mobile.api import EnrollmentCreateRequest
+from services.mobile.api import (
+    EnrollmentCreateRequest,
+    ParticipantLinkCreateRequest,
+    ParticipantLinkRevokeRequest,
+)
 
 SESSION_COOKIE = "kokonut_operator_session"
 CSRF_COOKIE = "kokonut_operator_csrf"
@@ -40,6 +44,8 @@ class OIDCSettings:
     client_secret: str
     redirect_uri: str
     state_secret: str
+    operator_auth_user: str = field(repr=False)
+    operator_auth_password: str = field(repr=False)
     session_ttl_seconds: int = 1800
 
     @classmethod
@@ -58,6 +64,8 @@ class OIDCSettings:
             "client_secret": "KOKONUT_OPERATOR_OIDC_CLIENT_SECRET",
             "redirect_uri": "KOKONUT_OPERATOR_OIDC_REDIRECT_URI",
             "state_secret": "KOKONUT_OPERATOR_OIDC_STATE_SECRET",
+            "operator_auth_user": "KOKONUT_OPERATOR_AUTH_USER",
+            "operator_auth_password": "KOKONUT_OPERATOR_AUTH_PASSWORD",
         }
         values = {field: os.environ.get(variable, "").strip() for field, variable in required.items()}
         missing = [variable for field, variable in required.items() if not values[field]]
@@ -69,12 +77,33 @@ class OIDCSettings:
             raise OperatorAuthConfigurationError(
                 "KOKONUT_OPERATOR_OIDC_STATE_SECRET must be at least 32 bytes"
             )
-        for field, variable in (("issuer", "KOKONUT_OPERATOR_OIDC_ISSUER"),
-                                ("redirect_uri", "KOKONUT_OPERATOR_OIDC_REDIRECT_URI")):
-            parsed = urlsplit(values[field])
+        if not _IDENTIFIER_RE.fullmatch(values["operator_auth_user"]):
+            raise OperatorAuthConfigurationError(
+                "KOKONUT_OPERATOR_AUTH_USER must be a lowercase PostgreSQL role name"
+            )
+        if (
+            len(values["operator_auth_password"]) < 24
+            or values["operator_auth_password"].lower().startswith(
+                ("replace-with", "your_", "your-", "change_", "change-", "todo", "none", "null")
+            )
+        ):
+            raise OperatorAuthConfigurationError(
+                "KOKONUT_OPERATOR_AUTH_PASSWORD must be a generated secret of at least 24 characters"
+            )
+        database_secrets = {
+            os.environ.get(name, "")
+            for name in ("PG_PASSWORD", "POSTGRES_PASSWORD", "KOKONUT_RUNTIME_PASSWORD")
+        }
+        if values["operator_auth_password"] in database_secrets:
+            raise OperatorAuthConfigurationError(
+                "KOKONUT_OPERATOR_AUTH_PASSWORD must differ from the app and database-owner passwords"
+            )
+        for setting, variable in (("issuer", "KOKONUT_OPERATOR_OIDC_ISSUER"),
+                                  ("redirect_uri", "KOKONUT_OPERATOR_OIDC_REDIRECT_URI")):
+            parsed = urlsplit(values[setting])
             if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
                 raise OperatorAuthConfigurationError(f"{variable} must be an HTTPS URL")
-            if parsed.fragment or (field == "issuer" and parsed.query):
+            if parsed.fragment or (setting == "issuer" and parsed.query):
                 raise OperatorAuthConfigurationError(f"{variable} must not include a query or fragment")
         redirect = urlsplit(values["redirect_uri"])
         if redirect.path != "/operator/auth/callback" or redirect.query:
@@ -108,6 +137,7 @@ class OperatorSession:
     session_id: str
     csrf_token_hash: str
     operator: OperatorPrincipal
+    session_token_hash: str = field(repr=False)
 
 
 class OperatorIdentityProvider(Protocol):
@@ -134,6 +164,22 @@ def _get_db():
     from services.common.database import get_db
 
     return get_db(connect_timeout=5)
+
+
+def _get_operator_auth_db(settings: OIDCSettings):
+    """Connect with the session-only database principal, never the app role."""
+    import psycopg2
+
+    from services.common.db import PG_DB, PG_HOST, PG_PORT
+
+    return psycopg2.connect(
+        host=PG_HOST,
+        port=PG_PORT,
+        dbname=PG_DB,
+        user=settings.operator_auth_user,
+        password=settings.operator_auth_password,
+        connect_timeout=5,
+    )
 
 
 def _bounded_claim(value, limit: int = 200) -> str | None:
@@ -179,40 +225,43 @@ class OIDCOperatorProvider:
         session_token = secrets.token_urlsafe(_TOKEN_BYTES)
         csrf_token = secrets.token_urlsafe(_TOKEN_BYTES)
         expires_at = datetime.now(timezone.utc) + timedelta(seconds=self.settings.session_ttl_seconds)
-        conn = _get_db()
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT id, issuer, subject, display_name
-                         FROM operator_identity
-                        WHERE issuer = %s AND subject = %s AND enabled = TRUE""",
-                    (issuer, subject),
+                    """SELECT session_id, operator_id, issuer, subject, display_name, email
+                         FROM kokonut_security.create_operator_session(
+                             %s, %s, %s, %s, %s, %s, %s
+                         )""",
+                    (
+                        issuer,
+                        subject,
+                        name,
+                        email,
+                        _digest(session_token),
+                        _digest(csrf_token),
+                        expires_at,
+                    ),
                 )
                 identity = cur.fetchone()
                 if identity is None:
                     conn.rollback()
                     return None
-                operator_id, stable_issuer, stable_subject, existing_name = identity
-                cur.execute(
-                    """UPDATE operator_identity
-                          SET display_name = COALESCE(%s, display_name),
-                              email = COALESCE(%s, email), updated_at = NOW()
-                        WHERE id = %s""",
-                    (name, email, operator_id),
-                )
-                cur.execute(
-                    """INSERT INTO operator_session
-                       (operator_id, session_token_hash, csrf_token_hash, expires_at)
-                       VALUES (%s, %s, %s, %s)""",
-                    (operator_id, _digest(session_token), _digest(csrf_token), expires_at),
-                )
+                (
+                    _session_id,
+                    operator_id,
+                    stable_issuer,
+                    stable_subject,
+                    stable_name,
+                    stable_email,
+                ) = identity
             conn.commit()
             principal = OperatorPrincipal(
                 operator_id=str(operator_id),
                 issuer=stable_issuer,
                 subject=stable_subject,
-                display_name=name or existing_name,
-                email=email,
+                display_name=stable_name,
+                email=stable_email,
             )
             return principal, session_token, csrf_token
         finally:
@@ -222,28 +271,21 @@ class OIDCOperatorProvider:
         token = request.cookies.get(SESSION_COOKIE)
         if not token:
             return None
-        conn = _get_db()
+        session_token_hash = _digest(token)
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT s.id, s.csrf_token_hash, o.id, o.issuer, o.subject,
-                              o.display_name, o.email
-                         FROM operator_session AS s
-                         JOIN operator_identity AS o ON o.id = s.operator_id
-                        WHERE s.session_token_hash = %s
-                          AND s.revoked_at IS NULL AND s.expires_at > NOW()
-                          AND o.enabled = TRUE""",
-                    (_digest(token),),
+                    """SELECT session_id, csrf_token_hash, operator_id, issuer,
+                              subject, display_name, email
+                         FROM kokonut_security.authenticate_operator_session(%s)""",
+                    (session_token_hash,),
                 )
                 row = cur.fetchone()
                 if row is None:
                     conn.rollback()
                     return None
                 session_id, csrf_hash, operator_id, issuer, subject, name, email = row
-                cur.execute(
-                    "UPDATE operator_session SET last_seen_at = NOW() WHERE id = %s",
-                    (session_id,),
-                )
             conn.commit()
             principal = OperatorPrincipal(
                 operator_id=str(operator_id),
@@ -256,6 +298,7 @@ class OIDCOperatorProvider:
                 session_id=str(session_id),
                 csrf_token_hash=csrf_hash.strip(),
                 operator=principal,
+                session_token_hash=session_token_hash,
             )
         finally:
             conn.close()
@@ -281,10 +324,8 @@ class OIDCOperatorProvider:
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """SELECT EXISTS (
-                           SELECT 1 FROM operator_scope_grant
-                            WHERE operator_id = %s AND resource = %s AND action = %s
-                              AND location_id = %s AND revoked_at IS NULL
+                    """SELECT operator_scope_grant_allows(
+                           %s::uuid, %s, %s, %s::uuid
                        )""",
                     (operator_id, resource, action, location_id),
                 )
@@ -308,6 +349,9 @@ class OIDCOperatorProvider:
                     """SELECT resource, action, location_id
                          FROM operator_scope_grant
                         WHERE operator_id = %s AND revoked_at IS NULL
+                          AND operator_scope_grant_allows(
+                              operator_id, resource, action, location_id
+                          )
                         ORDER BY resource, action, location_id""",
                     (operator_id,),
                 )
@@ -318,14 +362,12 @@ class OIDCOperatorProvider:
         finally:
             conn.close()
 
-    @staticmethod
-    def revoke_session(session_id: str) -> None:
-        conn = _get_db()
+    def revoke_session(self, session_id: str) -> None:
+        conn = _get_operator_auth_db(self.settings)
         try:
             with conn.cursor() as cur:
                 cur.execute(
-                    """UPDATE operator_session SET revoked_at = NOW()
-                        WHERE id = %s AND revoked_at IS NULL""",
+                    "SELECT kokonut_security.revoke_operator_session(%s::uuid)",
                     (session_id,),
                 )
             conn.commit()
@@ -373,8 +415,24 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "scope_required": True,
             "operator_auth": True,
         }
+    mobile_inventory_match = re.fullmatch(
+        r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/inventory",
+        path,
+    )
+    if mobile_inventory_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "mobile_device",
+            "action": "read",
+            "additional_scopes": [
+                {"resource": "mobile_collection_review", "action": "read"}
+            ],
+            "public": False,
+            "location_id": mobile_inventory_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
     participant_match = re.fullmatch(
-        r"/api/mobile/locations/([0-9a-fA-F-]{36})/participants(?:/(revoke))?",
+        r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/participants(?:/(revoke))?",
         path,
     )
     if participant_match and method.upper() == "POST" and enabled:
@@ -383,6 +441,239 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "revoke" if participant_match.group(2) else "create",
             "public": False,
             "location_id": participant_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    mobile_disposition_inventory_match = re.fullmatch(
+        r"/operator/api/mobile-collection-review-queue/([0-9a-fA-F-]{36})/disposition-inventory",
+        path,
+    )
+    if mobile_disposition_inventory_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "mobile_collection_retention",
+            "action": "inventory",
+            "additional_scopes": [
+                {"resource": "mobile_collection_review", "action": "read"}
+            ],
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    mobile_review_match = re.fullmatch(
+        r"/operator/api/mobile-collection-review-queue(?:/([0-9a-fA-F-]{36})(?:/(events))?)?",
+        path,
+    )
+    if mobile_review_match and enabled:
+        collection_id, event_suffix = mobile_review_match.groups()
+        if method.upper() == "GET" and collection_id is None:
+            action = "read"
+        elif method.upper() == "GET" and collection_id is not None and event_suffix is None:
+            action = "read_detail"
+        elif method.upper() == "POST" and collection_id is not None and event_suffix == "events":
+            action = "review"
+        else:
+            return None
+        return {
+            "resource": "mobile_collection_review",
+            "action": action,
+            **(
+                {"additional_scopes": [{"resource": "mobile_collection_review", "action": "read_detail"}]}
+                if action == "review"
+                else {}
+            ),
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_intake_match = re.fullmatch(
+        r"/operator/api/farm-activity-intake-queue(?:/([0-9a-fA-F-]{36})(?:/(draft))?)?",
+        path,
+    )
+    if farm_activity_intake_match and enabled:
+        collection_id, suffix = farm_activity_intake_match.groups()
+        if method.upper() == "GET" and collection_id is None:
+            action = "read"
+        elif method.upper() == "GET" and collection_id is not None and suffix is None:
+            action = "read_detail"
+        elif method.upper() == "POST" and collection_id is not None and suffix == "draft":
+            action = "create_draft"
+        else:
+            return None
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            **(
+                {
+                    "additional_scopes": [
+                        {"resource": "mobile_collection_review", "action": "read_detail"}
+                    ]
+                }
+                if action == "read_detail"
+                else {
+                    "additional_scopes": [
+                        {"resource": "farm_activity", "action": "read_detail"},
+                        {"resource": "mobile_collection_review", "action": "read_detail"},
+                    ]
+                }
+                if action == "create_draft"
+                else {}
+            ),
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_read_match = re.fullmatch(
+        r"/operator/api/farm-activities(?:/([0-9a-fA-F-]{36}))?", path
+    )
+    if farm_activity_read_match and enabled:
+        activity_id = farm_activity_read_match.group(1)
+        if method.upper() != "GET":
+            return None
+        action = "read_detail" if activity_id else "read"
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_published_match = re.fullmatch(
+        r"/operator/api/farm-activities/published(?:/([0-9a-fA-F-]{36}))?", path
+    )
+    if farm_activity_published_match and method.upper() == "GET" and enabled:
+        activity_id = farm_activity_published_match.group(1)
+        return {
+            "resource": "farm_activity",
+            "action": "read_published_detail" if activity_id else "read_published",
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_edit_match = re.fullmatch(
+        r"/operator/api/farm-activities/([0-9a-fA-F-]{36})/draft", path
+    )
+    if farm_activity_edit_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "edit_draft",
+            "additional_scopes": [
+                {"resource": "farm_activity", "action": "read_detail"},
+                {"resource": "mobile_collection_review", "action": "read_detail"},
+            ],
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_transition_match = re.fullmatch(
+        r"/operator/api/farm-activities/([0-9a-fA-F-]{36})/(submit|verify|reject|request-rework|publish|close-exception)",
+        path,
+    )
+    if farm_activity_transition_match and method.upper() == "POST" and enabled:
+        _, route_action = farm_activity_transition_match.groups()
+        action = {
+            "submit": "submit",
+            "verify": "verify",
+            "reject": "reject",
+            "request-rework": "rework",
+            "publish": "publish",
+            "close-exception": "close_exception",
+        }[route_action]
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_published_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/published(?:/([0-9a-fA-F-]{36}))?",
+        path,
+    )
+    if farm_activity_record_published_match and method.upper() == "GET" and enabled:
+        activity_id = farm_activity_record_published_match.group(1)
+        return {
+            "resource": "farm_activity",
+            "action": "read_published_detail" if activity_id else "read_published",
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_collection_match = re.fullmatch(
+        r"/operator/api/farm-activity-records",
+        path,
+    )
+    if farm_activity_record_collection_match and enabled:
+        if method.upper() == "GET":
+            action = "read"
+            additional_scopes = []
+        elif method.upper() == "POST":
+            action = "create_draft"
+            additional_scopes = [{"resource": "farm_activity", "action": "read_detail"}]
+        else:
+            return None
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            "additional_scopes": additional_scopes,
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_edit_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})/draft",
+        path,
+    )
+    if farm_activity_record_edit_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "edit_draft",
+            "additional_scopes": [{"resource": "farm_activity", "action": "read_detail"}],
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_transition_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})/(submit|verify|reject|request-rework|publish|close-exception)",
+        path,
+    )
+    if farm_activity_record_transition_match and method.upper() == "POST" and enabled:
+        _, route_action = farm_activity_record_transition_match.groups()
+        action = {
+            "submit": "submit",
+            "verify": "verify",
+            "reject": "reject",
+            "request-rework": "rework",
+            "publish": "publish",
+            "close-exception": "close_exception",
+        }[route_action]
+        return {
+            "resource": "farm_activity",
+            "action": action,
+            "public": False,
+            "location_id": None,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+    farm_activity_record_detail_match = re.fullmatch(
+        r"/operator/api/farm-activity-records/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if farm_activity_record_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "farm_activity",
+            "action": "read_detail",
+            "public": False,
+            "location_id": None,
             "scope_required": True,
             "operator_auth": True,
         }
@@ -431,6 +722,14 @@ def authorize_auth_request(
     operator_session = provider.authenticate_request(request)
     if operator_session is None:
         return {"authenticated": False, "reason": "operator_session_required", **policy}
+    session_token_hash = getattr(operator_session, "session_token_hash", None)
+    if not isinstance(session_token_hash, str) or not re.fullmatch(r"[0-9a-f]{64}", session_token_hash):
+        return {
+            "authenticated": False,
+            "caller": f"operator:{operator_session.operator.operator_id}",
+            "reason": "operator_session_proof_unavailable",
+            **policy,
+        }
     request.state.operator_session = operator_session
     scope_checked = False
     if policy.get("scope_required"):
@@ -445,11 +744,21 @@ def authorize_auth_request(
                 **policy,
             }
         scope_checked = True
-        if not provider.has_scope(
-            operator_session.operator.operator_id,
-            policy["resource"],
-            policy["action"],
-            normalized_location_id,
+        required_scopes = [
+            (policy["resource"], policy["action"]),
+            *[
+                (scope["resource"], scope["action"])
+                for scope in policy.get("additional_scopes", ())
+            ],
+        ]
+        if any(
+            not provider.has_scope(
+                operator_session.operator.operator_id,
+                resource,
+                action,
+                normalized_location_id,
+            )
+            for resource, action in required_scopes
         ):
             return {
                 "authenticated": False,
@@ -480,11 +789,17 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from collections.abc import Mapping
 
     import psycopg2
-    from fastapi import APIRouter
+    from fastapi import APIRouter, HTTPException
     from fastapi.responses import JSONResponse, RedirectResponse
     from starlette.concurrency import run_in_threadpool
 
-    from services.mobile.api import create_enrollment, revoke_device, revoke_enrollment
+    from services.mobile.api import (
+        create_operator_enrollment,
+        create_participant_link,
+        revoke_operator_device,
+        revoke_operator_enrollment,
+        revoke_participant_link,
+    )
 
     router = APIRouter()
 
@@ -602,6 +917,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def report_review_queue(request: Request, location_id: str, limit: int = 50):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_review import list_submitted_reports
 
         try:
@@ -610,6 +926,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 location_id,
                 limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ValueError as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)})
@@ -635,6 +957,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     async def submitted_report_detail(request: Request, report_id: str, location_id: str):
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
         from services.gateway.operator_review import (
             ReportPayloadTooLarge,
             get_submitted_report,
@@ -646,6 +969,12 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                 request.state.operator_session.operator.operator_id,
                 report_id,
                 location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
             )
         except ReportPayloadTooLarge:
             return JSONResponse(
@@ -675,6 +1004,836 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
             headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
+    @router.get("/operator/api/mobile-collection-review-queue")
+    async def mobile_collection_review_queue(request: Request, location_id: str, limit: int = 50):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.operator_mobile_review import list_mobile_collections
+
+        try:
+            rows = await run_in_threadpool(
+                list_mobile_collections,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile collection review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/mobile-collection-review-queue/{collection_id}")
+    async def mobile_collection_review_detail(
+        request: Request, collection_id: str, location_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.operator_mobile_review import (
+            MobileCollectionPayloadTooLarge,
+            get_mobile_collection,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                get_mobile_collection,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except MobileCollectionPayloadTooLarge:
+            return JSONResponse(
+                status_code=413,
+                content={"error": "Collection exceeds the console read limit"},
+                headers={"Cache-Control": "no-store"},
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile collection review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        if row is None:
+            return JSONResponse(status_code=404, content={"error": "Mobile collection not found"})
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get(
+        "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory"
+    )
+    async def mobile_collection_disposition_inventory(
+        request: Request, collection_id: str, location_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.operator_mobile_review import (
+            get_mobile_collection_disposition_inventory,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                get_mobile_collection_disposition_inventory,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile disposition inventory unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile disposition inventory unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Disposition inventory not found or not authorized"},
+                headers={"Cache-Control": "no-store"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post(
+        "/operator/api/mobile-collection-review-queue/{collection_id}/events",
+        status_code=201,
+    )
+    async def mobile_collection_review_event(
+        request: Request,
+        collection_id: str,
+        location_id: str,
+        body: dict,
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.operator_mobile_review import record_mobile_review_event
+
+        try:
+            event = await run_in_threadpool(
+                record_mobile_review_event,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+                body,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile collection review event unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile collection review service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        if event is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Reviewable mobile collection not found"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            status_code=201,
+            content={"data": jsonable_encoder(event)},
+            headers={"Cache-Control": "no-store", "Pragma": "no-cache", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activity-intake-queue")
+    async def farm_activity_intake_queue(request: Request, location_id: str, limit: int = 50):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_workflow import list_farm_activity_intake
+
+        try:
+            rows = await run_in_threadpool(
+                list_farm_activity_intake,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity intake queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity intake service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activity-intake-queue/{collection_id}")
+    async def farm_activity_intake_detail(
+        request: Request, collection_id: str, location_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_workflow import (
+            FarmActivityPayloadTooLarge,
+            get_farm_activity_intake,
+        )
+
+        try:
+            row = await run_in_threadpool(
+                get_farm_activity_intake,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityPayloadTooLarge:
+            return JSONResponse(
+                status_code=413,
+                content={"error": "Farm activity intake exceeds the review limit"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity intake detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity intake service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Eligible farm activity not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post(
+        "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
+        status_code=201,
+    )
+    async def promote_farm_activity_draft(
+        request: Request, collection_id: str, location_id: str, body: dict
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.gateway.farm_activity_workflow import (
+            FarmActivityIntakeInvalid,
+            create_farm_activity_draft,
+        )
+
+        if set(body) != {"content_reviewed"} or body.get("content_reviewed") is not True:
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Explicit content review is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        try:
+            row = await run_in_threadpool(
+                create_farm_activity_draft,
+                request.state.operator_session.operator.operator_id,
+                collection_id,
+                location_id,
+                content_reviewed=True,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityIntakeInvalid as exc:
+            return JSONResponse(
+                status_code=422,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except RuntimeError as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity source conflict (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=409,
+                content={"error": "Farm activity source conflict"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity draft creation unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Eligible farm activity not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            status_code=201 if row["created"] else 200,
+            content={"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post("/operator/api/farm-activities/{activity_id}/{action}")
+    async def transition_farm_activity_route(
+        request: Request,
+        activity_id: str,
+        action: str,
+        location_id: str,
+        body: dict,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if set(body) - {"reason"} or ("reason" in body and body["reason"] is not None and not isinstance(body["reason"], str)):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Transition body accepts only an optional text reason"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_lifecycle import (
+            FarmActivityTransitionConflict,
+            FarmActivityTransitionInvalid,
+            transition_farm_activity,
+        )
+
+        try:
+            result = await run_in_threadpool(
+                transition_farm_activity,
+                request.state.operator_session.operator.operator_id,
+                activity_id,
+                location_id,
+                action,
+                body.get("reason"),
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityTransitionInvalid as exc:
+            return JSONResponse(
+                status_code=422,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityTransitionConflict as exc:
+            return JSONResponse(
+                status_code=409,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            if exc.pgcode == "P0001":
+                get_logger("gateway.farm_activity").info(
+                    "Farm activity lifecycle decision rejected by database guard"
+                )
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Farm activity lifecycle decision is not permitted"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity lifecycle service unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity lifecycle service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Farm activity not found or transition grant unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(result)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activities")
+    async def farm_activity_queue(request: Request, location_id: str, limit: int = 50):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_lifecycle import list_farm_activities
+
+        try:
+            rows = await run_in_threadpool(
+                list_farm_activities,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activities/published")
+    async def published_farm_activity_queue(
+        request: Request, location_id: str, limit: int = 50
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_lifecycle import list_farm_activities
+
+        try:
+            rows = await run_in_threadpool(
+                list_farm_activities,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit,
+                grant_action="read_published",
+                published_only=True,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Published farm activity queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(rows), "location_id": str(UUID(location_id))},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activities/published/{activity_id}")
+    async def published_farm_activity_detail(
+        request: Request, activity_id: str, location_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_lifecycle import get_farm_activity
+
+        try:
+            row = await run_in_threadpool(
+                get_farm_activity,
+                request.state.operator_session.operator.operator_id,
+                activity_id,
+                location_id,
+                grant_action="read_published_detail",
+                published_only=True,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Published farm activity detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Published farm activity not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.get("/operator/api/farm-activities/{activity_id}")
+    async def farm_activity_detail(request: Request, activity_id: str, location_id: str):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_lifecycle import get_farm_activity
+
+        try:
+            row = await run_in_threadpool(
+                get_farm_activity,
+                request.state.operator_session.operator.operator_id,
+                activity_id,
+                location_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if row is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Farm activity not found"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(row)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.patch("/operator/api/farm-activities/{activity_id}/draft")
+    async def edit_farm_activity_draft_route(
+        request: Request, activity_id: str, location_id: str, body: dict
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if set(body) != {"content", "reason"} or not isinstance(body.get("content"), dict):
+            return JSONResponse(
+                status_code=422,
+                content={"error": "Draft edit body requires content and a correction reason"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.farm_activity_lifecycle import (
+            FarmActivityDraftEditConflict,
+            FarmActivityDraftEditInvalid,
+            edit_farm_activity_draft,
+        )
+
+        try:
+            result = await run_in_threadpool(
+                edit_farm_activity_draft,
+                request.state.operator_session.operator.operator_id,
+                activity_id,
+                location_id,
+                body["content"],
+                body["reason"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityDraftEditInvalid as exc:
+            return JSONResponse(
+                status_code=422,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except FarmActivityDraftEditConflict as exc:
+            return JSONResponse(
+                status_code=409,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(
+                status_code=400,
+                content={"error": str(exc)},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            if exc.pgcode == "P0001":
+                get_logger("gateway.farm_activity").info(
+                    "Farm activity draft edit rejected by database guard"
+                )
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Farm activity draft edit is not permitted"},
+                    headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+                )
+            get_logger("gateway.farm_activity").warning(
+                "Farm activity draft edit unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Farm activity workflow service unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Farm activity not found or draft-edit grants unavailable"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            {"data": jsonable_encoder(result)},
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+        )
+
+    @router.post("/operator/api/mobile/locations/{location_id}/participants", status_code=201)
+    async def operator_create_mobile_participant_link(
+        location_id: UUID,
+        request: Request,
+        body: ParticipantLinkCreateRequest,
+    ):
+        """Create a reviewer-approved participant reference within one tenant."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        try:
+            result = await create_participant_link(location_id, request, body)
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"error": exc.detail},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        result.headers["Vary"] = "Cookie"
+        return result
+
+    @router.post("/operator/api/mobile/locations/{location_id}/participants/revoke")
+    async def operator_revoke_mobile_participant_link(
+        location_id: UUID,
+        request: Request,
+        body: ParticipantLinkRevokeRequest,
+    ):
+        """Revoke a participant reference within one tenant."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        try:
+            result = await revoke_participant_link(location_id, request, body)
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"error": exc.detail},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        result.headers["Vary"] = "Cookie"
+        return result
+
     @router.post("/operator/api/mobile/locations/{location_id}/enrollments", status_code=201)
     async def operator_create_mobile_enrollment(
         location_id: UUID,
@@ -684,7 +1843,27 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         """Issue a one-time collector code to an authorized OIDC operator."""
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
-        result = await create_enrollment(location_id, request, body)
+        from services.common.tenant_context import TenantContextDenied
+
+        try:
+            result = await create_operator_enrollment(
+                location_id,
+                request,
+                body,
+                operator_id=request.state.operator_session.operator.operator_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except HTTPException as exc:
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"error": exc.detail},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
             status_code=201,
             content=result,
@@ -694,11 +1873,26 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     @router.delete(
         "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}"
     )
-    async def operator_revoke_mobile_enrollment(location_id: UUID, enrollment_id: UUID):
+    async def operator_revoke_mobile_enrollment(
+        location_id: UUID, enrollment_id: UUID, request: Request
+    ):
         """Revoke an unused collector code within an authorized location."""
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
-        result = await revoke_enrollment(location_id, enrollment_id)
+        from services.common.tenant_context import TenantContextDenied
+
+        try:
+            result = await revoke_operator_enrollment(
+                location_id,
+                enrollment_id,
+                operator_id=request.state.operator_session.operator.operator_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
             content=result,
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
@@ -707,14 +1901,72 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     @router.post(
         "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke"
     )
-    async def operator_revoke_mobile_device(location_id: UUID, device_id: str):
+    async def operator_revoke_mobile_device(
+        location_id: UUID, device_id: str, request: Request
+    ):
         """Revoke an active collector device within an authorized location."""
         if provider is None:
             return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
-        result = await revoke_device(location_id, device_id)
+        from services.common.tenant_context import TenantContextDenied
+
+        try:
+            result = await revoke_operator_device(
+                location_id,
+                device_id,
+                operator_id=request.state.operator_session.operator.operator_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
         return JSONResponse(
             content=result,
             headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+        )
+
+    @router.get("/operator/api/mobile/locations/{location_id}/inventory")
+    async def operator_mobile_inventory(
+        location_id: UUID, request: Request, device_limit: int = 50
+    ):
+        """Read a location-scoped device inventory and collection queue summary."""
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"})
+        from services.common.tenant_context import TenantContextDenied
+        from services.gateway.operator_mobile_review import get_mobile_operations_inventory
+
+        try:
+            result = await run_in_threadpool(
+                get_mobile_operations_inventory,
+                request.state.operator_session.operator.operator_id,
+                str(location_id),
+                device_limit,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers={"Cache-Control": "no-store", "Vary": "Cookie"},
+            )
+        except ValueError as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)})
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.operator_mobile_review").warning(
+                "Mobile operations inventory unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Mobile operations inventory unavailable"},
+                headers={"Retry-After": "30", "Cache-Control": "no-store"},
+            )
+        from fastapi.encoders import jsonable_encoder
+
+        return JSONResponse(
+            jsonable_encoder(result),
+            headers={"Cache-Control": "no-store", "Vary": "Cookie"},
         )
 
     @router.post("/operator/auth/logout")
@@ -729,4 +1981,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                                samesite="strict")
         return response
 
+    from services.gateway.farm_activity_routes import register_farm_activity_record_routes
+
+    register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
     return router

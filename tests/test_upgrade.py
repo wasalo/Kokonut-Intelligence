@@ -21,9 +21,7 @@ def test_release_identity_matches_version_file():
     assert all(part.isdigit() for part in version.split("."))
 
 
-@pytest.mark.parametrize(
-    "script", ["backup.sh", "restore.sh", "rollback.sh", "upgrade.sh", "verify-upgrade.sh"]
-)
+@pytest.mark.parametrize("script", ["backup.sh", "restore.sh", "rollback.sh", "upgrade.sh", "verify-upgrade.sh"])
 def test_upgrade_scripts_have_valid_shell_syntax(script):
     result = subprocess.run(
         ["bash", "-n", str(SCRIPTS / script)],
@@ -55,6 +53,14 @@ def test_reference_only_seed_mode_skips_schema_bootstrap():
     assert "services.migration migrate --schemas-only" in source
 
 
+def test_curated_seeds_use_ordered_migration_ledger():
+    source = (SCRIPTS / "seed.sh").read_text(encoding="utf-8")
+
+    assert 'CURATED_MIGRATIONS+=(--only-migration "seed:${seed_file##*/}")' in source
+    assert 'services.migration migrate "${CURATED_MIGRATIONS[@]}"' in source
+    assert 'psql_exec "$PROJECT_DIR/$seed_file"' not in source
+
+
 def test_upgrade_docs_define_maintenance_window_and_manual_rollback():
     source = (PROJECT_ROOT / "docs" / "upgrades.md").read_text(encoding="utf-8")
 
@@ -64,15 +70,22 @@ def test_upgrade_docs_define_maintenance_window_and_manual_rollback():
 
 
 def test_verify_backup_accepts_valid_manifest(tmp_path):
-    artifact = tmp_path / "artifact.enc"
+    artifact = tmp_path / "postgres" / "testdb.dump.enc"
+    artifact.parent.mkdir()
     artifact.write_bytes(b"test backup")
     manifest = {
         "backup_id": "test-checkpoint",
-        "files": [{
-            "path": artifact.name,
-            "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
-            "size": artifact.stat().st_size,
-        }],
+        "providers": {
+            "postgres": {"included": True, "databases": ["testdb"]},
+            "clickhouse": {"included": False, "database": None},
+        },
+        "files": [
+            {
+                "path": "postgres/testdb.dump.enc",
+                "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                "size": artifact.stat().st_size,
+            }
+        ],
     }
     (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
@@ -87,15 +100,22 @@ def test_verify_backup_accepts_valid_manifest(tmp_path):
 
 
 def test_verify_backup_rejects_tampered_artifact(tmp_path):
-    artifact = tmp_path / "artifact.enc"
+    artifact = tmp_path / "postgres" / "testdb.dump.enc"
+    artifact.parent.mkdir()
     artifact.write_bytes(b"original")
     manifest = {
         "backup_id": "test-checkpoint",
-        "files": [{
-            "path": artifact.name,
-            "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
-            "size": artifact.stat().st_size,
-        }],
+        "providers": {
+            "postgres": {"included": True, "databases": ["testdb"]},
+            "clickhouse": {"included": False, "database": None},
+        },
+        "files": [
+            {
+                "path": "postgres/testdb.dump.enc",
+                "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
+                "size": artifact.stat().st_size,
+            }
+        ],
     }
     (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     artifact.write_bytes(b"tampered")

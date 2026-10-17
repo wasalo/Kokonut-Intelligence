@@ -246,6 +246,12 @@ class Exporter:
         params = []
         if filters:
             where_clause, params = self._build_where(filters)
+        if collection == "farm_activity":
+            eligibility_clause = "farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id)"
+            if where_clause:
+                where_clause += f" AND {eligibility_clause}"
+            else:
+                where_clause = f"WHERE {eligibility_clause}"
 
         conn = get_pg()
         try:

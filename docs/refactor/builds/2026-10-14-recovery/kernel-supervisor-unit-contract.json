@@ -1,0 +1,28 @@
+{
+  "record_type": "kernel_supervisor_process_contract",
+  "recorded_at": "2026-10-15T01:31:25+00:00",
+  "scope": "Three deterministic unit cases mock Popen and signals; one POSIX integration case starts a real supervisor, child, and grandchild process to verify process-group SIGTERM delivery. No database was started.",
+  "checks": {
+    "pytest": "4 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behaviors": [
+    "SIGTERM triggers graceful shutdown",
+    "each child process group receives SIGTERM and then SIGKILL after timeout",
+    "an unexpected child exit with code zero fails the supervisor and stops siblings",
+    "a partial child launch failure cleans up processes already started",
+    "a real supervisor shutdown signal reaches both a child and grandchild process"
+  ],
+  "limitations": [
+    "The process-group integration case covers graceful SIGTERM delivery only; it does not establish forced descendant cleanup after an unresponsive process.",
+    "No database outage, lease expiry/recovery, provider transport failure, worker progress, or long-duration workload was exercised.",
+    "No candidate, legacy database, or Docker service was touched."
+  ],
+  "source_sha256": {
+    "services/core/runtime.py": "987f772a2d4fe8f6ed1fa85d72830a13e90d5bd2557dd0428367fe24abf4e82b",
+    "tests/test_kernel_runtime_supervisor.py": "4a7bbbe4b70ad9da9c1113117650c86db38f101f2435e44c6c5f2fe8474a2be5",
+    "docs/refactor/kernel-supervision.md": "bc630fdc53a73b507e0ae115571330fbcdf3b45c3925b4271c1954f8ceb4cd7f"
+  }
+}

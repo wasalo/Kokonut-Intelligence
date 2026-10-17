@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-15",
+  "scope": "Source-only AST inventory of direct registered report query calls; no runtime or authorization claims.",
+  "result": "passed",
+  "inventory_path": "docs/refactor/report-generator-query-scope-inventory.json",
+  "inventory_sha256": "432248e522462857735293cbeec4bd5f7cacc7b8713f9f117db062f96b4bdf42",
+  "counts": {
+    "registered_report_types": 94,
+    "direct_query_sites": 177,
+    "query_sites_with_bound_location_scope_signal": 126,
+    "conditional_scope_query_sites": 5,
+    "unresolved_query_sites": 0,
+    "classification_counts": {
+      "all_direct_queries_show_bound_location_scope": 34,
+      "conditional_direct_query_scope": 3,
+      "helper_or_computed_without_direct_query": 28,
+      "mixed_direct_query_scope": 16,
+      "no_bound_location_scope_visible": 13
+    }
+  },
+  "checks": {
+    "query_scope_tests": "7 passed",
+    "report_source_inventory_tests": "2 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "query_scope_inventory_freshness": "passed",
+    "source_inventory_freshness": "passed",
+    "capability_matrix": "66 rows valid; MAN-CAP checks remain separately gated",
+    "ci_freshness_checks": "added for both report inventories",
+    "persisted_sql_text": false,
+    "database_or_provider_access": false
+  },
+  "limitations": [
+    "AST evidence does not prove query authorization, tenant isolation, or semantic report parity.",
+    "Helper behavior and database view lineage require separate review.",
+    "Conditional filters, global references, and network-level outputs require an owner scope contract."
+  ]
+}

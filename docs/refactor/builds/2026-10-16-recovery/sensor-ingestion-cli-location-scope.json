@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-16",
+  "slice": "Location-scoped local sensor ingestion CLI",
+  "implementation": {
+    "entrypoint": "services.ingestion.sensor_ingester",
+    "required_scope": "Every CLI operation requires one canonical --location-id UUID.",
+    "operations": [
+      "CSV reading ingestion",
+      "single reading ingestion",
+      "active sensor inventory",
+      "calibration status"
+    ],
+    "query_boundary": "Sensor UUID/slug lookup, active sensor inventory, and both calibration queries bind the selected location. CSV rows cannot resolve devices outside that location.",
+    "fail_closed_boundary": "Missing or malformed scope is rejected before opening a database connection or cursor, including direct run_csv/run_single calls.",
+    "scheduled_source": "Recurring sensor ingestion remains rejected until it has an explicit source contract."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_sensor_ingester_cli_contract.py tests/test_sensor_ingester.py tests/test_scheduled_command_contracts.py -q",
+      "result": "passed",
+      "tests": 110
+    },
+    "ruff": "passed",
+    "compileall": "passed",
+    "generated_inventories": [
+      "runtime SQL inventory",
+      "worker SQL inventory",
+      "worker SQL reachability",
+      "worker source closure",
+      "worker function reachability",
+      "worker effect inventory",
+      "worker boundary preflight",
+      "worker JobSpec contract inventory"
+    ],
+    "capability_matrix": "66 rows validated; MAN-CAP statuses unchanged"
+  },
+  "limitations": [
+    "The location argument constrains query selection but is not an authenticated tenant grant.",
+    "This does not establish signed worker context, least-privilege database access, or application RLS.",
+    "No candidate or legacy database, live device, provider, or persisted schedule was accessed."
+  ]
+}

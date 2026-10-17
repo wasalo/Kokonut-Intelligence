@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import json
 import time
-from typing import Any
 
 import grpc
 
@@ -29,14 +27,15 @@ class EcocreditServiceServicer:
     # --- Class queries ---
 
     def Classes(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.class_manager import list_classes
             classes = list_classes(conn)
-            return ecocredit_pb2.ClassesResponse(
-                classes=[ecocredit_pb2.ClassInfo(
+            return ecocredit_service_pb2.ClassesResponse(
+                classes=[ecocredit_types_pb2.ClassInfo(
                     id=c["id"], name=c["name"], description=c.get("description", ""),
                     credit_type=c["credit_type"], admin_address=c.get("admin_address", ""),
                     status=c["status"],
@@ -46,7 +45,8 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def Class(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
         conn = self._get_conn()
         try:
@@ -54,8 +54,8 @@ class EcocreditServiceServicer:
             cls = get_class_full(conn, request.class_id)
             if not cls:
                 context.abort(grpc.StatusCode.NOT_FOUND, f"Class not found: {request.class_id}")
-            return ecocredit_pb2.ClassResponse(
-                class_info=ecocredit_pb2.ClassInfo(
+            return ecocredit_service_pb2.ClassResponse(
+                class_info=ecocredit_types_pb2.ClassInfo(
                     id=cls["id"], name=cls["name"], description=cls.get("description", ""),
                     credit_type=cls["credit_type"], admin_address=cls.get("admin_address", ""),
                     status=cls["status"],
@@ -65,15 +65,16 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def ClassesByAdmin(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.class_manager import list_classes
             classes = list_classes(conn)
             filtered = [c for c in classes if c.get("admin_address") == request.admin]
-            return ecocredit_pb2.ClassesByAdminResponse(
-                classes=[ecocredit_pb2.ClassInfo(
+            return ecocredit_service_pb2.ClassesByAdminResponse(
+                classes=[ecocredit_types_pb2.ClassInfo(
                     id=c["id"], name=c["name"], credit_type=c["credit_type"],
                     admin_address=c.get("admin_address", ""), status=c["status"],
                 ) for c in filtered]
@@ -82,14 +83,15 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def ClassIssuers(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.entities import list_issuers
             issuers = list_issuers(conn, request.class_id)
-            return ecocredit_pb2.ClassIssuersResponse(
-                issuers=[ecocredit_pb2.ClassIssuer(
+            return ecocredit_service_pb2.ClassIssuersResponse(
+                issuers=[ecocredit_types_pb2.ClassIssuer(
                     id=i["id"], credit_class_id=str(i["credit_class_id"]),
                     issuer_address=i["issuer_address"], issuer_name=i.get("issuer_name", ""),
                 ) for i in issuers]
@@ -100,7 +102,7 @@ class EcocreditServiceServicer:
     # --- Class mutations ---
 
     def CreateClass(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:class", "write")
         conn = self._get_conn()
         try:
@@ -110,12 +112,12 @@ class EcocreditServiceServicer:
                 credit_type=request.credit_type, description=request.description,
                 url=request.url, admin_address=request.admin_address,
             )
-            return ecocredit_pb2.CreateClassResponse(class_id=result["id"])
+            return ecocredit_service_pb2.CreateClassResponse(class_id=result["id"])
         finally:
             self._release_conn(conn)
 
     def UpdateClass(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:class", "write")
         conn = self._get_conn()
         try:
@@ -132,14 +134,15 @@ class EcocreditServiceServicer:
             if request.status:
                 kwargs["status"] = request.status
             update_class(conn, request.class_id, **kwargs)
-            return ecocredit_pb2.UpdateClassResponse(class_id=request.class_id)
+            return ecocredit_service_pb2.UpdateClassResponse(class_id=request.class_id)
         finally:
             self._release_conn(conn)
 
     # --- Project queries ---
 
     def Projects(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         from services.metadata_api.project_info import get_project_info
         require_scope(context, "ecocredit:project", "read")
         conn = self._get_conn()
@@ -151,16 +154,17 @@ class EcocreditServiceServicer:
             for r in results:
                 info = get_project_info(conn, str(r["id"]))
                 if info:
-                    projects.append(ecocredit_pb2.ProjectInfo(
+                    projects.append(ecocredit_types_pb2.ProjectInfo(
                         name=info["name"], description=info.get("description", ""),
                         region=info.get("region", ""),
                     ))
-            return ecocredit_pb2.ProjectsResponse(projects=projects)
+            return ecocredit_service_pb2.ProjectsResponse(projects=projects)
         finally:
             self._release_conn(conn)
 
     def Project(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         from services.metadata_api.project_info import get_project_info
         require_scope(context, "ecocredit:project", "read")
         conn = self._get_conn()
@@ -168,8 +172,8 @@ class EcocreditServiceServicer:
             info = get_project_info(conn, request.location_id)
             if not info:
                 context.abort(grpc.StatusCode.NOT_FOUND, f"Project not found: {request.location_id}")
-            return ecocredit_pb2.ProjectResponse(
-                project=ecocredit_pb2.ProjectInfo(
+            return ecocredit_service_pb2.ProjectResponse(
+                project=ecocredit_types_pb2.ProjectInfo(
                     name=info["name"], description=info.get("description", ""),
                     region=info.get("region", ""), watershed=info.get("watershed", ""),
                 )
@@ -178,7 +182,8 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def ProjectsByClass(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:project", "read")
         conn = self._get_conn()
         try:
@@ -190,24 +195,25 @@ class EcocreditServiceServicer:
                 from services.metadata_api.project_info import get_project_info
                 info = get_project_info(conn, lid)
                 if info:
-                    projects.append(ecocredit_pb2.ProjectInfo(
+                    projects.append(ecocredit_types_pb2.ProjectInfo(
                         name=info["name"], region=info.get("region", ""),
                     ))
-            return ecocredit_pb2.ProjectsByClassResponse(projects=projects)
+            return ecocredit_service_pb2.ProjectsByClassResponse(projects=projects)
         finally:
             self._release_conn(conn)
 
     # --- Batch queries ---
 
     def Batches(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
             batches = list_batches(conn)
-            return ecocredit_pb2.BatchesResponse(
-                batches=[ecocredit_pb2.BatchInfo(
+            return ecocredit_service_pb2.BatchesResponse(
+                batches=[ecocredit_types_pb2.BatchInfo(
                     id=b["id"], batch_code=b["batch_code"],
                     credit_class_id=str(b["credit_class_id"]),
                     location_id=str(b["location_id"]),
@@ -222,7 +228,8 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def Batch(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
         conn = self._get_conn()
         try:
@@ -230,8 +237,8 @@ class EcocreditServiceServicer:
             batch = get_batch(conn, request.batch_id)
             if not batch:
                 context.abort(grpc.StatusCode.NOT_FOUND, f"Batch not found: {request.batch_id}")
-            return ecocredit_pb2.BatchResponse(
-                batch=ecocredit_pb2.BatchInfo(
+            return ecocredit_service_pb2.BatchResponse(
+                batch=ecocredit_types_pb2.BatchInfo(
                     id=batch["id"], batch_code=batch["batch_code"],
                     credit_class_id=str(batch["credit_class_id"]),
                     location_id=str(batch["location_id"]),
@@ -246,14 +253,15 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def BatchesByClass(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
             batches = list_batches(conn, credit_class_id=request.class_id)
-            return ecocredit_pb2.BatchesByClassResponse(
-                batches=[ecocredit_pb2.BatchInfo(
+            return ecocredit_service_pb2.BatchesByClassResponse(
+                batches=[ecocredit_types_pb2.BatchInfo(
                     id=b["id"], batch_code=b["batch_code"],
                     vintage_year=b["vintage_year"],
                     total_quantity=float(b["total_quantity"]),
@@ -264,14 +272,15 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def BatchesByProject(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.batch_manager import list_batches
             batches = list_batches(conn, location_id=request.location_id)
-            return ecocredit_pb2.BatchesByProjectResponse(
-                batches=[ecocredit_pb2.BatchInfo(
+            return ecocredit_service_pb2.BatchesByProjectResponse(
+                batches=[ecocredit_types_pb2.BatchInfo(
                     id=b["id"], batch_code=b["batch_code"],
                     vintage_year=b["vintage_year"],
                     total_quantity=float(b["total_quantity"]),
@@ -284,7 +293,7 @@ class EcocreditServiceServicer:
     # --- Batch mutations ---
 
     def CreateBatch(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:batch", "write")
         conn = self._get_conn()
         try:
@@ -296,7 +305,7 @@ class EcocreditServiceServicer:
                 total_quantity=request.total_quantity,
                 unit=request.unit or "tonneCO2e",
             )
-            return ecocredit_pb2.CreateBatchResponse(
+            return ecocredit_service_pb2.CreateBatchResponse(
                 batch_id=result["id"], batch_code=result["batch_code"],
             )
         finally:
@@ -305,14 +314,15 @@ class EcocreditServiceServicer:
     # --- Balance queries ---
 
     def Balance(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:balance", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_balance
             bal = get_balance(conn, request.batch_id, request.account_address)
-            return ecocredit_pb2.BalanceResponse(
-                balance=ecocredit_pb2.Balance(
+            return ecocredit_service_pb2.BalanceResponse(
+                balance=ecocredit_types_pb2.Balance(
                     credit_batch_id=bal["credit_batch_id"],
                     account_address=bal["account_address"],
                     tradable_amount=float(bal["tradable_amount"]),
@@ -324,14 +334,15 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def Balances(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:balance", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_balances_for_account
             balances = get_balances_for_account(conn, request.account_address)
-            return ecocredit_pb2.BalancesResponse(
-                balances=[ecocredit_pb2.BalanceInfo(
+            return ecocredit_service_pb2.BalancesResponse(
+                balances=[ecocredit_types_pb2.BalanceInfo(
                     credit_batch_id=b["credit_batch_id"],
                     batch_code=b.get("batch_code", ""),
                     account_address=b["account_address"],
@@ -345,14 +356,15 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def BalancesByBatch(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:balance", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_balances_for_batch
             balances = get_balances_for_batch(conn, request.batch_id)
-            return ecocredit_pb2.BalancesByBatchResponse(
-                balances=[ecocredit_pb2.BalanceInfo(
+            return ecocredit_service_pb2.BalancesByBatchResponse(
+                balances=[ecocredit_types_pb2.BalanceInfo(
                     credit_batch_id=b["credit_batch_id"],
                     account_address=b["account_address"],
                     tradable_amount=float(b["tradable_amount"]),
@@ -364,14 +376,15 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def Supply(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:batch", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.balance import get_supply
             supply = get_supply(conn, request.batch_id)
-            return ecocredit_pb2.SupplyResponse(
-                supply=ecocredit_pb2.BatchSupply(
+            return ecocredit_service_pb2.SupplyResponse(
+                supply=ecocredit_types_pb2.BatchSupply(
                     credit_batch_id=supply["credit_batch_id"],
                     tradable_supply=supply["tradable_supply"],
                     retired_supply=supply["retired_supply"],
@@ -384,7 +397,7 @@ class EcocreditServiceServicer:
     # --- Streaming ---
 
     def StreamBalances(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:balance", "read")
         conn = self._get_conn()
         try:
@@ -392,7 +405,7 @@ class EcocreditServiceServicer:
             while context.is_active():
                 balances = get_balances_for_account(conn, request.account_address)
                 for b in balances:
-                    yield ecocredit_pb2.BalanceUpdate(
+                    yield ecocredit_service_pb2.BalanceUpdate(
                         batch_id=b["credit_batch_id"],
                         account_address=b["account_address"],
                         tradable_amount=float(b["tradable_amount"]),
@@ -405,7 +418,7 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def StreamBatchUpdates(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:batch", "read")
         conn = self._get_conn()
         try:
@@ -421,7 +434,7 @@ class EcocreditServiceServicer:
                     {"last_check": last_check},
                 ).mappings().all()
                 for b in batches:
-                    yield ecocredit_pb2.BatchUpdate(
+                    yield ecocredit_service_pb2.BatchUpdate(
                         batch_id=str(b["id"]),
                         batch_code=b["batch_code"],
                         status=b["status"],
@@ -436,14 +449,15 @@ class EcocreditServiceServicer:
     # --- Basket ---
 
     def Baskets(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:basket", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.basket import list_baskets
             baskets = list_baskets(conn)
-            return ecocredit_pb2.BasketsResponse(
-                baskets=[ecocredit_pb2.BasketInfo(
+            return ecocredit_service_pb2.BasketsResponse(
+                baskets=[ecocredit_types_pb2.BasketInfo(
                     id=b["id"], name=b["name"], description=b.get("description", ""),
                     basket_denom=b.get("basket_denom", ""),
                     disable_auto_retire=b.get("disable_auto_retire", False),
@@ -456,7 +470,8 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def Basket(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:basket", "read")
         conn = self._get_conn()
         try:
@@ -464,9 +479,9 @@ class EcocreditServiceServicer:
             basket = get_basket_info(conn, request.basket_id)
             if not basket:
                 context.abort(grpc.StatusCode.NOT_FOUND, f"Basket not found: {request.basket_id}")
-            classes = [ecocredit_pb2.ClassInfo(id=c["id"], name=c["name"]) for c in basket.get("classes", [])]
-            return ecocredit_pb2.BasketResponse(
-                basket=ecocredit_pb2.BasketInfo(
+            classes = [ecocredit_types_pb2.ClassInfo(id=c["id"], name=c["name"]) for c in basket.get("classes", [])]
+            return ecocredit_service_pb2.BasketResponse(
+                basket=ecocredit_types_pb2.BasketInfo(
                     id=basket["id"], name=basket["name"],
                     basket_denom=basket.get("basket_denom", ""),
                     disable_auto_retire=basket.get("disable_auto_retire", False),
@@ -479,7 +494,7 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def CreateBasket(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:basket", "write")
         conn = self._get_conn()
         try:
@@ -492,14 +507,14 @@ class EcocreditServiceServicer:
                 curator_address=request.curator_address,
                 min_start_year=request.min_start_year or None,
             )
-            return ecocredit_pb2.CreateBasketResponse(
+            return ecocredit_service_pb2.CreateBasketResponse(
                 basket_id=result["id"], basket_denom=result.get("basket_denom", ""),
             )
         finally:
             self._release_conn(conn)
 
     def PutInBasket(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:basket", "write")
         conn = self._get_conn()
         try:
@@ -510,12 +525,12 @@ class EcocreditServiceServicer:
                 depositor_address=request.depositor_address,
                 quantity=request.quantity,
             )
-            return ecocredit_pb2.PutInBasketResponse(token_amount=result["token_amount"])
+            return ecocredit_service_pb2.PutInBasketResponse(token_amount=result["token_amount"])
         finally:
             self._release_conn(conn)
 
     def TakeFromBasket(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:basket", "write")
         conn = self._get_conn()
         try:
@@ -527,7 +542,7 @@ class EcocreditServiceServicer:
                 retire_on_take=request.retire_on_take,
                 retirement_jurisdiction=request.retirement_jurisdiction or None,
             )
-            return ecocredit_pb2.TakeFromBasketResponse(
+            return ecocredit_service_pb2.TakeFromBasketResponse(
                 credit_amount=result["credit_amount"],
                 retired=result["retire_on_take"],
             )
@@ -537,15 +552,16 @@ class EcocreditServiceServicer:
     # --- Marketplace ---
 
     def SellOrders(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "marketplace", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import list_sell_orders
             orders = list_sell_orders(conn, credit_batch_id=request.batch_id or None,
                                       seller_address=request.seller_address or None)
-            return ecocredit_pb2.SellOrdersResponse(
-                sell_orders=[ecocredit_pb2.SellOrderInfo(
+            return ecocredit_service_pb2.SellOrdersResponse(
+                sell_orders=[ecocredit_types_pb2.SellOrderInfo(
                     id=o["id"], batch_code=o.get("batch_code", ""),
                     seller_address=o["seller_address"],
                     quantity=float(o["quantity"]),
@@ -560,7 +576,8 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def SellOrder(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "marketplace", "read")
         conn = self._get_conn()
         try:
@@ -568,8 +585,8 @@ class EcocreditServiceServicer:
             order = get_sell_order(conn, request.order_id)
             if not order:
                 context.abort(grpc.StatusCode.NOT_FOUND, f"Order not found: {request.order_id}")
-            return ecocredit_pb2.SellOrderResponse(
-                sell_order=ecocredit_pb2.SellOrderInfo(
+            return ecocredit_service_pb2.SellOrderResponse(
+                sell_order=ecocredit_types_pb2.SellOrderInfo(
                     id=order["id"], seller_address=order["seller_address"],
                     quantity=float(order["quantity"]),
                     ask_price=float(order["ask_price"]),
@@ -581,7 +598,7 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def CreateSellOrder(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "marketplace", "write")
         conn = self._get_conn()
         try:
@@ -595,12 +612,12 @@ class EcocreditServiceServicer:
                 expiration=request.expiration or None,
                 allow_partial_fills=request.allow_partial_fills,
             )
-            return ecocredit_pb2.CreateSellOrderResponse(order_id=result["id"])
+            return ecocredit_service_pb2.CreateSellOrderResponse(order_id=result["id"])
         finally:
             self._release_conn(conn)
 
     def UpdateSellOrder(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "marketplace", "write")
         conn = self._get_conn()
         try:
@@ -610,25 +627,25 @@ class EcocreditServiceServicer:
                       "new_expiration": request.new_expiration or None}
             kwargs = {k: v for k, v in kwargs.items() if v is not None}
             result = update_sell_order(conn, request.order_id, request.seller_address, **kwargs)
-            return ecocredit_pb2.UpdateSellOrderResponse(order_id=result["id"])
+            return ecocredit_service_pb2.UpdateSellOrderResponse(order_id=result["id"])
         finally:
             self._release_conn(conn)
 
     def CancelSellOrder(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "marketplace", "write")
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import cancel_sell_order
             result = cancel_sell_order(conn, request.order_id, request.seller_address)
-            return ecocredit_pb2.CancelSellOrderResponse(
+            return ecocredit_service_pb2.CancelSellOrderResponse(
                 order_id=result["id"], status=result["status"],
             )
         finally:
             self._release_conn(conn)
 
     def CreateBuyOrder(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "marketplace", "write")
         conn = self._get_conn()
         try:
@@ -642,7 +659,7 @@ class EcocreditServiceServicer:
                 retirement_reason=request.retirement_reason or None,
                 max_fee_amount=request.max_fee_amount or None,
             )
-            return ecocredit_pb2.CreateBuyOrderResponse(
+            return ecocredit_service_pb2.CreateBuyOrderResponse(
                 order_id=result["id"],
                 total_price=result["total_price"],
                 buyer_fee=result.get("buyer_fee", 0),
@@ -651,13 +668,13 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def ExecuteBuyOrder(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "marketplace", "write")
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import execute_buy_order
             result = execute_buy_order(conn, request.buy_order_id)
-            return ecocredit_pb2.ExecuteBuyOrderResponse(
+            return ecocredit_service_pb2.ExecuteBuyOrderResponse(
                 buy_order_id=result["buy_order_id"],
                 status=result["status"],
             )
@@ -665,7 +682,7 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def StreamSellOrders(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "marketplace", "read")
         conn = self._get_conn()
         try:
@@ -681,7 +698,7 @@ class EcocreditServiceServicer:
                     {"last_check": last_check},
                 ).mappings().all()
                 for o in orders:
-                    yield ecocredit_pb2.SellOrderUpdate(
+                    yield ecocredit_service_pb2.SellOrderUpdate(
                         order_id=str(o["id"]),
                         seller_address=o["seller_address"],
                         quantity=float(o["quantity"]),
@@ -696,14 +713,15 @@ class EcocreditServiceServicer:
     # --- Allowed Denoms ---
 
     def AllowedDenoms(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "marketplace", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import list_allowed_denoms
             denoms = list_allowed_denoms(conn)
-            return ecocredit_pb2.AllowedDenomsResponse(
-                allowed_denoms=[ecocredit_pb2.AllowedDenom(
+            return ecocredit_service_pb2.AllowedDenomsResponse(
+                allowed_denoms=[ecocredit_types_pb2.AllowedDenom(
                     id=d["id"], denom=d["denom"], chain=d.get("chain", ""),
                     is_active=d["is_active"],
                 ) for d in denoms]
@@ -714,14 +732,15 @@ class EcocreditServiceServicer:
     # --- Fee Params ---
 
     def GetFeeParams(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "marketplace", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.marketplace import get_fee_params
             params = get_fee_params(conn)
-            return ecocredit_pb2.GetFeeParamsResponse(
-                fee_params=ecocredit_pb2.FeeParams(
+            return ecocredit_service_pb2.GetFeeParamsResponse(
+                fee_params=ecocredit_types_pb2.FeeParams(
                     buyer_fee=params["buyer_fee"],
                     seller_fee=params["seller_fee"],
                 )
@@ -732,7 +751,7 @@ class EcocreditServiceServicer:
     # --- Bridge ---
 
     def BridgeOut(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:bridge", "write")
         conn = self._get_conn()
         try:
@@ -744,12 +763,12 @@ class EcocreditServiceServicer:
                 recipient_address=request.recipient_address,
                 quantity=request.quantity,
             )
-            return ecocredit_pb2.BridgeOutResponse(bridge_tx_id=result["id"])
+            return ecocredit_service_pb2.BridgeOutResponse(bridge_tx_id=result["id"])
         finally:
             self._release_conn(conn)
 
     def BridgeIn(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:bridge", "write")
         conn = self._get_conn()
         try:
@@ -762,25 +781,25 @@ class EcocreditServiceServicer:
                 quantity=request.quantity,
                 origin_tx_id=request.origin_tx_id or None,
             )
-            return ecocredit_pb2.BridgeInResponse(bridge_tx_id=result["id"])
+            return ecocredit_service_pb2.BridgeInResponse(bridge_tx_id=result["id"])
         finally:
             self._release_conn(conn)
 
     def BridgeComplete(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:bridge", "write")
         conn = self._get_conn()
         try:
             from services.credit_class.bridge import complete_bridge
             result = complete_bridge(conn, request.bridge_tx_id, request.bridge_tx_hash or None)
-            return ecocredit_pb2.BridgeCompleteResponse(status=result["status"])
+            return ecocredit_service_pb2.BridgeCompleteResponse(status=result["status"])
         finally:
             self._release_conn(conn)
 
     # --- Enrollment ---
 
     def ApplyToClass(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:class", "write")
         conn = self._get_conn()
         try:
@@ -790,14 +809,14 @@ class EcocreditServiceServicer:
                 credit_class_id=request.credit_class_id,
                 application_metadata=request.application_metadata or None,
             )
-            return ecocredit_pb2.ApplyToClassResponse(
+            return ecocredit_service_pb2.ApplyToClassResponse(
                 enrollment_id=result["id"], status=result["status"],
             )
         finally:
             self._release_conn(conn)
 
     def EvaluateApplication(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
         require_scope(context, "ecocredit:class", "write")
         conn = self._get_conn()
         try:
@@ -808,7 +827,7 @@ class EcocreditServiceServicer:
                 new_status=request.new_status,
                 enrollment_metadata=request.enrollment_metadata or None,
             )
-            return ecocredit_pb2.EvaluateApplicationResponse(
+            return ecocredit_service_pb2.EvaluateApplicationResponse(
                 enrollment_id=result["enrollment_id"],
                 old_status=result["old_status"],
                 new_status=result["new_status"],
@@ -817,19 +836,20 @@ class EcocreditServiceServicer:
             self._release_conn(conn)
 
     def ListEnrollments(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
         conn = self._get_conn()
         try:
-            from services.credit_class.enrollment import list_enrollments_by_project, list_enrollments_by_class
+            from services.credit_class.enrollment import list_enrollments_by_class, list_enrollments_by_project
             if request.location_id:
                 enrollments = list_enrollments_by_project(conn, request.location_id)
             elif request.class_id:
                 enrollments = list_enrollments_by_class(conn, request.class_id)
             else:
                 enrollments = []
-            return ecocredit_pb2.ListEnrollmentsResponse(
-                enrollments=[ecocredit_pb2.Enrollment(
+            return ecocredit_service_pb2.ListEnrollmentsResponse(
+                enrollments=[ecocredit_types_pb2.Enrollment(
                     id=e["id"], location_id=str(e["location_id"]),
                     credit_class_id=str(e["credit_class_id"]),
                     status=e["status"],
@@ -841,14 +861,15 @@ class EcocreditServiceServicer:
     # --- Credit Types ---
 
     def CreditTypes(self, request, context):
-        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_pb2
+        from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+        from services.grpc.ecocredit.v1 import types_pb2 as ecocredit_types_pb2
         require_scope(context, "ecocredit:class", "read")
         conn = self._get_conn()
         try:
             from services.credit_class.entities import list_credit_types
             types = list_credit_types(conn)
-            return ecocredit_pb2.CreditTypesResponse(
-                credit_types=[ecocredit_pb2.CreditType(
+            return ecocredit_service_pb2.CreditTypesResponse(
+                credit_types=[ecocredit_types_pb2.CreditType(
                     abbreviation=t["abbreviation"], name=t["name"],
                     unit=t["unit"], precision=t["precision"],
                     description=t.get("description", ""),

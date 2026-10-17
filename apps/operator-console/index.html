@@ -18,8 +18,9 @@
         padding: .7rem 1rem; background: #176b50; color: white; font: inherit;
         text-decoration: none; cursor: pointer; }
       button.secondary { background: #e8efea; color: #18332b; }
-      input, select { box-sizing: border-box; max-width: 100%; padding: .6rem;
+      input, select, textarea { box-sizing: border-box; max-width: 100%; padding: .6rem;
         border: 1px solid #b8c8bd; border-radius: .4rem; font: inherit; }
+      textarea { min-height: 5rem; }
       .notice { margin: 1.25rem 0; padding: 1rem; border-radius: .5rem; background: #f4f7f3; }
       .toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin: 1.5rem 0 1rem; }
       label { display: grid; gap: .35rem; font-size: .9rem; }
@@ -72,6 +73,23 @@
             <p id="enrollment-expiration" class="muted"></p>
           </section>
         </section>
+        <section id="mobile-operations" hidden aria-labelledby="mobile-operations-heading">
+          <h2 id="mobile-operations-heading">Field Collector operations</h2>
+          <p class="muted">View enrolled device status and content-free collection counts for a location where you have both device-read and collection-review access. Tokens and collection payloads are never returned.</p>
+          <div class="toolbar">
+            <label for="mobile-operations-location">Granted location</label>
+            <select id="mobile-operations-location"></select>
+            <button id="mobile-operations-refresh" type="button">Refresh inventory</button>
+          </div>
+          <p id="mobile-operations-status" class="muted" role="status"></p>
+          <dl id="mobile-operations-summary"></dl>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Device ID</th><th>Status</th><th>Last seen</th><th>Last sync</th></tr></thead>
+              <tbody id="mobile-operations-devices"></tbody>
+            </table>
+          </div>
+        </section>
         <section id="review" hidden aria-labelledby="review-heading">
           <h2 id="review-heading">Submitted report review</h2>
           <p class="muted">Read submitted report snapshots for locations explicitly granted to your account. This console does not verify, reject, or publish reports.</p>
@@ -92,7 +110,206 @@
             <pre id="report-data"></pre>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report review locations are assigned to this account.</div>
+        <section id="farm-activity" hidden aria-labelledby="farm-activity-heading">
+          <h2 id="farm-activity-heading">Farm activity workflow</h2>
+          <p class="muted">Review eligible Field Collector submissions before creating a canonical draft. Drafts, decisions, verification, and publication stay under separate location grants. Private descriptions and notes require a detail grant. Published records may enter governed reports.</p>
+          <div class="toolbar">
+            <label for="farm-activity-location">Granted location</label>
+            <select id="farm-activity-location"></select>
+            <button id="farm-activity-refresh" type="button">Refresh workflow</button>
+          </div>
+          <p id="farm-activity-status" class="muted" role="status"></p>
+          <h3>Eligible Field Collector intake</h3>
+          <p class="muted">This list omits free text. Opening an intake shows its bounded private payload; creating a draft requires an explicit content-review acknowledgement.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Activity</th><th>Date</th><th>Collected</th><th></th></tr></thead>
+              <tbody id="farm-activity-intake-queue"></tbody>
+            </table>
+          </div>
+          <section id="farm-activity-intake-detail" hidden aria-labelledby="farm-activity-intake-detail-heading">
+            <h3 id="farm-activity-intake-detail-heading">Private intake payload</h3>
+            <pre id="farm-activity-intake-payload"></pre>
+            <form id="farm-activity-promote-form" class="form-grid" hidden>
+              <label><input id="farm-activity-content-reviewed" type="checkbox" required> I reviewed the submission content and confirm it is suitable to create a private draft.</label>
+              <button type="submit">Create canonical draft</button>
+            </form>
+            <p id="farm-activity-promote-status" class="muted" role="status"></p>
+          </section>
+          <h3>Canonical lifecycle queue</h3>
+          <p class="muted">A workflow decision is recorded with the signed-in operator and location. Verification and publication are separate human decisions; the server and database enforce the allowed transitions. Corrections are available only while a native activity is a draft and require a separate edit grant and reason.</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Activity</th><th>Date</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+              <tbody id="farm-activity-lifecycle-queue"></tbody>
+            </table>
+          </div>
+          <section id="farm-activity-lifecycle-detail" hidden aria-labelledby="farm-activity-lifecycle-detail-heading">
+            <h3 id="farm-activity-lifecycle-detail-heading">Canonical activity and decision history</h3>
+            <p id="farm-activity-eligibility-status" class="muted" role="status" aria-live="polite"></p>
+            <pre id="farm-activity-lifecycle-content"></pre>
+            <ol id="farm-activity-lifecycle-events"></ol>
+            <form id="farm-activity-draft-edit-form" class="form-grid" hidden>
+              <h4>Edit draft content</h4>
+              <label for="farm-activity-edit-type">Activity</label>
+              <select id="farm-activity-edit-type" required>
+                <option value="planting">Planting</option>
+                <option value="weeding">Weeding</option>
+                <option value="irrigation">Irrigation</option>
+                <option value="pruning">Pruning</option>
+                <option value="spraying">Spraying</option>
+                <option value="harvesting">Harvesting</option>
+                <option value="transport">Transport</option>
+                <option value="storage">Storage</option>
+                <option value="other">Other</option>
+              </select>
+              <label for="farm-activity-edit-date">Date</label>
+              <input id="farm-activity-edit-date" type="date" required>
+              <label for="farm-activity-edit-description">Description</label>
+              <input id="farm-activity-edit-description" type="text">
+              <label for="farm-activity-edit-labor-hours">Labor hours</label>
+              <input id="farm-activity-edit-labor-hours" type="number" min="0" step="any">
+              <label for="farm-activity-edit-notes">Notes</label>
+              <textarea id="farm-activity-edit-notes"></textarea>
+              <label for="farm-activity-edit-reason">Correction reason</label>
+              <textarea id="farm-activity-edit-reason" maxlength="2000" required></textarea>
+              <button type="submit">Save audited draft correction</button>
+              <p id="farm-activity-edit-status" class="muted" role="status"></p>
+            </form>
+            <form id="farm-activity-transition-form" class="form-grid" hidden>
+              <label for="farm-activity-transition-reason">Decision reason</label>
+              <textarea id="farm-activity-transition-reason" maxlength="2000"></textarea>
+              <div id="farm-activity-transition-actions" class="toolbar"></div>
+            </form>
+            <p id="farm-activity-transition-status" class="muted" role="status"></p>
+          </section>
+        </section>
+        <section id="farm-activity-record-operations" hidden aria-labelledby="farm-activity-record-operations-heading">
+          <h2 id="farm-activity-record-operations-heading">Other farm activity records</h2>
+          <p class="muted">Location-scoped Gateway records outside the consent-aware Field Collector workflow. Creation, correction, submission, verification, rejection, and publication are separately granted and recorded with the signed-in operator.</p>
+          <div class="toolbar">
+            <label for="farm-activity-record-location">Granted location</label>
+            <select id="farm-activity-record-location"></select>
+            <button id="farm-activity-record-refresh" type="button">Refresh records</button>
+          </div>
+          <p id="farm-activity-record-status" class="muted" role="status"></p>
+          <form id="farm-activity-record-create-form" class="form-grid" hidden>
+            <h3>Create farm activity draft</h3>
+            <label for="farm-activity-record-create-type">Activity type</label>
+            <input id="farm-activity-record-create-type" type="text" maxlength="100" required>
+            <label for="farm-activity-record-create-date">Activity date</label>
+            <input id="farm-activity-record-create-date" type="date" required>
+            <label for="farm-activity-record-create-plot">Plot ID (optional)</label>
+            <input id="farm-activity-record-create-plot" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+            <label for="farm-activity-record-create-crop-cycle">Crop cycle ID (optional)</label>
+            <input id="farm-activity-record-create-crop-cycle" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+            <label for="farm-activity-record-create-description">Description</label>
+            <textarea id="farm-activity-record-create-description" maxlength="10000"></textarea>
+            <label for="farm-activity-record-create-hours">Labor hours</label>
+            <input id="farm-activity-record-create-hours" type="number" min="0" step="0.01">
+            <label for="farm-activity-record-create-cost">Labor cost</label>
+            <input id="farm-activity-record-create-cost" type="number" min="0" step="0.01">
+            <label for="farm-activity-record-create-materials">Materials used (JSON object or array)</label>
+            <textarea id="farm-activity-record-create-materials" maxlength="65536" spellcheck="false" placeholder='{"seed":"variety and amount"}'></textarea>
+            <label for="farm-activity-record-create-evidence">Evidence URLs (one per line)</label>
+            <textarea id="farm-activity-record-create-evidence" maxlength="204800"></textarea>
+            <label for="farm-activity-record-create-notes">Notes</label>
+            <textarea id="farm-activity-record-create-notes" maxlength="10000"></textarea>
+            <button type="submit">Create private draft</button>
+          </form>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Activity</th><th>Date</th><th>Status</th><th>Source</th><th>Updated</th><th></th></tr></thead>
+              <tbody id="farm-activity-record-queue"></tbody>
+            </table>
+          </div>
+          <section id="farm-activity-record-detail" hidden aria-labelledby="farm-activity-record-detail-heading">
+            <h3 id="farm-activity-record-detail-heading">Farm activity detail and audit history</h3>
+            <pre id="farm-activity-record-content"></pre>
+            <ol id="farm-activity-record-events"></ol>
+            <form id="farm-activity-record-edit-form" class="form-grid" hidden>
+              <h4>Edit draft content</h4>
+              <label for="farm-activity-record-edit-type">Activity type</label>
+              <input id="farm-activity-record-edit-type" type="text" maxlength="100" required>
+              <label for="farm-activity-record-edit-date">Activity date</label>
+              <input id="farm-activity-record-edit-date" type="date" required>
+              <label for="farm-activity-record-edit-plot">Plot ID (optional)</label>
+              <input id="farm-activity-record-edit-plot" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+              <label for="farm-activity-record-edit-crop-cycle">Crop cycle ID (optional)</label>
+              <input id="farm-activity-record-edit-crop-cycle" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" placeholder="UUID">
+              <label for="farm-activity-record-edit-description">Description</label>
+              <textarea id="farm-activity-record-edit-description" maxlength="10000"></textarea>
+              <label for="farm-activity-record-edit-hours">Labor hours</label>
+              <input id="farm-activity-record-edit-hours" type="number" min="0" step="0.01">
+              <label for="farm-activity-record-edit-cost">Labor cost</label>
+              <input id="farm-activity-record-edit-cost" type="number" min="0" step="0.01">
+              <label for="farm-activity-record-edit-materials">Materials used (JSON object or array)</label>
+              <textarea id="farm-activity-record-edit-materials" maxlength="65536" spellcheck="false"></textarea>
+              <label for="farm-activity-record-edit-evidence">Evidence URLs (one per line)</label>
+              <textarea id="farm-activity-record-edit-evidence" maxlength="204800"></textarea>
+              <label for="farm-activity-record-edit-notes">Notes</label>
+              <textarea id="farm-activity-record-edit-notes" maxlength="10000"></textarea>
+              <label for="farm-activity-record-edit-reason">Correction reason</label>
+              <textarea id="farm-activity-record-edit-reason" maxlength="2000" required></textarea>
+              <button type="submit">Save audited draft correction</button>
+            </form>
+            <p id="farm-activity-record-detail-status" class="muted" role="status"></p>
+            <form id="farm-activity-record-transition-form" class="form-grid" hidden>
+              <label for="farm-activity-record-transition-reason">Decision reason</label>
+              <textarea id="farm-activity-record-transition-reason" maxlength="2000"></textarea>
+              <div id="farm-activity-record-transition-actions" class="toolbar"></div>
+            </form>
+          </section>
+        </section>
+        <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
+          <h2 id="mobile-review-heading">Field Collector review queue</h2>
+          <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
+          <div class="toolbar">
+            <label for="mobile-review-location">Granted location</label>
+            <select id="mobile-review-location"></select>
+            <button id="mobile-review-refresh" type="button">Refresh queue</button>
+          </div>
+          <p id="mobile-review-status" class="muted" role="status"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Form</th><th>Collected</th><th>Form review</th><th>Consent</th><th>Eligibility</th><th></th></tr></thead>
+              <tbody id="mobile-review-queue"></tbody>
+            </table>
+          </div>
+          <section id="mobile-review-detail" hidden aria-labelledby="mobile-review-detail-heading">
+            <h3 id="mobile-review-detail-heading">Collection payload</h3>
+            <p class="muted">Private payload content is shown only with the separate detail grant. Photo bytes and download links are not available here.</p>
+            <pre id="mobile-review-payload"></pre>
+            <section aria-labelledby="mobile-review-events-heading">
+              <h4 id="mobile-review-events-heading">Review notes</h4>
+              <p class="muted">Notes are append-only and do not change consent eligibility or verify, publish, or erase the collection.</p>
+              <ol id="mobile-review-events"></ol>
+              <form id="mobile-review-event-form" class="form-grid" hidden>
+                <label for="mobile-review-decision">Review note</label>
+                <select id="mobile-review-decision">
+                  <option value="reviewed">Reviewed</option>
+                  <option value="needs_follow_up">Needs follow-up</option>
+                  <option value="ineligibility_acknowledged">Ineligibility acknowledged</option>
+                </select>
+                <label for="mobile-review-reason">Reason</label>
+                <textarea id="mobile-review-reason" maxlength="2000" required></textarea>
+                <label for="mobile-review-evidence-source">Evidence source</label>
+                <input id="mobile-review-evidence-source" maxlength="1000" required>
+                <label for="mobile-review-evidence-basis">Evidence basis</label>
+                <textarea id="mobile-review-evidence-basis" maxlength="2000" required></textarea>
+                <button type="submit">Record review note</button>
+              </form>
+              <p id="mobile-review-event-status" class="muted" role="status"></p>
+            </section>
+          </section>
+          <section id="mobile-disposition-inventory-panel" hidden aria-labelledby="mobile-disposition-inventory-heading">
+            <h3 id="mobile-disposition-inventory-heading">Disposition impact inventory</h3>
+            <p class="muted">Read-only counts for known database lineage. It omits payload values, participant identifiers, media keys, external exports, and backup copies; it does not approve or execute a disposition.</p>
+            <pre id="mobile-disposition-inventory"></pre>
+            <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
+          </section>
+        </section>
+        <div id="no-grants" class="notice" hidden>No report, collection review, farm activity, or enrollment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -109,6 +326,36 @@
       const detail = document.querySelector("#report-detail");
       const reportData = document.querySelector("#report-data");
       const fields = [["Name", "display_name"], ["Subject", "subject"], ["Issuer", "issuer"]];
+      const farmActivity = document.querySelector("#farm-activity");
+      const farmActivityLocation = document.querySelector("#farm-activity-location");
+      const farmActivityStatus = document.querySelector("#farm-activity-status");
+      const farmActivityIntakeQueue = document.querySelector("#farm-activity-intake-queue");
+      const farmActivityIntakeDetail = document.querySelector("#farm-activity-intake-detail");
+      const farmActivityIntakePayload = document.querySelector("#farm-activity-intake-payload");
+      const farmActivityPromoteForm = document.querySelector("#farm-activity-promote-form");
+      const farmActivityPromoteStatus = document.querySelector("#farm-activity-promote-status");
+      const farmActivityLifecycleQueue = document.querySelector("#farm-activity-lifecycle-queue");
+      const farmActivityLifecycleDetail = document.querySelector("#farm-activity-lifecycle-detail");
+      const farmActivityLifecycleContent = document.querySelector("#farm-activity-lifecycle-content");
+      const farmActivityEligibilityStatus = document.querySelector("#farm-activity-eligibility-status");
+      const farmActivityLifecycleEvents = document.querySelector("#farm-activity-lifecycle-events");
+      const farmActivityDraftEditForm = document.querySelector("#farm-activity-draft-edit-form");
+      const farmActivityEditStatus = document.querySelector("#farm-activity-edit-status");
+      const farmActivityTransitionForm = document.querySelector("#farm-activity-transition-form");
+      const farmActivityTransitionActions = document.querySelector("#farm-activity-transition-actions");
+      const farmActivityTransitionStatus = document.querySelector("#farm-activity-transition-status");
+      const farmActivityRecordOperations = document.querySelector("#farm-activity-record-operations");
+      const farmActivityRecordLocation = document.querySelector("#farm-activity-record-location");
+      const farmActivityRecordStatus = document.querySelector("#farm-activity-record-status");
+      const farmActivityRecordCreateForm = document.querySelector("#farm-activity-record-create-form");
+      const farmActivityRecordQueue = document.querySelector("#farm-activity-record-queue");
+      const farmActivityRecordDetail = document.querySelector("#farm-activity-record-detail");
+      const farmActivityRecordContent = document.querySelector("#farm-activity-record-content");
+      const farmActivityRecordEvents = document.querySelector("#farm-activity-record-events");
+      const farmActivityRecordEditForm = document.querySelector("#farm-activity-record-edit-form");
+      const farmActivityRecordTransitionForm = document.querySelector("#farm-activity-record-transition-form");
+      const farmActivityRecordTransitionActions = document.querySelector("#farm-activity-record-transition-actions");
+      const farmActivityRecordDetailStatus = document.querySelector("#farm-activity-record-detail-status");
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -116,6 +363,42 @@
       const mobileEnrollmentResult = document.querySelector("#mobile-enrollment-result");
       const enrollmentCode = document.querySelector("#enrollment-code");
       const enrollmentExpiration = document.querySelector("#enrollment-expiration");
+      const mobileOperations = document.querySelector("#mobile-operations");
+      const mobileOperationsLocation = document.querySelector("#mobile-operations-location");
+      const mobileOperationsStatus = document.querySelector("#mobile-operations-status");
+      const mobileOperationsSummary = document.querySelector("#mobile-operations-summary");
+      const mobileOperationsDevices = document.querySelector("#mobile-operations-devices");
+      let mobileOperationsRequestVersion = 0;
+      const mobileReview = document.querySelector("#mobile-review");
+      const mobileReviewLocation = document.querySelector("#mobile-review-location");
+      const mobileReviewQueue = document.querySelector("#mobile-review-queue");
+      const mobileReviewStatus = document.querySelector("#mobile-review-status");
+      const mobileReviewDetail = document.querySelector("#mobile-review-detail");
+      const mobileReviewPayload = document.querySelector("#mobile-review-payload");
+      const mobileReviewEvents = document.querySelector("#mobile-review-events");
+      const mobileReviewEventForm = document.querySelector("#mobile-review-event-form");
+      const mobileReviewEventStatus = document.querySelector("#mobile-review-event-status");
+      const mobileDispositionInventoryPanel = document.querySelector("#mobile-disposition-inventory-panel");
+      const mobileDispositionInventory = document.querySelector("#mobile-disposition-inventory");
+      const mobileDispositionInventoryStatus = document.querySelector("#mobile-disposition-inventory-status");
+      let mobileDetailLocations = new Set();
+      let mobileReviewWriteLocations = new Set();
+      let mobileDispositionLocations = new Set();
+      let currentMobileCollectionId = null;
+      let farmActivityDetailLocations = new Set();
+      let farmActivityCreateLocations = new Set();
+      let farmActivityEditLocations = new Set();
+      let farmActivityActionLocations = new Map();
+      let farmActivityRecordReadLocations = new Set();
+      let farmActivityRecordPublishedLocations = new Set();
+      let farmActivityRecordDetailLocations = new Set();
+      let farmActivityRecordPublishedDetailLocations = new Set();
+      let farmActivityRecordCreateLocations = new Set();
+      let farmActivityRecordEditLocations = new Set();
+      let farmActivityRecordActionLocations = new Map();
+      let currentFarmActivityRecord = null;
+      let currentFarmActivityIntakeId = null;
+      let currentFarmActivity = null;
 
       function csrfToken() {
         const item = document.cookie.split("; ")
@@ -156,6 +439,89 @@
           const mobileLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "mobile_device" && scope.action === "enroll")
             .map((scope) => scope.location_id))];
+          const mobileReviewLocations = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_collection_review" && scope.action === "read")
+            .map((scope) => scope.location_id))];
+          const mobileDeviceReadLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_device" && scope.action === "read")
+            .map((scope) => scope.location_id));
+          const mobileOperationsLocations = [...mobileDeviceReadLocations]
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)
+              && mobileReviewLocations.includes(locationId));
+          const farmActivityLocations = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "read")
+            .map((scope) => scope.location_id))];
+          farmActivityRecordReadLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "read")
+            .map((scope) => scope.location_id));
+          farmActivityRecordPublishedLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "read_published")
+            .map((scope) => scope.location_id));
+          farmActivityRecordDetailLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "read_detail")
+            .map((scope) => scope.location_id));
+          farmActivityRecordPublishedDetailLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "read_published_detail")
+            .map((scope) => scope.location_id));
+          farmActivityRecordCreateLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "create_draft")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => farmActivityRecordDetailLocations.has(locationId)));
+          farmActivityRecordEditLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "edit_draft")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => farmActivityRecordDetailLocations.has(locationId)));
+          farmActivityRecordActionLocations = new Map();
+          for (const [routeAction, grantAction] of [
+            ["submit", "submit"], ["verify", "verify"], ["reject", "reject"],
+            ["request-rework", "rework"], ["publish", "publish"], ["close-exception", "close_exception"]
+          ]) {
+            farmActivityRecordActionLocations.set(routeAction, new Set((data.scopes || [])
+              .filter((scope) => scope.resource === "farm_activity" && scope.action === grantAction)
+              .map((scope) => scope.location_id)));
+          }
+          const farmActivityRecordLocations = [...new Set([
+            ...farmActivityRecordReadLocations,
+            ...farmActivityRecordPublishedLocations,
+            ...farmActivityRecordCreateLocations
+          ])];
+          mobileDetailLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_collection_review" && scope.action === "read_detail")
+            .map((scope) => scope.location_id));
+          mobileReviewWriteLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_collection_review" && scope.action === "review")
+            .map((scope) => scope.location_id));
+          mobileDispositionLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_collection_retention" && scope.action === "inventory")
+            .map((scope) => scope.location_id));
+          const mobilePayloadLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "mobile_collection_review" && scope.action === "read_detail")
+            .map((scope) => scope.location_id));
+          farmActivityDetailLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "read_detail")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => mobilePayloadLocations.has(locationId)));
+          farmActivityCreateLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "create_draft")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => mobilePayloadLocations.has(locationId)
+              && farmActivityDetailLocations.has(locationId)));
+          farmActivityEditLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "farm_activity" && scope.action === "edit_draft")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => farmActivityDetailLocations.has(locationId)
+              && mobilePayloadLocations.has(locationId)));
+          farmActivityActionLocations = new Map();
+          for (const [routeAction, grantAction] of [
+            ["submit", "submit"], ["verify", "verify"], ["reject", "reject"],
+            ["request-rework", "rework"], ["publish", "publish"], ["close-exception", "close_exception"]
+          ]) {
+            farmActivityActionLocations.set(routeAction, new Set((data.scopes || [])
+              .filter((scope) => scope.resource === "farm_activity" && scope.action === grantAction)
+              .map((scope) => scope.location_id)));
+          }
+          let hasAuthorizedSurface = false;
           if (mobileLocations.length) {
             for (const locationId of mobileLocations) {
               const option = document.createElement("option");
@@ -164,6 +530,18 @@
               mobileLocation.append(option);
             }
             mobileEnrollment.hidden = false;
+            hasAuthorizedSurface = true;
+          }
+          if (mobileOperationsLocations.length) {
+            for (const locationId of mobileOperationsLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              mobileOperationsLocation.append(option);
+            }
+            mobileOperations.hidden = false;
+            await loadMobileOperationsInventory();
+            hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
             for (const locationId of reviewLocations) {
@@ -174,9 +552,43 @@
             }
             review.hidden = false;
             await loadQueue();
-          } else {
-            document.querySelector("#no-grants").hidden = false;
+            hasAuthorizedSurface = true;
           }
+          if (farmActivityLocations.length) {
+            for (const locationId of farmActivityLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              farmActivityLocation.append(option);
+            }
+            farmActivity.hidden = false;
+            await refreshFarmActivity();
+            hasAuthorizedSurface = true;
+          }
+          if (farmActivityRecordLocations.length) {
+            for (const locationId of farmActivityRecordLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              farmActivityRecordLocation.append(option);
+            }
+            farmActivityRecordOperations.hidden = false;
+            farmActivityRecordCreateForm.hidden = !farmActivityRecordCreateLocations.has(farmActivityRecordLocation.value);
+            await refreshFarmActivityRecords();
+            hasAuthorizedSurface = true;
+          }
+          if (mobileReviewLocations.length) {
+            for (const locationId of mobileReviewLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              mobileReviewLocation.append(option);
+            }
+            mobileReview.hidden = false;
+            await loadMobileQueue();
+            hasAuthorizedSurface = true;
+          }
+          document.querySelector("#no-grants").hidden = hasAuthorizedSurface;
         } catch {
           status.textContent = "Operator session could not be checked. Retry after the service is available.";
         }
@@ -241,8 +653,997 @@
         }
       }
 
+      async function refreshFarmActivity() {
+        farmActivityIntakeDetail.hidden = true;
+        farmActivityLifecycleDetail.hidden = true;
+        currentFarmActivityIntakeId = null;
+        currentFarmActivity = null;
+        farmActivityStatus.textContent = "Loading location-scoped farm activity queues…";
+        const results = await Promise.all([
+          loadFarmActivityIntakeQueue(),
+          loadFarmActivityLifecycleQueue()
+        ]);
+        farmActivityStatus.textContent = results.join(" ");
+      }
+
+      async function loadFarmActivityIntakeQueue() {
+        farmActivityIntakeQueue.replaceChildren();
+        const locationId = farmActivityLocation.value;
+        const params = new URLSearchParams({ location_id: locationId, limit: "50" });
+        try {
+          const response = await fetch(`/operator/api/farm-activity-intake-queue?${params}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 403) return "Intake access is not authorized for this location.";
+          if (!response.ok) return "The eligible Field Collector intake queue is unavailable.";
+          const result = await response.json();
+          for (const item of result.data || []) {
+            const row = document.createElement("tr");
+            const activity = document.createElement("td");
+            activity.textContent = item.activity_type || "Farm activity";
+            const date = document.createElement("td");
+            date.textContent = item.activity_date || "—";
+            const collected = document.createElement("td");
+            collected.textContent = item.collected_at ? new Date(item.collected_at).toLocaleString() : "—";
+            const action = document.createElement("td");
+            if (farmActivityDetailLocations.has(locationId)) {
+              const open = document.createElement("button");
+              open.type = "button";
+              open.className = "secondary";
+              open.textContent = "Read payload";
+              open.addEventListener("click", () => loadFarmActivityIntake(item.id));
+              action.append(open);
+            } else {
+              action.textContent = "Separate detail grants required";
+            }
+            row.append(activity, date, collected, action);
+            farmActivityIntakeQueue.append(row);
+          }
+          const count = result.data?.length || 0;
+          return `${count} eligible intake record(s).`;
+        } catch {
+          return "The eligible Field Collector intake queue is unavailable.";
+        }
+      }
+
+      async function loadFarmActivityIntake(collectionId) {
+        farmActivityIntakeDetail.hidden = true;
+        currentFarmActivityIntakeId = collectionId;
+        farmActivityPromoteStatus.textContent = "Loading private Field Collector payload…";
+        const params = new URLSearchParams({ location_id: farmActivityLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/farm-activity-intake-queue/${encodeURIComponent(collectionId)}?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (response.status === 403) throw new Error("The separate private detail grant is required for this location.");
+          if (response.status === 413) throw new Error("This payload is too large to display in the console.");
+          if (!response.ok) throw new Error("The eligible intake detail is unavailable or no longer eligible.");
+          const result = await response.json();
+          farmActivityIntakePayload.textContent = JSON.stringify(result.data.payload, null, 2);
+          farmActivityPromoteForm.reset();
+          farmActivityPromoteForm.hidden = !farmActivityCreateLocations.has(farmActivityLocation.value);
+          farmActivityIntakeDetail.hidden = false;
+          farmActivityPromoteStatus.textContent = farmActivityCreateLocations.has(farmActivityLocation.value)
+            ? "Review this content before acknowledging draft creation."
+            : "Draft creation requires create_draft and private detail grants for this location.";
+        } catch (error) {
+          farmActivityStatus.textContent = error.message;
+        }
+      }
+
+      async function loadFarmActivityLifecycleQueue() {
+        farmActivityLifecycleQueue.replaceChildren();
+        const locationId = farmActivityLocation.value;
+        const params = new URLSearchParams({ location_id: locationId, limit: "50" });
+        try {
+          const response = await fetch(`/operator/api/farm-activities?${params}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 403) return "Lifecycle access is not authorized for this location.";
+          if (!response.ok) return "The canonical farm activity queue is unavailable.";
+          const result = await response.json();
+          for (const activity of result.data || []) {
+            const row = document.createElement("tr");
+            const name = document.createElement("td");
+            name.textContent = activity.activity_type || "Farm activity";
+            const date = document.createElement("td");
+            date.textContent = activity.activity_date || "—";
+            const lifecycle = document.createElement("td");
+            const statusLabel = activity.exception_closed ? `${activity.status} (exception closed)` : activity.status;
+            lifecycle.textContent = activity.eligible_for_use === true
+              ? statusLabel
+              : `${statusLabel} · restricted (${farmActivityEligibilityReason(activity.eligibility_reason)})`;
+            const updated = document.createElement("td");
+            updated.textContent = activity.updated_at ? new Date(activity.updated_at).toLocaleString() : "—";
+            const action = document.createElement("td");
+            if (farmActivityDetailLocations.has(locationId)) {
+              const open = document.createElement("button");
+              open.type = "button";
+              open.className = "secondary";
+              open.textContent = "Review decisions";
+              open.addEventListener("click", () => loadFarmActivity(activity.id));
+              action.append(open);
+            } else {
+              action.textContent = "Separate detail grants required";
+            }
+            row.append(name, date, lifecycle, updated, action);
+            farmActivityLifecycleQueue.append(row);
+          }
+          const count = result.data?.length || 0;
+          return `${count} canonical farm activity record(s).`;
+        } catch {
+          return "The canonical farm activity queue is unavailable.";
+        }
+      }
+
+      async function loadFarmActivity(activityId) {
+        farmActivityLifecycleDetail.hidden = true;
+        currentFarmActivity = null;
+        farmActivityTransitionStatus.textContent = "Loading private activity detail and decision history…";
+        const params = new URLSearchParams({ location_id: farmActivityLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/farm-activities/${encodeURIComponent(activityId)}?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (response.status === 403) throw new Error("The separate private detail grant is required for this location.");
+          if (!response.ok) throw new Error("The canonical activity detail is unavailable.");
+          const result = await response.json();
+          currentFarmActivity = result.data;
+          farmActivityEligibilityStatus.textContent = currentFarmActivity.eligible_for_use === true
+            ? "This activity is currently eligible for governed review. Publication still requires the separate human workflow."
+            : `Restricted from further use: ${farmActivityEligibilityReason(currentFarmActivity.eligibility_reason)}. The record remains visible for authorized review. Editing, submission, verification, rework, and publication are blocked; rejection or exception closure appears only when the current workflow state allows it.`;
+          const {
+            workflow_events: events,
+            workflow_events_truncated: eventsTruncated,
+            ...content
+          } = result.data;
+          farmActivityLifecycleContent.textContent = JSON.stringify(content, null, 2);
+          farmActivityLifecycleEvents.replaceChildren();
+          for (const event of events || []) {
+            const item = document.createElement("li");
+            const heading = document.createElement("p");
+            heading.textContent = `${event.action} · ${event.from_status || "—"} → ${event.to_status} · operator ${event.actor_operator_id || "unknown"} · ${event.created_at || "unknown time"}`;
+            const reason = document.createElement("p");
+            reason.textContent = event.reason || "No reason recorded.";
+            item.append(heading, reason);
+            farmActivityLifecycleEvents.append(item);
+          }
+          document.querySelector("#farm-activity-edit-type").value = result.data.activity_type || "other";
+          document.querySelector("#farm-activity-edit-date").value = result.data.activity_date || "";
+          document.querySelector("#farm-activity-edit-description").value = result.data.description || "";
+          document.querySelector("#farm-activity-edit-labor-hours").value = result.data.labor_hours ?? "";
+          document.querySelector("#farm-activity-edit-notes").value = result.data.notes || "";
+          document.querySelector("#farm-activity-edit-reason").value = "";
+          farmActivityEditStatus.textContent = "";
+          renderFarmActivityActions();
+          farmActivityLifecycleDetail.hidden = false;
+          farmActivityTransitionStatus.textContent = eventsTruncated
+            ? "Showing the latest 100 decisions. Available actions reflect your grants and the current lifecycle state."
+            : "Decision history loaded. Available actions reflect your grants and the current lifecycle state.";
+        } catch (error) {
+          farmActivityStatus.textContent = error.message;
+        }
+      }
+
+      function renderFarmActivityActions() {
+        farmActivityTransitionActions.replaceChildren();
+        const activity = currentFarmActivity;
+        const locationId = farmActivityLocation.value;
+        const eligible = activity?.eligible_for_use === true;
+        farmActivityDraftEditForm.hidden = !activity
+          || !eligible
+          || activity.status !== "draft"
+          || !farmActivityEditLocations.has(locationId);
+        if (!activity) {
+          farmActivityTransitionForm.hidden = true;
+          return;
+        }
+        let allowed = [];
+        if (activity.status === "draft") allowed = ["submit"];
+        if (activity.status === "submitted") allowed = ["verify", "reject"];
+        if (activity.status === "verified") allowed = ["publish", "reject"];
+        if (activity.status === "rejected") {
+          allowed = ["request-rework"];
+          if (!(activity.workflow_events || []).some((event) => event.action === "exception_closed")) {
+            allowed.push("close-exception");
+          }
+        }
+        if (!eligible) {
+          allowed = allowed.filter((action) => ["reject", "close-exception"].includes(action));
+        }
+        const labels = {
+          submit: "Submit for verification",
+          verify: "Verify",
+          reject: "Reject to rework or exception",
+          "request-rework": "Return to draft for rework",
+          publish: "Publish",
+          "close-exception": "Close as exception"
+        };
+        const available = allowed.filter((action) => farmActivityActionLocations.get(action)?.has(locationId));
+        if (!available.length) {
+          farmActivityTransitionForm.hidden = true;
+          return;
+        }
+        for (const action of available) {
+          const button = document.createElement("button");
+          button.type = "button";
+          if (["reject", "request-rework", "close-exception"].includes(action)) button.className = "secondary";
+          button.textContent = labels[action];
+          button.addEventListener("click", () => transitionFarmActivity(action));
+          farmActivityTransitionActions.append(button);
+        }
+        farmActivityTransitionForm.hidden = false;
+      }
+
+      function farmActivityEligibilityReason(reason) {
+        const labels = {
+          source_not_eligible: "the source form or collection lineage could not be confirmed",
+          transport_pending: "the collection has not finished syncing",
+          review_required: "form review is required",
+          participant_link_revoked: "the participant reference was revoked",
+          consent_unassessed: "consent has not been assessed",
+          consent_not_effective_at_collection: "consent was not active when the record was collected",
+          consent_expired_after_collection: "consent expired after collection",
+          consent_no_longer_active: "consent is no longer active",
+          consent_expired: "consent has expired",
+          withdrawn_after_collection: "consent was withdrawn after collection"
+        };
+        return labels[reason] || String(reason || "source_not_eligible").replaceAll("_", " ");
+      }
+
+      async function transitionFarmActivity(action) {
+        if (!currentFarmActivity) return;
+        if (currentFarmActivity.eligible_for_use !== true
+            && !["reject", "close-exception"].includes(action)) {
+          farmActivityTransitionStatus.textContent = "This activity is restricted from further use and must remain in human disposition.";
+          return;
+        }
+        const reason = document.querySelector("#farm-activity-transition-reason").value.trim();
+        const reasonRequired = ["reject", "request-rework", "close-exception"].includes(action);
+        if (reasonRequired && !reason) {
+          farmActivityTransitionStatus.textContent = "A reason is required for this decision.";
+          return;
+        }
+        const confirmations = {
+          reject: "Record a reasoned rejection? The activity will require explicit rework or exception disposition.",
+          publish: "Publish this farm activity? Published records may enter governed farm reports and metrics.",
+          "close-exception": "Close this rejected activity as an exception? This records a reasoned, auditable disposition."
+        };
+        if (confirmations[action] && !window.confirm(confirmations[action])) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          farmActivityTransitionStatus.textContent = "The security token is unavailable. Reload the console and try again.";
+          return;
+        }
+        farmActivityTransitionStatus.textContent = "Recording human lifecycle decision…";
+        const params = new URLSearchParams({ location_id: farmActivityLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/farm-activities/${encodeURIComponent(currentFarmActivity.id)}/${action}?${params}`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf
+              },
+              body: JSON.stringify(reason ? { reason } : {})
+            }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific decision grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error("The lifecycle state changed or this decision is not permitted. Refresh and review the record again.");
+          }
+          if (!response.ok) throw new Error("The lifecycle decision could not be recorded.");
+          document.querySelector("#farm-activity-transition-reason").value = "";
+          const activityId = currentFarmActivity.id;
+          await refreshFarmActivity();
+          await loadFarmActivity(activityId);
+          farmActivityTransitionStatus.textContent = "Decision recorded in the governed workflow.";
+        } catch (error) {
+          farmActivityTransitionStatus.textContent = error.message;
+        }
+      }
+
+      async function saveFarmActivityDraftEdit(event) {
+        event.preventDefault();
+        if (!currentFarmActivity || currentFarmActivity.status !== "draft"
+            || currentFarmActivity.eligible_for_use !== true
+            || !farmActivityEditLocations.has(farmActivityLocation.value)) return;
+        const reason = document.querySelector("#farm-activity-edit-reason").value.trim();
+        if (!reason) {
+          farmActivityEditStatus.textContent = "A correction reason is required.";
+          return;
+        }
+        const laborValue = document.querySelector("#farm-activity-edit-labor-hours").value;
+        const content = {
+          activity_type: document.querySelector("#farm-activity-edit-type").value,
+          activity_date: document.querySelector("#farm-activity-edit-date").value,
+          description: document.querySelector("#farm-activity-edit-description").value || null,
+          labor_hours: laborValue === "" ? null : Number(laborValue),
+          notes: document.querySelector("#farm-activity-edit-notes").value || null
+        };
+        const csrf = csrfToken();
+        if (!csrf) {
+          farmActivityEditStatus.textContent = "The security token is unavailable. Reload the console and try again.";
+          return;
+        }
+        const activityId = currentFarmActivity.id;
+        const params = new URLSearchParams({ location_id: farmActivityLocation.value });
+        farmActivityEditStatus.textContent = "Validating and recording the draft correction…";
+        try {
+          const response = await fetch(
+            `/operator/api/farm-activities/${encodeURIComponent(activityId)}/draft?${params}`,
+            {
+              method: "PATCH",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf
+              },
+              body: JSON.stringify({ content, reason })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific edit grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error(result.error || "The record is no longer editable. Refresh and review it again.");
+          }
+          if (!response.ok) throw new Error(result.error || "The draft correction could not be saved.");
+          await refreshFarmActivity();
+          await loadFarmActivity(activityId);
+          farmActivityEditStatus.textContent = "Correction saved with an append-only operator event.";
+        } catch (error) {
+          farmActivityEditStatus.textContent = error.message;
+        }
+      }
+
+      function farmActivityRecordContentValue(selector) {
+        const value = document.querySelector(selector).value;
+        return value === "" ? null : Number(value);
+      }
+
+      function farmActivityRecordFormContent(mode) {
+        const field = (name) => document.querySelector(`#farm-activity-record-${mode}-${name}`).value;
+        const optionalUuid = (name, label) => {
+          const value = field(name).trim();
+          if (!value) return null;
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+            throw new Error(`${label} must be a UUID.`);
+          }
+          return value;
+        };
+        const materialsText = field("materials").trim();
+        let materials = null;
+        if (materialsText) {
+          try {
+            materials = JSON.parse(materialsText);
+          } catch {
+            throw new Error("Materials used must be valid JSON.");
+          }
+          if (materials === null || typeof materials !== "object") {
+            throw new Error("Materials used must be a JSON object or array.");
+          }
+        }
+        const evidence = field("evidence").split(/\r?\n/).map((url) => url.trim()).filter(Boolean);
+        if (evidence.length > 100 || evidence.some((url) => url.length > 2048)) {
+          throw new Error("Enter no more than 100 evidence URLs, each at most 2048 characters.");
+        }
+        return {
+          activity_type: field("type"),
+          activity_date: field("date"),
+          plot_id: optionalUuid("plot", "Plot ID"),
+          crop_cycle_id: optionalUuid("crop-cycle", "Crop cycle ID"),
+          description: field("description") || null,
+          labor_hours: farmActivityRecordContentValue(`#farm-activity-record-${mode}-hours`),
+          labor_cost: farmActivityRecordContentValue(`#farm-activity-record-${mode}-cost`),
+          materials_used: materials,
+          evidence_urls: evidence,
+          notes: field("notes") || null
+        };
+      }
+
+      async function refreshFarmActivityRecords() {
+        const locationId = farmActivityRecordLocation.value;
+        farmActivityRecordQueue.replaceChildren();
+        farmActivityRecordDetail.hidden = true;
+        currentFarmActivityRecord = null;
+        farmActivityRecordCreateForm.hidden = !farmActivityRecordCreateLocations.has(locationId);
+        const canReadAll = farmActivityRecordReadLocations.has(locationId);
+        const canReadPublished = farmActivityRecordPublishedLocations.has(locationId);
+        if (!canReadAll && !canReadPublished) {
+          farmActivityRecordStatus.textContent = farmActivityRecordCreateLocations.has(locationId)
+            ? "Draft creation is available. A separate read grant is required to list existing records."
+            : "A farm activity read grant is required for this location.";
+          return;
+        }
+        farmActivityRecordStatus.textContent = "Loading location-scoped Gateway records…";
+        const params = new URLSearchParams({ location_id: locationId, limit: "50" });
+        const path = canReadAll
+          ? "/operator/api/farm-activity-records"
+          : "/operator/api/farm-activity-records/published";
+        try {
+          const response = await fetch(`${path}?${params}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific farm activity grant is not valid.");
+          }
+          if (!response.ok) throw new Error("Gateway farm activity records are unavailable.");
+          const result = await response.json();
+          for (const activity of result.data || []) {
+            const row = document.createElement("tr");
+            const name = document.createElement("td");
+            name.textContent = activity.activity_type || "Farm activity";
+            const date = document.createElement("td");
+            date.textContent = activity.activity_date || "—";
+            const lifecycle = document.createElement("td");
+            lifecycle.textContent = activity.status || "unknown";
+            const source = document.createElement("td");
+            source.textContent = activity.source_system || "legacy source";
+            const updated = document.createElement("td");
+            updated.textContent = activity.updated_at ? new Date(activity.updated_at).toLocaleString() : "—";
+            const action = document.createElement("td");
+            const canOpen = farmActivityRecordDetailLocations.has(locationId)
+              || farmActivityRecordPublishedDetailLocations.has(locationId);
+            if (canOpen) {
+              const open = document.createElement("button");
+              open.type = "button";
+              open.className = "secondary";
+              open.textContent = "Open record";
+              open.addEventListener("click", () => loadFarmActivityRecord(activity.id));
+              action.append(open);
+            } else {
+              action.textContent = "Separate detail grant required";
+            }
+            row.append(name, date, lifecycle, source, updated, action);
+            farmActivityRecordQueue.append(row);
+          }
+          farmActivityRecordStatus.textContent = `${result.data?.length || 0} Gateway farm activity record(s). Field Collector submissions remain in their separate review workflow.`;
+        } catch (error) {
+          farmActivityRecordStatus.textContent = error.message;
+        }
+      }
+
+      async function loadFarmActivityRecord(activityId) {
+        const locationId = farmActivityRecordLocation.value;
+        const publishedOnly = !farmActivityRecordDetailLocations.has(locationId)
+          && farmActivityRecordPublishedDetailLocations.has(locationId);
+        const path = publishedOnly
+          ? `/operator/api/farm-activity-records/published/${encodeURIComponent(activityId)}`
+          : `/operator/api/farm-activity-records/${encodeURIComponent(activityId)}`;
+        const params = new URLSearchParams({ location_id: locationId });
+        farmActivityRecordDetail.hidden = true;
+        farmActivityRecordDetailStatus.textContent = "Loading record detail and append-only decision history…";
+        try {
+          const response = await fetch(`${path}?${params}`, {
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("A separate location-scoped detail grant is required.");
+          }
+          if (response.status === 404) throw new Error("The record is no longer available in this location.");
+          if (!response.ok) throw new Error("Farm activity detail is unavailable.");
+          const result = await response.json();
+          currentFarmActivityRecord = result.data;
+          const { operator_events: events, ...content } = currentFarmActivityRecord;
+          farmActivityRecordContent.textContent = JSON.stringify(content, null, 2);
+          farmActivityRecordEvents.replaceChildren();
+          for (const event of events || []) {
+            const item = document.createElement("li");
+            const heading = document.createElement("p");
+            heading.textContent = `${event.action} · ${event.from_status || "—"} → ${event.to_status} · operator ${event.actor_operator_id || "unknown"} · ${event.created_at || "unknown time"}`;
+            const reason = document.createElement("p");
+            reason.textContent = event.reason || "No reason recorded.";
+            item.append(heading, reason);
+            farmActivityRecordEvents.append(item);
+          }
+          document.querySelector("#farm-activity-record-edit-type").value = currentFarmActivityRecord.activity_type || "";
+          document.querySelector("#farm-activity-record-edit-date").value = currentFarmActivityRecord.activity_date || "";
+          document.querySelector("#farm-activity-record-edit-plot").value = currentFarmActivityRecord.plot_id || "";
+          document.querySelector("#farm-activity-record-edit-crop-cycle").value = currentFarmActivityRecord.crop_cycle_id || "";
+          document.querySelector("#farm-activity-record-edit-description").value = currentFarmActivityRecord.description || "";
+          document.querySelector("#farm-activity-record-edit-hours").value = currentFarmActivityRecord.labor_hours ?? "";
+          document.querySelector("#farm-activity-record-edit-cost").value = currentFarmActivityRecord.labor_cost ?? "";
+          document.querySelector("#farm-activity-record-edit-materials").value = currentFarmActivityRecord.materials_used
+            ? JSON.stringify(currentFarmActivityRecord.materials_used, null, 2)
+            : "";
+          document.querySelector("#farm-activity-record-edit-evidence").value = Array.isArray(currentFarmActivityRecord.evidence_urls)
+            ? currentFarmActivityRecord.evidence_urls.join("\n")
+            : "";
+          document.querySelector("#farm-activity-record-edit-notes").value = currentFarmActivityRecord.notes || "";
+          document.querySelector("#farm-activity-record-edit-reason").value = "";
+          document.querySelector("#farm-activity-record-transition-reason").value = "";
+          renderFarmActivityRecordActions();
+          farmActivityRecordDetail.hidden = false;
+          farmActivityRecordDetailStatus.textContent = "Record and latest 100 operator events loaded. Available actions reflect your grants and the current lifecycle state.";
+        } catch (error) {
+          farmActivityRecordDetailStatus.textContent = error.message;
+        }
+      }
+
+      function renderFarmActivityRecordActions() {
+        const locationId = farmActivityRecordLocation.value;
+        const activity = currentFarmActivityRecord;
+        farmActivityRecordTransitionActions.replaceChildren();
+        farmActivityRecordEditForm.hidden = !activity
+          || activity.status !== "draft"
+          || !farmActivityRecordEditLocations.has(locationId);
+        if (!activity) {
+          farmActivityRecordTransitionForm.hidden = true;
+          return;
+        }
+        let allowed = [];
+        if (activity.status === "draft") allowed = ["submit"];
+        if (activity.status === "submitted") allowed = ["verify", "reject"];
+        if (activity.status === "verified") allowed = ["publish", "reject"];
+        if (activity.status === "rejected") {
+          allowed = ["request-rework"];
+          if (!(activity.operator_events || []).some((event) => event.action === "exception_closed")) {
+            allowed.push("close-exception");
+          }
+        }
+        const labels = {
+          submit: "Submit for verification",
+          verify: "Verify independently",
+          reject: "Reject with reason",
+          "request-rework": "Return to draft for rework",
+          publish: "Publish",
+          "close-exception": "Close as exception"
+        };
+        const available = allowed.filter((action) => farmActivityRecordActionLocations.get(action)?.has(locationId));
+        if (!available.length) {
+          farmActivityRecordTransitionForm.hidden = true;
+          return;
+        }
+        for (const action of available) {
+          const button = document.createElement("button");
+          button.type = "button";
+          if (["reject", "request-rework", "close-exception"].includes(action)) button.className = "secondary";
+          button.textContent = labels[action];
+          button.addEventListener("click", () => transitionFarmActivityRecord(action));
+          farmActivityRecordTransitionActions.append(button);
+        }
+        farmActivityRecordTransitionForm.hidden = false;
+      }
+
+      async function saveFarmActivityRecordDraft(event) {
+        event.preventDefault();
+        const activity = currentFarmActivityRecord;
+        const locationId = farmActivityRecordLocation.value;
+        if (!activity || activity.status !== "draft" || !farmActivityRecordEditLocations.has(locationId)) return;
+        const reason = document.querySelector("#farm-activity-record-edit-reason").value.trim();
+        if (!reason) {
+          farmActivityRecordDetailStatus.textContent = "A correction reason is required.";
+          return;
+        }
+        let content;
+        try {
+          content = farmActivityRecordFormContent("edit");
+        } catch (error) {
+          farmActivityRecordDetailStatus.textContent = error.message;
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          farmActivityRecordDetailStatus.textContent = "The security token is unavailable. Reload the console and try again.";
+          return;
+        }
+        const params = new URLSearchParams({ location_id: locationId });
+        farmActivityRecordDetailStatus.textContent = "Saving the reasoned draft correction…";
+        try {
+          const response = await fetch(
+            `/operator/api/farm-activity-records/${encodeURIComponent(activity.id)}/draft?${params}`,
+            {
+              method: "PATCH",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ content, reason })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) throw new Error("Your location-specific edit grant is not valid.");
+          if (response.status === 409) throw new Error(result.error || "The draft changed. Refresh and review it again.");
+          if (!response.ok) throw new Error(result.error || "The draft correction could not be saved.");
+          await refreshFarmActivityRecords();
+          await loadFarmActivityRecord(activity.id);
+          farmActivityRecordDetailStatus.textContent = "Correction saved with an append-only operator event.";
+        } catch (error) {
+          farmActivityRecordDetailStatus.textContent = error.message;
+        }
+      }
+
+      async function transitionFarmActivityRecord(action) {
+        const activity = currentFarmActivityRecord;
+        if (!activity) return;
+        const reason = document.querySelector("#farm-activity-record-transition-reason").value.trim();
+        if (["reject", "request-rework", "close-exception"].includes(action) && !reason) {
+          farmActivityRecordDetailStatus.textContent = "A reason is required for this decision.";
+          return;
+        }
+        const confirmations = {
+          reject: "Reject this record? It will require rework or exception disposition.",
+          publish: "Publish this record? Published records may enter governed reports and metrics.",
+          "close-exception": "Close this rejected record as an exception? This records a reasoned decision."
+        };
+        if (confirmations[action] && !window.confirm(confirmations[action])) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          farmActivityRecordDetailStatus.textContent = "The security token is unavailable. Reload the console and try again.";
+          return;
+        }
+        const params = new URLSearchParams({ location_id: farmActivityRecordLocation.value });
+        farmActivityRecordDetailStatus.textContent = "Recording the human lifecycle decision…";
+        try {
+          const response = await fetch(
+            `/operator/api/farm-activity-records/${encodeURIComponent(activity.id)}/${action}?${params}`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify(reason ? { reason } : {})
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) throw new Error("Your session or location-specific decision grant is not valid.");
+          if (response.status === 409) throw new Error(result.error || "The record state changed. Refresh and review it again.");
+          if (!response.ok) throw new Error(result.error || "The lifecycle decision could not be recorded.");
+          await refreshFarmActivityRecords();
+          await loadFarmActivityRecord(activity.id);
+          farmActivityRecordDetailStatus.textContent = "Decision recorded in the governed workflow.";
+        } catch (error) {
+          farmActivityRecordDetailStatus.textContent = error.message;
+        }
+      }
+
+      async function loadMobileOperationsInventory() {
+        const requestVersion = ++mobileOperationsRequestVersion;
+        mobileOperationsStatus.textContent = "Loading location-scoped device and queue status…";
+        mobileOperationsSummary.replaceChildren();
+        mobileOperationsDevices.replaceChildren();
+        const locationId = mobileOperationsLocation.value;
+        const params = new URLSearchParams({ device_limit: "50" });
+        try {
+          const response = await fetch(
+            `/operator/api/mobile/locations/${encodeURIComponent(locationId)}/inventory?${params}`,
+            { credentials: "same-origin", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== mobileOperationsRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your account is not authorized for both Field Collector grants at this location.");
+          }
+          if (!response.ok) throw new Error("Field Collector operations inventory is unavailable.");
+          const result = await response.json();
+          if (requestVersion !== mobileOperationsRequestVersion) return;
+          const summaryLabels = [
+            ["Registered devices", "device_count"],
+            ["Active devices", "active_device_count"],
+            ["Pending sync records", "pending_sync_count"],
+            ["Synced records", "synced_record_count"],
+            ["Form review required", "form_review_required_count"],
+            ["Ineligible synced records", "ineligible_synced_count"]
+          ];
+          for (const [label, key] of summaryLabels) {
+            const term = document.createElement("dt");
+            const value = document.createElement("dd");
+            term.textContent = label;
+            value.textContent = String(result.queue_summary?.[key] ?? 0);
+            mobileOperationsSummary.append(term, value);
+          }
+          for (const device of result.devices || []) {
+            const row = document.createElement("tr");
+            for (const value of [
+              device.device_id,
+              device.status,
+              device.last_seen_at,
+              device.last_sync_at
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = value ? String(value) : "—";
+              row.append(cell);
+            }
+            mobileOperationsDevices.append(row);
+          }
+          mobileOperationsStatus.textContent = result.devices?.length
+            ? `Showing ${result.devices.length} device(s) for this location.`
+            : "No enrolled devices for this location.";
+        } catch (error) {
+          if (requestVersion !== mobileOperationsRequestVersion) return;
+          mobileOperationsStatus.textContent = error.message;
+        }
+      }
+
+      async function loadMobileQueue() {
+        mobileReviewQueue.replaceChildren();
+        mobileReviewDetail.hidden = true;
+        currentMobileCollectionId = null;
+        mobileDispositionInventoryPanel.hidden = true;
+        mobileDispositionInventory.textContent = "";
+        mobileDispositionInventoryStatus.textContent = "";
+        mobileReviewStatus.textContent = "Loading Field Collector records…";
+        const locationId = mobileReviewLocation.value;
+        const params = new URLSearchParams({ location_id: locationId, limit: "50" });
+        try {
+          const response = await fetch(`/operator/api/mobile-collection-review-queue?${params}`, {
+            credentials: "same-origin",
+            headers: { "Accept": "application/json" }
+          });
+          if (response.status === 403) throw new Error("Your account is not authorized for this location.");
+          if (!response.ok) throw new Error("The Field Collector review queue is unavailable.");
+          const result = await response.json();
+          for (const collection of result.data || []) {
+            const row = document.createElement("tr");
+            const form = document.createElement("td");
+            form.textContent = `${collection.form_name || collection.form_id || "Unknown form"} (${collection.form_version || "unknown version"})`;
+            const collected = document.createElement("td");
+            collected.textContent = collection.collected_at ? new Date(collection.collected_at).toLocaleString() : "—";
+            const formReview = document.createElement("td");
+            formReview.textContent = collection.review_state === "pending_review" ? "Required" : "No form flag";
+            const consent = document.createElement("td");
+            consent.textContent = collection.consent_validation_status || "unassessed";
+            const eligibility = document.createElement("td");
+            eligibility.textContent = collection.eligibility_reason || "unknown";
+            const action = document.createElement("td");
+            if (mobileDetailLocations.has(locationId)) {
+              const open = document.createElement("button");
+              open.type = "button";
+              open.className = "secondary";
+              open.textContent = "Read payload";
+              open.addEventListener("click", () => loadMobileCollection(collection.id));
+              action.append(open);
+            }
+            if (mobileDispositionLocations.has(locationId)) {
+              const inventory = document.createElement("button");
+              inventory.type = "button";
+              inventory.className = "secondary";
+              inventory.textContent = "Disposition inventory";
+              inventory.addEventListener("click", () => loadMobileDispositionInventory(collection.id));
+              action.append(inventory);
+            }
+            row.append(form, collected, formReview, consent, eligibility, action);
+            mobileReviewQueue.append(row);
+          }
+          mobileReviewStatus.textContent = result.data?.length
+            ? `${result.data.length} synced record(s) require review or disposition.`
+            : "No synced records need review or disposition for this location.";
+          if (!mobileDetailLocations.has(locationId) && result.data?.length) {
+            mobileReviewStatus.textContent += " Payload detail requires a separate location grant.";
+          }
+        } catch (error) {
+          mobileReviewStatus.textContent = error.message;
+        }
+      }
+
+      async function loadMobileCollection(collectionId) {
+        mobileReviewDetail.hidden = true;
+        mobileDispositionInventoryPanel.hidden = true;
+        mobileDispositionInventory.textContent = "";
+        mobileDispositionInventoryStatus.textContent = "";
+        currentMobileCollectionId = collectionId;
+        mobileReviewStatus.textContent = "Loading private collection payload…";
+        const params = new URLSearchParams({ location_id: mobileReviewLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/mobile-collection-review-queue/${encodeURIComponent(collectionId)}?${params}`,
+            { credentials: "same-origin", headers: { "Accept": "application/json" } }
+          );
+          if (response.status === 403) throw new Error("Your account does not have the separate detail grant for this location.");
+          if (response.status === 413) throw new Error("This payload is too large to display in the console.");
+          if (!response.ok) throw new Error("The private collection payload could not be loaded.");
+          const result = await response.json();
+          mobileReviewPayload.textContent = JSON.stringify(result.data, null, 2);
+          mobileReviewEvents.replaceChildren();
+          for (const event of result.data.review_events || []) {
+            const item = document.createElement("li");
+            const heading = document.createElement("p");
+            heading.textContent = `${event.decision} · ${event.created_at || "unknown time"} · ${event.actor_operator_id || "operator"}`;
+            const reason = document.createElement("p");
+            reason.textContent = event.reason;
+            const evidence = document.createElement("p");
+            evidence.textContent = (event.evidence || []).map((entry) => `${entry.source}: ${entry.basis}`).join("; ");
+            item.append(heading, reason, evidence);
+            mobileReviewEvents.append(item);
+          }
+          mobileReviewEventForm.hidden = !(
+            mobileDetailLocations.has(mobileReviewLocation.value)
+            && mobileReviewWriteLocations.has(mobileReviewLocation.value)
+          );
+          mobileDispositionInventoryPanel.hidden = true;
+          mobileDispositionInventory.textContent = "";
+          mobileDispositionInventoryStatus.textContent = "";
+          mobileReviewEventStatus.textContent = "";
+          mobileReviewDetail.hidden = false;
+          mobileReviewStatus.textContent = "Payload loaded. Review notes are append-only; consent eligibility remains a hard gate.";
+        } catch (error) {
+          mobileReviewStatus.textContent = error.message;
+        }
+      }
+
+      async function loadMobileDispositionInventory(collectionId) {
+        mobileDispositionInventoryPanel.hidden = false;
+        mobileDispositionInventory.textContent = "";
+        mobileDispositionInventoryStatus.textContent = "Loading read-only lineage counts…";
+        if (!mobileDispositionLocations.has(mobileReviewLocation.value)) {
+          mobileDispositionInventoryStatus.textContent = "A separate inventory grant is required for this location.";
+          return;
+        }
+        const params = new URLSearchParams({ location_id: mobileReviewLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/mobile-collection-review-queue/${encodeURIComponent(collectionId)}/disposition-inventory?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate inventory grant is not valid.");
+          }
+          if (response.status === 404) throw new Error("No authorized inventory is available for this collection.");
+          if (!response.ok) throw new Error("The disposition inventory is unavailable.");
+          const result = await response.json();
+          mobileDispositionInventory.textContent = JSON.stringify(result.data, null, 2);
+          mobileDispositionInventoryStatus.textContent = "Known direct database lineage only; reconcile external exports and backups separately.";
+        } catch (error) {
+          mobileDispositionInventoryStatus.textContent = error.message;
+        }
+      }
+
       document.querySelector("#refresh").addEventListener("click", loadQueue);
       locationSelect.addEventListener("change", loadQueue);
+      document.querySelector("#farm-activity-refresh").addEventListener("click", refreshFarmActivity);
+      farmActivityLocation.addEventListener("change", refreshFarmActivity);
+      farmActivityDraftEditForm.addEventListener("submit", saveFarmActivityDraftEdit);
+      document.querySelector("#farm-activity-record-refresh").addEventListener("click", refreshFarmActivityRecords);
+      farmActivityRecordLocation.addEventListener("change", refreshFarmActivityRecords);
+      farmActivityRecordEditForm.addEventListener("submit", saveFarmActivityRecordDraft);
+      farmActivityRecordCreateForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const locationId = farmActivityRecordLocation.value;
+        if (!farmActivityRecordCreateLocations.has(locationId)) {
+          farmActivityRecordStatus.textContent = "Draft creation is not authorized for this location.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          farmActivityRecordStatus.textContent = "The security token is unavailable. Reload the console and try again.";
+          return;
+        }
+        let content;
+        try {
+          content = farmActivityRecordFormContent("create");
+        } catch (error) {
+          farmActivityRecordStatus.textContent = error.message;
+          return;
+        }
+        const params = new URLSearchParams({ location_id: locationId });
+        farmActivityRecordStatus.textContent = "Creating a private, attributed draft…";
+        try {
+          const response = await fetch(`/operator/api/farm-activity-records?${params}`, {
+            method: "POST",
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+            body: JSON.stringify({ content })
+          });
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) throw new Error("Your session or location-specific create grant is not valid.");
+          if (!response.ok) throw new Error(result.error || "The draft could not be created.");
+          farmActivityRecordCreateForm.reset();
+          farmActivityRecordStatus.textContent = "Private draft created with an append-only operator event.";
+          await refreshFarmActivityRecords();
+          await loadFarmActivityRecord(result.data.id);
+        } catch (error) {
+          farmActivityRecordStatus.textContent = error.message;
+        }
+      });
+      farmActivityPromoteForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const csrf = csrfToken();
+        if (!csrf || !currentFarmActivityIntakeId) {
+          farmActivityPromoteStatus.textContent = "The security token or selected intake is unavailable. Reload and try again.";
+          return;
+        }
+        farmActivityPromoteStatus.textContent = "Creating the reviewed canonical draft…";
+        const params = new URLSearchParams({ location_id: farmActivityLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/farm-activity-intake-queue/${encodeURIComponent(currentFarmActivityIntakeId)}/draft?${params}`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf
+              },
+              body: JSON.stringify({ content_reviewed: true })
+            }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate draft-creation grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error("This intake changed or is no longer eligible. Refresh and review it again.");
+          }
+          if (!response.ok) throw new Error("The canonical draft could not be created.");
+          const result = await response.json();
+          const activity = result.data;
+          farmActivityPromoteStatus.textContent = activity.created
+            ? `Canonical draft ${activity.id} created. It remains unpublished.`
+            : `This intake already maps to canonical draft ${activity.id}; no duplicate was created.`;
+          farmActivityIntakeDetail.hidden = true;
+          currentFarmActivityIntakeId = null;
+          await refreshFarmActivity();
+        } catch (error) {
+          farmActivityPromoteStatus.textContent = error.message;
+        }
+      });
+      document.querySelector("#mobile-review-refresh").addEventListener("click", loadMobileQueue);
+      mobileReviewLocation.addEventListener("change", loadMobileQueue);
+      document.querySelector("#mobile-operations-refresh").addEventListener("click", loadMobileOperationsInventory);
+      mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
+      mobileReviewEventForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const csrf = csrfToken();
+        if (!csrf || !currentMobileCollectionId) {
+          mobileReviewEventStatus.textContent = "The security token or selected record is unavailable. Reload and try again.";
+          return;
+        }
+        mobileReviewEventStatus.textContent = "Recording append-only review note…";
+        const body = {
+          decision: document.querySelector("#mobile-review-decision").value,
+          reason: document.querySelector("#mobile-review-reason").value,
+          evidence: [{
+            source: document.querySelector("#mobile-review-evidence-source").value,
+            basis: document.querySelector("#mobile-review-evidence-basis").value
+          }]
+        };
+        const params = new URLSearchParams({ location_id: mobileReviewLocation.value });
+        try {
+          const response = await fetch(
+            `/operator/api/mobile-collection-review-queue/${encodeURIComponent(currentMobileCollectionId)}/events?${params}`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf
+              },
+              body: JSON.stringify(body)
+            }
+          );
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or separate review grant is not valid.");
+          }
+          if (!response.ok) throw new Error("The review note could not be recorded.");
+          mobileReviewEventForm.reset();
+          await loadMobileCollection(currentMobileCollectionId);
+          mobileReviewEventStatus.textContent = "Review note recorded. Eligibility and lifecycle state are unchanged.";
+        } catch (error) {
+          mobileReviewEventStatus.textContent = error.message;
+        }
+      });
 
       mobileEnrollmentForm.addEventListener("submit", async (event) => {
         event.preventDefault();

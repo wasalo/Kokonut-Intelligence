@@ -103,3 +103,35 @@ def test_builtin_specs_include_implementation_parity_metadata():
         assert "## Data and Persistence" in rendered
         assert "## Audit Controls" in rendered
         assert "## Tests" in rendered
+
+
+def test_farm_activity_requires_rework_disposition_and_human_publication():
+    from services.workflow_specs.registry import get_spec
+
+    workflow = get_spec("farm_activity")
+    verify = next(step for step in workflow.steps if step.id == "fa_review_submitted")
+    publish_decision = next(step for step in workflow.steps if step.id == "fa_verify")
+    publish = next(step for step in workflow.steps if step.id == "fa_publish")
+    rework = next(step for step in workflow.steps if step.id == "fa_rework")
+    rejected = [step for step in workflow.steps if step.current_state == "rejected" and not step.terminal]
+
+    assert any("verifier must differ from the submitter" in rule for rule in workflow.invariants)
+    assert verify.actor == "human reviewer" and verify.human_approval
+    assert publish.actor == "human publisher" and publish.terminal and publish.human_approval
+    assert any(transition.target == "fa_verify" and transition.next_state == "verified" for transition in verify.transitions)
+    assert publish_decision.actor == "human publisher" and publish_decision.human_approval
+    assert any(transition.target == "fa_publish" for transition in publish_decision.transitions)
+    assert len(rejected) == 2
+    assert all(
+        {transition.target for transition in step.transitions}
+        == {"fa_rework", "fa_reject_terminal"}
+        for step in rejected
+    )
+    assert rework.current_state == "draft"
+    assert rework.transitions[0].target == "fa_review_submitted"
+    assert rework.transitions[0].loop_rationale
+    assert not any(
+        step.id == "fa_reject_draft"
+        for step in workflow.steps
+    )
+    validate(workflow)

@@ -7,36 +7,76 @@ from types import MappingProxyType
 from uuid import UUID
 
 from services.core.jobs import JOBS
-from services.security.execution_allowlist import validate_scheduled_module
+from services.security.scheduled_command_contracts import validate_scheduled_command
 
-CADENCES = MappingProxyType({
-    "hourly": "0 * * * *",
-    "every-6h": "0 */6 * * *",
-    "daily": "0 6 * * *",
-    "weekly": "0 3 * * 0",
-})
+CADENCES = MappingProxyType(
+    {
+        "hourly": "0 * * * *",
+        "every-6h": "0 */6 * * *",
+        "daily": "0 6 * * *",
+        "weekly": "0 3 * * 0",
+    }
+)
 
 
-def build_job_plan(job_id: str, cadence: str, *, location_id: str | None = None) -> dict:
+def build_job_plan(
+    job_id: str,
+    cadence: str,
+    *,
+    location_id: str | None = None,
+    driver_instance_id: str | None = None,
+    chain: str | None = None,
+) -> dict:
     """Map a command contract to existing scheduled_task fields, disabled.
 
     These are independent operations, not an equivalent pipeline DAG. The
     catalog never expands the scheduler's module allowlist.
     """
     spec = JOBS[job_id]
-    validate_scheduled_module(spec.module)
-    if job_id == "sensors":
-        raise ValueError("Sensor scheduling requires an explicit input contract")
     arguments = list(spec.arguments)
     name = f"kernel-{job_id}-{cadence}"
-    if job_id == "climate" and location_id is None:
-        raise ValueError("Climate schedule planning requires one location")
+    supplied_inputs = {
+        "location_id": location_id,
+        "driver_instance_id": driver_instance_id,
+        "chain": chain,
+    }
+    missing_inputs = [
+        key for key in spec.required_inputs if supplied_inputs.get(key) is None
+    ]
+    if missing_inputs:
+        labels = {
+            "location_id": "one location",
+            "driver_instance_id": "one driver instance",
+            "chain": "one chain",
+        }
+        required = " and ".join(labels.get(key, key) for key in missing_inputs)
+        job_label = {
+            "eas": "EAS",
+            "rpc": "RPC",
+        }.get(job_id, job_id.replace("_", " ").capitalize())
+        raise ValueError(
+            f"{job_label} schedule planning requires {required}"
+        )
+    unexpected_inputs = [
+        key for key, value in supplied_inputs.items()
+        if value is not None and key not in spec.required_inputs
+    ]
+    if unexpected_inputs:
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} does not accept {', '.join(unexpected_inputs)}"
+        )
     if location_id is not None:
-        if job_id not in {"weather", "climate"}:
-            raise ValueError("Location override is supported only for weather and climate")
         location = str(UUID(str(location_id)))
         arguments.extend(("--location-id", location))
         name += f"-{location}"
+    if driver_instance_id is not None:
+        instance = str(UUID(str(driver_instance_id)))
+        arguments.extend(("--driver-instance-id", instance))
+        name += f"-{instance}"
+    if chain is not None:
+        arguments.extend(("--chain", chain))
+        name += f"-{chain}"
+    validate_scheduled_command(spec.module, arguments)
     return {
         "job_id": job_id,
         "timezone": "UTC",

@@ -1,0 +1,28 @@
+{
+  "acceptance": "macos-wifi-off-field-collector-probe",
+  "date": "2026-10-12",
+  "browser_origin": "http://127.0.0.1:8098/mobile",
+  "authorization": "User approved a brief Wi-Fi-off probe followed by restoration.",
+  "interface": {
+    "name": "en1",
+    "state_before": "On",
+    "state_after": "On"
+  },
+  "observations": {
+    "candidate_origin_remained_open": true,
+    "browser_connection_label_during_probe": "Online",
+    "pending_records_before": 0,
+    "device_enrollment_present": false,
+    "synthetic_data_created": false,
+    "offline_state_verified": false
+  },
+  "result": "inconclusive; not accepted as OS airplane-mode or offline-queue evidence",
+  "limitations": [
+    "The Field Collector and candidate Gateway use localhost. Disabling Wi-Fi does not make loopback services unreachable, and the browser continued to report Online.",
+    "No device or record was created during this probe; it did not test queue persistence or sync recovery.",
+    "A valid live offline test needs a client and API path whose connectivity is actually interrupted, or a controlled browser network-emulation facility.",
+    "The candidate Compose binding remains loopback-only; this probe did not broaden host or LAN exposure."
+  ],
+  "wifi_restored": true,
+  "capability_status_changed": false
+}

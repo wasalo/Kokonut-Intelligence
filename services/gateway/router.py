@@ -12,12 +12,12 @@ try:
 
     from services.gateway.public_models import (
         PublicCrispAssessment,
+        PublicCrispAssessmentEnvelope,
         PublicError,
         PublicLocationListResponse,
         PublicLocationResponse,
         PublicLocationSummary,
         PublicLocationSummaryEnvelope,
-        PublicCrispAssessmentEnvelope,
         PublicMetricSummary,
         PublicMetricSummaryEnvelope,
     )
@@ -47,8 +47,11 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/mobile/?$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/field-collector-vault\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/mobile/field-collector-service-worker\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/field-collector-service-worker\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/app$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/field-collector-vault\.js$"), "mobile_app", "read", True),
+    ("GET", re.compile(r"^/api/mobile/field-collector-service-worker\.js$"), "mobile_app", "read", True),
     ("GET", re.compile(r"^/api/mobile/forms$"), "mobile_form", "read", True),
     ("POST", re.compile(r"^/api/mobile/media/uploads$"), "mobile_media", "upload", True),
     ("POST", re.compile(r"^/api/mobile/register$"), "mobile_device", "register", True),
@@ -72,6 +75,9 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/federation/nodes$"), "federation_node", "read", True),
     ("GET", re.compile(r"^/api/drivers$"), "driver", "read", True),
     ("GET", re.compile(r"^/api/health/services$"), "service_health", "read", True),
+    ("GET", re.compile(r"^/api/data-stream/posts$"), "data_stream_post", "read", False),
+    ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/files$"), "data_stream_file", "read", False),
+    ("GET", re.compile(r"^/api/data-stream/posts/[^/]+/attestation$"), "data_stream_proof", "read", False),
     ("POST", re.compile(r"^/api/data-stream/post$"), "data_stream_post", "create", False),
 )
 
@@ -121,74 +127,43 @@ def _versioned_envelope(response):
 
 @router.get("/locations")
 async def list_locations():
-    """Read public locations through the selected application/provider path."""
+    """Read public locations through the governed native projection."""
+    import json
+
     from starlette.concurrency import run_in_threadpool
 
-    from services.core.features import is_enabled
+    from services.gateway.locations import public_locations
 
-    if not is_enabled("directus"):
-        import json
-
-        from services.gateway.locations import public_locations
-
-        try:
-            rows = await run_in_threadpool(public_locations)
-            return JSONResponse(content={"data": json.dumps({"data": rows})})
-        except Exception as exc:
-            return _internal_error(exc)
-
-    import os
-
-    from services.common.http import http
-
-    directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location?limit=100")
-        resp.raise_for_status()
-        return JSONResponse(content={"data": resp.text})
+        rows = await run_in_threadpool(public_locations)
+        return JSONResponse(content={"data": json.dumps({"data": rows})})
     except Exception as exc:
-        logger.exception("Directus locations request failed", exc_info=exc)
-        return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
+        return _internal_error(exc)
 
 
 @router.get("/locations/{location_id}")
 async def get_location(location_id: str):
-    """Read a public location through the selected application/provider path."""
-    import os
+    """Read one public location through the governed native projection."""
     from uuid import UUID
 
     from starlette.concurrency import run_in_threadpool
-
-    from services.common.http import http
 
     try:
         UUID(location_id)
     except ValueError:
         return JSONResponse(status_code=400, content={"error": "Invalid location identifier"})
 
-    from services.core.features import is_enabled
+    import json
 
-    if not is_enabled("directus"):
-        import json
+    from services.gateway.locations import public_locations
 
-        from services.gateway.locations import public_locations
-
-        try:
-            rows = await run_in_threadpool(public_locations, location_id)
-            if not rows:
-                return JSONResponse(status_code=404, content={"error": "Location not found"})
-            return JSONResponse(content={"data": json.dumps({"data": rows[0]})})
-        except Exception as exc:
-            return _internal_error(exc)
-
-    directus_url = os.environ.get("DIRECTUS_URL", "http://localhost:8055")
     try:
-        resp = await run_in_threadpool(http.get, f"{directus_url}/items/location/{location_id}")
-        resp.raise_for_status()
-        return JSONResponse(content={"data": resp.text})
+        rows = await run_in_threadpool(public_locations, location_id)
+        if not rows:
+            return JSONResponse(status_code=404, content={"error": "Location not found"})
+        return JSONResponse(content={"data": json.dumps({"data": rows[0]})})
     except Exception as exc:
-        logger.exception("Directus location request failed", exc_info=exc)
-        return JSONResponse(status_code=502, content={"error": "Upstream service unavailable"})
+        return _internal_error(exc)
 
 
 @router.get(
@@ -352,33 +327,138 @@ async def get_public_analytics_summary_v1(location_id: str):
     return _versioned_envelope(await get_analytics_summary(location_id))
 
 
+@router.get("/data-stream/posts")
+async def list_data_stream_posts(request: Request):
+    """List or search tenant-scoped Data Stream posts."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        location_id = request.query_params.get("location_id")
+        query_text = request.query_params.get("q")
+        try:
+            limit = int(request.query_params.get("limit", "20"))
+            offset = int(request.query_params.get("offset", "0"))
+        except ValueError as exc:
+            raise ValueError("limit and offset must be integers") from exc
+
+        from services.gateway.data_stream import list_gateway_data_stream_posts
+
+        rows = await run_in_threadpool(
+            list_gateway_data_stream_posts,
+            location_id,
+            request.state.gateway_authorization,
+            query_text=query_text,
+            limit=limit,
+            offset=offset,
+        )
+        return {"data": rows}
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+        return _internal_error(exc)
+
+
+@router.get("/data-stream/posts/{post_id}/files")
+async def list_data_stream_post_files(post_id: str, request: Request):
+    """List safe, tenant-scoped metadata for a post's attachments."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        from services.gateway.data_stream import list_gateway_data_stream_files
+
+        rows = await run_in_threadpool(
+            list_gateway_data_stream_files,
+            post_id,
+            request.query_params.get("location_id"),
+            request.state.gateway_authorization,
+        )
+        return {"data": rows}
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+        return _internal_error(exc)
+
+
+@router.get("/data-stream/posts/{post_id}/attestation")
+async def get_data_stream_post_attestation(post_id: str, request: Request):
+    """Read the stored attestation record; this endpoint does not query the chain."""
+    from starlette.concurrency import run_in_threadpool
+
+    try:
+        from services.gateway.data_stream import get_gateway_data_stream_attestation
+
+        row = await run_in_threadpool(
+            get_gateway_data_stream_attestation,
+            post_id,
+            request.query_params.get("location_id"),
+            request.state.gateway_authorization,
+        )
+        if row is None:
+            return JSONResponse(status_code=404, content={"error": "Data Stream post not found"})
+        return {"data": row}
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+        return _internal_error(exc)
+
+
 @router.post("/data-stream/post")
 async def create_data_stream_post(request: Request):
-    """Create a data stream post."""
+    """Create a tenant-scoped draft Data Stream post."""
+    from starlette.concurrency import run_in_threadpool
+
     try:
         body = await request.json()
-        from services.data_stream.post import create_post
-        post_id = create_post(
-            location_id=body["location_id"],
-            post_type=body.get("post_type", "monitoring_report"),
-            title=body.get("title", ""),
-            content=body.get("content", ""),
-            created_by=request.state.caller,
+        from services.gateway.data_stream import create_gateway_data_stream_post
+
+        result = await run_in_threadpool(
+            create_gateway_data_stream_post,
+            body,
+            request.state.gateway_authorization,
         )
-        return JSONResponse(content={"post_id": post_id}, status_code=201)
+        return JSONResponse(content={"post_id": result["id"]}, status_code=201)
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
     except Exception as exc:
+        from services.common.tenant_context import TenantContextDenied
+
+        if isinstance(exc, TenantContextDenied):
+            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
         return _internal_error(exc)
 
 
 @router.get("/iri/resolve")
 async def resolve_iri(iri: str):
-    """Resolve an IRI to its governed record."""
+    """Resolve a public location IRI to its non-sensitive JSON-LD projection."""
+    from starlette.concurrency import run_in_threadpool
+
     try:
-        from services.iri.resolver import resolve
-        result = resolve(iri)
+        from services.gateway.public_iri import resolve_public_location_iri
+
+        result = await run_in_threadpool(resolve_public_location_iri, iri)
         if result:
-            return JSONResponse(content=result)
-        return JSONResponse(status_code=404, content={"error": "IRI not found"})
+            return JSONResponse(
+                content=result,
+                media_type="application/ld+json",
+                headers={"Cache-Control": "no-store"},
+            )
+        return JSONResponse(
+            status_code=404,
+            content={"error": "IRI not found"},
+            headers={"Cache-Control": "no-store"},
+        )
     except Exception as exc:
         return _internal_error(exc)
 

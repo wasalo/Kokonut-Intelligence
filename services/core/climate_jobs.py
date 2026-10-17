@@ -2,7 +2,7 @@
 
 import subprocess
 
-from services.core.jobs import JobFailed, run_job
+from services.core.jobs import JobFailed, kokonut_network_location_ids, run_job
 
 
 class ClimateRefreshFailed(RuntimeError):
@@ -19,18 +19,7 @@ def refresh_active_locations() -> dict:
     Complete the remaining locations after a command failure, then fail the
     aggregate so its dispatcher can report/retry it. No retry loop lives here.
     """
-    from services.common.database import get_db
-
-    conn = get_db()
-    try:
-        cur = conn.cursor()
-        try:
-            cur.execute("SELECT id FROM location WHERE status = 'active' ORDER BY id")
-            locations = [str(row[0]) for row in cur.fetchall()]
-        finally:
-            cur.close()
-    finally:
-        conn.close()
+    locations = kokonut_network_location_ids()
 
     results = []
     for location_id in locations:

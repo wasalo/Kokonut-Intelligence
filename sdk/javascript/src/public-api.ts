@@ -92,13 +92,14 @@ export class KokonutPublicApiClient {
     this.fetchImpl = options.fetch ?? defaultFetch!;
     this.apiKey = options.apiKey;
     this.locations = {
-      list: () => this.get<PublicLocationV1[]>(publicApiPathsV1.listPublicLocationsV1),
+      list: () => this.get<PublicLocationV1[]>(publicApiPathsV1.listPublicLocationsV1, 'array'),
       get: (locationId: string) =>
         this.get<PublicLocationV1>(
           publicApiPathsV1.getPublicLocationV1.replace(
             '{location_id}',
             encodePathSegment(locationId),
           ),
+          'object',
         ),
     };
     this.metrics = {
@@ -108,6 +109,7 @@ export class KokonutPublicApiClient {
             '{location_id}',
             encodePathSegment(locationId),
           ),
+          'object',
         ),
     };
     this.crisp = {
@@ -117,6 +119,7 @@ export class KokonutPublicApiClient {
             '{location_id}',
             encodePathSegment(locationId),
           ),
+          'object',
         ),
     };
     this.analytics = {
@@ -126,11 +129,12 @@ export class KokonutPublicApiClient {
             '{location_id}',
             encodePathSegment(locationId),
           ),
+          'object',
         ),
     };
   }
 
-  private async get<T>(path: string): Promise<T> {
+  private async get<T>(path: string, dataShape: 'array' | 'object'): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (this.apiKey) headers['x-api-key'] = this.apiKey;
 
@@ -154,11 +158,20 @@ export class KokonutPublicApiClient {
       throw new PublicApiError(message, response.status);
     }
 
-    if (!payload || typeof payload !== 'object' || !('data' in payload)) {
+    if (
+      !payload ||
+      typeof payload !== 'object' ||
+      Array.isArray(payload) ||
+      !('data' in payload)
+    ) {
       throw new PublicApiError('Invalid public API response envelope', response.status);
     }
     const data = (payload as DataEnvelope<unknown>).data;
-    if (!data || typeof data !== 'object') {
+    const validData =
+      dataShape === 'array'
+        ? Array.isArray(data)
+        : Boolean(data) && typeof data === 'object' && !Array.isArray(data);
+    if (!validData) {
       throw new PublicApiError('Invalid public API response envelope', response.status);
     }
     return data as T;

@@ -5,6 +5,19 @@ const locationId = '11111111-1111-4111-8111-111111111111';
 const plotId = '22222222-2222-4222-8222-222222222222';
 
 describe('tenant reference validation', () => {
+  it('rejects malformed scopes as a Directus 400 payload error', async () => {
+    const database = vi.fn();
+
+    await expect(validateTenantReferences(database, 'farm_activity', {
+      location_id: 'not-a-uuid',
+    })).rejects.toMatchObject({
+      code: 'INVALID_PAYLOAD',
+      message: 'Invalid location_id',
+      status: 400,
+    });
+    expect(database).not.toHaveBeenCalled();
+  });
+
   it('rejects a reference belonging to another location', async () => {
     const database = vi.fn(() => ({
       where: () => ({ first: vi.fn().mockResolvedValue({

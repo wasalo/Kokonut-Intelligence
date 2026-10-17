@@ -4,7 +4,7 @@
 # ============================================================
 # Full test coverage is handled by verify-full-test-suite.sh.
 # Static analysis is handled by static-analysis.sh.
-# Security tooling (ruff, pip-audit) runs as standalone buildspec steps.
+# Security tooling (ruff, pip-audit) runs in the GitHub Actions CI script.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -37,6 +37,10 @@ echo "[1/3] Python import validation..."
 check "Supported Python runtime" "python3 $SCRIPT_DIR/check-python-runtime.py"
 check "Optional provider import boundaries" "python3 $SCRIPT_DIR/check-provider-boundaries.py"
 check "Kernel dependency group alignment" "python3 $SCRIPT_DIR/check-requirement-groups.py"
+check "Capability matrix integrity" "python3 $SCRIPT_DIR/check-capability-matrix.py"
+check "Report generator source inventory" "python3 $SCRIPT_DIR/report_generator_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-source-inventory.json"
+check "Report generator query-scope inventory" "python3 $SCRIPT_DIR/report_generator_query_scope_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-query-scope-inventory.json"
+check "Report generator helper-scope inventory" "python3 $SCRIPT_DIR/report_generator_helper_scope_inventory.py --check $PROJECT_DIR/docs/refactor/report-generator-helper-scope-inventory.json"
 check "FastAPI dependencies" "python3 -c 'import fastapi; from fastapi.testclient import TestClient; print(fastapi.__version__)'"
 check "Import services.ingestion.base" "python3 -c 'import services.ingestion.base'"
 check "Import services.forecast.engine" "python3 -c 'import services.forecast.engine'"

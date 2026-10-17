@@ -1,0 +1,142 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T04:33:05Z",
+  "operation": "Pre-rollout checkpoint and curated seed inventory; no seed SQL executed",
+  "source": {
+    "branch": "feat/mobile-offline-acceptance",
+    "head": "8aa33e24f169f15afb249a53ae3d281ed8d843a2",
+    "curated_seed_source": "scripts/seed.sh",
+    "curated_seed_count": 31,
+    "already_applied_seed_ids": [
+      "seed:140_mobile_forms.sql"
+    ],
+    "proposed_seed_count": 30,
+    "proposed_seed_ids": [
+      "seed:000_expense_categories.sql",
+      "seed:000_metric_definitions.sql",
+      "seed:022_metric_governance.sql",
+      "seed:103_flow_metrics.sql",
+      "seed:015_revenue_multiplier_config.sql",
+      "seed:023_impact_frameworks.sql",
+      "seed:027_carbon_framework_seeds.sql",
+      "seed:032_ebf_rubric.sql",
+      "seed:033_ebf_dashboard_datasets.sql",
+      "seed:034_ebf_p2_dashboard_datasets.sql",
+      "seed:035_holistic_wellbeing.sql",
+      "seed:036_financial_resilience_and_scaling.sql",
+      "seed:037_capital_efficiency_and_utility.sql",
+      "seed:038_commons_liberation_and_stewardship.sql",
+      "seed:039_gnh_alignment_and_inclusion.sql",
+      "seed:040_regenerative_outcomes_and_stewardship.sql",
+      "seed:041_open_source_capitalist_scaling.sql",
+      "seed:042_kokonut_commons_governance.sql",
+      "seed:044_bio_factory_operations.sql",
+      "seed:090_pitch_templates.sql",
+      "seed:091_business_architecture.sql",
+      "seed:092_technology_roadmap.sql",
+      "seed:105_stakeholder_vocabulary.sql",
+      "seed:106_stakeholder_engagement.sql",
+      "seed:107_stakeholder_cockpit.sql",
+      "seed:108_coordination_example.sql",
+      "seed:109_adelphi_governance_roles.sql",
+      "seed:110_adelphi_governance_circles.sql",
+      "seed:114_state_of_kokonut_funding.sql",
+      "seed:115_strategic_reserve.sql"
+    ],
+    "other_seed_sources_to_leave_pending": 90
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-curated-seed-20261014T043222Z",
+    "archive": "postgres.dump.age",
+    "sha256": "6dfbdf7b1e469298d17bc073250360a54510d99785286a32fea26c993ec3117e",
+    "bytes": 5532772,
+    "age_decryption": "passed",
+    "pg_restore_list": "passed; 9,071 table-of-contents lines",
+    "restore_rehearsed": true,
+    "restore_rehearsal": {
+      "compose_project": "kokonut-seed-checkpoint-verify",
+      "target_database": "kokonut_restore",
+      "target_created_from": "template0",
+      "restore_method": "Age decryption streamed directly to pg_restore with --single-transaction; no plaintext dump was written.",
+      "result": "passed",
+      "applied_migration_rows": 383,
+      "candidate_and_restore_migration_fingerprint": "11ebf1fb37bce34b6c460ad9ea4ba3f7",
+      "candidate_and_restore_extension_fingerprint": "fc2168fa5bf5ec582a6eaf0a5607d5d5",
+      "selected_row_counts_match": {
+        "mobile_form": 5,
+        "mobile_form_version": 10,
+        "service_registry": 63
+      },
+      "scratch_project_and_volume_removed": true
+    }
+  },
+  "candidate_before_proposed_rollout": {
+    "applied_schemas": 382,
+    "applied_seed_migrations": 1,
+    "applied_seed": "seed:140_mobile_forms.sql",
+    "pending_seed_sources": 120,
+    "target_relations": 52,
+    "empty_curated_targets": 50,
+    "nonempty_curated_targets": {
+      "mobile_form": 5,
+      "service_registry": 63
+    },
+    "mobile_form_version_rows": 10,
+    "containers": {
+      "app": "running/healthy",
+      "database": "running/healthy",
+      "metabase": "running/healthy",
+      "proxy": "running"
+    },
+    "http": {
+      "health": 200,
+      "anonymous_protected_review_queue": 401
+    }
+  },
+  "verified_basis": [
+    "All 31 curated seed migrations applied successfully in order on an empty template0 database after 382 schemas through migration 391.",
+    "The same ordered curated set applied successfully to a restored candidate snapshot and a second invocation skipped completed ledger rows.",
+    "The fresh age-encrypted candidate checkpoint restored transactionally into an isolated template0 database; migration and extension fingerprints plus selected counts matched, and the scratch project and volume were removed.",
+    "All curated target relations were inventoried read-only; only the existing form history and 63-row service catalog are nonempty, and the four service keys added by seed 091 are absent."
+  ],
+  "proposed_scope": {
+    "apply_only": [
+      "seed:000_expense_categories.sql",
+      "seed:000_metric_definitions.sql",
+      "seed:022_metric_governance.sql",
+      "seed:103_flow_metrics.sql",
+      "seed:015_revenue_multiplier_config.sql",
+      "seed:023_impact_frameworks.sql",
+      "seed:027_carbon_framework_seeds.sql",
+      "seed:032_ebf_rubric.sql",
+      "seed:033_ebf_dashboard_datasets.sql",
+      "seed:034_ebf_p2_dashboard_datasets.sql",
+      "seed:035_holistic_wellbeing.sql",
+      "seed:036_financial_resilience_and_scaling.sql",
+      "seed:037_capital_efficiency_and_utility.sql",
+      "seed:038_commons_liberation_and_stewardship.sql",
+      "seed:039_gnh_alignment_and_inclusion.sql",
+      "seed:040_regenerative_outcomes_and_stewardship.sql",
+      "seed:041_open_source_capitalist_scaling.sql",
+      "seed:042_kokonut_commons_governance.sql",
+      "seed:044_bio_factory_operations.sql",
+      "seed:090_pitch_templates.sql",
+      "seed:091_business_architecture.sql",
+      "seed:092_technology_roadmap.sql",
+      "seed:105_stakeholder_vocabulary.sql",
+      "seed:106_stakeholder_engagement.sql",
+      "seed:107_stakeholder_cockpit.sql",
+      "seed:108_coordination_example.sql",
+      "seed:109_adelphi_governance_roles.sql",
+      "seed:110_adelphi_governance_circles.sql",
+      "seed:114_state_of_kokonut_funding.sql",
+      "seed:115_strategic_reserve.sql"
+    ],
+    "leave_pending": 90,
+    "exclude": "seed:064-068_impact_network.sql (pilot upserts and location-owner update); do not rerun seed:140_mobile_forms.sql",
+    "no_app_rebuild": true,
+    "no_legacy_stack_access": true,
+    "rollback": "Restore the verified checkpoint if any selected seed fails after earlier per-seed transactions committed."
+  },
+  "current_result": "Preflight passed. The encrypted candidate checkpoint was restore-rehearsed with matching migration/extension fingerprints and selected row counts. The candidate has not been changed by seed SQL; the proposed 30-seed rollout is awaiting separate approval."
+}

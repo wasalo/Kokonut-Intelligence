@@ -7,6 +7,7 @@ import os
 from services.core.providers import ProviderSettings
 
 from .env import load_dotenv
+from .worker_environment import ISOLATED_WORKER_KEY_ENV
 
 load_dotenv()
 
@@ -18,6 +19,10 @@ def _require_secret(name: str) -> str:
     value = os.environ.get(name, "")
     if value:
         return value
+    if os.environ.get(ISOLATED_WORKER_KEY_ENV):
+        # Legacy config may be imported by a CLI parser, but an isolated
+        # worker must never inherit or synthesize the shared DB identity.
+        return ""
     if IS_DEV:
         return f"placeholder-{name.lower()}"
     raise RuntimeError(

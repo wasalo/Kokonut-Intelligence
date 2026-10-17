@@ -1,0 +1,56 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Regenerated static worker and runtime SQL inventories after EAS provider, timestamp-range, and replay changes plus freshness-alert delivery/state changes; source analysis only",
+  "result": "passed",
+  "focused_tests": 50,
+  "test_files": [
+    "tests/test_worker_source_closure.py",
+    "tests/test_worker_function_reachability.py",
+    "tests/test_worker_sql_reachability.py",
+    "tests/test_worker_boundary_preflight.py",
+    "tests/test_worker_sql_inventory.py",
+    "tests/test_worker_job_contract_inventory.py",
+    "tests/test_worker_operation_map.py",
+    "tests/test_runtime_sql_inventory.py"
+  ],
+  "worker_graph": {
+    "operation_roots": 31,
+    "source_files": 92,
+    "unresolved_local_modules": 0,
+    "function_memberships": 624,
+    "direct_call_edges": 850,
+    "dynamic_dispatch_edges": 20,
+    "sql_execution_sites": 322,
+    "statically_reachable_site_memberships": 321,
+    "unique_sites_with_static_operation_path": 249,
+    "sites_without_static_function_match": 73,
+    "effect_sites": 36,
+    "effect_operation_site_memberships": 46
+  },
+  "runtime_sql": {
+    "source_files": 825,
+    "execution_sites": 4004,
+    "worker_linked_sites": 322,
+    "relation_candidates": 1047,
+    "sites_without_relation_candidates": 472,
+    "unknown_statement_sites": 185,
+    "with_statement_sites": 24
+  },
+  "validators": {
+    "worker_source_closure": "passed",
+    "worker_function_reachability": "passed",
+    "worker_sql_reachability": "passed",
+    "worker_boundary_preflight": "passed",
+    "worker_sql_inventory": "passed",
+    "runtime_sql_inventory": "passed",
+    "worker_effect_inventory": "passed",
+    "worker_job_contract_inventory": "passed",
+    "capability_matrix": "passed"
+  },
+  "limitations": [
+    "The boundary preflight remains review_required and is not an ACL or tenant-isolation claim",
+    "73 SQL sites still have no static worker function match and are not proved dead",
+    "Persisted schedules, live grants, provider behavior, runtime identity, tenant ownership, and MAN-CAP acceptance remain open"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "checked_at_utc": "2026-10-13T03:14:20Z",
+  "project": "kokonut-kernel-candidate",
+  "containers": {
+    "proxy": "running",
+    "app": "running and healthy",
+    "metabase": "running and healthy",
+    "database": "running and healthy"
+  },
+  "command": "docker exec kokonut-kernel-candidate-app-1 python3 -m services.scheduler.cli --status",
+  "result": {
+    "enabled_tasks": 0,
+    "disabled_tasks": 0,
+    "running_tasks": 0,
+    "failing_tasks": 0
+  },
+  "prefect_container_query": {
+    "filter": "docker ps --filter name=prefect",
+    "running_matches": 0
+  },
+  "effect": "Read-only status query; no task, schedule, or container state changed.",
+  "limitations": [
+    "This reports only the local candidate PostgreSQL scheduler.",
+    "No external Prefect API or host process was queried; a local running-container name filter found no Prefect match."
+  ]
+}

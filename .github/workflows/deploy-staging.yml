@@ -1,0 +1,72 @@
+name: Deploy staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type yes to deploy the current main commit to staging
+        type: choice
+        options: ['no', 'yes']
+        default: 'no'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: deploy-staging
+    runs-on: [self-hosted, linux, x64, ki-staging]
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'yes'
+    environment:
+      name: staging
+    timeout-minutes: 30
+    env:
+      DEPLOY_STAGING_CONFIRM: ${{ inputs.confirm }}
+      DEPLOY_STAGING_ENABLED: 'no'
+    steps:
+      - name: Keep staging deployment paused until its gates are cleared
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$DEPLOY_STAGING_ENABLED" != yes ]]; then
+            echo "Staging is paused. Enable it through a reviewed workflow change after the architecture and legacy-data gates clear." >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" != refs/heads/main || "$DEPLOY_STAGING_CONFIRM" != yes ]]; then
+            echo "Staging deployment requires main and the explicit yes input." >&2
+            exit 1
+          fi
+
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Deploy staging on the isolated host
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST_ROOT=/opt/ki-staging
+          test -d "$HOST_ROOT/.git" || {
+            echo "Staging checkout is missing at $HOST_ROOT" >&2
+            exit 1
+          }
+          if ! docker image inspect ki-deploy-helper >/dev/null 2>&1; then
+            docker build -t ki-deploy-helper -f deploy/helper/Dockerfile deploy/helper
+          fi
+          docker run --rm \
+            -v "$HOST_ROOT":/opt/ki-staging \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -e STAGING_SKIP_PULL=1 \
+            -e COMPOSE_PROJECT_NAME=ki-staging \
+            ki-deploy-helper \
+            bash -c "cd /opt/ki-staging \
+              && git remote set-url origin https://github.com/wasalo/Kokonut-Intelligence.git \
+              && git fetch origin main --quiet \
+              && git reset --hard origin/main --quiet \
+              && ./deploy/scripts/deploy-staging.sh"

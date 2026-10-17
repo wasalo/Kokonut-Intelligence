@@ -1,0 +1,40 @@
+{
+  "checked_at_utc": "2026-10-16T03:31:12Z",
+  "source_revision": "04bf2a85dffd8f2b5a28051d940f8c9ed4407ec9",
+  "scope": "optional Kernel OIDC application target ARM64 build and no-network import smoke",
+  "builder": {
+    "name": "Docker Buildx desktop-linux",
+    "buildkit": "0.33.1",
+    "host_platform": "linux/amd64",
+    "target_platform": "linux/arm64"
+  },
+  "build": {
+    "target": "oidc",
+    "result": "passed",
+    "exported_image_manifest": "sha256:3e1f9a89615e07ceeed626ecafcb8944b1da08e581fae53efb6e83bbb41136f4",
+    "additional_dependencies": {
+      "authlib": "1.9.1",
+      "cryptography": "50.0.2",
+      "itsdangerous": "2.2.0"
+    }
+  },
+  "runtime_smoke": {
+    "reported_image_platform": "linux/arm64",
+    "configured_user": "appuser",
+    "network": "none",
+    "checks": {
+      "runtime_cli_help": "passed",
+      "oidc_image_manifest_command": "passed"
+    }
+  },
+  "cleanup": {
+    "temporary_image_removed": true,
+    "temporary_archive_removed": true,
+    "project_compose_services_started_or_replaced": false
+  },
+  "limitations": [
+    "This verifies Kokonut's optional OIDC application image only.",
+    "ZITADEL API/Login/database image architecture and live login/session/browser behavior remain unverified.",
+    "No provider credentials, database, ingress, or project Compose service were used."
+  ]
+}

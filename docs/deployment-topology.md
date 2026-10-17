@@ -9,12 +9,12 @@ deployed stack and CI's `down -v` recreated that stack's data volumes.
 
 | | CI | Staging | Production |
 |---|---|---|---|
-| Host | cerberus (job container) | cerberus (host) | dedicated VPS (Coolify + Traefik) |
+| Host | GitHub-hosted `ubuntu-24.04` | dedicated self-hosted GitHub Actions runner | dedicated VPS (Coolify + Traefik) |
 | Compose project | `ki-ci` | `ki-staging` | `ki-prod` |
 | Compose files | yml + ci.yml | yml + staging.yml | yml + prod.yml + traefik.yml |
 | Data | disposable | dev/historical ingestion | production |
 | Backups | none | nightly local (keep 7) | nightly + off-host (keep 30) |
-| Deploy | every push/PR | auto on merge to main | manual promotion (`DEPLOY_CONFIRM=yes`) |
+| Deploy | pull requests and pushes to `main` | manual dispatch from `main`, blocked by a disabled workflow flag | manual promotion from `main` (`DEPLOY_CONFIRM=yes`) |
 | Public exposure | none | loopback only | 80/443 via Traefik |
 
 ## Port allocation
@@ -32,10 +32,12 @@ Rule: new environments take unused high ports and document them here.
 ## Deploy flow
 
 ```
-push/PR ──► CI (ki-ci) ──► merge main ──► Staging deployment remains paused/manual
-                                             │       until data/recovery gates and approval
-                              release/* tag ─┴──► deploy-production (manual,
-                                                   DEPLOY_CONFIRM=yes)
+pull request ─┐
+push main ────┴──► CI (ki-ci) ──► merge main ──► Staging (manual, paused)
+                                                  │
+                                                  └──► Production (manual dispatch,
+                                                       protected environment,
+                                                       DEPLOY_CONFIRM=yes)
 ```
 
 ## Secrets

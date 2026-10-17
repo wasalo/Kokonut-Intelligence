@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import re
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,11 +15,18 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field
 
 from services.common.database import get_db
+from services.common.tenant_context import (
+    TenantContextDenied,
+    current_operator_session_token_hash,
+    set_gateway_tenant_context,
+    set_mobile_device_tenant_context,
+    set_operator_tenant_context,
+)
 from services.mobile.form_validation import FormPayloadInvalid, FormSchemaUnavailable, validate_form_payload
 
 try:
     from fastapi import APIRouter, Header, HTTPException, Request  # type: ignore[reportAssignmentType]
-    from fastapi.responses import FileResponse
+    from fastapi.responses import FileResponse, JSONResponse
 except ImportError:  # pragma: no cover - gateway requires FastAPI at runtime
     APIRouter = None
     def Header(default=None, **kwargs):
@@ -32,12 +40,17 @@ except ImportError:  # pragma: no cover - gateway requires FastAPI at runtime
 
     Request = None
     FileResponse = None
+    JSONResponse = None
 
 
 APP_PATH = Path(__file__).with_name("field-collector.html")
 VAULT_SCRIPT_PATH = Path(__file__).with_name("field-collector-vault.js")
+SERVICE_WORKER_PATH = Path(__file__).with_name("field-collector-service-worker.js")
 router = APIRouter(prefix="/mobile", tags=["mobile"]) if APIRouter else None
 logger = logging.getLogger(__name__)
+DEVICE_REENROLLMENT_REQUIRED_DETAIL = (
+    "Field Collector device must be re-enrolled by the current verified location owner"
+)
 
 
 class RegisterRequest(BaseModel):
@@ -83,8 +96,104 @@ class ParticipantLinkRevokeRequest(BaseModel):
     participant_ref: str = Field(min_length=32, max_length=128)
 
 
+def _set_participant_operator_context(conn, request: Request, location_id: str, action: str) -> None:
+    """Bind OIDC participant administration to its validated tenant grant."""
+    session = getattr(request.state, "operator_session", None)
+    operator = getattr(session, "operator", None)
+    operator_id = getattr(operator, "operator_id", None)
+    if operator_id is not None:
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="mobile_participant",
+            action=action,
+        )
+
+
+def _gateway_mobile_device_credential(request: Request, location_id: str, action: str):
+    """Return a validated Gateway credential selector for a mobile mutation."""
+    authorization = getattr(request.state, "gateway_authorization", None)
+    try:
+        expected_location = str(UUID(str(location_id)))
+        authorized_location = str(UUID(str(authorization.get("location_id"))))
+    except (AttributeError, TypeError, ValueError):
+        raise TenantContextDenied("database-verifiable Gateway credential is required") from None
+    if (
+        not isinstance(authorization, dict)
+        or authorization.get("resource") != "mobile_device"
+        or authorization.get("action") != action
+        or authorized_location != expected_location
+        or authorization.get("credential_type") not in {"api_key", "capability_token"}
+        or not isinstance(authorization.get("credential_hash"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", authorization.get("credential_hash", "")) is None
+    ):
+        raise TenantContextDenied("database-verifiable Gateway credential is required")
+    return (
+        expected_location,
+        authorization.get("credential_type"),
+        authorization.get("credential_hash"),
+    )
+
+
+def _set_gateway_mobile_device_context(conn, request: Request, location_id: str, action: str):
+    """Bind a Gateway-authenticated mobile-device mutation to its owner tenant."""
+    expected_location, credential_type, credential_hash = _gateway_mobile_device_credential(
+        request, location_id, action
+    )
+    try:
+        return set_gateway_tenant_context(
+            conn,
+            credential_type=credential_type,
+            credential_hash=credential_hash,
+            location_id=expected_location,
+            resource="mobile_device",
+            action=action,
+        )
+    except ValueError as exc:
+        raise TenantContextDenied("verified Gateway identity is invalid") from exc
+
+
+def _set_mobile_mutation_timeouts(conn) -> None:
+    with conn.cursor() as cur:
+        cur.execute("SET LOCAL statement_timeout = '5s'")
+        cur.execute("SET LOCAL lock_timeout = '2s'")
+
+
 def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _verified_location_tenant(cur, location_id: str) -> str:
+    """Lock and return the current verified owner for one location."""
+    cur.execute(
+        """
+        SELECT owner.organization_id::text
+          FROM location AS loc
+          JOIN location_tenant_owner_verification AS owner
+            ON owner.location_id = loc.id
+           AND owner.organization_id = loc.organization_id
+           AND owner.revoked_at IS NULL
+          JOIN organization AS tenant
+            ON tenant.id = owner.organization_id
+           AND tenant.status = 'active'
+         WHERE loc.id = %s::uuid
+           AND loc.status = 'active'
+         FOR SHARE OF loc, owner, tenant
+        """,
+        (location_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        raise HTTPException(
+            status_code=403,
+            detail="A verified active owner is required for Field Collector enrollment",
+        )
+    return str(row[0])
+
+
+def _device_reenrollment_error() -> HTTPException:
+    return HTTPException(status_code=403, detail=DEVICE_REENROLLMENT_REQUIRED_DETAIL)
 
 
 def _consent_decision_at(cur, *, party_id, policy: dict, location_id: str, at: datetime):
@@ -301,9 +410,8 @@ def _device_for_token(token: str | None) -> tuple[str, str | None, str | None]:
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT device_id, user_id, location_id::text
-            FROM mobile_device
-            WHERE device_token_hash = %s AND status = 'active'
+            SELECT device_id, user_id, location_id, owner_binding_current
+              FROM kokonut_security.resolve_mobile_device_token(%s)
             """,
             (_token_hash(token),),
         )
@@ -313,6 +421,8 @@ def _device_for_token(token: str | None) -> tuple[str, str | None, str | None]:
         conn.close()
     if not row:
         raise HTTPException(status_code=401, detail="Invalid device token")
+    if not row[3]:
+        raise _device_reenrollment_error()
     return row[0], row[1], row[2]
 
 
@@ -326,6 +436,12 @@ async def mobile_app():
 async def mobile_vault_script():
     """Serve the local encryption helper used by the companion page."""
     return FileResponse(VAULT_SCRIPT_PATH, media_type="application/javascript")
+
+
+@router.get("/field-collector-service-worker.js")
+async def mobile_service_worker():
+    """Serve the offline shell worker from the mobile API namespace."""
+    return FileResponse(SERVICE_WORKER_PATH, media_type="application/javascript")
 
 
 def get_media_store():
@@ -356,7 +472,16 @@ async def upload_private_media(
     if content_type != "image/jpeg":
         raise HTTPException(status_code=415, detail="Only JPEG images are accepted")
     policy_conn = get_db()
+    policy_cur = None
     try:
+        if not location_id:
+            raise TenantContextDenied("device has no assigned location")
+        set_mobile_device_tenant_context(
+            policy_conn,
+            device_id=device_id,
+            location_id=location_id,
+            device_token_hash=_token_hash(x_device_token),
+        )
         policy_cur = policy_conn.cursor()
         _validate_media_upload_policy(
             policy_cur,
@@ -369,11 +494,15 @@ async def upload_private_media(
             collected_at=_normalise_datetime(x_collected_at),
         )
         policy_conn.commit()
-        policy_cur.close()
     except HTTPException:
         policy_conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        policy_conn.rollback()
+        raise _device_reenrollment_error() from exc
     finally:
+        if policy_cur is not None:
+            policy_cur.close()
         policy_conn.close()
     body = await request.body()
     if len(body) > MAX_MEDIA_BYTES:
@@ -401,6 +530,12 @@ async def upload_private_media(
     commit_started = False
     try:
         conn = get_db()
+        set_mobile_device_tenant_context(
+            conn,
+            device_id=device_id,
+            location_id=location_id,
+            device_token_hash=_token_hash(x_device_token),
+        )
         cur = conn.cursor()
         cur.execute(
             """
@@ -438,6 +573,8 @@ async def upload_private_media(
                 logger.error("Private media cleanup failed (%s)", type(cleanup_exc).__name__)
         elif commit_started:
             logger.error("Private media cleanup deferred because commit outcome is uncertain")
+        if isinstance(exc, TenantContextDenied):
+            raise _device_reenrollment_error() from exc
         logger.error("Private media metadata write failed (%s)", type(exc).__name__)
         raise HTTPException(status_code=503, detail="Could not register private media") from exc
     finally:
@@ -461,9 +598,10 @@ async def list_forms(
     x_device_token: str | None = Header(default=None),
 ):
     """Return approved global forms or forms scoped to the authenticated device."""
+    registered_device_id = None
     registered_location_id = None
     if x_device_token:
-        _, _, registered_location_id = _device_for_token(x_device_token)
+        registered_device_id, _, registered_location_id = _device_for_token(x_device_token)
         if location_id:
             try:
                 requested_location_id = str(UUID(location_id))
@@ -476,6 +614,15 @@ async def list_forms(
 
     conn = get_db()
     try:
+        if x_device_token:
+            if not registered_location_id:
+                raise HTTPException(status_code=403, detail=DEVICE_REENROLLMENT_REQUIRED_DETAIL)
+            set_mobile_device_tenant_context(
+                conn,
+                device_id=registered_device_id,
+                location_id=registered_location_id,
+                device_token_hash=_token_hash(x_device_token),
+            )
         cur = conn.cursor()
         if x_device_token:
             cur.execute(
@@ -512,6 +659,10 @@ async def list_forms(
         columns = [item[0] for item in cur.description]
         rows = [dict(zip(columns, row)) for row in cur.fetchall()]
         cur.close()
+        conn.commit()
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise _device_reenrollment_error() from exc
     finally:
         conn.close()
     return {"forms": rows}
@@ -533,6 +684,7 @@ async def create_participant_link(
     conn = get_db()
     try:
         cur = conn.cursor()
+        _set_participant_operator_context(conn, request, str(location_id), "create")
         cur.execute("SELECT 1 FROM party WHERE id = %s", (str(body.party_id),))
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="Participant party was not found")
@@ -557,6 +709,12 @@ async def create_participant_link(
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified operator access is required",
+        ) from exc
     except Exception as exc:
         conn.rollback()
         if getattr(exc, "pgcode", None) == "23505":
@@ -565,12 +723,16 @@ async def create_participant_link(
         raise HTTPException(status_code=500, detail="Participant link could not be created") from exc
     finally:
         conn.close()
-    return {
-        "link_id": row[0],
-        "location_id": str(location_id),
-        "participant_ref": participant_ref,
-        "created_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
-    }
+    return JSONResponse(
+        status_code=201,
+        content={
+            "link_id": row[0],
+            "location_id": str(location_id),
+            "participant_ref": participant_ref,
+            "created_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
+        },
+        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+    )
 
 
 @router.post("/locations/{location_id}/participants/revoke")
@@ -583,6 +745,7 @@ async def revoke_participant_link(
     conn = get_db()
     try:
         cur = conn.cursor()
+        _set_participant_operator_context(conn, request, str(location_id), "revoke")
         cur.execute(
             """
             UPDATE mobile_participant_link
@@ -602,14 +765,23 @@ async def revoke_participant_link(
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified operator access is required",
+        ) from exc
     finally:
         conn.close()
-    return {
-        "link_id": row[0],
-        "location_id": str(location_id),
-        "status": "revoked",
-        "revoked_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
-    }
+    return JSONResponse(
+        content={
+            "link_id": row[0],
+            "location_id": str(location_id),
+            "status": "revoked",
+            "revoked_at": row[1].isoformat() if hasattr(row[1], "isoformat") else row[1],
+        },
+        headers={"Cache-Control": "no-store", "Pragma": "no-cache"},
+    )
 
 
 @router.post("/locations/{location_id}/enrollments", status_code=201)
@@ -619,21 +791,78 @@ async def create_enrollment(
     body: EnrollmentCreateRequest,
 ):
     """Issue a short-lived, single-use device enrollment code."""
+    return await _create_enrollment(
+        location_id,
+        request,
+        body,
+        operator_id=None,
+    )
+
+
+async def create_operator_enrollment(
+    location_id: UUID,
+    request: Request,
+    body: EnrollmentCreateRequest,
+    *,
+    operator_id: str,
+):
+    """Issue an enrollment code in a tenant-qualified OIDC operator transaction."""
+    return await _create_enrollment(
+        location_id,
+        request,
+        body,
+        operator_id=operator_id,
+    )
+
+
+async def _create_enrollment(
+    location_id: UUID,
+    request: Request,
+    body: EnrollmentCreateRequest,
+    *,
+    operator_id: str | None,
+):
     code = secrets.token_urlsafe(32)
     conn = get_db()
     try:
+        operator_context = None
+        gateway_context = None
+        _set_mobile_mutation_timeouts(conn)
+        if operator_id is not None:
+            operator_context = set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=str(location_id),
+                resource="mobile_device",
+                action="enroll",
+            )
+        else:
+            gateway_context = _set_gateway_mobile_device_context(
+                conn, request, str(location_id), "enroll"
+            )
+        if gateway_context is not None:
+            tenant_id = gateway_context.tenant_id
+        else:
+            cur = conn.cursor()
+            tenant_id = _verified_location_tenant(cur, str(location_id))
+        if operator_context is not None and operator_context.tenant_id != tenant_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Operator grant does not match the current verified location owner",
+            )
         cur = conn.cursor()
         cur.execute(
             """
             INSERT INTO mobile_device_enrollment
-                (code_hash, user_id, location_id, created_by, expires_at)
-            VALUES (%s, %s, %s, %s, NOW() + (%s * INTERVAL '1 minute'))
+                (code_hash, user_id, location_id, tenant_organization_id, created_by, expires_at)
+            VALUES (%s, %s, %s, %s::uuid, %s, NOW() + (%s * INTERVAL '1 minute'))
             RETURNING id::text, expires_at
             """,
             (
                 _token_hash(code),
                 body.user_id,
                 str(location_id),
+                tenant_id,
                 request.state.caller,
                 body.expires_in_minutes,
             ),
@@ -643,6 +872,18 @@ async def create_enrollment(
             raise HTTPException(status_code=500, detail="Enrollment could not be created")
         conn.commit()
         cur.close()
+    except HTTPException:
+        conn.rollback()
+        raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified access is required for enrollment",
+        ) from exc
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
     expires_at = row[1].isoformat() if hasattr(row[1], "isoformat") else row[1]
@@ -662,55 +903,34 @@ async def register_device(request: RegisterRequest):
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id::text, user_id, location_id::text
-            FROM mobile_device_enrollment
-            WHERE code_hash = %s
-              AND used_at IS NULL
-              AND revoked_at IS NULL
-              AND expires_at > NOW()
-            FOR UPDATE
-            """,
-            (_token_hash(request.enrollment_code),),
-        )
-        enrollment = cur.fetchone()
-        if not enrollment:
-            raise HTTPException(status_code=401, detail="Invalid or expired enrollment code")
-
-        enrollment_id, user_id, location_id = enrollment
-        cur.execute(
-            """
-            INSERT INTO mobile_device
-                (device_id, device_name, device_type, os, os_version,
-                 app_version, user_id, location_id, device_token_hash,
-                 has_camera, has_gps, has_offline, status, last_seen_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::uuid, %s,
-                    TRUE, TRUE, TRUE, 'active', NOW())
-            ON CONFLICT (device_id) DO NOTHING
-            RETURNING device_id
+            SELECT result, registered_location_id::text
+              FROM kokonut_security.redeem_mobile_enrollment(
+                  %s, %s, %s, %s, %s, %s, %s, %s
+              )
             """,
             (
+                _token_hash(request.enrollment_code),
                 request.device_id,
                 request.device_name,
                 request.device_type,
                 request.os,
                 request.os_version,
                 request.app_version,
-                user_id,
-                location_id,
                 _token_hash(token),
             ),
         )
-        registered = cur.fetchone()
-        if not registered:
+        registration = cur.fetchone()
+        if not registration:
+            raise HTTPException(status_code=401, detail="Invalid or expired enrollment code")
+        result, location_id = registration
+        if result == "invalid":
+            raise HTTPException(status_code=401, detail="Invalid or expired enrollment code")
+        if result == "owner_changed":
+            raise HTTPException(status_code=403, detail=DEVICE_REENROLLMENT_REQUIRED_DETAIL)
+        if result == "device_conflict":
             raise HTTPException(status_code=409, detail="Device is already registered")
-        cur.execute(
-            """
-            UPDATE mobile_device_enrollment
-            SET used_at = NOW(), consumed_device_id = %s
-            WHERE id = %s AND used_at IS NULL
-            """,
-            (request.device_id, enrollment_id),
-        )
+        if result != "registered" or location_id is None:
+            raise HTTPException(status_code=500, detail="Enrollment redemption failed")
         conn.commit()
         cur.close()
     except HTTPException:
@@ -727,10 +947,53 @@ async def register_device(request: RegisterRequest):
 
 
 @router.delete("/locations/{location_id}/enrollments/{enrollment_id}")
-async def revoke_enrollment(location_id: UUID, enrollment_id: UUID):
+async def revoke_enrollment(location_id: UUID, enrollment_id: UUID, request: Request):
     """Revoke an unused enrollment code within its location."""
+    return await _revoke_enrollment(
+        location_id,
+        enrollment_id,
+        operator_id=None,
+        request=request,
+    )
+
+
+async def revoke_operator_enrollment(
+    location_id: UUID,
+    enrollment_id: UUID,
+    *,
+    operator_id: str,
+):
+    """Revoke an enrollment in a tenant-qualified OIDC operator transaction."""
+    return await _revoke_enrollment(
+        location_id,
+        enrollment_id,
+        operator_id=operator_id,
+        request=None,
+    )
+
+
+async def _revoke_enrollment(
+    location_id: UUID,
+    enrollment_id: UUID,
+    *,
+    operator_id: str | None,
+    request: Request | None,
+):
     conn = get_db()
     try:
+        _set_mobile_mutation_timeouts(conn)
+        if operator_id is not None:
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=str(location_id),
+                resource="mobile_device",
+                action="revoke",
+            )
+        elif request is not None:
+            _set_gateway_mobile_device_context(conn, request, str(location_id), "revoke")
+        else:
+            raise TenantContextDenied("verified Gateway route authorization is required")
         cur = conn.cursor()
         cur.execute(
             """
@@ -750,38 +1013,114 @@ async def revoke_enrollment(location_id: UUID, enrollment_id: UUID):
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        if operator_id is not None:
+            raise
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified access is required to revoke enrollment",
+        ) from exc
     finally:
         conn.close()
     return {"enrollment_id": row[0], "status": "revoked"}
 
 
 @router.post("/locations/{location_id}/devices/{device_id}/revoke")
-async def revoke_device(location_id: UUID, device_id: str):
+async def revoke_device(location_id: UUID, device_id: str, request: Request):
     """Revoke one active device token, scoped to the authorized location."""
+    return await _revoke_device(
+        location_id,
+        device_id,
+        operator_id=None,
+        request=request,
+    )
+
+
+async def revoke_operator_device(
+    location_id: UUID,
+    device_id: str,
+    *,
+    operator_id: str,
+):
+    """Revoke a device in a tenant-qualified OIDC operator transaction."""
+    return await _revoke_device(
+        location_id, device_id, operator_id=operator_id, request=None
+    )
+
+
+async def _revoke_device(
+    location_id: UUID,
+    device_id: str,
+    *,
+    operator_id: str | None,
+    request: Request | None,
+):
     conn = get_db()
     try:
+        _set_mobile_mutation_timeouts(conn)
+        if operator_id is not None:
+            set_operator_tenant_context(
+                conn,
+                operator_id=operator_id,
+                location_id=str(location_id),
+                resource="mobile_device",
+                action="revoke",
+            )
+            gateway_credential_type = None
+            gateway_credential_hash = None
+            operator_session_token_hash = current_operator_session_token_hash()
+            if (
+                not isinstance(operator_session_token_hash, str)
+                or re.fullmatch(r"[0-9a-f]{64}", operator_session_token_hash) is None
+            ):
+                raise TenantContextDenied("authenticated operator session is required")
+        elif request is not None:
+            _, gateway_credential_type, gateway_credential_hash = (
+                _gateway_mobile_device_credential(request, str(location_id), "revoke")
+            )
+            operator_session_token_hash = None
+            _set_gateway_mobile_device_context(conn, request, str(location_id), "revoke")
+        else:
+            raise TenantContextDenied("verified Gateway route authorization is required")
         cur = conn.cursor()
         cur.execute(
-            """
-            UPDATE mobile_device
-            SET status = 'revoked', device_token_hash = NULL,
-                revoked_at = NOW(), updated_at = NOW()
-            WHERE device_id = %s AND location_id = %s AND status = 'active'
-            RETURNING device_id
-            """,
-            (device_id, str(location_id)),
+            """SELECT result, device_id
+                 FROM kokonut_security.revoke_mobile_device(
+                     %s::uuid, %s, %s, %s, %s::uuid, %s
+                 )""",
+            (
+                str(location_id),
+                device_id,
+                gateway_credential_type,
+                gateway_credential_hash,
+                operator_id,
+                operator_session_token_hash,
+            ),
         )
         row = cur.fetchone()
-        if not row:
+        if row is None or row[0] == "denied":
+            raise TenantContextDenied("tenant-qualified revoke permission is no longer active")
+        if row[0] == "not_found":
             raise HTTPException(status_code=404, detail="Active device not found")
+        if row[0] != "revoked" or not row[1]:
+            raise RuntimeError("mobile device revocation returned an invalid database result")
         conn.commit()
         cur.close()
     except HTTPException:
         conn.rollback()
         raise
+    except TenantContextDenied as exc:
+        conn.rollback()
+        if operator_id is not None:
+            raise
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant-qualified access is required to revoke device",
+        ) from exc
     finally:
         conn.close()
-    return {"device_id": row[0], "status": "revoked"}
+    return {"device_id": row[1], "status": "revoked"}
 
 
 def _same_sync_record(
@@ -841,6 +1180,14 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
     duplicate_client_ids: list[str] = []
     conn = get_db()
     try:
+        if not registered_location_id:
+            raise TenantContextDenied("device has no assigned location")
+        set_mobile_device_tenant_context(
+            conn,
+            device_id=device_id,
+            location_id=registered_location_id,
+            device_token_hash=_token_hash(x_device_token),
+        )
         cur = conn.cursor()
         for item in request.collections:
             if len(json.dumps(item.payload, separators=(",", ":"))) > 256_000:
@@ -1092,6 +1439,9 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
         )
         conn.commit()
         cur.close()
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise _device_reenrollment_error() from exc
     except Exception:
         conn.rollback()
         raise
@@ -1109,9 +1459,17 @@ async def sync_collections(request: SyncRequest, x_device_token: str | None = He
 @router.get("/sync/status")
 async def sync_status(x_device_token: str | None = Header(default=None)):
     """Return pending and error counts for the authenticated device."""
-    device_id, _, _ = _device_for_token(x_device_token)
+    device_id, _, location_id = _device_for_token(x_device_token)
     conn = get_db()
     try:
+        if not location_id:
+            raise TenantContextDenied("device has no assigned location")
+        set_mobile_device_tenant_context(
+            conn,
+            device_id=device_id,
+            location_id=location_id,
+            device_token_hash=_token_hash(x_device_token),
+        )
         cur = conn.cursor()
         cur.execute(
             """
@@ -1128,6 +1486,10 @@ async def sync_status(x_device_token: str | None = Header(default=None)):
         cur.execute("SELECT last_sync_at FROM mobile_device WHERE device_id = %s", (device_id,))
         last_sync = cur.fetchone()[0]
         cur.close()
+        conn.commit()
+    except TenantContextDenied as exc:
+        conn.rollback()
+        raise _device_reenrollment_error() from exc
     finally:
         conn.close()
     return {

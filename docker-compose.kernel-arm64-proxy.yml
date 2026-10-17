@@ -1,0 +1,4 @@
+# Select the verified ARM64 Caddy manifest when the HTTPS proxy is enabled.
+services:
+  proxy:
+    platform: linux/arm64

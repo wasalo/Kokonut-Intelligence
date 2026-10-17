@@ -1,8 +1,9 @@
-# KI Staging — cerberus
+# KI Staging — GitHub Actions runner
 
-Staging environment for Kokonut Intelligence. Runs on the same host as CI
-(cerberus) but in a fully isolated Compose project (`ki-staging`) with its
-own data, ports, and secrets.
+Staging runs on the dedicated self-hosted GitHub Actions runner attached to
+the staging host. Its Compose project (`ki-staging`) has separate data, ports,
+and secrets. The runner uses the repository label `ki-staging`; CI and
+pull-request jobs run on GitHub-hosted workers.
 
 **Never point staging tooling at CI or production, or vice versa.**
 
@@ -34,7 +35,7 @@ Database and ClickHouse are not published — access via
 ```bash
 # 1. Checkout
 sudo mkdir -p /opt/ki-staging && sudo chown $USER /opt/ki-staging
-git clone <repo-url> /opt/ki-staging && cd /opt/ki-staging
+git clone https://github.com/wasalo/Kokonut-Intelligence.git /opt/ki-staging && cd /opt/ki-staging
 
 # 2. Tools (if not already installed)
 sudo apt-get install -y sops age   # or download releases
@@ -62,6 +63,17 @@ curl -fsS http://127.0.0.1:18056/server/health
 | psql | `docker compose -p ki-staging exec database psql -U kokonut -d kokonut_intelligence` |
 | Backup now | `./deploy/scripts/staging-backup.sh` |
 | Full teardown | `docker compose -p ki-staging -f docker-compose.yml -f deploy/staging/docker-compose.staging.yml down -v` (destructive: deletes staging data) |
+
+## GitHub runner requirements
+
+Register a repository-scoped self-hosted Linux x64 runner on the staging
+host, label it `ki-staging`, and keep it updated for Node 24 compatible
+actions (runner 2.327.1 or newer). Run the service under an unprivileged
+account that can access Docker, and restrict the runner to this repository.
+The workflow runs only by manual dispatch from `main`, requires the explicit
+`yes` input, and uses the protected `staging` environment. Keep it paused until
+the architecture and legacy-data gates are cleared. Never add this runner to
+pull-request workflows.
 
 ## Editing secrets
 

@@ -1,0 +1,55 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "bounded_job_contract_and_source_inventory",
+  "job": {
+    "name": "remote_sensing",
+    "module": "services.ingestion.remote_sensing_fetcher",
+    "arguments": ["--run-jobs", "--limit", "1"],
+    "default_batch_size": 1,
+    "maximum_batch_size": 10,
+    "claim_behavior": "Claims one due row with FOR UPDATE SKIP LOCKED, processes it, and only then claims the next row.",
+    "provider_effects": ["Google Earth Engine", "Copernicus Data Space"],
+    "scheduler_allowed": true
+  },
+  "inventory_counts": {
+    "scheduled_allowlisted_modules": 15,
+    "event_handlers": 5,
+    "worker_operation_roots": 20,
+    "worker_source_files": 76,
+    "worker_import_edges": 481,
+    "worker_function_memberships": 399,
+    "worker_direct_call_edges": 537,
+    "worker_sql_sites": 257,
+    "worker_sql_sites_without_static_function_match": 36,
+    "job_specs": 15,
+    "default_arguments_accepted": 13,
+    "default_arguments_rejected": 2,
+    "modules_not_allowlisted": 0,
+    "candidate_effect_sites": 43,
+    "effect_operation_memberships": 49
+  },
+  "focused_tests": {
+    "result": "passed",
+    "count": 172,
+    "suites": [
+      "scheduled command contracts",
+      "worker operation map",
+      "worker function reachability",
+      "worker SQL reachability",
+      "worker source closure",
+      "worker boundary preflight",
+      "ClickHouse outbox",
+      "core job contracts",
+      "remote-sensing bounded-run unit checks",
+      "ingestion reliability",
+      "remote-sensing automation"
+    ]
+  },
+  "ruff": "passed",
+  "generated_inventory_checks": "passed",
+  "database_accessed": false,
+  "provider_accessed": false,
+  "schedule_registered_or_activated": false,
+  "scope_limit": "This makes the existing remote_sensing JobSpec an optional bounded operation. It does not configure provider credentials, prove live imagery ingestion or output parity, reconcile persisted schedules, or establish a worker database identity or tenant context."
+}

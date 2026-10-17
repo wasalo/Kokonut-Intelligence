@@ -67,52 +67,7 @@ def _serve_transport(db_factory, executor, port, max_workers):
     previous_signals = {}
     stopping = False
     try:
-        auth_interceptor = APIKeyInterceptor(db_factory)
-        logging_interceptor = LoggingInterceptor()
-
-        server = grpc.server(
-            executor,
-            interceptors=[logging_interceptor, auth_interceptor],
-            options=[
-                ("grpc.keepalive_time_ms", 30000),
-                ("grpc.keepalive_timeout_ms", 10000),
-                ("grpc.keepalive_permit_without_calls", True),
-                ("grpc.max_connection_age_ms", 3600000),
-                ("grpc.max_connection_age_grace_ms", 30000),
-            ],
-        )
-
-        # Register health service
-        health_servicer = HealthServicer()
-        health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
-
-        # Register reflection
-        service_names = (
-            reflection.SERVICE_NAME,
-            "grpc.health.v1.Health",
-        )
-
-        # Import and register ecocredit service
-        try:
-            from services.grpc.credit_class_service import EcocreditServiceServicer
-            from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_pb2_grpc
-            ecocredit_servicer = EcocreditServiceServicer(db_factory)
-            ecocredit_pb2_grpc.add_EcocreditServiceServicer_to_server(ecocredit_servicer, server)
-            service_names = service_names + ("ecocredit.v1.EcocreditService",)
-        except ImportError as e:
-            logger.warning("Ecocredit service not available: %s", e)
-
-        # Import and register data service
-        try:
-            from services.grpc.data.v1 import service_pb2_grpc as data_pb2_grpc
-            from services.grpc.data_service import DataServiceServicer
-            data_servicer = DataServiceServicer(db_factory)
-            data_pb2_grpc.add_DataServiceServicer_to_server(data_servicer, server)
-            service_names = service_names + ("data.v1.DataService",)
-        except ImportError as e:
-            logger.warning("Data service not available: %s", e)
-
-        reflection.enable_server_reflection(service_names, server)
+        server, service_names = _build_server(db_factory, executor)
 
         tls_cert = os.environ.get("GRPC_TLS_CERT")
         tls_key = os.environ.get("GRPC_TLS_KEY")
@@ -153,6 +108,54 @@ def _serve_transport(db_factory, executor, port, max_workers):
             signal.signal(signum, previous)
         if server is not None:
             server.stop(grace=0).wait(timeout=5)
+
+
+def _build_server(db_factory, executor):
+    """Create the configured server and register its optional service adapters."""
+    auth_interceptor = APIKeyInterceptor(db_factory)
+    logging_interceptor = LoggingInterceptor()
+    server = grpc.server(
+        executor,
+        interceptors=[logging_interceptor, auth_interceptor],
+        options=[
+            ("grpc.keepalive_time_ms", 30000),
+            ("grpc.keepalive_timeout_ms", 10000),
+            ("grpc.keepalive_permit_without_calls", True),
+            ("grpc.max_connection_age_ms", 3600000),
+            ("grpc.max_connection_age_grace_ms", 30000),
+        ],
+    )
+
+    health_servicer = HealthServicer()
+    health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
+
+    service_names = (
+        reflection.SERVICE_NAME,
+        "grpc.health.v1.Health",
+    )
+
+    try:
+        from services.grpc.credit_class_service import EcocreditServiceServicer
+        from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_pb2_grpc
+
+        ecocredit_servicer = EcocreditServiceServicer(db_factory)
+        ecocredit_pb2_grpc.add_EcocreditServiceServicer_to_server(ecocredit_servicer, server)
+        service_names = service_names + ("ecocredit.v1.EcocreditService",)
+    except ImportError as e:
+        logger.warning("Ecocredit service not available: %s", e)
+
+    try:
+        from services.grpc.data.v1 import service_pb2_grpc as data_pb2_grpc
+        from services.grpc.data_service import DataServiceServicer
+
+        data_servicer = DataServiceServicer(db_factory)
+        data_pb2_grpc.add_DataServiceServicer_to_server(data_servicer, server)
+        service_names = service_names + ("data.v1.DataService",)
+    except ImportError as e:
+        logger.warning("Data service not available: %s", e)
+
+    reflection.enable_server_reflection(service_names, server)
+    return server, service_names
 
 
 if __name__ == "__main__":

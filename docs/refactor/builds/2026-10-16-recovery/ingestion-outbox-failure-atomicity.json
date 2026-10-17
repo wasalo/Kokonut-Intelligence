@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-16",
+  "slice": "canonical ingestion outbox failure atomicity",
+  "implementation": [
+    "Canonical PostgreSQL-to-ClickHouse producers now propagate enqueue failures when they share the PostgreSQL transaction; no-connection demo/maintenance writes retain warning-only behavior.",
+    "The outbox raises OutboxEnqueueError for database enqueue failures and idempotency-key payload conflicts, allowing runners to distinguish a failed projection from a recoverable provider failure.",
+    "Weather and RPC runners rollback and close instead of committing source rows without an outbox record.",
+    "Remote-sensing provider dispatch, subgraph and EAS indexing, and Gnosis governance indexing roll back and propagate outbox failures instead of treating them as ordinary provider errors.",
+    "Nine producer helpers are covered: weather, manual/GEE/Copernicus remote sensing, subgraph/EAS attestations, two Gnosis projections, and RPC wallet activity. Existing sensor and forecast producers retain their separate transaction guarantees."
+  ],
+  "checks": {
+    "command": "python3 -m pytest tests/test_clickhouse_outbox.py tests/test_ingestion_outbox_producers.py tests/test_remote_sensing_scheduler_contract.py tests/test_weather_cli_scope.py tests/test_weather_forecast_atomicity.py tests/test_weather_forecast.py tests/test_weather_forecast_cli_scope.py tests/test_remote_sensing_csv_location_scope.py tests/test_remote_sensing_automation.py tests/test_attestation.py tests/test_attestation_safe.py -q",
+    "result": "158 passed",
+    "ruff": "no new findings versus HEAD in changed Python files; pre-existing findings remain",
+    "compileall": "passed for changed Python files",
+    "capability_matrix": "passed; 66 rows, MAN-CAP statuses unchanged",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "postgresql": "mocked connections only; no database contacted",
+    "clickhouse": "mocked direct sinks and enqueue failures; no service contacted",
+    "providers": "no provider network requests",
+    "candidate_or_legacy": "not accessed"
+  },
+  "limitations": [
+    "This verifies source and transaction-control behavior with mocks; live provider delivery and disposable PostgreSQL transaction acceptance remain separate gates.",
+    "The work does not establish worker authorization, tenant isolation, or RLS and changes no MAN-CAP acceptance status."
+  ]
+}

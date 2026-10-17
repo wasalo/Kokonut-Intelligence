@@ -2,8 +2,21 @@
 
 Phase 0 inventory, captured 9 October 2026.
 
-**Current status (12 October): Phase 7 native API and OIDC operator access active.** The local candidate serves Field Collector form schemas at `1.2.0`; live enrollment acceptance remains open. See
-[the phase ledger](progress.md) and [capability progress](capability-matrix.md).
+**Current status (17 October):** the local Kernel candidate has 423 numbered
+schema migrations applied through migration 432, with zero pending schema
+migrations. Migrations 404–432 were applied through the ordered checksummed
+runner after a fresh encrypted checkpoint and successful isolated restore
+rehearsal; the rollout was schema-only and applied no seeds. The candidate app
+image was not rebuilt, scheduled workers remain disabled, and no worker
+credentials, location grants, providers, or schedules were enabled. The local
+source changes correcting migrations 429 and 432 to use canonical
+`plot.boundary` are not yet committed or pushed. PR #68's latest pushed head is
+`cd70fa92`; hosted checks for the new local batch remain outstanding. The ARM64
+planner selects an isolated profile for minimal, edge, and standard, and
+current-source QEMU replay through migration 402 has passed. Physical Pi
+acceptance remains open. See [rollout evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json),
+[the phase ledger](progress.md), and
+[capability progress](capability-matrix.md).
 The baseline sections below preserve historical observations, not current
 phase-completion claims.
 
@@ -59,13 +72,19 @@ assertion after later commits.
   AMD64/ARM64 Kernel artifacts contain readiness checks and matching package inventories.
 - [Application package inventories](application-package-inventory.md): future
   images retain resolved dependencies for architecture and release comparison.
-- [ARM64 application build](arm64-application.md): minimal dependencies installed
-  and image built; runtime deployment and Pi hardware certification pending.
+- [ARM64 application build](arm64-application.md): current-source app/PostGIS
+  startup, schema, restore, health, and short recovery passed under QEMU; physical
+  Pi certification and optional image architectures remain open.
 - [Portability database preparation](portability-database.md): separate private
   PostGIS/API evaluation manifest with an opt-in schema startup gate; runtime
   acceptance pending.
-- [ARM64 database blocker](arm64-database.md): pinned PostGIS confirmed AMD64-only;
-  native Pi deployment rejected by the planner pending a replacement build.
+- [ARM64 candidate profile](arm64-database.md): the planner selects a separate
+  custom PostGIS/app overlay for minimal, edge, and standard; current-schema
+  QEMU replay passed and physical Pi acceptance remains open.
+- [Kernel release inputs](kernel-release-inputs.md): build inputs are SHA-256
+  locked and GitHub Actions is configured to build/compare the minimal app and
+  PostGIS targets across AMD64/ARM64; transitive dependency locks and a
+  successful CI run remain open.
 - [PostgreSQL rate limits](postgres-rate-limits.md): explicit shared-budget
   adapter and migration 373; unapplied, with scale/availability acceptance pending.
 - [Rate-limit boundary](rate-limit-boundary.md): injectable gateway contract and
@@ -120,6 +139,9 @@ assertion after later commits.
   prerequisite runs from the same UTC window; migration and runtime gates pending.
 - [Scheduler job planning](scheduler-job-planning.md): disabled schedule
   definitions from shared jobs, with dependency and cutover gates pending.
+- [Schedule ownership inventory](schedule-ownership-inventory.md): source-level
+  Prefect/cron/database job mapping and per-job cutover/replay policy; live
+  provider ownership and runtime acceptance remain open.
 - [Shared orchestration jobs](orchestration-jobs.md): provider-independent
   operations and corrected Prefect task submissions; runtime gates pending.
 - [Edge profile](edge-profile.md): encrypted local media and conservative
@@ -139,7 +161,10 @@ assertion after later commits.
 - [Provider configuration](provider-configuration.md): first Phase 1 settings
   and health reporting slice, with remaining runtime validation gates.
 - [Capability matrix](capability-matrix.md): all 66 README capabilities, owning
-  code area, candidate tests, and named manual parity checks.
+  code area, candidate tests, implementation status, and named manual parity
+  checks. `python3 scripts/check-capability-matrix.py` validates row coverage,
+  status labels, and referenced source/test paths; fast-fail CI runs the same
+  check.
 - [Sensor anomaly delivery](sensor-anomaly-delivery.md): exact source-reading
   evaluation, per-reading/rule receipts, atomic alert/claim/outbox/approval
   records, and synthetic crash/replay evidence; provider and overall Batch 2
@@ -191,9 +216,9 @@ assertion after later commits.
 3. services/ingestion/clickhouse_outbox.py already implements a PostgreSQL
    projection outbox. Weather, sensors, EAS, and Gnosis producers enqueue
    there. Audit remaining producers before replacing any paths.
-4. Directus is still critical in services/core/features.py and health.py.
-   Gateway location list/detail routes proxy Directus; public metric queries
-   use PostgreSQL. API independence is incomplete.
+4. Directus is optional behind the provider flag. Public Gateway location
+   list/detail routes now use the governed native view; Directus administrative
+   CRUD, field/row permissions, hooks, and reviewer UI parity remain incomplete.
 5. The checkout has 361 PostgreSQL SQL files through #370, six ClickHouse
    SQL files, and 119 seed SQL files. The plan's older counts are stale.
    Numbering gaps are intentional evidence to preserve, not repair.

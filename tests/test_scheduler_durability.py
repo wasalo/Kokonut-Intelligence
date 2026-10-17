@@ -1,5 +1,6 @@
 """Focused scheduler durability tests without a live PostgreSQL dependency."""
 
+import sys
 from datetime import datetime, timezone
 from unittest import TestCase
 from unittest.mock import Mock, patch
@@ -21,29 +22,68 @@ class SchedulerDurabilityTests(TestCase):
         engine._complete_task = Mock()
         completed = Mock(returncode=0, stdout="ok", stderr="")
 
-        with patch("services.scheduler.engine.subprocess.run", return_value=completed) as run:
+        child_env = {"PATH": "/synthetic/bin"}
+        with (
+            patch("services.scheduler.engine.worker_subprocess_environment", return_value=child_env),
+            patch("services.scheduler.engine.subprocess.run", return_value=completed) as run,
+        ):
             result = engine._execute_task(
-                "run", "task", "metrics", "services.metrics",
-                ["--compute", "--all-locations"], 30, None,
+                "run",
+                "task",
+                "metrics",
+                "services.metrics",
+                ["--compute", "--all", "--location-id", "a9aa6466-0754-4b7c-b20c-155a81134eaa"],
+                30,
+                None,
             )
 
         self.assertTrue(result)
         run.assert_called_once_with(
-            [__import__("sys").executable, "-m", "services.metrics", "--compute", "--all-locations"],
+            [
+                sys.executable,
+                "-m",
+                "services.metrics",
+                "--compute",
+                "--all",
+                "--location-id",
+                "a9aa6466-0754-4b7c-b20c-155a81134eaa",
+            ],
             capture_output=True,
             text=True,
             timeout=30,
+            env=child_env,
         )
         engine._complete_task.assert_called_once()
+
+    def test_noi_snapshot_dispatch_forwards_only_its_worker_secret_key(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._complete_task = Mock()
+        completed = Mock(returncode=0, stdout='{"reconciled":1}', stderr="")
+        child_env = {"KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "synthetic"}
+        with (
+            patch("services.scheduler.engine.worker_subprocess_environment", return_value=child_env) as environment,
+            patch("services.scheduler.engine.subprocess.run", return_value=completed) as run,
+        ):
+            result = engine._execute_task(
+                "run", "task", "noi_snapshots",
+                "services.metrics.noi_snapshot_worker",
+                ["--location-id", "a9aa6466-0754-4b7c-b20c-155a81134eaa"],
+                30, None,
+            )
+
+        self.assertTrue(result)
+        environment.assert_called_once_with(
+            allowed_worker_keys=("noi_snapshot",),
+            isolated_database_credentials=True,
+        )
+        self.assertIs(run.call_args.kwargs["env"], child_env)
 
     def test_execute_records_spawn_failure_for_retry(self):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()
 
         with patch("services.scheduler.engine.subprocess.run", side_effect=OSError("spawn failed")):
-            result = engine._execute_task(
-                "run", "task", "events", "services.events", ["--process"], 30, None
-            )
+            result = engine._execute_task("run", "task", "events", "services.events", ["--process"], 30, None)
 
         self.assertFalse(result)
         self.assertEqual(engine._complete_task.call_args.args[2], "failed")
@@ -53,13 +93,45 @@ class SchedulerDurabilityTests(TestCase):
         engine._complete_task = Mock()
 
         with patch("services.scheduler.engine.subprocess.run") as run:
+            result = engine._execute_task("run", "task", "untrusted", "os", ["--help"], 30, None)
+
+        self.assertFalse(result)
+        run.assert_not_called()
+        self.assertEqual(engine._complete_task.call_args.args[2], "failed")
+
+    def test_execute_rejects_invalid_command_without_spawning_or_retrying(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._complete_task = Mock()
+
+        with patch("services.scheduler.engine.subprocess.run") as run:
             result = engine._execute_task(
-                "run", "task", "untrusted", "os", ["--help"], 30, None
+                "run",
+                "task",
+                "climate",
+                "services.ingestion.climate_data",
+                ["--all"],
+                30,
+                None,
             )
 
         self.assertFalse(result)
         run.assert_not_called()
         self.assertEqual(engine._complete_task.call_args.args[2], "failed")
+        self.assertFalse(engine._complete_task.call_args.kwargs["retryable"])
+
+    def test_nonretryable_command_failure_has_no_retry_deadline(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._worker_id = "worker-a"
+        conn = _RetryPolicyConnection()
+        engine._conn = conn
+
+        engine._complete_task("task", "run", "failed", 5, "invalid command", retryable=False)
+
+        schedule_update = conn.cursor_value.executed[2]
+        self.assertIn("UPDATE scheduled_task", schedule_update[0])
+        self.assertEqual(schedule_update[1][2], 0)
+        self.assertIsNone(schedule_update[1][3])
+        self.assertTrue(conn.committed)
 
     def test_completion_rejects_run_not_owned_by_worker(self):
         engine = object.__new__(SchedulerEngine)
@@ -127,3 +199,33 @@ class _CompletionConnection:
 
     def commit(self):
         raise AssertionError("lost lease must not commit")
+
+
+class _RetryPolicyCursor:
+    def __init__(self):
+        self.rowcount = 1
+        self.executed = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def execute(self, sql, params=None):
+        self.executed.append((sql, params))
+
+    def fetchone(self):
+        return (1, 3, 60)
+
+
+class _RetryPolicyConnection:
+    def __init__(self):
+        self.cursor_value = _RetryPolicyCursor()
+        self.committed = False
+
+    def cursor(self):
+        return self.cursor_value
+
+    def commit(self):
+        self.committed = True

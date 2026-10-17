@@ -1,0 +1,30 @@
+{
+  "check": "generic data-governance retention enforcement gate",
+  "date": "2026-10-15",
+  "result": "passed",
+  "command": "python3 -m pytest tests/test_data_governance.py tests/test_data_retention_gate.py -q",
+  "tests": {
+    "passed": 42,
+    "failed": 0,
+    "focused_cases": [
+      "destructive sweep is denied before cursor creation when the feature switch is absent",
+      "CLI enforcement is denied before opening a database connection",
+      "CLI help remains available while enforcement is disabled",
+      "dry-run remains available with the destructive feature switch absent",
+      "an explicitly enabled sweep records a policy legal hold as skipped",
+      "new policies default to auto_enforce=false",
+      "invalid window values and unsupported actions are rejected before database access"
+    ]
+  },
+  "static_checks": {
+    "command": "ruff check services/analytics/retention.py services/analytics/data_governance.py services/analytics/cli_data_governance.py tests/test_data_governance.py tests/test_data_retention_gate.py",
+    "result": "passed"
+  },
+  "database_or_provider_accessed": false,
+  "limitations": [
+    "No retention period was selected for the United States or Dominican Republic.",
+    "Policy ownership and approval requirements remain unresolved.",
+    "The sweeper does not enforce legal holds attached to individual target records.",
+    "The feature switch is not approval to enable destructive retention."
+  ]
+}

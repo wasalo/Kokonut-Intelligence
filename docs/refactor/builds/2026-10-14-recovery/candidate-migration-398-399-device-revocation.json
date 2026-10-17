@@ -1,0 +1,101 @@
+{
+  "record_type": "candidate_schema_rollout_and_mobile_device_revocation_acceptance",
+  "recorded_at": "2026-10-14T23:34:05Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-398-399-20261014T232159Z/postgres.dump.age",
+    "age_encrypted": true,
+    "created_at": "2026-10-14T23:22:06.138494+00:00",
+    "sha256": "813fb1695f322e76ee518ac53e175d22b5010a04d6727c8b00b423306242f295",
+    "bytes": 5632952,
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_rehearsal": {
+      "completed": true,
+      "project": "kokonut-kernel-recovery-398-20261014t2316",
+      "target_database": "kokonut_restore_399_retry",
+      "empty_template0_precondition": true,
+      "restore_method": "stream_age_decrypt_to_pg_restore_without_plaintext_dump_file",
+      "public_tables_before_replay": 1010,
+      "pre_replay_schema_head": "397_worldclim_location_baseline_key",
+      "post_replay_schema_head": "399_runtime_security_schema_usage",
+      "post_replay_synthetic_acceptance": "passed"
+    }
+  },
+  "migrations": [
+    {
+      "id": "schema:398_bounded_mobile_device_revocation.sql",
+      "status": "applied",
+      "checksum": "c6568f09568b690cffdbddd672ed23d5b72588fd55443e92d7319ec5cad43cf0"
+    },
+    {
+      "id": "schema:399_runtime_security_schema_usage.sql",
+      "status": "applied",
+      "checksum": "da71fa0a91049b38c20873040f60260faafde21755d6305fc357d59a57811e92"
+    }
+  ],
+  "disposable_acceptance": {
+    "database": "PostgreSQL 16 restored clone",
+    "role_bootstrap": "passed",
+    "runtime_schema_usage": true,
+    "bounded_function_execute": true,
+    "function_owner": "kokonut_mobile_device_revoke_owner",
+    "public_execute": false,
+    "mobile_device_rls_forced": true,
+    "synthetic_devices": {
+      "owner_scoped_api_key": "revoked; token cleared",
+      "owner_scoped_capability": "revoked; token cleared",
+      "owner_scoped_operator": "revoked; token cleared",
+      "cross_tenant_device": "remained active; hidden as not_found"
+    },
+    "additional_denials": [
+      "wrong resource/action",
+      "wrong location",
+      "direct runtime status/token/revocation-column UPDATE"
+    ],
+    "transaction_context_reset": true,
+    "candidate_database_touched_by_fixture": false,
+    "legacy_database_touched": false
+  },
+  "focused_checks": {
+    "pytest": "155 passed",
+    "migration_sources_validated": 511,
+    "ruff": "passed",
+    "git_diff_check": "passed"
+  },
+  "candidate": {
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "schema_migration_range": [398, 399],
+    "applied_schema_count": 390,
+    "latest_schema": "399_runtime_security_schema_usage",
+    "applied_seed_sources": 1,
+    "non_applied_schema_rows": 0,
+    "ordered_planner_pending_schemas": 0,
+    "source_checksum_drift": 0,
+    "application_tables_with_rls_enabled": 0,
+    "app_image": "sha256:3798797ccdf8028527890119427bcd269a08386b65a43a9c3f33be6f9337cb0f",
+    "only_app_recreated": true,
+    "health_endpoint_http": 200,
+    "anonymous_device_revocation_http": 401,
+    "candidate_database_user": "kokonut",
+    "candidate_database_user_is_superuser": true,
+    "kokonut_runtime_role_present": false,
+    "legacy_stack_touched": false
+  },
+  "recovery_cleanup": {
+    "scratch_compose_project_removed": true,
+    "scratch_volumes_removed": true,
+    "temporary_role_credential_file_removed": true,
+    "plaintext_dump_file_created": false,
+    "encrypted_checkpoint_retained_outside_git": true
+  },
+  "rollback": {
+    "performed": false,
+    "strategy": "Retain the encrypted pre-398 checkpoint. If rollback is needed, restore to a replacement database and validate before switching; recreate database roles and grants separately because the checkpoint excludes them. Use the prior app image if retained or rebuild from the prior source revision. No in-place down migration was run."
+  },
+  "limitations": [
+    "The isolated forced-RLS acceptance validates the bounded database function and runtime role; the candidate app still uses the kokonut superuser because runtime-role secrets are not provisioned.",
+    "The anonymous HTTP check verifies route protection only; live authenticated HTTP through the dedicated runtime login remains open.",
+    "Application-table RLS remains disabled pending remaining worker, Directus/view, and database-role boundaries.",
+    "This is local candidate evidence, not production or physical Raspberry Pi acceptance."
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "lock_scope": "Kernel default and ClickHouse-enabled application plus PostGIS image build inputs",
+  "base_images": {
+    "application": "python:3.11-slim@sha256:db3ff2e1800a8581e2c48a27c3995339d47bdf046da21c7627accd3d51053a93",
+    "database": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4"
+  },
+  "sha256_inputs": {
+    "Dockerfile.kernel": "d336b4a3a82b370c7c4053624cdaed96f49c497a86fcee0b0cd049f5a6d9db58",
+    "Dockerfile.kernel-postgis": "180b813d48759c170cc36a78526c893dc71e51a78c18a75cd101c330a1958d8c",
+    "requirements/kernel.txt": "bcafcb498d1d0551cc5a400e0b45ecd903fd996cafd974792f4e67f6cefb7e83",
+    "requirements/web3.txt": "be91e5a4302c32cf7b3035cca8bc538eaeba5e85997348081632c2286fb4da33",
+    "requirements/exports.txt": "1780570edca5518251d507d39d9c9fed24db4451315d73e75f9c8faceec36c71",
+    "requirements/storage.txt": "55b669581f72f640218f77096989eef395448cf37f61b72db17029dc74440e1b",
+    "requirements/clickhouse.txt": "94e0790ca756b254d8567ce2aeb69cdd47f7591e2944939adf1dddb00d073dfd",
+    "requirements/kernel-runtime.in": "e619e8f2d898343db986881c108a6b35f371008d5c27fa2d340359896c7f82fe",
+    "requirements/kernel-runtime.lock": "80e50a655e4f7c530d102fd09b4fc0502ae9020ed5a170303615e4c0dfd08921",
+    "requirements/kernel-clickhouse.in": "d45f7ea822daef4616987cb57a240a4e2eea4fdf74424aa6222b1f0167c2bc4e",
+    "requirements/kernel-clickhouse.lock": "ea9154ed4eb3c4234dee73a6588f4550191f227de82f972644d937b090dc66ab",
+    "config/postgres/kernel-postgis-packages.json": "c436d6268f440f7ac54bf298b65529199680cf48526f0504cb1bceed02bec79c",
+    "config/postgres/kernel-apt.sources": "1bc6a4368d8284b4e8a35f24e381449e493eff6f9993869987f5193538f0cd42",
+    "config/postgres/kernel-pgdg.pref": "cfb19023faf4c4b54c39f471cc8287a022922f159adbae1a8c4bf26f7077a4ec",
+    "config/postgres/kernel-bootstrap.sources": "a4bf76ae4956dcda020029113fb722f0dd35c9597331554a96f63883dfda1f51"
+  },
+  "postgis_packages": {
+    "POSTGIS_PACKAGE_VERSION": "3.6.4+dfsg-2.pgdg12+1",
+    "POSTGIS_SCRIPTS_VERSION": "3.6.4+dfsg-2.pgdg12+1",
+    "verified_architectures": [
+      "amd64",
+      "arm64"
+    ]
+  },
+  "dependency_lock_status": {
+    "python_direct_inputs": "SHA-256-locked source requirement manifests",
+    "python_transitive_dependencies": "hash-locked default and ClickHouse profile closures; pending GitHub multi-architecture acceptance",
+    "apt_transitive_dependencies": "Debian dependencies resolve from timestamped bookworm snapshots; exact PGDG PostGIS packages come from its archive; release gate compares complete installed package inventories against exact locked architecture-specific expectations; multi-architecture acceptance pending"
+  }
+}

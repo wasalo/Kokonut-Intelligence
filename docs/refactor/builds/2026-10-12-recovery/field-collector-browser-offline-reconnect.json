@@ -1,0 +1,34 @@
+{
+  "acceptance": "partial-browser-client-recovery",
+  "date": "2026-10-12",
+  "source_commit": "61c4d7a457d97c8a2b6e28dacf82b5929451edc1",
+  "target": "Field Collector offline shell, encrypted browser queue, and reconnect client",
+  "browser": "Codex in-app browser",
+  "origin": "127.0.0.1 loopback, isolated temporary port",
+  "api": "temporary same-origin mock; in-memory synthetic device and sync response",
+  "steps": [
+    "Created and enrolled one synthetic browser device while the temporary origin was available.",
+    "Confirmed the service-worker cache contained only /mobile and /field-collector-vault.js.",
+    "Stopped the temporary origin and reopened /mobile from the service-worker cache.",
+    "Unlocked the encrypted IndexedDB vault, saved one synthetic field note, and confirmed one pending record.",
+    "Reloaded while the origin remained unavailable, unlocked the vault again, and confirmed the encrypted queue still contained one record.",
+    "Restarted the same mock API; sync returned one accepted client ID and the UI cleared the queue. The mock logged POST /api/mobile/sync with HTTP 200.",
+    "Removed the test origin's service-worker registration, shell cache, and kokonut-field-vault IndexedDB database."
+  ],
+  "result": {
+    "shell_cached": true,
+    "navigation_during_origin_loss": true,
+    "encrypted_record_persisted_across_reload": true,
+    "sync_after_origin_recovery": true,
+    "accepted_records": 1,
+    "pending_queue_after_sync": 0,
+    "test_origin_storage_removed": true
+  },
+  "limitations": [
+    "This was a real browser UI run, but not OS airplane mode: the loopback server was stopped while the browser's network interface remained up, so navigator.onLine still reported Online.",
+    "The sync endpoint was a temporary mock, not the candidate Gateway or PostgreSQL database; live API enrollment-to-sync was accepted separately in candidate recovery evidence.",
+    "No photo/media transfer, real OIDC login, consent-required/retired form, or downstream eligibility behavior was exercised in this browser slice.",
+    "No Docker container or database was started, changed, or queried."
+  ],
+  "capability_status_changed": false
+}

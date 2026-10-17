@@ -1,0 +1,100 @@
+{
+  "check": "grpc_rpc_policy_inventory",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "services": {
+      "data.v1.DataService": {
+        "protobuf_source": "proto/data/v1/service.proto",
+        "implementation": "services/grpc/data_service.py",
+        "handler_class": "DataServiceServicer",
+        "rpc_policies": {
+          "GenerateIRI": "iri_registry:write",
+          "ResolveIRI": "iri_registry:read",
+          "GetVersionHistory": "iri_registry:read",
+          "ComputeContentHash": "public",
+          "CreateContentHash": "data_stream:write",
+          "FindIRIByHash": "data_stream:read",
+          "DefineResolver": "data_stream:write",
+          "RegisterToResolver": "data_stream:write",
+          "GetResolversForIRI": "data_stream:read",
+          "ListResolvers": "data_stream:read",
+          "AttestToIRI": "data_stream:write",
+          "GetAttestorsForIRI": "data_stream:read",
+          "StreamNewIRIs": "iri_registry:read"
+        }
+      },
+      "ecocredit.v1.EcocreditService": {
+        "protobuf_source": "proto/ecocredit/v1/service.proto",
+        "implementation": "services/grpc/credit_class_service.py",
+        "handler_class": "EcocreditServiceServicer",
+        "rpc_policies": {
+          "Classes": "ecocredit:class:read",
+          "Class": "ecocredit:class:read",
+          "ClassesByAdmin": "ecocredit:class:read",
+          "ClassIssuers": "ecocredit:class:read",
+          "CreateClass": "ecocredit:class:write",
+          "UpdateClass": "ecocredit:class:write",
+          "Projects": "ecocredit:project:read",
+          "Project": "ecocredit:project:read",
+          "ProjectsByClass": "ecocredit:project:read",
+          "Batches": "ecocredit:batch:read",
+          "Batch": "ecocredit:batch:read",
+          "BatchesByClass": "ecocredit:batch:read",
+          "BatchesByProject": "ecocredit:batch:read",
+          "CreateBatch": "ecocredit:batch:write",
+          "Balance": "ecocredit:balance:read",
+          "Balances": "ecocredit:balance:read",
+          "BalancesByBatch": "ecocredit:balance:read",
+          "Supply": "ecocredit:batch:read",
+          "StreamBalances": "ecocredit:balance:read",
+          "StreamBatchUpdates": "ecocredit:batch:read",
+          "Baskets": "ecocredit:basket:read",
+          "Basket": "ecocredit:basket:read",
+          "CreateBasket": "ecocredit:basket:write",
+          "PutInBasket": "ecocredit:basket:write",
+          "TakeFromBasket": "ecocredit:basket:write",
+          "SellOrders": "marketplace:read",
+          "SellOrder": "marketplace:read",
+          "CreateSellOrder": "marketplace:write",
+          "UpdateSellOrder": "marketplace:write",
+          "CancelSellOrder": "marketplace:write",
+          "CreateBuyOrder": "marketplace:write",
+          "ExecuteBuyOrder": "marketplace:write",
+          "StreamSellOrders": "marketplace:read",
+          "AllowedDenoms": "marketplace:read",
+          "GetFeeParams": "marketplace:read",
+          "BridgeOut": "ecocredit:bridge:write",
+          "BridgeIn": "ecocredit:bridge:write",
+          "BridgeComplete": "ecocredit:bridge:write",
+          "ApplyToClass": "ecocredit:class:write",
+          "EvaluateApplication": "ecocredit:class:write",
+          "ListEnrollments": "ecocredit:class:read",
+          "CreditTypes": "ecocredit:class:read"
+        }
+      }
+    },
+    "protobuf_rpc_methods": 55,
+    "protected_database_handlers": 54,
+    "explicit_public_database_free_handlers": [
+      "data.v1.DataService/ComputeContentHash"
+    ],
+    "every_rpc_has_implementation": true,
+    "protected_scope_precedes_database_acquisition": true,
+    "candidate_or_legacy_database_touched": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_grpc_rpc_policy_inventory.py -q",
+    "passed": 1,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "This source inventory does not exercise live RPC transport, API-key database authentication, tenant isolation, streaming behavior, TLS, or parity with native Gateway policies."
+  ]
+}

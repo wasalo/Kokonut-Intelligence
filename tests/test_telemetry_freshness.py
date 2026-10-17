@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 SCHEMA = Path("schemas/postgres/077_telemetry_infrastructure.sql")
 SEED = Path("schemas/seeds/077_telemetry_infrastructure.sql")
@@ -46,7 +47,120 @@ def test_freshness_alert_durability_migration() -> None:
 def test_freshness_persists_delivery_attempts() -> None:
     content = Path("services/ingestion/data_freshness.py").read_text()
     assert "_persist_delivery_attempt" in content
-    assert "attempt[\"error\"]" in content
+    assert 'attempt["error"]' in content
+
+
+def test_webhook_response_is_closed_after_success(monkeypatch) -> None:
+    from services.ingestion.data_freshness import _send_alert
+
+    monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://example.test/secret-token")
+    monkeypatch.delenv("ALERT_SMTP_HOST", raising=False)
+    monkeypatch.delenv("ALERT_EMAIL_TO", raising=False)
+    response = MagicMock()
+    attempts = []
+    with patch("services.common.http.http.post", return_value=response):
+        channel = _send_alert("weather", "stale", 45, None, attempts=attempts)
+
+    assert channel == "webhook"
+    assert attempts == [{"channel": "webhook", "error": None}]
+    response.close.assert_called_once_with()
+
+
+def test_webhook_failure_persists_sanitized_error_and_closes_response(monkeypatch, caplog) -> None:
+    from services.ingestion.data_freshness import _send_alert
+
+    monkeypatch.setenv("ALERT_WEBHOOK_URL", "https://example.test/secret-token")
+    monkeypatch.delenv("ALERT_SMTP_HOST", raising=False)
+    monkeypatch.delenv("ALERT_EMAIL_TO", raising=False)
+    response = MagicMock()
+    response.raise_for_status.side_effect = RuntimeError("secret-token response body")
+    attempts = []
+    with patch("services.common.http.http.post", return_value=response):
+        channel = _send_alert("weather", "critical", 90, None, attempts=attempts)
+
+    assert channel == "none"
+    assert attempts == [{"channel": "webhook", "error": "RuntimeError"}]
+    assert "secret-token" not in caplog.text
+    response.close.assert_called_once_with()
+
+
+def test_email_failure_persists_only_error_type(monkeypatch) -> None:
+    from services.ingestion.data_freshness import _send_alert
+
+    monkeypatch.delenv("ALERT_WEBHOOK_URL", raising=False)
+    monkeypatch.setenv("ALERT_SMTP_HOST", "smtp.example.test")
+    monkeypatch.setenv("ALERT_EMAIL_TO", "private-recipient@example.test")
+    server = MagicMock()
+    server.__enter__.return_value.send_message.side_effect = OSError("private-recipient smtp-secret")
+    attempts = []
+    with patch("smtplib.SMTP", return_value=server):
+        channel = _send_alert("weather", "stale", 45, None, attempts=attempts)
+
+    assert channel == "none"
+    assert attempts == [{"channel": "email", "error": "OSError"}]
+
+
+def test_failed_freshness_read_preserves_prior_alert_state(monkeypatch) -> None:
+    from services.ingestion.data_freshness import check_freshness
+
+    class Cursor:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def execute(self, statement, _parameters=None):
+            self.connection.statements.append(statement)
+
+        def close(self):
+            pass
+
+    class Connection:
+        def __init__(self):
+            self.statements = []
+            self.commits = 0
+
+        def cursor(self, **_kwargs):
+            return Cursor(self)
+
+        def commit(self):
+            self.commits += 1
+
+        def rollback(self):
+            raise AssertionError("failed read should be isolated by its savepoint")
+
+    config = {
+        "id": "config-id",
+        "source_system": "weather",
+        "stale_threshold_minutes": 30,
+        "critical_threshold_minutes": 60,
+        "location_scoped": False,
+        "alert_cooldown_minutes": 60,
+        "escalation_cooldown_minutes": 15,
+    }
+    prior_state = {
+        "id": "state-id",
+        "current_status": "stale",
+        "last_event_status": "stale",
+        "last_event_at": datetime.now(timezone.utc),
+    }
+    connection = Connection()
+    monkeypatch.setattr(
+        "services.ingestion.data_freshness._query_freshness_configs", lambda _conn, _source=None: [config]
+    )
+    monkeypatch.setattr(
+        "services.ingestion.data_freshness._query_latest_data_at",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("temporary database failure")),
+    )
+    monkeypatch.setattr("services.ingestion.data_freshness._insert_check_result", lambda *_args: "check-id")
+    monkeypatch.setattr("services.ingestion.data_freshness._alert_state", lambda *_args: prior_state)
+
+    result = check_freshness(connection)
+
+    assert result["error"] == 1
+    assert result["results"][0]["status"] == "error"
+    assert prior_state["current_status"] == "stale"
+    assert not any("UPDATE data_freshness_alert_state SET current_status" in sql for sql in connection.statements)
+    assert "ROLLBACK TO SAVEPOINT freshness_scope" in connection.statements
+    assert connection.commits == 1
 
 
 def test_determine_status_fresh() -> None:
@@ -139,6 +253,71 @@ def test_scoped_freshness_query_requires_location() -> None:
         pass
     else:
         raise AssertionError("scoped freshness query did not require a location")
+
+
+class _FreshnessQueryCursor:
+    def __init__(self) -> None:
+        self.statement = None
+        self.parameters = None
+
+    def execute(self, statement, parameters=None) -> None:
+        self.statement = statement
+        self.parameters = parameters
+
+    def fetchone(self):
+        return {"last_at": None}
+
+    def close(self) -> None:
+        pass
+
+
+class _FreshnessQueryConnection:
+    def __init__(self) -> None:
+        self.query_cursor = _FreshnessQueryCursor()
+
+    def cursor(self, **_kwargs):
+        return self.query_cursor
+
+
+def test_freshness_query_uses_fixed_table_and_column_identifiers() -> None:
+    from services.ingestion.data_freshness import (
+        FRESHNESS_SOURCE_TABLES,
+        FRESHNESS_TABLE_TIMESTAMP_COLUMNS,
+        _query_latest_data_at,
+    )
+
+    assert set(FRESHNESS_SOURCE_TABLES.values()) == set(FRESHNESS_TABLE_TIMESTAMP_COLUMNS)
+    connection = _FreshnessQueryConnection()
+    _query_latest_data_at(connection, "weather", True, "location-id")
+
+    assert connection.query_cursor.statement == (
+        "SELECT MAX(observation_date) AS last_at FROM weather_observation WHERE location_id = %s"
+    )
+    assert connection.query_cursor.parameters == ["location-id"]
+
+
+def test_sensor_freshness_query_binds_location_value() -> None:
+    from services.ingestion.data_freshness import _query_latest_data_at
+
+    connection = _FreshnessQueryConnection()
+    _query_latest_data_at(connection, "sensors", True, "location-id")
+
+    assert connection.query_cursor.statement == (
+        "SELECT MAX(sr.created_at) AS last_at FROM sensor_reading sr "
+        "JOIN sensor_device sd ON sd.id = sr.sensor_id WHERE sd.location_id = %s"
+    )
+    assert connection.query_cursor.parameters == ["location-id"]
+
+
+def test_unsupported_freshness_source_fails_as_configuration_error() -> None:
+    from services.ingestion.data_freshness import _query_latest_data_at
+
+    try:
+        _query_latest_data_at(None, "unconfigured_source", False)
+    except ValueError as exc:
+        assert str(exc) == "unsupported freshness source: unconfigured_source"
+    else:
+        raise AssertionError("unsupported freshness source was reported as no data")
 
 
 def test_freshness_config_defaults() -> None:

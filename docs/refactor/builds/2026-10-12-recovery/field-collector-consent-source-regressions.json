@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-12",
+  "scope": "Focused Field Collector consent, offline-shell, vault, media, API, and Gateway CORS regressions",
+  "python": {
+    "command": "KOKONUT_GATEWAY_AUDIT_SPOOL_PATH=<private-temporary-directory>/gateway-audit.sqlite3 uv run --no-project --with pytest --python 3.11 python -m pytest tests/test_mobile_form_validation.py tests/test_mobile_offline.py tests/test_mobile_vault.py tests/test_mobile_media_storage.py tests/test_mobile_api.py tests/test_gateway_auth.py -q",
+    "result": "83 passed",
+    "duration_seconds": 6.14,
+    "audit_spool": "Private temporary directory with mode 0700; no candidate Gateway or database writes"
+  },
+  "node": {
+    "command": "node --test tests/test_mobile_offline_shell.mjs tests/test_mobile_vault.mjs",
+    "result": "11 passed, 0 failed",
+    "duration_seconds": 0.713
+  },
+  "environment_notes": [
+    "The host Python lacked pytest; the authorized isolated uv environment supplied pytest without changing repository dependency files.",
+    "The first Python attempt used the default audit spool path, which the sandbox could not create; write-path cases returned 503. The successful rerun used a private temporary spool path."
+  ],
+  "limits": [
+    "These source-level checks do not replace real-device airplane-mode testing, a real OIDC provider, or live candidate-Gateway browser consent acceptance.",
+    "The browser fixture is not the candidate Gateway and creates no persistent application data; one synthetic encrypted queue record and device credential remain in the isolated browser test vault."
+  ],
+  "rollback": "The mock server was stopped. No source, candidate database, or candidate Gateway writes were made. The isolated browser test vault retains one encrypted synthetic pending record and device credential; deleting/resetting the vault requires the application\u2019s explicit confirmation action.",
+  "browser_consent_acceptance": {
+    "url": "http://localhost:8103/mobile",
+    "fixture": "Local-only synthetic API served retired field_note revision 1.1.0 with required consent, allowed synthetic device enrollment, and returned HTTP 403 for sync.",
+    "checks": [
+      "The retired required-consent form loaded from the synthetic fixture. A 19-character participant reference entered with real keyboard input was blocked by native browser minlength validation (32 characters required) and was not queued.",
+      "A valid synthetic reviewer-issued participant reference was saved into the encrypted local queue. The sync fixture returned HTTP 403; the UI displayed Sync failed (403) and retained one pending record after retry.",
+      "The first automation-driven short-reference fill bypassed native browser validation and was removed from the local queue. The real-keyboard validation check supersedes that attempt."
+    ],
+    "fixture_request_observation": {
+      "form_requests": 1,
+      "device_registration_requests": 1,
+      "sync_post_requests": 5,
+      "sync_response": "HTTP 403 for all fixture sync attempts",
+      "note": "The fixture held requests in memory only; the count includes the initial automation-driven validation attempt and subsequent retries."
+    },
+    "state_after_check": "The isolated browser test vault remains unlocked with one encrypted synthetic record pending and its synthetic device credential. The temporary mock server has been stopped.",
+    "acceptance_status": "passed_client_fixture_only",
+    "limits": "This validates client form input and encrypted-queue retention against a local mock. It does not exercise the candidate Gateway, real participant consent withdrawal, OIDC, or OS airplane-mode/reconnect."
+  }
+}

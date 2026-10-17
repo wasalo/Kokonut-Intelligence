@@ -1,0 +1,115 @@
+{
+  "date": "2026-10-17",
+  "checked_at_utc": "2026-10-17T15:15:52Z",
+  "check": "arm64_qemu_current_schema_432",
+  "source_revision": "4805e62129a561856a4eff496e0a34d2e4a4bae2",
+  "host": {
+    "platform": "macOS Docker Desktop on darwin/amd64",
+    "runtime_architecture": "linux/arm64 under Docker QEMU emulation",
+    "physical_raspberry_pi_available": false
+  },
+  "images": {
+    "app": {
+      "reference": "kokonut-kernel-qemu-20261017-432-app:latest",
+      "image_id": "sha256:b9ac11cb93598c560e0472dc5ca5e1590ae3c1d4bd123b4d9243b6b5f532ca5c",
+      "platform": "linux/arm64",
+      "current_source_build": true
+    },
+    "database": {
+      "reference": "kokonut-kernel-candidate-postgis:arm64",
+      "image_id": "sha256:d3a0259cc799a8c1379a57ad6bbeda699442a7627d23b1272417690767b5510f",
+      "platform": "linux/arm64",
+      "postgresql_major": 16,
+      "postgis_package_version": "3.6.4+dfsg-2.pgdg12+1"
+    }
+  },
+  "isolation": {
+    "compose_project": "kokonut-kernel-qemu-20261017-432",
+    "candidate_database_selected": false,
+    "legacy_stack_selected": false,
+    "metabase_selected": false,
+    "database_host_port_published": false,
+    "app_host_port": "127.0.0.1:18117",
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "database_password": "synthetic, generated in-process and not printed",
+    "temporary_project_and_volume_removed": true,
+    "compose_network_egress_disabled": false,
+    "provider_calls_made": false
+  },
+  "schema_replay": {
+    "runner": "python3 -m services.migration migrate --schemas-only with explicit ARM64 Compose project and overlays",
+    "schema_sources_applied": 423,
+    "latest_migration": "schema:432_signed_remote_sensing_worker.sql",
+    "failed": 0,
+    "non_applied": 0,
+    "plan_after_replay_pending": 0,
+    "role_prerequisites": [
+      "kokonut_runtime (NOLOGIN)",
+      "kokonut_worker_login (NOLOGIN)"
+    ]
+  },
+  "application": {
+    "arm64_image_build": "passed from current source",
+    "arm64_app_container_start": "Compose reported Started after schema replay",
+    "offline_gateway_cli_help": "passed with --network none under linux/arm64",
+    "http_health": "not verified",
+    "protected_route": "not verified",
+    "verification_note": "The acceptance harness stopped after Compose started the app because its image-inspection step passed the container manifest-list digest to docker image inspect instead of using the local image reference. The image was subsequently inspected by tag and its no-network ARM64 CLI help passed; no HTTP request was made before cleanup."
+  },
+  "runtime_recheck": {
+    "checked_at_utc": "2026-10-17T15:44:05Z",
+    "source_revision": "5946216f94bba4fa98bc9296b4675e8b2a0f5bed",
+    "app_image_reference": "kokonut-kernel-qemu-20261017-432-app:latest",
+    "app_image_id": "sha256:b9ac11cb93598c560e0472dc5ca5e1590ae3c1d4bd123b4d9243b6b5f532ca5c",
+    "app_image_code_built_from_revision": "4805e62129a561856a4eff496e0a34d2e4a4bae2",
+    "compose_network_internal": true,
+    "app_healthcheck": "healthy",
+    "http_requests_from_inside_app_container": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "status": 200,
+        "body": {
+          "status": "ok",
+          "audit_capture": "ok",
+          "service": "gateway",
+          "version": "0.1.0"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/operator/api/farm-activity-records?location_id=00000000-0000-4000-8000-000000000001",
+        "status": 401,
+        "body": {
+          "error": "Unauthorized",
+          "reason": "credentials_required"
+        }
+      }
+    ],
+    "host_loopback_probe": {
+      "configured_binding": "127.0.0.1:18118 -> 8099/tcp",
+      "curl_result": "failed to connect while the Compose network was internal",
+      "docker_host_config_binding_present": true,
+      "published_host_ingress_verified": false
+    },
+    "provider_calls_made": false,
+    "seeds_or_farm_data_loaded": false,
+    "cleanup": {
+      "compose_down_exit_code": 0,
+      "containers_removed": true,
+      "network_removed": true,
+      "volumes_removed": true,
+      "removal_verified_by_docker_inventory": true
+    }
+  },
+  "resource_limits": "No explicit memory or CPU limits were applied in this run.",
+  "result": "Current schema replay through 432, current-source ARM64 app health, in-container HTTP health (200), and anonymous protected-route denial (401) passed. Host-published loopback ingress, resource-bounded QEMU acceptance, and physical Raspberry Pi behavior remain open.",
+  "limitations": [
+    "This is QEMU evidence, not physical Raspberry Pi performance, thermal, storage, power-loss, network, or device behavior.",
+    "The Compose bridge was not marked internal; no provider calls were made, but network egress was not explicitly disabled for migration replay.",
+    "The runtime recheck used an internal Compose network. Host-side curl could not reach the app at 127.0.0.1:18118; only in-container HTTP responses are accepted as passing here.",
+    "No explicit resource limits were used in this current-schema run; earlier ARM64 acceptance separately records bounded QEMU limits.",
+    "No seeds or farm data were applied. Candidate and legacy databases and services were not selected."
+  ]
+}

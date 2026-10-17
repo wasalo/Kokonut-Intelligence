@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T04:11:57Z",
+  "operation": "Read-only inventory of tables referenced by the curated seed list",
+  "source": {
+    "branch": "feat/mobile-offline-acceptance",
+    "head": "c26aa32229ebeb5f86f219c8b3ccb9f857bf93ec",
+    "seed_list": "scripts/seed.sh",
+    "relations_discovered_from_curated_sql": 52
+  },
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "transaction": "BEGIN READ ONLY / COMMIT",
+    "seed_ledger": {
+      "applied": 1,
+      "applied_seed": "seed:140_mobile_forms.sql",
+      "pending": 120
+    },
+    "target_relations": {
+      "all_52_exist": true,
+      "empty_count": 50,
+      "non_empty": {
+        "mobile_form": 5,
+        "service_registry": 63
+      }
+    },
+    "service_registry_seed_091": {
+      "source_keys": [
+        "capability_map",
+        "strategy_map",
+        "vision_mission",
+        "value_stream_defs"
+      ],
+      "existing_source_key_rows": 0,
+      "other_existing_service_rows_changed": false
+    },
+    "containers_recreated": false,
+    "seed_sql_executed": false,
+    "legacy_stack_accessed": false
+  },
+  "interpretation": "The five mobile forms are tracked by the verified reconciliation evidence. Other curated target tables are empty, except service_registry baseline rows from the existing candidate schema; the four service keys seed 091 would add are absent. This inventory establishes row counts and key absence only, not full dependency or clean-bootstrap acceptance for the curated seed batch.",
+  "result": "Read-only preflight passed. No candidate data changed; curated-seed rollout remains open pending dependency and clean-bootstrap review."
+}

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-16",
+  "branch": "feat/mobile-offline-acceptance",
+  "scope": "Gateway Data Stream location-scoped list/search contract",
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_data_stream.py tests/test_gateway_auth.py tests/test_gateway_route_policy_inventory.py -q",
+    "result": "passed",
+    "tests_passed": 45
+  },
+  "lint": {
+    "command": "ruff check services/gateway/data_stream.py services/gateway/app.py services/gateway/router.py tests/test_gateway_data_stream.py tests/test_gateway_auth.py tests/test_gateway_route_policy_inventory.py",
+    "result": "passed"
+  },
+  "contracts_checked": [
+    "GET /api/data-stream/posts is protected by the exact data_stream_post:read policy",
+    "The request location is extracted from the query and normalized before API-key scope evaluation",
+    "The database revalidates the credential, resource, action, and current owner on the same transaction as the query",
+    "Every returned row is filtered by the verified location and pagination is bounded",
+    "The response projection excludes source_raw, arbitrary metadata, evidence URLs, and file identifiers",
+    "Database scope denial prevents the query and rolls back the transaction",
+    "Invalid locations, authorization metadata, query length, and pagination fail before opening a connection"
+  ],
+  "database_targets_touched": [],
+  "limitations": [
+    "No candidate or legacy database was used by this focused unit and HTTP contract run",
+    "File access and proof detail routes remain open"
+  ]
+}

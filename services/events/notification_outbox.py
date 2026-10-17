@@ -161,34 +161,30 @@ def enqueue_event_notification(
     event_id: str,
     event_type: str,
     payload: dict[str, Any],
+    location_id: str | None = None,
     environment: dict[str, str] | None = None,
 ) -> int:
     """Persist configured notification intents idempotently in the caller's transaction."""
-    try:
-        stable_event_id = str(uuid.UUID(str(event_id)))
-    except (ValueError, TypeError, AttributeError) as exc:
-        raise ValueError("a valid source event UUID is required for notification delivery") from exc
-    if not event_type or not isinstance(event_type, str):
-        raise ValueError("event_type is required for notification delivery")
-    if not isinstance(payload, dict):
-        raise ValueError("notification payload must be a JSON object")
-
-    destinations = _notification_payloads(event_type, payload, environment=environment)
+    stable_event_id, event_type, location_id, messages = _prepare_event_notification(
+        event_id=event_id,
+        event_type=event_type,
+        payload=payload,
+        location_id=location_id,
+        environment=environment,
+    )
     inserted = 0
     with conn.cursor() as cur:
-        for channel, destination_key, message in destinations:
+        for channel, destination_key, message in messages:
             encoded = json.dumps(message, sort_keys=True, separators=(",", ":"), default=str)
-            if len(encoded.encode("utf-8")) > 16_384:
-                raise ValueError("notification payload exceeds the 16 KiB limit")
             cur.execute(
                 """
                 INSERT INTO notification_outbox
-                    (source_event_id, event_type, channel, destination_key, payload)
-                VALUES (%s, %s, %s, %s, %s::jsonb)
+                    (source_event_id, event_type, channel, destination_key, payload, location_id)
+                VALUES (%s, %s, %s, %s, %s::jsonb, %s::uuid)
                 ON CONFLICT (source_event_id, channel, destination_key) DO NOTHING
                 RETURNING id
                 """,
-                (stable_event_id, event_type, channel, destination_key, encoded),
+                (stable_event_id, event_type, channel, destination_key, encoded, location_id),
             )
             row = cur.fetchone()
             if row is not None:
@@ -197,9 +193,10 @@ def enqueue_event_notification(
 
             cur.execute(
                 """
-                SELECT event_type, payload
+                SELECT event_type, payload, location_id
                 FROM notification_outbox
                 WHERE source_event_id = %s AND channel = %s AND destination_key = %s
+                FOR UPDATE
                 """,
                 (stable_event_id, channel, destination_key),
             )
@@ -213,7 +210,104 @@ def enqueue_event_notification(
                 raise NotificationIdempotencyConflict(
                     "source event notification identity conflicts with existing content"
                 )
+            if existing[2] is None and location_id is not None:
+                cur.execute(
+                    """
+                    UPDATE notification_outbox SET location_id = %s::uuid
+                    WHERE source_event_id = %s AND channel = %s
+                      AND destination_key = %s AND location_id IS NULL
+                    """,
+                    (location_id, stable_event_id, channel, destination_key),
+                )
+            elif (
+                location_id is not None
+                and existing[2] is not None
+                and str(existing[2]) != location_id
+            ):
+                raise NotificationIdempotencyConflict(
+                    "source event notification location conflicts with existing content"
+                )
     return inserted
+
+
+def enqueue_event_notification_isolated(
+    conn,
+    *,
+    event_id: str,
+    event_type: str,
+    payload: dict[str, Any],
+    location_id: str | None = None,
+    environment: dict[str, str] | None = None,
+) -> int:
+    """Enqueue through the isolated notification identity's bounded SQL function."""
+    stable_event_id, stable_event_type, stable_location_id, messages = (
+        _prepare_event_notification(
+            event_id=event_id,
+            event_type=event_type,
+            payload=payload,
+            location_id=location_id,
+            environment=environment,
+        )
+    )
+    if not messages:
+        return 0
+    request = [
+        {"channel": channel, "destination_key": destination_key, "payload": message}
+        for channel, destination_key, message in messages
+    ]
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT kokonut_security.enqueue_notification_intents(
+                %s::uuid, %s, %s::uuid, %s::jsonb
+            )
+            """,
+            (
+                stable_event_id,
+                stable_event_type,
+                stable_location_id,
+                json.dumps(request, sort_keys=True, separators=(",", ":"), default=str),
+            ),
+        )
+        row = cur.fetchone()
+    if row is None or isinstance(row[0], bool) or not isinstance(row[0], int):
+        raise NotificationOutboxError("notification enqueue function returned an invalid result")
+    return row[0]
+
+
+def _prepare_event_notification(
+    *,
+    event_id: str,
+    event_type: str,
+    payload: dict[str, Any],
+    location_id: str | None,
+    environment: dict[str, str] | None,
+) -> tuple[str, str, str | None, list[tuple[str, str, dict[str, Any]]]]:
+    """Validate shared handler inputs and build bounded, secret-free intents."""
+    try:
+        stable_event_id = str(uuid.UUID(str(event_id)))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError("a valid source event UUID is required for notification delivery") from exc
+    if not event_type or not isinstance(event_type, str):
+        raise ValueError("event_type is required for notification delivery")
+    if not isinstance(payload, dict):
+        raise ValueError("notification payload must be a JSON object")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("location_id must be a valid UUID") from exc
+
+    messages = _notification_payloads(event_type, payload, environment=environment)
+    for channel, destination_key, message in messages:
+        if channel not in {"webhook", "directus", "email"}:
+            raise ValueError("notification channel is not allowlisted")
+        if destination_key != DESTINATION_KEY or not isinstance(message, dict):
+            raise ValueError("notification destination is invalid")
+        encoded = json.dumps(message, sort_keys=True, separators=(",", ":"), default=str)
+        if len(encoded.encode("utf-8")) > 16_384:
+            raise ValueError("notification payload exceeds the 16 KiB limit")
+    return stable_event_id, event_type, location_id, messages
 
 
 def _recover_expired_leases(conn) -> None:

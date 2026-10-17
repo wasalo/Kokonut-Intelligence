@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-17",
+  "checked_at_utc": "2026-10-17T16:27:35Z",
+  "check": "arm64_loopback_ingress",
+  "source_revision": "6bd53a9e9e9e21615bb556e19dc18e38a40898c6",
+  "host": {
+    "platform": "macOS Docker Desktop on darwin/amd64",
+    "app_runtime_architecture": "linux/arm64 under Docker QEMU emulation",
+    "physical_raspberry_pi_available": false
+  },
+  "isolation": {
+    "compose_project": "kokonut-kernel-arm64-ingress-20261017",
+    "candidate_database_selected": false,
+    "legacy_stack_selected": false,
+    "network_internal": false,
+    "database_platform": "linux/amd64 native",
+    "app_platform": "linux/arm64",
+    "database_password": "synthetic, generated in-process and not printed",
+    "clickhouse_enabled": false,
+    "provider_credentials_configured": false,
+    "provider_calls_made": false,
+    "seeds_applied": false,
+    "farm_data_loaded": false
+  },
+  "schema_replay": {
+    "runner": "python3 -m services.migration migrate --schemas-only with explicit temporary Compose project and overlays",
+    "schema_sources_applied": 423,
+    "latest_migration": "schema:432_signed_remote_sensing_worker.sql",
+    "failed": 0
+  },
+  "app": {
+    "image_reference": "kokonut-kernel-arm64-ingress-20261017-app:latest",
+    "image_id": "sha256:acae54005e119c3d44e9b9b13b16741b3ea22135fb753937d12b6e08f016840e",
+    "platform": "linux/arm64",
+    "docker_health": "healthy",
+    "host_binding": "127.0.0.1:18119 -> 8099/tcp",
+    "host_requests": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "status": 200,
+        "body": {
+          "status": "ok",
+          "audit_capture": "ok",
+          "service": "gateway",
+          "version": "0.1.0"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/operator/api/farm-activity-records?location_id=00000000-0000-4000-8000-000000000001",
+        "status": 401,
+        "body": {
+          "error": "Unauthorized",
+          "reason": "credentials_required"
+        }
+      }
+    ]
+  },
+  "cleanup": {
+    "compose_down_exit_code": 0,
+    "containers_removed": true,
+    "network_removed": true,
+    "volumes_removed": true,
+    "removal_verified_by_docker_inventory": true,
+    "candidate_services_unchanged": true,
+    "candidate_app_healthy": true,
+    "candidate_database_healthy": true,
+    "candidate_metabase_healthy": true,
+    "candidate_proxy_running": true
+  },
+  "result": "Host-side loopback ingress to the ARM64 app is verified on Docker Desktop when the temporary Compose network is not internal. Health returned 200 and the protected route returned 401. The PostgreSQL container was native AMD64 to keep the ingress check fast; this is not ARM64 database, public-network, resource-limit, or physical Raspberry Pi acceptance.",
+  "limitations": [
+    "The app ran under QEMU emulation on an AMD64 host; this does not certify physical Raspberry Pi performance, thermal, storage, power-loss, or network behavior.",
+    "The normal bridge network did not explicitly block egress; no provider credentials were configured and no provider calls were made.",
+    "The database ran natively as linux/amd64. ARM64 PostGIS and full-schema QEMU replay are documented separately.",
+    "No CPU or memory limits were applied in this run."
+  ]
+}

@@ -13,7 +13,7 @@ services:
     networks:
       - kernel
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kokonut -d kokonut_intelligence"]
+      test: ["CMD-SHELL", "test \"$(cat /proc/1/comm)\" = postgres && pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,6 +38,7 @@ services:
       KOKONUT_ENV: production
       PG_PASSWORD: ${KOKONUT_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}}
       KOKONUT_FEATURE_DIRECTUS: ${KOKONUT_FEATURE_DIRECTUS:-false}
+      KOKONUT_FEATURE_LEGACY_DATASET_SQL: ${KOKONUT_FEATURE_LEGACY_DATASET_SQL:-false}
       KOKONUT_FEATURE_CLICKHOUSE: "false"
       KOKONUT_FEATURE_GRPC: "false"
       KOKONUT_FEATURE_METABASE: "false"
@@ -49,7 +50,7 @@ services:
       ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
       ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
       ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
-      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      KOKONUT_GATEWAY_CORS_ORIGINS: ${KOKONUT_GATEWAY_CORS_ORIGINS:-}
       KOKONUT_RATE_LIMIT_PROVIDER: ${KOKONUT_RATE_LIMIT_PROVIDER:-local}
       KOKONUT_GATEWAY_AUDIT_SPOOL_PATH: /var/lib/kokonut/gateway-audit/gateway-audit.sqlite3
       KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS: ${KOKONUT_GATEWAY_AUDIT_SPOOL_MAX_EVENTS:-10000}

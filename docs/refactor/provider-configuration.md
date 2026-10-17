@@ -10,8 +10,10 @@ with the setting name and never echo the supplied value.
 The existing feature registry consumes these settings at import time. Restart
 the application after changing settings. All historical defaults remain:
 Directus, ClickHouse, gRPC, Metabase, and MQTT enabled; Prefect disabled.
-PostgreSQL cannot be disabled. Directus remains critical when selected.
-The settings are shown in `.env.example`.
+PostgreSQL cannot be disabled. Directus remains critical when selected. The
+legacy stored-SQL dashboard refresher is disabled unless
+`KOKONUT_FEATURE_LEGACY_DATASET_SQL=true` is set explicitly. The settings are
+shown in `.env.example`.
 
 Health output includes every configured feature by default. Disabled providers
 receive `state=disabled`, `healthy=true`, and `critical=false`, without running
@@ -29,14 +31,25 @@ gateway location routes unavailable. No lightweight deployment is certified yet.
 Metabase's Compose opt-in and its legacy feature default remain separate until
 the deployment profile work reconciles them.
 
+The `legacy_dataset_sql` feature is an execution gate, not a new provider. Its
+default-off setting prevents `refresh_dataset()` and the refresh CLI from
+executing stored `dashboard_dataset.query_sql` until an operator explicitly
+enables the compatibility path. Read-only dataset listing remains available.
+Enabling it does not establish query safety, least-privilege database grants,
+location scoping, or result materialization; those acceptance gates remain open.
+
 ## Acceptance and remaining checks
 
 - Settings module uses only the standard library.
 - Legacy defaults and existing feature registry function signatures retained.
 - Disabled providers bypass registered probes and port checks.
 - PostgreSQL health connections close even after a failed query.
-- No schema, durable state, credentials, or Docker changes in this slice.
-- Lint and formatting reviewed; runtime/contract tests have not been run.
+- No schema, durable state, or credential changes in this slice. Compose now
+  forwards the legacy SQL switch through candidate, portability, and standard
+  app/worker profiles; it remains false by default.
+- Twelve focused provider tests and eleven Compose-profile tests passed; Ruff,
+  Python compilation, shell syntax, and whitespace checks passed. No live query
+  was issued.
 - Before profile cutover, exercise defaults, malformed values, disabled-provider
   probes, absent optional packages, explicit target lists, and gateway health
   response compatibility in the focused core/gateway suites.

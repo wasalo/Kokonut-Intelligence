@@ -1,0 +1,26 @@
+{
+  "check": "data_freshness_source_query_contract",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "configured_sources": 7,
+    "table_and_timestamp_identifiers": "fixed_in_code_maps",
+    "location_values": "bound_parameters",
+    "unsupported_source_outcome": "error",
+    "candidate_or_legacy_database_touched": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_telemetry_freshness.py -q",
+    "passed": 29,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_check": "passed",
+    "ruff_format_check": "passed"
+  },
+  "limitations": [
+    "This is source-level contract evidence only; it does not prove deployed source configuration, provider freshness, or runtime database behavior.",
+    "No Raspberry Pi hardware was available or used; physical-device behavior remains unverified."
+  ]
+}

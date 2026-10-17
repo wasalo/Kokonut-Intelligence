@@ -19,7 +19,7 @@ for service in database clickhouse directus gateway grpc; do
     running "$service"
 done
 
-compose exec -T database pg_isready -U kokonut -d kokonut_intelligence >/dev/null
+compose exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence >/dev/null
 compose exec -T clickhouse clickhouse-client \
     --user kokonut --password "${CLICKHOUSE_PASSWORD:?CLICKHOUSE_PASSWORD must be set}" \
     --query "SELECT 1" >/dev/null

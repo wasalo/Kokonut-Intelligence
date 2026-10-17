@@ -1,0 +1,15 @@
+{
+  "date": "2026-10-16",
+  "scope": "Local Kokonut Kernel candidate only",
+  "compose_override": "docker-compose.kernel-local-db.yml",
+  "binding": "127.0.0.1:5433 -> container database:5432/tcp",
+  "data_volume": "Existing candidate named PostgreSQL volume preserved",
+  "checks": {
+    "candidate_database": "healthy",
+    "host_authentication": "passed via PostgreSQL client with SELECT 1",
+    "gateway_health": "passed at 127.0.0.1:8098/health",
+    "metabase_and_proxy": "remained running and were not recreated",
+    "legacy_stack": "not involved"
+  },
+  "network_exposure": "IPv4 loopback only; not externally reachable"
+}

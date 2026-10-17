@@ -1,0 +1,43 @@
+{
+  "record_type": "clickhouse_outbox_one_shot_cli_disposable_postgresql_acceptance",
+  "recorded_at": "2026-10-15T02:07:33+00:00",
+  "scope": "Disposable PostgreSQL 16 with migrations 335 and 374 applied in order; the ClickHouse client was controlled in-process and no live ClickHouse/provider endpoint was contacted.",
+  "checks": {
+    "fixture": "9 passed",
+    "candidate_and_legacy_databases": "untouched",
+    "docker_resources": "temporary container and network removed; no volume created",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behaviors": [
+    "enqueue rollback leaves no outbox row",
+    "same event key is idempotent and conflicting payloads are rejected",
+    "disabled provider does not consume a retry attempt",
+    "expired lease can be reclaimed while stale-owner completion is rejected",
+    "unavailable transport reaches the bounded dead-letter state",
+    "operator replay succeeds once and duplicate replay is rejected",
+    "successful delivery is not reclaimed",
+    "one-shot CLI reports provider setup failure with exit code 1 and persists a retryable attempt",
+    "one-shot CLI reports successful controlled delivery with exit code 0 and persists success"
+  ],
+  "test_environment": {
+    "database_image_id": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "container_limits": "512 MiB memory and 1 CPU",
+    "host_binding": "127.0.0.1:55439",
+    "provider": "in-process controlled success/failure; no live ClickHouse service",
+    "network_note": "Docker Desktop host-port publication required attaching the temporary fixture to the default bridge as well as its temporary internal network; no claim of network isolation is made.",
+    "secret_handling": "synthetic database password supplied through the process environment and not recorded"
+  },
+  "limitations": [
+    "This verifies PostgreSQL persistence and one-shot process exit behavior, not ClickHouse availability, cross-store crash deduplication, live provider interoperability, or long-duration operation.",
+    "No Raspberry Pi hardware was available; this fixture does not claim ARM device behavior.",
+    "The temporary Docker fixture was removed after acceptance; no volume was created."
+  ],
+  "source_sha256": {
+    "scripts/fixtures/kernel-recovery-outbox-checks.py": "7ece14e7b6883e8d9b6b7c1d5dadcc87f765ee54cd2748081c7aa065ca0ceebc",
+    "services/ingestion/clickhouse_outbox.py": "06a4a112b72ab72b4291740a4827080de9289c862b3ac525f49aeb480fca103e",
+    "schemas/postgres/335_clickhouse_outbox.sql": "3b4c5825959138c26e18602fe9febfc35b9f1c6d572133ef9fca2774f8b63554",
+    "schemas/postgres/374_clickhouse_outbox_operator_audit.sql": "45085dc5a56160a370a9a79abb0a8b6e84600940f8289b66a9e3a07583666723"
+  }
+}

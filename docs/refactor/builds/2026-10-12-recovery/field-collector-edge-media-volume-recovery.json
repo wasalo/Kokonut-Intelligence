@@ -1,0 +1,37 @@
+{
+  "acceptance": "kernel-edge-local-media-volume-cross-container-recovery",
+  "date": "2026-10-12",
+  "compose_files": [
+    "docker-compose.kernel-candidate.yml",
+    "docker-compose.kernel-edge.yml"
+  ],
+  "scope": {
+    "project": "unique temporary Compose project",
+    "media_volume": "kernel-private-media mounted at /app/private-media",
+    "provider": "local selected only by the edge overlay",
+    "sops_fields_read_in_process_memory": [
+      "MOBILE_MEDIA_LOCAL_KEY",
+      "POSTGRES_PASSWORD"
+    ],
+    "database_dependency_started": false,
+    "candidate_project_touched": false
+  },
+  "checks": {
+    "first_disposable_container_wrote_synthetic_kkm1_object": true,
+    "media_directory_mode_0700": true,
+    "object_mode_0600": true,
+    "plaintext_absent_from_object_file": true,
+    "second_disposable_container_found_object_in_same_named_volume": true,
+    "aes_gcm_authentication_and_plaintext_digest_match": true,
+    "wrong_media_key_rejected": true,
+    "synthetic_object_deleted": true,
+    "temporary_project_volumes_and_network_removed": true
+  },
+  "result": "passed for one synthetic object across two disposable edge app containers",
+  "limitations": [
+    "No mobile_media_upload database row was created or compared; PostgreSQL/object parity remains open.",
+    "The candidate app service was not recreated; only isolated one-off containers sharing the edge named volume were exercised.",
+    "Expiry/orphan cleanup, production retention, and full candidate-stack operation were not exercised."
+  ],
+  "rollback": "The unique temporary Compose project, network, one-off containers, named volumes, and synthetic object were removed. Candidate containers, volumes, and database were untouched."
+}

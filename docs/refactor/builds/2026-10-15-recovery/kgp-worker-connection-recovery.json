@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-15",
+  "scope": "KGP continuous indexer PostgreSQL connection lifecycle and failure recovery",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_kgp_worker_durability.py tests/test_guild_services.py tests/test_guild_reorg.py tests/test_kgp_service.py -q",
+      "result": "passed",
+      "passed": 14
+    },
+    "ruff": {
+      "command": "ruff check services/guilds/indexer.py tests/test_kgp_worker_durability.py",
+      "result": "passed"
+    },
+    "python_compilation": {
+      "command": "python3 -m py_compile services/guilds/indexer.py tests/test_kgp_worker_durability.py",
+      "result": "passed"
+    }
+  },
+  "verified": [
+    "Each KGP scan cycle requests a fresh PostgreSQL connection with a five-second timeout.",
+    "A database failure followed by failed rollback and failed scan-status persistence does not stop the next cycle.",
+    "The configured worker identity is retained across connection retries.",
+    "Every scan cycle closes its connection and the durable database lease remains responsible for reclaim after expiry.",
+    "Nonfinite and nonpositive polling intervals are rejected before connection attempts."
+  ],
+  "implementation": [
+    "services/guilds/indexer.py",
+    "tests/test_kgp_worker_durability.py"
+  ],
+  "limitations": [
+    "Checks use fault-injected unit fixtures; no PostgreSQL or external RPC outage was exercised.",
+    "Live chain replay, lease expiry/reclaim, and long-duration provider recovery remain open.",
+    "Candidate and legacy databases were not accessed."
+  ]
+}

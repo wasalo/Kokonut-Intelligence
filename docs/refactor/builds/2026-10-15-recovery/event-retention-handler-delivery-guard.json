@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_unit",
+  "feature": "event_retention_handler_delivery_guard",
+  "test_command": "python3 -m pytest tests/test_event_bus_durability.py::test_cleanup_preserves_events_with_pending_disposition_or_failed_delivery -q",
+  "tests_passed": 1,
+  "database_accessed": false,
+  "provider_accessed": false,
+  "assertions": [
+    "cleanup protects event rows with undisposed dead letters",
+    "cleanup protects event rows with non-success durable handler deliveries"
+  ],
+  "limitations": [
+    "does not implement event-level legal holds",
+    "does not select a retention period",
+    "does not authorize event pruning",
+    "does not establish runtime PostgreSQL behavior"
+  ]
+}

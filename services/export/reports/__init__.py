@@ -3,6 +3,7 @@
 from ...analytics.process_health import generate_process_health
 from ...analytics.value_stream import generate_value_stream_map
 from ..business_plan import generate_business_plan
+from .business_plan import generate_business_plan_report
 from .common import (  # noqa: F401 (re-exported for report_generator facade)
     _looks_like_uuid,
     _serialize_rows,
@@ -183,7 +184,7 @@ REPORT_GENERATORS = {
     "statement_of_work": generate_statement_of_work,
     "data_stream_summary": generate_data_stream_summary,
     "value_stream_map": generate_value_stream_map,
-    "business_plan": generate_business_plan,
+    "business_plan": generate_business_plan_report,
     "process_health": generate_process_health,
     "business_model_canvas": generate_business_model_canvas,
     "pitch_deck": generate_pitch_deck,

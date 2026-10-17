@@ -49,7 +49,7 @@ def test_sensor_ingester_validate_reading_nan():
 
 
 def test_sensor_ingester_get_sensor_type_ranges_returns_defaults():
-    from services.ingestion.sensor_ingester import get_sensor_type_ranges, SENSOR_TYPE_RANGES
+    from services.ingestion.sensor_ingester import get_sensor_type_ranges
 
     mock_db = MagicMock()
     mock_db.cursor.return_value.__enter__ = MagicMock(return_value=MagicMock())
@@ -61,9 +61,41 @@ def test_sensor_ingester_get_sensor_type_ranges_returns_defaults():
     assert ranges["soil_moisture"] == (0, 100)
 
 
+@pytest.mark.parametrize(
+    "operation",
+    ["get_active_sensors", "check_calibration_status", "list_calibration_status"],
+)
+def test_sensor_inventory_queries_bind_location_scope(operation):
+    from services.ingestion.sensor_ingester import (
+        check_calibration_status,
+        get_active_sensors,
+        list_calibration_status,
+    )
+
+    location_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    function = {
+        "get_active_sensors": get_active_sensors,
+        "check_calibration_status": check_calibration_status,
+        "list_calibration_status": list_calibration_status,
+    }[operation]
+
+    if operation == "list_calibration_status":
+        with patch("services.ingestion.sensor_ingester.get_db", return_value=connection):
+            function(location_id)
+    else:
+        function(connection, location_id)
+
+    sql, parameters = cursor.execute.call_args.args
+    assert "sd.location_id = %s" in sql
+    assert parameters == (location_id,)
+
+
 def test_sensor_ingester_validate_ch_value_rejects_bad_input():
-    from services.ingestion.sensor_ingester import _validate_ch_value
     import re
+
+    from services.ingestion.sensor_ingester import _validate_ch_value
 
     pattern = re.compile(r'^[0-9a-f-]+$', re.IGNORECASE)
     with pytest.raises(ValueError, match="Invalid"):

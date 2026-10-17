@@ -12,7 +12,9 @@ values.
 Selected photos are resized to JPEG and kept only inside the encrypted local
 queue while offline. Before collection sync, the browser uploads each photo
 with its active device token and collection client ID; the server stores the
-object in a private S3-compatible bucket and returns an opaque media UUID.
+object through its configured private media provider (S3-compatible by default,
+with a local encrypted provider available in the edge profile) and returns an
+opaque media UUID.
 `offline_collection.payload` contains form data only, while `photo_refs` stores
 those UUIDs. Legacy data URLs are moved out of the payload during encrypted
 queue migration. Legacy filename-only references with no image bytes remain
@@ -28,7 +30,9 @@ browser profile and synced records sensitive.
 
 ## Entry points
 
-- Gateway (preferred): `/mobile` or `/api/mobile/app`
+- Gateway (preferred): `/mobile/` or `/api/mobile/app`; `/mobile` redirects to
+  `/mobile/` so relative HTML, vault, and service-worker assets stay under the
+  configured proxy route.
 - Caddy static route: `/field/field-collector.html`
 - Directus endpoint: `/field-collector/` (redirects to the Caddy route)
 - Direct file: open `field-collector.html` directly in a browser
@@ -45,7 +49,7 @@ self-signed certificate warning for HTTPS.
 
 | Path | URL | Notes |
 |------|-----|-------|
-| Preferred (gateway via Caddy) | `https://<lan-ip>/mobile` | HTML + `/api/mobile` same origin |
+| Preferred (gateway via Caddy) | `https://<lan-ip>/mobile/` | HTML + `/api/mobile` same origin |
 | Static HTML via Caddy | `https://<lan-ip>/field/field-collector.html` | API also same-origin via `/api/mobile/*` proxy |
 | Loopback gateway | `http://127.0.0.1:8099/mobile` | Host-only; not reachable from phones |
 | Direct file | `file://.../field-collector.html` | Set Settings → API URL to `https://<lan-ip>` or `http://<lan-ip>:8099` |
@@ -56,11 +60,30 @@ fallback: `python3 -m services.gateway.cli --serve --port 8099`.
 When opened directly as a file, configure the API origin in Settings before
 syncing. The app does not require a connection to record data.
 
+### Reopen the app offline
+
+On HTTPS or localhost, the Field Collector registers a small service worker and
+caches only the static HTML shell and its encryption helper for the exact app
+URL. Visit the app once while online to seed that shell; the same URL can then
+reopen while offline. The encrypted IndexedDB vault still requires its
+passphrase after a browser restart.
+
+The worker never caches forms, enrollment responses, sync responses, media, or
+any write request. Forms remain in the encrypted vault after an online fetch,
+with the built-in form definitions as a fallback. Collection records and local
+photos remain encrypted in IndexedDB until sync succeeds. When connectivity
+returns, the app refreshes forms and retries the queue. Browsers that cannot use
+service workers (including direct `file://` use) can continue collecting while
+the page stays open, but cannot use the cached app shell to reopen it offline.
+
 ## API
 
 The browser loads `field-collector-vault.js` from the same origin as its entry
 point (`/field-collector-vault.js`, `/mobile/field-collector-vault.js`,
 `/api/mobile/field-collector-vault.js`, or the Caddy static `/field/` route).
+The matching `field-collector-service-worker.js` aliases are served from the
+same routes. The worker caches the app shell only; all `/api/mobile/*` data
+requests remain network-only.
 
 The built-in `1.2.0` farm activity, harvest, expense, field note, and soil
 sample forms are classified `not_required` for participant-linked consent
@@ -76,6 +99,86 @@ The local candidate now serves the five `1.2.0` revisions and matching app.
 Other environments must follow the same checksummed migration and seed
 workflow. See the [policy decision record](../../docs/refactor/mobile-form-classification-review.md)
 and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json).
+
+### Custom form manifest validation
+
+Directus is optional. Validate a reviewed custom JSON manifest and preview its
+version against a prior manifest without connecting to PostgreSQL:
+
+```bash
+python3 -m services.cli mobile-forms validate --manifest form.json
+python3 -m services.cli mobile-forms preview --manifest form.json --current prior.json
+python3 -m services.cli mobile-forms publish --manifest form.json
+python3 -m services.cli mobile-forms publish --manifest form.json --actor operator-id --expected-current-version 1.0.0 --apply
+python3 -m services.cli mobile-forms publish --manifest form.json --actor operator-id --expect-absent --apply
+```
+
+The commands reject incomplete consent review metadata, external schema
+references, root schemas that accept undeclared properties, and edits that reuse
+a version. Validation, preview, and `publish` without `--apply` do not connect to
+PostgreSQL. Publication requires an explicit independent operator and either an
+expected current version or `--expect-absent`; it updates only the mutable
+`mobile_form` row so migration 381 creates the immutable snapshot and retires
+the prior active revision in the same transaction. The publisher must differ
+from the manifest reviewer. The CLI is a privileged local maintenance tool;
+browser self-service and the OIDC-scoped private review queue remain in
+progress. See the [form operations contract](../../docs/refactor/mobile-form-operations.md).
+
+### Organization ownership preflight
+
+Before planning tenant-aware grants or row-level security, inspect current
+location ownership assignments and known Field Collector lineage using the
+read-only CLI:
+
+```bash
+python3 -m services.cli mobile-tenant-preflight
+python3 -m services.cli mobile-tenant-preflight --location-id UUID
+```
+
+The report compares nullable `location.organization_id` values with active
+`owned`/`primary` organization relationships, emits stable opaque references
+instead of location or organization UUIDs, and counts known mobile and
+downstream rows. Organization relationships are review evidence only; the
+command never assigns an owner or changes data. With `--location-id`, the
+location rows are filtered but `records_without_location` remains a
+database-wide total. The local candidate run returned zero locations and zero
+inventoried rows; it is empty and does not establish ownership for a populated
+installation. Review a populated deployment's output with accountable data
+owners before any ownership backfill, tenant grant, or RLS migration. See the
+[tenant isolation contract](../../docs/refactor/mobile-tenant-isolation.md).
+
+The report also returns aggregate status for the five owner-confirmed Kokonut
+Network locations: expected, present with exact name/slug, currently owner
+verified on active locations, missing for later import, identity mismatch, and
+owner mismatch counts. It emits none of the location names, slugs, or UUIDs and
+does not infer owners for other locations. After importing a named future location, run the
+exact reconciliation seed through the ordered migration runner; see the
+[owner map procedure](../../docs/refactor/tenant-owner-map-reconciliation.md).
+
+Before counting rows, the command checks that every required relation/column
+exists. An older or partial schema returns `inventory_status: schema_incomplete`,
+lists the missing `relation.column` requirements and latest applied migration
+when migration history is available, and skips ownership/lineage queries. Bring
+an isolated copy through the ordered migrations before treating its inventory as
+complete. This guard was exercised against a fresh populated archived restore:
+it listed 11 missing inventory columns and skipped all ownership/lineage counts
+([sanitized evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json)).
+The historical complete-schema check returned 27/27 required columns at that
+point in the inventory's evolution ([evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json)).
+The current source validates 48 required columns before it runs the ownership,
+lineage, or operating-tenant summary queries.
+
+A separate internal-only restore of the populated archive then applied all 32
+pending schema migrations through 385 with zero failures and zero pending
+afterward. Its corrected inventory found two locations, no active
+organization-member relationships, one direct assignment not confirmed by an
+active owned-primary relationship, and one unassigned location. It counted four
+mobile devices, five location-scoped dashboard datasets, three report snapshots
+without location, and 38 dashboard datasets without location. The first run
+exposed UUID-array string decoding that emitted false opaque references; the
+query now aggregates to `text[]` and fails closed on unsupported driver output.
+No owner was inferred or backfilled. See the [sanitized populated replay
+evidence](../../docs/refactor/builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json).
 
 ### Private media and request protections
 
@@ -96,12 +199,24 @@ and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/
   uploads. For R2, use its S3 API endpoint and the `auto` region. Do not enable
   public bucket access or expose object keys.
 - The media metadata migration gives unattached uploads a 30-day expiry, and
-  sync rejects expired references. Automated deletion of expired object bytes
-  is not yet implemented; storage cleanup/retention verification is a
-  production gate. No bucket or other Cloudflare resource was created in this
-  repository-only work.
+  sync rejects expired references. Operators can preview eligible rows with
+  `python3 -m services.cli mobile-media-cleanup`; deleting bytes and marking
+  expired rows requires explicit `--apply` and is limited to unattached uploads.
+  Attached media remains for governed retention/erasure review. Operators can
+  also inventory aged, unregistered objects with
+  `python3 -m services.cli mobile-media-reconcile`; this command is dry-run by
+  default, has a 24-hour minimum age and a 500-object maximum batch, and reports
+  counts without object keys. Add `--apply` to delete eligible objects after a
+  fresh database/provider recheck. S3-compatible apply requires scoped
+  `s3:ListBucket` and prefix-scoped `s3:DeleteObject`; local storage needs no
+  external credentials. Apply creates no per-object restore journal, so
+  configure provider versioning/backups when recovery is required. The CLI never
+  mutates upload rows. Live S3/R2 inventory/deletion acceptance and production retention
+  ownership remain open. No bucket or other Cloudflare resource was created in
+  this repository-only work.
 - Gateway request bodies are capped at 2 MB for media uploads and 8 MB for
-  other write requests. CORS is closed by default: set `CORS_ORIGIN` to an
+  other write requests. CORS is closed by default: set
+  `KOKONUT_GATEWAY_CORS_ORIGINS` to an
   explicit comma-separated list of trusted browser origins; wildcard origins
   are ignored. Same-origin `/mobile` deployments need no CORS entry. Gateway
   preflight allows the Field Collector's device, collection, form, participant,
@@ -126,6 +241,15 @@ and [candidate rollout evidence](../../docs/refactor/builds/2026-10-12-recovery/
 - Locking clears the app's decrypted state, key references, enrollment code,
   and current unsaved photo/location state. Unlocking again requires the
   passphrase. There is no server-side passphrase recovery.
+- When an existing vault is locked, **Delete local vault** offers a browser
+  confirmation before deleting the encrypted IndexedDB database and known
+  legacy keys. If another Field Collector tab still holds the database, open
+  app tabs are asked to lock and release it; close a stale tab if the browser
+  continues to report deletion as blocked. This
+  erases only this browser's local data and does not revoke its server-side
+  device enrollment, which must be revoked separately by an authorized
+  operator. Do not use local deletion as a retention or erasure decision for
+  already-synced server records.
 - Browser encryption is not a substitute for request authorization or
   encryption against a compromised active session. Avoid shared/untrusted
   devices and lock the vault before handing the device to someone else.
@@ -136,7 +260,7 @@ The trusted-device flow uses schema migration `357_field_collector_enrollment_ha
 - `POST /api/mobile/register` requires `device_id` and `enrollment_code`. The server derives `user_id` and `location_id` from the locked enrollment claim. A conflicting `device_id` is rejected with `409`; registration cannot reassign an existing device.
 - `DELETE /api/mobile/locations/{location_id}/enrollments/{enrollment_id}` revokes an unused claim. `POST /api/mobile/locations/{location_id}/devices/{device_id}/revoke` revokes an active device and clears its token hash; both require location-scoped Gateway authorization. OIDC operators use matching same-origin `/operator/api/mobile/...` routes with `mobile_device:revoke` and CSRF.
 - `GET /api/mobile/forms` returns only explicitly public global forms to anonymous clients (`location_id IS NULL AND is_public = TRUE`). A device may send `X-Device-Token` for global and its server-assigned location forms; caller-supplied location queries are rejected when they do not match the device.
-- `POST /api/mobile/locations/{location_id}/participants` creates a reviewer-approved opaque participant reference; `/participants/revoke` revokes it. With OIDC enabled, both routes require a location grant and CSRF validation. Otherwise they require a location-scoped Gateway capability or API key. The raw reference is returned only once; only its SHA-256 digest is stored.
+- `POST /api/mobile/locations/{location_id}/participants` creates a reviewer-approved opaque participant reference; `/participants/revoke` revokes it. These routes use the location-scoped Gateway capability or API-key policy. OIDC operators use same-origin `/operator/api/mobile/locations/{location_id}/participants` and `/participants/revoke` routes with `mobile_participant:create` or `mobile_participant:revoke`, CSRF validation, and tenant context set in the same database transaction before participant queries or writes. Both interfaces return no-store responses; the raw reference is returned only once and only its SHA-256 digest is stored.
 - `POST /api/mobile/sync` accepts up to 50 idempotent records per request. Device identity and location are derived from the active device token. New records must match an immutable known form revision and collection type. Every `required` revision, active or known-retired, needs a matching unrevoked participant link and exact consent grant at collection and sync. Retired revisions enter private review and remain unassessed/ineligible even when consent checks pass.
 - Private photo uploads carry the collection's form/version/reference/timestamp and check required consent before the Gateway reads or stores JPEG bytes. Sync checks consent again before attaching uploaded objects, including for known retired revisions.
 - `GET /api/mobile/sync/status` returns device queue status.
@@ -151,17 +275,33 @@ app. A fresh encrypted checkpoint restored successfully into an isolated
 template0-derived database before the seed and app rollout.
 Other populated deployments must apply 381 and the curated seed in order;
 legacy rows remain unassessed. The older
-`services.analytics.mobile_offline` CLI stages transport rows without consent
-validation; after migration 381 those rows remain unassessed and cannot pass the
-eligibility view. Sixty focused mobile/schema tests passed; four targeted CORS
-checks passed in the previous rollout slice. An isolated current-image HTTP
+`services.analytics.mobile_offline` CLI and direct service helpers now fail
+closed before database access because they lack authenticated tenant context
+and bypass form/consent validation. Use the Field Collector Gateway and
+operator console. Previously staged rows remain unassessed and cannot pass the
+eligibility view. Sixty focused mobile/schema
+tests passed; four targeted CORS checks passed in the previous rollout slice.
+An isolated current-image HTTP
 sync check returned 422 without echoing or storing an undeclared field and
 accepted a valid `1.2.0` payload; its synthetic fixture was removed from the
 database clone. The test bypassed the enrollment route, so the trusted
 enrollment/OIDC and full mobile workflow acceptance remain open. The legacy project,
 staging/production databases, and Cloudflare resources were not changed.
-Expired object-byte cleanup and full live mobile workflow acceptance remain open
-before production use.
+
+Migration 386 adds a canonical `farm_activity_source_eligible_for_use(...)`
+predicate for reports, selected metrics, analytics, process traces,
+repository-owned dashboards, data-quality sampling, and exports. It rechecks
+collection lineage, active immutable form revision, and current consent/form
+eligibility after draft promotion. Retiring
+or inactivating a form revision moves linked collections back into private
+review. Ineligible canonical rows remain visible to authorized operators for
+disposition, while edits and forward lifecycle actions are blocked. Migration
+386 and the matching app source are not yet database-tested or deployed to the
+local candidate; see the Batch 5 checklist.
+Registered-upload expiry cleanup passed an isolated PostgreSQL/local-media
+acceptance. Provider-neutral orphan reconciliation is implemented with a
+dry-run default; live S3/R2 acceptance and production retention remain open, as
+does full live mobile workflow acceptance before production use.
 
 See the implemented [`mobile access contract`](../../docs/refactor/mobile-access-contract.md)
 for the full policy, review gates, and rollback. Enrollment and location binding

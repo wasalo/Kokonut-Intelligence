@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-15",
+  "scope": "Source-level transaction and failure-boundary checks for operator report-review reads",
+  "result": "passed",
+  "tests": {
+    "command": "python3 -m pytest tests/test_operator_report_review.py -q",
+    "passed": 5,
+    "verified": [
+      "Report queue establishes operator tenant context on the same connection before its bounded SELECT.",
+      "Report detail establishes operator tenant context on the same connection before its payload-bounded SELECT.",
+      "Both SQL reads retain location-qualified operator grants and database grant rechecks.",
+      "Tenant-context denial prevents the report SELECT and rolls back/closes the connection for queue and detail paths.",
+      "Oversized report detail is rejected and the read-only transaction is rolled back and closed."
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "Connections and tenant-context setup are synthetic; no PostgreSQL query or signed context function was executed.",
+    "This does not establish owner/share provisioning, final runtime-role privileges, application-table RLS, or populated report parity.",
+    "No candidate, legacy, Directus, identity-provider, or external provider was accessed."
+  ]
+}

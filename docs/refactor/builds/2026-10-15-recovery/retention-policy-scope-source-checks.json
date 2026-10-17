@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-15",
+  "kind": "retention-policy-scope-source-checks",
+  "result": "passed",
+  "focused_test_command": "python3 -m pytest tests/test_data_governance.py tests/test_event_bus_durability.py -q",
+  "tests_passed": 62,
+  "subtests_passed": 4,
+  "ruff": "passed",
+  "retention_cli_scope_options": "verified",
+  "capability_matrix": "66 rows valid; MAN-CAP acceptance remains separate",
+  "static_inventory_checks": [
+    "runtime SQL inventory",
+    "worker source closure",
+    "worker function reachability",
+    "worker SQL inventory",
+    "worker SQL reachability",
+    "worker JobSpec inventory",
+    "worker effect inventory",
+    "worker boundary preflight",
+    "provider import boundaries"
+  ],
+  "candidate_or_legacy_database_touched": false,
+  "retention_periods_or_scoped_policies_configured": false,
+  "checks": [
+    "scope codes normalize before persistence and appear in append-only draft/approval snapshots",
+    "invalid scope codes fail before opening a database cursor",
+    "scoped policies cannot enable auto-enforcement without a resolver",
+    "generic sweeper skips unresolved jurisdiction/purpose scopes before candidate selection",
+    "event cleanup requires null jurisdiction/purpose scope and rejects additional active event policies"
+  ]
+}

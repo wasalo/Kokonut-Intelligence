@@ -1,0 +1,35 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Mocked EAS worker responses only; no EAS provider request or database access",
+  "files": [
+    "services/ingestion/eas_worker.py",
+    "tests/test_eas_worker.py"
+  ],
+  "focused_tests": 7,
+  "result": "passed",
+  "checks": [
+    "Reject missing and null attestation timestamps before page persistence",
+    "Reject boolean, negative, fractional, malformed, and out-of-range timestamps",
+    "Do not advance the recipient cursor after any invalid timestamp"
+  ],
+  "combined_suite": {
+    "files": [
+      "tests/test_eas_worker.py",
+      "tests/test_eas_provider.py",
+      "tests/test_eas_indexer_recovery.py"
+    ],
+    "tests": 34,
+    "result": "passed"
+  },
+  "additional_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "No live provider contract or database behavior was exercised",
+    "Concurrent offset-page movement and earlier-than-cursor arrivals remain open",
+    "Live EAS runtime/provider parity and MAN-CAP acceptance remain open"
+  ]
+}

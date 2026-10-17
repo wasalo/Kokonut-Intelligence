@@ -1,0 +1,19 @@
+Types: deb
+URIs: https://snapshot.debian.org/archive/debian/20261012T000000Z/
+Suites: bookworm bookworm-updates
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+Check-Valid-Until: no
+
+Types: deb
+URIs: https://snapshot.debian.org/archive/debian-security/20261012T000000Z/
+Suites: bookworm-security
+Components: main
+Signed-By: /usr/share/keyrings/debian-archive-keyring.gpg
+Check-Valid-Until: no
+
+Types: deb
+URIs: https://apt-archive.postgresql.org/pub/repos/apt
+Suites: bookworm-pgdg-archive
+Components: main
+Signed-By: /usr/local/share/keyrings/postgres.gpg.asc

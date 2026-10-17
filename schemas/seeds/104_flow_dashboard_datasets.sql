@@ -18,7 +18,7 @@ INSERT INTO dashboard_dataset (id, name, description, dataset_type, location_id,
      'UNION ALL SELECT ''impact_claim'', status, COUNT(*) FROM impact_claim GROUP BY status '
      'UNION ALL SELECT ''report_snapshot'', status, COUNT(*) FROM report_snapshot GROUP BY status '
      'UNION ALL SELECT ''stakeholder_feedback'', status, COUNT(*) FROM stakeholder_feedback GROUP BY status '
-     'UNION ALL SELECT ''farm_activity'', status, COUNT(*) FROM farm_activity GROUP BY status '
+     'UNION ALL SELECT ''farm_activity'', status, COUNT(*) FROM farm_activity WHERE farm_activity_source_eligible_for_use(source_system, source_id, source_raw, location_id) GROUP BY status '
      'UNION ALL SELECT ''harvest_event'', status, COUNT(*) FROM harvest_event GROUP BY status '
      'UNION ALL SELECT ''agent_task'', review_status, COUNT(*) FROM agent_task GROUP BY review_status '
      'ORDER BY entity_type, wip DESC',

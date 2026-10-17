@@ -26,9 +26,21 @@ from .base import (
     now_utc,
     update_indexer_status,
 )
+from .clickhouse_outbox import OutboxEnqueueError
 from .config import CHAIN_RPC_MAP
 
 logger = get_logger("ingestion.rpc")
+
+# Chain names with a configured RPC URL and supported by the direct CLI.
+RPC_CLI_CHAINS = (
+    "ethereum",
+    "optimism",
+    "base",
+    "arbitrum",
+    "celo",
+    "celo-alfajores",
+    "gnosis",
+)
 
 # Block range per request (limits API usage)
 BLOCK_BATCH = 100
@@ -197,75 +209,125 @@ def insert_activity_clickhouse(records: list[dict], conn=None) -> None:
             ],
             rows,
         )
+    except OutboxEnqueueError:
+        raise
     except Exception as e:
+        if conn is not None:
+            raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from e
         logger.warning("ClickHouse insert failed: %s", e)
 
 
 def run(chain: str = None, wallet_address: str = None):
     """Main ingestion entry point."""
     db = get_db()
-    wallets = get_wallets(db, chain)
+    attempted_chains = set()
+    try:
+        wallets = get_wallets(db, chain)
 
-    if wallet_address:
-        wallets = [w for w in wallets if w[1].lower() == wallet_address.lower()]
+        if wallet_address:
+            wallets = [w for w in wallets if w[1].lower() == wallet_address.lower()]
 
-    if not wallets:
-        logger.info("No active wallets found.")
-        return
+        if not wallets:
+            logger.info("No active wallets found.")
+            return
 
-    logger.info("Indexing %d wallets...", len(wallets))
-    all_records = []
+        logger.info("Indexing %d wallets...", len(wallets))
+        all_records = []
+        observed_blocks = {}
+        failed_chains = {}
 
-    for wallet_id, address, w_chain, role, label in wallets:
-        try:
-            w3 = get_web3(w_chain)
-            checksum = Web3.to_checksum_address(address)
+        for wallet_id, address, w_chain, role, label in wallets:
+            attempted_chains.add(w_chain)
+            with db.cursor() as cur:
+                cur.execute("SAVEPOINT rpc_wallet_activity")
+            try:
+                w3 = get_web3(w_chain)
+                checksum = Web3.to_checksum_address(address)
 
-            current_block = fetch_latest_block(w3)
-            balance_wei = fetch_balance(w3, checksum)
-            balance_eth = balance_wei / 1e18
+                current_block = fetch_latest_block(w3)
+                balance_wei = fetch_balance(w3, checksum)
+                balance_eth = balance_wei / 1e18
 
-            # Record a summary activity event
-            timestamp = now_utc()
-            record = {
-                "wallet_id": wallet_id,
-                "chain": w_chain,
-                "tx_hash": f"balance-check-{w_chain}-{str(wallet_id)}-{current_block}",
-                "block_number": current_block,
-                "block_timestamp": timestamp,
-                "from_address": "",
-                "to_address": checksum,
-                "value": balance_eth,
-                "token": "ETH",
-                "gas_used": 0,
-                "gas_price": 0,
-                "status": "success",
-                "activity_type": "balance_check",
-            }
+                # Record a summary activity event
+                timestamp = now_utc()
+                record = {
+                    "wallet_id": wallet_id,
+                    "chain": w_chain,
+                    "tx_hash": f"balance-check-{w_chain}-{str(wallet_id)}-{current_block}",
+                    "block_number": current_block,
+                    "block_timestamp": timestamp,
+                    "from_address": "",
+                    "to_address": checksum,
+                    "value": balance_eth,
+                    "token": "ETH",
+                    "gas_used": 0,
+                    "gas_price": 0,
+                    "status": "success",
+                    "activity_type": "balance_check",
+                }
 
-            pg_id = insert_activity(db, record)
-            if pg_id:
-                all_records.append(record)
+                pg_id = insert_activity(db, record)
+                with db.cursor() as cur:
+                    cur.execute("RELEASE SAVEPOINT rpc_wallet_activity")
+                if pg_id:
+                    all_records.append(record)
+                observed_blocks[w_chain] = max(
+                    current_block, observed_blocks.get(w_chain, current_block)
+                )
+                logger.info("  ✓ %s: block %d, balance %.4f ETH", label or address[:10], current_block, balance_eth)
 
-            update_indexer_status(w_chain, "rpc", current_block, "healthy")
-            logger.info("  ✓ %s: block %d, balance %.4f ETH", label or address[:10], current_block, balance_eth)
+            except Exception as e:
+                with db.cursor() as cur:
+                    cur.execute("ROLLBACK TO SAVEPOINT rpc_wallet_activity")
+                    cur.execute("RELEASE SAVEPOINT rpc_wallet_activity")
+                failed_chains[w_chain] = str(e)
+                logger.error("  ✗ %s: %s", label or address[:10], e)
 
-        except Exception as e:
-            update_indexer_status(w_chain, "rpc", None, "error", str(e))
-            logger.error("  ✗ %s: %s", label or address[:10], e)
+        # Keep each chain's status in the same transaction as its wallet rows
+        # and any ClickHouse outbox intent. A partial chain failure is never
+        # reported as healthy.
+        for w_chain in sorted(attempted_chains):
+            if w_chain in failed_chains:
+                update_indexer_status(
+                    w_chain, "rpc", None, "error", failed_chains[w_chain], db=db
+                )
+            else:
+                update_indexer_status(
+                    w_chain,
+                    "rpc",
+                    observed_blocks.get(w_chain),
+                    "healthy",
+                    db=db,
+                )
 
-    # Commit PostgreSQL records and their ClickHouse outbox entry atomically.
-    if all_records:
-        insert_activity_clickhouse(all_records, db)
-    db.commit()
-
-    db.close()
+        # Commit PostgreSQL records and their ClickHouse outbox entry atomically.
+        if all_records:
+            insert_activity_clickhouse(all_records, db)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        if attempted_chains:
+            try:
+                for w_chain in sorted(attempted_chains):
+                    update_indexer_status(
+                        w_chain, "rpc", None, "error", str(exc), db=db
+                    )
+                db.commit()
+            except Exception:
+                db.rollback()
+                logger.exception("Could not persist RPC indexer failure status")
+        raise
+    finally:
+        db.close()
     logger.info("Done: %d wallets indexed", len(all_records))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RPC wallet activity ingestion")
-    parser.add_argument("--chain", choices=["ethereum", "optimism", "base", "arbitrum", "celo", "gnosis"])
+    parser.add_argument(
+        "--chain",
+        choices=RPC_CLI_CHAINS,
+    )
     parser.add_argument("--wallet", help="Specific wallet address")
     args = parser.parse_args()
     run(chain=args.chain, wallet_address=args.wallet)

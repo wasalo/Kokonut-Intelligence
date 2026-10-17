@@ -1,5 +1,7 @@
-# Worker container overlay — runs Python ingestion services on cron
+# Worker overlay — legacy ingestion, event dispatch, and notification delivery
 # Usage: docker compose -f docker-compose.yml -f docker-compose.worker.yml up -d kokonut-worker
+# To run only event dispatch or notification delivery, target `event-worker` or
+# `notification-worker` explicitly with `--profile worker`.
 #
 # The worker container connects to the databases network to reach PostgreSQL and ClickHouse.
 # It does not expose any ports — all communication is internal.
@@ -22,6 +24,8 @@ services:
         condition: service_healthy
     networks:
       - databases
+    volumes:
+      - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro
     environment:
       KOKONUT_ENV: ${KOKONUT_ENV:-production}
       KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
@@ -42,6 +46,18 @@ services:
       MEM_THRESHOLD: ${MEM_THRESHOLD:-90}
       HEALTH_CHECK_DOCKER: "false"
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_SENSOR_CSV_ROOT: /var/lib/kokonut/sensor-inputs
+      KOKONUT_SENSOR_INGESTION_DATABASE_URL: ${KOKONUT_SENSOR_INGESTION_DATABASE_URL:-}
+      KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL: ${KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL:-}
+      KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER: ${KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER:-false}
+      KOKONUT_REMOTE_SENSING_DATABASE_URL: ${KOKONUT_REMOTE_SENSING_DATABASE_URL:-}
+      KOKONUT_REMOTE_SENSING_WORKER_CREDENTIAL: ${KOKONUT_REMOTE_SENSING_WORKER_CREDENTIAL:-}
+      KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY: ${KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_EMAIL: ${KOKONUT_REMOTE_SENSING_COPERNICUS_EMAIL:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_PASSWORD: ${KOKONUT_REMOTE_SENSING_COPERNICUS_PASSWORD:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_ID: ${KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_ID:-}
+      KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_SECRET: ${KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_SECRET:-}
+      KOKONUT_FEATURE_SIGNED_REMOTE_SENSING_WORKER: ${KOKONUT_FEATURE_SIGNED_REMOTE_SENSING_WORKER:-false}
       # Ingestion
       INGESTION_MAX_RETRIES: ${INGESTION_MAX_RETRIES:-3}
       INGESTION_BACKOFF: ${INGESTION_BACKOFF:-2}
@@ -79,7 +95,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.worker
-    command: ["python3", "-m", "services.events", "--worker", "--worker-id", "event-worker"]
+    command: ["python3", "-m", "services.events", "--event-worker", "--worker-id", "event-worker"]
     user: appuser
     restart: unless-stopped
     depends_on:
@@ -96,13 +112,59 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
       KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
       KOKONUT_GIT_SHA: ${KOKONUT_GIT_SHA:-unknown}
+      KOKONUT_FEATURE_EVENT_BUS: ${KOKONUT_FEATURE_EVENT_BUS:-true}
+      # Event handlers use configured destinations to decide which durable
+      # notification intents to enqueue; only notification-worker sends them.
       DIRECTUS_URL: http://directus:8055
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
     deploy:
       resources:
         limits:
           memory: 512M
+    profiles:
+      - worker
+
+  notification-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: ["python3", "-m", "services.events", "--notification-worker", "--worker-id", "notification-worker"]
+    user: appuser
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - databases
+    environment:
+      PG_HOST: database
+      PG_PORT: "5432"
+      PG_DB: ${PG_DB:-kokonut_intelligence}
+      PG_USER: ${PG_USER:-kokonut}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      KOKONUT_LOG_LEVEL: ${KOKONUT_LOG_LEVEL:-INFO}
+      KOKONUT_FEATURE_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_NOTIFICATION_DELIVERY:-${KOKONUT_FEATURE_EVENT_BUS:-true}}
+      DIRECTUS_URL: http://directus:8055
+      DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      ALERT_SMTP_HOST: ${ALERT_SMTP_HOST:-}
+      ALERT_SMTP_PORT: ${ALERT_SMTP_PORT:-587}
+      ALERT_SMTP_USER: ${ALERT_SMTP_USER:-}
+      ALERT_SMTP_PASSWORD: ${ALERT_SMTP_PASSWORD:-}
+      ALERT_EMAIL_FROM: ${ALERT_EMAIL_FROM:-alerts@kokonut.network}
+      ALERT_EMAIL_TO: ${ALERT_EMAIL_TO:-}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     profiles:
       - worker
 

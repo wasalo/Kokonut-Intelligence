@@ -1,0 +1,31 @@
+{
+  "record_type": "directus_relation_expansion_denial",
+  "recorded_at_utc": "2026-10-16T01:52:33Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "scope": {
+    "tenant_scoped_collections": 11,
+    "rejected_query_shapes": [
+      "non-empty Directus deep relation query objects",
+      "dotted nested field paths",
+      "nested wildcard field paths",
+      "malformed field-list shapes"
+    ],
+    "root_scalar_fields_and_root_wildcard": "remain eligible for the existing grant-filtered root query",
+    "provider_or_database_accessed": false,
+    "candidate_or_legacy_database_touched": false
+  },
+  "verification": {
+    "unit_command": "npm test -- src/directus-authorization.test.ts",
+    "unit_result": "passed",
+    "unit_tests_passed": 7,
+    "extension_build_command": "npm run build",
+    "extension_build_result": "passed",
+    "typescript_check": "passed"
+  },
+  "limitations": [
+    "This source guard does not establish effective denial in the pinned Directus API image.",
+    "Root field allowlists remain unresolved; the guard does not provide field-level privacy.",
+    "No relation has an approved cross-collection scope contract yet, so nested relation reads remain intentionally unavailable on these tenant-scoped collections.",
+    "The legacy Directus service still uses its existing database identity; application-table RLS remains disabled."
+  ]
+}

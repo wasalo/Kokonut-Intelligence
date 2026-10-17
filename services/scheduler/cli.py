@@ -16,6 +16,10 @@ import argparse
 import sys
 
 from services.common.cli import print_json
+from services.common.worker_environment import (
+    scheduled_module_worker_key,
+    worker_subprocess_environment,
+)
 
 
 def cmd_status(args):
@@ -27,10 +31,12 @@ def cmd_status(args):
         engine = get_scheduler(conn)
         status = engine.get_status()
         print(f"Worker: {status['worker_id']}")
-        print(f"Tasks: {status['tasks']['enabled']} enabled, "
-              f"{status['tasks']['disabled']} disabled, "
-              f"{status['tasks']['running']} running, "
-              f"{status['tasks']['failing']} failing")
+        print(
+            f"Tasks: {status['tasks']['enabled']} enabled, "
+            f"{status['tasks']['disabled']} disabled, "
+            f"{status['tasks']['running']} running, "
+            f"{status['tasks']['failing']} failing"
+        )
         print()
 
         if status["task_list"]:
@@ -107,7 +113,7 @@ def cmd_run_now(args):
     import sys as _sys
 
     from services.common.database import get_db
-    from services.security.execution_allowlist import validate_scheduled_module
+    from services.security.scheduled_command_contracts import validate_scheduled_command
 
     conn = get_db()
     try:
@@ -122,11 +128,16 @@ def cmd_run_now(args):
                 return 1
 
             module_path, command_args, timeout = row
-            validate_scheduled_module(module_path)
+            validated_args = validate_scheduled_command(module_path, [] if command_args is None else command_args)
+            worker_key = scheduled_module_worker_key(module_path)
             print(f"Running {args.task_name} ({module_path})...")
             result = subprocess.run(
-                [_sys.executable, "-m", module_path, *list(command_args or [])],
+                [_sys.executable, "-m", module_path, *validated_args],
                 timeout=timeout,
+                env=worker_subprocess_environment(
+                    allowed_worker_keys=(worker_key,) if worker_key is not None else (),
+                    isolated_database_credentials=worker_key is not None,
+                ),
             )
             return result.returncode
     finally:
@@ -167,13 +178,21 @@ def cmd_list_runs(args):
 
 def cmd_worker(args):
     from services.scheduler.worker import run_worker
+
     run_worker(tick_interval=args.tick_interval, worker_id=args.worker_id)
 
 
 def cmd_job_plan(args):
     from services.scheduler.job_plan import build_job_plan
 
-    print_json(build_job_plan(args.job_plan, args.cadence, location_id=args.location_id))
+    print_json(
+        build_job_plan(
+            args.job_plan,
+            args.cadence,
+            location_id=args.location_id,
+            chain=getattr(args, "chain", None),
+        )
+    )
 
 
 def cmd_check_graph(args):
@@ -198,7 +217,9 @@ def main():
     group.add_argument("--status", action="store_true", help="Show scheduler status")
     group.add_argument("--tick", action="store_true", help="Run one scheduler tick")
     group.add_argument("--enable", dest="task_name", help="Enable a task")
-    group.add_argument("--enable-graph", dest="task_name_graph", help="Validate and atomically enable a task and its prerequisites")
+    group.add_argument(
+        "--enable-graph", dest="task_name_graph", help="Validate and atomically enable a task and its prerequisites"
+    )
     group.add_argument("--disable", dest="task_name_disable", help="Disable a task")
     group.add_argument("--run-now", dest="task_name_run", help="Run a task immediately")
     group.add_argument("--list-runs", action="store_true", help="List recent task runs")
@@ -211,6 +232,7 @@ def main():
     parser.add_argument("--limit", type=int, default=20, help="Max results")
     parser.add_argument("--cadence", choices=["hourly", "every-6h", "daily", "weekly"], default="daily")
     parser.add_argument("--location-id", help="Location UUID for weather or climate job planning")
+    parser.add_argument("--chain", help="Explicit chain for EAS job planning (celo, optimism, or base)")
 
     args = parser.parse_args()
 
@@ -244,7 +266,10 @@ def main():
         rc = cmd_disable(args)
     elif args.task_name_run:
         args.task_name = args.task_name_run
-        rc = cmd_run_now(args)
+        from services.common.cli import run
+
+        run(cmd_run_now, args)
+        rc = 0
     elif args.list_runs:
         rc = cmd_list_runs(args)
     elif args.worker:

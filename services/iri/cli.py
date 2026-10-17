@@ -6,19 +6,28 @@ import argparse
 import json
 import sys
 
-from services.common.cli import print_json
-from services.common.database import get_connection
-from services.common.cli import print_json
 
 def cmd_generate(args):
+    from services.common.cli import print_json
+    from services.common.database import get_connection
+
     with get_connection() as conn:
         from services.iri.resolver import generate_iri
         content = json.loads(args.content) if args.content else None
-        iri = generate_iri(conn, args.entity_type, args.entity_id, content=content)
+        iri = generate_iri(
+            conn,
+            args.entity_type,
+            args.entity_id,
+            content=content,
+            publish_public_location=args.publish_public_location,
+        )
         print_json({"iri": iri})
 
 
 def cmd_resolve(args):
+    from services.common.cli import print_json
+    from services.common.database import get_connection
+
     with get_connection() as conn:
         from services.iri.resolver import resolve_metadata
         result = resolve_metadata(conn, args.iri)
@@ -30,6 +39,8 @@ def cmd_resolve(args):
 
 
 def cmd_history(args):
+    from services.common.database import get_connection
+
     with get_connection() as conn:
         from services.iri.resolver import get_version_history
         versions = get_version_history(conn, args.entity_type, args.entity_id)
@@ -40,6 +51,9 @@ def cmd_history(args):
 
 
 def cmd_anchor(args):
+    from services.common.cli import print_json
+    from services.common.database import get_connection
+
     with get_connection() as conn:
         from services.iri.resolver import anchor_iri
         result = anchor_iri(conn, args.iri, chain=args.chain)
@@ -54,6 +68,11 @@ def main():
     p_gen.add_argument("--entity-type", required=True)
     p_gen.add_argument("--entity-id", required=True)
     p_gen.add_argument("--content", default=None, help="JSON metadata")
+    p_gen.add_argument(
+        "--publish-public-location",
+        action="store_true",
+        help="Snapshot only the eligible public location fields for public IRI resolution",
+    )
     p_gen.set_defaults(func=cmd_generate)
 
     p_resolve = sub.add_parser("resolve", help="Resolve an IRI")

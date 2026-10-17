@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-16",
+  "slice": "Climate-data CLI location preflight",
+  "implementation": {
+    "entrypoint": "services.ingestion.climate_data",
+    "scope": "One required location UUID per invocation.",
+    "canonicalization": "UUIDs are normalized before database access.",
+    "operation_selection": "Exactly one dataset mode may be selected; conflicting modes fail in argparse before database access.",
+    "no_operation": "Prints help and returns a nonzero status without database access.",
+    "authorization_limit": "The UUID is an operation filter and does not authenticate the caller or establish tenant context/RLS."
+  },
+  "verification": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_climate_data_cli_scope.py tests/test_climate_data.py tests/test_runtime_import_regressions.py tests/test_scheduled_command_contracts.py -q",
+      "result": "passed",
+      "tests": 116
+    },
+    "ruff": "passed",
+    "compileall": "passed",
+    "repository_inventory": "66 capabilities, 66 service groups, 463 test files, 0 parse errors",
+    "runtime_sql_inventory": "refreshed",
+    "capability_matrix": "66 rows; MAN-CAP statuses unchanged",
+    "whitespace": "git diff --check passed"
+  },
+  "limitations": [
+    "Database and data-provider calls were mocked or not reached; no external service was contacted.",
+    "No candidate or legacy database, persisted schedule, or live deployment was accessed."
+  ]
+}

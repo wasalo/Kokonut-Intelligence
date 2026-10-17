@@ -126,8 +126,18 @@ from .reports import (  # noqa: F401 (re-exported public report API)
     store_snapshot,
 )
 
+NETWORK_LEVEL_REPORTS = frozenset(
+    {
+        "state_of_kokonut",
+        "dao_proposal_history",
+        "state_of_kokonut_graphs",
+        "comprehensive_status",
+        "strategic_reserve",
+    }
+)
 
-def main():
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate Kokonut report snapshots")
     parser.add_argument("--type", choices=list(REPORT_GENERATORS.keys()), help="Report type to generate")
     parser.add_argument(
@@ -139,23 +149,110 @@ def main():
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
     parser.add_argument("--verify", help="Verify a snapshot by hash")
     parser.add_argument("--auto", action="store_true", help="Generate all report types for the location")
-    args = parser.parse_args()
+    return parser
 
-    if not args.list:
-        if not args.type and not args.auto:
-            parser.error("--type or --auto is required (or use --list)")
 
-        # Location requirement: network-level reports (state_of_kokonut, dao_proposal_history)
-        # accept --all or no location; others require at least one --location-id.
-        network_level = args.type in (
-            "state_of_kokonut",
-            "dao_proposal_history",
-            "state_of_kokonut_graphs",
-            "comprehensive_status",
-            "strategic_reserve",
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Reject ambiguous or unscoped report CLI requests before opening a DB."""
+    if args.type and args.auto:
+        parser.error("--type and --auto are mutually exclusive")
+
+    if args.list and (args.verify or args.type or args.auto or args.all or args.period_start or args.period_end):
+        parser.error("--list may only be combined with --location-id")
+
+    if args.verify and (args.list or args.type or args.auto or args.all or args.location_id or args.period_start or args.period_end):
+        parser.error("--verify cannot be combined with report generation or scope options")
+
+    if args.all and args.location_id:
+        parser.error("--all cannot be combined with --location-id")
+
+    if args.list or args.verify:
+        return
+
+    if not args.type and not args.auto:
+        parser.error("--type or --auto is required (or use --list or --verify)")
+
+    if args.auto and not args.all and not args.location_id:
+        parser.error("--auto requires --location-id or explicit --all")
+
+    if args.type and not args.all and not args.location_id and args.type not in NETWORK_LEVEL_REPORTS:
+        parser.error("--location-id is required (or use --all for network-level reports)")
+
+
+def generate_report_data_read_only(conn, generator, location_arg, period_start, period_end):
+    """Calculate a report in a read-only PostgreSQL transaction.
+
+    Snapshot persistence happens afterward in its own write transaction. The
+    connection's session default keeps every query read-only after a generator
+    commits. Autocommit is rejected because it would bypass transaction-level
+    read-only enforcement.
+    """
+    previous_autocommit = conn.autocommit
+    conn.set_session(readonly=True)
+    try:
+        return generator(
+            _ReadOnlyReportConnection(conn), location_arg, period_start, period_end
         )
-        if not args.location_id and not args.all and not network_level:
-            parser.error("--location-id is required (or use --all for network-level reports)")
+    finally:
+        # End the calculation transaction before store_snapshot starts its
+        # separate, intentional draft-snapshot write.
+        try:
+            conn.rollback()
+        finally:
+            try:
+                conn.autocommit = previous_autocommit
+            finally:
+                conn.set_session(readonly=False)
+
+
+class _ReadOnlyReportConnection:
+    """Prevent report code from lowering the session's read-only default."""
+
+    _BLOCKED = frozenset({"readonly", "deferrable", "set_session"})
+
+    def __init__(self, conn):
+        object.__setattr__(self, "_conn", conn)
+
+    def cursor(self, *args, **kwargs):
+        return _ReadOnlyReportCursor(self._conn.cursor(*args, **kwargs), self)
+
+    def __getattr__(self, name):
+        if name in self._BLOCKED:
+            raise RuntimeError("report generators cannot lower the read-only database mode")
+        return getattr(self._conn, name)
+
+    def __setattr__(self, name, value):
+        if name in self._BLOCKED:
+            raise RuntimeError("report generators cannot lower the read-only database mode")
+        if name == "autocommit" and value:
+            raise RuntimeError("report generators cannot enable autocommit during calculation")
+        setattr(self._conn, name, value)
+
+
+class _ReadOnlyReportCursor:
+    """Keep the raw psycopg connection from escaping through ``cursor.connection``."""
+
+    def __init__(self, cursor, connection):
+        object.__setattr__(self, "_cursor", cursor)
+        object.__setattr__(self, "_connection", connection)
+
+    def __enter__(self):
+        self._cursor.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        return self._cursor.__exit__(*args)
+
+    def __getattr__(self, name):
+        if name == "connection":
+            return self._connection
+        return getattr(self._cursor, name)
+
+
+def main():
+    parser = build_parser()
+    args = parser.parse_args()
+    validate_args(parser, args)
 
     conn = get_pg()
 
@@ -226,7 +323,9 @@ def main():
             conn.commit()
             try:
                 generator = REPORT_GENERATORS[report_type]
-                report_data = generator(conn, location_arg, args.period_start, args.period_end)
+                report_data = generate_report_data_read_only(
+                    conn, generator, location_arg, args.period_start, args.period_end
+                )
                 _check_report_empty(report_data, report_type)
                 snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
                 snapshot_hash = compute_hash(report_data)
@@ -238,7 +337,7 @@ def main():
                     )
                 conn.commit()
                 success += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - persist this report's failure and continue the batch
                 print(f"  ✗ {report_type}: {e}")
                 conn.rollback()
                 with conn.cursor() as cur:
@@ -266,7 +365,9 @@ def main():
 
     try:
         generator = REPORT_GENERATORS[args.type]
-        report_data = generator(conn, location_arg, args.period_start, args.period_end)
+        report_data = generate_report_data_read_only(
+            conn, generator, location_arg, args.period_start, args.period_end
+        )
 
         snapshot_id = store_snapshot(conn, report_data, location_arg, args.period_start, args.period_end)
         snapshot_hash = compute_hash(report_data)

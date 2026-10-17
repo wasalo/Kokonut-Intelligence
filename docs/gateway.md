@@ -31,7 +31,7 @@ unknown method/path → protected fallback policy → usually 401 before 404
 # Compose (preferred)
 docker compose up -d gateway
 curl http://127.0.0.1:8099/health
-curl -k https://localhost/mobile
+curl -k https://localhost/mobile/
 
 # Host process fallback
 python3 -m services.gateway.cli --serve --port 8099
@@ -40,7 +40,7 @@ python3 -m services.gateway.cli --health
 ```
 
 `--serve` starts Uvicorn on `0.0.0.0`; the default port is `8099`. Compose binds
-that port to loopback only; LAN devices should use Caddy (`/mobile`,
+that port to loopback only; LAN devices should use Caddy (`/mobile/`,
 `/api/mobile/*`). The CLI `--health` command runs
 `services.core.health.overall_health()` locally. It does not make an HTTP request
 to `http://localhost:8099/health`.
@@ -288,24 +288,20 @@ best-effort rather than a complete durable audit guarantee.
 | Invalid location UUID | `400`, `Invalid location identifier` |
 | Missing FastAPI query parameter | `422` validation response |
 | IRI not found | `404`, `IRI not found` |
-| Directus proxy failure | `502`, `Upstream service unavailable` |
 | Internal handler failure | `500`, `Gateway request failed` |
 
 The data-stream write handler has limited body validation; malformed input can
 become a generic `500` rather than a structured `400`.
 
-## Directus Proxy
+## Public Location Read Provider
 
-Only these gateway routes proxy Directus:
-
-- `GET /api/locations`
-- `GET /api/locations/{location_id}`
-
-The gateway uses `DIRECTUS_URL`, defaulting to `http://localhost:8055`, and
-creates a new unauthenticated upstream request. It does not forward gateway
-credentials, Directus bearer tokens, caller identity, or general request
-headers. Upstream response bodies are wrapped as `{"data": ...}` rather than
-forwarded with their original parsed status/body contract.
+`GET /api/locations` and `GET /api/locations/{location_id}` always use the
+governed native `v_public_farm_summary` projection, even when the optional
+Directus feature is enabled. The public field set stays limited to ID, name,
+country, region, and status; the historical response wrapper is preserved.
+No Gateway route proxies these public reads to Directus. Directus remains an
+optional administrative and compatibility service with its own permission and
+tenant-parity gate.
 
 ## Deployment Boundaries
 
@@ -314,8 +310,11 @@ forwarded with their original parsed status/body contract.
 - Base Caddy routes `/directus/*`, `/admin/*`, `/maps/*`, and mobile-specific
   paths to the gateway; it does not route general `/api/*` traffic to port 8099.
 - Metabase is excluded by default and has no route in the default Caddyfiles.
-- `CORS_ORIGIN` configures Directus; the gateway does not install FastAPI CORS
-  middleware.
+- `CORS_ORIGIN` configures Directus only. FastAPI Gateway CORS uses
+  `KOKONUT_GATEWAY_CORS_ORIGINS`, an explicit comma-separated origin list that
+  defaults to empty; wildcard entries are ignored. Same-origin deployments do
+  not need an entry. Keep cookie-authenticated browser origins explicit and
+  verify preflight and successful credentialed requests before exposure.
 - `PUBLIC_RESTRICT=true` configures Directus and is not read by gateway policy.
 - Caddy supplies security headers only for Caddy-served traffic. Direct access
   to port 8099 does not automatically receive those headers.

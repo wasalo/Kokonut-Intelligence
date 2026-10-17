@@ -20,10 +20,31 @@ from typing import Any, Dict, List, Optional
 import psycopg2
 import psycopg2.extras
 
+from services.common.cli import print_json
+
 from ..common.logging import get_logger
 from .base import get_db
-from services.common.cli import print_json
+
 logger = get_logger("ingestion.data_freshness")
+
+FRESHNESS_SOURCE_TABLES = {
+    "weather": "weather_observation",
+    "sensors": "sensor_reading",
+    "remote_sensing": "remote_sensing_observation",
+    "market_data": "price_observation",
+    "eas_indexer": "attestation_record",
+    "rpc_indexer": "wallet_activity_event",
+    "gnosis_indexer": "governance_event",
+}
+FRESHNESS_TABLE_TIMESTAMP_COLUMNS = {
+    "weather_observation": "observation_date",
+    "sensor_reading": "created_at",
+    "remote_sensing_observation": "observation_date",
+    "price_observation": "observation_date",
+    "attestation_record": "attested_at",
+    "wallet_activity_event": "block_timestamp",
+    "governance_event": "block_timestamp",
+}
 
 
 def _query_freshness_configs(conn, source: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -61,34 +82,12 @@ def _query_latest_data_at(
     """Get the most recent data timestamp for a source system."""
     if location_scoped and not location_id:
         raise ValueError("location_id is required for a scoped freshness query")
-    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    source_table_map = {
-        "weather": "weather_observation",
-        "sensors": "sensor_reading",
-        "remote_sensing": "remote_sensing_observation",
-        "market_data": "price_observation",
-        "eas_indexer": "attestation_record",
-        "rpc_indexer": "wallet_activity_event",
-        "gnosis_indexer": "governance_event",
-    }
-
-    table = source_table_map.get(source_system)
+    table = FRESHNESS_SOURCE_TABLES.get(source_system)
     if not table:
-        cur.close()
-        return None
+        raise ValueError(f"unsupported freshness source: {source_system}")
 
-    # Determine the timestamp column
-    ts_column_map = {
-        "weather_observation": "observation_date",
-        "sensor_reading": "created_at",
-        "remote_sensing_observation": "observation_date",
-        "price_observation": "observation_date",
-        "attestation_record": "attested_at",
-        "wallet_activity_event": "block_timestamp",
-        "governance_event": "block_timestamp",
-    }
-    ts_col = ts_column_map.get(table, "created_at")
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    ts_col = FRESHNESS_TABLE_TIMESTAMP_COLUMNS[table]
 
     query = f"SELECT MAX({ts_col}) AS last_at FROM {table}"
     params = []
@@ -222,8 +221,7 @@ def _persist_alert_event(
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
-        (state["id"], check_id, source_system, location_id, event_type,
-         previous_status, status, gap_minutes, now),
+        (state["id"], check_id, source_system, location_id, event_type, previous_status, status, gap_minutes, now),
     )
     alert_id = str(cur.fetchone()[0])
     count_column = {
@@ -304,6 +302,15 @@ def _insert_check_result(
     return check_id
 
 
+def _safe_delivery_error(exc: Exception) -> str:
+    """Return bounded provider failure metadata without response/credential text."""
+    response = getattr(exc, "response", None)
+    status_code = getattr(response, "status_code", None)
+    if isinstance(status_code, int) and 100 <= status_code <= 599:
+        return f"HTTP {status_code}"
+    return type(exc).__name__
+
+
 def _send_alert(
     source_system: str,
     status: str,
@@ -326,6 +333,7 @@ def _send_alert(
     # Webhook alert
     webhook_url = os.environ.get("ALERT_WEBHOOK_URL")
     if webhook_url:
+        response = None
         try:
             from services.common.http import http
 
@@ -339,9 +347,16 @@ def _send_alert(
                 attempts.append({"channel": "webhook", "error": None})
             return "webhook"
         except Exception as e:
-            logger.warning("Webhook alert failed: %s", e)
+            safe_error = _safe_delivery_error(e)
+            logger.warning("Webhook alert failed (%s)", safe_error)
             if attempts is not None:
-                attempts.append({"channel": "webhook", "error": str(e)})
+                attempts.append({"channel": "webhook", "error": safe_error})
+        finally:
+            if response is not None:
+                try:
+                    response.close()
+                except Exception as e:
+                    logger.debug("Webhook response close failed (%s)", _safe_delivery_error(e))
 
     # Email alert
     smtp_host = os.environ.get("ALERT_SMTP_HOST")
@@ -358,9 +373,10 @@ def _send_alert(
                 attempts.append({"channel": "email", "error": None})
             return "email"
         except Exception as e:
-            logger.warning("Email alert failed: %s", e)
+            safe_error = _safe_delivery_error(e)
+            logger.warning("Email alert failed (%s)", safe_error)
             if attempts is not None:
-                attempts.append({"channel": "email", "error": str(e)})
+                attempts.append({"channel": "email", "error": safe_error})
 
     if attempts is not None and not attempts:
         attempts.append({"channel": "none", "error": "no alert channel configured"})
@@ -427,15 +443,17 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 last_event_at = state.get("last_event_at")
                 if last_event_at and last_event_at.tzinfo is None:
                     last_event_at = last_event_at.replace(tzinfo=timezone.utc)
-                event_type = _alert_event(
-                    previous_status,
-                    status,
-                    state.get("last_event_status"),
-                    last_event_at,
-                    now,
-                    int(config.get("alert_cooldown_minutes", 60)),
-                    int(config.get("escalation_cooldown_minutes", 15)),
-                )
+                event_type = None
+                if status != "error":
+                    event_type = _alert_event(
+                        previous_status,
+                        status,
+                        state.get("last_event_status"),
+                        last_event_at,
+                        now,
+                        int(config.get("alert_cooldown_minutes", 60)),
+                        int(config.get("escalation_cooldown_minutes", 15)),
+                    )
                 alert_sent = False
                 alert_channel = None
                 if event_type:
@@ -469,7 +487,7 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                             attempt["error"] is None,
                             attempt["error"],
                         )
-                else:
+                elif status != "error":
                     update_cur = conn.cursor()
                     update_cur.execute(
                         "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",

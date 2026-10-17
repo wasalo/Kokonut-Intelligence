@@ -8,17 +8,41 @@
 Dependency injection does not change request identity, authorization, audit,
 route policy, or public-route selection.
 
+## Kernel deployment-profile defaults
+
+The minimal candidate and edge profile default to `KOKONUT_RATE_LIMIT_PROVIDER=local`.
+They run one API process on one host, so the bounded in-memory token bucket
+keeps Redis out of the smallest deployment. Restart resets its buckets; this is
+acceptable only for a single-instance deployment where shared limits are not a
+requirement.
+
+The standard profile defaults to `KOKONUT_RATE_LIMIT_PROVIDER=postgres`. This
+shares the budget across API processes and containers and survives app restarts.
+Migration 373 must be applied before the gateway serves traffic. The profile
+can be explicitly overridden for a reviewed deployment shape; horizontal or
+multi-host API replicas must use a shared provider. Existing direct and ASGI
+multi-process checks plus the two-container private HTTP check exercised shared
+consumption. Multi-host failover, public ingress, and production scale remain
+open.
+
+Kernel operator sessions and computation-result cache entries are stored in
+PostgreSQL. The cache table (`cache_entry`) is durable computation metadata,
+not an HTTP session or authorization store. Redis is used only when the optional
+legacy Directus service is selected for its cache/rate-limit adapters; no Redis
+service is present in the Kernel candidate profiles.
+
 The subsequent [PostgreSQL adapter](postgres-rate-limits.md) implements explicit
 `postgres` selection in source with migration 373; the original local-only
 factory description below records the earlier slice. Migration, availability,
 retention, and scale acceptance remain pending.
 
-`KOKONUT_RATE_LIMIT_PROVIDER` defaults to `local`. The factory rejects every
-other value rather than silently falling back. The candidate Compose app now
-passes that setting explicitly. The PostgreSQL shared adapter exists in source
-but remains opt-in and unaccepted in the candidate; Redis is not required by the
-current local profile. Scale selection remains unavailable. A backend requiring
-shutdown resources will need an explicit ASGI lifespan contract before adoption.
+`KOKONUT_RATE_LIMIT_PROVIDER` defaults to `local` in the provider factory and
+minimal candidate Compose file. The factory rejects every unsupported value
+rather than silently falling back. The standard Compose overlay overrides the
+default to `postgres`; the active minimal candidate remains local. PostgreSQL is
+not enabled in the candidate deployment, and scale selection remains unavailable.
+Redis is not required by any Kernel profile. A backend requiring shutdown
+resources will need an explicit ASGI lifespan contract before adoption.
 
 The existing local implementation remains a 100-token bucket, 10-token/second
 refill, and at most 10,000 caller buckets. It is process-local, resets on restart,

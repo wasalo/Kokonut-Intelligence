@@ -1,0 +1,53 @@
+{
+  "checked_at_utc": "2026-10-16T03:45:08Z",
+  "source_base_revision": "4adf56d6a84a41412cf12e0aa21ce852f74ae730",
+  "source_state": "planner/Compose changes were validated from this worktree before their commit",
+  "scope": "default self-hosted ZITADEL identity profile ARM64 manifest and Compose-platform selection",
+  "registry_manifests": [
+    {
+      "image": "ghcr.io/zitadel/zitadel:v4.19.4",
+      "index_digest": "sha256:90a3045b80a2b5b395e1e770302076906af3a5911225af7c464b4f3bd00d0a1b",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "linux_arm64_manifest": "sha256:1f4fb87a5e44e201679bca3cfc105b5df1429e36402674a88dc8c92c5fbd0863"
+    },
+    {
+      "image": "ghcr.io/zitadel/zitadel-login:v4.19.4",
+      "index_digest": "sha256:93ffd1395b827f685ba29c02fa70aee881fc21102519c4e2bbb0b89c0e00f42c",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "linux_arm64_manifest": "sha256:04d8219d10d245dad786154ce7d966fd118ddc33e97beaba1d1bca03ff658f1b"
+    },
+    {
+      "image": "postgres:17.10-alpine",
+      "index_digest": "sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "linux_arm64_manifest": "sha256:b797483593b82cbea9a7ee41c88f324a90d10d9c2504d40e755d91c75456366d"
+    },
+    {
+      "image": "caddy:2-alpine",
+      "index_digest": "sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+      "platforms": ["linux/amd64", "linux/arm64"],
+      "linux_arm64_manifest": "sha256:1172d4213087d3fc30bafc7ff2c2896180eb0c41ff7f75f315568fb36cabdcba"
+    }
+  ],
+  "compose": {
+    "profile": "standard",
+    "planner_arguments": ["--target-platform", "linux/arm64", "--zitadel", "--action", "config"],
+    "merged_config": "passed",
+    "services_with_linux_arm64": ["app", "database", "worker", "proxy", "zitadel-db", "zitadel-api", "zitadel-login"],
+    "zitadel_database_default_digest_pinned": true,
+    "synthetic_placeholders": "process-only; not persisted or printed"
+  },
+  "source_checks": {
+    "command": "python3 -m pytest tests/test_kernel_profile.py tests/test_compose_zitadel_profile.py -q",
+    "passed": 22,
+    "ruff": "passed",
+    "python_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "Registry inspection read manifest metadata; it did not pull or start the ZITADEL services.",
+    "No live OIDC login, browser session, provider credential, or production hostname was configured.",
+    "Image environment overrides must continue to publish linux/arm64 or Compose will fail to resolve the forced platform.",
+    "Other optional ARM64 overlays and analytics remain blocked pending their own image/profile acceptance."
+  ]
+}

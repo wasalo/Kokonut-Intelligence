@@ -1,0 +1,18 @@
+{
+  "application_database_only": "passed",
+  "checked_at": "2026-10-15T19:59:11.952484+00:00",
+  "database": "kokonut_intelligence",
+  "database_names": [
+    "kokonut_intelligence"
+  ],
+  "existing_and_future_dml": "passed",
+  "explicit_metadata_service_grant_preserved": "passed",
+  "first_provision": "provisioned",
+  "idempotent_replay": "passed",
+  "role": "kokonut_directus_runtime",
+  "schema_and_role_ownership_denials": "passed",
+  "second_provision": "provisioned",
+  "secrets_logged": false,
+  "stale_schema_acl_removed": "passed",
+  "status": "passed"
+}

@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-12",
+  "scope": "Field Collector Gateway ASGI/HTTP sync consent withdrawal",
+  "target": {
+    "source_compose_project": "kokonut-kernel-candidate",
+    "temporary_database": "codex_ki_consent_asgi_20261012_20f5a167",
+    "route": "POST /api/mobile/sync",
+    "transport": "Uvicorn on an ephemeral 127.0.0.1 port inside the candidate app container"
+  },
+  "method": "Restored the source candidate into a disposable PostgreSQL database, inserted synthetic location, person, reviewed required-consent active form revision, participant link, device token hash, and grant/withdraw/regrant events, then sent an HTTP request through the real Gateway ASGI middleware and mobile sync route. Gateway audit logging was stubbed for this run so the shared candidate audit spool was untouched.",
+  "scenario": "A synchronized collection request referenced a timestamp after its grant and before the withdrawal; a later grant was current at request time.",
+  "result": {
+    "http_status": 403,
+    "detail": "Consent was withdrawn or denied after collection",
+    "offline_collection_rows_for_client": 0,
+    "upload_sync_log_rows_for_device": 0,
+    "candidate_audit_spool_changed": false
+  },
+  "source_database_after_test": {
+    "locations": 0,
+    "parties": 0,
+    "devices": 0,
+    "participant_links": 0,
+    "consent_events": 0,
+    "collections": 0
+  },
+  "runtime_after_test": {
+    "temporary_server_stopped": true,
+    "temporary_database_dropped": true,
+    "temporary_dump_removed": true,
+    "candidate_app_healthy": true,
+    "candidate_database_healthy": true
+  },
+  "limitations": [
+    "This covers an active required-consent revision, not the retired-form variant.",
+    "The browser UI, OS airplane mode, and real OIDC enrollment were not exercised."
+  ],
+  "rollback": "The disposable database and dump were removed after the request; the temporary loopback server exited. No candidate data or migration changed."
+}

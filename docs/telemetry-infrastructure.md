@@ -116,13 +116,23 @@ python3 -m services.ingestion.status summary
 Supported collection routes include:
 
 ```bash
-python3 -m services.ingestion.sensor_ingester --file readings.csv
-python3 -m services.ingestion.sensor_ingester --sensor SENSOR_UUID --value 25.3
+python3 -m services.ingestion.sensor_ingester --file readings.csv --location-id LOCATION_UUID
+python3 -m services.ingestion.sensor_ingester --sensor SENSOR_UUID --value 25.3 --location-id LOCATION_UUID
+python3 -m services.ingestion.sensor_ingester --list --location-id LOCATION_UUID
+python3 -m services.ingestion.sensor_ingester --calibration --location-id LOCATION_UUID
 python3 -m services.ingestion.http_sensor_receiver --host 0.0.0.0 --port 8056
 python3 -m services.ingestion.mqtt_subscriber --broker BROKER --port 8883
-python3 -m services.ingestion.device_manager --list
-python3 -m services.ingestion.device_manager --health --device-id DEVICE_ID
+python3 -m services.ingestion.device_manager --list --location-id LOCATION_UUID
+python3 -m services.ingestion.device_manager --health --device-id DEVICE_ID --location-id LOCATION_UUID
 ```
+
+Every `sensor_ingester` operation and every device-manager operation requires
+`--location-id`; device lookup, registration, health, sensor inventory, and
+calibration queries are constrained to that location. Registration refuses
+to move an existing device slug between locations. This protects the local
+operator workflow from unbounded cross-location selection. The location
+argument is a query scope, not an authenticated tenant grant, and does not
+establish database-level isolation or authorize application RLS.
 
 `v_sensor_device_health_summary` exposes device fields such as
 `last_seen_at`, battery, signal strength, firmware, and reading rate. Device
@@ -144,9 +154,28 @@ Create and run fetch jobs with:
 
 ```bash
 python3 -m services.ingestion.remote_sensing_fetcher --location-id LOCATION_UUID --provider gee
-python3 -m services.ingestion.remote_sensing_fetcher --list-jobs
-python3 -m services.ingestion.remote_sensing_fetcher --run-jobs
+python3 -m services.ingestion.remote_sensing_fetcher --list-jobs --location-id LOCATION_UUID
+python3 -m services.ingestion.remote_sensing_fetcher --run-jobs --location-id LOCATION_UUID
 ```
+
+Listing, creating, querying, and running fetch jobs all require one explicit
+location. This argument scopes SQL selection; it is not an authenticated tenant
+grant and does not establish database-level isolation or application RLS.
+
+Import preprocessed satellite or drone CSV observations with either one
+location or the explicit aggregate option:
+
+```bash
+python3 -m services.ingestion.remote_sensing --file observations.csv --location-id LOCATION_UUID
+python3 -m services.ingestion.remote_sensing --file observations.csv --all-locations
+```
+
+Single-location imports query plots only within the selected location. Every
+row must reference a plot mapped to a farm; an optional CSV `location_id` must
+match that plot's farm. Multi-location imports preserve their prior capability
+only when `--all-locations` is explicit, and row locations are still checked
+against plot/farm lineage. These selectors do not authenticate the operator or
+establish tenant isolation.
 
 Jobs select one provider and cadence. Supported job providers include `gee`,
 `copernicus`, and schema-level `manual`; the CLI exposes the automated GEE and
@@ -176,6 +205,11 @@ python3 -m services.ingestion.climate_data --worldclim --location-id LOCATION_UU
 python3 -m services.ingestion.climate_data --all --location-id LOCATION_UUID
 ```
 
+Choose exactly one dataset mode and provide one UUID-formatted location ID.
+The CLI canonicalizes the UUID and rejects invalid IDs or conflicting dataset
+modes before opening PostgreSQL. This is a location selector, not operator
+authorization or tenant isolation.
+
 The current data model includes:
 
 | Table | Intended source | Purpose |
@@ -196,9 +230,9 @@ Rule-based detection and ML detection are separate paths.
 Rule and baseline checks:
 
 ```bash
-python3 -m services.ingestion.anomaly_detector
-python3 -m services.ingestion.anomaly_detector --sensor SENSOR_UUID
-python3 -m services.ingestion.anomaly_detector --baseline-check
+python3 -m services.ingestion.anomaly_detector --all-locations
+python3 -m services.ingestion.anomaly_detector --location-id LOCATION_UUID --sensor SENSOR_UUID
+python3 -m services.ingestion.anomaly_detector --baseline-check --all-locations
 python3 -m services.ingestion.anomaly_detector --list-rules
 ```
 
@@ -230,8 +264,9 @@ python3 -m services.flows.pipelines full_pipeline
 
 The implemented flow structure is:
 
-1. Ingestion: weather, sensors, market data, direct EAS, RPC, and Gnosis flows
-   run in parallel.
+1. Ingestion: weather, market data, direct EAS, RPC, and Gnosis flows run in
+   parallel. Sensor capture remains a source-driven CSV/manual, HTTP, or MQTT
+   operation and is not invoked without a recurring source.
 2. Monitoring: anomaly detection and freshness checks run after ingestion.
 3. Analytics: metrics, dashboard refresh, and credit adjustment run after
    monitoring.
@@ -239,7 +274,7 @@ The implemented flow structure is:
 
 The scheduled flows are:
 
-- `scheduled-hourly`: sensors, anomaly detection, freshness.
+- `scheduled-hourly`: anomaly detection and freshness.
 - `scheduled-every-6h`: weather, dashboards, remote sensing.
 - `scheduled-daily`: market data, metrics, credit adjustment.
 - `scheduled-weekly`: climate refresh. The function description mentions ML

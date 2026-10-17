@@ -1,0 +1,18 @@
+{
+  "candidate_or_legacy_modified": false,
+  "database_image": "postgres:16-alpine",
+  "database_port_binding": "127.0.0.1 only",
+  "database_restart_reconnected": true,
+  "database_volume": false,
+  "date": "2026-10-15",
+  "command": "python3 scripts/check-scheduler-worker-reconnect-disposable.py",
+  "limitations": [
+    "The scheduler engine was stubbed; the test verifies PostgreSQL reconnect and worker process survival, not task SQL, leases, or provider delivery.",
+    "The PostgreSQL container had no volume and was bound only to loopback."
+  ],
+  "result": "passed",
+  "successful_tick_after_restart": true,
+  "successful_tick_before_restart": true,
+  "worker_alive_during_outage": true,
+  "worker_id": "reconnect-probe"
+}

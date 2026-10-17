@@ -1,0 +1,65 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T04:04:59Z",
+  "operation": "Guarded ledger reconciliation for seed:140_mobile_forms.sql",
+  "source": {
+    "branch": "feat/mobile-offline-acceptance",
+    "head_before_reconciliation": "90918664b1a418774fb35b7dcf65f2e9f8a02ea1",
+    "seed_file": "schemas/seeds/140_mobile_forms.sql",
+    "seed_sha256": "3d69c409ce4921e15df1d009ee3a88cf7f8ee47334cdd5edbed248872f9f3f4d",
+    "parity_guard": "Source-derived comparison of all 20 inserted mobile_form columns and the corresponding active mobile_form_version snapshot; repeated under SHARE ROW EXCLUSIVE locks in the migration transaction.",
+    "migration_runner_sha256": "df87c91265e22f146e0ffb274b072f384d3665b6aaf5ae62816f5e5e055ba295",
+    "test_file_sha256": "900ad6c57c5d57d0eec4f97fa5e21f80bb4717a89ec9cb027cf000a6e9132567",
+    "runner_was_local_uncommitted_working_tree": true
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-seed-140-20261014T040257Z",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "archive": "postgres.dump.age",
+    "sha256": "5abbad478647733fb7153d0d2a2bda62ae54f7d94e3241e1c596c7e0001d1cfa",
+    "bytes": 5530467,
+    "age_decryption": "passed",
+    "postgres_custom_archive_header": "passed",
+    "restore_rehearsed": false
+  },
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "migration_invoked": [
+      "seed:140_mobile_forms.sql"
+    ],
+    "seed_source_state_before": "matched",
+    "forms_before_after": {
+      "rows": 5,
+      "sha256_before": "d2d13197d689a75329e6de69856c794ea7afa9a4b675e26293745c21b3e85563",
+      "sha256_after": "d2d13197d689a75329e6de69856c794ea7afa9a4b675e26293745c21b3e85563"
+    },
+    "form_versions_before_after": {
+      "rows": 10,
+      "sha256_before": "3875451f8eafefdfc3fd9f38b756b3d5394009181206c112b4913b6f94c04d81",
+      "sha256_after": "3875451f8eafefdfc3fd9f38b756b3d5394009181206c112b4913b6f94c04d81",
+      "history": "five 1.1.0 retired revisions and five 1.2.0 active revisions"
+    },
+    "seed_rows_inserted": 0,
+    "business_rows_changed": false,
+    "ledger": {
+      "seed_140_status": "applied",
+      "seed_140_sha256": "3d69c409ce4921e15df1d009ee3a88cf7f8ee47334cdd5edbed248872f9f3f4d",
+      "applied_schema_migrations": 382,
+      "applied_seed_migrations": 1,
+      "pending_seed_migrations": 120,
+      "non_applied_ledger_rows": 0
+    },
+    "container_status": {
+      "app": "running/healthy",
+      "database": "running/healthy",
+      "metabase": "running/healthy",
+      "proxy": "running"
+    },
+    "http_checks": {
+      "/health": 200,
+      "/operator/api/mobile-collection-review-queue": 401
+    },
+    "containers_recreated": false
+  },
+  "result": "Passed. The guarded seed executed as a verified no-op for form data and recorded only its checksummed migration ledger row. Other seed files remain unapplied."
+}

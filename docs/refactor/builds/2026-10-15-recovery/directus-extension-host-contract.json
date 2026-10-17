@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-15",
+  "scope": "Directus extension host metadata only",
+  "pinned_directus_image_version": "12.1.1",
+  "declared_extension_host_version": "12.1.1",
+  "checks": {
+    "directus_extension_compatibility_and_tenant_source_tests": {
+      "command": "python3 -m pytest tests/test_directus_extension_compatibility.py tests/test_directus_tenant_permissions.py -q",
+      "result": "passed",
+      "tests_passed": 5
+    },
+    "hook_extension_typescript_build": {
+      "command": "npm run build",
+      "result": "passed"
+    },
+    "hook_extension_tests": {
+      "command": "npm test",
+      "result": "passed",
+      "test_files_passed": 3,
+      "tests_passed": 52
+    },
+    "capability_matrix_integrity": {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "rows": 66
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  },
+  "runtime_directus_started": false,
+  "database_touched": false,
+  "parity_claimed": false,
+  "remaining": [
+    "runtime hook loading under Directus 12.1.1",
+    "authenticated Directus principal mapping to operator_identity",
+    "organization/location/resource/action permission parity",
+    "field and hook-effect acceptance"
+  ]
+}

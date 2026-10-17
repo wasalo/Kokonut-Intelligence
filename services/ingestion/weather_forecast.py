@@ -6,15 +6,16 @@ Fetches 5-day weather forecasts for all active locations and inserts into
 weather_forecast (PostgreSQL) and weather_events (ClickHouse).
 
 Usage:
-    python -m services.ingestion.weather_forecast
     python -m services.ingestion.weather_forecast --location-id <uuid>
+    python -m services.ingestion.weather_forecast --all-locations
 """
 
 import argparse
 import json
 import sys
 import time
-from datetime import date, datetime, timezone
+import uuid
+from datetime import datetime, timezone
 
 from services.common.http import http
 
@@ -89,66 +90,89 @@ def parse_forecast_list(data: dict, location_id: str) -> list[dict]:
 
 
 def insert_forecasts(db, records: list[dict], source_raw: dict = None) -> int:
-    """Insert weather forecasts into PostgreSQL. Returns count inserted."""
+    """Insert weather forecasts into PostgreSQL. Returns count inserted.
+
+    Database errors propagate to the caller so it can roll back the complete
+    location batch before recording or projecting it.
+    """
     if not records:
         return 0
 
     inserted = 0
     with db.cursor() as cur:
         for rec in records:
-            try:
-                cur.execute(
-                    """
-                    INSERT INTO weather_forecast
-                        (location_id, source, forecast_date, forecast_hour,
-                         temp_c, temp_min_c, temp_max_c, feels_like_c,
-                         humidity_pct, precipitation_mm, precipitation_prob_pct,
-                         rain_3h_mm, wind_speed_kmh, wind_direction_deg,
-                         wind_gust_kmh, cloud_cover_pct, visibility_km,
-                         pressure_hpa, uv_index, description, metadata)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
-                    ON CONFLICT (location_id, forecast_date, forecast_hour, source)
-                    DO UPDATE SET
-                        temp_c = EXCLUDED.temp_c,
-                        temp_min_c = EXCLUDED.temp_min_c,
-                        temp_max_c = EXCLUDED.temp_max_c,
-                        feels_like_c = EXCLUDED.feels_like_c,
-                        humidity_pct = EXCLUDED.humidity_pct,
-                        precipitation_mm = EXCLUDED.precipitation_mm,
-                        precipitation_prob_pct = EXCLUDED.precipitation_prob_pct,
-                        rain_3h_mm = EXCLUDED.rain_3h_mm,
-                        wind_speed_kmh = EXCLUDED.wind_speed_kmh,
-                        wind_direction_deg = EXCLUDED.wind_direction_deg,
-                        wind_gust_kmh = EXCLUDED.wind_gust_kmh,
-                        cloud_cover_pct = EXCLUDED.cloud_cover_pct,
-                        visibility_km = EXCLUDED.visibility_km,
-                        pressure_hpa = EXCLUDED.pressure_hpa,
-                        uv_index = EXCLUDED.uv_index,
-                        description = EXCLUDED.description,
-                        metadata = EXCLUDED.metadata,
-                        created_at = NOW()
-                    """,
-                    (
-                        rec["location_id"], rec["source"], rec["forecast_date"],
-                        rec["forecast_hour"], rec["temp_c"], rec["temp_min_c"],
-                        rec["temp_max_c"], rec["feels_like_c"], rec["humidity_pct"],
-                        rec["precipitation_mm"], rec["precipitation_prob_pct"],
-                        rec["rain_3h_mm"], rec["wind_speed_kmh"],
-                        rec["wind_direction_deg"], rec["wind_gust_kmh"],
-                        rec["cloud_cover_pct"], rec["visibility_km"],
-                        rec["pressure_hpa"], rec["uv_index"],
-                        rec["description"], rec["metadata"],
-                    ),
-                )
-                inserted += 1
-            except Exception as e:
-                logger.warning("Failed to insert forecast for %s %s: %s",
-                               rec["forecast_date"], rec["forecast_hour"], e)
+            cur.execute(
+                """
+                INSERT INTO weather_forecast
+                    (location_id, source, forecast_date, forecast_hour,
+                     temp_c, temp_min_c, temp_max_c, feels_like_c,
+                     humidity_pct, precipitation_mm, precipitation_prob_pct,
+                     rain_3h_mm, wind_speed_kmh, wind_direction_deg,
+                     wind_gust_kmh, cloud_cover_pct, visibility_km,
+                     pressure_hpa, uv_index, description, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                ON CONFLICT (location_id, forecast_date, forecast_hour, source)
+                DO UPDATE SET
+                    temp_c = EXCLUDED.temp_c,
+                    temp_min_c = EXCLUDED.temp_min_c,
+                    temp_max_c = EXCLUDED.temp_max_c,
+                    feels_like_c = EXCLUDED.feels_like_c,
+                    humidity_pct = EXCLUDED.humidity_pct,
+                    precipitation_mm = EXCLUDED.precipitation_mm,
+                    precipitation_prob_pct = EXCLUDED.precipitation_prob_pct,
+                    rain_3h_mm = EXCLUDED.rain_3h_mm,
+                    wind_speed_kmh = EXCLUDED.wind_speed_kmh,
+                    wind_direction_deg = EXCLUDED.wind_direction_deg,
+                    wind_gust_kmh = EXCLUDED.wind_gust_kmh,
+                    cloud_cover_pct = EXCLUDED.cloud_cover_pct,
+                    visibility_km = EXCLUDED.visibility_km,
+                    pressure_hpa = EXCLUDED.pressure_hpa,
+                    uv_index = EXCLUDED.uv_index,
+                    description = EXCLUDED.description,
+                    metadata = EXCLUDED.metadata,
+                    created_at = NOW()
+                """,
+                (
+                    rec["location_id"], rec["source"], rec["forecast_date"],
+                    rec["forecast_hour"], rec["temp_c"], rec["temp_min_c"],
+                    rec["temp_max_c"], rec["feels_like_c"], rec["humidity_pct"],
+                    rec["precipitation_mm"], rec["precipitation_prob_pct"],
+                    rec["rain_3h_mm"], rec["wind_speed_kmh"],
+                    rec["wind_direction_deg"], rec["wind_gust_kmh"],
+                    rec["cloud_cover_pct"], rec["visibility_km"],
+                    rec["pressure_hpa"], rec["uv_index"],
+                    rec["description"], rec["metadata"],
+                ),
+            )
+            inserted += 1
     return inserted
 
 
-def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
-    """Queue canonical forecast rows; direct writes are demo-only when conn is absent."""
+def insert_location_forecasts(db, records: list[dict], source_raw: dict = None) -> int:
+    """Insert one location's forecasts atomically inside the caller transaction."""
+    with db.cursor() as cur:
+        cur.execute("SAVEPOINT weather_forecast_location")
+    try:
+        inserted = insert_forecasts(db, records, source_raw=source_raw)
+    except Exception:
+        with db.cursor() as cur:
+            cur.execute("ROLLBACK TO SAVEPOINT weather_forecast_location")
+            cur.execute("RELEASE SAVEPOINT weather_forecast_location")
+        raise
+    with db.cursor() as cur:
+        cur.execute("RELEASE SAVEPOINT weather_forecast_location")
+    return inserted
+
+
+WEATHER_EVENTS_COLUMNS = [
+    "timestamp", "location_id", "source", "temperature_c", "precipitation_mm",
+    "humidity_pct", "wind_speed_kmh", "solar_radiation_wm2", "cloud_cover_pct",
+    "metadata",
+]
+
+
+def build_forecast_clickhouse_projection(records: list[dict]) -> dict:
+    """Build the canonical durable projection without opening a database."""
     rows = []
     for rec in records:
         meta = rec.get("metadata", "{}")
@@ -175,36 +199,54 @@ def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
             {str(k): str(v) for k, v in meta.items()},
         ])
 
-    if not rows:
+    return {
+        "columns": WEATHER_EVENTS_COLUMNS.copy(),
+        "rows": rows,
+        "payload_hash": hash_payload(records),
+    }
+
+
+def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
+    """Queue canonical forecast rows; direct writes are demo-only when conn is absent."""
+    if not records:
+        return
+
+    projection = build_forecast_clickhouse_projection(records)
+    if not projection["rows"]:
         return
 
     try:
         if conn is not None:
-            payload_hash = hash_payload(records)
-            enqueue(conn, event_key=f"weather_forecast:weather_events:{payload_hash}",
-                    source_table="weather_forecast", source_id=payload_hash,
-                    target_table="weather_events",
-                    columns=["timestamp", "location_id", "source", "temperature_c",
-                             "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                             "solar_radiation_wm2", "cloud_cover_pct", "metadata"],
-                    rows=rows, payload_hash=payload_hash)
+            payload_hash = projection["payload_hash"]
+            enqueue(
+                conn,
+                event_key=f"weather_forecast:weather_events:{payload_hash}",
+                source_table="weather_forecast",
+                source_id=payload_hash,
+                target_table="weather_events",
+                columns=projection["columns"],
+                rows=projection["rows"],
+                payload_hash=payload_hash,
+            )
             return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         insert_clickhouse_rows(
             "weather_events",
-            [
-                "timestamp", "location_id", "source", "temperature_c",
-                "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                "solar_radiation_wm2", "cloud_cover_pct", "metadata",
-            ],
-            rows,
+            projection["columns"],
+            projection["rows"],
         )
     except Exception as e:
+        if conn is not None:
+            # The source write and durable projection intent share a transaction.
+            # Let enqueue failures abort that transaction instead of committing
+            # forecasts with no recoverable ClickHouse delivery record.
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 
 def get_daily_summary(db, location_id: str, days: int = 5) -> list[dict]:
     """Query daily forecast summary view."""
+    location_id = _canonical_location_id(location_id)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -224,6 +266,7 @@ def get_daily_summary(db, location_id: str, days: int = 5) -> list[dict]:
 
 def get_spray_windows(db, location_id: str, days: int = 5) -> list[dict]:
     """Query spray window view for suitable days."""
+    location_id = _canonical_location_id(location_id)
     with db.cursor() as cur:
         cur.execute(
             """
@@ -240,31 +283,8 @@ def get_spray_windows(db, location_id: str, days: int = 5) -> list[dict]:
         return [dict(zip(cols, row)) for row in cur.fetchall()]
 
 
-def run(location_id: str = None):
-    """Main forecast ingestion entry point."""
-    if not OPENWEATHERMAP_API_KEY:
-        logger.error("OPENWEATHERMAP_API_KEY not set in .env")
-        sys.exit(1)
-
-    db = get_db()
-    with db.cursor() as cur:
-        if location_id:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
-                "FROM location WHERE id = %s AND status = 'active'",
-                (location_id,),
-            )
-        else:
-            cur.execute(
-                "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
-                "FROM location WHERE status = 'active' AND center IS NOT NULL"
-            )
-        locations = cur.fetchall()
-
-    if not locations:
-        logger.info("No active locations with coordinates found.")
-        return
-
+def _ingest_locations(db, locations) -> None:
+    """Fetch, persist, audit, and enqueue one transaction's selected locations."""
     logger.info("Fetching 5-day forecasts for %d locations...", len(locations))
     all_records = []
     success = 0
@@ -277,7 +297,7 @@ def run(location_id: str = None):
             elapsed_ms = int((time.time() - start) * 1000)
 
             records = parse_forecast_list(raw, loc_id)
-            inserted = insert_forecasts(db, records, source_raw=raw)
+            inserted = insert_location_forecasts(db, records, source_raw=raw)
             all_records.extend(records)
 
             log_ingestion(
@@ -291,6 +311,8 @@ def run(location_id: str = None):
                 status="success",
                 rows_affected=inserted,
                 processing_time_ms=elapsed_ms,
+                db=db,
+                location_id=str(loc_id),
             )
             success += 1
             logger.info("  ✓ %s: %d forecast points", name, inserted)
@@ -308,20 +330,89 @@ def run(location_id: str = None):
                 payload_hash="",
                 status="failed",
                 error_message=str(e),
+                db=db,
+                location_id=str(loc_id),
             )
             logger.error("  ✗ %s: %s", name, e)
 
     if all_records:
         insert_forecasts_clickhouse(all_records, db)
     db.commit()
-    db.close()
 
     logger.info("Done: %d success, %d errors, %d total forecast points",
                 success, errors, len(all_records))
 
 
-if __name__ == "__main__":
+def run(location_id: str = None, *, all_locations: bool = False):
+    """Main forecast ingestion entry point."""
+    if all_locations and location_id is not None:
+        raise ValueError("choose one location or the explicit all-locations mode")
+    if not all_locations and location_id is None:
+        raise ValueError("provide --location-id or explicitly select all locations")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (TypeError, ValueError, AttributeError):
+            raise ValueError("location_id must be a UUID") from None
+
+    if not OPENWEATHERMAP_API_KEY:
+        logger.error("OPENWEATHERMAP_API_KEY not set in .env")
+        sys.exit(1)
+
+    db = get_db()
+    try:
+        with db.cursor() as cur:
+            if location_id:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
+                    "FROM location WHERE id = %s AND status = 'active' AND center IS NOT NULL",
+                    (location_id,),
+                )
+            else:
+                cur.execute(
+                    "SELECT id, name, ST_Y(center) as lat, ST_X(center) as lng "
+                    "FROM location WHERE status = 'active' AND center IS NOT NULL"
+                )
+            locations = cur.fetchall()
+
+        if not locations:
+            logger.info("No active locations with coordinates found.")
+            return
+        _ingest_locations(db, locations)
+    finally:
+        # Closing an uncommitted connection rolls back source rows, audit rows,
+        # and outbox intent together when any mandatory enqueue fails.
+        db.close()
+
+
+def _canonical_location_id(location_id: str) -> str:
+    """Return a canonical location UUID or reject an unscoped query."""
+    try:
+        return str(uuid.UUID(str(location_id)))
+    except (TypeError, ValueError, AttributeError):
+        raise ValueError("location_id must be a UUID") from None
+
+
+def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Weather forecast ingestion (5-day / 3-hour)")
-    parser.add_argument("--location-id", help="Specific location UUID to fetch")
-    args = parser.parse_args()
-    run(location_id=args.location_id)
+    scope = parser.add_mutually_exclusive_group()
+    scope.add_argument("--location-id", help="Specific location UUID to fetch")
+    scope.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Fetch forecasts for every active location (explicit aggregate operation)",
+    )
+    args = parser.parse_args(argv)
+
+    if args.location_id is None and not args.all_locations:
+        parser.print_help()
+        return
+
+    try:
+        run(location_id=args.location_id, all_locations=args.all_locations)
+    except ValueError as exc:
+        parser.error(str(exc))
+
+
+if __name__ == "__main__":
+    main()

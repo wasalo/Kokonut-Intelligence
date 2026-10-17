@@ -19,6 +19,7 @@ TEST_ENV = {
     "DIRECTUS_SECRET": "compose-test-only",
     "ADMIN_EMAIL": "compose-test@example.invalid",
     "ADMIN_PASSWORD": "compose-test-only",
+    "KOKONUT_OPERATOR_AUTH_PASSWORD": "compose-test-only-auth-password",
     "CLICKHOUSE_PASSWORD": "compose-test-only",
     "CADDY_DOMAIN": "localhost",
     "PUBLIC_URL": "https://example.invalid",
@@ -29,7 +30,11 @@ TEST_ENV = {
 }
 
 
-def _compose_config(*profiles: str, files: tuple[str, ...] = ("docker-compose.yml",)) -> dict:
+def _compose_config(
+    *profiles: str,
+    files: tuple[str, ...] = ("docker-compose.yml",),
+    extra_env: dict[str, str] | None = None,
+) -> dict:
     command = ["docker", "compose", "--env-file", "/dev/null"]
     for profile in profiles:
         command.extend(["--profile", profile])
@@ -39,7 +44,7 @@ def _compose_config(*profiles: str, files: tuple[str, ...] = ("docker-compose.ym
     result = subprocess.run(
         command,
         cwd=ROOT,
-        env=TEST_ENV,
+        env=TEST_ENV | (extra_env or {}),
         capture_output=True,
         text=True,
         check=False,
@@ -78,7 +83,9 @@ def test_staging_keeps_metabase_opt_in_and_loopback_bound() -> None:
 
     config = _compose_config("metabase", files=staging_files)
     metabase = config["services"]["metabase"]
-    assert metabase["ports"] == [{"host_ip": "127.0.0.1", "published": "13001", "target": 3000, "protocol": "tcp", "mode": "ingress"}]
+    assert metabase["ports"] == [
+        {"host_ip": "127.0.0.1", "published": "13001", "target": 3000, "protocol": "tcp", "mode": "ingress"}
+    ]
 
 
 def test_sandbox_keeps_seed_profile_independent_and_metabase_opt_in() -> None:
@@ -89,7 +96,9 @@ def test_sandbox_keeps_seed_profile_independent_and_metabase_opt_in() -> None:
 
     config = _compose_config("sandbox", "metabase", files=sandbox_files)
     metabase = config["services"]["metabase"]
-    assert metabase["ports"] == [{"host_ip": "127.0.0.1", "published": "3001", "target": 3000, "protocol": "tcp", "mode": "ingress"}]
+    assert metabase["ports"] == [
+        {"host_ip": "127.0.0.1", "published": "3001", "target": 3000, "protocol": "tcp", "mode": "ingress"}
+    ]
 
 
 def test_production_metabase_is_opt_in_and_traefik_routed() -> None:
@@ -103,6 +112,147 @@ def test_production_metabase_is_opt_in_and_traefik_routed() -> None:
     metabase = _compose_config("metabase", files=production_files)["services"]["metabase"]
     assert not metabase.get("ports")
     assert "traefik.http.routers.kokonut-metabase.rule" in metabase["labels"]
+
+
+def test_minimal_kernel_profile_omits_redis_and_uses_local_limiter() -> None:
+    config = _compose_config(files=("docker-compose.kernel-candidate.yml",))
+    assert set(config["services"]) == {"database", "app"}
+    environment = config["services"]["app"]["environment"]
+    assert environment["KOKONUT_RATE_LIMIT_PROVIDER"] == "local"
+
+
+def test_standard_kernel_profile_defaults_to_shared_postgres_limiter() -> None:
+    config = _compose_config(files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-standard.yml"))
+    assert "cache" not in config["services"]
+    assert config["services"]["app"]["environment"]["KOKONUT_RATE_LIMIT_PROVIDER"] == "postgres"
+
+
+def test_edge_kernel_profile_selects_local_private_media_and_resource_limits() -> None:
+    config = _compose_config(
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-edge.yml"),
+        extra_env={"MOBILE_MEDIA_LOCAL_KEY": "compose-test-only-key"},
+    )
+
+    assert set(config["services"]) == {"database", "app"}
+    assert config["services"]["database"]["mem_limit"] == str(1024**3)
+    assert config["services"]["database"]["cpus"] == 2.0
+    environment = config["services"]["app"]["environment"]
+    assert environment["MOBILE_MEDIA_PROVIDER"] == "local"
+    assert environment["MOBILE_MEDIA_LOCAL_KEY"] == "compose-test-only-key"
+    assert "kernel-private-media" in config["volumes"]
+
+
+def test_analytics_kernel_profile_adds_private_clickhouse() -> None:
+    config = _compose_config(files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-analytics.yml"))
+
+    assert set(config["services"]) == {"database", "app", "clickhouse"}
+    assert config["services"]["app"]["environment"]["KOKONUT_FEATURE_CLICKHOUSE"] == "true"
+    assert not config["services"]["clickhouse"].get("ports")
+
+
+def test_legacy_dataset_sql_override_reaches_kernel_app_and_worker_profiles() -> None:
+    enabled = {
+        "KOKONUT_FEATURE_LEGACY_DATASET_SQL": "true",
+        "KOKONUT_ANALYTICS_USER": "kokonut_analytics_ro",
+        "KOKONUT_ANALYTICS_PASSWORD": "compose-test-only-analytics-password-32",
+    }
+
+    defaults = _compose_config(files=("docker-compose.kernel-candidate.yml",))
+    assert defaults["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"] == "false"
+
+    candidate = _compose_config(
+        files=("docker-compose.kernel-candidate.yml",),
+        extra_env=enabled,
+    )
+    assert candidate["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"] == "true"
+
+    standard = _compose_config(
+        files=("docker-compose.kernel-candidate.yml", "docker-compose.kernel-standard.yml"),
+        extra_env=enabled,
+    )
+    assert standard["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"] == "true"
+    assert standard["services"]["worker"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"] == "true"
+    assert standard["services"]["worker"]["environment"]["KOKONUT_ANALYTICS_USER"] == "kokonut_analytics_ro"
+    assert (
+        standard["services"]["worker"]["environment"]["KOKONUT_ANALYTICS_PASSWORD"]
+        == enabled["KOKONUT_ANALYTICS_PASSWORD"]
+    )
+
+    portability = _compose_config(
+        "application",
+        "workers",
+        files=("docker-compose.kernel-portability.yml",),
+        extra_env=enabled,
+    )
+    assert portability["services"]["app"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"] == "true"
+    assert portability["services"]["worker"]["environment"]["KOKONUT_FEATURE_LEGACY_DATASET_SQL"] == "true"
+    assert portability["services"]["worker"]["environment"]["KOKONUT_ANALYTICS_USER"] == "kokonut_analytics_ro"
+    assert (
+        portability["services"]["worker"]["environment"]["KOKONUT_ANALYTICS_PASSWORD"]
+        == enabled["KOKONUT_ANALYTICS_PASSWORD"]
+    )
+
+
+def test_portability_profile_builds_images_for_selected_runtime_architecture() -> None:
+    portability = _compose_config(
+        "application",
+        files=("docker-compose.kernel-portability.yml",),
+        extra_env={"KOKONUT_DATABASE_PLATFORM": "linux/arm64"},
+    )
+
+    for service_name in ("database", "app"):
+        service = portability["services"][service_name]
+        assert service["platform"] == "linux/arm64"
+        assert service["build"]["platforms"] == ["linux/arm64"]
+
+
+def test_oidc_compose_overlay_is_opt_in_and_requires_provider_settings() -> None:
+    candidate_files = ("docker-compose.kernel-candidate.yml",)
+    default_app = _compose_config(files=candidate_files)["services"]["app"]
+    assert "KOKONUT_OPERATOR_OIDC_ENABLED" not in default_app["environment"]
+
+    oidc_files = (
+        "docker-compose.kernel-candidate.yml",
+        "docker-compose.kernel-proxy.yml",
+        "docker-compose.kernel-oidc.yml",
+    )
+    command = ["docker", "compose", "--env-file", "/dev/null"]
+    for compose_file in oidc_files:
+        command.extend(["-f", compose_file])
+    command.extend(["config", "--format", "json"])
+    missing_issuer_env = {
+        **TEST_ENV,
+        "KOKONUT_OPERATOR_OIDC_CLIENT_ID": "compose-contract",
+        "KOKONUT_OPERATOR_OIDC_CLIENT_SECRET": "compose-test-only",
+        "KOKONUT_OPERATOR_OIDC_REDIRECT_URI": ("https://localhost:8448/operator/auth/callback"),
+        "KOKONUT_OPERATOR_OIDC_STATE_SECRET": "compose-test-only-state-secret-32-bytes",
+    }
+    missing_issuer_env.pop("KOKONUT_OPERATOR_OIDC_ISSUER", None)
+    missing_settings = subprocess.run(
+        command,
+        cwd=ROOT,
+        env=missing_issuer_env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert missing_settings.returncode != 0
+    assert "OIDC issuer must be configured" in missing_settings.stderr
+
+    configured = _compose_config(
+        files=oidc_files,
+        extra_env={
+            "KOKONUT_OPERATOR_OIDC_ISSUER": "https://identity.example.invalid",
+            "KOKONUT_OPERATOR_OIDC_CLIENT_ID": "compose-contract",
+            "KOKONUT_OPERATOR_OIDC_CLIENT_SECRET": "compose-test-only",
+            "KOKONUT_OPERATOR_OIDC_REDIRECT_URI": ("https://localhost:8448/operator/auth/callback"),
+            "KOKONUT_OPERATOR_OIDC_STATE_SECRET": "compose-test-only-state-secret-32-bytes",
+        },
+    )
+    environment = configured["services"]["app"]["environment"]
+    assert environment["KOKONUT_OPERATOR_OIDC_ENABLED"] == "true"
+    assert environment["KOKONUT_OPERATOR_OIDC_ISSUER"] == "https://identity.example.invalid"
+    assert environment["KOKONUT_OPERATOR_OIDC_REDIRECT_URI"] == "https://localhost:8448/operator/auth/callback"
 
 
 def test_metabase_profile_disables_public_sharing_and_embedding_without_secret() -> None:
@@ -129,15 +279,20 @@ def _run_health_check(tmp_path: Path, *, metabase_enabled: bool) -> tuple[dict, 
 
     call_log = tmp_path / "calls.log"
     stubs = {
-        "curl": "#!/bin/sh\nprintf 'curl %s\\n' \"$*\" >> \"$HEALTH_TEST_LOG\"\nexit 0\n",
+        "curl": '#!/bin/sh\nprintf \'curl %s\\n\' "$*" >> "$HEALTH_TEST_LOG"\nexit 0\n',
         "psql": "#!/bin/sh\nexit 0\n",
+        "df": (
+            "#!/bin/sh\n"
+            "printf 'Filesystem 1K-blocks Used Available Capacity Mounted on\\n"
+            "/dev/test 100 40 60 40%% /\\n'\n"
+        ),
         "docker": (
             "#!/bin/sh\n"
-            "printf 'docker %s\\n' \"$*\" >> \"$HEALTH_TEST_LOG\"\n"
-            "case \" $* \" in\n"
-            "  *\" --filter \"*) exit 0 ;;\n"
+            'printf \'docker %s\\n\' "$*" >> "$HEALTH_TEST_LOG"\n'
+            'case " $* " in\n'
+            '  *" --filter "*) exit 0 ;;\n'
             "  *) printf 'database\\ndirectus\\nclickhouse\\n'; "
-            "if [ \"${HEALTH_CHECK_METABASE:-false}\" = \"true\" ]; then printf 'metabase\\n'; fi ;;\n"
+            'if [ "${HEALTH_CHECK_METABASE:-false}" = "true" ]; then printf \'metabase\\n\'; fi ;;\n'
             "esac\n"
             "exit 0\n"
         ),

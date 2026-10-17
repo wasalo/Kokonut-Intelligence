@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-13",
+  "checked_at_utc": "2026-10-13T12:33:05Z",
+  "purpose": "Apply migration 385 and deploy the native farm-activity draft-edit source to the local Kernel candidate.",
+  "source_commit": "f854d47",
+  "preflight": {
+    "compose_project": "kokonut-kernel-candidate",
+    "candidate_containers_before": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "migration_plan_before": [
+      "schema:385_farm_activity_draft_edit_events.sql"
+    ],
+    "checksum_drift": false,
+    "farm_activity_rows": 0,
+    "farm_activity_workflow_event_rows": 0,
+    "offline_collection_rows": 0
+  },
+  "checkpoint": {
+    "path": "backups/kernel-candidate-pre-farm-activity-draft-edit-20261013T122602Z",
+    "format": "age-encrypted PostgreSQL custom archive",
+    "sha256": "913c1d0577752d748c032e71a97a75dd33d64b36014cb0fe60a1b095889f55d4",
+    "bytes": 5372022,
+    "source_database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_rehearsal": {
+      "target": "kokonut_restore from template0 in internal-only project kokonut-draft-edit-rollout-20261013",
+      "age_decryption_and_pg_restore": "passed without writing a plaintext archive",
+      "migration_fingerprints_matched": true,
+      "extension_versions_matched": true,
+      "farm_activity_workflow_and_mobile_collection_counts_matched": true,
+      "temporary_container_network_and_volume_removed": true
+    },
+    "scope": "Single PostgreSQL database; excludes roles/grants, other databases, Docker volumes, external media, and provider state."
+  },
+  "migration": {
+    "command": "python3 -m services.migration migrate --schemas-only --compose-project kokonut-kernel-candidate --compose-file docker-compose.kernel-candidate.yml --compose-file docker-compose.kernel-metabase.yml",
+    "result": "Applied: 1, Failed: 0",
+    "applied": [
+      "schema:385_farm_activity_draft_edit_events.sql"
+    ],
+    "applied_schema_count_after": 376,
+    "pending_schema_count_after": 0,
+    "migration_checksum": "2a2e88f6ee56fe6a2a7f1b4cd9a0aa0405475ad1a266e5db1f2f5cd523cfba0f",
+    "required_draft_edit_guards_present": true,
+    "workflow_event_rows_after": 0
+  },
+  "application": {
+    "built_from_source_commit": "f854d47",
+    "new_image_id": "sha256:92e883c1153e703dc82ae5f099d236b3b4a9992a52d0f35052d515469450254f",
+    "previous_image_id": "sha256:85e3c85e1bd994ea30a280f7f646f2ec7d1d02413456b3f410768989bde9288a",
+    "rollback_image_tag": "kokonut-kernel-candidate-app:rollback-pre-draft-edit-20261013T122602Z",
+    "only_candidate_app_recreated": true,
+    "database_metabase_proxy_recreated": false,
+    "health": {
+      "app": "healthy",
+      "database": "healthy",
+      "metabase": "healthy",
+      "proxy": "running"
+    },
+    "loopback_http": {
+      "GET /health": 200,
+      "GET /operator/api/mobile-collection-review-queue without credentials": 401,
+      "GET /operator/api/farm-activities without credentials": 401,
+      "PATCH /operator/api/farm-activities/{id}/draft without credentials": 401
+    },
+    "oidc_configuration": "Disabled; real provider login/session acceptance remains open."
+  },
+  "rollback": {
+    "application_tag": "kokonut-kernel-candidate-app:rollback-pre-draft-edit-20261013T122602Z",
+    "database_checkpoint": "backups/kernel-candidate-pre-farm-activity-draft-edit-20261013T122602Z",
+    "policy": "The additive migration and database guards remain in place during an app rollback. Restore the encrypted pre-migration checkpoint only before accepting native workflow data; afterward prefer a reviewed forward migration."
+  },
+  "limitations": [
+    "The candidate has no farm_activity, farm_activity_workflow_event, or offline_collection rows; no live domain write or human review was exercised.",
+    "OIDC is disabled, so provider-backed operator workflow and browser review remain open.",
+    "MAN-CAP-001, higher-contention promotion stress, and populated candidate workflow acceptance remain open."
+  ]
+}

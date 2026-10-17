@@ -1,0 +1,1235 @@
+{
+  "version": 1,
+  "reviewed": "2026-10-17",
+  "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
+  "shared_boundary": {
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Migration 432 adds a dedicated remote-sensing login, signed remote_sensing/run location scope, and bounded claim plus atomic observation/attempt/audit/outbox completion functions without direct application-table access. Migration 433 adds the global EAS indexer login with chain-scoped bounded functions and no direct table access; it has no tenant context because tracked wallet and attestation protocol data are global. Other scheduled jobs and handlers remain outside these integrations.",
+    "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
+    "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
+  },
+  "scheduled_modules": [
+    {
+      "module": "services.ingestion.weather",
+      "scope": "Legacy entrypoint retained for persisted task compatibility until schedule owners reconcile existing rows. New native JobSpecs use services.ingestion.weather_worker. Manual CLI calls must select one location or explicitly choose --all-locations; an omitted selection only prints help. The all-location query remains a code-level aggregate operation, not tenant authorization.",
+      "reads": [
+        "public.location"
+      ],
+      "writes": [
+        "public.weather_observation",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "OpenWeatherMap HTTP requests"
+      ],
+      "idempotency": "Legacy weather_observation insert has no explicit conflict clause; ClickHouse projection is keyed by payload hash. A replay may create a second PostgreSQL observation.",
+      "retry_boundary": "Legacy persisted-task retries may repeat provider reads and PostgreSQL inserts; no source watermark is recorded by this entrypoint. Reconcile legacy tasks before using this shared-identity path.",
+      "sources": [
+        "services/ingestion/weather.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.weather_worker",
+      "worker_key": "weather",
+      "scope": "Default-off native worker requires one explicit --location-id, receives only the exact worker DSN, worker credential, and OpenWeatherMap provider key, and establishes a signed weather_observation/ingest grant for the selected location before each database operation. Migration 427 exposes signed coordinate lookup and one bounded atomic observation/audit/outbox/receipt function; the worker has no direct application-table access.",
+      "reads": [
+        "public.location"
+      ],
+      "writes": [
+        "public.weather_observation",
+        "public.ingestion_log",
+        "public.clickhouse_outbox",
+        "kokonut_security.weather_observation_worker_receipt"
+      ],
+      "external_effects": [
+        "OpenWeatherMap current-weather HTTP requests"
+      ],
+      "idempotency": "A transaction-scoped advisory lock serializes identical location/provider responses. The private receipt key is (location_id, provider_payload_hash); duplicate scheduler delivery returns the existing observation without repeating audit or projection effects. Observation, success audit, ClickHouse outbox intent, and receipt commit atomically.",
+      "retry_boundary": "A retry repeats provider read and signed coordinate lookup. Provider/parse failures store a sanitized failure audit with no observation/outbox. Migration 427, exact worker DSN/credential/provider key, and its signed grant are not deployed; feature remains off. Existing persisted tasks remain mapped to the legacy module until schedule owners reconcile them.",
+      "sources": [
+        "services/ingestion/weather_worker.py",
+        "services/ingestion/weather.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "schemas/postgres/427_signed_weather_observation_worker.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.weather_forecast",
+      "scope": "The scheduled contract requires one explicit --location-id; aggregate --all-locations is rejected. The query selects only active locations with coordinates and the CLI requires a scope before opening PostgreSQL.",
+      "reads": [
+        "public.location"
+      ],
+      "writes": [
+        "public.weather_forecast",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "OpenWeatherMap 5-day forecast HTTP requests"
+      ],
+      "idempotency": "PostgreSQL upserts on (location_id, forecast_date, forecast_hour, source); the ClickHouse outbox uses a canonical payload hash. A retry refreshes matching forecast slots without creating duplicate natural-key rows.",
+      "retry_boundary": "Legacy persisted tasks still use the shared runtime identity and remain allowlisted until schedule owners reconcile them. A retry repeats the OpenWeatherMap request and may update forecasts for the same location/window; the generated schedule remains disabled.",
+      "sources": [
+        "services/ingestion/weather_forecast.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.weather_forecast_worker",
+      "worker_key": "weather_forecast",
+      "scope": "The default-off worker requires one explicit --location-id, strips shared PostgreSQL identity settings from its child environment, and establishes a signed weather_forecast/ingest grant for the exact location before each database operation. Migration 426 exposes only signed coordinate lookup and a bounded atomic forecast/audit/outbox function; no direct application-table privileges are granted.",
+      "reads": [
+        "public.location"
+      ],
+      "writes": [
+        "public.weather_forecast",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "OpenWeatherMap 5-day forecast HTTP requests"
+      ],
+      "idempotency": "PostgreSQL upserts on (location_id, forecast_date, forecast_hour, source); the canonical ClickHouse outbox uses a payload hash and rejects a conflicting reused key. Forecast rows, audit state, and outbox intent commit atomically.",
+      "retry_boundary": "A retry repeats the provider request and signed location lookup, then revalidates the grant in the write transaction. Provider/parse errors produce a sanitized failed-ingestion audit row with no forecast or outbox rows. The feature remains off until migration 426 and a worker-specific grant/credential are provisioned; existing persisted tasks using the legacy module remain mapped separately until owner reconciliation.",
+      "sources": [
+        "services/ingestion/weather_forecast_worker.py",
+        "services/ingestion/weather_forecast.py",
+        "services/ingestion/base.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "schemas/postgres/426_signed_weather_forecast_worker.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.market_data",
+      "scope": "Legacy shared-identity entrypoint retained for persisted tasks and explicit manual seed/source use. New native JobSpecs use the default-off isolated market_data_worker.",
+      "reads": [
+        "public.crop"
+      ],
+      "writes": [
+        "public.price_observation",
+        "public.ingestion_log"
+      ],
+      "external_effects": [
+        "World Bank Pink Sheet HTTP download; explicit local reference seed mode"
+      ],
+      "idempotency": "Live World Bank observations use source=world_bank_pink_sheet; explicit reference samples use source=world_bank_pink_sheet_seed. Both use ON CONFLICT (source, commodity_code, market_name, price_date) DO NOTHING; historical corrections remain a separate policy question.",
+      "retry_boundary": "Provider download, unusable/empty response, insert, and audit failures raise to the scheduler. Provider parsing completes before PostgreSQL opens, and each price batch plus its ingestion_log record commits atomically. The local seed source is never an implicit provider fallback.",
+      "sources": [
+        "services/ingestion/market_data.py",
+        "services/ingestion/base.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.market_data_worker",
+      "worker_key": "market_data",
+      "scope": "The default-off global World Bank ingestion worker accepts only optional commodity and paired month/year filters. It downloads and parses before opening its dedicated database login, then invokes one bounded batch function. It does not use tenant scope because the source is global reference data.",
+      "reads": [
+        "public.crop"
+      ],
+      "writes": [
+        "public.price_observation",
+        "public.ingestion_log"
+      ],
+      "external_effects": [
+        "World Bank Pink Sheet HTTP download"
+      ],
+      "idempotency": "The function accepts only eight supported commodity codes and uses the source/commodity/market/month natural key. Conflicting observations are preserved; one audit row records the actual inserted count per successful invocation.",
+      "retry_boundary": "Provider retrieval and parsing complete before PostgreSQL opens. The bounded function validates the full payload and inserts prices plus audit in the caller transaction. The feature remains off until migration 430, the isolated login password, and the worker-only DSN are provisioned.",
+      "sources": [
+        "services/ingestion/market_data_worker.py",
+        "services/ingestion/market_data.py",
+        "schemas/postgres/430_isolated_market_data_worker.sql",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/jobs.py",
+        "services/migration/runtime_role.py",
+        "services/security/scheduled_command_contracts.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.eas_indexer",
+      "scope": "The direct indexer can process all active tracked wallets on configured chains unless --chain selects one chain. Kernel scheduled tasks require exactly one explicit supported --chain; the optional Prefect adapter preserves all three configured chains in Celo-first order.",
+      "reads": [
+        "public.wallet_profile",
+        "public.chain_indexer_status",
+        "public.eas_indexer_cursor",
+        "public.attestation_schema"
+      ],
+      "writes": [
+        "public.attestation_schema",
+        "public.attestation_record",
+        "public.chain_indexer_status",
+        "public.eas_indexer_cursor",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "EAS GraphQL/API requests"
+      ],
+      "idempotency": "attestation_record uses attestation_uid conflict suppression; ClickHouse projection has an attestation UID key. Migration 421 stores a timestamp cursor per chain and tracked recipient; migration 422 resets inherited cursors to zero for a one-time full-history recovery. Each successful recipient's records, projection intents, and cursor advance commit together.",
+      "retry_boundary": "A provider failure rolls back only that recipient, leaves its cursor unchanged, commits successful recipients, and returns a retryable command failure. The scan intentionally revisits the saved timestamp second; UID conflict suppression makes repeats idempotent. An outbox failure rolls back all current transaction state. Earlier-timestamp late arrivals and concurrent offset-page shifts still need provider/runtime reconciliation.",
+      "sources": [
+        "services/ingestion/eas_indexer.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.eas_worker",
+      "worker_key": "eas_indexer",
+      "scope": "Default-off global worker requires one explicit supported --chain and receives only the dedicated EAS worker DSN and credential. It indexes active tracked wallets for that chain through bounded migration 433 functions; protocol attestations and wallet profiles are global records, so it does not establish a location tenant context. Native Kernel jobs target this worker, while the optional Prefect adapter stays on the legacy entrypoint until the feature and runtime credential are provisioned.",
+      "reads": [
+        "public.wallet_profile",
+        "public.eas_indexer_cursor"
+      ],
+      "writes": [
+        "public.eas_indexer_cursor",
+        "public.attestation_schema",
+        "public.attestation_record",
+        "public.ingestion_log",
+        "public.clickhouse_outbox",
+        "public.chain_indexer_status"
+      ],
+      "external_effects": [
+        "EAS GraphQL/API requests"
+      ],
+      "idempotency": "Migration 433 validates chain, active wallet, recipient address, page shape, schema and UID fields, and inserts each page of attestation rows with ClickHouse outbox intents atomically. Unique attestation UIDs suppress replay; each recipient cursor advances only after its complete provider scan. A session advisory lock serializes the same chain across old and new worker paths.",
+      "retry_boundary": "Provider failure leaves that recipient cursor unchanged while prior recipient/page commits remain durable; the next run safely replays duplicate pages. Database page, outbox, cursor, or status failures roll back their bounded function transaction and fail the run. Feature remains off until migration 433 and the isolated EAS login/DSN are provisioned; existing persisted tasks remain on the legacy module until owner reconciliation. Offset pagination and historical provider reorg/late-arrival behavior still need live reconciliation.",
+      "sources": [
+        "services/ingestion/eas_worker.py",
+        "services/ingestion/eas_indexer.py",
+        "services/ingestion/eas_provider.py",
+        "services/ingestion/base.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/jobs.py",
+        "services/migration/runtime_role.py",
+        "schemas/postgres/433_isolated_eas_indexer.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.rpc_indexer",
+      "scope": "The direct CLI can process all active tracked wallets unless chain or wallet address selects a narrower source. Kernel scheduled tasks require exactly one supported --chain, with an optional wallet filter; the optional Prefect adapter preserves the seven CLI-supported networks as separate scoped runs.",
+      "reads": [
+        "public.wallet_profile"
+      ],
+      "writes": [
+        "public.wallet_activity_event",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "Configured EVM JSON-RPC providers"
+      ],
+      "idempotency": "wallet_activity_event suppresses duplicate transaction hashes; only inserted rows are projected under a stable outbox source key. Wallet activity, chain status, and projection intent commit together.",
+      "retry_boundary": "One run owns a single PostgreSQL transaction with a savepoint per wallet. A provider or insert failure rolls back that wallet, marks its chain error, and permits successful wallet rows and outbox intents to commit. A status, outbox, or commit failure rolls back the run; the indexer then attempts to persist error status on the same connection. Retries repeat point-in-time RPC reads. This module does not scan transaction history or prove confirmation depth/reorg completeness.",
+      "sources": [
+        "services/ingestion/rpc_indexer.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.sensor_ingester",
+      "scope": "Manual capture modes retain their explicit location-bound inputs. This legacy entrypoint remains available for previously persisted tasks and uses the shared runtime identity. New native JobSpecs route to services.ingestion.sensor_worker, which establishes signed sensor_driver/ingest scope and invokes migration 431 bounded functions. Before any driver import, stored driver name/type/module/class must match the immutable source-controlled scheduled-driver map. The built-in sensor_csv path is bounded to 100 sources/10,000 records and a 64 MiB file; it reads only beneath KOKONUT_SENSOR_CSV_ROOT (container path /var/lib/kokonut/sensor-inputs), and Compose mounts the operator-selected KOKONUT_SENSOR_CSV_HOST_DIR read-only. Parent traversal, outside-root paths, symlinked components, and non-regular files are rejected with no-follow descriptor opens. MQTT remains event-driven.",
+      "reads": [
+        "public.driver_instance",
+        "public.driver_registry",
+        "public.sensor_device",
+        "public.sensor_type",
+        "public.sensor_reading"
+      ],
+      "writes": [
+        "public.driver_instance status",
+        "public.sensor_reading",
+        "public.platform_event",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "Filesystem read only beneath the configured sensor_csv root; Compose input mount is read-only and path components are opened with O_NOFOLLOW"
+      ],
+      "idempotency": "The batch writes canonical readings, ClickHouse outbox projections, ingestion audit, and new-reading events in one PostgreSQL transaction. Sensor timestamp uniqueness suppresses exact duplicate values and rejects conflicting values; duplicate rows do not publish another event. Source ordering and external file changes are not checkpointed.",
+      "retry_boundary": "A failed database batch rolls back all accepted rows/projections/events; the driver instance status is updated separately. Replaying the same sensor timestamp/value is idempotent, while a conflicting timestamp fails the batch. Provider-file advancement and populated-source parity remain unverified.",
+      "sources": [
+        "services/core/jobs.py",
+        "services/drivers/base.py",
+        "services/drivers/registry.py",
+        "services/events/bus.py",
+        "services/ingestion/base.py",
+        "services/ingestion/drivers/sensor_csv.py",
+        "services/ingestion/sensor_ingester.py",
+        "services/scheduler/job_plan.py",
+        "services/security/scheduled_command_contracts.py",
+        "tests/test_sensor_driver_schedule.py",
+        ".env.example",
+        "docker-compose.worker.yml",
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.kernel-standard.yml",
+        "docs/refactor/sensor-driver-scheduled-contract.md"
+      ]
+    },
+    {
+      "module": "services.ingestion.sensor_worker",
+      "worker_key": "sensor_ingestion",
+      "scope": "Default-off native scheduled sensor worker requires one explicit --location-id and --driver-instance-id. It receives only its dedicated database login, credential, and read-only CSV mount; each database operation establishes a signed sensor_driver/ingest grant for that location. Migration 431 returns only a code-allowlisted sensor_csv instance, a location-scoped sensor catalog, and bounded status/batch operations. The shared-runtime sensor CLI remains supported for manual use; previously persisted legacy tasks remain allowlisted pending schedule-owner reconciliation.",
+      "reads": [
+        "public.driver_instance",
+        "public.driver_registry",
+        "public.sensor_device",
+        "public.sensor_type",
+        "public.sensor_reading"
+      ],
+      "writes": [
+        "public.driver_instance status",
+        "public.driver_instance_log",
+        "public.sensor_reading",
+        "public.platform_event",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "Filesystem read only beneath the configured sensor_csv root; Compose input mount is read-only and path components are opened with O_NOFOLLOW"
+      ],
+      "idempotency": "One bounded batch function writes canonical readings, ingestion audit, new-reading events, and ClickHouse outbox projections atomically. Sensor timestamp uniqueness suppresses exact duplicates and rejects conflicting values; exact duplicate retries do not emit another event or projection.",
+      "retry_boundary": "A retry repeats filesystem reads and signed location checks. A batch failure rolls back accepted readings, audit, events, and outbox together; driver status is updated in a separate signed transaction. The feature remains off until migration 431 is deployed, the runtime-role bootstrap provisions the dedicated login, and an exact worker credential/location grant and DSN are supplied. No existing persisted task is rewritten.",
+      "sources": [
+        "services/ingestion/sensor_worker.py",
+        "services/ingestion/sensor_ingester.py",
+        "services/ingestion/drivers/sensor_csv.py",
+        "services/drivers/registry.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/jobs.py",
+        "services/migration/runtime_role.py",
+        "schemas/postgres/431_signed_sensor_driver_worker.sql",
+        "tests/fixtures/sensor_ingestion_worker_disposable.sql",
+        "scripts/check-sensor-ingestion-worker-disposable.py",
+        ".env.example",
+        "docker-compose.kernel-runtime-role.yml",
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.worker.yml"
+      ]
+    },
+    {
+      "module": "services.ingestion.gnosis_indexer",
+      "scope": "Configured Gnosis DAO/contracts and indexed protocol events; wallet ownership can resolve farm location rows.",
+      "reads": [
+        "public.wallet_profile",
+        "public.protocol",
+        "public.chain_indexer_status"
+      ],
+      "writes": [
+        "public.governance_event",
+        "public.treasury_event",
+        "public.digital_lego_usage",
+        "public.chain_indexer_status",
+        "public.gnosis_event_log_receipt",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "Gnosis JSON-RPC provider"
+      ],
+      "idempotency": "Migration 423 adds a transaction-hash/log-index receipt for newly processed event logs. An identical receipt is skipped before projections; a reused log identity with changed block hash, number, or event type fails closed. Receipt creation shares the transaction with governance/treasury/digital-lego projections, ClickHouse outbox intents, and the block checkpoint. Migration 424 gives the Moloch indexer its own status cursor; historical event rows are not backfilled because they lack log_index and block_hash.",
+      "retry_boundary": "Each scanned block range and its chain_indexer_status checkpoint now commit on the same PostgreSQL connection; a failed range rolls back and stops the run, preserving the last committed boundary. Migration 424 seeds the dedicated gnosis_moloch cursor from the last shared (gnosis, rpc) boundary, marks it paused with provenance, and leaves the wallet-RPC row intact. The indexer rejects an inherited, unreviewed cursor unless the operator supplies --from-block; the first successfully committed range records that review. Removed-log rollback, deep reorg reconciliation, and historical receipt backfill must be resolved before automatic activation.",
+      "sources": [
+        "services/ingestion/gnosis_indexer.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "schemas/postgres/423_gnosis_event_log_receipts.sql",
+        "schemas/postgres/424_gnosis_indexer_cursor_namespace.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.anomaly_detector",
+      "scope": "Scheduled JobSpec execution requires one explicit --location-id; recent sensor readings and baseline rows are filtered to it, and cooldown/alert/ingestion-lineage operations retain that location. The hourly Prefect adapter fans out over active Kokonut Network locations. Scoped runs do not bootstrap shared alert-rule reference rows. Manual anomaly, baseline, and ML-check operations require --location-id or explicit --all-locations; no-argument invocation prints help. ML training requires one location, and --list-rules remains an explicit global read. The event handler is source-reading scoped.",
+      "reads": [
+        "public.alert_rule",
+        "public.sensor_reading",
+        "public.sensor_device",
+        "public.sensor_type",
+        "public.environmental_baseline",
+        "public.platform_event"
+      ],
+      "writes": [
+        "public.sensor_anomaly_effect",
+        "public.sensor_alert",
+        "public.mrv_claim",
+        "public.ingestion_log",
+        "public.platform_event",
+        "public.notification_outbox",
+        "public.actuation_log"
+      ],
+      "external_effects": [
+        "Scheduled CLI mode can send email and Directus notifications; event mode queues notifications durably. Actuation is recorded for later approval/execution in PostgreSQL; this module does not publish MQTT commands."
+      ],
+      "idempotency": "The event handler reserves a per-source-reading/rule effect receipt and commits alert/claim/notification intent atomically. Scheduled window scans are now location-scoped but remain at-least-once; duplicate alert behavior across retries requires separate populated-data review. Actuation remains behind approval policy.",
+      "retry_boundary": "The handler deduplicates same-reading/rule retries. Scheduled retries may repeat readings within the same location and the current code does not establish batch-window idempotency; direct external notification delivery remains at-least-once.",
+      "sources": [
+        "services/ingestion/anomaly_detector.py",
+        "services/events/notification_outbox.py",
+        "services/ingestion/mqtt_actuator.py",
+        "schemas/postgres/081_oracle_infrastructure.sql",
+        "schemas/postgres/375_notification_outbox.sql",
+        "docs/refactor/event-handler-concurrency.md",
+        "services/core/jobs.py",
+        "services/flows/anomaly_detection.py",
+        "services/security/scheduled_command_contracts.py"
+      ]
+    },
+    {
+      "module": "services.metrics",
+      "scope": "Scheduled metric compute requires exactly one --location-id and uses --all or --metric; its --all-locations mode is rejected. NOI snapshot reconciliation has a separate default-off worker entrypoint and signed function boundary. The optional Prefect adapter fans out over active locations directly assigned to Kokonut Network.",
+      "reads": [
+        "public.agent_task",
+        "public.ai_summary",
+        "public.attestation_record",
+        "public.crop_cost_allocation",
+        "public.crop_cycle",
+        "public.data_stream_post",
+        "public.digital_lego_usage",
+        "public.expense_event",
+        "public.farm_activity",
+        "public.harvest_event",
+        "public.impact_claim",
+        "public.lifecycle_transition",
+        "public.location",
+        "public.metric_definition",
+        "public.mrv_claim",
+        "public.offline_collection",
+        "public.mobile_form_version",
+        "public.mobile_participant_link",
+        "public.plot",
+        "public.protocol",
+        "public.report_snapshot",
+        "public.sales_event",
+        "public.soil_carbon_measurement",
+        "public.species_observation",
+        "public.stakeholder_consent",
+        "public.stakeholder_feedback",
+        "public.value_flow_event",
+        "public.v_mobile_collection_use_eligibility",
+        "public.wallet_activity_event",
+        "public.wallet_profile"
+      ],
+      "writes": [
+        "public.metric_value",
+        "public.platform_event"
+      ],
+      "calculator_effects": {
+        "allocated_shared_cost": {
+          "reads": [
+            "public.crop_cost_allocation",
+            "public.expense_event"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "attestation_coverage": {
+          "reads": [
+            "public.attestation_record",
+            "public.mrv_claim"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "baseline_asset_value": {
+          "reads": [
+            "public.location"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "baseline_cash_flow": {
+          "reads": [
+            "public.location"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "baseline_cost": {
+          "reads": [
+            "public.location"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "baseline_revenue": {
+          "reads": [
+            "public.location"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "biodiversity_delta": {
+          "reads": [
+            "public.species_observation"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "crop_noi": {
+          "reads": [
+            "public.crop_cost_allocation",
+            "public.expense_event",
+            "public.sales_event"
+          ],
+          "calculator_calls": [
+            "allocated_shared_cost",
+            "direct_crop_cost",
+            "net_crop_revenue"
+          ],
+          "database_function_calls": []
+        },
+        "crop_revenue": {
+          "reads": [
+            "public.sales_event"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "digital_lego_usage": {
+          "reads": [
+            "public.digital_lego_usage",
+            "public.protocol"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "direct_crop_cost": {
+          "reads": [
+            "public.expense_event"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "first_time_through_yield_pct": {
+          "reads": [
+            "public.agent_task",
+            "public.ai_summary",
+            "public.data_stream_post",
+            "public.farm_activity",
+            "public.harvest_event",
+            "public.impact_claim",
+            "public.lifecycle_transition",
+            "public.report_snapshot",
+            "public.stakeholder_feedback"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": [
+            "public.farm_activity_source_eligible_for_use"
+          ]
+        },
+        "governed_lead_time_days": {
+          "reads": [
+            "public.agent_task",
+            "public.ai_summary",
+            "public.data_stream_post",
+            "public.farm_activity",
+            "public.harvest_event",
+            "public.impact_claim",
+            "public.lifecycle_transition",
+            "public.report_snapshot",
+            "public.stakeholder_feedback"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": [
+            "public.farm_activity_source_eligible_for_use"
+          ]
+        },
+        "loss_rate_pct": {
+          "reads": [
+            "public.harvest_event"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "net_crop_revenue": {
+          "reads": [
+            "public.sales_event"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "operating_margin_pct": {
+          "reads": [
+            "public.crop_cost_allocation",
+            "public.expense_event",
+            "public.sales_event"
+          ],
+          "calculator_calls": [
+            "crop_noi",
+            "net_crop_revenue"
+          ],
+          "database_function_calls": []
+        },
+        "rework_rate_pct": {
+          "reads": [
+            "public.agent_task",
+            "public.ai_summary",
+            "public.data_stream_post",
+            "public.farm_activity",
+            "public.harvest_event",
+            "public.impact_claim",
+            "public.lifecycle_transition",
+            "public.report_snapshot",
+            "public.stakeholder_feedback"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": [
+            "public.farm_activity_source_eligible_for_use"
+          ]
+        },
+        "soil_carbon_delta": {
+          "reads": [
+            "public.plot",
+            "public.soil_carbon_measurement"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "value_flowed": {
+          "reads": [
+            "public.value_flow_event"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        },
+        "wallet_retention": {
+          "reads": [
+            "public.wallet_activity_event",
+            "public.wallet_profile"
+          ],
+          "calculator_calls": [],
+          "database_function_calls": []
+        }
+      },
+      "database_functions": {
+        "public.farm_activity_source_eligible_for_use": {
+          "called_by": [
+            "first_time_through_yield_pct",
+            "governed_lead_time_days",
+            "rework_rate_pct"
+          ],
+          "reads": [
+            "public.offline_collection",
+            "public.mobile_form_version",
+            "public.mobile_participant_link",
+            "public.stakeholder_consent",
+            "public.v_mobile_collection_use_eligibility"
+          ],
+          "sources": [
+            "schemas/postgres/381_mobile_consent_form_revisions.sql",
+            "schemas/postgres/386_farm_activity_consent_use_gate.sql"
+          ],
+          "view_base_relations": [
+            "public.offline_collection",
+            "public.mobile_form_version",
+            "public.mobile_participant_link",
+            "public.stakeholder_consent"
+          ]
+        }
+      },
+      "external_effects": [],
+      "idempotency": "Each compute inserts a new metric_value with verified=false; repeated calculations are not deduplicated by the engine. Recalculation remains a draft write, never human verification.",
+      "retry_boundary": "A scheduler retry may create another metric draft for the same location/period; human review state remains separate.",
+      "sources": [
+        "services/metrics/cli.py",
+        "services/metrics/engine.py",
+        "services/events/bus.py",
+        "services/metrics/calculators/allocated_shared_cost.py",
+        "services/metrics/calculators/attestation_coverage.py",
+        "services/metrics/calculators/baseline_asset_value.py",
+        "services/metrics/calculators/baseline_cash_flow.py",
+        "services/metrics/calculators/baseline_cost.py",
+        "services/metrics/calculators/baseline_revenue.py",
+        "services/metrics/calculators/biodiversity_delta.py",
+        "services/metrics/calculators/crop_noi.py",
+        "services/metrics/calculators/crop_revenue.py",
+        "services/metrics/calculators/digital_lego.py",
+        "services/metrics/calculators/direct_crop_cost.py",
+        "services/metrics/calculators/first_time_through_yield.py",
+        "services/metrics/calculators/governed_lead_time.py",
+        "services/metrics/calculators/loss_rate_pct.py",
+        "services/metrics/calculators/net_crop_revenue.py",
+        "services/metrics/calculators/operating_margin.py",
+        "services/metrics/calculators/rework_rate.py",
+        "services/metrics/calculators/soil_carbon_delta.py",
+        "services/metrics/calculators/value_flowed.py",
+        "services/metrics/calculators/wallet_retention.py",
+        "schemas/postgres/004_finance.sql",
+        "schemas/postgres/381_mobile_consent_form_revisions.sql",
+        "schemas/postgres/386_farm_activity_consent_use_gate.sql"
+      ]
+    },
+    {
+      "module": "services.metrics.noi_snapshot_worker",
+      "worker_key": "noi_snapshot",
+      "scope": "Requires one canonical --location-id and the default-off KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER gate. It opens only KOKONUT_NOI_SNAPSHOT_DATABASE_URL, establishes the exact signed noi_snapshot/reconcile grant, and calls migration 425; its child environment strips shared PostgreSQL login settings. The bounded function repeats the signed location predicate on both crop_cycle and v_crop_cycle_noi.",
+      "reads": [
+        "public.crop_cycle",
+        "public.v_crop_cycle_noi"
+      ],
+      "writes": [
+        "public.noi_snapshot"
+      ],
+      "external_effects": [],
+      "idempotency": "Snapshots upsert by crop_cycle_id within the signed location. A conflicting existing snapshot assigned to a different location is left unchanged; retry refreshes the same location row.",
+      "retry_boundary": "The function runs in the caller-owned worker transaction. Missing credentials, a revoked/expired grant, wrong resource/action, or a location mismatch fails before a snapshot write. No aggregate mode is accepted.",
+      "database_functions": {
+        "kokonut_security.reconcile_noi_snapshot_for_location": {
+          "called_by": [
+            "reconcile"
+          ],
+          "reads": [
+            "public.crop_cycle",
+            "public.v_crop_cycle_noi"
+          ],
+          "writes": [
+            "public.noi_snapshot"
+          ],
+          "sources": [
+            "schemas/postgres/425_signed_noi_snapshot_worker.sql"
+          ],
+          "view_base_relations": [
+            "public.crop_cost_allocation",
+            "public.expense_event",
+            "public.harvest_event",
+            "public.sales_event"
+          ]
+        }
+      },
+      "sources": [
+        "services/metrics/noi_snapshot_worker.py",
+        "services/common/worker_database.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/jobs.py",
+        "services/core/runtime.py",
+        "services/scheduler/cli.py",
+        "services/scheduler/engine.py",
+        "services/security/scheduled_command_contracts.py",
+        "schemas/postgres/353_crop_cycle_noi_view.sql",
+        "schemas/postgres/405_signed_worker_tenant_context.sql",
+        "schemas/postgres/419_private_worker_context_functions.sql",
+        "schemas/postgres/425_signed_noi_snapshot_worker.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.data_freshness",
+      "scope": "--check scans configured sources and all locations unless --source narrows the configuration set.",
+      "reads": [
+        "public.attestation_record",
+        "public.data_freshness_alert_history",
+        "public.data_freshness_alert_state",
+        "public.data_freshness_config",
+        "public.governance_event",
+        "public.ingestion_log",
+        "public.location",
+        "public.price_observation",
+        "public.remote_sensing_observation",
+        "public.sensor_device",
+        "public.sensor_reading",
+        "public.v_data_freshness_summary",
+        "public.wallet_activity_event",
+        "public.weather_observation"
+      ],
+      "writes": [
+        "public.data_freshness_check",
+        "public.data_freshness_alert_state",
+        "public.data_freshness_alert_history",
+        "public.data_freshness_alert_delivery_attempt"
+      ],
+      "external_effects": [
+        "Configured email/webhook alert delivery"
+      ],
+      "idempotency": "Alert state is locked per source/location and transitions use cooldown logic; every check and provider attempt is retained. End-to-end provider delivery is at-least-once.",
+      "retry_boundary": "Database state is durable; external delivery needs receiver idempotency or operator reconciliation.",
+      "sources": [
+        "services/ingestion/data_freshness.py",
+        "services/ingestion/base.py",
+        "services/common/http.py",
+        "schemas/postgres/077_telemetry_infrastructure.sql",
+        "schemas/seeds/077_telemetry_infrastructure.sql",
+        "schemas/postgres/341_freshness_alert_durability.sql"
+      ]
+    },
+    {
+      "module": "services.export.dataset_refresh",
+      "scope": "All active dashboard_dataset definitions selected by the CLI; result source is limited to the three curated reporting views when the feature is explicitly enabled.",
+      "reads": [
+        "public.dashboard_dataset",
+        "kokonut_reporting.v_farm_summary",
+        "kokonut_reporting.v_verified_metric_values",
+        "kokonut_reporting.v_attestation_summary"
+      ],
+      "writes": [
+        "public.dashboard_dataset metadata"
+      ],
+      "external_effects": [],
+      "idempotency": "Refresh writes only a row count and metadata. The current SQL text and active state are compared at update time to reject stale results.",
+      "retry_boundary": "KOKONUT_FEATURE_LEGACY_DATASET_SQL defaults off; enabled reads use the separate ACL-verified read-only analytics role.",
+      "sources": [
+        "services/export/dataset_refresh.py",
+        "services/analytics/reporting_reader.py",
+        "services/migration/analytics_role.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.climate_data",
+      "scope": "Exactly one required --location-id per process; --all means all climate providers for that location, not all locations.",
+      "reads": [
+        "public.location",
+        "public.plot",
+        "public.farm"
+      ],
+      "writes": [
+        "public.worldclim_climate",
+        "public.ncep_weather_summary",
+        "public.modis_lst_summary",
+        "public.smap_soil_moisture",
+        "public.sentinel1_sar_summary",
+        "public.ingestion_log"
+      ],
+      "external_effects": [
+        "ERA5 Land (--ncep), MODIS, SMAP, and Sentinel-1 requests through Google Earth Engine; the worldclim command makes no network request and records a latitude_proxy_v1 estimate"
+      ],
+      "idempotency": "worldclim_climate uses a partial unique key for one location-level row (plot_id IS NULL); migration 397 refuses duplicate legacy rows without deleting them. Migration 428 adds guarded location/date/source partial unique keys for the four GEE summary tables; same-day provider retries upsert the same location-level summary, while plot rows remain independent.",
+      "retry_boundary": "This shared-identity module remains for interactive/manual compatibility and legacy persisted-task reconciliation. The manual path keeps each persisted summary and ingestion audit together and will commit in one transaction. New native JobSpecs use the default-off signed climate_worker, which requires migration 429, a dedicated climate DSN/credential, an exact climate/ingest location grant, and the separately scoped GEE service-account file. Provider failures are audited with bounded messages and return nonzero; no shared-DSN fallback exists in the worker.",
+      "sources": [
+        "services/ingestion/climate_data.py",
+        "services/ingestion/gee_climate.py",
+        "services/ingestion/base.py",
+        "schemas/postgres/074_dsm_soc_prediction.sql",
+        "schemas/postgres/397_worldclim_location_baseline_key.sql",
+        "schemas/postgres/428_climate_summary_idempotency.sql",
+        "services/ingestion/climate_worker.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.climate_worker",
+      "worker_key": "climate",
+      "scope": "Default-off native operation requires one explicit --location-id and establishes a signed climate/ingest grant before every location lookup and summary write. It reads the active location point and plot-derived/fallback bbox only through migration 429 functions; no shared database or GEE key-path fallback is used.",
+      "reads": [
+        "public.location",
+        "public.farm",
+        "public.plot"
+      ],
+      "writes": [
+        "public.worldclim_climate",
+        "public.ncep_weather_summary",
+        "public.modis_lst_summary",
+        "public.smap_soil_moisture",
+        "public.sentinel1_sar_summary",
+        "public.ingestion_log"
+      ],
+      "external_effects": [
+        "ERA5 Land, MODIS, SMAP, and Sentinel-1 requests through Google Earth Engine using the climate-specific service-account key file; WorldClim remains a no-network latitude proxy"
+      ],
+      "idempotency": "Migration 428 keys the four location-level GEE summaries by location/date/source; migration 397 keys the WorldClim location baseline. Migration 429 restricts fields per source and commits each summary with its ingestion audit through one bounded function; plot rows remain independent.",
+      "retry_boundary": "One location is the retry unit. GEE provider results are fetched before a short signed database transaction; failed provider outcomes record a safe failure audit and the command exits nonzero. KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER defaults off; no task, worker credential, location grant, provider key, or candidate migration is activated by this inventory.",
+      "sources": [
+        "services/ingestion/climate_worker.py",
+        "services/ingestion/gee_climate.py",
+        "services/ingestion/climate_data.py",
+        "services/common/worker_database.py",
+        "services/common/tenant_context.py",
+        "schemas/postgres/428_climate_summary_idempotency.sql",
+        "schemas/postgres/429_signed_climate_worker.sql",
+        "scripts/check-climate-worker-disposable.py",
+        "tests/fixtures/climate_worker_disposable.sql",
+        "tests/test_climate_worker.py"
+      ]
+    },
+    {
+      "module": "services.events",
+      "scope": "--process and --event-worker claim the global event queue; --notification-process and --notification-worker claim the global notification outbox; --worker remains the combined compatibility mode. Event handlers may be tenant-scoped, global, or external as recorded below.",
+      "reads": [
+        "public.platform_event",
+        "public.event_handler",
+        "public.event_handler_delivery",
+        "public.notification_outbox"
+      ],
+      "writes": [
+        "public.platform_event",
+        "public.event_handler_delivery",
+        "public.event_handler_log",
+        "public.event_dead_letter",
+        "public.notification_outbox",
+        "public.notification_outbox_attempt"
+      ],
+      "external_effects": [
+        "Delegated to registered event handlers; --notification-process and --notification-worker may deliver email, webhook, or Directus notifications"
+      ],
+      "idempotency": "Per-event/per-handler receipts suppress already-successful handlers. Outbox enqueue uses stable source/channel/destination keys. Event and provider delivery remain at-least-once across lease expiry or a crash after an external effect.",
+      "retry_boundary": "Event and notification queues use durable leases and bounded retries. Dead-letter replay/disposal and event cleanup are excluded from scheduled operation contracts; cleanup retention remains an owner decision.",
+      "sources": [
+        "services/events/bus.py",
+        "services/events/handlers.py",
+        "services/events/notification_outbox.py",
+        "schemas/postgres/375_notification_outbox.sql",
+        "docs/refactor/event-handler-concurrency.md"
+      ]
+    },
+    {
+      "module": "services.analytics.carbon_credit_adjustment_check",
+      "scope": "Dedicated scheduled entrypoint recomputes and reports potential adjustment differences for exactly one required --location-id. The CLI and scheduler contract reject an unscoped all-location scan; the interactive credit-management CLI is not scheduler-allowlisted.",
+      "reads": [
+        "public.carbon_credit",
+        "public.climate_impact_summary",
+        "public.tree_inventory",
+        "public.soil_carbon_measurement",
+        "public.ghg_emissions_inventory"
+      ],
+      "writes": [],
+      "external_effects": [],
+      "idempotency": "The check recomputes from current verified source rows inside a database-enforced read-only transaction; it does not write credit adjustments, retirement state, or review decisions. Repeating it has no database side effects.",
+      "retry_boundary": "Retry repeats bounded database reads and reports current differences. The interactive issuance, adjustment, retirement, and retirement-review CLI is outside the scheduler module allowlist.",
+      "sources": [
+        "services/analytics/carbon_credit_adjustment_check.py",
+        "services/analytics/carbon_credits.py",
+        "services/analytics/carbon_balance.py",
+        "services/common/database.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.remote_sensing_fetcher",
+      "scope": "Legacy/manual entrypoint and persisted task compatibility remain allowlisted, but new native JobSpecs use services.ingestion.remote_sensing_worker. Every CLI mode and due-job claim requires one explicit --location-id; job lookup, listing, job creation, and due-row leases are limited to that location. It processes at most --limit jobs sequentially (1-10). The optional Prefect adapter fans out over active Kokonut Network locations. Provider job rows must already be configured and active for execution; queue execution creates no jobs.",
+      "reads": [
+        "public.remote_sensing_job",
+        "public.location",
+        "public.plot",
+        "public.farm",
+        "public.remote_sensing_observation"
+      ],
+      "writes": [
+        "public.remote_sensing_job",
+        "public.remote_sensing_observation",
+        "public.remote_sensing_provider_attempt",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "Google Earth Engine API requests",
+        "Copernicus Data Space API requests",
+        "ClickHouse projection delivery only through the separately optional outbox worker"
+      ],
+      "idempotency": "Due rows are claimed with FOR UPDATE SKIP LOCKED, filtered by the required location, and protected by one 30-minute lease at a time. remote_sensing_observation has a unique source_system/source_id key; provider attempts are append-only and can repeat across retries.",
+      "retry_boundary": "The configured provider can fall back to the other supported provider. Retryable failure schedules the job for 15 minutes later; completion updates are lease-owner guarded. The process bounds each invocation and claims the next row only after the current provider attempt finishes.",
+      "sources": [
+        "services/ingestion/remote_sensing_fetcher.py",
+        "services/ingestion/remote_sensing.py",
+        "services/ingestion/gee_remote_sensing.py",
+        "services/ingestion/copernicus_remote_sensing.py",
+        "services/core/jobs.py",
+        "schemas/postgres/077_telemetry_infrastructure.sql",
+        "schemas/postgres/300_ingestion_reliability.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.remote_sensing_worker",
+      "worker_key": "remote_sensing",
+      "scope": "Default-off native scheduled worker requires one explicit --location-id and an optional bounded --limit. It receives only the exact remote_sensing DSN, signed credential, and remote-sensing provider credentials; it establishes remote_sensing/run context before claiming and completing each job. Migration 432 exposes only bounded claim/completion functions; the worker has no direct application-table access. Legacy/manual remote_sensing_fetcher remains available for compatibility.",
+      "reads": [
+        "public.remote_sensing_job",
+        "public.location",
+        "public.plot",
+        "public.farm",
+        "public.remote_sensing_observation"
+      ],
+      "writes": [
+        "public.remote_sensing_job",
+        "public.remote_sensing_observation",
+        "public.remote_sensing_provider_attempt",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "Google Earth Engine API requests",
+        "Copernicus Data Space API requests",
+        "ClickHouse projection delivery only through the separately optional outbox worker"
+      ],
+      "idempotency": "Due rows are claimed with FOR UPDATE SKIP LOCKED under a 30-minute lease for the signed location. Provider attempts, observation insertion, source audit, outbox enqueue, and job state update share one database transaction. Unique source_system/source_id suppresses same-scope replay; a conflicting cross-scope source identity aborts the transaction.",
+      "retry_boundary": "The configured provider can fall back to the other supported provider after a retryable outcome. A retryable final outcome schedules a 15-minute retry; success/no-data use the configured cadence, and non-retryable failure marks the job error. Every completion is lease-owner guarded; the worker bounds each invocation and claims the next row only after finishing the current one.",
+      "sources": [
+        "services/ingestion/remote_sensing_worker.py",
+        "services/ingestion/remote_sensing_fetcher.py",
+        "services/ingestion/gee_remote_sensing.py",
+        "services/ingestion/copernicus_remote_sensing.py",
+        "services/common/worker_database.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_environment.py",
+        "services/core/jobs.py",
+        "schemas/postgres/077_telemetry_infrastructure.sql",
+        "schemas/postgres/300_ingestion_reliability.sql",
+        "schemas/postgres/338_remote_telemetry_reliability.sql",
+        "schemas/postgres/432_signed_remote_sensing_worker.sql"
+      ]
+    },
+    {
+      "module": "services.ingestion.clickhouse_outbox",
+      "scope": "Global projection queue; the supported scheduled operation is --run-once with a bounded batch (the current JobSpec fixes --limit 100). Operator list, replay, disposal, and manual reconciliation commands are excluded from scheduled arguments.",
+      "reads": [
+        "public.clickhouse_outbox"
+      ],
+      "writes": [
+        "public.clickhouse_outbox",
+        "public.clickhouse_outbox_operator_audit"
+      ],
+      "external_effects": [
+        "When ClickHouse is enabled, writes allowlisted projection rows to the optional ClickHouse provider; when disabled, leaves queue rows untouched."
+      ],
+      "idempotency": "Stable event keys and payload hashes suppress duplicate enqueue; lease tokens guard completion. External ClickHouse delivery is at-least-once across a crash after the provider write and before PostgreSQL completion.",
+      "retry_boundary": "Expired claims are recovered and delivery retries are bounded at eight attempts before dead-lettering; every batch is capped at 1000 rows and the scheduled JobSpec requests 100.",
+      "sources": [
+        "services/ingestion/clickhouse_outbox.py",
+        "services/core/jobs.py",
+        "services/security/scheduled_command_contracts.py",
+        "schemas/postgres/335_clickhouse_outbox.sql",
+        "schemas/postgres/374_clickhouse_outbox_operator_audit.sql"
+      ]
+    }
+  ],
+  "event_handlers": [
+    {
+      "module": "services.ingestion.anomaly_detector",
+      "function": "handle_sensor_reading",
+      "event_type": "sensor_reading",
+      "scope": "One event/source reading and its location. The handler receives a dedicated sensor_anomaly database URL and credential through exact source-controlled routing, then establishes signed transaction context and uses bounded database functions through migrations 405-414. It has no shared-DSN fallback or direct access to protected source/effect tables.",
+      "reads": [
+        "public.platform_event",
+        "public.sensor_reading",
+        "public.alert_rule",
+        "public.sensor_type",
+        "public.sensor_device",
+        "public.sensor_alert",
+        "public.location"
+      ],
+      "writes": [
+        "public.sensor_anomaly_effect",
+        "public.sensor_alert",
+        "public.mrv_claim",
+        "public.ingestion_log",
+        "public.platform_event",
+        "public.notification_outbox",
+        "public.actuation_log"
+      ],
+      "idempotency": "A signed per-reading/rule receipt fences the bounded effects; the handler commits its source, alert, audit, event, notification, and optional draft/actuation intents atomically before the parent worker stores its delivery receipt.",
+      "retry_boundary": "The handler may run again after crash or lease expiry; its source-reading/rule effect receipt suppresses duplicate database effects, while notification delivery remains at-least-once.",
+      "sources": [
+        "services/ingestion/anomaly_detector.py",
+        "services/ingestion/sensor_anomaly_worker.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/events/bus.py",
+        "services/events/handler_runner.py",
+        "services/events/notification_outbox.py",
+        "services/ingestion/mqtt_actuator.py",
+        "schemas/postgres/081_oracle_infrastructure.sql",
+        "schemas/postgres/375_notification_outbox.sql",
+        "schemas/postgres/405_signed_worker_tenant_context.sql",
+        "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+        "schemas/postgres/407_sensor_anomaly_effect_functions.sql",
+        "schemas/postgres/408_sensor_alert_event_function.sql",
+        "schemas/postgres/409_sensor_alert_notification_intent.sql",
+        "schemas/postgres/410_sensor_alert_actuation_intent.sql",
+        "schemas/postgres/411_sensor_alert_draft_claim_intent.sql",
+        "schemas/postgres/412_sensor_anomaly_worker_reads.sql",
+        "schemas/postgres/413_sensor_anomaly_alert_write.sql",
+        "schemas/postgres/414_sensor_anomaly_worker_delivery.sql",
+        "docs/refactor/event-handler-concurrency.md",
+        "docs/refactor/sensor-anomaly-delivery.md"
+      ]
+    },
+    {
+      "module": "services.events.handlers",
+      "function": "handle_stale_data",
+      "event_type": "data_stale",
+      "scope": "Global notification outbox operation. When KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE is enabled, a separate login calls the migration-417 bounded function with function ACLs kept private by migrations 418-419 and actual runtime-role bootstrap; exact source event type and optional payload location lineage are rechecked in SQL. The value remains optional, non-authoritative notification lineage and grants no tenant access. The default-off compatibility path retains the shared runtime connection.",
+      "reads": [
+        "public.notification_outbox"
+      ],
+      "writes": [
+        "public.notification_outbox"
+      ],
+      "idempotency": "The bounded function validates and inserts by stable source-event/channel/destination identity, returns zero on exact replay, fills only missing location lineage, and rejects changed payload/type/location content. Remote delivery remains at-least-once unless the receiver honors its idempotency key.",
+      "retry_boundary": "Event retry repeats durable enqueue through the stable notification identity; the dedicated function cannot send messages or mutate delivery leases, attempts, or dead-letter state. Provider sending and operator replay remain separate outbox-worker operations.",
+      "sources": [
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.kernel-standard.yml",
+        "docs/refactor/event-handler-concurrency.md",
+        "schemas/postgres/375_notification_outbox.sql",
+        "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+        "schemas/postgres/417_isolated_notification_enqueue.sql",
+        "schemas/postgres/418_mobile_credential_function_acl.sql",
+        "schemas/postgres/419_private_worker_context_functions.sql",
+        "scripts/check-notification-enqueue-worker-disposable.py",
+        "scripts/check-operator-session-role-disposable.py",
+        "tests/test_runtime_role_boundary.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/events/handlers.py",
+        "services/events/notification_outbox.py",
+        "services/migration/runtime_role.py",
+        "tests/fixtures/notification_enqueue_worker_disposable.sql"
+      ]
+    },
+    {
+      "module": "services.cache.events",
+      "function": "handle_metric_computed",
+      "event_type": "metric_computed",
+      "scope": "Requires the matching event ID and one canonical payload location; when signed cache invalidation is enabled, establishes computation_cache/invalidate worker context and the database function rechecks event type/location before touching that location's analytics rows. The default flag preserves the existing scoped runtime-cache path.",
+      "reads": [
+        "public.platform_event",
+        "public.cache_entry"
+      ],
+      "writes": [
+        "public.cache_entry invalidation state"
+      ],
+      "idempotency": "Repeated invalidation of the same location is idempotent; concurrent and crash/retry evidence exists for this handler.",
+      "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeated location-scoped invalidation is safe and does not affect other locations.",
+      "sources": [
+        "services/cache/events.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/events/bus.py",
+        "services/events/handler_runner.py",
+        "schemas/postgres/415_signed_cache_invalidation_worker.sql",
+        "schemas/postgres/416_sensor_harvest_cache_invalidation.sql",
+        "docs/refactor/event-handler-concurrency.md"
+      ]
+    },
+    {
+      "module": "services.cache.events",
+      "function": "handle_crisp_scored",
+      "event_type": "crisp_scored",
+      "scope": "Requires the matching event ID and one canonical payload location; when signed cache invalidation is enabled, establishes computation_cache/invalidate worker context and the database function rechecks event type/location before touching that location's CRISP rows. The default flag preserves the existing scoped runtime-cache path.",
+      "reads": [
+        "public.platform_event",
+        "public.cache_entry"
+      ],
+      "writes": [
+        "public.cache_entry invalidation state"
+      ],
+      "idempotency": "Repeated invalidation of the same location is idempotent; concurrency, timeout, lease takeover and crash/retry evidence exists for this handler.",
+      "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeated location-scoped invalidation is safe and does not affect other locations.",
+      "sources": [
+        "services/cache/events.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/core/features.py",
+        "services/events/bus.py",
+        "services/events/handler_runner.py",
+        "schemas/postgres/415_signed_cache_invalidation_worker.sql",
+        "schemas/postgres/416_sensor_harvest_cache_invalidation.sql",
+        "docs/refactor/event-handler-concurrency.md"
+      ]
+    },
+    {
+      "module": "services.cache.events",
+      "function": "handle_sensor_reading",
+      "event_type": "sensor_reading",
+      "scope": "Requires the matching durable event ID and canonical payload location; when signed cache invalidation is enabled, establishes computation_cache/invalidate worker context and migration 416 rechecks event type/location before invalidating only that location's metric rows. The default flag preserves the existing scoped runtime-cache path.",
+      "reads": [
+        "public.platform_event",
+        "public.cache_entry"
+      ],
+      "writes": [
+        "public.cache_entry invalidation state"
+      ],
+      "idempotency": "Repeated location-scoped invalidation is idempotent; the four-handler disposable PostgreSQL acceptance verifies same-event retry returns zero additional invalidations.",
+      "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeating the location-scoped invalidation does not affect other locations.",
+      "sources": [
+        "services/cache/events.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/core/features.py",
+        "services/events/bus.py",
+        "services/events/handler_runner.py",
+        "schemas/postgres/415_signed_cache_invalidation_worker.sql",
+        "schemas/postgres/416_sensor_harvest_cache_invalidation.sql",
+        "docs/refactor/event-handler-concurrency.md"
+      ]
+    },
+    {
+      "module": "services.cache.events",
+      "function": "handle_harvest_recorded",
+      "event_type": "harvest_recorded",
+      "scope": "Requires the matching durable event ID and canonical payload location; when signed cache invalidation is enabled, establishes computation_cache/invalidate worker context and migration 416 rechecks event type/location before invalidating only that location's metric rows. The default flag preserves the existing scoped runtime-cache path.",
+      "reads": [
+        "public.platform_event",
+        "public.cache_entry"
+      ],
+      "writes": [
+        "public.cache_entry invalidation state"
+      ],
+      "idempotency": "Repeated location-scoped invalidation is idempotent; the four-handler disposable PostgreSQL acceptance verifies same-event retry returns zero additional invalidations.",
+      "retry_boundary": "Lease expiry or crash may invoke invalidation again; repeating the location-scoped invalidation does not affect other locations.",
+      "sources": [
+        "services/cache/events.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/core/features.py",
+        "services/events/bus.py",
+        "services/events/handler_runner.py",
+        "schemas/postgres/415_signed_cache_invalidation_worker.sql",
+        "schemas/postgres/416_sensor_harvest_cache_invalidation.sql",
+        "docs/refactor/event-handler-concurrency.md"
+      ]
+    },
+    {
+      "module": "services.events.handlers",
+      "function": "handle_alert_notification",
+      "event_type": "threshold_breached",
+      "scope": "Global notification outbox operation. When KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE is enabled, a separate login calls the migration-417 bounded function with function ACLs kept private by migrations 418-419 and actual runtime-role bootstrap; exact source event type and optional payload location lineage are rechecked in SQL. The value remains optional, non-authoritative notification lineage and grants no tenant access. The default-off compatibility path retains the shared runtime connection.",
+      "reads": [
+        "public.notification_outbox"
+      ],
+      "writes": [
+        "public.notification_outbox"
+      ],
+      "idempotency": "The bounded function validates and inserts by stable source-event/channel/destination identity, returns zero on exact replay, fills only missing location lineage, and rejects changed payload/type/location content. Remote delivery remains at-least-once unless the receiver honors its idempotency key.",
+      "retry_boundary": "Event retry repeats durable enqueue through the stable notification identity; the dedicated function cannot send messages or mutate delivery leases, attempts, or dead-letter state. Provider sending and operator replay remain separate outbox-worker operations.",
+      "sources": [
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.kernel-standard.yml",
+        "docs/refactor/event-handler-concurrency.md",
+        "schemas/postgres/375_notification_outbox.sql",
+        "schemas/postgres/406_sensor_anomaly_location_lineage.sql",
+        "schemas/postgres/417_isolated_notification_enqueue.sql",
+        "schemas/postgres/418_mobile_credential_function_acl.sql",
+        "schemas/postgres/419_private_worker_context_functions.sql",
+        "scripts/check-notification-enqueue-worker-disposable.py",
+        "scripts/check-operator-session-role-disposable.py",
+        "tests/test_runtime_role_boundary.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/events/handlers.py",
+        "services/events/notification_outbox.py",
+        "services/migration/runtime_role.py",
+        "tests/fixtures/notification_enqueue_worker_disposable.sql"
+      ]
+    }
+  ],
+  "known_open_items": [
+    "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
+    "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, market-data, sensor-ingestion, remote-sensing, and EAS integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
+    "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
+  ]
+}

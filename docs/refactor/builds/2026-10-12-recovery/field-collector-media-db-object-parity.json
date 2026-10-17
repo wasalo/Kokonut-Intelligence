@@ -1,0 +1,49 @@
+{
+  "acceptance": "field-collector-local-media-database-object-parity",
+  "date": "2026-10-12",
+  "compose_files": [
+    "docker-compose.kernel-candidate.yml",
+    "docker-compose.kernel-edge.yml"
+  ],
+  "scope": {
+    "project": "unique temporary Compose project",
+    "database": "disposable PostGIS 16 service with a new project-scoped volume",
+    "app_image": "existing kokonut-kernel-candidate-app:latest",
+    "migration": "schemas/postgres/358_mobile_private_media.sql",
+    "migration_prerequisites": "minimal synthetic schema_version, location, mobile_device, and offline_collection tables",
+    "media_provider": "local selected only by the edge overlay",
+    "sops_fields_read_in_process_memory": [
+      "MOBILE_MEDIA_LOCAL_KEY",
+      "POSTGRES_PASSWORD"
+    ],
+    "candidate_project_touched": false
+  },
+  "checks": {
+    "migration_358_applied": true,
+    "synthetic_upload_row_created": true,
+    "edge_named_volume_object_created": true,
+    "database_key_type_size_and_digest_match_object": true,
+    "aes_gcm_object_authentication_succeeded": true,
+    "decrypted_plaintext_sha256_matches_database_row": true,
+    "wrong_media_key_rejected": true,
+    "synthetic_rows_and_object_removed": true,
+    "temporary_project_volumes_and_network_removed": true
+  },
+  "fixture": {
+    "media_objects": 1,
+    "payload_bytes": 53,
+    "data": "synthetic JPEG-signature test payload; no personal or farm data"
+  },
+  "result": "passed for one synthetic upload row and encrypted object",
+  "limitations": [
+    "The upload row was registered with the real migration schema but not through the HTTP upload route.",
+    "Minimal prerequisite tables were used; this was not a full ordered schema replay or candidate database migration.",
+    "The running candidate service was not recreated; disposable one-off app containers used the edge volume.",
+    "Expiry/orphan cleanup, production retention, and full browser/offline behavior remain open."
+  ],
+  "rollback": "Removed the synthetic upload row, device, location, media object, unique Compose network, containers, and project-scoped volumes. Candidate containers, volumes, database, and provider selection were untouched.",
+  "harness_notes": [
+    "An initial disposable database setup encountered an early socket close; cleanup removed the project, and a health-wait diagnostic then passed the prerequisites and migration.",
+    "A first full-run command used an unsupported Compose run flag and stopped before writing rows or objects; the corrected run passed."
+  ]
+}

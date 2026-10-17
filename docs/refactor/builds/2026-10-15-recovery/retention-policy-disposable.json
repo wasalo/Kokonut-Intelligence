@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-15",
+  "kind": "disposable-postgresql-migration-and-retention-acceptance",
+  "migration_ids": [
+    "schema:401_dynamic_retention_and_legal_holds.sql",
+    "schema:402_retention_policy_scope_codes.sql"
+  ],
+  "docker_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+  "network": "internal-only; no host ports published",
+  "checks": [
+    "ordered migration runner applied migrations 401 and 402 to a synthetic pre-migration fixture",
+    "legacy policies lacking approval were demoted; explicit approvals and dynamic default removal verified",
+    "nullable jurisdiction/purpose codes, no implied defaults, format constraints, and scoped-policy overlap blocking verified",
+    "event cleanup global-policy lookup with overlap guard and FOR SHARE lock executed against PostgreSQL",
+    "legal-hold placement/release audit, active-hold uniqueness, and append-only history verified",
+    "generic retention candidate selection excludes active holds and resumes after release",
+    "event cleanup selects one approved window and preserves legal holds, pending dead letters, unsuccessful deliveries, and processing events"
+  ],
+  "candidate_or_legacy_database_touched": false,
+  "retention_cleanup_enabled_in_repository": false,
+  "migration_runner_output": "Applied: 2, Failed: 0",
+  "result": "passed"
+}

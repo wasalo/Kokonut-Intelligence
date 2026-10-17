@@ -87,6 +87,75 @@ def test_seed_has_organization() -> None:
     assert "cooperative" in text
 
 
+def test_tenant_ownership_migration_is_limited_to_confirmed_demo_locations() -> None:
+    migration = Path(
+        "schemas/postgres/387_kokonut_network_tenant_ownership.sql"
+    ).read_text()
+    assert "'kokonut-network'" in migration
+    assert "Kokonut Network" in migration
+    assert "Kokonut Adelphi" in migration
+    assert "Kokonut Genesis" in migration
+    assert "unreviewed existing owner" in migration
+    assert "ALTER TABLE location ENABLE ROW LEVEL SECURITY" not in migration
+
+
+def test_pilot_ownership_seed_runs_after_genesis_and_is_idempotent() -> None:
+    script = Path("scripts/seed-pilot.sh").read_text()
+    assert script.index("schema:388_tenant_aware_operator_grants.sql") < script.index(
+        '"$SEED_DIR/001_pilot_farm.sql"'
+    )
+    assert script.index("098_multi_farm.sql") < script.index(
+        "120_kokonut_network_ownership.sql"
+    )
+    ownership_seed = Path(
+        "schemas/seeds/120_kokonut_network_ownership.sql"
+    ).read_text()
+    assert "ON CONFLICT (id) DO UPDATE" in ownership_seed
+    assert "Kokonut Genesis" in ownership_seed
+
+
+def test_confirmed_operating_tenant_map_runs_last_and_skips_future_locations() -> None:
+    pilot_seed = Path("scripts/seed-pilot.sh").read_text()
+    assert pilot_seed.index("121_kokonut_network_tenant_owner_verification.sql") < pilot_seed.index(
+        "122_kokonut_network_operating_tenant_map.sql"
+    )
+
+    ownership_seed = Path(
+        "schemas/seeds/122_kokonut_network_operating_tenant_map.sql"
+    ).read_text()
+    preflight = Path("services/mobile/tenant_preflight.py").read_text()
+    for location_name, location_slug in (
+        ("Kokonut Genesis", "kokonut-genesis"),
+        ("Kokonut Seeds", "kokonut-seeds"),
+        ("Kokonut Adelphi", "kokonut-adelphi"),
+        ("Kokonut Terra Viva", "kokonut-terra-viva"),
+        ("Kokonut V1", "kokonut-v1"),
+    ):
+        assert location_name in ownership_seed
+        assert location_slug in ownership_seed
+        assert location_name in preflight
+        assert location_slug in preflight
+    assert "IF NOT FOUND THEN" in ownership_seed
+    assert "CONTINUE;" in ownership_seed
+    assert "not_a_land_title_assertion" in ownership_seed
+    assert "location_organization_share" not in ownership_seed
+    assert "operator_organization_membership" not in ownership_seed
+    assert "audited transfer/reconciliation path" in ownership_seed
+
+
+def test_legacy_pilot_organization_seed_uses_confirmed_network_owner() -> None:
+    pilot_organization = Path("schemas/seeds/113_pilot_organization.sql").read_text()
+    assert "org_key = 'kokonut-network'" in pilot_organization
+    assert "SET organization_id = 'a0000000-0000-0000-0000-000000000700'" not in pilot_organization
+
+    impact_seed = SEED.read_text()
+    assert "SELECT id FROM organization WHERE org_key = 'kokonut-network'" in impact_seed
+    member_seed = impact_seed.split("INSERT INTO organization_member (", 1)[1].split(
+        "ON CONFLICT", 1
+    )[0]
+    assert "source_system" not in member_seed
+
+
 def test_seed_has_funding() -> None:
     text = SEED.read_text()
     assert "donor" in text
@@ -120,7 +189,7 @@ def test_seed_has_office() -> None:
 # ---------------------------------------------------------------------------
 
 def test_orchestrator_import() -> None:
-    from services.office import run_full_cycle, run_bounty_cycle, run_funding_cycle, run_landscape_refresh
+    from services.office import run_bounty_cycle, run_full_cycle, run_funding_cycle, run_landscape_refresh
     assert callable(run_full_cycle)
     assert callable(run_bounty_cycle)
     assert callable(run_funding_cycle)
@@ -141,6 +210,9 @@ if __name__ == "__main__":
     test_schema_067_defines_tables()
     test_schema_068_defines_tables()
     test_seed_has_organization()
+    test_tenant_ownership_migration_is_limited_to_confirmed_demo_locations()
+    test_pilot_ownership_seed_runs_after_genesis_and_is_idempotent()
+    test_legacy_pilot_organization_seed_uses_confirmed_network_owner()
     test_seed_has_funding()
     test_seed_has_bounties()
     test_seed_has_office()

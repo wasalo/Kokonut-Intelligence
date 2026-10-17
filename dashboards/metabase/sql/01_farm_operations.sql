@@ -14,7 +14,12 @@ JOIN location l ON f.location_id = l.id
 LEFT JOIN plot p ON f.id = p.farm_id
 LEFT JOIN crop_cycle cc ON p.id = cc.plot_id
 LEFT JOIN harvest_event h ON cc.id = h.crop_cycle_id
-LEFT JOIN farm_activity fa ON cc.id = fa.crop_cycle_id
+LEFT JOIN farm_activity fa
+  ON cc.id = fa.crop_cycle_id
+ AND fa.status = 'published'
+ AND farm_activity_source_eligible_for_use(
+       fa.source_system, fa.source_id, fa.source_raw, fa.location_id
+     )
 WHERE f.status = 'active'
 GROUP BY l.name, f.name
 ORDER BY total_harvest_kg DESC;

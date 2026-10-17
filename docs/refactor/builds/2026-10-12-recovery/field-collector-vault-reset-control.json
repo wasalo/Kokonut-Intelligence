@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-12",
+  "scope": "Field Collector local encrypted-vault reset control",
+  "implementation": {
+    "local_store": "The locked-vault screen offers a browser-confirmed deletion of the Field Collector IndexedDB database and known legacy localStorage keys.",
+    "cross_tab_behavior": "Other open Field Collector tabs close their IndexedDB connections and lock their in-memory app state when storage changes. The deleting tab reports if another tab blocks deletion.",
+    "server_boundary": "Local deletion does not revoke server-side device enrollment or erase already-synced server records."
+  },
+  "checks": {
+    "command": "node --test tests/test_mobile_vault.mjs",
+    "passed": 9,
+    "failed": 0,
+    "additional": [
+      "Inline field-collector.html JavaScript passed node --check.",
+      "git diff --check passed.",
+      "node --test tests/test_mobile_offline_shell.mjs passed both offline-shell checks.",
+      "The Python pytest wrapper was unavailable because pytest is not installed; its underlying Node test command passed directly."
+    ]
+  },
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "rebuilt_service": "app",
+    "health": "healthy",
+    "browser_url": "http://127.0.0.1:8098/mobile",
+    "locked_gate_visible": true,
+    "delete_warning_visible": true,
+    "delete_button_visible": true,
+    "delete_action_invoked": false,
+    "existing_browser_vault": "encrypted, locked, and retained"
+  },
+  "data_and_configuration": {
+    "database_or_schema_changed": false,
+    "candidate_provider_configuration_changed": false,
+    "synthetic_rows_created_or_deleted": false
+  },
+  "rollback": "Revert the Field Collector source, test, and documentation changes, then rebuild only the candidate app service. No database rollback is needed."
+}

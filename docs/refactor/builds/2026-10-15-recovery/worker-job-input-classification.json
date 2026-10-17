@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-15",
+  "kind": "static-worker-job-input-classification",
+  "status": "passed",
+  "branch": "feat/mobile-offline-acceptance",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_worker_job_contract_inventory.py tests/test_scheduled_command_contracts.py tests/test_core_jobs_contract.py -q",
+      "result": "85 passed"
+    },
+    "inventory": "regenerated and current",
+    "outcomes": {
+      "catalog_jobs": 15,
+      "default_arguments_accepted": 13,
+      "required_runtime_inputs_validated": 1,
+      "source_contract_missing": 1
+    }
+  },
+  "climate": {
+    "required_input": "location_id",
+    "validation": "command schema accepted a synthetic UUID fixture",
+    "real_schedule": "still requires one explicit location and remains disabled pending review"
+  },
+  "sensor": {
+    "status": "blocked",
+    "reason": "no recurring source contract exists"
+  },
+  "external_effects": {
+    "database_or_prefect_accessed": false,
+    "provider_invoked": false,
+    "schedule_created_or_enabled": false
+  },
+  "limitations": [
+    "Static contract validation does not establish persisted schedule ownership, provider readiness, runtime identity, tenant scope, or output parity.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

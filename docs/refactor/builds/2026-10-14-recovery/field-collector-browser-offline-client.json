@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-14",
+  "checked_at_utc": "2026-10-14T03:36:01Z",
+  "subject": "Field Collector browser offline queue and reconnect retry",
+  "candidate": {
+    "compose_project": "kokonut-kernel-candidate",
+    "url": "http://127.0.0.1:8098/mobile/",
+    "app_image_id": "sha256:3da2b305247575f1183b82d0bbec9db6996b942a3c4ba89b93e226611d4a6808"
+  },
+  "browser": {
+    "engine": "Google Chrome 155",
+    "execution": "headless Playwright with a fresh isolated context and temporary profile",
+    "service_worker": "candidate app shell and vault helper cached before offline navigation"
+  },
+  "fixture": {
+    "identity": "synthetic device and location",
+    "record": "non-sensitive synthetic field note",
+    "api": "all /api/mobile/* requests intercepted and answered by local synthetic fixtures",
+    "existing_user_vault_accessed": false
+  },
+  "checks": {
+    "navigator_on_line_false": "passed",
+    "cached_app_reopened_while_offline": "passed",
+    "encrypted_vault_unlocked_while_offline": "passed",
+    "synthetic_note_saved_to_local_queue": "passed",
+    "indexeddb_envelope_contains_ciphertext": "passed",
+    "synthetic_note_plaintext_absent_from_indexeddb_envelope": "passed",
+    "first_reconnect_sync_returned_synthetic_503_and_kept_queue": "passed",
+    "manual_retry_returned_synthetic_200_and_cleared_queue": "passed"
+  },
+  "api_calls": [
+    { "method": "GET", "path": "/api/mobile/forms", "response": 200, "fixture": true },
+    { "method": "GET", "path": "/api/mobile/forms", "response": 200, "fixture": true },
+    { "method": "POST", "path": "/api/mobile/sync", "response": 503, "fixture": true },
+    { "method": "POST", "path": "/api/mobile/sync", "response": 200, "fixture": true }
+  ],
+  "result": "passed",
+  "candidate_database_mutated": false,
+  "legacy_stack_touched": false,
+  "limitations": [
+    "The browser used network emulation while the host remained online; this was not OS airplane mode or physical-device acceptance.",
+    "Mobile API behavior was mocked, so this does not verify authenticated live Gateway sync, candidate enrollment, consent withdrawal, or server persistence.",
+    "The existing user browser vault and its contents were not opened, unlocked, or modified.",
+    "Real OIDC, owner-transfer re-enrollment in a user browser, human retention/erasure disposition, tenant/RLS, and production media/provider recovery remain open."
+  ]
+}

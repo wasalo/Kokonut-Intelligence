@@ -1,6 +1,7 @@
 """Core farm, crop, and climate report generators."""
 
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import psycopg2
 import psycopg2.extras
@@ -109,6 +110,43 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
     )
     attestation = dict(cur.fetchone())
 
+    # Only published farm activity is eligible for this report. The projection
+    # contains aggregate counts and reported hours; private free text, media,
+    # participant identity, source lineage, and record IDs stay out of reports.
+    cur.execute(
+        """
+        SELECT activity_type,
+               COUNT(*) AS activity_count,
+               COALESCE(SUM(labor_hours), 0) AS reported_labor_hours
+        FROM farm_activity
+        WHERE location_id = %s
+          AND status = 'published'
+          AND farm_activity_source_eligible_for_use(
+              source_system, source_id, source_raw, location_id
+          )
+          AND (%s::date IS NULL OR activity_date >= %s::date)
+          AND (%s::date IS NULL OR activity_date <= %s::date)
+        GROUP BY activity_type
+        ORDER BY activity_type
+        """,
+        (location_id, period_start, period_start, period_end, period_end),
+    )
+    activity_rows = [dict(r) for r in cur.fetchall()]
+    activity_count = sum(int(row["activity_count"] or 0) for row in activity_rows)
+    labor_hours = sum(
+        (Decimal(str(row["reported_labor_hours"] or 0)) for row in activity_rows),
+        Decimal("0"),
+    )
+    activity_type_breakdown = [
+        {
+            "activity_type": row["activity_type"],
+            "activity_count": int(row["activity_count"] or 0),
+            "reported_labor_hours": float(row["reported_labor_hours"] or 0),
+            "reported_labor_hours_unit": "hours",
+        }
+        for row in activity_rows
+    ]
+
     cur.close()
 
     report = {
@@ -121,6 +159,12 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
         "financial_summary": financial,
         "expense_breakdown": expense_breakdown,
         "attestation_coverage": attestation,
+        "farm_activity_summary": {
+            "published_activity_count": activity_count,
+            "reported_labor_hours": float(labor_hours),
+            "reported_labor_hours_unit": "hours",
+            "by_activity_type": activity_type_breakdown,
+        },
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -288,7 +332,7 @@ def generate_revenue_multiplier(conn, location_id: str, period_start: str = None
     """Generate a revenue multiplier opportunity map report."""
     from dataclasses import asdict
 
-    from ..revenue_multiplier.analyzer import analyze_location
+    from ...revenue_multiplier.analyzer import analyze_location
 
     result = analyze_location(location_id)
     return {
@@ -385,7 +429,7 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
     # Determine reporting year from period_start or current year
     from datetime import datetime as _dt
 
-    from ..analytics.carbon_balance import (
+    from ...analytics.carbon_balance import (
         compute_carbon_balance,
         compute_ghg_emissions,
         compute_regenerative_score,

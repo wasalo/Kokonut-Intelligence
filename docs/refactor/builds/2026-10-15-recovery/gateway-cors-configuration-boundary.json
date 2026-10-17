@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-15",
+  "result": "passed",
+  "evidence_type": "source_unit_and_compose_config",
+  "feature": "gateway_cors_configuration_boundary",
+  "directus_setting": "CORS_ORIGIN",
+  "gateway_setting": "KOKONUT_GATEWAY_CORS_ORIGINS",
+  "gateway_default": "empty",
+  "wildcard_origins": "ignored",
+  "assertions": [
+    "explicit Gateway origins allow the matching preflight",
+    "empty Gateway origin configuration does not grant cross-origin access",
+    "wildcard Gateway origins are ignored",
+    "a Directus-only CORS_ORIGIN does not enable Gateway CORS",
+    "candidate Compose maps the dedicated Gateway setting"
+  ],
+  "focused_tests": 85,
+  "test_command": "python -m pytest tests/test_gateway_auth.py tests/test_operator_auth.py -q",
+  "ruff": "passed",
+  "python_compile": "passed",
+  "compose_config": "passed",
+  "database_accessed": false,
+  "provider_accessed": false,
+  "browser_runtime_acceptance": "open"
+}

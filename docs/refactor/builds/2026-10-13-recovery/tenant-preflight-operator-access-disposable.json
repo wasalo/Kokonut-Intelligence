@@ -1,0 +1,87 @@
+{
+  "run_id": "tenant-preflight-operator-access-disposable-20261013",
+  "date": "2026-10-13",
+  "result": "passed",
+  "scope": "aggregate-only operator affiliation and tenant-grant preflight acceptance",
+  "source": {
+    "base_commit": "79757675b2b562019e57209ef17138ab80f45fcd",
+    "working_tree_source_sha256": {
+      "services/mobile/tenant_preflight.py": "0c5352031973af70cf14244a84ca3e8f0798ec23d4d55da092b24342d28b9b85",
+      "tests/test_mobile_tenant_operator_preflight.py": "7020841c82143403da56ad8a013f325df03a52d2f6e07a852721ac82d979d2cd",
+      "tests/test_mobile_tenant_binding.py": "dd54e26552d52502a3d8b56da33a9a40230ffcd751fa6627adb800efa4ee065a",
+      "tests/fixtures/tenant_preflight_operator_access_schema.sql": "88df141b9ec1cec494768dfe0ce15408be2fed299921be28ecab380306c0c8fd",
+      "scripts/fixtures/tenant-preflight-operator-access-check.py": "0bc1808a5537571e069a16f286b33c1463a1b673a10071d500ce95046ed31add"
+    }
+  },
+  "fixture": {
+    "database_image": "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "compose_project": "kokonut-tenant-preflight-operator-access-20261013",
+    "services": 1,
+    "host_binding": "127.0.0.1:25489",
+    "compose_declared_volumes": 0,
+    "schema": "targeted synthetic schema fixture",
+    "actual_ordered_migrations_applied": [
+      "388_tenant_aware_operator_grants.sql",
+      "391_mobile_device_tenant_binding.sql"
+    ],
+    "candidate_database_accessed": false,
+    "legacy_database_accessed": false
+  },
+  "verification": {
+    "disposable_acceptance": {
+      "command": "PYTHONPATH=. python scripts/fixtures/tenant-preflight-operator-access-check.py",
+      "status": "passed",
+      "per_location_expected_and_observed": {
+        "active_operator_grant": 5,
+        "active_legacy_operator_grant": 1,
+        "active_tenant_qualified_operator_grant": 4,
+        "authorized_tenant_qualified_operator_grant": 2,
+        "invalid_tenant_qualified_operator_grant": 2,
+        "operators_with_active_legacy_grant": 1,
+        "operators_with_authorized_tenant_grant": 2
+      },
+      "database_wide_expected_and_observed": {
+        "operator_identity_count": 4,
+        "enabled_operator_identity_count": 3,
+        "disabled_operator_identity_count": 1,
+        "active_operator_organization_membership_count": 3,
+        "active_membership_for_enabled_operator_count": 2,
+        "active_membership_for_disabled_operator_count": 1,
+        "enabled_operators_with_active_membership_count": 2
+      },
+      "raw_identifiers_emitted": false,
+      "identifier_leak_checks_passed": true,
+      "synthetic_rows_removed": true,
+      "synthetic_row_counts_after_cleanup": {
+        "operator_grants": 0,
+        "location_shares": 0,
+        "operator_memberships": 0,
+        "owner_verifications": 0,
+        "organization_members": 0,
+        "locations": 0,
+        "organizations": 0,
+        "operator_identities": 0
+      }
+    },
+    "focused_python_tests": {
+      "command": ".venv/bin/python -m pytest tests/test_mobile_tenant_operator_preflight.py tests/test_mobile_tenant_binding.py -q --disable-warnings",
+      "passed": 5
+    },
+    "ruff": "passed",
+    "python_syntax_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "cleanup": {
+    "command": "docker compose down --volumes --remove-orphans",
+    "disposable_container_removed": true,
+    "disposable_network_removed": true,
+    "temporary_compose_file_removed": true,
+    "candidate_or_legacy_services_changed": false
+  },
+  "limitations": [
+    "The schema was targeted to this preflight and applied migrations 388 and 391; this was not a full repository migration replay.",
+    "Aggregate counts quantify operator affiliation and grant state but do not identify real operator-to-organization mappings.",
+    "No legacy grant conversion, ownership inference, candidate rollout, worker integration, direct-database isolation, or RLS enablement was performed.",
+    "The preflight remains partial for populated production/archive lineage and does not certify CAP-053 end-to-end parity."
+  ]
+}

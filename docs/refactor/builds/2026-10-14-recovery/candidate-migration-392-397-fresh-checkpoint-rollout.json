@@ -1,0 +1,107 @@
+{
+  "record_type": "local_candidate_schema_rollout",
+  "recorded_at": "2026-10-14T22:45:00Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "local_commit_before_record": "66594b6",
+  "candidate": {
+    "database_container": "kokonut-kernel-candidate-database-1",
+    "database": "kokonut_intelligence",
+    "schema_migration_range": [392, 397],
+    "apply_mode": "ordered_runner_schema_only",
+    "applied_schema_count": 388,
+    "latest_schema": "397_worldclim_location_baseline_key",
+    "seed_ledger_count": 1,
+    "pending_or_failed_migration_count": 0,
+    "application_tables_with_rls_enabled": 0,
+    "selected_post_rollout_counts": {
+      "mobile_forms": 5,
+      "mobile_form_versions": 10,
+      "locations": 0,
+      "worldclim_location_baselines": 0
+    },
+    "migration_397_index_present": true,
+    "migration_397_view_present": true
+  },
+  "migrations": [
+    {
+      "id": "schema:392_mobile_credential_functions.sql",
+      "status": "applied",
+      "checksum": "a204dcf714a46e4683d3412766df48dcfab34ddf6e09680240a7b99e736ac5cc"
+    },
+    {
+      "id": "schema:393_mobile_tenant_context_proof.sql",
+      "status": "applied",
+      "checksum": "a28f77ffb3f3874327c8c3e300474c2edec2dc2ca53c26fd8d7cf7a78b853832"
+    },
+    {
+      "id": "schema:394_signed_operator_tenant_context.sql",
+      "status": "applied",
+      "checksum": "a7ff00e2b56e614fbba6636d84500d1defd006d30ecb3ddb157b0d15b8f961b5"
+    },
+    {
+      "id": "schema:395_operator_session_auth_boundary.sql",
+      "status": "applied",
+      "checksum": "f29de9c9dc7dc7f19230b58be593aefe302d6290fc541f83997a906a6a598728"
+    },
+    {
+      "id": "schema:396_signed_gateway_credential_tenant_context.sql",
+      "status": "applied",
+      "checksum": "7c85724bfad5fc4a65e326bf0c3822d2a150ede5baa6835070c69496133be229"
+    },
+    {
+      "id": "schema:397_worldclim_location_baseline_key.sql",
+      "status": "applied",
+      "checksum": "ecb25db9466a91d678a2ebaaa3fe4e8b37fce129e8163bd9c9daff0fee6d2366"
+    }
+  ],
+  "checkpoint": {
+    "relative_path": "backups/kernel-candidate-pre-392-397-20261014T223500Z/postgres.dump.age",
+    "created_at": "2026-10-14T22:36:42.694683+00:00",
+    "age_encrypted": true,
+    "bytes": 5568525,
+    "sha256": "ba8ccb35718f54877a0ab02f6176dfb374e211d665db1bebab5de78a75163db7",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "restore_rehearsal": {
+      "completed": true,
+      "project": "kokonut-kernel-recovery-rollout-20261014-2235",
+      "target_database": "kokonut_restore",
+      "empty_template0_precondition": true,
+      "restore_method": "stream_age_decrypt_to_pg_restore_without_plaintext_dump_file",
+      "pre_rollout_schema_count": 382,
+      "pre_rollout_seed_ledger_count": 1,
+      "post_replay_schema_count": 388,
+      "post_replay_seed_ledger_count": 1,
+      "second_ordered_runner_pass_pending": 0,
+      "post_replay_application_tables_with_rls_enabled": 0,
+      "temporary_database_volume_removed": true
+    }
+  },
+  "candidate_application": {
+    "compose_scope": ["docker-compose.kernel-candidate.yml", "docker-compose.kernel-metabase.yml"],
+    "only_app_recreated": true,
+    "app_health": "healthy",
+    "database_health": "healthy",
+    "metabase_health": "healthy",
+    "proxy_status": "running",
+    "health_endpoint_http": 200,
+    "anonymous_mobile_sync_status_http": 401
+  },
+  "scope_and_cleanup": {
+    "curated_seed_sql_applied": false,
+    "application_table_rls_enabled": false,
+    "legacy_stack_touched": false,
+    "candidate_database_changed": true,
+    "temporary_recovery_container_network_and_volume_removed": true,
+    "encrypted_checkpoint_retained_outside_git": true,
+    "plaintext_dump_file_created": false
+  },
+  "rollback": {
+    "performed": false,
+    "strategy": "If rollback is required, restore the retained pre-rollout encrypted database checkpoint to a replacement database and validate before cutover; provision database roles/grants separately because the checkpoint excludes them. Recreate the app from a separately retained prior image if needed. No in-place down migration was run."
+  },
+  "limitations": [
+    "This is local candidate schema-rollout evidence, not production acceptance.",
+    "RLS remains disabled pending worker, Directus/view, remaining runtime-role, operator, and owner-mapping gates.",
+    "The separate curated-seed rollout remains unapproved and unapplied."
+  ]
+}

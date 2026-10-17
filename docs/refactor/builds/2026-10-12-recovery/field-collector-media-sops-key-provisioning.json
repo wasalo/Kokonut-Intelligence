@@ -1,0 +1,33 @@
+{
+  "acceptance": "sops-provisioned-media-key-checkpoint-restore",
+  "date": "2026-10-12",
+  "provisioning": {
+    "field": "MOBILE_MEDIA_LOCAL_KEY",
+    "format": "random 32-byte key encoded as 64 lowercase hexadecimal characters",
+    "delivery": "generated in process memory and supplied to sops set over stdin",
+    "encrypted_store": ".env.sops",
+    "targeted_sops_readback_matches_generated_key": true,
+    "plaintext_key_written_or_emitted": false,
+    "mobile_media_provider_changed": false
+  },
+  "recovery": {
+    "fixture": "one synthetic KKM1 AES-256-GCM media object",
+    "checkpoint_script": "scripts/kernel-media-checkpoint.py",
+    "restore_script": "scripts/kernel-media-restore.py",
+    "archive_identity": "user-provided SOPS age identity",
+    "media_key_source": "targeted SOPS extraction held in process memory",
+    "synthetic_database_checkpoint_binding": true,
+    "restored_ciphertext_inventory_verified": true,
+    "restored_media_aes_gcm_authentication": true,
+    "restored_plaintext_sha256_matches_fixture": true,
+    "wrong_media_key_rejected": true,
+    "media_key_excluded_from_archive_and_manifest": true
+  },
+  "result": "provisioning readback and one-object encrypted media recovery passed",
+  "limitations": [
+    "The database checkpoint was synthetic; no PostgreSQL restore or mobile_media_upload row/hash/size parity was checked.",
+    "No persistent Compose volume, container replacement, expiry/orphan cleanup, or production retention was exercised.",
+    "MOBILE_MEDIA_PROVIDER remains unset, so the source and base profile continue to default to S3; the candidate runtime was not reconfigured."
+  ],
+  "rollback": "All synthetic media, archive, database-binding fixture, and temporary dependency files were removed. The explicitly approved encrypted MOBILE_MEDIA_LOCAL_KEY remains in .env.sops; no candidate container or database was touched."
+}

@@ -1,6 +1,6 @@
 # Optional database consumer roles
 
-**Status (11 October 2026):** role boundaries passed on fresh isolated copies of
+**Status (13 October 2026):** role boundaries passed on fresh isolated copies of
 the populated application and Metabase metadata databases. The expanded
 reporting-view check also passed against a current-schema scratch database in a
 copied recovery volume; it did not migrate the restored application database,
@@ -47,16 +47,26 @@ linked from the Metabase profile.
 The legacy `docker-compose.yml` connects both Directus and Metabase as the
 `kokonut` PostgreSQL superuser. Directus uses the application database with
 `DB_SEARCH_PATH=public,kokonut`; Metabase keeps its own application metadata in
-the `metabase` database. The repository does not configure Metabase's
-operational data source, so its source permissions cannot be inferred from
-Compose. Neither optional product is enabled in the Kernel candidate or
-standard profile.
+the `metabase` database. The repository's Compose files define service
+selection and networking, while the Metabase source is configured separately
+inside the optional candidate profile. Directus is not enabled in the Kernel
+candidate; Metabase runs only when the candidate `analytics` profile is selected.
+Neither service is part of the default, minimal, edge, or standard profile.
 
 | Identity | Database scope | Required access | Explicit boundary |
 | --- | --- | --- | --- |
 | `kokonut_directus_runtime` | Kernel application database | `CONNECT`; `USAGE`; `SELECT`, `INSERT`, `UPDATE`, `DELETE` on Directus-managed relations; sequence `USAGE`, `SELECT`, `UPDATE` | No ownership, schema `CREATE`, role/database administration, or access to the metadata database. Directus CRUD permissions remain a separate API authorization layer. |
 | `kokonut_metabase_app` | One dedicated Metabase metadata database | Owns that database's application relations so Metabase can create and migrate its metadata schema | No superuser, `CREATEDB`, `CREATEROLE`, or connection to the Kernel application database. Do not reuse it as an analytics-source account. |
-| `kokonut_analytics_ro` | One explicitly configured source database | `CONNECT`, `USAGE` on a reviewed reporting schema, and `SELECT` on individually approved views | No application-table access, writes, schema creation, metadata-database access, or public sharing of private evidence. The local candidate role is provisioned; production provisioning remains separate, and no operational Metabase source connection is configured. |
+| `kokonut_analytics_ro` | Candidate application database, restricted to the reviewed reporting schema | `CONNECT`, `USAGE` on `kokonut_reporting`, and `SELECT` on its three approved views | No application-table access, writes, schema creation, metadata-database access, or public sharing of private evidence. The optional candidate Metabase source uses this identity; production credentials and source setup remain separate release work. |
+| `kokonut_remote_sensing_login` | Kernel application database | `CONNECT`; `USAGE` on `kokonut_security`; non-inheriting `SET` membership in `kokonut_worker_execution` | No application relation or sequence privileges. Extension-owned metadata may retain extension-defined `PUBLIC` access. The execution role can call only the bounded migration 432 claim/finish functions, which require the dedicated `session_user` and a signed `remote_sensing/run` location context. The optional runtime-role bootstrap provisions the login only after migration 432 is applied. |
+
+The signed remote-sensing identity follows the same one-shot bootstrap boundary
+as the other optional worker credentials. Set the dedicated login password
+only in encrypted deployment secrets, then run the runtime-role bootstrap after
+the ordered schema runner has applied migration 432. Compose passes that
+password only to the bootstrap service; the worker receives its separate DSN
+and signed worker credential. The feature remains disabled by default, and no
+candidate or production credential is provisioned by this source change.
 
 PostgreSQL's `PUBLIC CONNECT` and extension relation grants are inherited by all
 roles unless revoked. The recovery fixture revokes `PUBLIC CONNECT` on every
@@ -84,19 +94,34 @@ to that internal service identity. It is not an analytics connection and must
 not be shared with Metabase. Keep Directus user/policy/field permissions and
 the existing authorization tests as the user-facing access boundary.
 
-Directus remains a separate future profile. Likely touchpoints are:
+Directus now has an explicit optional Kernel profile in
+[`docker-compose.kernel-directus.yml`](../../docker-compose.kernel-directus.yml).
+The long-running service starts with `cli.js start` under
+`kokonut_directus_runtime`; a separate one-shot owner-backed bootstrap runs
+`cli.js bootstrap`. The isolated role setup is implemented in
+[`services/migration/directus_role.py`](../../services/migration/directus_role.py)
+and is never part of default startup. The legacy `docker-compose.yml` remains
+untouched. The profile binds its API to loopback port 18055 by default and
+disables Redis-backed caching, so Directus does not add a Redis requirement to
+the Kernel.
 
-- `docker-compose.yml`: remove `DB_USER=kokonut` from the legacy Directus
-  service and use explicit Directus admin/runtime credentials.
-- New `docker-compose.kernel-directus.yml`: optional service plus a separately
-  invoked bootstrap profile; its app command must not run bootstrap as the
-  runtime user.
-- `services/migration/runtime_role.py`: keep the native Kernel DML role
-  separate; do not extend it to Directus or Metabase.
-- `tests/test_directus_metadata.py`, `tests/test_gateway_auth.py`, and the
-  Directus permission SQL in `config/directus/permissions.sql`: preserve the
-  independent API permission boundary and verify access after changing DB
-  identities.
+Before using the profile, build the ignored extension artifact, prepare the
+candidate schema, then run the role bootstrap and owner-backed Directus
+bootstrap as separate one-shots. The role provisioner revokes `PUBLIC CONNECT`
+across the dedicated Kernel PostgreSQL instance, strips stale explicit
+Directus grants, and restores access only to the application database. It
+grants DML on existing and future `public`/`kokonut` objects, denies DDL and
+ownership, and fails if role attributes or database access do not match. This
+changes database-connect policy across the whole PostgreSQL instance; do not
+run it against a shared or legacy server. Review service-role bootstrap order
+when combining optional profiles.
+
+This closes a deployment identity gap, not Directus permission parity. Tenant
+hooks still require a configured issuer and operator grants; the unlicensed
+API still hides Field Worker's custom `farm_activity` rules. Role/field/relation
+checks, all collection/action behavior, and operator-facing workflow
+acceptance remain open. Keep operations behind the Gateway until those gates
+are closed or a valid Directus permission license is configured.
 
 ## Metabase metadata and source access
 
@@ -114,9 +139,9 @@ owner. The fixture used the same synthetic role for the populated metadata copy
 and a separate empty startup database; a production instance should point the
 role at exactly one metadata database.
 
-Metabase's operational data source is a different credential. The source
-should use a read-only login against a future curated PostgreSQL reporting
-schema, for example `kokonut_reporting`, with explicit per-view grants. Do not
+Metabase's operational data source uses a different credential from its
+metadata database. The optional candidate source uses a read-only login against
+`kokonut_reporting`, with explicit per-view grants. Do not
 grant `SELECT` across all of `public`: that would expose private and
 unpublished application data. The source role should receive no writes or DDL.
 If model persistence, uploads, or actions are later required, add a separate
@@ -131,19 +156,25 @@ behavior with transaction-rolled-back synthetic rows. Migration 377 was applied
 through the tracked runner to `kokonut_reporting_scratch`; the post-run plan
 reported zero pending schema migrations. Exact view grants, base-table and
 policy-table denials, and farm/metric/Celo-attestation behavior passed. The
-active candidate now has the same curated schema plus the verified
-`kokonut_analytics_ro` login; Metabase has no source connection yet. The
-archived application database's checksum drift at `schema:000_extensions.sql`
-was not repaired or bypassed. See the
-[reporting evidence](builds/2026-10-11-recovery/kokonut-reporting-contract.json)
+active candidate has the curated schema and verified `kokonut_analytics_ro`
+login. Its optional Metabase profile registers `Kokonut Reporting Views`,
+filtered to the three approved views, and contains three first-party cards and
+a dashboard. The exact exported card SQL matched independent references on a
+copied populated fixture; the encrypted metadata restore matched the live
+inventory. The archived application clone's checksum drift at
+`schema:000_extensions.sql` was not repaired or bypassed and is not used as the
+candidate source. See the [card parity evidence](builds/2026-10-11-recovery/metabase-card-output-parity.json),
+[reporting evidence](builds/2026-10-11-recovery/kokonut-reporting-contract.json),
 and [read-only drift triage](migration-checksum-drift.md).
 
 The legacy metadata contains 39 saved cards and one dashboard. Structural
 review found a generic **E-commerce Insights** board over the sample H2 source;
-preserve it only for demo/compatibility use, not as Kokonut reporting. A
-populated legacy metadata startup, source registration, and Kokonut-specific
-card/output parity remain open. The candidate-only Metabase overlay and
-metadata bootstrap are prepared in
+preserve it only for demo/compatibility use, not as Kokonut reporting. The
+populated legacy metadata startup, optional candidate source registration, and
+Kokonut-specific card/output parity are now complete in Batch 4e; the candidate
+remains empty, so populated-fixture parity is not the same as populated live
+operations. The candidate-only Metabase overlay and metadata bootstrap are
+implemented and exercised; profile details are in
 [`metabase-kernel-profile.md`](metabase-kernel-profile.md). The first-start
 check uses a separate empty database and does not connect to any saved source.
 Startup evidence is
@@ -297,9 +328,12 @@ Metabase's source connection must continue to use the distinct read-only
 
 The Metabase image is pinned at 0.62.4. The profile supplies a separate
 SOPS-managed `MB_ENCRYPTION_SECRET_KEY`; its startup log confirmed saved
-credential encryption is enabled before source registration. Metabase is
-healthy with the corrected metadata grants; its sanitized inventory found one
-sample H2 source, 39 generic demo cards, one demo dashboard with 22 placements,
-and one user record. No Kokonut source or card has been configured. Keep the
-encryption key with encrypted metadata backups; losing it makes saved
-connection details unrecoverable. See [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json).
+credential encryption was enabled before source registration. The candidate
+retains the generic H2 demo separately from the Kokonut source and first-party
+reporting cards. The credential-free export and sanitized inventory are
+retained; the encrypted metadata backup restored with matching source, card,
+dashboard, placement, virtual-tile, and user counts. Keep the encryption key
+with encrypted metadata backups; losing it makes saved connection details
+unrecoverable. See [profile evidence](builds/2026-10-11-recovery/candidate-metabase-profile.json),
+[card parity](builds/2026-10-11-recovery/metabase-card-output-parity.json), and
+[backup record](builds/2026-10-11-recovery/candidate-metabase-backup.json).

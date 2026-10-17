@@ -1,0 +1,54 @@
+{
+  "date": "2026-10-17",
+  "checked_at_utc": "2026-10-17T15:23:27Z",
+  "check": "clean_bootstrap_optional_role_prerequisites",
+  "source_revision_before_fix": "4805e62129a561856a4eff496e0a34d2e4a4bae2",
+  "files_changed_for_fix": [
+    "scripts/verify-clean-bootstrap.sh",
+    "scripts/README.md"
+  ],
+  "ci_failure": {
+    "run": 393,
+    "failed_stage": "Clean PostgreSQL bootstrap",
+    "migration": "schema:427_signed_weather_observation_worker.sql",
+    "cause": "Fresh CI PostgreSQL had no kokonut_runtime role named in a migration REVOKE statement."
+  },
+  "fix": {
+    "behavior": "Before creating the temporary replay database, create each absent optional role name as NOLOGIN, NOINHERIT, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOREPLICATION, NOBYPASSRLS.",
+    "roles": [
+      "kokonut_runtime",
+      "kokonut_worker_login"
+    ],
+    "existing_roles_modified": false,
+    "credentials_created": false
+  },
+  "acceptance": {
+    "compose_project": "kokonut-kernel-ci-bootstrap-20261017",
+    "compose_file": "docker-compose.kernel-candidate.yml",
+    "database_service_only": true,
+    "temporary_database": true,
+    "schema_sources_applied": 423,
+    "latest_schema": "schema:432_signed_remote_sensing_worker.sql",
+    "failed": 0,
+    "exit_code": 0,
+    "no_seeds": true,
+    "no_provider_calls": true,
+    "database_host_port_published": false,
+    "network_egress_disabled": false,
+    "temporary_database_dropped": true,
+    "temporary_compose_project_removed": true,
+    "temporary_volume_removed": true,
+    "cleanup_verified_by_docker_inventory": true
+  },
+  "additional_checks": {
+    "bash_syntax": "passed",
+    "git_diff_check": "passed",
+    "capability_matrix_structure": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "recovery_evidence_json": "valid"
+  },
+  "limitations": [
+    "This closes the clean-bootstrap failure locally; hosted CI and Security must pass on the pushed fix.",
+    "The replay ran on the local Docker host, not a physical Raspberry Pi.",
+    "The default Compose bridge was not configured as internal, although only the database service ran and no provider calls were made."
+  ]
+}

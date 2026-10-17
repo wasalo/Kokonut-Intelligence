@@ -104,11 +104,13 @@ fi
 CHECK_DOCKER="${HEALTH_CHECK_DOCKER:-true}"
 if [ "$CHECK_DOCKER" = "true" ]; then
     if [ "$JSON_OUTPUT" = "false" ]; then echo "Docker containers:"; fi
-    check "container_database" "docker ps --format '{{.Names}}' | grep -q 'database'"
-    check "container_directus" "docker ps --format '{{.Names}}' | grep -q 'directus'"
-    check "container_clickhouse" "docker ps --format '{{.Names}}' | grep -q 'clickhouse'"
+    # Consume the complete `docker ps` output: with pipefail, grep -q can close
+    # the pipe early and make Docker report SIGPIPE even when a match exists.
+    check "container_database" "docker ps --format '{{.Names}}' | grep 'database' > /dev/null"
+    check "container_directus" "docker ps --format '{{.Names}}' | grep 'directus' > /dev/null"
+    check "container_clickhouse" "docker ps --format '{{.Names}}' | grep 'clickhouse' > /dev/null"
     if [ "$HEALTH_CHECK_METABASE" = "true" ]; then
-        check "container_metabase" "docker ps --format '{{.Names}}' | grep -q 'metabase'"
+        check "container_metabase" "docker ps --format '{{.Names}}' | grep 'metabase' > /dev/null"
     fi
 
     # Check for exited (crashed) containers

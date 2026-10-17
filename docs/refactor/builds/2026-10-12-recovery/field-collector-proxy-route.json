@@ -1,0 +1,96 @@
+{
+  "date": "2026-10-12",
+  "acceptance": "candidate-field-collector-proxy-route",
+  "source_commit": "d24b68ee7ca10554956518c4a42d081a5f7d3586",
+  "compose_project": "kokonut-kernel-candidate",
+  "recreated_service": "app",
+  "services_after_recreation": {
+    "app": "healthy",
+    "database": "healthy",
+    "metabase": "healthy"
+  },
+  "http_checks": {
+    "GET /mobile": {
+      "status": 308,
+      "location": "/mobile/"
+    },
+    "GET /mobile/": {
+      "status": 200
+    },
+    "GET /mobile/field-collector-service-worker.js": {
+      "status": 200,
+      "content_type": "application/javascript"
+    },
+    "GET /health": {
+      "status": "ok",
+      "audit_capture": "ok",
+      "version": "0.1.0"
+    }
+  },
+  "scope_and_limitations": {
+    "requests_used_candidate_loopback_gateway_port": true,
+    "live_caddy_or_traefik_proxy_tested": true,
+    "browser_reloaded_or_vault_changed": false,
+    "database_or_schema_changed": false,
+    "metabase_recreated": false,
+    "legacy_compose_project_touched": false,
+    "live_candidate_caddy_proxy_tested": true,
+    "candidate_caddy_tls_test_used_insecure_local_ca_override": true,
+    "external_traefik_or_public_ingress_tested": false,
+    "browser_through_proxy_tested": false,
+    "browser_tls_warning_bypassed": false
+  },
+  "rollback": "Stop only the optional candidate proxy service to disable local ingress. To revert the route correction, restore the prior app image/source and retain the existing database; no database rollback is needed.",
+  "proxy_service": "proxy",
+  "proxy_image": "caddy:2-alpine@sha256:5f5c8640aae01df9654968d946d8f1a56c497f1dd5c5cda4cf95ab7c14d58648",
+  "proxy_ports": {
+    "http": "127.0.0.1:8088->80/tcp",
+    "https": "127.0.0.1:8448->443/tcp"
+  },
+  "services_after_proxy_start": {
+    "app": "healthy",
+    "database": "healthy",
+    "metabase": "healthy",
+    "proxy": "running"
+  },
+  "candidate_caddy_proxy_checks": {
+    "GET http://localhost:8088/mobile": {
+      "status": 308,
+      "location": "https://localhost:8448/mobile"
+    },
+    "GET https://localhost:8448/mobile": {
+      "status": 308,
+      "location": "https://localhost:8448/mobile/"
+    },
+    "GET https://localhost:8448/mobile/": {
+      "status": 200,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "GET https://localhost:8448/mobile/field-collector-service-worker.js": {
+      "status": 200,
+      "content_type": "application/javascript"
+    },
+    "GET https://localhost:8448/health": {
+      "status": 200,
+      "content_type": "application/json",
+      "body": {
+        "status": "ok",
+        "audit_capture": "ok",
+        "service": "gateway",
+        "version": "0.1.0"
+      },
+      "headers": {
+        "via": "1.1 Caddy",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin"
+      }
+    }
+  },
+  "browser_proxy_attempt": {
+    "url": "https://localhost:8448/mobile",
+    "result": "ERR_CERT_AUTHORITY_INVALID before page load",
+    "security_interstitial_bypassed": false,
+    "existing_user_vault_tab_touched": false
+  }
+}

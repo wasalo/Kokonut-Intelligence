@@ -89,14 +89,7 @@ SET inputs = inputs || '{"farm_id":"kokonut-adelphi"}'::jsonb,
     output = output || '{"registry_slug":"kokonut-adelphi"}'::jsonb
 WHERE id = 'a0000000-0000-0000-0000-000000000562';
 
-UPDATE farm_activity
-SET description = replace(replace(replace(replace(replace(replace(description,
-    'maize', 'lettuce'), 'Maize', 'Lettuce'),
-    'cassava', 'passion fruit'), 'Cassava', 'Passion fruit'),
-    'beans', 'eggs'), 'Beans', 'Eggs'),
-    updated_at = NOW()
-WHERE location_id = 'a0000000-0000-0000-0000-000000000001';
-
+-- Farm-activity descriptions are normalized in the source pilot seed before insert.
 UPDATE field_note
 SET content = replace(replace(replace(replace(replace(replace(content,
     'maize', 'lettuce'), 'Maize', 'Lettuce'),

@@ -1,0 +1,14 @@
+{
+  "migration": "429_signed_climate_worker.sql",
+  "checks": [
+    "migrations 405, 419, 428, and 429 apply in order; migration 429 replays cleanly",
+    "signed location lookup returns only the grant scope and bounded plot/fallback coordinates",
+    "worker login has no direct climate-table access despite forced RLS",
+    "all five whitelisted source summaries and ingestion audit rows commit through bounded functions",
+    "same-date/source retries upsert one location-level climate record",
+    "source payload field allowlists reject unapproved data columns",
+    "bounded climate writes reject cross-location IDs",
+    "provider failures create scoped audit rows without writing summaries",
+    "only the non-login worker execution role can call bounded climate functions; direct DML stays denied"
+  ]
+}

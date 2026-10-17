@@ -1,12 +1,1910 @@
 # Kokonut Kernel implementation progress
 
-**Updated:** 12 October 2026. **Current implementation focus: the candidate serves the Field Collector `1.2.0` schemas, and Phase 7 now includes source-level OIDC enrollment controls in the operator console. The new route/auth checks passed (5 tests); real provider configuration and the live authenticated device workflow remain open.** Preparatory Phase 8 image work has also occurred. This is not a sequential completion claim: earlier phases have implementation evidence but unresolved acceptance criteria.
+### Worker inventory refresh — 17 October 2026
 
-Implementation work has local commits on `feat/kernel-architecture-refactor`, based on
-`ad806f504bfef15cba41446d777cb22f6bd8fe6a`. No implementation PR/merge or passing
-release CI is recorded. The root implementation plan remains intentionally
-ignored; this ledger and the [capability matrix](capability-matrix.md) provide
-repository-visible progress alongside it.
+Refreshing generated maps after the EAS provider extraction/timestamp change and
+freshness-alert delivery/state changes brought the source graph to 31 operation roots and 92 source files.
+The graph contains 624 function memberships, 850 direct-call edges, 20 dynamic
+dispatch edges, 322 worker SQL sites, 249 unique SQL sites on static paths, and
+73 sites without a static function match. The runtime SQL inventory records
+4,004 sites across 825 files. All worker source/function/SQL/effect/preflight,
+JobSpec, runtime SQL, and capability-matrix checks pass; eight focused
+inventory test files pass 50 tests. The preflight remains
+`review_required`; this source inventory does not establish grants, RLS, active
+schedules, runtime identity, or MAN-CAP acceptance
+([evidence](builds/2026-10-17-recovery/worker-inventory-refresh-current.json)).
+
+### Freshness alert failure containment — 17 October 2026
+
+The legacy data-freshness alert sender now closes webhook responses after both
+successful and failed requests. It records only an HTTP status or exception
+class for webhook/SMTP failures, avoiding raw provider response, recipient, or
+endpoint text in logs and delivery-attempt records. Thirty-three focused freshness
+tests pass with Ruff, compilation, and diff checks; all provider calls were
+mocked and no database was used. Destination ownership and live delivery remain
+open. A failed measurement also leaves the last known alert state intact, so a
+later fresh measurement can still emit the expected recovery event. Checklist
+count is 452 complete / 20 open (472 total); no MAN-CAP
+acceptance changed
+([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
+[state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
+
+### CI #406 report-helper inventory refresh — 17 October 2026
+
+Hosted CI #406 on pushed commit `47dc1527` failed one fast-fail check because
+the generated report-generator helper-scope inventory retained stale line
+references into `services/common/database.py`. I regenerated the inventory and
+the exact `--check` now passes locally; capability-matrix validation also
+passes. No application behavior, database, or provider was changed for this
+repair. The updated inventory is local and awaits the next batched push and a
+fresh hosted CI run ([evidence](builds/2026-10-17-recovery/ci-406-report-helper-inventory-refresh.json)).
+
+### EAS cursor-boundary scan — 17 October 2026
+
+The EAS worker now stops fetching recipient history after a provider page,
+validated as newest-first, crosses below the saved timestamp cursor. It keeps
+the cursor second inclusive so newly indexed same-second attestations are still
+reprocessed. This avoids repeatedly paging all older attestations for recipients
+with an established cursor. Twenty-two focused mocked EAS provider/worker/cursor
+checks pass, along with Ruff, compilation, and diff checks. No EAS endpoint or
+database was contacted. Concurrent offset-page movement and earlier-than-cursor
+arrivals remain open. Checklist count is 448 complete / 20 open (468 total);
+capability status and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
+
+### EAS attestation timestamp validation — 17 October 2026
+
+The isolated EAS worker now rejects missing, null, boolean, negative,
+fractional, malformed, or out-of-range attestation timestamps before persisting a provider
+page or advancing a recipient cursor. This prevents an invalid timestamp from
+being coerced to zero and silently discarded as older than the saved cursor.
+Seven focused malformed-timestamp cases pass; the combined EAS provider/worker/
+cursor suite passes 34 tests with Ruff and compilation. All provider responses
+were mocked; no EAS endpoint or database was contacted. Concurrent offset-page
+movement, earlier-than-cursor arrivals, and live provider acceptance remain
+open ([evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json)).
+
+### Explicit EAS cursor replay — 17 October 2026
+
+The isolated EAS worker accepts an optional `--replay-lookback-seconds` for
+operator-selected recovery of provider records indexed late below the saved
+recipient cursor. Replayed pages use the existing idempotent database function,
+and the saved cursor never regresses. The zero-second default preserves normal
+scheduled behavior; negative, boolean, and fractional direct-call values fail
+before database access, and the CLI rejects negative input before connecting.
+Five focused replay/argument checks pass within the combined 34-test EAS suite,
+with Ruff and compilation. The 130-test scheduled-command contract suite also
+confirms scheduler invocations still accept only the explicit chain and reject
+the manual replay option. No provider or database was contacted. This only
+recovers records within the explicitly selected interval; arrivals outside it,
+offset-page stability, and live acceptance remain open
+([evidence](builds/2026-10-17-recovery/eas-explicit-replay-lookback.json)).
+
+### EAS GraphQL error handling — 17 October 2026
+
+The database-independent EAS provider adapter now rejects GraphQL errors,
+partial data with errors, invalid JSON, non-object payloads, and missing data
+objects. The worker also rejects a response without an `attestations` field
+before writing a page or advancing the cursor. This prevents an upstream query
+failure from being treated as a successful empty page. Twenty focused EAS
+provider, worker, and cursor tests pass, along with Ruff, compilation, and
+diff checks. All provider responses were mocked; no EAS endpoint or database
+was contacted. Offset-pagination movement, earlier-than-cursor arrivals, and
+live provider acceptance remain open. Checklist count is 447 complete / 20
+open (467 total); capability status and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json)).
+
+### Candidate rollout: isolated EAS indexer migration 433 — 17 October 2026
+
+Applied only `schema:433_isolated_eas_indexer.sql` to the local candidate with
+the ordered schema runner. Before the write, a fresh age-encrypted PostgreSQL
+checkpoint was restored into a separate internal-network PostgreSQL target;
+all 423 migration rows, the migration-ledger digest, 10 extensions, 1,396
+public relations, and representative row counts matched. The first disposable
+restore exposed a missing disabled role prerequisite; that bootstrap now covers
+all role references in migrations and has focused regression coverage. A fresh
+restore then passed. The candidate now has 424 applied schema migrations and
+zero pending; its rebuilt app returns health 200 and an anonymous protected
+route returns 401. Both EAS roles remain `NOLOGIN` non-superusers. No seeds,
+provider access, worker credential, or schedule were enabled. The encrypted
+checkpoint and previous app image tag are retained for rollback. Checklist
+count is 446 complete / 20 open (466 total); capability status and MAN-CAP
+acceptance are unchanged ([rollout evidence](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
+
+### Isolated-worker import boundary — 17 October 2026
+
+Scheduled workers imported legacy ingestion helpers before reaching their CLI
+feature gates. With shared PostgreSQL settings correctly filtered, production
+imports therefore failed before `--help` or the disabled-feature response. The
+worker environment now marks exact isolated child identities, skips shared
+dotenv loading and shared-DB secret validation, clears shared PostgreSQL
+values defensively, and rejects shared connection attempts before psycopg2 is
+called. Cache and notification EventBus handlers use isolated credentials only
+when their feature flag is enabled; the default-off legacy branch retains its
+shared database environment. The focused worker, common-environment,
+EventBus, operation-map and scheduler suite passes 130 tests. All eight
+scheduled worker `--help` subprocess checks, Ruff, compilation and diff checks
+pass. Only synthetic credential strings were used; no database or provider was
+accessed. At that batch boundary the checklist was 445 complete / 20 open
+(465 total), with no capability status changes
+([evidence](builds/2026-10-17-recovery/isolated-worker-import-boundary.json)).
+
+### Dedicated EventBus handler environment isolation — 17 October 2026
+
+Exact source-mapped EventBus handlers now receive only their dedicated worker
+DSN and credential. Shared PostgreSQL settings and global geospatial provider
+secrets are removed from these children; unmapped legacy handlers retain their
+current environment until their own dedicated identity boundary is implemented.
+The Kernel supervisor's scheduler child allowlist is now derived from the exact
+scheduled-module mapping, covering every registered worker. The expanded
+scheduler/EventBus boundary suite passes 224 tests. The separate notification
+worker now also receives the dedicated notification-enqueue identity required
+by its source-mapped alert handlers. The EventBus process receives the exact
+set of dedicated identities used by its mapped handlers and filters each child
+to its own identity. Ruff, Python compilation,
+dependency-group alignment, provider-boundary, and diff checks pass. The checks
+use synthetic environment values and mocked subprocesses only; no database,
+provider, candidate, legacy stack, or real credential was accessed. Live worker
+credential provisioning and broader runtime recovery remain open
+([evidence](builds/2026-10-17-recovery/event-handler-dedicated-environment.json)).
+
+### Private-media S3 key confinement — 17 October 2026
+
+The S3-compatible Field Collector store now validates the `private/field-collector/`
+prefix and rejects empty, traversal, and malformed path segments before upload,
+metadata lookup, or deletion. This matches the existing local-store and orphan
+inventory boundary, preventing a corrupt stored key from selecting an unrelated
+object in a configured bucket. The storage, reconciliation, and expiration
+suite passes 49 tests; Ruff, Python compilation, and diff checks pass. No
+database, provider, R2 bucket, or credential was accessed. Live R2 inventory,
+deletion, and production retention acceptance remain open.
+
+### Cross-runner PostgreSQL TCP readiness contract — 17 October 2026
+
+Follow-up source review found that the PostGIS init-server readiness race also
+affected disposable acceptance scripts beyond the `seed.sh` path. Compose
+healthchecks, disposable PostgreSQL probes, and shell readiness loops now wait
+for PostgreSQL on `127.0.0.1` over TCP. A focused regression inventories all
+Compose files, Python subprocess probes, generated retention healthchecks, and
+shell probes so socket-only checks cannot silently return. The focused
+readiness and Compose profile suites pass 25 tests; targeted Ruff, shell syntax,
+Compose config, and whitespace checks pass. `tests/test_compose_metabase_profile.py`
+now stubs host disk usage so its profile decision is deterministic across
+developer machines. This is a harness/runtime-readiness correction; it does
+not change capability acceptance or require a migration. No candidate or
+legacy database was touched by this follow-up.
+
+The fix is pushed in `6bd53a9e9e9e21615bb556e19dc18e38a40898c6` on PR #68.
+Security #120 passed and CI #396 is in progress. The previous head's
+Security #119 passed; CI #395 was cancelled after the branch advanced.
+
+### ARM64 app host-loopback ingress — 17 October 2026
+
+The previous QEMU ingress attempt published the ARM64 app on loopback but used
+an internal Docker network, which prevented Docker Desktop from reaching the
+published port. A fresh normal-bridge project applied all 423 ordered schemas
+through migration 432 and ran the ARM64 app on `127.0.0.1:18119`. Host requests
+returned HTTP 200 from `/health` and HTTP 401 `credentials_required` from the
+anonymous farm-activity route. The database ran natively as AMD64 to avoid
+emulated migration latency; separate evidence covers ARM64 PostGIS and full
+schema replay. No seeds or provider credentials were used. The disposable
+containers, network, and volumes were removed, and the existing candidate
+remained healthy ([evidence](builds/2026-10-17-recovery/arm64-loopback-ingress.json)).
+
+This closes the host-loopback code check, not physical Pi, public ingress, or
+current-schema resource-limit acceptance. The checklist is now 442 complete
+and 20 open (462 total); the capability matrix remains 54 baseline-retained,
+7 deployed, and 5 prepared, with no MAN-CAP acceptance changes.
+
+### Candidate schema rollout through migration 432 — 17 October 2026
+
+The local Kernel candidate was checkpointed with encrypted backup
+`backups/kernel-candidate-pre-404-432-20261017T135940Z` (SHA-256
+`865dabfd11d83b6e28d3162c4a52c09df27a4bca5381378423599b5dac4a4a9c`) and the
+backup was restore-rehearsed in an isolated, network-disabled PostgreSQL
+container. The ordered schema-only migration runner then applied migrations
+404–432; the candidate now has 423 schema migrations through 432 and zero
+pending. No seed files were applied. Candidate health returned HTTP 200; its
+database and Metabase are healthy and the proxy is running. The legacy stack
+was untouched.
+
+Disposable migration 429 and 432 checks exposed that their function grants and
+location fallback referenced `plot.geometry`, while the canonical schema uses
+`plot.boundary`. The migrations and their fixtures now use the canonical
+column. Candidate-only `kokonut_runtime` and `kokonut_worker_login` roles were
+created as locked `NOLOGIN` placeholders because the ordered migrations revoke
+grants from those role names; neither has a password or memberships. The
+dedicated worker logins, credentials, location grants, provider calls, and
+schedules remain disabled. The candidate app was rebuilt from pushed source
+commit `4805e62129a561856a4eff496e0a34d2e4a4bae2`; the prior app image remains
+tagged `kokonut-kernel-candidate-app:rollback-pre-432-app-rebuild-20261017`.
+Health returned HTTP 200. An unknown public location IRI returned 404, and an
+unauthenticated farm-activity request returned 401. The candidate contains no
+eligible public IRI data and has no configured OIDC provider/session, so these
+checks do not establish a positive projection or authenticated operator flow.
+Read-only catalog queries confirmed all four migration 429/432 SECURITY
+DEFINER functions are owned by their dedicated owner roles, executable by
+`kokonut_worker_execution`, and not executable by PUBLIC or `kokonut_runtime`.
+No worker login credentials or signed location grants were provisioned.
+
+Focused migration, climate, remote-sensing, scheduler, provider-record, and
+worker-contract tests pass (110 before and 101 after the final boundary fix).
+The climate and remote-sensing disposable PostgreSQL 16/PostGIS checks pass;
+Ruff and validation of all 423 schema sources pass. The original clean ordered
+replay reached migration 427 but exposed a missing prerequisite in the clean
+bootstrap harness: the fresh database had no `kokonut_runtime` role for a
+`REVOKE` statement. `scripts/verify-clean-bootstrap.sh` now creates only the
+missing optional `kokonut_runtime` and `kokonut_worker_login` names as locked
+`NOLOGIN` roles, preserving existing roles. A new isolated replay applied all
+423 schemas through migration 432 with zero failures; the temporary project
+and volume were confirmed removed. GitHub CI #393 caught the original issue.
+CI #394 passed clean bootstrap but failed later in the separate `seed.sh`
+database because that path had not created the optional role names. This follow-
+up is detailed below. This does not verify Raspberry Pi
+hardware, live providers, persisted schedule parity, or production recovery
+([rollout evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json)).
+
+### CI #394 seed-path replay and PostgreSQL first-boot readiness — 17 October 2026
+
+CI #394 passed the clean-bootstrap check but failed later, after the CI script
+removed that Compose project and started a second fresh database for `seed.sh`.
+That path applied migrations without creating the optional `kokonut_runtime`
+and `kokonut_worker_login` role names; migration 427 then failed on its `REVOKE`.
+The role bootstrap SQL is now shared by `seed.sh` and
+`verify-clean-bootstrap.sh`, creating only absent locked `NOLOGIN` roles and
+preserving already-provisioned role attributes.
+
+The isolated first replay also exposed a separate first-boot race: PostGIS's
+temporary Unix-socket-only initialization server could satisfy the old
+`pg_isready` healthcheck before the final PostgreSQL server started. Compose
+healthchecks and the shared wait now require the final TCP listener, and
+`seed.sh` waits again after extension initialization. With curated seeds
+disabled, the complete `seed.sh` path applied all 423 schemas through migration
+432 with zero failures. The disposable project and volume were removed; the
+candidate services remained healthy and the legacy stack was not targeted.
+The shared role/readiness fix was pushed as `0ad9e5e6`; Security #119 passed,
+and CI #395 was cancelled after the next batch advanced the branch. Its
+successful isolated seed replay remains recorded here ([replay evidence](builds/2026-10-17-recovery/seed-bootstrap-423-replay.json)).
+At that batch boundary, checklist totals were 441 complete and 21 open. The
+later ARM64 host-loopback check above closes one execution item; no capability
+acceptance status changed.
+
+### Current-schema ARM64/QEMU replay through migration 432 — 17 October 2026
+
+A fresh QEMU project applied all 423 current schemas through migration 432 with
+zero failures and a zero-pending plan. The current-source ARM64 Gateway image
+built successfully, and its CLI help passed with networking disabled. The
+first harness stopped before HTTP checks because it inspected the manifest-list
+digest instead of the local image tag. A fresh internal-network recheck applied
+all 423 schemas, started the app, and observed healthy Docker health. HTTP from
+inside the app returned `/health` 200 and anonymous farm-activity read 401
+`credentials_required`. Host-side curl could not reach the configured
+`127.0.0.1:18118` binding while the network was internal; published ingress
+remains open. The temporary project, network, and volumes were removed and
+verified absent. This run used no explicit CPU/memory limits and did not test
+physical Pi behavior ([evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
+
+### Scheduled sensor input confinement — 17 October 2026
+
+The built-in scheduled `sensor_csv` driver now reads only beneath a configured
+input root. Compose exposes `/var/lib/kokonut/sensor-inputs` as a read-only
+mount, with the host source selected by `KOKONUT_SENSOR_CSV_HOST_DIR`; direct
+host execution uses `KOKONUT_SENSOR_CSV_ROOT`. The implementation rejects
+paths outside the root, parent traversal, symlinked components, missing roots,
+and non-regular files, and opens each path component with `O_NOFOLLOW`.
+Scheduled drivers must provide this code-owned `fetch_scheduled` method; the
+manual CSV CLI remains unchanged. The combined sensor schedule/CLI/command
+contract/worker-map suite passes 179 tests; Ruff, compilation, and legacy,
+Kernel candidate-standard, and portability Compose config checks pass. Tests
+used synthetic temporary files; no configured sensor input, database, provider,
+persisted schedule, candidate service, or legacy service was accessed. This
+closes only scheduled code selection and input-root confinement. Signed worker
+identity, bounded SQL functions, tenant authorization/RLS, live source parity,
+and MAN-CAP-040/047 acceptance remain open
+([contract](sensor-driver-scheduled-contract.md);
+[implementation](../../services/ingestion/drivers/sensor_csv.py);
+[tests](../../tests/test_sensor_driver_schedule.py);
+[evidence](builds/2026-10-17-recovery/scheduled-sensor-csv-path-confinement.json)).
+
+### Scheduled sensor-driver import boundary — 17 October 2026
+
+The scheduled sensor-pull path previously verified the instance's location and
+driver type, then passed the database-stored `module_path` to the general
+dynamic importer. That let persisted registry data select Python code in a
+scheduler child. Scheduled pulls now use an immutable source-controlled target
+map, compare the stored driver name/type/module/class against that map, and
+import only the mapped implementation. The first-party `sensor_csv` pull stays
+available; new scheduled plug-ins require a reviewed code allowlist entry. The
+174 focused sensor schedule, CLI, command-contract, and worker-map tests pass, along with
+Ruff, compilation, and `git diff --check`. No database, driver instance, file,
+provider, persisted schedule, migration, or candidate service was accessed.
+This closes the database-selected import boundary only: signed worker
+identity, bounded database functions, runtime source parity, provider behavior, and MAN-CAP-040/047 acceptance remain open; CSV path confinement is closed by the later scheduled sensor input confinement entry
+([implementation](../../services/drivers/registry.py);
+[tests](../../tests/test_sensor_driver_schedule.py);
+[evidence](builds/2026-10-17-recovery/scheduled-sensor-driver-code-allowlist.json);
+[operation map](worker-operation-map.json)).
+
+### Isolated global market-data scheduler — 17 October 2026
+
+The new native Market Data JobSpec now routes through a dedicated, default-off
+World Bank worker; the existing manual CLI, seed path, and legacy persisted-task
+entrypoint remain available. Migration 430 provisions a non-login principal
+until the runtime-role bootstrap receives its dedicated secret, revokes prior
+target-table and column grants from application/worker logins, and exposes one
+bounded SECURITY DEFINER batch/audit function. Its owner has only the crop
+lookup, conflict-key read, and required price/audit insert columns; forced-RLS
+disposable PostgreSQL 16 acceptance passes migration replay, login and function ACLs,
+duplicate suppression, invalid-payload rejection, and atomic rollback. The 199
+focused worker/market/scheduler tests, Ruff, compilation, and regenerated worker
+inventories pass. Migrations 404–432 were subsequently applied through the candidate's ordered
+schema-only rollout. The worker feature and its credential remain disabled. The database-only
+restore prerequisite also creates the bounded owner and disabled login before
+restoring migration-430 function ACLs. No live World Bank
+provider or persisted schedule was accessed. This closes an implementation
+boundary only; provider parity, schedule ownership, live recovery, and CAP-040/
+CAP-047 acceptance remain open ([worker](../../services/ingestion/market_data_worker.py);
+[migration](../../schemas/postgres/430_isolated_market_data_worker.sql);
+[runner](../../scripts/check-market-data-worker-disposable.py);
+[evidence](builds/2026-10-17-recovery/market-data-worker-disposable.json);
+[operation map](worker-operation-map.json)).
+
+### Climate provider schema and retry contract — 17 October 2026
+
+The climate source path queried a nonexistent location `centroid` and four
+GEE writes used columns that were absent from the canonical migration-074
+tables. It also used an obsolete SMAP band, averaged accumulated ERA5
+precipitation without converting meters to millimeters, committed provider rows
+before their audit records, and could report provider failure as successful
+scheduled execution. Location resolution now uses `location.center` with the
+stored latitude/longitude fallback. MODIS, current SMAP collection 006,
+Sentinel-1, and ERA5-Land persist into their declared columns with the intended
+scaling, reducer, resolution, provenance, and stored units. Migration 428 adds
+partial location/date/source keys only after refusing duplicate location rows;
+plot-level records remain outside those keys. Each GEE upsert and audit row now
+shares one transaction, and provider failures return a nonzero result. The 25
+focused climate tests, Ruff, compilation, and four disposable PostgreSQL 16
+replay/duplicate/upsert/plot-isolation checks pass. This is source and synthetic
+database evidence only; no real provider, candidate, legacy database, or
+schedule was used. The later candidate rollout applied migrations 428–429; the
+scheduled path remains a default-off signed
+climate worker; credential/grant provisioning, live provider parity, schedule
+ownership and acceptance remain open ([migration](../../schemas/postgres/428_climate_summary_idempotency.sql);
+[tests](../../tests/test_climate_data.py);
+[disposable runner](../../scripts/check-climate-summary-idempotency-disposable.py);
+[migration evidence](builds/2026-10-17-recovery/climate-summary-idempotency-disposable.json);
+[contract evidence](builds/2026-10-17-recovery/climate-provider-contract.json)).
+
+### Signed climate worker — 17 October 2026
+
+Scheduled climate refresh now uses `services.ingestion.climate_worker`, with a
+dedicated default-off `climate` worker key and exact subprocess routing for its
+database URL, signed worker credential, and climate-specific GEE key path. The
+manual `services.ingestion.climate_data` CLI remains available. Migration 429
+adds signed location/bbox lookup and source-specific bounded writes for the
+WorldClim proxy, ERA5-Land, MODIS, SMAP, and Sentinel-1 summaries; each summary
+and its ingestion audit share one transaction. The worker login receives no
+direct climate-table privileges, and the bounded functions pass forced-RLS
+PostGIS acceptance for nine migration, scope, source-contract, retry, failure,
+and privilege checks. The 156-test climate/worker/scheduler suite, Ruff, and
+Python compilation pass. No real GEE key, provider, schedule, candidate, or
+legacy database was used. Migration 429 is applied on the candidate; the
+feature is off, and credentials/location grants and live provider parity remain open
+([worker](../../services/ingestion/climate_worker.py);
+[migration](../../schemas/postgres/429_signed_climate_worker.sql);
+[focused tests](../../tests/test_climate_worker.py);
+[disposable runner](../../scripts/check-climate-worker-disposable.py);
+[evidence](builds/2026-10-17-recovery/climate-worker-disposable.json);
+[operation map](worker-operation-map.json)).
+
+### Signed current-weather worker — 17 October 2026
+
+Native scheduled current-weather ingestion now uses a dedicated default-off worker. The scheduler forwards only its exact `weather` database URL, worker credential, and OpenWeatherMap API key; shared PostgreSQL settings are stripped from the worker environment. The worker resolves coordinates and stores one location-scoped observation under signed `weather_observation/ingest` context. Migration 427 commits the canonical observation, sanitized success/failure audit, ClickHouse outbox intent, and idempotency receipt atomically through a bounded function. Conflicting outbox identities fail closed, while an exact pre-existing projection intent can be reused safely.
+
+The 178 focused worker/scheduler/environment/inventory tests, Ruff, Python compilation, and regenerated inventories pass. A disposable PostgreSQL 16 run passes nine migration, forced-RLS, retry, scope, audit, context-cleanup, and privilege checks. No candidate or legacy database, provider, real credential, or persisted schedule was accessed during this source acceptance. Migration 427 is now applied on the candidate; the feature remains off. Schedule-owner reconciliation, credential/grant provisioning, live provider parity, application-wide RLS, and recovery acceptance remain open ([migration](../../schemas/postgres/427_signed_weather_observation_worker.sql); [tests](../../tests/test_weather_worker.py); [disposable runner](../../scripts/check-weather-observation-worker-disposable.py); [evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json); [operation map](worker-operation-map.json)).
+
+### RPC wallet projection/status atomicity — 16 October 2026
+
+The wallet RPC indexer previously updated chain status outside the connection
+that writes wallet activity and its ClickHouse projection. It now runs the
+wallet rows, chain status, and outbox intent in one transaction, with a
+savepoint per wallet so one provider/insert failure does not poison other
+wallets. A partial chain failure is recorded as `error`; a status/outbox/commit
+failure rolls back the run and attempts to persist the error status on the same
+connection. The focused recovery, contract, outbox, and scheduler suite passes
+133 tests with external boundaries mocked; Ruff and compilation pass. No RPC
+provider or database was contacted. This closes a transaction-integrity gap,
+not historical transaction ingestion, confirmation depth, reorg handling,
+provider parity, or runtime recovery ([tests](../../tests/test_rpc_indexer_recovery.py);
+[evidence](builds/2026-10-16-recovery/rpc-indexer-atomicity.json);
+[operation map](worker-operation-map.json)).
+
+### Gnosis Moloch cursor namespace separation — 16 October 2026
+
+The Moloch event indexer and general wallet RPC indexer both used the
+`(gnosis, rpc)` status row. Migration 424 now seeds a dedicated
+`(gnosis, gnosis_moloch)` cursor from the last observed shared block boundary,
+marks it paused with provenance, and leaves the legacy wallet RPC row intact.
+The indexer reads and writes only the dedicated cursor. It refuses to advance
+an inherited, unreviewed cursor without an explicit `--from-block`; the first
+successfully committed range records that checkpoint review transactionally.
+The 184-test focused
+Gnosis/outbox/command/migration suite, Ruff, and compilation pass. A
+network-disabled disposable PostgreSQL 16 check confirms the migration copies
+the cursor, preserves both rows, and does not overwrite an existing dedicated
+cursor on replay. No candidate/legacy database, provider, or schedule was
+accessed. This prevents future cursor races but cannot establish the true
+historical Gnosis boundary or backfill old event receipts. Legacy receipt
+reconciliation and removed-log/deep reorg recovery remain open, so the Gnosis
+schedule remains disabled and MAN-CAP-023/047 remain unaccepted
+([migration](../../schemas/postgres/424_gnosis_indexer_cursor_namespace.sql);
+[tests](../../tests/test_gnosis_indexer_recovery.py);
+[disposable runner](../../scripts/check-gnosis-indexer-cursor-disposable.py);
+[evidence](builds/2026-10-16-recovery/gnosis-indexer-cursor-disposable.json);
+[worker map](worker-operation-map.json)).
+
+### Gnosis indexer range/checkpoint recovery — 16 October 2026
+
+The Moloch event indexer previously swallowed a failed block range, wrote its
+error status through another database connection, then could mark the requested
+end block healthy. It now commits each successful range's event writes,
+ClickHouse outbox intents, and `chain_indexer_status` checkpoint together.
+Failures roll back the active range, stop the run, preserve the last committed
+boundary, and persist an error status on the same connection. Typed outbox
+failures remain typed and propagate. Migration 423 adds a transaction-hash/log-
+index receipt ledger. Identical logs are skipped before projection, while a
+reused identity with a changed block hash, number, or event type fails closed;
+the receipt commits with event projections, outbox intents, and the range
+checkpoint.
+
+The focused Gnosis recovery, outbox producer, scheduled-command, and migration
+suite passes 165 tests; Ruff and compilation pass. A disposable PostgreSQL 16
+runner verifies migration 423 apply/replay, new receipt insertion, duplicate
+suppression, fail-closed block-hash mismatch, and transaction rollback. No live
+provider, candidate/legacy database, or schedule was accessed. Migrations
+423–424 are not applied to the candidate. Historical event projections are not
+backfilled and removed-log rollback/deep reorg recovery is not automatic.
+Migration 424 below separates the status cursor used by the two indexers. The
+Gnosis schedule stays disabled and MAN-CAP-023/047 remain
+unaccepted ([migration](../../schemas/postgres/423_gnosis_event_log_receipts.sql);
+[tests](../../tests/test_gnosis_indexer_recovery.py);
+[disposable runner](../../scripts/check-gnosis-event-receipts-disposable.py);
+[evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json);
+[checkpoint evidence](builds/2026-10-16-recovery/gnosis-indexer-checkpoint-atomicity.json);
+[operation map](worker-operation-map.json)).
+
+### Market-data provider failure and transaction boundaries — 16 October 2026
+
+World Bank Pink Sheet download failures no longer fall back silently to the
+bundled reference dataset. Empty or unmatched provider responses now fail
+before PostgreSQL opens, and the dependency error for `openpyxl` is explicit.
+Live observations and explicit seed samples use separate source keys. Each
+price batch and its `ingestion_log` entry now commit atomically; the audit
+records actual inserted rows when duplicate natural keys are ignored. A failed
+insert or audit write rolls the full batch back.
+
+Sixteen focused market-data checks pass, including no-database provider
+failures, live/seed separation, exact insert counts, and rollback behavior;
+Ruff and compilation pass. All provider and database boundaries were mocked.
+No live provider, schedule, candidate, or legacy database was touched.
+Historical price corrections, provider parity, configured owner/cadence, and
+runtime recovery remain open, so MAN-CAP-040/047 remain unaccepted
+([tests](../../tests/test_market_data_recovery.py);
+[evidence](builds/2026-10-16-recovery/market-data-provider-atomicity.json);
+[operation map](worker-operation-map.json)).
+
+### EAS recipient cursor recovery — 16 October 2026
+
+EAS ingestion previously reused a chain-wide maximum timestamp across separate
+recipient feeds and committed indexer status on an independent connection.
+That could move the watermark ahead of another recipient's older feed or leave
+status ahead of a rolled-back projection. Migration 421 now maintains one
+cursor per chain/recipient. Follow-up migration 422 resets inherited cursor
+values to zero because the old chain-wide watermark can skip older rows for a
+slower recipient. UID uniqueness makes this one-time full-history scan
+idempotent. The worker revisits the saved timestamp second on every scan, so
+late-indexed peers in that second are recovered while UID conflicts suppress
+repeated rows. Each successful recipient's records, ClickHouse
+outbox intents, status, and cursor advancement share the caller transaction;
+same-chain scans serialize, failed pages roll back to a savepoint, and a failed
+outbox enqueue rolls back the complete transaction.
+
+The focused EAS, ingestion-outbox producer, scheduler-contract, Prefect, and
+migration suites pass 188 tests, including recovery of an attestation older
+than the legacy maximum and of a new record at the inclusive same-second
+boundary. A repeatable disposable PostgreSQL 16 run passes
+migration 421 watermark backfill, migration 422 zero rebaseline/replay,
+independent cursor advancement, and transaction rollback coupling. Ruff and
+Python compilation pass. The candidate,
+legacy database, live provider, and external schedules were not touched.
+Earlier-time late arrivals and concurrent offset-page shifts remain
+provider/runtime reconciliation risks; migrations 421–422 are applied on the candidate, and
+MAN-CAP-040/047 remain unaccepted ([migration](../../schemas/postgres/421_eas_recipient_cursors.sql);
+[rebaseline](../../schemas/postgres/422_eas_cursor_rebaseline.sql);
+[unit tests](../../tests/test_eas_indexer_recovery.py);
+[disposable evidence](builds/2026-10-16-recovery/eas-recipient-cursor-disposable.json)).
+
+### Privacy-safe native IRI resolution — 16 October 2026
+
+The native Gateway's public IRI route previously imported a nonexistent
+resolver and would fail at request time; its intended generic resolver also
+returned every registry field. Added a public JSON-LD contract limited to
+canonical, versioned location IRIs. An explicit `--publish-public-location`
+generation option snapshots only name, country, region, and active status from
+`v_public_farm_summary`; migration 420 stores that allowlisted object without
+changing historical migrations. The resolver requires both that snapshot and
+current public-view eligibility, omits registry `metadata_json` and
+`content_hash`, computes a SHA-256 over the exact public projection, and links
+only a validated same-location predecessor that also has a public snapshot.
+
+The focused linked-data, Gateway, route-policy, and migration suites pass 217
+tests, including IRI and Metadata API CLI help without SOPS or database access.
+Ruff, Python compilation, and capability-matrix validation pass. A
+fresh, no-port PostgreSQL 16 container applied migration 420 twice, accepted an
+object snapshot, and rejected an array; the disposable container was stopped
+and removed. The repeatable isolated check is
+[`check-iri-public-projection-disposable.py`](../../scripts/check-iri-public-projection-disposable.py).
+Candidate/legacy databases, services, and existing IRI rows were not changed
+during source acceptance. Migration 420 is applied on the candidate by the later
+schema-only rollout. Non-location IRI types,
+RDF graph/SPARQL and storage parity, live runtime authorization, and named
+MAN-CAP-021 acceptance remain open ([contract](../iri-system.md#native-gateway-public-location-resolution);
+[evidence](builds/2026-10-16-recovery/public-iri-projection.json)).
+
+### Location-scoped scheduled weather forecast — 16 October 2026
+
+The five-day forecast importer now has a separate native `weather_forecast`
+JobSpec. Its command schema accepts exactly one location UUID and rejects the
+aggregate option; planned tasks remain disabled and non-overlapping. The
+forecast's existing natural-key upsert, ingestion audit, and ClickHouse outbox
+share the caller transaction. The worker map, source closure, function graph,
+SQL inventories, effects inventory, and boundary preflight were regenerated;
+the current source graph covers 16 scheduled modules and seven handler pairs.
+
+The scheduler/worker-inventory suite passes 154 tests; forecast scope,
+per-location rollback, and outbox tests pass 43. Ruff and all generated
+inventory checks pass. Checks used mocks and source analysis only: no provider,
+database, API key, candidate, legacy service, or schedule was accessed or
+activated. The UUID is a query scope and does not provide signed tenant context
+or authorization. Live provider parity, cadence/ownership, and MAN-CAP-040/047
+remain open; the 66-row capability matrix retains zero MAN-CAP acceptances
+([evidence](builds/2026-10-16-recovery/weather-forecast-scheduled-job-contract.json);
+[operation map](worker-operation-map.json); [schedule inventory](schedule-ownership-inventory.md)).
+
+### Location-bound scheduled sensor pull contract — 16 October 2026
+
+Scheduled sensor jobs now require a canonical location UUID plus a registered
+sensor driver-instance UUID. Registry resolution accepts only an enabled sensor
+driver assigned to that exact location; a code-installed driver must explicitly
+opt into scheduled pull. The built-in CSV pull is limited to 100 sources and
+10,000 records, while MQTT remains event-driven. Reading inserts, ingestion
+audit, platform events, and ClickHouse outbox projection entries share a single
+PostgreSQL transaction. Exact timestamp/value retries are deduplicated without
+republishing events; conflicting values abort the batch. The focused sensor,
+scheduler, Prefect, and inventory suite passes 162 tests; Ruff and generated
+worker inventories pass. These checks use mocks and static source only: no
+source instance, database, provider, Prefect deployment, or schedule was
+activated. The query UUID is not authenticated tenant context. Candidate and
+legacy databases were not accessed. The checklist now records 419 complete /
+20 open items; capability-matrix MAN-CAP acceptance remains zero
+([operation map](worker-operation-map.json); [schedule ownership](schedule-ownership-inventory.md);
+[evidence](builds/2026-10-16-recovery/sensor-driver-scheduled-source-contract.json)).
+
+### Scheduler post-effect crash recovery and handler protocol — 16 October 2026
+
+The disposable SchedulerEngine check now covers the crash window after a task
+child commits an effect but before the scheduler records task completion. It
+processes one synthetic `data_stale` event, commits its notification outbox
+row, pauses the parent, kills it, expires the task lease, then retries. The
+replacement completes attempt two without a second outbox row or handler
+delivery attempt. The PostgreSQL 16 acceptance also retains restart recovery
+and the earlier crash-before-dispatch case. The check uses only synthetic rows;
+it made no provider request, did not touch candidate/legacy, and removed its
+temporary Docker database ([runner](../../scripts/check-scheduler-engine-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
+
+The acceptance exposed a real handler-runner defect: configured INFO logs were
+written to the JSON response stream after the handler had already committed,
+so EventBus reported an invalid result and would retry the effect. The runner
+now temporarily redirects service `StreamHandler`s bound to protocol stdout to
+stderr, then restores their streams. Five focused tests pass, including that
+protocol isolation regression; Ruff, compilation, and whitespace checks pass.
+Checklist count is now 418 complete / 20 open. This does not change any MAN-CAP
+status, prove provider delivery, or complete broader recovery acceptance.
+
+### Runtime and notification function identity boundary — 16 October 2026
+
+The disposable integration check for migration 417 exposed an inherited
+`PUBLIC EXECUTE` path: before the worker context profile was included, the
+notification login could invoke mobile credential `SECURITY DEFINER` functions
+from migrations 392–393; migration 405 also grants `PUBLIC EXECUTE` to the
+signed worker context accessors. Migrations 418–419 now remove those public
+grants. The runtime bootstrap restores mobile helper execution only to
+`kokonut_runtime`, and worker context helpers only to
+`kokonut_worker_execution` plus their bounded function owners. The bootstrap
+also repairs these ACLs after database-only restore and verifies the isolated
+notification login has no other executable `SECURITY DEFINER` function.
+
+The disposable PostgreSQL 16 acceptance applied and replayed migrations
+391–396, 398–400, 405, and 417–419, then ran the real
+`provision_runtime_role` function with synthetic credentials. It verified the
+notification login can enqueue idempotently under FORCE RLS, cannot access
+source/outbox tables or protected helper functions, and worker context APIs
+remain available only to the worker execution role. Nineteen database checks,
+49 focused pytest checks, Ruff, compilation, migration checks, and whitespace
+checks pass ([runner](../../scripts/check-operator-session-role-disposable.py);
+[evidence](builds/2026-10-16-recovery/runtime-notification-enqueue-role-disposable.json)).
+No SOPS secret was created, no provider was contacted, and candidate/legacy
+databases were not accessed. Candidate migrations 405–419 remain unapplied;
+the feature stays disabled until credentials and a reviewed rollout are
+available. Checklist count is now 418 complete / 20 open. No MAN-CAP status
+changes.
+
+### Isolated global notification enqueue — 16 October 2026
+
+Added a default-off handler path for `data_stale` and `threshold_breached`
+notifications through migration 417 and a separate `kokonut_notification_enqueue_login`.
+The bounded function checks source event type and optional location lineage,
+allows only the existing webhook/Directus/email channels at the `primary`
+destination, caps JSON payloads at 16 KiB, and preserves stable idempotent
+enqueue behavior. The login has no direct table or sequence privileges; worker
+role setup removes both inherited and delegated memberships, grants only the
+bounded function, and rejects other executable `SECURITY DEFINER` functions.
+EventBus forwards its DSN only to the two notification handlers. The feature
+defaults off and fails closed without that DSN.
+
+Seven network-isolated disposable PostgreSQL 16 checks pass for migration
+replay, source/type/location validation, intent allowlists, malformed payloads,
+conflicts, idempotent retries under forced RLS, direct table-write denial, and
+shared `SET ROLE` denial. The focused migration/event/worker/map/runtime-role
+suite passes 136 tests; Ruff, compilation, worker source/SQL inventory checks,
+and candidate/overlay Compose parsing pass. Evidence:
+[notification-enqueue-worker-disposable.json](builds/2026-10-16-recovery/notification-enqueue-worker-disposable.json).
+No candidate or legacy database was accessed, migration 417 has not been
+applied to either, and no delivery provider was contacted. The feature flag is
+off; encrypted secret/DSN provisioning and candidate rollout remain open. The
+initial SQL runner promoted only its synthetic test login directly; the full
+bootstrap integration and its ACL follow-up are recorded above. At that batch
+boundary the checklist was 417 complete / 20 open; the current count appears in
+the newer section above. No MAN-CAP status changes.
+
+### ClickHouse outbox bounded retry backoff — 16 October 2026
+
+Outbox delivery failures now schedule capped exponential retries: 60 seconds
+after the first attempt, then 2, 4, 8, 16, and 32 minutes, capped at one hour.
+The same schedule applies when ClickHouse client setup fails. Successful
+delivery timing, lease fencing, the eight-attempt dead-letter threshold, and
+the stable insert-deduplication token are unchanged. Fifty-seven focused
+outbox/failure-injection/producer tests pass; Ruff, compilation, and whitespace
+checks pass. Tests use mocks only; no database, ClickHouse service, candidate,
+legacy deployment, or provider was contacted. This adds source-level retry
+resilience, not live outage acceptance or a MAN-CAP acceptance
+([evidence](builds/2026-10-16-recovery/clickhouse-outbox-backoff.json);
+[implementation](../../services/ingestion/clickhouse_outbox.py)).
+
+### Canonical ingestion outbox failure atomicity — 16 October 2026
+
+PostgreSQL-backed producers for weather, remote sensing (manual, GEE, and
+Copernicus), attestations (subgraph and EAS), governance (Gnosis), and RPC
+wallet activity now propagate ClickHouse outbox enqueue failures. The outbox
+uses a distinct `OutboxEnqueueError`, including for payload conflicts, so
+provider handlers cannot absorb a projection failure and later commit the
+source row. Weather/RPC runners and the attestation, governance, and remote
+sensing worker boundaries rollback or propagate the failure; warning-only
+direct ClickHouse behavior remains only for explicitly connection-free demo or
+maintenance calls. Existing sensor and forecast paths retain their own
+transaction handling. Eleven focused suites pass 158 tests; compileall and
+capability-matrix validation pass, and Ruff reports no new findings compared
+with `HEAD`. No database, provider, ClickHouse, candidate, or legacy service was
+contacted. This is source/mocked transaction-control evidence, not live
+provider or PostgreSQL acceptance; MAN-CAP statuses are unchanged
+([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
+
+### Weather forecast transactional projection — 16 October 2026
+
+Forecast insert errors now propagate to a per-location savepoint boundary;
+failure rolls back that location's complete forecast batch. Success and failure
+ingestion audit rows share the PostgreSQL transaction with forecast persistence
+and the ClickHouse outbox. Outbox enqueue failures propagate, prevent commit,
+and close the connection so PostgreSQL can roll back the whole transaction;
+failed forecast batches never enter the projection payload. Mocked rollback,
+outbox, and audit checks plus existing forecast, scope, and shared producer
+tests pass (36 total). Ruff, compilation, and whitespace checks pass. No
+PostgreSQL, ClickHouse, OpenWeatherMap, candidate, or legacy service was
+contacted. This closes a source-level consistency defect only; live providers,
+database-backed transaction behavior, and MAN-CAP acceptance remain open
+([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json);
+[implementation](../../services/ingestion/weather_forecast.py)).
+Checklist and MAN-CAP counts are unchanged.
+
+### Remote-sensing CSV location and lineage scope — 16 October 2026
+
+Manual CSV import now requires either a canonical `--location-id` or explicit
+`--all-locations`. Single-location imports query only plots for that location;
+aggregate imports retain their prior multi-location capability. Both paths
+derive location from plot/farm, reject unmapped plots, and reject any supplied
+CSV location that disagrees with the plot's farm. The file is parsed and scope
+selector validation occurs before PostgreSQL opens; plot lineage is checked
+through the bounded query before any row write. Fifty-five focused ingestion,
+outbox, smoke, and remote-sensing checks pass, along with Ruff, compilation,
+generated inventories, and capability validation pass. No database or provider
+was accessed. Scope does not establish authenticated tenant access or RLS
+([evidence](builds/2026-10-16-recovery/remote-sensing-csv-location-scope.json);
+[implementation](../../services/ingestion/remote_sensing.py)). Checklist stays
+414 complete / 19 open; MAN-CAP status is unchanged.
+
+### Climate-data CLI location preflight — 16 October 2026
+
+The climate-data CLI already required one location; it now canonicalizes the
+UUID before database access and rejects malformed IDs or conflicting dataset
+selectors. Four new mocked cases plus the existing climate, runtime-import,
+and scheduler-contract suites pass (116 tests). Ruff, compilation, refreshed
+repository/runtime-SQL inventories, and the 66-row capability validator pass.
+No provider, database, or schedule was accessed. This is input/query scoping,
+not tenant authorization or RLS ([evidence](builds/2026-10-16-recovery/climate-cli-location-preflight.json);
+[implementation](../../services/ingestion/climate_data.py)). Checklist stays
+414 complete / 19 open; MAN-CAP status is unchanged.
+
+### Explicit manual weather-forecast scope — 16 October 2026
+
+The forecast ingestion CLI now requires one canonical `--location-id` or the
+explicit aggregate `--all-locations` flag. Missing scope prints help, malformed
+UUIDs fail before database access, and location queries exclude rows without
+coordinates. Daily-summary and spray-window helpers canonicalize location
+UUIDs before opening a cursor, reject malformed IDs without executing SQL, and
+bind the canonical location in each view query. Twenty-two focused forecast
+CLI/query checks pass with mocked DB/provider boundaries;
+Ruff, compilation, the refreshed whole-service SQL/repository inventories, and
+the 66-row capability validator pass. No provider, candidate/legacy database,
+or schedule was accessed; this is a selector, not tenant authorization or RLS
+([evidence](builds/2026-10-16-recovery/weather-forecast-cli-location-scope.json);
+[implementation](../../services/ingestion/weather_forecast.py)). Checklist
+accounting remains 414 complete / 19 open; no MAN-CAP status changes.
+
+The follow-up query-scope hardening adds no capability acceptance; it makes the
+existing location-bound read contract explicit and rejects malformed selectors.
+
+### Explicit manual anomaly CLI scope — 16 October 2026
+
+The standalone anomaly detector now prints help when called without an
+operation/scope. Manual anomaly, baseline, and ML-check modes require one
+canonical `--location-id` or explicit `--all-locations`; model training stays
+single-location and rule listing remains an explicit global read. The
+location-required scheduler command and source-scoped event handler are
+unchanged. Ninety-five focused mocked CLI/scheduler checks pass, along with
+Ruff, compilation, and refreshed worker/runtime inventories. The CLI UUID is a
+query selector only, not authorization or RLS. No provider, database, or
+schedule was contacted or changed
+([evidence](builds/2026-10-16-recovery/anomaly-cli-location-scope.json);
+[implementation](../../services/ingestion/anomaly_detector.py)). Checklist
+accounting remains 414 complete / 19 open; no MAN-CAP status changes.
+
+### Explicit manual weather-ingestion scope — 16 October 2026
+
+Manual weather ingestion now requires either one canonical `--location-id` or
+the explicit `--all-locations` aggregate flag. An invocation without scope
+prints offline help, malformed UUIDs fail before database access, and the
+single-location query also requires coordinates. Deprecated cron examples
+select aggregate mode explicitly; the Kernel scheduler continues to require
+one location and rejects aggregate mode. Eighty-six focused weather and
+scheduled-command checks pass, along with Ruff, compilation, the capability
+validator, and refreshed source/SQL inventories. The query selector is not
+tenant authorization or signed worker context. No provider, database, or
+schedule was contacted or changed
+([evidence](builds/2026-10-16-recovery/weather-cli-location-scope.json);
+[implementation](../../services/ingestion/weather.py)). Checklist accounting
+remains 414 complete / 19 open; no MAN-CAP status changes.
+
+### Remote-sensing CLI and queue location scope — 16 October 2026
+
+Required a canonical `--location-id` for every remote-sensing CLI operation and
+every queue helper path, including list, lookup, provider dispatch, and atomic
+due-job claim. A location-mismatched job is rejected before bounding-box reads
+or provider calls, and an unscoped claim fails before database access. The
+focused remote-sensing, automation, and scheduler-contract suites pass 138
+tests; an isolated PostgreSQL 16 check verified per-location leases and that
+an unselected location remains unclaimed. Source/query filters are not tenant
+authorization, signed worker context, or RLS. The checklist remains 414
+complete / 19 open and the matrix remains at 66 rows. No candidate/legacy
+database, provider, persisted schedule, or live deployment was accessed
+([scope evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-scope.json);
+[PostgreSQL evidence](builds/2026-10-16-recovery/remote-sensing-cli-location-postgres.json);
+[implementation](../../services/ingestion/remote_sensing_fetcher.py)).
+
+### Location-scoped device manager — 16 October 2026
+
+Required `--location-id` for device-manager list, registration, and health
+operations and validate it before database access. List, health lookup, and
+health updates now bind the location; device registration can refresh an
+existing slug only in its current location and rejects cross-location slug
+conflicts with a rollback. No-operation help is offline. The focused device
+manager and IoT suites pass 61 tests; changed source and unit-test files pass
+Ruff and compilation. The whole-repository SQL and source inventories were
+refreshed. The checklist remains 414 complete / 19 open and the 66-row matrix
+is unchanged. A UUID query scope is not an authenticated tenant grant and does
+not establish RLS; no candidate/legacy database or device was accessed
+([evidence](builds/2026-10-16-recovery/device-manager-location-scope.json);
+[implementation](../../services/ingestion/device_manager.py)).
+
+### Location-scoped sensor ingestion CLI — 16 October 2026
+
+Required a canonical `--location-id` for local CSV/single-reading ingestion,
+sensor inventory, and calibration operations. Device UUID/slug lookup and all
+sensor inventory/calibration queries now bind that location; missing or invalid
+scope is rejected before opening a database connection or cursor. Updated the
+repository command guide, telemetry documentation, and isolated recovery
+fixture. The 110 focused sensor/scheduler tests pass, together with Ruff,
+compilation, the capability-matrix validator, and regenerated SQL/worker
+inventories. The checklist remains 414 complete / 19 open; the 66-row matrix
+and MAN-CAP statuses are unchanged. This is a query-selection boundary, not an
+authenticated tenant grant or database/RLS boundary. Recurring sensor
+ingestion remains rejected until a real source contract is defined. No
+candidate or legacy database, provider, or live device was accessed
+([evidence](builds/2026-10-16-recovery/sensor-ingestion-cli-location-scope.json);
+[implementation](../../services/ingestion/sensor_ingester.py)).
+
+### Scheduled anomaly location scope — 16 October 2026
+
+The shared `anomaly` JobSpec now requires one location, and hourly Prefect
+execution fans out only across active locations assigned to Kokonut Network.
+The scanner binds reading, baseline, cooldown, alert creation, and ingestion
+lineage to that location; scoped runs do not bootstrap shared alert-rule
+reference rows. The unscoped interactive CLI retains its prior behavior. The
+focused anomaly, scheduler-contract, JobSpec inventory, and Prefect suites pass
+167 tests. The generated JobSpec inventory, 66-row capability-matrix validator,
+Ruff, compilation, and whitespace checks pass. No database, provider, schedule,
+candidate, legacy target, or external Prefect deployment was accessed. The
+current checklist is 414 complete / 19 open; no MAN-CAP status changed. Signed
+worker context and RLS remain open
+([evidence](builds/2026-10-16-recovery/anomaly-location-scoping.json);
+[checklist](batches.md); [schedule inventory](schedule-ownership-inventory.md)).
+
+### Worker identity operation map and EventBus trace — 16 October 2026
+
+Updated the machine-readable and narrative worker maps to reflect the signed
+sensor-anomaly handler and all four opt-in cache invalidation handlers. The map
+now distinguishes the shared scheduler/EventBus control-plane identity from
+dedicated handler credentials, records the exact secret-forwarding allowlist,
+and links the current migration and adapter sources. Corrected the stale
+EventBus effect analyzer to follow `subprocess.Popen` into
+`services.events.handler_runner`, the worker-secret filter, resolver, and
+allowlist validation. Refreshed the generated effect inventory and corrected
+the current counts to 22 operation roots, 268 worker SQL sites, and 33 effect
+candidates.
+
+The focused operation-map, worker-environment, and EventBus suites pass 46
+tests. Seven generated source/SQL/boundary inventories, runtime SQL inventory,
+Ruff, JSON parsing, and `git diff --check` pass. The checklist remains 413
+complete / 19 open; the capability matrix remains at 66 rows, with MAN-CAP
+statuses unchanged. No candidate or legacy database, live provider, or external
+worker deployment was touched
+([evidence](builds/2026-10-16-recovery/worker-operation-map-signed-routing-source.json);
+[operation map](worker-operation-map.md); [checklist](batches.md)).
+
+### Source-less sensor excluded from composite Prefect runs — 16 October 2026
+
+Removed the sensor JobSpec from the composite ingestion pipeline and the
+hourly schedule, which continues to run anomaly detection and freshness checks.
+The standalone sensor flow still fails closed through the source-contract
+guard; explicit CLI/CSV, HTTP, and MQTT capture paths remain. Removed the
+misleading no-input sensor cron example from worker guidance and documented
+that a recurring source adapter is required before scheduling sensor ingestion.
+
+The focused Prefect and scheduler-contract suites pass 116 tests, including
+checks that all five remaining ingestion jobs are submitted and awaited, and
+that hourly anomaly/freshness work is preserved without calling the sensor flow.
+The generated worker-job contract inventory and Ruff pass. No database,
+provider, external Prefect server, persisted schedule, or deployment was
+accessed. The checklist now records 413 complete items and 19 open; the
+66-row capability matrix is unchanged
+([evidence](builds/2026-10-16-recovery/source-less-sensor-prefect-exclusion.json);
+[checklist](batches.md); [schedule ownership](schedule-ownership-inventory.md)).
+
+### Legacy dashboard refresh invocation boundary — 16 October 2026
+
+Moved the `legacy_dataset_sql` feature check to the CLI boundary for explicit
+refresh requests. `--all` and `--dataset-id` now fail before opening the
+application database while the compatibility feature is off. Read-only
+`--list` remains available, and an invocation with no operation prints help
+without connecting. Updated the reporting inventory to distinguish the source
+SQL's missing query-ID parser from the existing database-enforced relation
+allowlist: enabled SQL still uses the separate `kokonut_analytics_ro` role,
+read-only transaction, and statement/lock timeouts, but it has no location
+parameter binding and does not prove tenant scope. Eight focused CLI checks
+pass for disabled-feature preflight, offline help, and listing; Ruff, Python
+compilation, and capability-matrix integrity also pass. The checks use fakes;
+no candidate, legacy database, provider, or saved SQL was touched
+([runner](../../services/export/dataset_refresh.py);
+[tests](../../tests/test_dataset_refresh_readonly.py);
+[evidence](builds/2026-10-16-recovery/dashboard-refresh-cli-boundary.json);
+[inventory](reporting-parity-inventory.md)).
+
+### Event dispatch and notification delivery split — 16 October 2026
+
+Added `--event-worker` and `--notification-worker` modes and kept `--worker` as
+a combined compatibility path. The Kernel supervisor starts the two worker
+processes independently; the legacy worker overlay now has separate event and
+notification services. Notification delivery defaults to the event-bus feature
+setting and can be toggled independently. Each mode exits before opening a
+database connection when its feature is disabled; combined mode runs only
+enabled loops. The focused event-worker, supervisor, feature, scheduled-command,
+outbox, and worker-inventory suites pass 160 tests and 3 subtests.
+Ruff, Python compilation, Compose parsing for legacy/standard/portability
+profiles, the legacy default/disabled/notification-only flag matrix, and
+refreshed source/function/SQL inventories pass. No database,
+provider, candidate, or legacy service was contacted. This is process
+responsibility separation only: event handlers still use the shared runtime
+PostgreSQL identity and destination configuration to create notification
+intents. Real provider delivery, worker identity/RLS, long-duration recovery,
+and MAN-CAP acceptance remain open
+([evidence](builds/2026-10-16-recovery/event-notification-worker-separation.json);
+[checklist](batches.md); [supervision](kernel-supervision.md)).
+
+**Updated:** 16 October 2026. **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68.
+
+### Farm-activity permissions retired from optional Directus — 16 October 2026
+
+The owner selected the Gateway as the only farm-activity operations surface,
+with Directus remaining optional. Removed `farm_activity` permission inserts
+for all nine repository-managed Directus policies and added an idempotent
+cleanup for stale rows belonging to those exact policy IDs. Custom policies
+are left untouched for owner review. Twenty-four focused authorization and
+source-contract tests pass. A fresh, isolated Directus 12.1.1 runtime using
+`kokonut_directus_runtime` applied and replayed the permission seed, retained
+14 other curated role permissions, reported zero managed farm-activity rules,
+and passed health and login checks. The disposable project was removed; the
+candidate and legacy databases were not touched. This closes the Directus
+farm-activity bypass slice only; other collection/field/relationship parity,
+hooks, schedules, external identity mapping, and migration 404 candidate
+rollout remain open. No MAN-CAP acceptance is claimed
+([seed](../../config/directus/permissions.sql);
+[runtime evidence](builds/2026-10-15-recovery/directus-profile-disposable.json);
+[parity inventory](directus-parity-inventory.md)).
+
+### Runtime SQL inventory refreshed after worker integration — 16 October 2026
+
+Refreshed the direct-SQL inventory after the signed sensor-anomaly worker and
+tenant-preflight updates. All six static checks pass: worker source closure,
+function reachability, SQL reachability, boundary preflight, worker SQL
+inventory, and runtime SQL inventory freshness. The report now records 3,862
+SQL execution sites across 815 Python service files, 267 worker-linked sites,
+and 1,041 regex-derived relation candidates. The worker graph has 20 operation
+roots across 81 files, 267 SQL sites, 227 literal and 40 composed/variable
+sites, 203 unique sites with static operation paths, and 64 unmatched functions.
+All 40 composed/variable worker SQL sites now have source-pattern review; their
+statement fragments come from fixed code paths or module constants, and data
+values are bound parameters. This still does not establish least-privilege
+database grants or tenant isolation.
+The runtime report flags 134 unknown statements, 24 `WITH` sites requiring
+review, 370 sites with no relation candidates, and 480 non-literal calls. These
+counts guide review; they do not form an ACL or prove tenant isolation. No
+candidate or legacy database was accessed
+([inventory](runtime-sql-inventory.json);
+[evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)).
+
+### Owner-confirmed location operating-tenant map — 16 October 2026
+
+The pilot data flow now includes a new rerunnable owner reconciliation seed for
+the five owner-confirmed Kokonut Network locations. It matches exact names and
+slugs, establishes organization assignment plus one current owner relationship
+and verification, preserves the existing Adelphi/Genesis verification, and
+creates no sharing or operator account grants. It skips missing locations so
+Seeds, Terra Viva, and V1 can be mapped after their imported records exist; it
+does not create placeholder locations or assert land title. Conflicting names,
+owners, and revoked verification history fail the entire transaction. The
+read-only tenant preflight now reports aggregate expected/present/verified/
+missing/mismatch counts for those five entries, without returning names, slugs,
+or UUIDs. An entry counts as owner-confirmed only when the location and
+organization are active and the exact owner relationship and verification are
+current. The focused map/preflight source suite passes (32 tests); the
+network-disabled PostgreSQL check exercises absent, present, inactive,
+replayed, identity-mismatch, and conflicting-owner states. No candidate or
+legacy database was accessed ([seed](../../schemas/seeds/122_kokonut_network_operating_tenant_map.sql);
+[preflight](../../services/mobile/tenant_preflight.py);
+[runner](../../scripts/check-network-location-owner-map-disposable.py);
+[evidence](builds/2026-10-16-recovery/network-location-owner-map-disposable.json);
+[application contract](tenant-owner-map-reconciliation.md)).
+
+### Signed sensor-anomaly worker integration — 16 October 2026
+
+`handle_sensor_reading` now delegates to a worker-only adapter. It opens only
+`KOKONUT_SENSOR_ANOMALY_DATABASE_URL`, validates the login, hashes the named
+worker credential in memory, establishes signed `sensor_reading/process`
+context, and keeps reads, receipts, alert/audit creation, a draft claim,
+notification intents, the follow-up event, and an optional approval-required
+actuation intent on one non-autocommit connection. The event dispatcher passes
+the worker DSN and credential only to this exact allowlisted handler. The
+interactive anomaly CLI retains its shared-database path; event calls to that
+path now fail before connecting.
+
+Migration 414 enriches canonical alert events with the fields used by
+notification formatters, adds a signed, boolean-only actuator-configuration
+read, and installs missing no-login function-owner policies when source tables
+are forced under RLS. No worker can send commands. The published event and
+transactionally inserted notification intent have matching payloads, so the
+later notification handler deduplicates them. The source receipt suppresses
+event retries.
+
+Forty-five focused anomaly and event-bus tests pass. The isolated PostgreSQL 16
+runner applies EventBus migrations 116/165 and worker migrations 405–414, then
+exercises the Python worker with synthetic credentials and a disposable
+database. Eight checks pass for
+signed scope, forced-RLS function use, source-derived alert/claim linkage,
+notification parity/idempotency, approval-only actuation intent, receipt
+retry suppression, direct-table denial, and actual EventBus crash/retry on
+attempt two after effects commit but before delivery acknowledgement. Ruff,
+Python compilation, provider
+boundaries, dependency alignment, static worker inventories, and diff checks
+pass. No external provider, candidate database, or legacy database was
+accessed. The worker login, credential, and location grant are not provisioned;
+migration 414 is not applied to the candidate, and global application RLS
+remains disabled
+([migration](../../schemas/postgres/414_sensor_anomaly_worker_delivery.sql);
+[runner](../../scripts/check-sensor-anomaly-worker-delivery-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json)).
+
+### Signed sensor-anomaly read boundary — 16 October 2026
+
+Migration 412 now provides four dormant read operations behind a separate
+no-login function owner: event-linked source context, enabled rules for one
+device, event-bound metric evaluation, and scoped cooldown lookup. The
+functions use transaction-bound `sensor_reading/process` context, check the
+source event's location and sensor selectors, and constrain all history and
+alert reads to the same location/device. The dedicated owner has only the
+columns needed by those functions; the worker execution role cannot read the
+source tables directly. Narrow SELECT policies support use under forced RLS
+without enabling RLS globally. Ten disposable PostgreSQL 16 checks pass for
+405–412 replay, signed scope, source and rule matching, metric/history results,
+cooldowns, forced-RLS reads, and role separation. Candidate and legacy databases
+were not accessed. This does not connect the handler to the worker-only DSN or
+credential resolver, provision a worker identity, enable global RLS, or accept a
+MAN-CAP capability ([migration](../../schemas/postgres/412_sensor_anomaly_worker_reads.sql);
+[runner](../../scripts/check-sensor-anomaly-worker-reads-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-reads-disposable.json)).
+
+### Worker tenant-context design — 16 October 2026
+
+The static worker audit confirms that scheduled commands and spawned event
+handlers inherit the shared runtime PostgreSQL identity and do not establish
+signed tenant context. A new contract defines a database-verified
+`system_worker` identity, exact location/resource/action grants, database-side
+owner resolution, a separate control-plane boundary for global leases/queues,
+and the sensor-reading event handler as the first tenant-execution adapter.
+The first migrations establish its signed context and bounded anomaly
+operations. The allowlisted sensor-reading handler requires a canonical event
+location and now uses the signed worker adapter described above. This is code
+and disposable-database acceptance only: worker login, credential and active
+location grant provisioning, plus candidate rollout, remain open. Focused
+checks cover handler validation, database authorization, and exact child-secret
+routing
+([contract](worker-tenant-context-contract.md); [source audit](worker-operation-map.md)).
+
+CI #342 failed in the pilot-seed phase because its farm-activity source-lineage
+UPDATE ran after migration 404's immutable-source trigger was installed. A
+second alignment-seed UPDATE would also change protected activity timestamps.
+The pilot seed now inserts lineage with its 30 records and the alignment seed
+no longer rewrites guarded activity rows. Two focused seed-contract checks
+pass; the combined focused run passes 16 tests. Hosted CI must rerun after this
+fix is pushed ([evidence](builds/2026-10-16-recovery/ci-342-pilot-seed-guard-fix.json)).
+
+### Native Gateway operations for farm activity — 16 October 2026
+
+The owner-selected Gateway path now has bounded list/detail, draft create/edit,
+submit, independent verify, reject, request-rework, publish, and exception-close
+routes for non-Field-Collector `farm_activity` records. Migration 404 adds a
+separate append-only operator audit ledger, signed organization/location grant
+guards, plot/crop location checks, and a no-login function-owner role. Field
+Collector rows stay on their consent-aware API. Historical non-Field-Collector
+rows without attributable Gateway audit history fail closed for lifecycle
+review; they need an explicit reconciliation path before transition.
+
+Thirteen focused service, HTTP, and route-policy tests pass; Ruff and Python
+compilation pass. A disposable PostgreSQL 16 run applied migration 404 and
+passed 11 checks covering tenant grants, audit/event atomicity, distinct
+submitter/verifier/publisher actors, and runtime/Directus ledger permissions
+([evidence](builds/2026-10-16-recovery/gateway-farm-activity-operations-disposable.json)).
+The runtime SQL inventory is refreshed. Migration 404 has not been applied to
+the candidate or legacy database; no candidate rollout or MAN-CAP-001
+acceptance is claimed. This slice does not close Directus collection/field/
+relation parity, hook/schedule parity, populated legacy-row reconciliation,
+configured-provider acceptance, or RLS readiness
+([contract](gateway-farm-activity-operations.md); [source inventory](directus-parity-inventory.md)).
+The operator console now has a separate grant-filtered panel for this API,
+including draft creation/editing for all API-editable content and human
+lifecycle controls. Its focused UI contract and JavaScript syntax checks pass
+(6 tests); browser and live authenticated Gateway acceptance remain open
+([evidence](builds/2026-10-16-recovery/operator-console-farm-activity-contract.json)).
+
+The report review audience now records the owner's direction to involve
+liquidity providers, DAO members, guild members, and the wider community across
+the farm/natural-asset lifecycle. This is stakeholder review guidance, not a
+grant to view every report. Per-report exposure, scope, measures, and populated
+reference outputs remain open until owners can review the ingested farm data
+([reporting contract](reporting-parity-inventory.md)).
+
+The owner selected native Gateway operations for farm activity, with Directus
+optional. Six legacy role names now expand into atomic tenant-qualified scope
+grants; Analyst reads use dedicated verified/published-only routes and exclude
+Field Collector records that are no longer eligible for use. Canonical activity
+detail now uses its own scope, separate from private capture-detail access. The
+104-test focused role/route/query/lifecycle suite and four-case disposable
+PostgreSQL provisioning check pass. This closes the unlicensed Directus
+permission blocker for native Field Collector 1.2.0 workflow operations. The
+separate migration-404 Gateway slice now covers bounded non-Field-Collector
+farm-activity operations; historical-row reconciliation and other collections,
+full field/relation parity, and hooks/schedules remain open ([inventory](directus-parity-inventory.md);
+[role evidence](builds/2026-10-16-recovery/farm-activity-gateway-role-mapping.json);
+[operations evidence](builds/2026-10-16-recovery/gateway-farm-activity-operations-disposable.json)).
+
+The local Kernel candidate now also has an explicit development Compose overlay
+for host-side PostgreSQL tools. The candidate database listens on
+`127.0.0.1:5433`; the existing data volume was preserved while Compose recreated
+only the database container. Host authentication with `SELECT 1` and Gateway
+health both pass; Metabase, proxy, and the legacy stack were not changed
+([overlay](../../docker-compose.kernel-local-db.yml);
+[evidence](builds/2026-10-16-recovery/kernel-local-db-port.json)).
+
+At the earlier `8c7a053` checkpoint, CI #337 and Security #61 were in
+progress. That batch extended KGP projection coverage to governance target,
+selector, and guild-scope policy events, then verified simulated reorg rebuild
+and worker recovery. A fresh encrypted candidate checkpoint was
+restore-rehearsed before migration 403 was applied; the candidate now has 394
+applied schemas and zero pending, health 200, and protected-route 401. Its app
+image was not rebuilt, the governance table is empty, and RLS remains off.
+These bounded synthetic fixtures do not close other
+event-type parity, live-chain/provider, post-effect, or long-duration acceptance.
+The preceding Dockerfile digest correction and local 14-test repair are recorded separately
+([evidence](builds/2026-10-16-recovery/ci-d37b586-release-lock-fix.json)).
+
+An earlier code-first batch added a dedicated read-only scheduler
+entrypoint for carbon-credit adjustment checks, removes the interactive
+credit-management CLI from the scheduler allowlist, and extends the shared
+database connection helper with read-only transaction mode. The function graph
+now follows the shared CLI `run(main)` callback. The focused command, worker,
+and database-helper suite passes 183 tests. A disposable PostgreSQL probe
+confirms the new connection mode starts read-only, rejects an insert with
+SQLSTATE `25006`, and leaves the synthetic table empty. The refreshed effect
+inventory no longer includes the interactive retirement/chain-sync paths under
+the scheduled job. Candidate, legacy, provider, and persisted schedule state
+were not accessed. This does not establish worker tenant context or RLS readiness
+([evidence](builds/2026-10-16-recovery/worker-credit-check-isolation.json)).
+
+The local follow-up now requires a single location for each credit-adjustment
+run. The CLI, shared job dispatcher, disabled plan builder, and database-driven
+command contract reject missing scope before a connection or child process is
+created. The native metric JobSpec is now also one-location-per-task, rejecting
+the legacy global `--all-locations` scheduler command. The Prefect adapter keeps
+its aggregate intent by fanning out over active locations assigned to the
+owner-confirmed Kokonut Network organization; weather, credit, climate, and
+remote sensing use the same selector. The 126-test scheduler/Prefect slice passes. At
+that checkpoint, the static JobSpec inventory recorded nine no-input jobs,
+five jobs with validated required location inputs, and one source-less sensor
+job; later anomaly and sensor-scope slices changed that checkpoint's totals to
+eight no-input jobs and seven validated-input jobs. EAS/RPC chain scoping now
+makes the current catalog five no-input jobs and eleven validated-input jobs,
+including the sensor location/driver-instance pair.
+No persisted task was read or
+changed. Existing task rows need reconciliation before activation, and the
+shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);
+[operation map](worker-operation-map.json);
+[evidence](builds/2026-10-16-recovery/prefect-location-scoped-job-fanout.json)).
+
+The next code-first scheduler slice scopes crop-cycle NOI snapshot
+reconciliation to one location per native task. The CLI validates and
+canonicalizes the UUID before opening a connection and binds it against both
+the source view and crop-cycle relation; manual aggregate reconciliation
+remains explicit via `--all-locations`. The dispatcher, disabled plan builder,
+and scheduled command contract enforce the same scope. The focused CLI,
+scheduler, worker-operation-map, and SQL/source inventory suites pass 158 tests.
+The catalog now has five no-input and eleven
+validated-input jobs. No database, provider, candidate, persisted schedule, or
+legacy service was accessed; this does not establish worker identity or RLS
+([evidence](builds/2026-10-16-recovery/noi-snapshot-location-scope.json)).
+
+### Per-location remote-sensing scheduled claims — 16 October 2026
+
+This is the earlier scheduler-only checkpoint; the newer CLI and queue
+hardening above supersedes the note that direct operator runs could process
+the global queue.
+
+The scheduled `remote_sensing` JobSpec now requires one location UUID. The
+atomic due-job claim binds that location into its SQL predicate before it locks
+and leases a queue row. The optional Prefect flow fans out over active
+Kokonut Network locations through the shared location dispatcher. At that
+checkpoint, the direct operator CLI could still process its global queue.
+Source tests cover
+claim-query binding, dispatcher forwarding, schedule-contract rejection of a
+missing location, and Prefect routing. The actual claim function also passed a
+disposable PostgreSQL 16 probe using two locations, verifying scoped leases and
+the then-existing direct operator global-queue behavior. At that checkpoint, the inventory
+contained nine no-input jobs, five required-location jobs, and one sensor job
+without a source contract; later anomaly and sensor-scope slices changed the
+current totals to eight no-input and seven validated-input jobs, including the
+sensor location/driver-instance pair. No persisted task, Prefect deployment, provider, candidate database,
+or legacy database was accessed; the probe used a temporary no-volume local
+PostgreSQL database. This is code-level scope only; signed worker identity and RLS remain
+open ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);
+[PostgreSQL evidence](builds/2026-10-16-recovery/remote-sensing-location-postgres.json);
+[JobSpec inventory](worker-job-contract-inventory.json);
+[operation map](worker-operation-map.json)).
+
+### KGP indexer PostgreSQL restart recovery — 16 October 2026
+
+A current-source runtime check applied all 393 ordered PostgreSQL schema
+migrations from the repository, recording each source checksum in the
+migration ledger. It inserted synthetic KGP deployment/cursor rows and a
+prelinked guild row. The real `KGPIndexer.scan_once` processed a synthetic
+`GuildCreated` log, projected the source event ID and on-chain identity to the
+guild, and marked the chain event processed. Replaying that canonical log
+after rewinding the disposable cursor retained one event row and one guild
+projection. The worker remained alive through a database stop/start and
+advanced its lease heartbeat. The check then killed the worker, forced its
+lease expiry, and confirmed a replacement worker took ownership and advanced
+the heartbeat. Live RPC, seeds, and external providers were not used. The
+database had no volume and published only a loopback port. Candidate/legacy
+state remains untouched. Other event-type projection parity, production-duration
+lease reclaim, live RPC/event processing, and provider delivery remain open
+([script](../../scripts/check-kgp-worker-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
+
+### SchedulerEngine PostgreSQL restart recovery — 16 October 2026
+
+The real scheduler worker and `SchedulerEngine` claimed and completed one
+bounded `services.events --process --batch-size 10` task before PostgreSQL
+stopped, remained alive during the outage, then claimed and completed another
+task under the same worker ID after restart. The disposable database replayed
+migrations 116, 117, 164, 165, 337, and 371. EventBus processed an empty queue;
+no external provider ran. A separate crash probe killed the real engine after
+it committed a task lease but before starting the subprocess. After forced
+expiry in the disposable database, a replacement worker reclaimed and ran the
+task as attempt two; run history was `failed` then `completed`. This exercises
+claim-to-dispatch recovery, not a crash after the task's domain effect commits.
+Full-ledger parity, post-effect idempotency, and long-duration recovery remain
+open ([script](../../scripts/check-scheduler-engine-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
+
+### EventBus worker PostgreSQL restart recovery — 16 October 2026
+
+The actual EventBus worker invoked the allowlisted alert-notification handler
+for one synthetic event before a PostgreSQL stop and another after restart,
+both under the same worker identity. The isolated database replayed migrations
+116, 165, and 375. The handler ran in its spawned child process and opened a
+database connection. It queued durable notifications to a temporary fake
+webhook bound only to `127.0.0.1`; the real outbox worker delivered one before
+restart and one after restart. The receiver returned a synthetic `503` for the
+first attempt; the outbox recorded `retryable` plus a failed attempt, then
+recovered to `succeeded` after the receiver accepted the retry. The retry
+reused the same notification UUID in `Idempotency-Key`; the post-restart event
+used a distinct notification ID. A third request was received by the fake
+receiver while its response was held; the worker was killed, the fixture
+expired the notification lease, and a one-shot replacement reclaimed it.
+Attempt state became `lease_lost,succeeded`, and the duplicate request reused
+the same idempotency key. No remote provider was contacted. Full
+migration-ledger parity, real provider delivery, production-duration lease
+reclaim and outage recovery, and long-duration acceptance remain open
+([script](../../scripts/check-event-worker-reconnect-disposable.py);
+[evidence](builds/2026-10-16-recovery/event-worker-postgres-reconnect.json)).
+The current local slice also closes a generic-retention preview hazard: the
+outbox, attempt, and operator-audit tables now skip before row inspection in
+both preview and enforcement until archive/idempotency handling exists. Dry
+runs and skipped policies no longer refresh `last_enforced_at`. Retention
+enforcement rejects missing, oversized, or non-string actors and non-boolean
+dry-run modes before opening a cursor. The focused data-governance suite passes
+48 tests and 14 subtests with Ruff/compile checks; this source guard does not
+configure or execute pruning
+([evidence](builds/2026-10-16-recovery/retention-notification-sweeper-guard.json)).
+The candidate now has 393 applied schema migrations through 402, six
+recorded seed migrations, zero pending schema migrations, 115 unselected seed
+sources pending, and no failed ledger rows. The five approved reference catalogs
+and configurable retention/legal-hold schema are applied; no retention period,
+policy, or hold was configured. The app, database, and Metabase remain healthy
+and `/health` returns 200. Other curated and pilot seeds remain held ([seed evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json); [retention rollout](builds/2026-10-15-recovery/candidate-retention-401-402-rollout.json)).
+Earlier commits close the sensor CLI false-success path (`83256be`), verify
+the shared job dispatcher and refresh SQL inventories (`2606ee5`), and add
+isolated ARM64 minimal/edge/standard profile selection (`629affd`). Other
+local work includes default-off retention enforcement and Directus OIDC/operator
+grant checks. The ZITADEL profile has focused Compose/planner checks, Ruff,
+shell syntax, Caddy validation, and isolated database-role evidence; its image
+containers have not been started and credentials were not provisioned. The
+latest schema rollout is migration 402; the separately approved local
+reference-catalog seed rollout is recorded above. Application-table RLS remains
+unaccepted. The Raspberry Pi target remains a code-only Buildx/QEMU assessment
+because no hardware is available; physical-device acceptance is not claimed.
+
+### Directus nested relation guard — 15 October 2026 local time
+
+The OIDC/location-grant hook now rejects non-empty `deep` queries, dotted
+relation fields, nested wildcards, and malformed field selectors across the
+eleven tenant-scoped collections. This keeps unreviewed related objects out of
+the root collection response until a cross-collection scope contract exists.
+Seven focused authorization tests and the extension build/TypeScript check
+pass. Directus runtime parity and root field privacy remain open; no database,
+provider, candidate, or legacy stack was touched ([inventory](directus-parity-inventory.md);
+[evidence](builds/2026-10-15-recovery/directus-relation-expansion-denial.json)).
+
+### JobSpec runtime-input classification — 15 October 2026
+
+The static inventory now distinguishes command defaults from required inputs.
+Twelve default argument lists pass directly. Climate and weather command
+schemas pass when supplied a synthetic UUID solely for validation; each real
+scheduled job must provide one explicit location. Scheduled weather can no
+longer invoke the standalone CLI's all-location mode. Sensor ingestion remains
+blocked because no recurring source contract exists. Focused scheduler-contract,
+dispatch, and inventory checks pass; the inventory is regenerated and current.
+No provider, database, Prefect state, or persisted schedule was accessed or
+changed ([inventory](worker-job-contract-inventory.json);
+[evidence](builds/2026-10-15-recovery/worker-weather-location-contract.json)).
+
+### Kernel startup schema readiness — 15 October 2026
+
+The default and OIDC image commands and both standard-profile roles now pass
+`--require-schema` to the supervisor. If required migrations or read relations
+are missing, it exits before spawning API or worker children; Compose retries
+after the separate host migration runner completes. The focused regression
+confirms a readiness failure launches no child, and profile checks cover each
+declared runtime command. The bounded ARM64 QEMU follow-up confirmed no child
+starts on an empty ledger; after 393 ordered schemas, API/scheduler/event
+children started, `/health` was 200, the anonymous Data Stream write was 401,
+and the app reached Docker healthy with a 1 GiB/two-CPU limit. PostgreSQL used
+1.5 GiB/two CPUs. No seeds ran, and the disposable project/volumes were removed;
+the healthy candidate remained running. Physical Pi behavior, 24-hour recovery,
+and provider outages remain open
+([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json);
+[ARM64 record](arm64-database.md)).
+
+### Dynamic retention policy scope metadata — 15 October 2026
+
+Migration 402 adds optional owner-defined jurisdiction and purpose codes with
+no defaults or hardcoded legal interpretation. The CLI and append-only policy
+snapshots preserve the codes; scoped automatic enforcement fails closed until
+a resolver exists. Event cleanup requires one unambiguous global policy and
+locks that lookup. Sixty-two focused tests and four subtests pass, Ruff and
+static inventories are current, and migrations 401/402 pass on a temporary
+internal-only PostgreSQL fixture. Migrations 401 and 402 are now applied on the candidate; no
+policy periods or scoped policies were configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
+[source evidence](builds/2026-10-15-recovery/retention-policy-scope-source-checks.json);
+[database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
+
+### Authenticated backup manifest and optional object-storage transport — 15 October 2026
+
+New local checkpoints now authenticate their artifact inventory with a
+PBKDF2-derived HMAC key from the existing backup secret. Unsigned historical
+checkpoints remain locally readable, while remote upload requires a signed
+manifest. The optional `scripts/backup_remote.py` command provides dry-run-first
+S3/R2 upload and download: objects use a unique staging prefix, uploaded bytes
+are read back and checked, and a conditional manifest marker publishes the
+checkpoint only after all artifacts verify. Restore downloads to a new private
+directory and validates the signed inventory before exposing it. The command
+does not list or delete remote data and has no lifecycle behavior. Twenty-eight
+focused backup tests pass using fake Compose/S3 adapters; shell syntax, matrix,
+provider-boundary checks, and boto3's pinned `PutObject.IfNoneMatch` API check
+pass. No R2 credentials or objects were accessed. Production upload/restore,
+orphan inventory/disposition, and dynamic lifecycle policy remain open
+([contract](backup-object-storage.md); [tests](../../tests/test_backup_remote.py)).
+
+### Optional Directus runtime identity and candidate profile — 15 October 2026
+
+The standalone Kernel candidate now has an explicit, opt-in Directus Compose
+overlay. It binds to loopback port 18055, disables Redis-backed caching, and
+starts the pinned service with `cli.js start` under
+`kokonut_directus_runtime`. A separate owner-backed one-shot initializes
+Directus metadata; the legacy Compose service and its superuser configuration
+are unchanged.
+
+The new role provisioner is idempotent and grants DML on existing and future
+`public`/`kokonut` objects while denying DDL, ownership, and connections to
+other databases. Its database-connect revocation is cluster-wide, so the
+one-shot is limited to the isolated Kernel PostgreSQL instance. Seventeen
+focused planner/role tests, Ruff, Python compilation, Compose validation, and
+the internal-only disposable PostgreSQL replay pass. That acceptance leaves
+the candidate and legacy databases untouched. It does not solve Directus
+role/field/row/relation parity: `farm_activity` remains denied by the
+unlicensed permission layer, and live OIDC/grants and hook parity remain open
+([profile](kernel-directus-profile.md); [evidence](builds/2026-10-15-recovery/directus-runtime-role-disposable.json)).
+
+### Capability matrix integrity and owner mapping — 15 October 2026
+
+Added `scripts/check-capability-matrix.py` and wired it into the fast-fail CI
+checks. It validates the 66 capability IDs and ordering, six-column row shape,
+matching MAN-CAP identifiers, B/D/P status labels, and existence of referenced
+source/test paths. The current matrix passes: 55 baseline-retained, 7 deployed,
+and 4 prepared; no named MAN-CAP check is marked accepted. The check found and
+fixed a stray pipe in CAP-007 that had made the row unparsable. The owner’s
+five-location Kokonut Network operating-tenant mapping is now recorded as a
+completed data decision; no database ownership or grants were changed. The
+check does not prove capability behavior or close live acceptance.
+
+The public API SDK generator and all six worker-boundary/reachability inventory
+checks also pass. The runtime SQL inventory was stale after adding the Directus
+role provisioner; it has been regenerated and now passes its freshness check.
+It covers 3,795 SQL execution sites across 806 source files and 20 worker
+operation roots; 36 worker SQL sites still have no static
+function-path match. The new effect index records 43 unique direct effect sites
+(49 operation/site memberships), and the JobSpec inventory records 13 accepted
+default argument lists, climate's required location input, and the unresolved
+sensor source contract. These are static
+inventories and do not establish runtime-role least privilege, provider
+idempotency, or active schedule state.
+
+### ClickHouse projection JobSpec contract — prior batch snapshot (15 October 2026)
+
+The existing `projections` JobSpec is now supported as an optional bounded
+operation. Its contract accepts only `services.ingestion.clickhouse_outbox
+--run-once` with a validated limit from 1 to 1000 and rejects manual list,
+replay, disposal, and reconciliation actions. The allowlist and source maps now
+cover 14 scheduled modules and five handlers across 19 operation roots; 12 of
+15 JobSpec defaults validate, two fail closed for missing inputs, and remote
+sensing remains unallowlisted. A focused 116-test worker/scheduler suite and
+generated inventory checks pass. No database, ClickHouse provider, or schedule
+was accessed or activated. Worker database identity and tenant context remain
+open ([evidence](builds/2026-10-15-recovery/projection-job-contract.json);
+[operation map](worker-operation-map.md)).
+
+### Bounded remote-sensing JobSpec contract (15 October 2026)
+
+The existing `remote_sensing` JobSpec now runs only the due-job operation with
+a validated limit from 1 to 10; the shared JobSpec defaults to one. The worker
+claims one due row, processes it, then claims the next, so queued leases do not
+expire while an earlier provider request is running. The operation map now
+covers 15 scheduled modules and five handlers across 20 roots; the worker SQL
+inventory covers 257 sites, and 36 have no static function match. The effect
+index records 43 candidate calls across 49 operation memberships. A focused
+172-test scheduler/worker/remote-sensing suite passes. Provider calls,
+credentials, persisted schedule state, and worker identity were not exercised
+([evidence](builds/2026-10-15-recovery/remote-sensing-job-contract.json);
+[operation map](worker-operation-map.md)).
+
+### Directus rejects malformed explicit tenant scope — 15 October 2026
+
+The create-time tenant-reference hook now rejects a supplied `location_id`
+that is not a UUID instead of skipping the same-location reference checks.
+Missing or null values remain subject to each collection's schema and current
+Directus permission policy, preserving nullable legacy behavior. The extension
+TypeScript build passes. This does not bind a Directus principal to
+`operator_identity` or enforce current organization/location grants; Directus
+API parity remains open ([source](../../extensions/kokonut-hooks/src/tenant-validation.ts);
+[inventory](directus-parity-inventory.md)).
+
+### Directus collection hooks subscribe to canonical item events — 15 October 2026
+
+The extension had registered listeners as `<collection>.create` and
+`<collection>.update`; these are now `<collection>.items.create` and
+`<collection>.items.update`. A Vitest invokes the real extension register
+function and checks every collected item listener. The four-file hook suite
+passes 53 tests, the TypeScript build passes, and focused Python/matrix checks
+pass. This does not prove runtime dispatch, grant-aware authorization, or hook
+effect parity ([test](../../extensions/kokonut-hooks/src/index.test.ts);
+[evidence](builds/2026-10-15-recovery/directus-hook-event-registration.json);
+[inventory](directus-parity-inventory.md)).
+
+### Directus 12 extension packaging and isolated dispatch — 15 October 2026
+
+The base Compose service had mounted extension sources under non-discoverable
+paths. It now mounts each extension at a `directus-extension-*` path. The hook
+package uses the Directus extension bundler followed by `tsc --noEmit`; the
+Field Collector companion is a declared endpoint package. A fresh isolated
+Directus 12.1.1 database loaded both extensions. Authenticated admin login and
+the endpoint redirect passed. A synthetic `farm_activity.location_id` text
+field allowed the runtime test to prove an invalid value was rejected and no
+row was inserted. The first runtime pass exposed HTTP 500 from a plain
+exception; the hook now uses pinned `@directus/errors` 2.3.1 and returned
+`400 INVALID_PAYLOAD` in a fresh isolated runtime. The extension suite now
+passes 54 tests. All temporary containers and volumes were removed. This is
+narrow dispatch evidence, not tenant authorization parity
+([evidence](builds/2026-10-15-recovery/directus-extension-runtime.json);
+[inventory](directus-parity-inventory.md)).
+
+Fresh-checkout startup is now covered too: `make up` builds the ignored hook
+artifact before Compose startup, and `make hooks-build` installs the locked
+dependencies only when absent or stale. The Quick Start, deployment guide,
+repository commands, and Directus setup note document the same precondition.
+
+### Directus extension host version is pinned accurately — 15 October 2026
+
+The hook package previously advertised Directus `^11.0.0` while Compose pins
+the Directus server at `12.1.1`. Its host declaration now matches that exact
+image, and a source regression check fails if the two drift. This resolves a
+compatibility metadata defect; it does not prove that the extension loads in
+the server or that Directus permissions match Kokonut organization/location
+grants ([test](../../tests/test_directus_extension_compatibility.py);
+[evidence](builds/2026-10-15-recovery/directus-extension-host-contract.json);
+[inventory](directus-parity-inventory.md)).
+
+### Gateway CORS no longer inherits Directus configuration — 15 October 2026
+
+FastAPI Gateway now reads `KOKONUT_GATEWAY_CORS_ORIGINS`; Directus keeps
+`CORS_ORIGIN`. The Gateway setting is empty by default and wildcard entries
+are ignored, so an existing Directus origin cannot silently enable Gateway
+cross-origin access. Updated Compose profiles, operator/mobile documentation,
+and the acceptance checklist. The focused Gateway and operator suites pass
+85 tests; Ruff, Python compilation, and candidate Compose configuration checks
+pass. This is source/config evidence only. Successful credentialed browser
+requests and public-origin behavior remain open. No database or provider was
+accessed ([evidence](builds/2026-10-15-recovery/gateway-cors-configuration-boundary.json)).
+
+### Report calculations run read-only — 15 October 2026
+
+All single and bulk report generation runs under PostgreSQL's session-level
+read-only mode. A disposable-database probe found that changing the session
+default, committing, then enabling autocommit allowed a synthetic write. The
+connection facade now rejects autocommit changes and returns itself through
+`cursor.connection`, closing both escape paths while preserving normal
+commit/rollback and read behavior. A real PostgreSQL probe confirmed direct
+DML fails with SQLSTATE `25006`, both autocommit paths are denied, and the
+separate draft write succeeds after calculation. Nine focused unit tests, Ruff,
+Python compilation, and the disposable PostgreSQL check pass. The application
+connection remains a writer, so this guard is not database-role isolation;
+populated output parity remains open
+([unit/runtime evidence](builds/2026-10-15-recovery/report-generator-read-only-calculation.json);
+[disposable evidence](builds/2026-10-15-recovery/report-generator-readonly-disposable.json)).
+
+### Native scheduler contract for credit adjustment checks — 15 October 2026
+
+The existing `credit_adjustment` JobSpec is now allowlisted only for
+`--check-adjustments`, optionally scoped to one location UUID. The contract
+rejects automatic adjustment and retirement review/confirmation flags. This
+check reads verified/published credit and carbon-balance inputs and reports
+differences; no schedule was registered or activated. Worker source closure,
+function reachability, SQL reachability, and the aggregate preflight now cover
+14 scheduled modules and five event handlers. The remaining worker identity
+and tenant boundary stay open. All 76 focused command/worker tests pass, as do
+Ruff, Python compilation, generated-inventory checks, and `pip check`. No
+database or provider was accessed ([evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json);
+[operation map](worker-operation-map.json); [schedule inventory](schedule-ownership-inventory.md)).
+
+### Self-hosted ZITADEL Compose profile — 15 October 2026
+
+Added an opt-in ZITADEL deployment path through `python3
+scripts/kernel-profile.py minimal --zitadel`. It combines the HTTPS Caddy
+proxy, the Gateway's OIDC client, ZITADEL API, Login V2, and a dedicated
+PostgreSQL service. The database uses a separate internal-only network and a
+non-superuser role that owns only the ZITADEL database. API and Login V2 are
+not published on host ports. Caddy routes the Login V2 path separately and
+proxies the API over h2c with the upstream `TE` header removed. Minimal and
+edge remain unchanged unless the user selects ZITADEL.
+
+The focused Compose/planner suites pass 26 tests, Ruff passes, `sh -n` accepts
+the database bootstrap script, the Caddyfile validates in the local Caddy
+image, and `git diff --check` passes. The bootstrap also passed against a
+network-disabled, disposable PostgreSQL 17 container:
+the role is non-superuser/non-createdb/non-createrole, owns only its database,
+and can create a table using its own login
+([evidence](builds/2026-10-15-recovery/zitadel-compose-profile.json)). Tests
+use synthetic values and do not start an IdP or write secrets. The API/Login
+defaults now use published v4.19.4 tags with pinned GHCR manifest digests. The
+host still cannot resolve registry DNS, so exact manifest pulls and ARM64
+platform verification remain open ([image evidence](builds/2026-10-15-recovery/zitadel-image-reference-check.json)). The identity hostname, live client settings, and encrypted
+secrets remain needed for browser acceptance. Kokonut Gateway sessions and
+tenant grants remain authoritative.
+
+Implementation began on `feat/kernel-architecture-refactor`; current Field
+Collector acceptance and tenant/database work continue on `feat/mobile-offline-acceptance` in open PR #68.
+Do not treat earlier CI runs as coverage for commits after their
+verified head. The preceding pushed batch through `f8d90ea` includes provider-aware
+backup/restore, gRPC auth-context lifecycle fixes and enabled loopback service
+acceptance, focused RPC policy and optional-provider inventories, worker
+import/SQL inventories, exact pre-400 restore and runtime-role recovery
+evidence, the Directus fixture preflight, supervisor shutdown tests, and
+outbox unit/evidence updates. Security #42 passed on that earlier head; CI #318
+was cancelled after the newer head run started. The subsequent push through
+`c2cdbe9` adds EventBus
+dead-letter cleanup protection and the scoped Field Collector operator
+inventory. Security #43 passes on `c2cdbe9`; CI #319 is running on that head.
+The pushed
+disposable PostgreSQL fixture adds real persistence and one-shot CLI exit
+coverage, alongside CLI parser regressions. The focused four-suite set passed
+28 tests; the eight-suite platform-integrity set passed 290 tests on
+local commit `238e2ef`. The root implementation plan
+remains intentionally ignored; this ledger and the
+[capability matrix](capability-matrix.md) provide repository-visible progress
+alongside it. Remaining implementation is ordered in the
+[code-first execution plan](code-first-execution-plan.md); owner decisions and
+external inputs are collected in [Open Follow Ups](open-follow-ups.md).
+
+### Report generator CLI scope — 15 October 2026
+
+Bulk report generation now requires an explicit location scope or `--all`.
+Ordinary location reports require a location selector; only the existing
+five-type network-level allowlist can run without one. Conflicting modes and
+scope selectors fail before opening PostgreSQL, while `--verify HASH` works
+without a report type. All 94 registered report generators remain available.
+Eleven focused tests and Ruff pass; no database or provider was accessed.
+This closes a CLI invocation gap only. Report audience, result parity against
+populated farm data, external dashboards, and tenant authorization remain open
+([test](../../tests/test_report_generator_cli.py);
+[evidence](builds/2026-10-15-recovery/report-generator-cli-scope.json)).
+
+### Event retention cleanup gate — 15 October 2026
+
+The owner selected USA and Dominican Republic, but retention durations and the
+legal-hold process remain unapproved. The event cleanup feature now defaults
+off; the CLI requires `--days`, and both the CLI and `EventBus.cleanup_old_events`
+check the feature before connecting to PostgreSQL. Removed the 30-day default
+and preserved the cleanup query's undisposed-dead-letter guard. The query now
+also excludes events with any durable handler delivery whose status is not
+`success`. One focused source-unit regression passes without database or
+provider access. At that point the query did not evaluate event-level legal
+holds; the later dynamic policy/hold update below supersedes that limitation.
+The existing 34-check evidence predates this SQL change; the separate
+single-test record is retained ([focused evidence](builds/2026-10-15-recovery/event-retention-handler-delivery-guard.json); [prior feature-gate evidence](builds/2026-10-15-recovery/event-retention-cleanup-gate.json)).
+
+### Generic data-governance retention gate — 15 October 2026
+
+The separate `data_retention_policy` sweeper now fails closed before creating
+a database cursor unless `KOKONUT_FEATURE_DATA_RETENTION_ENFORCEMENT=true`;
+the CLI blocks before opening the connection and leaves help available.
+Dry-run remains available without the switch. New policy creation now defaults
+to `auto_enforce=false` and rejects invalid windows/actions before database
+access. Forty-two focused governance and CLI tests pass, including default
+denial, dry-run, help, no-connection, validation, and the legal-hold skip with
+enforcement explicitly enabled; Ruff and
+`git diff --check` pass. No database or provider was accessed. The switch is a
+safety guard, not approval: USA/DR category periods, policy ownership, and
+entity-level hold eligibility remain open, so leave it off
+([implementation](../../services/analytics/retention.py);
+[test](../../tests/test_data_governance.py);
+[evidence](builds/2026-10-15-recovery/data-retention-enforcement-gate.json)).
+
+### Dynamic retention configuration and audited legal holds — 15 October 2026
+
+The owner confirmed that retention windows and legal-hold rules must be
+runtime-configurable; no fixed period should be selected or embedded now. New
+retention schedules are draft records with nullable windows and enforcement
+off by default. An explicit approval step records the approver and date before
+activation. Migration 401 removes the legacy category reference periods and
+demotes policies that lack approval metadata. A legal-hold ledger requires an
+actor and reason, records placement/release in append-only history, and blocks
+both generic retention candidates and event cleanup. Event cleanup no longer
+accepts a caller-supplied `--days`; it requires exactly one approved global
+`event_bus` / `platform_event` policy and logs each execution. The default-off
+feature gate remains in place. No periods are configured; notification,
+attempt-history, and operator-audit pruning remain open. The five-suite focused
+source/unit run passes 94 tests and four subtests. It found and fixed a generic
+policy-level hold ordering bug so held policies skip before overlap queries.
+The ordered migration runner and isolated synthetic PostgreSQL checks pass for
+policy demotion, category-default removal, audited immutable holds, generic
+candidate eligibility, and event cleanup protections. This acceptance found
+and fixed an undersized policy-history action column. Migration 401 is not
+candidate-applied; candidate and legacy databases were untouched. The
+policy-configuration gate therefore remains open
+([migration](../../schemas/postgres/401_dynamic_retention_and_legal_holds.sql);
+[policy interface](../../services/analytics/data_governance.py);
+[event cleanup](../../services/events/bus.py);
+[source evidence](builds/2026-10-15-recovery/retention-policy-source-checks.json)).
+
+### Directus OIDC principal and tenant grants — 15 October 2026
+
+The Directus hook now binds the authenticated Directus user through its
+`external_identifier` to an enabled Kokonut operator with an exact
+`KOKONUT_OPERATOR_OIDC_ISSUER` match shared with the Gateway. For ten
+location-scoped collections, `items.query` adds an
+organization-qualified read-grant location filter, `items.read` checks returned
+IDs against stored tenant locations, and create/update/delete require the
+corresponding scoped grant. Bulk writes fail as a whole and location changes
+are rejected. Focused package tests pass (61 across five files); the pinned
+Directus extension bundle and TypeScript check pass. No database or provider
+was accessed. The restricted command shell could not open Docker Desktop's
+socket; this was an execution permission boundary, not a stopped daemon. This
+focused tenant-authorization image request was not rerun in the ARM64 check.
+Directus role/field/expanded-relation parity, runtime-role
+deployment, real provider/operator provisioning, concurrent revocation, and
+signed RLS context remain open
+([implementation](../../extensions/kokonut-hooks/src/directus-authorization.ts);
+[tests](../../extensions/kokonut-hooks/src/directus-authorization.test.ts);
+[evidence](builds/2026-10-15-recovery/directus-tenant-authorization-unit.json);
+[parity inventory](directus-parity-inventory.md)).
+
+The optional Kernel Directus overlay was then exercised against a fresh,
+disposable Compose PostgreSQL volume. The check built the hook artifact,
+provisioned the dedicated DML-only login, created the migration-owned schema
+fixture, completed owner-backed metadata bootstrap, and verified Directus
+health and synthetic administrator login (both HTTP 200). PostgreSQL confirmed
+the service used `kokonut_directus_runtime`; the loopback-only project, volume,
+and network were removed afterward. The acceptance did not access candidate
+or legacy data. Sixty-two focused Python tests, Ruff, Python compilation, and
+capability-matrix validation also pass. This validates deployment wiring only;
+Directus API parity and ARM64 runtime acceptance remain open
+([profile](kernel-directus-profile.md);
+[runner](../../scripts/check-directus-profile-disposable.py);
+[evidence](builds/2026-10-15-recovery/directus-profile-disposable.json)).
+
+### Sensor CLI explicit-input contract — 15 October 2026
+
+The sensor CLI no longer reports success when called without a source. Empty,
+incomplete, and conflicting inputs exit with argparse error before database
+configuration; `--help` also works without decrypting SOPS. CSV,
+single-reading, list, and calibration modes retain their current dispatch. The
+shared `sensors` JobSpec rejects the source-less recurring operation before
+subprocess launch. Sixty-nine focused sensor/scheduler tests and Ruff pass; no
+database, provider, or schedule was accessed. The recurring source contract
+remains open, so no schedule was activated
+([implementation](../../services/ingestion/sensor_ingester.py);
+[tests](../../tests/test_sensor_ingester_cli_contract.py);
+[evidence](builds/2026-10-15-recovery/sensor-ingester-explicit-input-contract.json);
+[schedule ownership](schedule-ownership-inventory.md)).
+
+### Shared job dispatcher and SQL inventory — 15 October 2026
+
+Focused checks verify the shared dispatcher uses each catalog operation's
+interpreter, fixed module/arguments, and configured timeout; nonzero exits
+retain their status with diagnostics capped at 500 characters, climate requires
+location scope, and source-less sensor
+work fails before subprocess launch. Sixty-eight dispatcher/command checks and
+Ruff pass with subprocess execution substituted. The runtime SQL snapshot was
+refreshed to 805 service source files; the worker snapshot remains 18 operation
+roots and 240 SQL sites. Comparing the generated records found no new SQL
+fingerprints or worker operations. These source checks do not exercise a live
+provider, database, Prefect server, or durable recovery path
+([tests](../../tests/test_core_jobs_contract.py);
+[dispatcher evidence](builds/2026-10-15-recovery/job-dispatch-contract.json);
+[inventory evidence](builds/2026-10-15-recovery/sql-inventory-refresh.json);
+[schedule inventory](schedule-ownership-inventory.md)).
+
+### ARM64 candidate profile selection — 15 October 2026
+
+The profile planner now selects the ARM64 app/PostGIS overlay in a separate
+Compose project for minimal, edge, and standard. Standard also receives an
+ARM64 worker override; analytics and optional service overlays remain blocked
+until their images are verified. Nine planner tests, Ruff, and merged Compose
+configuration checks pass. In the earlier schema-400 run, host-authorized
+Docker access built current-source linux/arm64 app/PostGIS images, applied all
+391 schemas, and restored a logical backup with matching migration fingerprints
+and zero pending schemas. Health 200, protected-write 401, and short database/app
+restart checks passed. The scheduler child exited on one
+closed-connection event before the supervisor restarted processes; longer
+outage behavior remains open. Raster passed only after manual enablement in the
+disposable database because the ordered schema does not enable `postgis_raster`.
+Physical Pi behavior remains unverified
+([profile tests](../../tests/test_kernel_profile.py);
+[evidence](builds/2026-10-15-recovery/kernel-arm64-profile-config.json);
+[runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-400.json);
+[profile record](arm64-database.md)).
+
+The schema-402 refresh then replayed 393 schemas in a fresh ARM64 project,
+restored a 5.2 MB logical dump with a matching migration fingerprint and zero
+pending migrations, and verified PostGIS geometry, health 200, protected-write
+401, database-restart health, and explicit Compose recovery after app SIGKILL.
+No seed data or candidate/legacy services were touched. This refresh had no
+explicit memory/CPU caps; worker startup logged missing-schema errors because
+the app was started before migration. It remains QEMU evidence, not a Pi or
+24-hour recovery certification
+([evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json)).
+
+### Kernel supervisor source contract — 14 October 2026
+
+Four focused tests now cover the supervisor's graceful shutdown, process-group
+escalation, unexpected zero-exit handling, and partial-launch cleanup paths.
+One POSIX integration case confirms SIGTERM reaches a real child and grandchild
+process; database-outage recovery and worker lease recovery remain open
+([test](../../tests/test_kernel_runtime_supervisor.py);
+[evidence](builds/2026-10-14-recovery/kernel-supervisor-unit-contract.json)).
+
+### ClickHouse projection failure contract — 14 October 2026
+
+Twelve focused tests inject optional-provider, client setup, partial insert,
+database completion, fencing, close, and one-shot CLI exit failures into the
+durable ClickHouse outbox. These unit tests mock both stores; a companion
+disposable-PostgreSQL fixture passes nine checks, including actual CLI exit
+codes and persisted retry/success states. Neither check establishes live
+ClickHouse delivery or cross-store crash deduplication ([test](../../tests/test_clickhouse_outbox.py);
+[failure boundaries](projection-failure-boundaries.md);
+[unit evidence](builds/2026-10-14-recovery/clickhouse-outbox-failure-injection.json);
+[PostgreSQL evidence](builds/2026-10-14-recovery/clickhouse-outbox-cli-disposable.json)).
+
+### Notification delivery failure contract — 14 October 2026
+
+Eight focused mocked tests now cover sanitized provider exceptions, progress on
+other rows after a delivery failure, propagation of completion database errors,
+separate stale-lease accounting, and SMTP idempotency headers/connection
+closure, plus notification CLI exit codes for idle, failed delivery, and lease
+loss. No provider was contacted and no database claim/finish SQL was run;
+existing PostgreSQL fixture recovery evidence remains separate
+([tests](../../tests/test_notification_outbox.py);
+[evidence](builds/2026-10-14-recovery/notification-outbox-failure-injection.json)).
+
+The worker source reachability inventory adds conservative statement-kind inference,
+instance-method resolution where every candidate type is statically known, and
+an explicit graph for the 20 functions in the literal metrics calculator
+registry. Across 18 operations it resolves 46 entry functions, 359 function
+memberships, 495 direct-call edges and 20 registry-dispatch edges over 73
+source files. The companion SQL reachability report links 206 SQL sites
+across 247 operation/site memberships; the other 34 belong to functions absent
+from all current worker graphs and are marked `no_static_function_match`, not
+dead code. The focused worker source/graph/map
+suite passes 31 tests, with Ruff checks passing. Remaining dynamic callbacks,
+unknown instance types, extension/provider and database behavior, worker
+identity and authorization are still open ([source closure](worker-source-closure.json),
+[SQL inventory](worker-sql-inventory.json), [function graph](worker-function-reachability.json),
+[SQL reachability](worker-sql-reachability.json); [function graph evidence](builds/2026-10-14-recovery/worker-function-reachability-check.json),
+[SQL join evidence](builds/2026-10-14-recovery/worker-sql-reachability-check.json)). The static-only
+[worker boundary preflight](worker-boundary-preflight.json) adds three passing
+checks and keeps the RLS gate closed; live grants, migration state, active
+schedules, and owner mappings remain unassessed ([evidence](builds/2026-10-14-recovery/worker-boundary-preflight-check.json)).
+
+The runtime-role work now has a reproducible direct-SQL inventory over 806
+Python service modules: 3,795 execution sites, 1,033 regex-derived relation
+candidates, worker-closure references for 196 sites, and summaries for 67
+service packages. Analytics has the most sites. Literal SQLAlchemy
+`text()` and psycopg `SQL()` query wrappers are unwrapped without reading
+parameter values. The report contains source locations and literal-query hashes
+but no SQL text or runtime values. It is not a grants list: 98 statement kinds
+are unknown, 22 begin with `WITH`, 313 sites have no static relation
+candidate, and 442 sites use non-literal query expressions. Dynamic/indirect
+paths still need review. Five runtime-specific tests and 19 combined
+worker/runtime inventory tests, Ruff, report reproducibility, and the prior
+worker-inventory consistency check passed. No runtime role, candidate ACL,
+migration, or legacy data was changed by this audit slice ([inventory](runtime-sql-inventory.json);
+[latest check](builds/2026-10-15-recovery/runtime-sql-inventory-refresh.json);
+[prior check](builds/2026-10-14-recovery/runtime-sql-inventory-check.json)).
+
+The current source-only telemetry slice keeps freshness-query identifiers in
+fixed maps, binds location values, and records unsupported configured sources
+as errors rather than `no_data`. Its 29 focused tests and Ruff checks pass
+([evidence](builds/2026-10-14-recovery/freshness-query-contract-check.json));
+it does not claim live-provider or Raspberry Pi hardware acceptance.
+
+The native and Field Collector Gateway routes now have a pinned method/path to
+resource/action/public-policy inventory. The 27 focused authorization and route
+checks pass, including anonymous 401s for every registered private route. The
+candidate now has migrations 392–400 applied after encrypted checkpoints and
+restore/replay work. The ordered runner reports zero pending work; the
+candidate has one seed ledger row, no application-table RLS, and the candidate
+app alone was recreated. Health returned 200 and anonymous sync-status returned
+401. The restore container, network, and volume were removed, while the
+encrypted checkpoint remains outside Git. The clean-bootstrap verifier
+separately applied all 388 schema migrations to an empty PostgreSQL database
+with zero failures ([route evidence](builds/2026-10-14-recovery/gateway-route-policy-inventory.json); [restore replay](builds/2026-10-14-recovery/candidate-migration-392-397-restored-replay.json); [clean bootstrap](builds/2026-10-14-recovery/clean-bootstrap-388-migrations.json); [candidate rollout](builds/2026-10-14-recovery/candidate-migration-392-397-fresh-checkpoint-rollout.json)).
+
+The operator console's CORS allowlist now includes `PATCH`, matching its
+cookie-authenticated farm-activity draft edit. Focused preflight and successful
+response checks pass with the explicit origin and credential headers; this is
+in-process acceptance and does not close browser or external-ingress checks
+([evidence](builds/2026-10-14-recovery/gateway-cors-patch-preflight.json)).
+
+The operator-auth router now has exact source regression coverage for every
+registered method/path policy: 28 tuples pin resource, action, public status,
+scope requirement, direct location scope, and any required secondary grants.
+The six lifecycle actions are enumerated individually; unknown operator paths
+and method mismatches remain protected. Two focused checks pass
+([evidence](builds/2026-10-14-recovery/operator-route-policy-inventory.json)).
+
+The worker-operation inventory now links every registered metrics calculator
+to its source file, with a test ensuring the 20-module list stays aligned with
+the runtime registry. It also records each calculator's direct read tables,
+composition edges, and the relations behind the Field Collector consent
+eligibility function. The other worker/provider effects remain in the open
+transitive audit. A second registry check confirms all seven data-freshness
+source tables are represented in the operation map.
+
+The climate `--worldclim` compatibility path had referred to columns that do
+not exist in its schema, used a conflict target without a unique index, and
+closed without committing. It now stores only canonical columns, retains all
+19 latitude estimates with explicit proxy provenance, commits the upsert, and
+feeds location baselines into plot-level consumers. Migration 397 refuses to
+choose among duplicate legacy rows. Climate plus migration-discovery tests
+pass 51 checks and the worker bundle passes 38; a disposable PostgreSQL apply
+and candidate rollout remain open ([evidence](builds/2026-10-14-recovery/climate-worldclim-schema-alignment.json)).
+
+The prescribed platform-integrity suite passed 290 tests on local commit
+`238e2ef`, including the tenant-bound Data Stream route regression. The earlier
+288-test run on `1c00845` remains in [historical evidence](builds/2026-10-14-recovery/platform-integrity-288-tests.json);
+the latest [run record](builds/2026-10-14-recovery/platform-integrity-290-tests.json)
+covers migration discovery/transactions, Gateway authorization, durable
+scheduler and event delivery, credits, threatcasting, backcasting, and Delphi.
+This confirms focused source contracts; real-provider outage recovery, physical
+hardware acceptance, and the remaining manual acceptance gates are still open.
+
+GitHub CI #304 on PR #68 completed with 4,632 passed tests, 75 passed subtests,
+and five failures. The local fix batch updates tenant-aware test contracts,
+makes operator enrollment denials explicitly non-cacheable, and corrects seed
+ordering and OIDC Compose assertions. The five CI regressions pass locally; the
+full operator-auth and Compose suites pass 72 tests, and Ruff/Python syntax
+checks are clean. Security run #28 passed. The fix batch was pushed in
+`7b155cb705cb03895bba9a16b3ab07937502bb68`; CI #305 was started and Security
+#29 passed at that point. That run has since been superseded by later pushes;
+the current PR-head status is summarized above. The local results still need
+remote CI confirmation
+([verification record](builds/2026-10-14-recovery/ci-304-regression-fix-checks.json)).
 
 ## Phase ledger
 
@@ -14,13 +1912,44 @@ repository-visible progress alongside it.
 | --- | --- | --- | --- |
 | 0 — Baseline | Inventory delivered; closure partial | 66 capability owners/checks, frozen source/dependency inventory and local container/volume counts; [baseline](README.md), [storage](local-data-inventory.md) | Collection/consumer refinement, logical Redis/BI/broker/private-media state, selected legacy logical records restored; complete provider/media/role recovery and broader ownership pending |
 | 1 — Ports/providers | Implemented in selected paths; acceptance open | Typed provider settings/health; analytics/cache/events/scheduler ports; lazy vendor adapters; static check passes at 17 vendor sites; services/core/, services/common/, services/analytics/ | Contract/import/config and legacy behavior acceptance; storage/remaining domain construction audit; reviewed dependency lock |
-| 2 — Minimal runtime | Fresh AMD64 runtime exercised; workflow acceptance open | Dockerfile.kernel, standalone candidate/portability manifests, supervisor and split roles; portability DB/API/worker had run, then returned to stopped/exited state after recovery probes; latest portability app image includes audit CLI; separately, the active candidate app and database are healthy with a current-source image, five active candidate 1.2.0 forms plus five retained retired 1.1.0 snapshots, 372 applied schema migrations through 381 and zero pending; strict JSON Schema payload validation is deployed; a fresh encrypted checkpoint restored into an isolated template0 target with matching migration fingerprints, extensions, and schema inventory; isolated live sync rejected an undeclared field (422) and accepted a valid 1.2.0 payload (200) [rollout](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json); separate recovery fixture has 365 checksummed schema files through 374; sensor anomaly alert/claim/outbox/actuation approval effects now share a transaction and one actual EventBus worker crash/retry completed on attempt two without duplicate effects; [runtime](portability-runtime.md), [sensor entrypoint](sensor-entrypoint-recovery.md), [sensor delivery](sensor-anomaly-delivery.md) | Governed farm write/submit/independent review/publish, metric/report workflow, mobile sync and accepted-work recovery; no seeded pilot fixture yet; external provider acceptance and broader event/runtime recovery remain open |
+| 2 — Minimal runtime | Fresh AMD64 runtime exercised; workflow acceptance open | Dockerfile.kernel, standalone candidate/portability manifests, supervisor and split roles; portability DB/API/worker had run, then returned to stopped/exited state after recovery probes; latest portability app image includes audit CLI; active candidate app/database are healthy with a current-source image, five active 1.2.0 forms plus five retired 1.1.0 snapshots, 393 applied schema migrations through 402 and zero pending; six curated seed migrations are ledgered and 115 unselected seed sources remain pending; five forms and ten revisions are present; migrations 392–402 are applied after encrypted checkpoint and restore/replay work; no app recreation was needed for migration 400, health is 200, and anonymous protected sync-status returns 401; bounded device revocation and synthetic restore-owner repair passed forced-RLS disposable acceptance; application RLS remains disabled [rollout](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json); the current whole-services SQL inventory maps 3,795 direct execution sites across 806 modules in 67 packages, with dynamic-heavy packages flagged but no ACL inferred; strict JSON Schema validation and earlier isolated mobile/farm-activity rollouts remain recorded; sensor anomaly alert/claim/outbox/actuation approval effects share a transaction and an actual EventBus crash/retry completed on attempt two without duplicate effects; [runtime](portability-runtime.md), [sensor entrypoint](sensor-entrypoint-recovery.md), [sensor delivery](sensor-anomaly-delivery.md) | Governed farm write/submit/independent review/publish, PostgreSQL metric/report acceptance, mobile sync and accepted-work recovery; no seeded pilot fixture yet; external provider acceptance and broader event/runtime recovery remain open |
 | 3 — Optional analytics/BI | Partial | PG metric catalog/public roll-up; optional ClickHouse driver/overlay; sensor source/event/outbox paths exercised against raw ClickHouse and v3 daily summary; Directus, Metabase metadata, and analytics-source roles verified on isolated copies; pinned Directus bootstrap/runtime and Metabase populated-metadata startup healthy; sample board classified as generic e-commerce demo; source-aligned scratch applied all 369 migrations through 378, zero pending, and passed actual-view grants and rollback-only reporting probes; transactional replay validated all 369 current schema checksums and rollback of injected DDL plus ledger state (`0|0`); a separate clone accepted the 25 pending archived migrations with zero pending and unchanged original-column fingerprints across 16 populated tables; migration-354 SAFE addresses, owners, thresholds, versions, and nonces matched read-only Gnosis Chain calls; independent NOI recomputation matched the view on six cycles, exposing six stale snapshots and a missing upsert key; migration 379 plus native reconciliation SQL and Directus-hook alignment brought six snapshots into parity on a separate network-disabled clone; [NOI reconciliation](noi-snapshot-reconciliation.md), [evidence](builds/2026-10-11-recovery/noi-snapshot-parity.json), [consumer role policy](optional-database-roles.md), [report contract](metabase-reporting-contract.md), [populated parity](builds/2026-10-11-recovery/populated-report-view-parity.json), [candidate preflight](builds/2026-10-11-recovery/candidate-migration-preflight.json), [compatibility review](pending-migration-compatibility-review.md), [reporting migration](../../schemas/postgres/377_kokonut_reporting_contract.sql), [NOI index migration](../../schemas/postgres/379_noi_snapshot_crop_cycle_key.sql), [reporting evidence](builds/2026-10-11-recovery/kokonut-reporting-contract-source-aligned.json), [transaction evidence](builds/2026-10-11-recovery/kokonut-reporting-transactional-run.json), [populated clone evidence](builds/2026-10-11-recovery/application-migration-populated-clone-replay.json), [checksum triage](migration-checksum-drift.md), [startup evidence](builds/2026-10-11-recovery/metabase-populated-startup.json) | Archived application clone remains unchanged with 25 pending migrations. The candidate's exact historical checksum was repaired through the audited path; migrations 371–379 applied transactionally and the exact-target plan reports zero pending across 372 applied schema files. Its checkpoint restored successfully in isolation. The reporting views and NOI unique index exist. The candidate analytics login is provisioned and verified with no unreviewed application relation access; the optional Metabase profile is healthy with its separate H2 demo and Kokonut source/cards; populated saved-card SQL matches independent farm, attestation and synthetic metric references, including publication and date-window filters. Populated farm-summary and Celo-attestation view parity passed; synthetic nonempty metric period/method probe passed while the populated source has zero published policies; ClickHouse dataset/report parity and rebuild lineage; replay/outage acceptance; DuckDB/Parquet path and owned dashboard UI |
-| 4 — Owned orchestration | Partial; idle native workers running | 15 JobSpecs, legacy flow delegation, scheduler planning/graph audit/guarded activation and same-window migration 371; the new daily `noi_snapshots` job is prepared but disabled; services/core/jobs.py, services/scheduler/, services/flows/ | Flow-by-flow schedule ownership/cutover, actual execution/retries/cancellation/recovery, historical Prefect state; no task activation or shadow comparison performed |
+| 4 — Owned orchestration | Partial; source-level schedule ownership inventory delivered; local candidate reports zero scheduled tasks | 15 JobSpecs, legacy flow delegation, scheduler planning/graph audit/guarded activation and same-window migration 371; per-job Prefect/cron/seed/event-worker mapping and cutover/replay policy; the new daily `noi_snapshots` job is prepared but disabled; services/core/jobs.py, services/scheduler/, services/flows/ | Reconcile active provider state and accountable owners; resolve source/input/cadence gaps and per-job idempotency; transfer one job at a time with output parity, retries, and rollback; no task activation or shadow comparison performed |
 | 5 — Optional Redis | Partial; local runtime/restart and isolated PostgreSQL shared-consumption, lock-timeout, and direct and ASGI multi-process plus two-container network HTTP checks passed; provider selection remains open | Existing PG computation cache retained; local limiter concurrency/LRU/process reset and candidate app restart verified; in the migration-373 portability DB, two backend instances admitted 121/140 concurrent checks within the refill-aware bound, denied an over-capacity request, returned retry 10, and isolated a distinct caller; a held synthetic row lock raised SQLSTATE 55P03 after 2.124 seconds and its bucket was removed; network-disabled source ASGI checks selected PostgresRateLimiter and returned 503/Retry-After 30 on an unreachable DB; GatewayAudit now has a bounded SQLite queue, idempotent startup replay, a status/checkpoint/restore CLI, and process-exit/checkpoint/restore recovery evidence; four OS processes shared one bucket across 160 direct calls (114 allowed, 46 denied in 1.653 seconds), then four gateway processes handled 160 ASGI requests (121 returned 200, 39 returned 429 with Retry-After) within the refill-aware bound; two private-network API containers then handled 160 HTTP requests through the shared database (119 returned 200, 41 returned 429 with Retry-After); PostgreSQL adapter remains opt-in and candidate stays local; [local runtime](builds/2026-10-10-recovery/gateway-rate-limit-runtime.json), [local contract](builds/2026-10-11-recovery/gateway-rate-limit-local-contract.json), [process reset](builds/2026-10-11-recovery/gateway-rate-limit-process-reset.json), [app restart](builds/2026-10-11-recovery/gateway-rate-limit-app-restart.json), [PG shared check](builds/2026-10-11-recovery/postgres-rate-limiter-concurrency.json), [lock timeout](builds/2026-10-11-recovery/postgres-rate-limit-lock-timeout.json), [multi-process check](builds/2026-10-11-recovery/postgres-rate-limit-multiprocess.json), [ASGI multi-process](builds/2026-10-11-recovery/postgres-rate-limit-asgi-multiprocess.json), [two-container HTTP](builds/2026-10-11-recovery/postgres-rate-limit-two-api-http.json), [audit outage/replay](builds/2026-10-11-recovery/gateway-audit-spool-recovery.json), [checkpoint recovery](builds/2026-10-11-recovery/gateway-audit-spool-backup-restore.json), [audit write guard](builds/2026-10-11-recovery/gateway-audit-spool-write-guard.json) | Volume/host/device loss, external alert delivery and production retention owner; auth/revocation/cache/TTL and identity-abuse acceptance; production/public ingress, multi-host failover, replica restart and scale acceptance; scale remains unavailable |
 | 6 — Optional edges | Prepared/built in selected targets; acceptance open | MQTT/gRPC/HTTP sensor/Caddy overlays; CSV/HTTP exercised in-process and over TCP inside the private recovery network; selected handler receipt recovery; bounded Caddy TLS/redirect/header smoke, one-hop forwarded-header audit identity check, loopback-published redirect/follow check at default and alternate HTTPS ports, configured/untrusted CORS preflight, CORS decoration on an auth denial, isolated current-source and deployed local limiter checks with 429/Retry-After, preflight bypass and durable audit, plus promoted-image local concurrency/LRU, process reset, candidate app restart, source-level PostgreSQL-outage 503, real audit outage journaling and startup replay across app-container replacement, checkpoint/restore and process-exit recovery, held-row lock-timeout handling, direct four-process shared-bucket consumption, four-process gateway ASGI 200/429 behavior, and two-container network HTTP sharing; [sensor evidence](sensor-entrypoint-recovery.md), [proxy evidence](kernel-proxy.md), [source limiter](builds/2026-10-10-recovery/gateway-rate-limit-isolated.json), [runtime limiter](builds/2026-10-10-recovery/gateway-rate-limit-runtime.json), [local contract](builds/2026-10-11-recovery/gateway-rate-limit-local-contract.json), [process reset](builds/2026-10-11-recovery/gateway-rate-limit-process-reset.json), [app restart](builds/2026-10-11-recovery/gateway-rate-limit-app-restart.json), [outage boundary](builds/2026-10-11-recovery/postgres-rate-limit-outage.json), [audit outage](builds/2026-10-11-recovery/postgres-rate-limit-audit-outage.json), [lock timeout](builds/2026-10-11-recovery/postgres-rate-limit-lock-timeout.json), [multi-process check](builds/2026-10-11-recovery/postgres-rate-limit-multiprocess.json), [ASGI multi-process](builds/2026-10-11-recovery/postgres-rate-limit-asgi-multiprocess.json), [two-container HTTP](builds/2026-10-11-recovery/postgres-rate-limit-two-api-http.json), [audit journal](builds/2026-10-11-recovery/gateway-audit-spool-recovery.json), [audit checkpoint](builds/2026-10-11-recovery/gateway-audit-spool-backup-restore.json), [audit write guard](builds/2026-10-11-recovery/gateway-audit-spool-write-guard.json) | Volume/host/device loss, external alert delivery and production retention owner; production/public ingress, replica failover/scale; non-loopback/public ingress, multi-hop trusted-proxy policy, mobile/upload consent/form baseline and candidate migration 380/381 plus 1.2.0 strict-schema rollout complete; 60 mobile/schema and four CORS checks passed; live device acceptance remains open, CORS on successful authenticated/credentialed responses, HTTP/CSV/MQTT parity, optional service parity, broader handler recovery, delayed sink visibility/reconciliation, RPC streaming/auth and external Traefik acceptance |
-| 7 — Native API | **Active, partial read slice deployed; v1 public read aliases, typed SDK sources, local operator overview, and source-level OIDC report review reads; mobile consent/form enforcement and exact-revision JSON Schema validation deployed on the candidate** | Native public locations/metrics, published CRISP and location roll-up, strict response models, bounded read execution and readiness gates; additive `/api/v1` routes with explicit public policies; generated Python/TypeScript models and paths; local read-only Kernel overview; optional OIDC identity/session adapter; location-scoped submitted `report_snapshot` list/detail routes and same-origin read-only queue; services/gateway/router.py, services/gateway/operator_auth.py, services/gateway/operator_review.py, services/gateway/app.py, apps/operator-console/index.html, services/mobile/api.py, services/mobile/form_validation.py, schemas/postgres/381_mobile_consent_form_revisions.sql | Live v1 payload/role/grant/auth and Directus parity; JavaScript SDK runtime import and offline Python/JavaScript SDK contract parity passed with fake adapters, while live route parity remains open; shared lifecycle hooks, tenant/RLS scope and governed writes/reviewer flows; OIDC-scoped same-origin Field Collector enrollment and revocation routes plus the one-time code console are implemented and source-tested; provider configuration, login/session/audit, and live enrollment-created workflow remain open; isolated authenticated 1.2.0 sync accepted valid data and rejected an undeclared field; report queue scope/detail acceptance remains open; migrations 380/381 and the candidate 1.2.0 form rollout are applied |
-| 8 — ARM64/scale/retirement | Build preparation; current-source ARM64 application and PostGIS images refreshed locally | Earlier matched AMD64/ARM64 artifacts; latest isolated ARM64 image pair from commit `761d06a`; [build record](arm64-image-pair-refresh.md); [latest ARM64 public reads](arm64-public-reads.md) | ARM64 runtime/bootstrap/restore, actual 4 GB Pi/SSD measurement, 24-hour recovery, CI architecture gates, release locking, scale concurrency, production cutover and dependency retirement |
+| 7 — Native API | **Active, partial read slice deployed; v1 public read aliases, typed SDK sources, local operator overview, and source-level OIDC report reads, mobile review queue and append-only review-event source; mobile consent/form enforcement and exact-revision JSON Schema validation deployed on the candidate** | Native public locations/metrics, published CRISP and location roll-up, strict response models, bounded read execution and readiness gates; additive `/api/v1` routes with explicit public policies; generated Python/TypeScript models and paths; local read-only Kernel overview; optional OIDC identity/session adapter; location-scoped submitted `report_snapshot` list/detail routes and same-origin read-only queue; services/gateway/router.py, services/gateway/operator_auth.py, services/gateway/operator_review.py, services/gateway/app.py, apps/operator-console/index.html, services/mobile/api.py, services/mobile/form_validation.py, schemas/postgres/381_mobile_consent_form_revisions.sql | Live v1 payload/role/grant/auth and Directus parity; JavaScript SDK runtime import and offline Python/JavaScript SDK contract parity passed with fake adapters, while live route parity remains open; shared lifecycle hooks and tenant/RLS scope; farm-activity lifecycle writes and human actor guards have source/disposable checks; canonical queue/detail and console controls are source-tested; migration-385 draft editing passes focused service/route/console checks and full disposable PostGIS replay/trigger acceptance; migration 385 and the operator routes/editor are deployed to the candidate with zero pending schemas and protected-route checks passing; OIDC-scoped same-origin Field Collector enrollment and revocation routes plus the one-time code console are implemented and source-tested; provider configuration, login/session/audit, and live enrollment-created workflow remain open; isolated authenticated 1.2.0 sync accepted valid data and rejected an undeclared field; report queue scope/detail and review-event source checks pass; migration 382 is applied to the candidate; the current-source app was rebuilt and returned health 200, while OIDC login remains disabled and anonymous review-queue access returns 401 ([rollout evidence](builds/2026-10-12-recovery/candidate-mobile-review-rollout.json)); migrations 380/381 and the candidate 1.2.0 form rollout remain applied |
+| 8 — ARM64/scale/retirement | Build preparation; default and ClickHouse app build gate configured; CI run 284 built both PostGIS architectures after CA bootstrap, then exposed one package inventory difference now explicitly locked | Earlier matched AMD64/ARM64 artifacts; [build record](arm64-image-pair-refresh.md); [release input contract](kernel-release-inputs.md); [GitHub Actions setup](../github-actions.md) | Fresh multi-architecture rerun against the exact architecture-specific package contract, ARM64 runtime/bootstrap/restore, ARM64 emulated bootstrap/restore and constrained-runtime checks; physical Pi acceptance is deferred because hardware is unavailable, 24-hour recovery, GitHub runner/environment setup, scale concurrency, production cutover and dependency retirement remain open |
+
+## Phase 4 schedule ownership inventory — 12 October 2026
+
+Added a source-level inventory for all 15 shared JobSpecs, the four scheduled
+Prefect deployments and manual full-pipeline entry point, the active and
+deprecated worker crontab entries, the historical scheduled-task seed, and the
+long-running event worker. It assigns the PostgreSQL scheduler as the minimal
+profile target while keeping Prefect as an optional adapter, with a one-active-
+dispatcher rule and per-job replay cautions. The inventory identifies
+conflicting sensor and metrics contracts, climate fan-out versus per-location
+scheduling, unscheduled projection and cleanup work, remote-sensing's internal durable job
+ownership, and the weekly ML retraining docstring/body mismatch. For climate,
+`--all` means all datasets at a required location; Prefect currently fans out
+over active locations, while native planning represents one location per task.
+See
+[schedule ownership inventory](schedule-ownership-inventory.md) and the
+[Batch 4 checklist](batches.md).
+
+The only runtime action was a read-only `services.scheduler.cli --status`
+inside the healthy local candidate app: it reported zero enabled, disabled,
+running, or failing tasks. No job ran and no task/seed/schedule was written or
+activated. The candidate project has no Prefect container, and a read-only
+global Docker name filter found no running container matching `prefect`; no
+external Prefect API or host process was queried. The restored legacy database
+also had no scheduled task rows. Historical seed 050 contains enabled
+definitions, but `scripts/seed.sh` uses `--schemas-only` and its curated seed
+list excludes it. Its inaccurate comment about applying numbered seed
+migrations is corrected. See
+the [candidate status evidence](builds/2026-10-12-recovery/candidate-scheduler-owner-snapshot.json).
+Batch 4 remains open until live provider state, operational ownership,
+idempotency, and per-job cutover/recovery evidence are established.
 
 **No phase is marked fully accepted under the plan's complete criteria.** Builds,
 source implementation and idle startup are useful milestones, but do not satisfy
@@ -32,8 +1961,8 @@ data/providers; provider retirement and production cutover have not occurred.
 All 66 original IDs/checks remain in the matrix. Current integration progress:
 
 - **7 deployed partial/adjacent integrations:** CAP-001, 007, 014, 031, 039, 047, 053.
-- **3 prepared partial integrations:** CAP-040, 064, 066. CAP-040 now includes one bounded handler-effect and durable-receipt recovery rehearsal; it remains partial.
-- **56 baseline-retained domains:** Kernel access paths and parity still unassessed.
+- **4 prepared partial integrations:** CAP-040, 051, 064, 066. CAP-040 now includes one bounded handler-effect and durable-receipt recovery rehearsal; CAP-051 includes dynamic retention source and disposable acceptance; both remain partial.
+- **55 baseline-retained domains:** Kernel access paths and parity still unassessed.
 - **0 fully accepted Kernel capabilities.** All MAN-CAP gates remain open.
 
 CAP-031's public location roll-up is adjacent API work, not completion of planning
@@ -97,17 +2026,32 @@ completion percentage until work items and acceptance weights are agreed.
 
 Added strict response envelopes and additive `GET /api/v1/locations` and
 `GET /api/v1/locations/{location_id}` routes. They use the native governed
-`v_public_farm_summary` read path, document schemas through FastAPI OpenAPI, and
-leave the existing unversioned Directus/native response wrappers unchanged.
+`v_public_farm_summary` read path and document schemas through FastAPI OpenAPI.
 Malformed UUIDs return 400; missing and ineligible locations share a 404.
 Added typed location methods to separate Python and JavaScript public API
 clients; the existing Directus clients remain unchanged. Updated the contract
-and capability checklist. This is source implementation only: no runtime
+and capability checklist. The unversioned routes were later moved to the same
+native projection in every profile while retaining their historical wrapper.
+This is source implementation only: no runtime
 payload comparison, grant review or Directus parity check was performed; the
 SDK source has not been generated from OpenAPI or released; the TypeScript package build could not run because `tsc` is unavailable in the local checkout. No test suite was
 added or run. Roll back by reverting the additive routes/models/SDK clients or
 deploying the preceding gateway image; existing clients continue using
 `/api/locations`.
+
+## Public location provider boundary — 15 October 2026
+
+Removed the optional Directus HTTP proxy from the explicitly public legacy
+`/api/locations` list/detail routes. They now use the same governed
+`v_public_farm_summary` projection in every profile, exposing only ID, name,
+country, region, and status while retaining the old serialized wrapper. This
+avoids an unauthenticated provider path whose field/row policy parity was not
+verified. Three focused HTTP checks pass for native dispatch, list/detail
+wrappers, invalid UUID, and missing-location behavior; the combined route-policy
+suite passes eight checks and Ruff. Live candidate/populated response parity is
+still open. Directus remains optional for administrative use, with its runtime
+identity and effective role/field/row/hook parity unverified
+([evidence](builds/2026-10-15-recovery/legacy-public-location-native-route.json)).
 
 The scoped native v1 OpenAPI snapshot is now retained at
 [`native-public-api-v1.openapi.json`](native-public-api-v1.openapi.json); see
@@ -146,6 +2090,97 @@ executable is still unavailable, so the TypeScript build was not run; no test
 suite or HTTP route request ran. Refresh the OpenAPI snapshot before rerunning
 the generator. SDK build/publication, runtime
 parity, and the operations-console slice remain open.
+
+## Directus parity source inventory — 13 October 2026
+
+Mapped the legacy permission seed, DML-only Directus runtime identity, Directus
+hook registrations and side effects, native Gateway/operator route surface,
+tenant scoping model, and the limited coverage of the existing metadata and
+permission source checks. The inventory distinguishes database privileges from
+Directus API authorization and identifies the scheduled NOI and weekly snapshot
+callbacks that need a single-owner decision. The staff permission seed
+references `$CURRENT_USER.location_id`, but the restored archive has no
+corresponding `directus_users.location_id` column; the native operator console
+uses explicit grants, so these identity models are not assumed to be
+equivalent. Many read permissions request every field, and Auditor has
+unfiltered access to additional report/governance collections; confirm the
+intended forensic scope before changing it. The weekly callback only groups
+eligible activity and logs a count, so it does not establish persisted snapshot
+parity. See the [Directus parity inventory](directus-parity-inventory.md).
+
+## Phase 3 Directus isolated API probe — 13 October 2026
+
+Restored the populated application archive into a fresh internal-only copy,
+applied its ordered migrations with zero pending and no checksum drift, and
+started the pinned Directus 12.1.1 bootstrap/runtime using the DML-only
+identity. Bootstrap and health passed; admin login returned 200, anonymous
+`farm_activity` access was denied, and the optional consumer-role fixture
+passed. The archived `directus_users` table has no `location_id` even though
+the Field Worker permission seed filters on `$CURRENT_USER.location_id`.
+Synthetic Field Worker requests returned 403 for both own- and other-location
+rows, with zero rows exposed. This is fail-closed behavior and does not prove
+location-scoped authorization or field privacy. Identity-creation retries hit
+Directus `LIMIT_EXCEEDED`, and hooks/scheduled jobs were not started. API
+cleanup for the first synthetic identities did not finish; removing the entire
+isolated database volume, runtime and private network removed the test rows and
+identities. Candidate services stayed healthy and the legacy stack stayed
+stopped. See [sanitized runtime evidence](builds/2026-10-13-recovery/directus-api-parity.json).
+
+The next parity run needs an explicit identity-location model (or a deliberate
+switch to grants), followed by own-location, cross-location, field, write,
+extension-hook and schedule checks. Directus remains optional; this result does
+not authorize ownership backfill or tenant RLS.
+
+The broader reporting gate is now mapped at source level: three first-party
+cards have copied-fixture evidence, the report generator registers 94 draft
+snapshot types, the typed analytics query port has one public query, and the
+legacy dashboard dataset runner executes stored SQL but discards result rows
+after counting them. The inventory distinguishes these from bounded evidence
+graph reads and optional ClickHouse rollups. Accountable owner selection,
+reference fixtures, and retained dashboard/report acceptance remain open
+([source inventory](metabase-source-inventory.md); [reporting contract](metabase-reporting-contract.md);
+[parity inventory](reporting-parity-inventory.md)). No test suite or live
+dashboard SQL execution was performed for this source review.
+
+## Phase 4 reporting and projection source inventory — 13 October 2026
+
+Mapped the native analytics query port, versioned public Gateway reads, graph
+lineage projection, 94 registered draft report types, optional Metabase card
+slice, legacy `dashboard_dataset.query_sql` refresh path, and ClickHouse rollup
+contracts. The inventory found that the dashboard refresh worker executes the
+stored SQL through the application database connection, fetches all returned
+rows, discards them after counting, and stores only refresh metadata. The five
+repository-seeded dataset examples are `published` while the `--all` command
+selects `active` rows. This worker is not a durable result store or a safe
+general reporting interface; review its DB role, writers, and retained
+consumers before enabling it. The source inventory does not approve or execute
+stored SQL, select which reports remain product requirements, or establish
+parity. See the [reporting parity inventory](reporting-parity-inventory.md) and
+[Batch 4 checklist](batches.md).
+
+The legacy stored-SQL refresher is now an explicitly gated compatibility path:
+`KOKONUT_FEATURE_LEGACY_DATASET_SQL` defaults to `false`, and the execution
+function enforces that gate while read-only dataset listing stays available.
+This keeps unreviewed stored SQL out of the default Kernel runtime. It does not
+make opt-in queries safe or close the outstanding owner, role, location-scope,
+materialization, and report-parity gates. The focused core-feature suite passes
+12 tests, Ruff passes on the changed Python files, and Python compilation passes;
+no live dashboard query ran. The switch now reaches candidate, portability,
+and standard API/worker Compose environments while defaulting to false. Compose
+profile checks confirmed the explicit override. Those checks also exposed and
+fixed a strict-shell health-check false negative: container-name detection now
+consumes the full Docker output instead of allowing `grep -q` to close its pipe
+early. The combined focused core and Compose-profile suites pass 23 tests; Ruff,
+shell syntax, and whitespace checks pass. No stored dashboard query ran.
+
+A read-only aggregate pass over the isolated legacy archive found 43 stored
+dashboard dataset definitions, all with owner metadata but only 12 distinct
+owner labels; the labels were not retained. None had refresh metadata, none
+would be selected by `--all`, and only five were location-scoped. The stored
+query fields include 11 `SELECT` prefixes and 32 `dashboards` prefixes; this
+was a leading-token count, not SQL validation, and none was executed. Three
+unlocated, unfrozen draft report snapshots remain in the archive. See the
+[sanitized archive inventory](builds/2026-10-13-recovery/reporting-archive-inventory.json).
 
 ## Phase 7 JavaScript SDK compiler compatibility — 11 October 2026
 
@@ -2017,7 +4052,6 @@ Focused mobile/schema suites passed: **60 passed**, with 109 deprecation
 warnings. Ruff, dependency-group alignment, and the browser fallback syntax check passed. At that source-only checkpoint the candidate remained on `1.1.0`; the subsequent candidate rollout is recorded below. See the
 [policy record](mobile-form-classification-review.md), [access contract](mobile-access-contract.md),
 [Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
-
 ## Batch 5 Field Collector schema-validation candidate rollout — 12 October 2026
 
 Created the fresh encrypted PostgreSQL checkpoint at
@@ -2144,3 +4178,3625 @@ OIDC browser acceptance, retired/consent-required withdrawal, semantic review,
 tenant/RLS, and retention/erasure remain open. See [media contract](local-private-media.md),
 [rollout evidence](builds/2026-10-12-recovery/candidate-mobile-consent-rollout.json),
 [Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
+
+
+## Batch 5 Field Collector offline app shell — 12 October 2026
+
+Added a service worker for the Field Collector's supported `/mobile`,
+`/api/mobile/app`, and Caddy `/field/` entry points. The page registers the
+worker on secure origins and asks it to cache the exact static HTML and vault
+helper pair, so a previously opened URL can launch offline. Worker updates use
+network-first requests for these shell assets and fall back to their cached
+copies when offline. API forms, enrollment, media, sync responses, and all
+write requests remain network-only; the encrypted IndexedDB vault remains the
+only local store for forms, device credentials, records, and photos.
+
+Added explicit public Gateway policies and served worker aliases for each
+Gateway entry route. The Caddy `/field/` static route already serves files from
+`services/mobile/`, so it needs no route change. Direct `file://` use can still
+capture while its page is open but cannot register a service worker or reopen
+the app from the offline shell.
+
+The dependency-free Node worker harness passed 2 checks: paired same-origin
+shell caching and offline navigation fallback; it rejected a cross-origin
+helper and confirmed `/api/mobile/forms` and sync POSTs are not intercepted.
+The focused mobile API and Gateway authorization suites passed 51 tests with a
+private temporary audit spool. Ruff passed on the changed Python files. An
+initial test attempt used the world-writable temp root directly, which the
+audit journal correctly rejected; rerunning with a private spool directory
+passed. No candidate service was rebuilt or restarted.
+
+Actual browser airplane-mode capture and reconnect/sync remains open, along
+with live OIDC provider acceptance, retired and consent-required withdrawal
+flows, durable media backup/restore and cleanup, semantic review, tenant/RLS,
+and retention/erasure. See the [mobile access contract](mobile-access-contract.md),
+[Field Collector guide](../../services/mobile/README.md), [Batch 5 checklist](batches.md),
+and [CAP-053](capability-matrix.md#cap-053).
+
+## Batch 5 Field Collector browser offline and reconnect acceptance — 12 October 2026
+
+Exercised the real Field Collector page in an isolated Codex in-app browser
+against a temporary same-origin loopback mock. The secure-origin service worker
+cached exactly `/mobile` and `/field-collector-vault.js`. After stopping the
+mock server, the browser reopened the app shell from cache, unlocked the
+encrypted IndexedDB vault, and saved one synthetic field note. The pending count
+remained one after a second reload and vault unlock while the origin was still
+unavailable. Restarting the mock returned one accepted client ID; the app showed
+one record uploaded and cleared the queue. This exercised the browser UI, service
+worker, encrypted queue persistence and reconnect client together.
+
+This was an origin outage rather than OS airplane mode: the browser network
+interface remained up and `navigator.onLine` continued to say Online. The API
+was a temporary mock, not the candidate Gateway/PostgreSQL path. No Docker
+container or database was touched. The temporary test service stopped, its
+browser tabs closed, and its service-worker registration, cache and encrypted
+IndexedDB vault were removed. Machine summary: [browser recovery evidence](builds/2026-10-12-recovery/field-collector-browser-offline-reconnect.json).
+
+CAP-053 stays partial. Actual airplane-mode/device behavior, live Gateway
+reconnect in the browser, real OIDC login, media upload while disconnected,
+retired/consent-withdrawal paths, durable media backup/cleanup, semantic review,
+tenant/RLS and retention/erasure remain open. See the [mobile access contract](mobile-access-contract.md),
+[Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
+
+## Batch 5 Field Collector candidate-Gateway browser sync and badge refresh — 12 October 2026
+
+Rebuilt only the candidate `app` service after adding an in-place pending-queue
+summary refresh in `services/mobile/field-collector.html`. Using the unlocked
+encrypted test vault in the Codex in-app browser, saved a second clearly
+synthetic Field Note and let the app's normal online sync run. Without pressing
+Sync or navigating away, the home screen updated to “Everything is up to date”
+with a zero badge. The two browser notes generated two successful candidate
+Gateway upload receipts. Aggregate database inspection confirmed both rows
+used active Field Note revision `1.2.0`, had no form-review requirement, and
+remained `sync_status=pending`, `eligible_for_use=false`,
+`eligibility_reason=transport_pending`; transport acceptance did not verify or
+publish them.
+
+The candidate had no configured OIDC provider/API-key enrollment credentials,
+so this run used a one-time synthetic enrollment fixture in the isolated
+candidate database. After the browser check, a guarded transaction removed the
+synthetic location, device, enrollment, two offline collections, and two sync
+logs; final counts for all fixture relations were zero. The browser vault was
+locked. Its encrypted IndexedDB record remains on the local browser because the
+Field Collector currently has no supported vault-destroy/reset action; deleting
+the candidate device makes the stored test credential unusable. No secrets,
+passphrase, token, note payload, or enrollment code are recorded in evidence.
+
+Static verification: inline JavaScript syntax check with `node --check -` and
+`git diff --check` passed. Real-browser candidate acceptance verified online
+sync and the UI refresh only; it did not simulate airplane mode or Gateway
+outage/reconnect, use real OIDC, or cover retired forms, consent withdrawal,
+media, retention, erasure, tenant/RLS, or downstream human disposition. No
+schema, migration, seed, or canonical provider configuration changed. Rollback
+is to revert the `field-collector.html` summary-refresh change and rebuild the
+candidate app; the database fixture is already removed. Evidence:
+[candidate Gateway browser check](builds/2026-10-12-recovery/field-collector-browser-candidate-gateway.json).
+
+CAP-053 and Batch 5 remain partial. See the [checklist](batches.md),
+[capability matrix](capability-matrix.md#cap-053), and [mobile access contract](mobile-access-contract.md).
+
+## Batch 5 Field Collector local vault reset control — 12 October 2026
+
+Added a **Delete local vault** action to the locked Field Collector gate. The
+action requires a browser confirmation, closes the app's own IndexedDB handle,
+deletes the encrypted local database, and clears known legacy localStorage keys
+after database deletion succeeds. If another Field Collector tab blocks the
+delete request, open app tabs close their handles and lock their in-memory state
+on IndexedDB's version-change event; the deleting tab asks the user to close a
+stale tab if the block persists. The warning says this action does not revoke
+server-side device enrollment or erase records already synced to the server.
+
+Nine focused Node vault checks passed, covering database deletion/reopen,
+blocked-delete notification, and cross-tab version-change behavior. Two offline
+shell checks also passed. Inline Field Collector JavaScript syntax and
+`git diff --check` passed. The Python pytest wrapper could not run because
+pytest is not installed; its underlying Node test command passed directly.
+Rebuilt only the `app` service in
+`kokonut-kernel-candidate`; Docker reports it healthy. The existing browser
+showed the locked vault, deletion warning, and button. The delete action was not
+invoked, so the encrypted browser vault remains locked and intact. No schema,
+database, provider configuration, or synthetic rows changed.
+
+Rollback: revert the Field Collector source/tests/docs and rebuild only the
+candidate app; no database rollback is needed. This does not close real OIDC,
+OS airplane-mode/Gateway recovery, retired/withdrawal, downstream disposition,
+media recovery/cleanup, tenant/RLS, retention/erasure, or semantic review.
+Evidence: [vault reset browser and test record](builds/2026-10-12-recovery/field-collector-vault-reset-control.json).
+
+CAP-053 and Batch 5 remain partial. See the [checklist](batches.md),
+[capability matrix](capability-matrix.md#cap-053), [mobile access contract](mobile-access-contract.md),
+and [Field Collector guide](../../services/mobile/README.md).
+
+## Batch 5 Field Collector retired-consent withdrawal source checks — 12 October 2026
+
+Added two API regressions for known retired `required` form revisions. A photo
+upload is denied before private object storage when a grant was active at
+collection but consent has been withdrawn by upload time. Sync is also denied
+when an offline retired-form record was captured under a grant, consent was
+withdrawn, and a later grant is now the newest decision; the intervening
+withdrawal remains disqualifying. Both cases assert rollback and no collection
+or media-object write. The existing valid-retired revision check still confirms
+that an accepted row enters private review as `retired_review` and
+`unassessed`.
+
+The repository `.venv` already contains pytest 9.1.1. All four focused mobile
+suites passed: 62 tests. The first run without an explicit audit spool failed
+closed because the default journal directory was not private; rerunning with a
+mode-0700 temporary spool under `/private/tmp` passed, and that spool was
+removed. The API tests mock database decisions and do not cover browser consent
+handling; the separate live PostgreSQL view acceptance is recorded below. No
+committed database, container, browser vault, migration, or provider configuration
+changed. Evidence:
+[withdrawal source tests](builds/2026-10-12-recovery/field-collector-withdrawal-source-tests.json).
+
+Rollback: revert the focused test and documentation changes; no runtime or
+database rollback is required. CAP-053 remains partial pending browser/API
+consent acceptance, OS airplane mode/Gateway recovery, OIDC, and the remaining
+human disposition, media, tenant/RLS, and retention gates. See the
+[Batch 5 checklist](batches.md), [capability matrix](capability-matrix.md#cap-053),
+and [mobile access contract](mobile-access-contract.md).
+
+## Batch 5 Field Collector PostgreSQL consent eligibility — 12 October 2026
+
+Ran the real `v_mobile_collection_use_eligibility` view against the active
+candidate PostgreSQL database with synthetic location, participant, form,
+consent, and collection rows inside one explicit transaction. The view first
+returned `eligible=true` / `eligible` for a synchronized collection covered by
+an active grant. After a withdrawal effective after collection and a later
+grant, it returned `eligible=false` / `withdrawn_after_collection`, preserving
+the intervening withdrawal. Both assertions passed; the transaction ended in
+`ROLLBACK`. A follow-up aggregate query found zero locations, parties,
+participant links, consent events, or collections, confirming no fixture rows
+remain. No migration, provider configuration, or browser vault changed.
+
+This closes the live database-view portion of the consent eligibility check.
+It does not exercise the API or browser consent flow, or establish human
+retention/erasure disposition, tenant/RLS, OIDC, or OS airplane-mode behavior.
+CAP-053 and Batch 5 remain partial. Evidence:
+[PostgreSQL acceptance record](builds/2026-10-12-recovery/field-collector-postgres-consent-eligibility.json).
+
+Rollback: the acceptance transaction was rolled back and left no fixture rows;
+no runtime rollback is needed. See the [Batch 5 checklist](batches.md),
+[capability matrix](capability-matrix.md#cap-053), and
+[mobile access contract](mobile-access-contract.md).
+
+## Batch 5 Field Collector PostgreSQL-backed sync handler — 12 October 2026
+
+Exercised `services.mobile.api.sync_collections` against a disposable restored
+clone of the candidate database. The synthetic record had an active grant at
+collection, then a withdrawal, then a later grant that was current when the
+handler ran. The handler rejected it with status 403 and the expected
+withdrawal detail. The request left zero `offline_collection` rows for the
+client ID and zero upload success logs for the synthetic device.
+
+The source candidate remained unchanged: zero locations, parties, devices,
+participant links, consent events, and collections; its ten seeded form
+revisions remained. The disposable database and its dump were removed. This was
+a direct handler invocation with real PostgreSQL; the Gateway ASGI/HTTP check
+is recorded in the following section, and browser consent flow remains open. Evidence:
+[PostgreSQL-backed sync acceptance](builds/2026-10-12-recovery/field-collector-postgres-sync-withdrawal.json).
+
+Rollback: the complete synthetic dataset lived in the disposable database,
+which was dropped after the check. No candidate migration or service change is
+needed. CAP-053 and Batch 5 remain partial pending live retired-form and browser
+consent acceptance, OIDC, airplane-mode recovery, and the remaining human
+disposition, tenant/RLS, media, retention, and semantic-review gates.
+
+## Batch 5 Field Collector Gateway ASGI/HTTP consent withdrawal — 12 October 2026
+
+Sent a real HTTP request through the Gateway ASGI app and `/api/mobile/sync`
+using a temporary Uvicorn server bound only to an ephemeral loopback port in the
+candidate app container. The request used an active required-consent form with
+a collection-time grant, a later withdrawal, and a still-later current grant.
+The API returned HTTP 403 with the expected withdrawal detail and persisted no
+collection or upload success log. Gateway audit logging was stubbed in the
+temporary process so the shared audit spool stayed untouched.
+
+The PostgreSQL clone and dump were removed, the temporary server exited, and
+the candidate app/database stayed healthy. Source candidate counts remain zero
+for locations, parties, devices, links, consent events, and collections. This
+closes the active required-consent sync path through Gateway HTTP. The
+retired-form HTTP case is recorded in the following section. Browser consent
+flow remains open, as do OS airplane mode, real OIDC, human disposition, media
+recovery, tenant/RLS, and retention/erasure.
+Evidence: [Gateway HTTP acceptance](builds/2026-10-12-recovery/field-collector-gateway-http-consent-withdrawal.json).
+
+Rollback: the clone, dump, and loopback server were removed; no candidate
+rollback is needed.
+
+
+## Batch 5 Field Collector retired-form Gateway ASGI/HTTP consent withdrawal — 12 October 2026
+
+Sent a real loopback HTTP request through the Gateway ASGI middleware and
+`/api/mobile/sync` using a disposable clone of the candidate PostgreSQL database.
+The fixture was a synthetic, reviewed `retired` form revision with a required
+consent policy, because all five seeded retired `1.1.0` revisions are
+`not_required`. The synthetic participant had a grant effective at collection,
+a later withdrawal, and a still-later grant current at sync.
+
+The route returned HTTP 403 with `Consent was withdrawn or denied after
+collection`; it wrote neither an `offline_collection` row nor an upload-success
+`sync_log` row. The Gateway audit method was stubbed in the temporary process.
+The temporary server stopped, the clone was dropped, and its dump was removed.
+The candidate remained healthy and its source counts remained zero for locations,
+parties, devices, links, consent events, collections, and sync logs; its ten
+seeded form revisions remained. This closes the retired required-consent sync
+policy path through Gateway HTTP for a synthetic reviewed revision. Browser
+consent, OS airplane mode and reconnect, real OIDC, and human disposition,
+media, tenant/RLS, retention, and semantic-review gates remain open.
+
+Evidence: [retired-form Gateway HTTP acceptance](builds/2026-10-12-recovery/field-collector-retired-form-gateway-http-consent-withdrawal.json).
+
+Rollback: the synthetic fixture was confined to the disposable clone, which was
+dropped after the request; the dump and temporary loopback server were removed.
+No candidate data or migration changed.
+
+## Batch 5 Field Collector focused source rerun and synthetic browser consent acceptance — 12 October 2026
+
+Reran the focused Field Collector Python suites for schema validation, offline
+transport, encrypted vault behavior, private media, mobile API policy, and
+Gateway authentication/CORS: **83 passed**. The Node offline-shell and vault
+suites also passed: **11 passed**. The host interpreter lacked pytest, so the
+authorized isolated `uv` environment supplied it. The first Python run could
+not create the default audit spool in this sandbox and returned 503 on 25 write
+paths; rerunning with a private mode-0700 spool passed all checks. No source,
+candidate database, or candidate Gateway state changed.
+
+The retired required-consent browser fixture at `http://localhost:8103/mobile`
+served the checked-in collector UI and a synthetic local API. Native browser
+validation blocked a 19-character participant reference when entered through
+real keyboard input (the field requires 32 characters); that value was not
+queued. A valid synthetic reviewer-issued reference was then saved in the
+encrypted local queue. The mock returned HTTP 403 on sync, and the UI retained
+one pending record after retry. An earlier automation-driven short-reference
+fill bypassed browser validation and was removed from the queue before the
+keyboard check. The fixture observed one form fetch, one device registration,
+and five in-memory sync attempts, all rejected with 403.
+
+This passes only the client fixture check. The browser did not use the candidate
+Gateway or exercise consent withdrawal. One synthetic encrypted record and its
+device credential remain in the isolated local test vault; the mock server is
+stopped. No candidate database or Gateway data was written. Actual OS airplane
+mode, live Gateway recovery, real OIDC, consent withdrawal in the browser, and
+the existing human disposition, media, tenant, and retention gates remain open.
+
+Evidence: [focused source checks and browser acceptance](builds/2026-10-12-recovery/field-collector-consent-source-regressions.json).
+
+Rollback: the Python audit spool, test environment, and mock server are isolated
+under `/private/tmp`. The encrypted browser test vault remains available for
+inspection; deleting it requires the application’s explicit confirmation
+action. No application rollback is needed.
+
+
+## Batch 5 Field Collector form operations decision — 12 October 2026
+
+Decided that form customization must remain available when Directus is absent.
+The initial authoring surface will be a reviewed JSON-manifest CLI that
+validates and previews offline, then explicitly publishes through the existing
+`mobile_form` row and migration 381 immutable-snapshot trigger. Direct writes to
+`mobile_form_version` and edits to applied migrations remain prohibited.
+
+A private location-scoped review queue is also required before retired or
+review-required records are used operationally. It must derive location scope
+from OIDC grants, minimize payload visibility, keep consent eligibility as a
+hard prerequisite, and append review/disposition events without changing
+consent or publishing records. Legal retention periods, erasure authority, and
+organization-wide tenant/RLS policy remain open human/governance gates.
+
+The decision and interface requirements are recorded in the
+[form operations contract](mobile-form-operations.md). Offline validation and
+preview remain available without database credentials. The new `publish`
+command also defaults to an offline preview; applying requires `--apply`, a
+publisher distinct from the manifest reviewer, and an explicit expected current
+version or an assertion that the form is absent. It locks the mutable
+`mobile_form` row, rejects historical version reuse and location reassignment,
+sets transaction-local `kokonut.actor`, and leaves immutable snapshot creation
+and retirement to the migration 381 trigger. It writes no `mobile_form_version`
+rows directly. Twenty-nine focused form/schema checks passed using an isolated
+fake transaction adapter; Ruff and `git diff --check` passed. A separate
+no-volume PostGIS fixture then verified trigger-created snapshots, actor
+attribution, active-to-retired transition, duplicate/stale/location guards,
+database-error rollback, and immutable historical content. The fixture applied
+the migration 381 publication-trigger prefix with minimal prerequisites, not the
+full migration or active candidate. [Acceptance evidence](builds/2026-10-12-recovery/mobile-form-publication-transaction.json).
+The temporary container and files were removed; candidate services and database
+were not changed.
+
+
+## Batch 5 OIDC Field Collector review queue source slice — 12 October 2026
+
+Added `services/gateway/operator_mobile_review.py` with read-only list/detail
+queries for synced collection rows that are form-review-required or fail the
+consent/form eligibility view. Both queries bind the requested location and
+repeat the active-grant check. List access requires
+`mobile_collection_review:read`; payload detail requires the separate
+`mobile_collection_review:read_detail` grant, returns payloads only up to
+512 KiB, and exposes only a photo count. The query omits participant linkage,
+collector identity, and device ID.
+
+The operator console now lists these rows and displays payload detail as text.
+The OIDC middleware scopes and audits both routes by operator and canonical
+location; there are no review decision controls or media-download routes.
+Thirteen focused route/query tests passed, Ruff is clean, and the console's
+inline JavaScript passes `node --check`. The OIDC provider is not configured,
+and this source-only change was not deployed or tested against the candidate
+database. Append-only review/disposition events, real-provider grant checks,
+and browser payload/privacy acceptance remain open.
+
+
+## Batch 5 OIDC Field Collector append-only review events — 12 October 2026
+
+Added `schemas/postgres/382_mobile_collection_review_events.sql` and the
+append-only write path in `services/gateway/operator_mobile_review.py`. The
+OIDC route requires the location-scoped `mobile_collection_review:review` grant
+and separately requires `read_detail`; CSRF is enforced by the existing
+operator middleware, and the authenticated OIDC operator supplies the event
+actor. The browser form captures one of three review-note decisions, a bounded
+reason, and one to twenty evidence references.
+
+Migration 382 binds each event to a synced collection in the same location that
+is currently review-required or ineligible. It validates reason/evidence
+bounds and exact evidence keys, and rejects event updates and deletes. The write
+path inserts only into the event table; it does not alter collection payload,
+consent eligibility, or governed lifecycle state. The console renders the event
+history with text-only DOM APIs and shows the form only when both grants exist.
+
+The focused queue/event/auth suites passed **22 tests**; Ruff, console
+JavaScript syntax, and `git diff --check` passed. Migration 382 was applied to a
+separate no-volume PostGIS fixture with minimal prerequisite tables and an
+eligibility-view stub. Actual service list/detail and append/history calls passed; collection eligibility
+fields remained unchanged. Cross-location, ungranted-operator, and revoked-grant
+list/detail/write attempts were denied and persisted no unauthorized events.
+Migration 382 rejected malformed/missing evidence keys, unsynced collections,
+updates, and deletes. This did not replay
+migration 381 or connect to the active candidate; the candidate remains at its
+previous schema level. [Isolated migration evidence](builds/2026-10-12-recovery/mobile-review-event-migration-isolated.json).
+
+Configured OIDC, real operator grants, browser acceptance, full migration-chain
+acceptance, human content disposition, tenant/RLS, retention/erasure, and media
+recovery remain open. Rollback is to disable the review-event route and form;
+append-only events remain preserved for audit.
+
+
+## Phase 7 clean ordered migration replay through 382 — 12 October 2026
+
+The repository migration runner applied all 373 ordered PostgreSQL schema
+migrations through 382 to a clean, disposable PostGIS 16 database. The run
+reported zero failures; the subsequent schema-only plan reported zero pending.
+Direct inspection confirmed 373 applied ledger rows, the
+mobile_collection_review_event table, both non-internal triggers, and the
+expected pgcrypto, PostGIS, and uuid-ossp extensions.
+
+The database had no persistent volume and published no host port. Its temporary
+container and network were removed after verification. The candidate app,
+Metabase, and database containers remained healthy and were not targeted.
+Encrypted settings were decrypted only to list OIDC variable names; none were
+present, so configured-provider acceptance remains open.
+
+This closes the clean full-source replay gate for migration 382. That replay
+did not target the candidate; the separate candidate rollout and its encrypted
+checkpoint/restore rehearsal are recorded below. Real OIDC login/grants,
+authorized browser review, human content disposition, retention/erasure, and
+tenant/RLS remain open.
+[Evidence](builds/2026-10-12-recovery/mobile-review-event-ordered-migration-run.json).
+
+
+## Phase 7 candidate migration 382 rollout — 12 October 2026
+
+The candidate migration plan showed exactly one pending schema and no checksum
+drift. Before rollout, an age-encrypted PostgreSQL checkpoint was created and
+restored into a separate internal-only template0 database. All 372 applied
+schema migration IDs/checksums, installed extensions, and selected mobile and
+operator row counts matched. The encrypted checkpoint remains under the ignored
+local backups directory; the temporary restore container, network, and volume
+were removed.
+
+The checksummed runner applied only migration 382 to the candidate. The follow-up
+plan reports zero pending across 373 applied schema migrations. The review-event
+table and both triggers are present, with zero events. Only the candidate app
+was rebuilt from source commit 7c69510 and recreated; its database container,
+PostgreSQL volume, and Metabase were not recreated. All three services are
+healthy. From inside the app container, /health returned 200, the OIDC login
+route returned 404 because the optional provider is disabled, and the anonymous
+review queue returned 401.
+
+The exact prior app image had been pruned locally; a retained pre-form-schema
+image is tagged as the fallback and is not an exact image snapshot. The encrypted
+database checkpoint is the exact pre-migration rollback point. Real OIDC login,
+authorized browser review, reviewer disposition, semantic review, retention/
+erasure, and tenant/RLS remain open.
+[Evidence](builds/2026-10-12-recovery/candidate-mobile-review-rollout.json).
+
+
+### Batch 5 local Docker candidate recovery — 12 October 2026
+
+The Docker daemon responds normally. The earlier app-image commit failed because
+the exact prior image content digest had already been pruned locally. The
+candidate app was rebuilt from source commit `7c69510`; the running image is
+`sha256:4a238b97dd2d6fa68ac68068948857b2cd93c2dbce17267f379991180fc886f8` and
+is now also retained under the dated local tag
+`kokonut-kernel-candidate-app:mobile-review-382-20261012`.
+
+The candidate app, Postgres, and Metabase are all healthy with zero restarts.
+`http://127.0.0.1:8098/health` returns 200. The configured Compose host port is
+8098; 8103 was used by an earlier browser fixture and is not published now. The
+legacy stack remains stopped. No database, Metabase, legacy, or recovery volume
+was modified. Nineteen stopped, successful recovery-helper container records
+were removed without `-v`; all volumes remain. Docker reports 12.68 GB of
+reclaimable local volumes and 20.61 GB of build cache, which were retained; no
+global prune was run. The older
+`pre-form-schema` image is only a fallback, not an exact image snapshot; the
+encrypted database checkpoint remains the exact pre-migration data rollback
+point.
+
+[Docker recovery evidence](builds/2026-10-12-recovery/docker-candidate-runtime-recovery.json).
+
+
+### Batch 5 live Field Collector Gateway outage recovery — 12 October 2026
+
+With user approval, a temporary synthetic device was enrolled against a
+synthetic location in the local candidate. One non-sensitive `field_note_v1`
+1.2.0 record was prepared in the browser. The candidate app container alone was
+stopped while Postgres and Metabase remained up. The browser saved the note to
+its encrypted queue and showed one pending record; the database had no
+collection or sync log for the fixture at that point.
+
+The candidate app restarted and `/health` returned 200. No manual sync was
+triggered. The Field Collector's background retry cleared the pending badge
+after its next interval. The database recorded one accepted transport and one
+collection; the governed eligibility view kept it ineligible with
+`transport_pending`. A guarded cleanup revoked the temporary device and removed
+the synthetic location, enrollment, collection, and sync log; all five
+post-cleanup counts were zero. The browser vault was locked afterward. Its
+encrypted test credential remains locally stored but its server device was
+deleted, so the credential is unusable.
+
+This confirms encrypted queue retention and automatic sync after a local
+Gateway outage. The host stayed online and the browser displayed “Online”; this
+does not satisfy OS airplane-mode or `navigator.onLine=false` acceptance. Real
+OIDC, browser consent withdrawal, tenant/RLS, retention/erasure, media recovery,
+and human disposition remain open.
+
+[Gateway outage recovery evidence](builds/2026-10-12-recovery/field-collector-gateway-outage-recovery.json).
+
+
+### Batch 5 macOS Wi-Fi-off Field Collector probe — 12 October 2026
+
+With the user's approval, Wi-Fi interface en1 was briefly switched off and then
+restored; its final reported power state was On. The existing browser remained
+on `http://127.0.0.1:8098/mobile`, continued to display Online, and showed an
+empty queue with no enrolled device. No test note or credential was created.
+
+This is inconclusive rather than offline acceptance: the candidate app and
+Gateway are on localhost, which stays reachable when Wi-Fi is off, and the
+browser did not report Offline. The capability matrix and OS-offline checklist
+remain open for capture/reconnect against a path that is actually severed; no
+LAN binding or other network exposure was added.
+
+[Probe evidence](builds/2026-10-12-recovery/field-collector-wifi-off-probe.json).
+
+
+### Batch 5 isolated private-media checkpoint/restore rehearsal — 12 October 2026
+
+The repository media checkpoint/restore scripts passed with one synthetic local
+`KKM1` object. The age-encrypted archive did not contain the separate media key;
+the manifest bound the SHA-256 of a synthetic DB-checkpoint fixture. Restore to a
+new 0700 directory verified the object inventory. `head_private` authenticated
+the restored envelope with the temporary media key; direct test-only decryption
+matched the synthetic plaintext SHA-256, and a wrong media key failed.
+
+The database fixture only exercised manifest binding; no database was restored
+and no upload-row hash/size parity was checked. The temporary media key remained
+in process memory and no SOPS secret was read. All synthetic files, keys and
+archives were removed. The candidate database and provider configuration were
+not touched. Production SOPS custody, database/object parity, persistent-volume
+recovery, expiry/orphan cleanup and retention remain open.
+
+[Evidence](builds/2026-10-12-recovery/field-collector-media-backup-restore.json).
+
+
+### Batch 5 media archive restore with supplied SOPS age identity — 12 October 2026
+
+The age recipient was derived from the user-provided identity file. The local
+media checkpoint script encrypted one synthetic `KKM1` object; after deleting
+the source, the restore script used that identity to restore into a new private
+directory. Inventory and ciphertext SHA-256 matched, `head_private` authenticated
+the envelope with a separate temporary media key, and the wrong media key was
+rejected.
+
+This validates access to the supplied age identity for archive encryption and
+restore. It did not decrypt `.env.sops` or recover the production media key. The
+DB checkpoint fixture was synthetic; there was no real DB restore, upload-row
+parity check, or persistent-volume/container replacement. Temporary data and keys
+were removed, and candidate database/provider configuration stayed untouched.
+
+[Evidence](builds/2026-10-12-recovery/field-collector-media-sops-age-restore.json).
+
+
+### Batch 5 local media key configuration check — 12 October 2026
+
+At the time of this check, a targeted SOPS lookup found no
+`MOBILE_MEDIA_LOCAL_KEY` or explicit `MOBILE_MEDIA_PROVIDER` entry in the tracked
+`.env.sops`. The source defaults to S3 when no provider is set, and
+`docker-compose.kernel-edge.yml` requires the local media key. The result was
+historical; the next batch provisions the key with owner approval. See
+[availability evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-availability.json).
+
+
+### Batch 5 SOPS media-key provisioning and recovery — 12 October 2026
+
+With the repository owner's approval, generated a random 32-byte
+`MOBILE_MEDIA_LOCAL_KEY` in process memory and added it to the tracked encrypted
+`.env.sops` through `sops set --value-stdin`. A targeted SOPS extraction using
+the supplied age identity matched the generated value; the key was not printed
+or stored in plaintext. `MOBILE_MEDIA_PROVIDER` remains unset, so the source and
+base profile still default to S3; the candidate runtime was not reconfigured.
+
+Then used that exact SOPS-managed key in an isolated one-object KKM1 checkpoint
+and restore. The archive was encrypted and restored using the supplied age
+identity. The restored AES-GCM object authenticated, its plaintext digest
+matched the synthetic fixture, and a wrong media key was rejected. The
+database-checkpoint binding was a synthetic fixture only; no database, upload
+row, Compose volume, or candidate container was touched. All temporary media,
+archives, and dependency files were removed.
+
+This closes the SOPS key availability and one-object key-matched recovery check.
+Database/upload-row parity, persistent-volume/container replacement,
+expiry/orphan cleanup, and retention remain open. See
+[provisioning and recovery evidence](builds/2026-10-12-recovery/field-collector-media-sops-key-provisioning.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+
+### Batch 5 isolated edge media-volume recovery — 12 October 2026
+
+Ran the candidate and edge Compose overlays under a unique temporary project,
+with only the targeted SOPS media key and database password read into process
+memory. Using `docker compose run --rm --no-deps`, the first disposable app
+container wrote one synthetic KKM1 object to the edge `kernel-private-media`
+named volume. A second disposable app container found the same object, verified
+its AES-GCM tag and plaintext digest, rejected a wrong media key, and deleted the
+object. The private directory and object modes were 0700 and 0600, and the
+plaintext was absent from the stored envelope.
+
+The isolated Compose network and synthetic volumes were removed. The database
+service and candidate project were not started or changed. A first verifier
+invocation had a Python syntax error before checking recovery; its temporary
+project was also torn down, and the corrected full run passed. This validates
+named-volume persistence across disposable app containers, but it did not create
+or compare a `mobile_media_upload` row, recreate the candidate service, or test
+expiry/orphan cleanup and production retention. See [edge volume
+evidence](builds/2026-10-12-recovery/field-collector-edge-media-volume-recovery.json)
+and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 isolated PostgreSQL/private-media parity — 12 October 2026
+
+Applied the real migration 358_mobile_private_media.sql in a disposable
+PostGIS project with minimal synthetic prerequisite tables. A synthetic upload
+row matched the encrypted object written through the edge Compose provider on
+object key, content type, byte size, and SHA-256. A second disposable app
+container queried the row, authenticated/decrypted the AES-GCM object, matched
+the plaintext digest to the row, and rejected an altered key. Synthetic rows,
+object, network, and project volumes were removed. The running candidate app,
+database, and provider selection were untouched.
+
+The first database setup saw an early socket close; after full Compose health
+wait, a diagnostic run passed the setup and migration. One full-check attempt
+then stopped before fixture creation because its command used a Compose flag
+unsupported by the installed version; the corrected run passed. The acceptance
+was not an HTTP upload-route test, full ordered migration replay, or candidate
+service recreation. Expiry/orphan cleanup, retention, and candidate recreation
+remain open. See [parity evidence](builds/2026-10-12-recovery/field-collector-media-db-object-parity.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 bounded Field Collector media expiry cleanup — 12 October 2026
+
+Implemented the dry-run-default operator CLI at services/mobile/media_cleanup.py
+and mounted it as mobile-media-cleanup in the unified CLI. Apply mode is
+explicit, limits a run to 1–500 rows (default 100), and selects only uploads
+whose 30-day expires_at has passed, which remain in uploaded status, and which
+have no attached collection. It locks rows with FOR UPDATE SKIP LOCKED, deletes
+the object before marking the row expired, and keeps attached media for governed
+retention/erasure review. Provider exceptions are sanitized. No object-listing
+interface exists, so unregistered crash-orphans are not automatically removed.
+
+Eight cleanup unit tests passed. The broader cleanup/media/API/CLI regression
+set passed all 44 tests using a private temporary audit spool; standard and
+security Ruff passed. The run emitted 117 existing Starlette/FastAPI
+deprecation warnings. An isolated PostGIS acceptance applied migration 358,
+created two expired unattached objects, one expired
+attached object, and one unexpired object, and verified dry-run count, a
+one-row apply limit, the next bounded apply, and an idempotent repeat no-op.
+Both eligible objects were removed and marked expired; attached and live rows
+and objects remained. All synthetic rows, objects, temporary directory, Compose
+network, and project volumes were removed. The candidate project was untouched.
+The first integration harness stopped before fixture creation due to an invalid
+Compose port argument; the corrected run passed. Candidate service recreation,
+orphan reconciliation, and production retention remain open. See [cleanup
+evidence](builds/2026-10-12-recovery/field-collector-media-expiry-cleanup.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 full edge runtime media-volume replacement check — 12 October 2026
+
+Started two disposable full Kernel runtime containers from the existing
+candidate app image on the candidate Docker network. Both reached the health
+endpoint while using the existing database for health connectivity only. A
+synthetic encrypted object in a unique named volume authenticated and matched
+its plaintext digest after each runtime start. The object, both containers, and
+volume were removed. The primary candidate app, database, Metabase, and their
+configuration were not stopped or changed; background workers and upload/sync
+were not exercised.
+
+This verifies a full runtime start/replacement with the edge media volume on the
+candidate network, but does not certify replacing or reconfiguring the primary
+candidate app service. See [runtime volume evidence](builds/2026-10-12-recovery/field-collector-media-runtime-volume-recreation.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 Gateway lifespan deprecation cleanup — 12 October 2026
+
+The prior focused run reported 117 Starlette/FastAPI deprecation warnings. All
+application lifecycle warnings traced to the Gateway's deprecated
+`@app.on_event("startup")` and `@app.on_event("shutdown")` registrations,
+repeated as test apps were created. Replaced those hooks with FastAPI's lifespan
+context manager while preserving the 15-second audit replay loop and cancelling
+and awaiting its task on shutdown. Added a lifecycle test that verifies the
+worker is created and cancelled. The service tree now has no application
+`on_event` registrations.
+
+The updated Starlette TestClient also warned when falling back to legacy
+`httpx`; declared `httpx2` in the development dependency group and legacy full
+requirements, then installed version 2.13.1 in the local environment. Updated
+the stale public-metrics tests to use valid UUID paths and mock the current
+analytics backend contract. The Gateway lifecycle, public metrics, Gateway auth,
+mobile API, media cleanup/storage, and CLI suites passed: 68 tests, zero
+warnings. Ruff, `git diff --check`, and dependency-group alignment passed. See
+[the Batch 5 checklist](batches.md).
+
+### Batch 5 candidate edge-media provider activation — 12 October 2026
+
+The current candidate had no `mobile_media_upload` rows. After validating the
+edge Compose configuration against SOPS, the app image was rebuilt and the
+candidate app alone was recreated with the edge overlay; the old image was
+retained under `kokonut-kernel-candidate-app:pre-edge-media-6ce3c3f`. The
+running app selected the local provider and mounted the named private-media
+volume with directory mode 0700 and ownership 10001:10001.
+
+A synthetic encrypted KKM1 JPEG passed write/head/delete with plaintext absent
+and file mode 0600. A second object remained on the volume across an app
+restart, authenticated with the configured key, and matched its expected
+plaintext SHA-256; it was then removed. Upload-row counts remained zero, the
+database and Metabase containers were not recreated, and all three candidate
+services remained healthy. The source and base Compose profile still default
+to S3; the running candidate now uses the edge overlay. Full edge resource
+limits on PostgreSQL, authenticated HTTP upload/sync, ARM64, production backup
+retention, and orphan reconciliation remain open. See [candidate activation
+evidence](builds/2026-10-12-recovery/field-collector-candidate-edge-media-activation.json)
+and the [media contract](local-private-media.md).
+
+
+### Batch 5 candidate Gateway browser outage/reconnect and form payload correction — 12 October 2026
+
+Repeated the approved live browser outage check against the candidate. The first
+retry returned HTTP 422 because the form serialized empty optional fields as
+JSON `null`, while immutable schemas accept the field only when omitted or a
+string. The failed item stayed encrypted locally and created no server row; it
+was removed through the queue UI. Updated `saveRecord` to omit empty fields.
+
+Rebuilt with the explicit Compose project `kokonut-kernel-candidate` and
+recreated only the app. Pausing the candidate app left PostgreSQL and Metabase
+healthy. While paused, one synthetic note remained in the encrypted browser
+queue and database collection/sync-log counts stayed zero. After app recovery,
+the browser's background retry returned HTTP 200 and the home badge cleared
+without manual sync or navigation. One active `field_note_v1@1.2.0` row and one
+sync receipt were observed; the row remained `eligible_for_use=false` with
+`transport_pending`. A guarded transaction revoked and removed the synthetic
+location, enrollment, device, collection and sync log. All guarded counts were
+zero afterward, the browser vault was locked, and its stored token is invalid.
+
+An initial rebuild attempt omitted the candidate Compose project selector and
+created a stopped app container plus empty resources under the legacy project
+name; it failed to bind the candidate's already-used port. Only those exact
+newly-created resources were removed. Pre-existing legacy containers/volumes
+were left untouched and remain stopped; the three candidate services are
+healthy. This outage test keeps host Wi-Fi online and the browser reports
+“Online”; per-browser offline indication/OS airplane mode remains open. Real
+OIDC, browser consent-withdrawal, retention/erasure, tenant/RLS, and human
+disposition remain open. See [browser outage evidence](builds/2026-10-12-recovery/field-collector-gateway-outage-recovery.json),
+[Batch 5 checklist](batches.md), and [CAP-053](capability-matrix.md#cap-053).
+
+### Batch 5 Field Collector proxy route correction — 12 October 2026
+
+Addressed the PR #68 review finding that `/mobile` resolves its relative
+service-worker URL at the origin root, outside Caddy's `/mobile*` proxy route.
+The Gateway now redirects `/mobile` to canonical `/mobile/`; relative vault and
+service-worker URLs therefore remain under `/mobile/`, which the existing
+Caddy and Traefik Gateway routes forward. The `/mobile/` route remains an
+explicitly public Field Collector route. Updated operator/deployment docs to
+use the slash URL.
+
+The complete mobile API suite passed (33 tests), as did both dependency-free
+offline-shell Node checks; Ruff and `git diff --check` passed. The suite used a
+private mode-0700 temporary audit-spool directory and that journal was removed.
+Rebuilt and recreated only the candidate app; PostgreSQL and Metabase remained
+healthy. Direct loopback HTTP confirmed `/mobile` returns 308 to `/mobile/`,
+`/mobile/` returns 200, the worker asset returns 200 JavaScript, and Gateway
+health is `ok`. No browser reload or vault change occurred. Caddy/Traefik was
+not running for this probe, so live proxy ingress is still not certified. See
+[route evidence](builds/2026-10-12-recovery/field-collector-proxy-route.json)
+and the [Batch 5 checklist](batches.md).
+
+
+### Batch 5 candidate Caddy Field Collector proxy acceptance — 12 October 2026
+
+Started only the optional `proxy` service in `kokonut-kernel-candidate` with
+`--no-deps`; the existing app, database, and Metabase stayed healthy. Using the
+loopback-only Caddy ports, HTTP `/mobile` redirected to HTTPS, HTTPS `/mobile`
+redirected to canonical `/mobile/`, the shell returned 200, and the service-worker
+asset returned 200 JavaScript. `/health` returned 200 with `status=ok` and
+`audit_capture=ok`; Caddy's `Via`, `nosniff`, frame-denial, and referrer-policy
+headers were present. The HTTPS request used curl's local-CA bypass because Caddy
+issued a local development certificate. No browser tab or vault changed, no
+database or schema was written, and the legacy Compose project was untouched.
+This closes the candidate Caddy route smoke only; external Traefik, public ingress,
+trusted-proxy chains, and browser acceptance through Caddy remain open. A fresh
+isolated browser tab then stopped before page load with `ERR_CERT_AUTHORITY_INVALID`
+for the local Caddy certificate. The security interstitial was not bypassed and the
+existing user vault tab was not touched. Browser-through-proxy acceptance needs a
+locally trusted development certificate, completed by the repository owner. See
+[proxy route evidence](builds/2026-10-12-recovery/field-collector-proxy-route.json).
+
+
+### Batch 5 private-media orphan reconciliation — 12 October 2026
+
+Added a provider-neutral inventory and operator command in
+`services/mobile/media_storage.py`, `services/mobile/local_media.py`, and
+`services/mobile/media_reconcile.py`, mounted as `mobile-media-reconcile` in the
+unified CLI. It is dry-run by default, requires objects to be at least 24 hours
+old, and caps each apply run at 500 objects (default 100). Apply rechecks both
+registered upload keys and current provider inventory before deletion, sanitizes
+provider/database errors, and never modifies upload rows. Local inventory fails
+closed on symlinks, unknown entries, and non-regular files. S3-compatible
+inventory uses pagination and needs prefix-scoped ListBucket permission; apply
+also needs DeleteObject permission.
+
+The focused storage, reconciliation, and expiry-cleanup suites passed: 31 tests.
+Standard Ruff and security Ruff passed, and the standalone command help rendered.
+A dry-run against the local edge provider in `kokonut-kernel-candidate` found
+zero provider objects and zero registered upload keys; it deleted nothing and
+made no database changes. The one-off app container used read-only mounts of the
+current `services/` tree and `VERSION`; candidate services were not rebuilt or
+recreated. Live S3/R2 listing/deletion, populated-bucket lineage, and production
+retention ownership remain open. See [run evidence](builds/2026-10-12-recovery/field-collector-media-orphan-reconcile.json),
+[media contract](local-private-media.md), and [CAP-053](capability-matrix.md#cap-053).
+
+
+### Batch 5 isolated private-media orphan apply acceptance — 12 October 2026
+
+Exercised the actual local encryption adapter and reconciliation function in an
+isolated temporary directory. Two synthetic objects were written; one object's
+modification time was set to 26 hours old while the other remained current.
+Dry-run reported two unregistered objects, one eligible object, one too-young
+object, and zero deletions. Explicit apply deleted only the aged object. The
+younger object's `head_private` check still authenticated successfully.
+
+The injected database adapter recorded two SELECT statements during apply and
+no mutations. The temporary directory and remaining synthetic object were
+removed. This validates the local apply path and age gate without touching the
+candidate media volume, a live database, S3/R2, or production data. See
+[isolated apply evidence](builds/2026-10-12-recovery/field-collector-media-orphan-apply-isolated.json)
+and the [media contract](local-private-media.md).
+
+
+### Batch 3 farm activity workflow source map — 12 October 2026
+
+Mapped `farm_activity_v1` 1.2.0 across the offline Field Collector, exact-form
+validation and consent eligibility, the location-scoped mobile review queue,
+canonical `farm_activity`, lifecycle ledger/specification, metrics, and farm
+summary report. The source map confirms mobile sync creates a private
+`offline_collection`; there is no Field Collector promotion route. For this
+`not_required` form, the eligibility view can report consent eligibility, but
+that is separate from semantic review, independent verification, and
+publication. The existing workflow spec also has terminal rejection and system
+publication; that conflict is corrected in the workflow-spec slice below.
+
+Checked the source-map and workflow-spec items in Batch 3. The declarative spec
+now requires an independent human verifier by contract, keeps rejected records
+available for an explicit correction loop or terminal exception disposition,
+and makes publication a separate human-approved step. Added focused contract
+coverage. These are workflow declarations only: runtime authorization,
+submitter/verifier identity enforcement, database lifecycle guards, canonical
+promotion, and report/metric integration remain open. The [workflow map](farm-activity-workflow-map.md)
+contains the source trace, field contract, acceptance sequence, and rollback
+strategy. CAP-001 remains partial; no end-to-end capability acceptance is
+claimed.
+
+
+### Batch 3 private intake and canonical draft promotion — 12 October 2026
+
+Implemented the first native Field Collector-to-farm-activity write slice on
+the feature branch. `services/gateway/farm_activity_workflow.py` now lists
+eligible, unpromoted `farm_activity_v1` 1.2.0 captures without free text,
+returns bounded private detail behind two location-scoped read grants, and
+promotes an explicitly reviewed capture to one canonical `draft`. Promotion
+rechecks the exact active form revision, stored payload schema, consent/use
+eligibility, location, sync state, and database grants in the write transaction.
+It holds locks on the active form revision, any participant link, and both
+grants through commit so concurrent retirement or revocation is ordered against
+the promotion. Location comes from the collection; only declared activity fields are copied;
+source lineage retains a payload digest rather than another copy of private
+text. The operator identity is recorded separately from participant/device
+identity. Identical retries return the existing source row; mismatched source
+identity fails closed.
+
+OIDC policies and routes in `services/gateway/operator_auth.py` use CSRF for
+promotion and require `farm_activity:create_draft` plus
+`mobile_collection_review:read_detail`; private reads are no-store. Migration
+383 preflights duplicate Field Collector source identities, adds a partial
+unique source index, and adds an append-only event ledger with transition-shape
+checks and a trigger tying event location/status/source to the canonical row.
+The `draft_created` event requires a review acknowledgement and matching
+payload digest. It does not yet implement governed transition routes or
+independent verifier/publisher enforcement.
+
+Validation: `tests/test_migration.py`, `tests/test_workflow_specs.py`,
+`tests/test_farm_activity_workflow.py`, and `tests/test_operator_auth.py`
+passed (55 tests); Ruff passed. Migration 383
+compiled transactionally in a disposable database, and synthetic trigger
+checks accepted a valid draft event while rejecting canonical status mismatch
+and event updates. A read-only `EXPLAIN` verified the exact promotion lock
+query against the existing eligibility view. The temporary database and
+migration file were removed. No candidate migration, app rebuild, or data
+write occurred. The migration/API are not yet deployed.
+
+Batch 3 now has the native intake/draft slice checked off. Submit/reject/rework/
+verify/publish enforcement, reviewer independence, published-only reporting,
+draft metric parity, and complete disposable database failure coverage remain
+open. CAP-001 remains partial; this does not satisfy MAN-CAP-001. The
+[workflow map](farm-activity-workflow-map.md) and [Batch 3 checklist](batches.md)
+track the interface, evidence, and rollback boundary.
+
+
+### Batch 3 native farm activity lifecycle enforcement — 12 October 2026
+
+Added `services/gateway/farm_activity_lifecycle.py` and six OIDC-protected,
+location-scoped transitions at
+`POST /operator/api/farm-activities/{id}/{action}`: submit, verify, reject,
+request-rework, publish, and close-exception. Every action requires its own
+grant, CSRF, a canonical row lock, and an active grant lock. Rejection, rework,
+and exception closure require a nonblank reason. One transaction changes
+status and writes the append-only operator event; identity, action, source,
+location, current status, and event-to-scope mapping are checked by PostgreSQL.
+The verifier differs from the latest submitter. Rejection from either submitted
+or verified state requires a reviewer distinct from the latest submitter and
+verifier. Publication requires a third actor distinct from both. Rework returns
+the row to draft while preserving prior events; content is immutable after
+submission and editable only after an explicit rework transition. Exception
+closure records a reasoned event without changing the rejected lifecycle state.
+
+Migration 384 scopes write/status guards to `farm_activity_v1` version 1.2.0,
+preflights matching draft and current-status evidence, requires an enabled
+operator with a current location grant, locks both promotion grants and
+transition grants, and appends status-change events synchronously. Historical
+Field Collector rows from other form versions remain outside this guard. The
+deferred constraint trigger protects draft creation evidence; status-transition
+evidence is inserted and validated in the same statement transaction.
+
+Validation: 77 focused migration, workflow-spec, draft-promotion, lifecycle,
+and OIDC tests passed; Ruff passed. Migrations 383–384 compiled transactionally
+in a disposable PostgreSQL database. Synthetic rows completed draft creation,
+submit, independent verification, rework, resubmission, publication, rejection,
+and same-status exception closure. Database guards rejected missing draft
+evidence, self-verification, rejection by either submitter or verifier,
+missing reason, revoked scope, illegal transitions, post-submit content edits,
+and event update/delete. A legacy Field Collector row remained outside the
+new 1.2.0 guard. The scratch database was removed; no candidate migration,
+rebuild, or write occurred. The candidate does not have
+these routes yet.
+
+Sanitized scratch evidence: [lifecycle acceptance](builds/2026-10-12-recovery/farm-activity-lifecycle-isolated.json).
+
+At this lifecycle checkpoint, runtime transition enforcement was implemented in source only. OIDC against a
+configured provider, wrong-location/error-injection acceptance, duplicate and
+stale-source promotion checks, published-only metric/report handoffs and MAN-CAP-001 remained open. CAP-001 remains partial. Rollback after deployment
+must keep a compatible transition endpoint for 1.2.0 rows or pause native
+intake; the additive database guards must not be bypassed through Directus.
+See the [workflow map](farm-activity-workflow-map.md),
+[checklist](batches.md), and [capability matrix](capability-matrix.md).
+
+
+### Batch 3 published farm-activity report and rework metric — 12 October 2026
+
+`services/export/reports/core.py::generate_farm_summary` now includes a
+location- and activity-date-filtered summary of published farm activities:
+counts and reported labor hours by activity type. It omits description, notes,
+raw source payload, device or participant identity, media references, and
+canonical activity IDs. The existing `store_snapshot` path hashes and stores
+this report as an unfrozen `draft`, with no automatic submission or publication.
+
+`services/metrics/calculators/rework_rate.py` includes farm activities in its
+published lifecycle cohort, uses an inclusive calendar end date, and returns
+published source IDs plus the reworked subset with 100-ID caps and truncation
+metadata. The existing metric engine stores the result unverified and still
+requires separate human review. Cursor cleanup in the calculator was also
+made explicit.
+
+Validation: 11 focused report, metric, report-governance, and draft-metric
+tests passed; Ruff passed. The synthetic report fixture yielded three published
+activities and 5.25 reported hours; snapshot hashing and draft/frozen fields
+were checked. The metric fixture yielded 50%, with exact published and
+reworked source IDs; the metric-engine test confirmed `verified = FALSE`.
+An additional disposable PostGIS 16 run used a minimal synthetic schema (not
+the migration chain) and verified two published activities, 5.25 hours,
+exclusion of a draft activity and private fields, a hashed unfrozen report
+draft, a 50% rework metric with both source IDs, and `verified = FALSE`. The
+container was removed. Full-schema parity remains open. No candidate migration,
+rebuild, or data write occurred.
+Evidence: [sanitized report/metric contract](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json).
+
+Batch 3's report/metric source item and synthetic PostgreSQL check are complete;
+full-schema parity, route and grant acceptance, candidate rollout, and
+MAN-CAP-001 remain open. CAP-001 is still partial. See the [workflow map](farm-activity-workflow-map.md),
+[checklist](batches.md), and [capability matrix](capability-matrix.md).
+
+
+### Batch 3 full-schema report/metric parity — 12 October 2026
+
+Replayed all 375 ordered PostgreSQL schema migrations (excluding seeds) through
+the repository migration runner into an isolated PostGIS 16 database. The actual
+farm-summary, snapshot, and metric service functions passed against the migrated
+schema: two published activities produced 5.25 reported hours; a draft activity
+and private source marker were excluded; snapshot hash matched with
+`status=draft` and `frozen=false`; and `rework_rate_pct` persisted 50% with two
+source IDs and `verified=false`. The scratch volume and network were removed; candidate state remained unchanged. This closes full-schema parity for the selected report/metric slice. The expanded Batch 3 suite passes 91 tests and Ruff, including wrong-location query guards and an injected event-write failure that rolls back draft promotion using a unit database double. A disposable full-schema PostGIS check then made a real trigger reject the submitted workflow event during the transition service call: status remained `draft`, with no submitted workflow event or lifecycle transition committed. Two barrier-synchronized promotion calls for one synthetic capture produced one draft and one `draft_created` event; the second result used the same activity ID with `created=false`. Higher-contention stress, configured-provider OIDC, candidate rollout, and MAN-CAP-001 remain open.
+Evidence: [report/metric acceptance](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json);
+[Batch 3 checklist](batches.md); [workflow map](farm-activity-workflow-map.md).
+
+
+## Batch 3 farm-activity candidate rollout — 12 October 2026
+
+Applied migrations 383–384 to the local candidate after checking that its
+`farm_activity`, native 1.2.0 activity, and `offline_collection` tables were
+empty and had no duplicate source identities. Created an age-encrypted
+PostgreSQL checkpoint; restored it into a fresh internal-only template0 target;
+and matched all 373 pre-rollout schema fingerprints, installed extensions, and
+selected mobile/operator/farm counts across 388 comparison rows. The temporary
+recovery project was removed after parity passed.
+
+The migration runner applied both migrations with zero failures. The candidate
+now has 375 applied schema migrations, zero pending, the native lifecycle
+guards, and zero farm-activity, collection, or workflow-event rows. Rebuilt the
+current app from commit `c87aa33f1cbaf03ef4fae991077c2198be14e1fa`, preserved the
+prior app image under a rollback tag, and recreated only the candidate app. App,
+database, and Metabase are healthy. Loopback checks returned 200 for `/health`,
+401 for anonymous review-queue access, and 404 for OIDC login; the provider is
+not configured. See [rollout evidence](builds/2026-10-12-recovery/candidate-farm-activity-rollout.json).
+
+The checkpoint covers only the candidate PostgreSQL database; roles/grants,
+media, and other Docker state are outside its scope. No suite was run during this
+rollout. Provider-backed reviewer acceptance, populated domain workflow,
+higher-contention stress, and MAN-CAP-001 remain open.
+
+
+### Batch 3 canonical lifecycle queue and operator workflow console — 13 October 2026
+
+Added source-level `GET /operator/api/farm-activities` and
+`GET /operator/api/farm-activities/{id}` with location binding, active-grant
+checks, no-store responses, a 100-row cap, exact native `farm_activity_v1`
+1.2.0 lineage filtering, queue free-text omission, separate detail grants, and
+workflow-event history capped at the latest 100 entries with a truncation marker. The console now has intake payload review, explicit
+content-review acknowledgement before idempotent draft promotion, a canonical
+lifecycle queue, and submit/verify/reject/rework/publish/exception controls
+filtered by current operator scopes. Rejection, rework, and exception closure
+require reasons; publication requires a confirmation step. The transition
+service now refuses historical Field Collector rows outside the native form
+lineage. Promotion also requires and locks `farm_activity:read_detail` in
+addition to `create_draft` and `mobile_collection_review:read_detail`.
+
+At this prior queue/console checkpoint, no test suite was added or run and the
+candidate app was not rebuilt. Draft editing had not yet been implemented;
+focused route/query/console checks, guarded candidate rollout, OIDC provider
+acceptance, and MAN-CAP-001 remained open.
+
+### Batch 3 native farm-activity draft correction — 13 October 2026
+
+Added migration 385, `edit_farm_activity_draft`, and the OIDC-protected
+`PATCH /operator/api/farm-activities/{id}/draft` route. The route requires the
+location-scoped `farm_activity:edit_draft` action plus both farm-activity and
+mobile-review detail grants, a CSRF token, and a nonblank correction reason.
+The service locks the canonical draft and its exact immutable
+`farm_activity_v1` 1.2.0 form revision, merges only the revision's five declared
+fields, and validates the complete content before updating the canonical row.
+Optional `null` values clear fields; unknown keys, invalid schema values,
+no-op edits, non-draft rows, and unavailable source revisions are rejected.
+
+Migration 385 adds a same-state `draft_edited` action to the append-only event
+ledger. PostgreSQL enforces native lineage, enabled operator identity, current
+edit and detail grants, a required reason, the allowlisted changed-field list,
+and a SHA-256 matching canonical content digest. The event does not copy free
+text, and neither `source_raw` nor the original offline collection is changed.
+The operator console now exposes the editor only for drafts and locations with
+the edit and private-detail grants.
+
+This paragraph records the initial source-only checkpoint before focused
+verification and the separately authorized candidate rollout. The additive
+migration should remain applied during an application rollback; use a reviewed
+forward fix if needed and preserve edit-event history.
+
+### Batch 3 native draft-edit verification — 13 October 2026
+
+Focused verification now passes 95 tests across migration, immutable form
+validation, intake promotion, farm-activity lifecycle editing, OIDC route policy,
+CSRF, and operator-console source contracts. Ruff passes on the changed Python
+files. Updating the promotion test doubles to include the required
+`farm_activity:read_detail` grant restored the existing promotion, retry, and
+event-write failure cases; no production service changes were needed for that
+test correction.
+
+The repository migration runner applied all 376 ordered PostgreSQL schema
+migrations (schema-only, no seeds) to a pinned PostGIS 16 disposable database.
+A synthetic location, operator, grants, collection, immutable form revision,
+and native draft then exercised migration 385: the edit produced an append-only
+same-state event with the expected changed-field list and content digest;
+an event update was rejected; and an injected event-insert failure rolled the
+canonical content update back with no extra event. The database used tmpfs, no
+network, and no published ports; its container and scratch fixture were
+removed. The existing candidate was not changed. Reproducible evidence is in
+[the acceptance record](builds/2026-10-13-recovery/farm-activity-draft-edit-acceptance.json).
+
+This closes source and isolated database verification for draft editing, not
+the full Batch 3 gate. The separately authorized candidate rollout is recorded
+next. Configured-provider OIDC, real browser workflow, populated candidate
+acceptance, higher-contention stress, and MAN-CAP-001 remain open.
+
+### Batch 3 migration 385 candidate rollout — 13 October 2026
+
+A fresh age-encrypted PostgreSQL checkpoint was created from the candidate and
+restored into a unique internal-only PostGIS 16 project. Migration fingerprints,
+extension versions, and farm-activity/workflow/mobile-collection counts matched;
+the temporary recovery container, network, and volume were removed. The ordered
+migration plan had exactly one pending schema, migration 385, with no checksum
+drift. The runner applied it successfully; the candidate now has 376 applied
+schemas and zero pending.
+
+The app was rebuilt from commit `f854d47`, with its previous image retained as
+`kokonut-kernel-candidate-app:rollback-pre-draft-edit-20261013T122602Z`. Only
+the candidate app was recreated. Health returned 200, and unauthenticated
+Field Collector review, farm-activity list, and draft-edit routes returned 401.
+PostgreSQL, Metabase, and proxy stayed up. The candidate currently has zero farm
+activities, workflow events, and offline collections; OIDC remains disabled,
+so no live edit or human review was exercised. See the
+[rollout evidence](builds/2026-10-13-recovery/candidate-farm-activity-draft-edit-rollout.json).
+
+This completes the migration-385 checkpointed candidate rollout, not Batch 3
+acceptance. Configured-provider OIDC, browser workflow, populated candidate
+acceptance, higher-contention stress, and MAN-CAP-001 remain open.
+
+
+## Field Collector retention disposition safety — 13 October 2026
+
+Set the interim policy for collections affected by consent withdrawal or an
+erasure request: immediately restrict use, preserve the private record for a
+human dependency/legal-basis review, and do not automatically delete or claim
+erasure. Generic retention sweeps now reject new policies and skip pre-existing
+policies for the protected consent, collection, participant-link, media, form,
+review-event, device, and governed farm-activity tables. Added the detailed
+[retention and disposition contract](mobile-retention-disposition.md) and linked
+it from the mobile access contract and checklist.
+
+This change performs no data mutation. The current schema's restrictive foreign
+keys, immutable evidence, media objects, canonical source lineage, and backups
+mean complete erasure still needs a dedicated two-person reviewed executor and
+reconciliation flow. No jurisdiction-specific period is assumed; CAP-053 remains
+partial pending an accountable retention owner and end-to-end acceptance. Tests
+were not run for this slice.
+
+## Field Collector read-only disposition inventory — 13 October 2026
+
+Added a separate-grant OIDC route and console action for a content-free known
+database lineage inventory. `mobile_collection_retention:inventory` and
+`mobile_collection_review:read` are both required; payload detail access is not.
+The query binds collection and location, repeats the inventory grant in SQL,
+and returns only aggregate payload/attachment metadata, private-media
+counts/bytes/statuses, canonical farm-activity counts/statuses, and review and
+workflow event counts. The query repeats both required grants in SQL and binds
+every count to the requested location. It omits collection contents,
+participant identity, media keys/hashes, and cross-location lineage. The console uses text rendering,
+`no-store`, and makes clear that reports, external exports, and backup copies
+are not covered.
+
+This is a source-only slice. Focused service/query, dual-grant route authorization,
+and console acceptance passed: all 49 tests in the focused operator auth/review/
+console files passed, and Ruff is clean. The query contract verifies location
+binding and both active grants,
+read-only transaction mode, and absence of payload/object-key output; route tests
+verify either missing grant denies access. It does not create a case, approve a
+retention basis, or execute erasure. Reports, external exports, on-chain
+references, backups, and full cross-location lineage remain uncovered.
+
+## Field Collector tenant isolation target — 13 October 2026
+
+Inspected the location and organization schema before choosing the tenant
+boundary. `location.organization_id` is nullable, while `organization_member`
+is an organization-to-location/farm relationship and does not authorize an
+operator. The mobile API continues to use the enrolled device's location and
+explicit operator location grants. Documented organization as the future
+security tenant, location as operational scope, explicit sharing grants,
+fail-closed handling for unmapped records, transaction-local database context,
+and the required RLS rollout/rollback acceptance in the
+[tenant isolation contract](mobile-tenant-isolation.md).
+
+This is a policy and sequencing decision only. No RLS migration, ownership
+backfill, provider configuration, or live data mutation was made. The current
+mobile location boundary remains in force; tenant-aware identity/grants, owner
+reconciliation, RLS, worker isolation, and downstream eligibility checks remain
+implementation gates.
+
+## Field Collector tenant ownership preflight CLI — 13 October 2026
+
+Added `python3 -m services.cli mobile-tenant-preflight` with an optional
+`--location-id` filter. The command runs an explicitly read-only,
+repeatable-read transaction with a 15-second statement timeout. It compares
+nullable direct organization assignments with active `owned`/`primary`
+relationships, inventories known device, enrollment, collection, private-media,
+canonical activity, workflow/review event, report snapshot, and dashboard
+dataset counts, and reports rows lacking a location separately. It emits
+stable opaque location/organization references rather than raw UUIDs. The
+filtered mode labels unlocated counts as database-wide.
+
+At the time this source slice was added, the candidate database was not queried
+and no tests were run. The command does not infer or write ownership.
+Tenant-aware grants, RLS, worker isolation, complete downstream lineage, and
+ownership reconciliation remain open. See the [CLI guide](../../services/mobile/README.md)
+and [tenant contract](mobile-tenant-isolation.md).
+
+### Candidate execution — 13 October 2026
+
+Ran the unified CLI in a disposable container on the private
+`kokonut-kernel-candidate` network. The current CLI and preflight module were
+bind-mounted read-only; the database transaction used repeatable-read, read-only
+mode with a 15-second statement timeout. The candidate contained zero location
+rows, zero ownership relationships, and zero known mobile/downstream records,
+including zero records without a location. The legacy stack was not queried,
+and no long-lived service was recreated. The sanitized result is retained in
+the [preflight evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight.json).
+
+This closes the local-candidate inventory run only. It does not resolve
+ownership for a populated or production database; accountable owner review,
+tenant-aware grants, RLS, and downstream lineage remain open. No tests were
+run, and no database records were changed.
+
+## Field Collector tenant preflight schema gate — 13 October 2026
+
+Updated the read-only preflight to inspect the required public relation/column
+set before running ownership or lineage counts. If a restored or deployed
+database is behind the current Field Collector schema, the command returns
+`inventory_status: schema_incomplete`, the missing `relation.column` names, and
+the latest applied migration when migration history exists. It does not issue
+the inventory queries in that case. Complete schemas retain the existing
+repeatable-read, read-only behavior and include the schema-coverage summary.
+
+At the source-only checkpoint, no older populated snapshot had been queried;
+the subsequent populated-restore check is recorded below. No test suite ran.
+The CLI does not infer or write ownership, and no backfill or RLS migration is
+authorized by this preflight.
+
+### Populated archived restore check — 13 October 2026
+
+Restored the checksum-verified encrypted `kokonut_intelligence` archive into a
+new template0-derived database using the pinned PostGIS image. The isolated
+internal network had no published ports or application services; synthetic
+credentials were used. A separate read-only aggregate confirmed two locations
+and 376 migration-history rows. The unified CLI returned
+`inventory_status: schema_incomplete`, found 16 of 27 required columns, listed
+the 11 missing columns, and did not query or emit ownership/lineage counts.
+Migration history was correctly ordered by `migration_id`, reporting
+`schema:352_attestation_request_anchor_fields.sql`. The disposable container
+and network were removed; the recovery volume was retained. The candidate and
+legacy services were not connected to or changed.
+
+Evidence: [schema gate restore](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-gate.json).
+The restore and read-only query are not a test suite; no test suite was run.
+Ownership reconciliation remains open. A fully migrated populated copy and
+accountable owner review are still required before any tenant backfill or RLS.
+
+The complete-schema path was also run against the current candidate. It returned
+27/27 required columns and migration 385, with zero locations and zero known
+lineage rows. This confirms only the empty-candidate path; see the separate
+[complete-schema evidence](builds/2026-10-13-recovery/field-collector-tenant-preflight-schema-complete.json).
+
+## Populated Field Collector migration replay and ownership inventory — 13 October 2026
+
+Restored the checksum-verified archived database into a new internal-only,
+template0-derived copy. The migration planner found 32 pending schemas, from
+353 through 385 with existing numbering gaps, and no checksum drift. The
+transactional runner applied all 32 with zero failures; the follow-up plan
+reported zero pending schemas. The restored copy now records 376 applied
+schema migrations and the original 32 seed migrations. No seed migration,
+owner assignment, tenant grant, or RLS policy was applied.
+
+The complete read-only preflight found 27/27 required columns and migration
+385. Across two locations, it found no active organization-member rows: one
+location has a direct organization assignment without a confirming active
+owned-primary relationship, and the other has no direct assignment. The
+inventory counted four mobile devices and five location-scoped dashboard
+datasets; it also found three report snapshots and 38 dashboard datasets with
+no location. These counts identify review work, not an ownership decision.
+
+The first complete-schema execution exposed a driver-boundary bug: an empty
+PostgreSQL `uuid[]` arrived as the string `{}`, which the preflight iterated as
+two characters and turned into false opaque owner references. The result was
+discarded. The query now aggregates IDs as `text[]`, and the collector fails
+closed on any unsupported array representation. The corrected read-only run
+reported zero relationship candidates, one `assigned_owner_not_confirmed_by_relationship`
+location, and one `unassigned` location. Python syntax compilation and
+`git diff --check` passed; no test suite ran.
+
+The one-shot runner and recovery container/network were removed after capture;
+the isolated volume was retained. An earlier incomplete first-boot volume was
+also retained separately without archive restore or migrations. The candidate,
+legacy stack, and their databases were not accessed. Accountable owner review,
+unlocated report/dashboard lineage, tenant-aware grants, RLS, and downstream
+eligibility parity remain open. See the [sanitized replay evidence](builds/2026-10-13-recovery/field-collector-tenant-populated-migration-replay.json),
+[tenant contract](mobile-tenant-isolation.md), and [Batch 5 checklist](batches.md).
+
+## Field Collector current-use gate — 13 October 2026
+
+Added ordered migration 386 with a fail-closed canonical farm-activity
+eligibility predicate. It matches the Field Collector source ID, payload
+lineage, location, collection type, immutable form revision, and current
+eligibility view; it also checks that the revision remains active. Form
+retirement/inactivation moves linked collections into the existing private
+review queue. A database trigger blocks ineligible content edits and forward
+workflow changes; existing rejection/exception actions remain available only
+where governed lifecycle state permits, and do not replace formal retention
+disposition.
+
+Applied the predicate to farm summaries, ecological/value-added analytics,
+Fortune 500 governance counts, process traces and value-stream calculations,
+three lifecycle metrics, data-quality sampling, repository-owned Metabase and
+saved-dashboard queries, the optional Directus weekly snapshot hook, and both
+farm-activity export paths. The migration rewrites only the exact known seeded
+dashboard SQL; custom/operator-edited SQL still needs inventory and review.
+Authorized canonical lifecycle reads retain ineligible rows and return
+eligibility/reason fields for disposition; the editor and transition service
+return a conflict before writes when the source is no longer eligible. The
+source change is documented in the mobile access and retention contracts, the
+workflow map, Batch 5 checklist, and CAP-001/CAP-053 progress.
+
+Focused source tests pass: 56 passed, 18 skipped across eligibility,
+lifecycle, workflow, farm metrics/report, process/value-stream, and operator
+console checks. Targeted Ruff, Python compilation, the operator-console inline
+JavaScript syntax check, and `git diff --check` also pass. Migration 386 was applied to a network-isolated PostgreSQL 16
+disposable database populated with synthetic schema and rows. Assertions
+covered active eligibility, legacy-source compatibility, wrong-location and
+malformed lineage, withdrawal followed by a later grant, content/workflow
+blocking, allowed rejection disposition, immutable provenance, retired-form
+review queuing, Directus permission-scope preservation, seeded dashboard
+filters, and the migration marker. The Directus seed repair was then applied
+twice against nested location scopes and a NULL permission row; the recursive
+gate check found exactly one gate per row, and a row-for-row comparison showed
+the second pass changed no permission state. A Kernel-only run of the final
+SQL removed
+`directus_permissions` before applying migration 386 and passed, confirming the
+optional Directus branch. Temporary containers were removed.
+
+The checksummed runner then applied the final migration 386 checksum to a fresh
+copy of the retained populated archive's `kokonut_restore` database after its
+plan found one pending schema and no checksum drift. The post-run schema plan returned zero pending; the migration
+ledger and marker were present, all 8/8 existing farm-activity Directus read
+permissions carried the source gate, and the present seeded farm-activity
+dashboard query was eligibility-gated. The clone retained two locations, four
+devices, and 43 dashboard datasets, plus 30 total `farm_activity` rows and
+zero Field Collector-sourced canonical activities; the second seeded VSM
+dataset ID was absent. The retained recovery volume was unchanged. The
+temporary clone volume, container, and network were removed; the candidate
+app, proxy, Metabase, and database remained healthy on migration 385 at this
+source-verification checkpoint. The separately approved candidate rollout is
+recorded below. See [synthetic acceptance evidence](builds/2026-10-13-recovery/farm-activity-use-gate-disposable-acceptance.json),
+[populated replay evidence](builds/2026-10-13-recovery/farm-activity-use-gate-populated-replay.json),
+[Batch 5 checklist](batches.md), and [capability matrix](capability-matrix.md).
+
+## Field Collector current-use gate candidate rollout — 13 October 2026
+
+Created a fresh age-encrypted PostgreSQL checkpoint before changing the
+candidate. Restored it directly into a template0 database in an internal-only
+temporary project without writing a plaintext archive; all 376 ordered schema
+fingerprints, 10 extension versions, and six selected row-count comparisons
+matched the candidate. The temporary restore container, network, and volume
+were removed; the encrypted checkpoint remains at
+`backups/kernel-candidate-pre-farm-activity-use-gate-d22fa49`.
+
+The exact-target ordered migration plan found only
+`schema:386_farm_activity_consent_use_gate.sql` with no checksum drift. The
+runner applied one migration with zero failures; the follow-up plan found zero
+pending across 377 applied schema files. The eligibility function and single
+version marker are present. Directus is absent in the Kernel candidate as
+expected for this optional provider.
+
+Built the app from source commit `d22fa49`, tagged the previous image for
+rollback, and recreated only the candidate app container. The app, database,
+Metabase, and proxy are healthy/running. Loopback checks returned 200 for
+`/health` and 401 for anonymous farm-activity and mobile-review queue requests.
+The candidate remained empty for farm activities, workflow events, mobile
+collections, and devices. Its prior encrypted checkpoint and rollback image
+remain available; the legacy stack was not accessed. See the [rollout
+evidence](builds/2026-10-13-recovery/candidate-farm-activity-use-gate-rollout.json).
+
+This deploys the use gate but does not provide populated workflow acceptance,
+configured OIDC login/session validation, or MAN-CAP-001/MAN-CAP-053
+certification. Candidate and populated-clone checks remain distinct.
+
+
+## Phase 8 release-input lock and architecture CI gate — 13 October 2026
+
+Added a SHA-256 manifest for the minimal app and PostGIS Dockerfiles, their
+pinned base image references, direct Python requirement files, and verified
+PostGIS package catalog. The GitHub Actions CI workflow invokes a Buildx script
+that creates fresh temporary AMD64/ARM64 OCI archives for both targets, checks
+the platform entries, compares resolved Python package versions, and verifies
+the selected PostGIS versions. The script does not publish, load, or start those
+images.
+
+A current-source AMD64 Kernel app build completed locally as
+`kokonut-kernel-release-app-amd64:c2a5354`. The matching ARM64 build began
+resolving ARM64 wheels but failed after DNS lookup for `files.pythonhosted.org`
+failed; no ARM64 result is recorded as passing. The GitHub Actions gate has not
+run yet ([attempt record](builds/2026-10-13-recovery/kernel-architecture-local-build.json)).
+Python transitive requirements and apt repository snapshots remain unlocked;
+hardware runtime, restore, and Raspberry Pi resource acceptance remain separate
+gates ([contract](kernel-release-inputs.md)). No test suite was added or run for
+this slice.
+
+
+## GitHub Actions workflow migration — 13 October 2026
+
+Replaced the repository's OneDev buildspec with GitHub Actions workflows for
+the full CI gate, Gitleaks security scanning, disabled staging deployment
+on a dedicated self-hosted runner, and manual production promotion. Extracted the
+CI steps into `scripts/run-github-ci.sh`; it uses `ki-ci`, isolated loopback
+ports, placeholder secrets, full migration/test/static-analysis/Solidity/Directus
+checks, and the existing non-publishing multi-architecture build script. The
+script preserves and restores any existing `.env` and `.env.sops` files during
+its run. Production retains the explicit confirmation, pre-deploy backup, and
+health check. Deployment runbooks, contribution guidance, compliance evidence,
+and capability progress now refer to GitHub. The OneDev buildspec was removed.
+
+The first GitHub Actions run exposed 544 Gitleaks findings. Review traced the
+matches to public OpenZeppelin test fixtures, public EVM addresses, SHA-256
+recovery/build inventories, domain migration labels, deterministic test keys,
+and literal credential placeholders in examples. Added `.gitleaks.toml` with
+rule-scoped exact path/line/value exceptions and made the workflow select that
+config explicitly; full-history scanning and the other secret rules remain
+enabled. The full-history Security workflow passed on 13 October 2026. Two CI
+runs built both architecture images and failed release validation because
+Buildx wrapped platform manifests in nested OCI indexes. The PR fix recursively
+inspects nested indexes, then derives platform labels from image configs when
+image descriptors omit them. [CI run 283](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38443881835)
+included the Python dependency locks and apt snapshot inputs but failed during
+PostGIS package-source setup because the
+pinned PostgreSQL base had no system CA bundle. A signed Debian snapshot
+bootstrap now installs `ca-certificates` before the build switches to HTTPS
+sources; a fresh multi-architecture run must pass before the release gate is
+accepted. GitHub runner registration,
+`staging`/`production` environments, branch rules, and production SSH secrets
+remain pending remote configuration; see [setup requirements](../github-actions.md).
+Staging also requires a reviewed source change to clear its disabled flag. No
+deployment was performed.
+
+### Kernel Python lock follow-up — 13 October 2026
+
+Generated hash-locked Python dependency closures for the default Kernel runtime
+and optional ClickHouse-enabled profile with pip-tools 7.6.2. The Kernel
+Dockerfile now selects one full lock at build time and pip enforces hashes.
+`config/kernel/release-input-lock.json` covers the source manifests, both lock
+files, and Dockerfile bytes. The multi-architecture release script now builds
+and inspects both app profiles plus PostGIS for linux/amd64 and linux/arm64.
+GitHub [CI run 283](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38443881835)
+included the Python locks and app profiles and reached the
+PostGIS build, where the missing CA bundle prevented apt from reaching the
+locked HTTPS sources. This run does not accept the multi-architecture release
+gate. No local test suite or Docker build was run for this slice.
+
+### Kernel apt source lock follow-up — 13 October 2026
+
+Added a UTC-dated Debian Bookworm snapshot source and switched the selected
+PostGIS packages to the PGDG released-package archive with exact versions.
+The apt source and preference files plus the package catalog are covered by
+`config/kernel/release-input-lock.json`; the release checker requires the
+timestamp, suites, archive, and low default PGDG priority to agree. Earlier
+local amd64/arm64 PostGIS artifacts were built before this source lock and are
+retained as historical identities, not acceptance evidence for the new input.
+CI run 283 showed that the pinned PostgreSQL base has no CA bundle, so apt could
+not authenticate the locked HTTPS sources and could not install
+`ca-certificates` from those same sources. A first build stage now installs the
+bundle from the same timestamped Debian snapshot over HTTP, with APT signature
+checks and the Debian archive keyring enabled; later stages use the locked
+HTTPS sources. CI run 284 confirmed that bootstrap and built both PostGIS
+architectures, then the full inventory comparison found only the amd64
+`libquadmath0` package. The package record now allows that exact version and
+absence on arm64, with a Debian package rationale; any additional or stale
+difference remains a failure. The next clean multi-architecture run must pass.
+Extension and restore acceptance and hardware certification remain open.
+
+### PostGIS CA bootstrap repair — 13 October 2026
+
+CI run 283 failed in the PostGIS stage because the digest-pinned PostgreSQL base
+has no trusted CA bundle. The build tried to install `ca-certificates` only
+after enabling HTTPS Debian and PGDG sources, producing a bootstrap cycle. Added
+a separate first stage that installs the CA bundle from the same dated Debian
+snapshot over HTTP while retaining APT signature verification with Debian's
+archive keyring. The next stage then switches to the locked HTTPS Debian and
+PGDG sources. The bootstrap source is included in the input lock and the
+release checker verifies both the source and stage ordering. No local Docker
+build or test suite was run; fresh GitHub multi-architecture CI remains the
+acceptance gate.
+
+### PostGIS architecture-specific inventory follow-up — 13 October 2026
+
+CI run 284 passed the CA bootstrap and built the selected PostGIS packages for
+both linux/amd64 and linux/arm64. The package inventory checker then identified
+one difference: `libquadmath0` version `12.2.0-14+deb12u1` on amd64 and no such
+package on arm64. Debian publishes this package for amd64/i386, and
+`libgfortran5` only depends on it on those architectures ([package details](https://packages.debian.org/bookworm/libquadmath0), [dependency details](https://packages.debian.org/bookworm/libgfortran5)). The reviewed difference is now recorded in the SHA-256-locked package catalog. The checker still requires the observed complete difference map to equal that contract exactly, so any extra package/version delta or a stale expectation fails. Static release-input validation is the next local check; a fresh GitHub CI run remains required for acceptance.
+
+### GitHub CI run 285 test-suite repair — 13 October 2026
+
+CI run 285 passed the default and ClickHouse-enabled app builds for AMD64 and
+ARM64, passed the PostGIS builds for both architectures, and passed the locked
+installed-package inventory comparison. The full suite then reported 23
+failures with 4,532 passing tests. The failures traced to a missing CI
+ClickHouse database selection in the end-to-end helper, the mobile-form seed
+rewriting immutable revisions on rerun, a hard-coded developer scratch path,
+and stale tests for current gRPC scopes/handlers, sensor projection adapters,
+strict sensor ranges, CORS `Vary` headers, rate-limiter constraints, and
+provider-independent workflow jobs. These were corrected in the active PR.
+The focused local run passed 155 tests with one database-backed seed check
+skipped because the local database service was unavailable. A clean GitHub CI
+run is still required to confirm the complete database-backed path.
+
+### GitHub CI run 286 seed-idempotency follow-up — 13 October 2026
+
+[CI run 286](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38458613711)
+passed 4,556 tests and failed only the database-backed seed-idempotency check.
+The initial fix changed the mobile-form seed to `ON CONFLICT DO NOTHING`, but
+PostgreSQL still evaluates the immutable-revision `BEFORE INSERT` trigger before
+discarding a conflicting row. The seed now selects only form IDs absent from
+`mobile_form` before inserting and retains `DO NOTHING` as the uniqueness
+fallback. The regression check asserts that exclusion predicate. The focused
+pytest invocation could not run locally because pytest is absent from the
+system interpreter; source assertions and `git diff --check` pass. [CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973)
+then passed on fix commit `6549043`, including the database-backed idempotency
+check; see the acceptance record below.
+
+### GitHub CI run 287 release-gate acceptance — 13 October 2026
+
+[CI run 287](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38466475973)
+completed successfully on commit `6549043` in PR #68. It built and verified the
+default and ClickHouse-enabled Kernel apps for AMD64/ARM64, plus the snapshot-
+pinned PostGIS images for both architectures. The full package comparison found
+229 AMD64 and 228 ARM64 packages with only the documented architecture-specific
+`libquadmath0` difference. The complete Python/database suite passed 4,557 tests
+and 75 subtests; `tests/test_seed_idempotency.py::test_seed_idempotency` passed.
+The Solidity suite passed 62 tests and the Directus hooks suite passed 52 tests;
+the workflow reported all CI checks successful. Full-history Security run 11
+also passed. These results close the build, inventory, and seed-regression gates
+for commit `6549043`. Later changes on the current PR branch are not covered yet;
+a fresh run is required before the release-CI gate closes for its current head.
+
+### Batch 4 Redis and shared-limiter profile decision — 13 October 2026
+
+The Kernel candidate has no Redis service or Python Redis dependency. Operator
+sessions and computation results are PostgreSQL-backed; Redis remains limited
+to the optional legacy Directus cache/rate-limit adapters. Minimal and edge
+profiles keep the bounded process-local limiter for one API instance. The
+standard profile now defaults to the PostgreSQL-backed limiter so horizontally
+scaled API replicas can share budgets after migration 373 is applied. Existing direct-call, ASGI
+multi-process, and two-container HTTP acceptance covers shared consumption;
+production multi-host failover, public ingress, and migration/retirement of
+legacy Directus Redis state remain open. The two focused Compose profile tests
+pass, and the mobile-form seed source regression check also passes (3 total).
+Provider-boundary and dependency-group checks pass (17 vendor import sites;
+12 groups/32 requirements aligned). No services or database state were changed.
+This slice is not pushed until CI run 287 completes.
+
+
+## Batch checklist reconciliation — 13 October 2026
+
+Reconciled the parent Batch 2 Metabase checkbox with the already-retained Batch
+4e evidence. The optional profile is scoped to the three reviewed
+`kokonut_reporting` views; three first-party cards were executed against the
+empty candidate and their exact exported SQL matched independent base-table
+references on a copied populated fixture. The metadata backup restore also
+matched the live source/card/dashboard inventory. Linked the card-output record
+from CAP-007 and the parent checklist. This closes only that implementation and
+reporting-slice item; the candidate remains empty, broader analytics parity and
+MAN-CAP-007 are not accepted, and the Batch 2 provider/recovery gates remain
+open. No runtime state or services changed.
+
+
+## Optional Metabase documentation state reconciliation — 13 October 2026
+
+Aligned the optional consumer-role and reporting-contract documents with the
+completed Batch 4e candidate setup. The candidate profile uses the distinct
+`kokonut_analytics_ro` identity and exposes only the reviewed reporting views;
+its three Kokonut cards passed copied-populated-fixture SQL parity, and encrypted
+metadata restore counts matched. Removed stale statements that source/card setup
+was still pending, corrected the profile-default wording, and marked the source
+and parity steps complete in the reporting contract. Production credentials,
+live populated candidate results, broader report/dashboard parity, and
+MAN-CAP-007 remain open. This reconciles existing evidence; no runtime state
+or services changed.
+
+
+## Batch 5 authenticated CORS success response — 13 October 2026
+
+Extended the cookie-backed mobile review queue test with an explicit allowed
+browser origin. The authenticated 200 response now asserts the exact
+`Access-Control-Allow-Origin`, `Access-Control-Allow-Credentials: true`,
+`Cache-Control: no-store`, and `Vary` behavior using the existing fake OIDC
+provider; no identity-provider call or live service was involved. The new
+focused test passed, and the four Gateway CORS preflight tests passed. This
+closes the in-process source regression gap only; browser/certificate, real
+OIDC, and deployed credentialed-CORS acceptance remain open.
+
+
+## Batch 5 OIDC deployment-input contract — 13 October 2026
+
+Added the optional OIDC provider settings to `.env.example`, including a
+localhost HTTPS callback example and a reminder to keep client/state secrets in
+SOPS. Compose checks confirm the default candidate omits OIDC, the OIDC overlay
+fails configuration when the issuer is missing, and explicit test settings
+reach the app environment. The profile planner now supports `--oidc` and rejects
+that option without `--proxy`, ensuring the secure-cookie path uses HTTPS.
+Config-only checks cover minimal, edge, standard, analytics, portability, and
+OIDC selections, including private ClickHouse, edge media/resource settings,
+and the explicit ARM64 guard. Eighteen Compose/planner checks pass; Ruff, Python
+compilation, and whitespace checks are clean. No real provider, credential,
+browser, or service was used; OIDC login/session and console acceptance remain
+open.
+
+
+## Batch 2 focused platform-integrity source run — 13 October 2026
+
+Ran the repository's eight focused platform-integrity suites: **279 passed**.
+The first host run exposed five Gateway mutation tests failing closed because
+the container-default audit-spool path was not writable by the host process.
+Added an autouse test fixture that gives each Gateway test a private journal in
+pytest's temporary directory; the complete suite then passed. Ruff is clean.
+No candidate or Docker service changed. This is source test evidence only;
+external delivery, provider state, physical failure, and broader runtime
+recovery remain open.
+
+
+## Current local architecture checks — 13 October 2026
+
+After the latest local commits, dependency groups align (12 groups, 32
+requirements), provider boundaries pass across 17 vendor import sites, and the
+Kernel release-input lock matches its sources. The release checker received no
+OCI archives, so this confirms source/config consistency only; it does not
+replace a CI run for the current branch head or ARM64 runtime acceptance.
+
+
+## Tenant ownership mapping — 13 October 2026
+
+The repository owner confirmed Kokonut Network as the exclusive owner of the
+two repository seed locations, Kokonut Adelphi and Kokonut Genesis. Source now
+adds ordered migration 387, a final idempotent pilot ownership seed after
+Genesis creation, and consistent assignments in the legacy organization seeds.
+The migration is limited to the two exact seed identities, accepts only the
+observed legacy Adelphi owner or an already-canonical assignment, and refuses
+other owners. It preserves the legacy Adelphi organization and non-owner
+relationship types, and it does not enable RLS or assign the unlocated report
+and dashboard rows. A network-disabled PostgreSQL 16 compatibility fixture
+passed archive-like and clean-bootstrap scenarios, migration/seed idempotency,
+legacy owner-link deactivation, and wrong-owner refusal with transaction
+rollback ([evidence](builds/2026-10-13-recovery/tenant-ownership-disposable-acceptance.json)). All 16 test functions in `tests/test_impact_network.py` were invoked directly and passed; pytest
+could not be installed because PyPI DNS/network access is unavailable. No local
+candidate or legacy database was changed, and the disposable container was
+removed. Unlocated lineage review, tenant-aware grants, transfer/sharing
+semantics, full ordered-migration replay, and RLS remained open at that
+checkpoint. GitHub confirmed CI run #291 and Security run #15 passed on remote
+PR #68 head `56a0105f700ad1137d3b5ee6accce59552ebee7e`; the local branch was 12
+commits ahead at that point, so those changes were not covered.
+
+
+## Archived report/dashboard tenant-lineage review — 13 October 2026
+
+Reviewed the unlocated dashboard definitions and report snapshots on the
+retained network-isolated archive clone in explicit read-only transactions.
+None of the 38 dashboard rows contains a known location ID/name reference in
+its stored query or metadata, and none of its owner fields equals the
+confirmed Kokonut Network tenant. The three draft reports are two DAO proposal
+history snapshots and one State of Kokonut snapshot; embedded location
+fields/lists do not match either known location, and narrative mentions do not
+prove a single-location owner. Stored
+queries and report payloads were not returned, and no data was changed. All 41
+records therefore remain unassigned; their lineage review is complete for this
+archive snapshot, while broader downstream lineage and report/dashboard
+capability selection remain open ([evidence](builds/2026-10-13-recovery/reporting-tenant-lineage-review.json)).
+The temporary network-disabled inspection container was stopped and removed;
+the review volume remains retained. CI run #291 is green on the earlier remote
+PR head; this local evidence and the current branch changes await the next
+batch push and CI run.
+
+
+## Tenant-aware operator grant source foundation — 13 October 2026
+
+Added ordered migration 388 with an explicit tenant-owner verification ledger
+for the two confirmed seed locations, OIDC operator organization memberships,
+revocable location shares, and an optional organization key on
+`operator_scope_grant`. The local operator CLI can provision tenant membership,
+create/revoke owner-authorized shares, issue tenant-qualified resource/action
+grants, and revoke dependent grants when membership or a share is withdrawn.
+Gateway scope checks and report, mobile-review, and farm-activity SQL queries
+now call one shared predicate that validates identity, membership, owner/share,
+location, resource, and action. Browser responses continue to receive only
+resource/action/location scopes.
+
+No operator tenant affiliations were inferred from legacy location grants;
+NULL-tenant grants remain compatible and prevent this slice from claiming full
+tenant isolation. Transfer controls, worker/database-role boundaries,
+transaction-local RLS context, CLI membership/share lifecycle, legacy-grant
+conversion, full migration replay, and candidate rollout remain open. Source
+syntax compilation, pilot seed shell syntax, Ruff 0.17.0 on the modified
+Gateway modules, and whitespace checks passed. No test suite, migration
+replay, database change, candidate rollout, or external push had occurred at
+the time of this source update; CI run #291 still covers only the earlier
+remote PR head. See [tenant boundary](mobile-tenant-isolation.md), [console
+contract](kernel-operations-console.md), [batch checklist](batches.md), and
+[`388_tenant_aware_operator_grants.sql`](../../schemas/postgres/388_tenant_aware_operator_grants.sql).
+
+### Downstream Field Collector source audit — 13 October 2026
+
+A source audit of repository-owned farm-activity consumers found that report,
+export, metric, analytics, trace, Gateway, hook, and seeded dashboard paths use
+the migration-386 eligibility predicate directly or through the shared
+`farm_activity_source_eligible_for_use` function. The audit found one exception:
+`services/analytics/process_interfaces.py` fetched a farm-activity timestamp by
+ID without checking current eligibility. That lookup now applies the shared
+predicate for farm activity. The source inventory is in
+[field-collector-downstream-source-audit.md](field-collector-downstream-source-audit.md).
+
+This closes only the repository-source audit. External or operator-edited
+dashboard SQL, populated output parity, and direct-database isolation remain
+open. At that point focused checks and migration 388–389 replay awaited
+verification authorization; the owner has since approved them. CI run 291 is
+green on the earlier PR head and does not cover this local batch.
+
+Migration 389 adds database-trigger checks for tenant-aware grants on Field
+Collector draft creation, content edits, and lifecycle events, using the
+shared predicate from migration 388. The checks retain NULL-tenant grant
+compatibility.
+
+### Migration 388–389 disposable acceptance — 13 October 2026
+
+Ran the actual migrations 387–389 in order against a network-disabled
+disposable PostgreSQL 16 container, then replayed 388–389 to check idempotency.
+The owner verification rows for Adelphi and Genesis were created as expected.
+Positive and negative grant cases covered owner access, partner access with
+and without a share, expiry/revocation, operator membership and identity state,
+organization status, grant revocation, unverified/stale ownership, and legacy
+NULL-tenant compatibility. Migration 389 accepted an authorized draft insert,
+edit, submit event, and draft-edited event, and denied each tested path when a
+required grant was missing. A legacy grant passed the trigger boundary, while
+non-target manual records were unaffected. The sanitized run record is
+[`tenant-grants-migrations-disposable.json`](builds/2026-10-13-recovery/tenant-grants-migrations-disposable.json).
+
+This is a minimum compatible schema check, not a full repository migration
+replay; it does not exercise the existing 384–385 triggers in combination with
+389. Operator-CLI membership/share lifecycle, legacy-grant conversion, full
+ordered replay, candidate rollout, transfer controls, worker/direct-database
+boundaries, transaction-local context, and RLS remain open. No candidate or
+legacy database was touched. CI run #291 covers the earlier remote PR head,
+not these local changes.
+
+### Migration 388–389 operator CLI acceptance — 13 October 2026
+
+Ran the migration and trigger acceptance plus the real
+`services.gateway.operator_cli` commands against a disposable PostgreSQL 16
+database. The CLI checks covered listing identities and grants, idempotent
+membership and share grants, refusing a role change until the old membership
+is revoked, requiring an owner tenant administrator to share a location,
+denying partner grants without a share, allowing them with a share, and
+revoking dependent grants when either the share or membership is revoked. A
+legacy NULL-tenant owner grant converted in place to the verified owner tenant
+and remained authorized. This run exposed and fixed positional row access in
+the CLI; its database adapter returns named mappings. Ruff 0.15.22 and Python
+syntax checks pass. Sanitized evidence is in
+[`tenant-grants-cli-disposable.json`](builds/2026-10-13-recovery/tenant-grants-cli-disposable.json).
+
+The CLI run used a minimum compatible schema on a disposable Docker bridge;
+the candidate and legacy databases were untouched, and its temporary database
+and network were removed. It did not itself exercise the full migration chain
+or migrations 384–385. A separate clean full-schema replay subsequently passed
+and is recorded below. Migration 388 has not been rolled out to the candidate.
+Transfer controls, operator affiliation reconciliation, transaction-local
+tenant context, direct-database isolation, and RLS remain open.
+
+### Tenant grants full ordered schema replay — 13 October 2026
+
+Closed the clean-bootstrap replay gate for the tenant-aware grant slice. All
+380 migration source files validated and applied in order to disposable
+PostGIS 16 with zero pending or failed. The catalog confirmed 11 registered
+activity/workflow triggers across migrations 384, 385, and 389. Candidate app
+and database health remained good; the candidate and legacy databases were not
+modified. The disposable database, internal network, and volume were removed.
+This did not include archived data or curated/pilot seeds, so populated replay
+and candidate rollout remain separate gates. Evidence:
+[`tenant-grants-full-schema-replay.json`](builds/2026-10-13-recovery/tenant-grants-full-schema-replay.json).
+
+Ruff 0.15.22 is available in `.venv`; `pip check` reports no broken
+requirements and the repository dependency-group alignment check passes.
+
+
+### Audited location tenant transfer source — 13 October 2026
+
+Added migration 390 and `services.gateway.operator_cli tenant-transfer` request,
+accept, and cancel commands. A current owner tenant administrator opens a
+referenced request; a separate enabled target-owner tenant administrator
+accepts it, while the original source administrator must remain active.
+Acceptance atomically changes the verified tenant and owned-primary
+relationships, retires the previous owner evidence, and revokes all location
+shares and grants (including legacy NULL-tenant grants); regranting requires a
+separate review. Pending transfers change no access and source admins may
+cancel them with a reason. Conflicted/unassigned ownership is rejected. The
+[transfer contract](tenant-owner-transfer-contract.md) records that this is a
+platform tenant assignment, not legal land-title evidence.
+
+Ruff and Python syntax checks pass for the changed CLI. At this source-only
+checkpoint, focused disposable PostgreSQL acceptance and candidate rollout were
+still pending; acceptance results are recorded in the following entry.
+
+### Migration 390 disposable transfer acceptance — 13 October 2026
+
+Ran the approved acceptance against PostgreSQL 16 using synthetic organizations,
+operators, grants, shares, locations, and a farm relationship. The actual
+ordered migrations 387–390 applied successfully. All ten checks passed:
+operator history listing; pending-request access preservation; self-approval
+and non-admin rejection; stale ownership snapshot rejection and cancellation;
+conflicting and unverified owner rejection; transaction rollback after an
+injected failure; transfer of the tenant and owned-primary farm relationship;
+revocation of owner, partner, and legacy NULL-tenant grants/shares; post-transfer
+access only after a separate tenant-qualified grant; immutable request history;
+and idempotent migration-390 replay.
+
+The PostgreSQL port was bound to loopback. Docker bridge egress was available,
+but the check made no external requests. The repository's encrypted secrets
+were not read; CLI source ran from a temporary copy with synthetic database
+credentials. The database container, named network, and temporary copy were
+removed. Neither the local candidate nor legacy database was accessed. This
+does not validate archive/pilot ownership mappings, legal title, RLS, worker
+isolation, or candidate rollout. Migration 390 remains source-only pending the
+separately gated candidate rollout. Evidence:
+[`tenant-owner-transfer-disposable.json`](builds/2026-10-13-recovery/tenant-owner-transfer-disposable.json).
+
+### Tenant transfer candidate rollout and context groundwork — 14 October 2026
+
+Ran the focused context unit suite (8 passed) and the expanded disposable
+PostgreSQL acceptance (14 checks passed). In addition to transfer request,
+approval, rollback, cancellation, revocation, and replay, the database run
+confirmed owner and explicitly shared tenant context, the unique-grant guard
+against ambiguous scope, denial and clearing for legacy NULL-tenant grants,
+and transaction-local reset after commit. The disposable container, network,
+and source copy were removed; the candidate and legacy database were not used
+by these acceptance checks. Evidence:
+[`tenant-owner-transfer-context-disposable.json`](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json).
+
+The separately approved candidate rollout took a fresh age-encrypted
+single-database checkpoint; age authentication, checksum, and PostgreSQL
+archive listing passed, but restore was not rehearsed. The ordered runner
+applied migrations 387–390 with zero failures. Candidate schema status is
+381/381 applied with zero pending; the full plan has 120 pending seed files and no recorded applied seeds, while
+five mobile-form rows and ten revisions already exist. Candidate `location`
+and transfer tables are empty, and the
+canonical Kokonut Network organization row exists. Only the app was rebuilt
+and recreated. It is healthy; `/health` returns 200 and anonymous farm
+activity/mobile review routes return 401. Database, Metabase, and proxy
+container IDs were preserved; rollback app tags and the encrypted checkpoint
+remain local. See
+[`candidate-tenant-transfer-rollout.json`](builds/2026-10-14-recovery/candidate-tenant-transfer-rollout.json).
+
+Added `services/common/tenant_context.py` as transaction-local groundwork. It
+clears prior transaction settings, derives tenant/location/actor from a single
+active tenant-qualified grant validated by the shared database predicate, and
+rejects missing or ambiguous scopes. Focused tests pass. The helper is not yet
+integrated into every Gateway or worker transaction; operator-affiliation
+reconciliation, direct-database isolation, worker scoping, downstream lineage,
+and RLS remain open. No seed data, populated archive, production data, or RLS
+policy was changed by the candidate rollout.
+
+### First Gateway tenant-context integration — 14 October 2026
+
+The report review queue and report detail reads now call
+`set_operator_tenant_context` inside the same read-only PostgreSQL transaction
+as their protected query. The context is derived from a tenant-qualified
+operator grant, current membership, and verified owner/share relationship;
+the query retains its existing location and grant predicates as defense in
+depth. A location-only legacy grant receives HTTP 403 on these two routes until
+its operator affiliation and tenant grant are explicitly provisioned. The
+expanded disposable PostgreSQL acceptance passed 17 checks; both focused HTTP
+denial tests passed. It confirmed actual owner and shared-partner queries,
+context-before-query on the same connection, legacy denial, and cleanup after
+success and denial. The full existing operator-auth file also reported three
+`Vary` header assertion failures in older cases (33 passed); these assertions
+are outside the report-review changes and remain to be reconciled. Evidence:
+[`tenant-owner-transfer-context-disposable.json`](builds/2026-10-14-recovery/tenant-owner-transfer-context-disposable.json).
+
+This integrates one bounded read surface only: other Gateway handlers and
+workers remain unintegrated, no RLS policy is enabled, and worker/direct-
+database isolation remains a gate.
+
+The Field Collector review queue and detail service functions now use the same
+helper in their read-only transactions; missing tenant-qualified scope maps to
+HTTP 403. The content-free disposition inventory validates its retention and
+review grants together and sets context only when both resolve to one tenant.
+Twenty-two synthetic disposable PostgreSQL checks and 31 focused context,
+mobile service, and route checks passed. Owner queue/shared detail queries set
+context on the same connection before protected reads, rollback clears context,
+legacy location-only grants are denied before collection data is queried, and
+individually valid grants from different tenants are rejected. Ruff and syntax
+checks pass. Candidate and legacy databases were untouched. Human
+retention/erasure disposition, other Gateway routes, workers, direct-database
+boundaries, and RLS remain open.
+
+The append-only reviewer-note write now applies the same pattern before its
+INSERT: `mobile_collection_review:review` and `mobile_collection_review:read_detail`
+must resolve to one verified tenant, and context is set on the connection that
+performs the write. A denied context returns HTTP 403 with no-store headers.
+Thirteen mobile-review service tests, eleven tenant-context tests, and three
+focused auth-route tests pass; Ruff is clean. The service check confirms
+context precedes the INSERT, while helper tests cover same-tenant acceptance,
+cross-tenant rejection, and transaction-local cleanup. Candidate and legacy
+databases were not accessed. Broader Gateway/worker integration, affiliation
+reconciliation, direct-database boundaries, and RLS remain open.
+
+Next, the Field Collector farm-activity intake and canonical activity
+list/detail reads, draft promotion, draft correction, and lifecycle transitions
+were updated to establish tenant context before protected queries and writes
+on the same connection. Multi-grant operations require all grants to resolve
+to one tenant, and the OIDC draft-promotion policy now lists both detail grants
+that its service already requires. Denial maps to HTTP 403. Ten workflow
+service tests, 31 lifecycle tests, and 26 focused auth-route tests pass,
+including all seven farm-activity route denial mappings. Two older CORS header
+assertions were corrected to issue the requests with the configured `Origin`;
+the focused route slice now passes. Ruff, Python syntax compilation, and diff
+checks pass, and no database was accessed.
+
+The OIDC operator paths for creating enrollments, revoking unused enrollment
+codes, and revoking active devices now set tenant context before their SQL
+write using `mobile_device:enroll` or `mobile_device:revoke`. The public
+API-key enrollment endpoint still uses its existing Gateway capability check
+and does not attempt OIDC tenant context. Ten focused operator-route checks
+and one public enrollment authorization check pass; Ruff and syntax checks
+pass. No database was accessed.
+
+The OIDC participant-link routes now live under `/operator/api/mobile/...`,
+inside the session cookie path. Creation and revocation validate the
+`mobile_participant:create` or `mobile_participant:revoke` grant, require CSRF,
+and set tenant context before the party lookup or link write on the same
+transaction. A context denial returns HTTP 403 before either query; both
+responses are no-store. The existing `/api/mobile/.../participants` endpoints
+remain on Gateway API-key/capability authorization. Five focused operator
+authorization and transaction tests pass, along with one API-key regression
+check confirming the original route still uses Gateway scope and skips OIDC
+context. The wider mobile review/API/operator-auth/context run passed 116 tests
+after isolating the mobile API test audit journal under pytest's private
+temporary directory. Ruff and Python syntax checks passed. Candidate and legacy
+databases were not accessed. Real OIDC/browser acceptance, other Gateway and
+worker routes, direct-database boundaries, and RLS remain open.
+
+### Field Collector owner-bound device access — 13 October 2026
+
+Following the repository owner's transfer policy decision, new device
+enrollments and registrations now store the location's verified organization
+owner in additive migration 391. No legacy owner is inferred or backfilled.
+Device-token form reads, upload policy and metadata writes, sync, and sync
+status use `set_mobile_device_tenant_context` in their protected database
+transaction. It validates the pinned owner against the active verified owner
+and holds row locks until transaction end, so a transfer cannot race past
+authorization. Stale enrollment codes and old-owner devices fail closed.
+
+The Field Collector detects the dedicated owner-change response, clears only
+the obsolete device token and cached forms, and marks existing encrypted queue
+items for owner review. Those payloads and photos remain in the local vault
+and are excluded from sync after a replacement device enrolls; newly captured
+records use the new device identity. Already-synced records are not rewritten.
+The ownership preflight requires the migration's two new tenant columns and
+reports unbound, active-token, pending-enrollment, and stale-owner counts.
+
+After the repository owner approved focused checks, 67 Python checks passed
+across tenant-context setup, mobile API authorization, registration, media
+cleanup, vault persistence, and preflight inventory. The two offline-shell Node
+checks passed. Ruff, Python syntax compilation, requirement-group alignment,
+provider-boundary checks, and `git diff --check` passed. A disposable PostgreSQL
+16 database applied migration 391 twice; legacy rows remained NULL, wrong-owner
+device and enrollment inserts were rejected, owner bindings were immutable,
+and the former owner's device stopped matching the protected-access predicate
+after transfer. A fresh owner-bound device insert succeeded. The disposable
+container was removed. No candidate or legacy database was accessed.
+
+At the time of this source-only acceptance, migration 391 had not yet been
+applied to the candidate. The separately approved rollout completed on 14
+October after an encrypted checkpoint; the additive columns remain, and any
+rollback to an owner-unaware app must keep mobile ingress disabled until a
+compatible owner-aware image is restored. Live-browser acceptance remains open
+([rollout evidence](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json)).
+
+### Pushed commit 258e46f platform-integrity verification — 13 October 2026
+
+Before the local owner-bound device slice, commit
+`258e46fa84e66e610f4d1f124a036e1443b7a2cf` was pushed to PR #68. The
+approved focused platform-integrity suite passed all 279 tests across
+migrations, Gateway auth, durable scheduler/event workers, credit custody, and
+advisory workflows. The reviewer-note slice passed 14 mobile-review service
+tests and three route authorization tests; tenant-scope denial rolls back and
+closes the write transaction before any INSERT. Ruff and `git diff --check`
+passed for that slice. No candidate or legacy database was used.
+
+The latest observed GitHub Actions state on pushed commit
+`79757675b2b562019e57209ef17138ab80f45fcd` is CI run #296 in progress and
+Security run #20 passed. This is a point-in-time check; the local preflight
+batch described below is not part of that run.
+At that pushed revision, OIDC operator APIs set tenant context in their
+service transactions, while device-token APIs lacked owner binding. The
+repository owner has since approved the re-enrollment rule, and its local
+implementation is documented above. The Directus runtime parity gate remains
+partial: the archived schema lacks the legacy `directus_users.location_id`
+field referenced by its policies.
+
+### Aggregate operator grant preflight — 13 October 2026
+
+Extended the read-only tenant preflight with database-wide operator identity
+and active organization-membership totals, plus per-location counts for active
+legacy and tenant-qualified grants. Tenant-qualified grant counts are split by
+the same `operator_scope_grant_allows` predicate used by authorization, so the
+preflight distinguishes currently accepted grants from stale or mismatched
+ones. It returns aggregate counts only, with no operator identity claims,
+contact fields, or raw operator, organization, and location IDs.
+
+Five focused Python checks passed, along with Ruff, syntax compilation, and
+`git diff --check`. A schema-targeted disposable PostgreSQL 16 database applied
+the actual migrations 388 and 391. Synthetic owner and shared-partner grants,
+an unaffiliated operator, a disabled operator, and a legacy grant produced the
+expected per-location and global counts. Identifier-leak checks passed, and
+post-run cleanup queries found zero synthetic rows across grants, shares,
+memberships, owner records, locations, organizations, and identities. The
+disposable database was removed. Candidate and legacy databases were not
+accessed.
+
+This preflight sizes remaining operator-mapping work but does not identify the
+real organization for any operator, convert legacy grants, backfill tenant
+data, or enable RLS. Worker coverage, direct-database isolation, populated
+archive acceptance against the expanded schema, and RLS remain open. See the
+[sanitized acceptance record](builds/2026-10-13-recovery/tenant-preflight-operator-access-disposable.json).
+
+### Phase 8 current-head security and required-check audit — 14 October 2026
+
+On pushed commit `cf3acab7e9a6ee011f28694e755fe1ca1b671a3d`, Security run #21
+failed because full-history Gitleaks 8.30.1 classified two 64-character
+SHA-256 source digests in the sanitized disposable preflight evidence as
+generic API keys. Review found only source fingerprints, not deployment
+credentials. The existing rule-specific allowlist now includes only that exact
+evidence path and SHA-256 line shape. The official Darwin x64 archive checksum
+matched, and the pinned local full-history command scanned 869 commits (about
+74.31 MB) with no leaks.
+
+The allowlist repair and exact context audit were pushed as
+`cfe65140b17dc66314fb6875fa8439a12220da88`. Security run [#22](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514023)
+passed; CI [#298](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38504514028)
+is in progress. CI #297 was cancelled when the newer commit was pushed. Active
+ruleset `18234835` now requires `CI / ci` and `Security / gitleaks`; GitHub API
+verification confirms its review, CODEOWNERS, strict up-to-date, linear-history,
+deletion, force-push, and bypass settings remain. The active version-tag
+ruleset `18234836` is unchanged. The older 279-test platform-integrity run and
+the current in-progress CI run do not yet certify the current source head.
+
+
+### Candidate migration 391 rollout — 14 October 2026
+
+After explicit approval, I created a fresh age-encrypted checkpoint for the
+local candidate database. Age authentication and `pg_restore --list` passed.
+The checkpoint was then restored into a fresh isolated `template0` database;
+all 381 pre-391 migration fingerprints, extension versions, and selected
+aggregate counts matched the candidate. The ordered runner applied only
+`schema:391_mobile_device_tenant_binding.sql` with zero failures. The candidate
+now has 382 applied schema migrations and no pending schemas; all 121 seed files
+remain pending. No seeds were applied.
+
+Only the candidate app was rebuilt and recreated. Its source manifest contains
+1,315 files with digest
+`ccc9b2c264601986b7478f78510a1490b12aa472d5caa86431335dd7b5711932`; app,
+database, and Metabase are healthy, and the proxy remains running. `/health`
+returned 200; anonymous farm-activity and mobile-review routes returned 401.
+Post-rollout queries found no location, tenant-transfer, device, or enrollment
+rows. The two tenant columns are present and RLS remains disabled. The legacy
+stack and seed state were untouched. The previous app image and encrypted
+checkpoint remain available; an owner-unaware app rollback requires mobile
+ingress to stay disabled. Evidence:
+[`candidate-mobile-tenant-binding-rollout.json`](builds/2026-10-14-recovery/candidate-mobile-tenant-binding-rollout.json).
+
+The local candidate rollout and isolated PostgreSQL restore rehearsal are
+complete for schema and anonymous-route checks. Live-browser re-enrollment,
+populated ownership/transfer behavior, human retention/erasure disposition,
+RLS, the remaining curated-seed candidate rollout, and media/role/external-provider recovery
+remain open. The approved eight-suite platform-integrity suite passed all 279
+tests locally on pushed commit `33dcc55ca5e5a2079f8fa6bd554a3ac85fe80118`.
+The seed replay/bootstrap evidence is pushed at
+`8aa33e24f169f15afb249a53ae3d281ed8d843a2`. CI run [#304](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715581)
+is queued behind still-running run [#303](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38510013935); Security run [#28](https://github.com/wasalo/Kokonut-Intelligence/actions/runs/38511715446)
+passed. The current local documentation update is not part of those checks.
+
+### Isolated Field Collector browser offline acceptance — 14 October 2026
+
+Ran the current candidate Field Collector shell in Google Chrome 155 using a
+fresh temporary browser context. After the service worker cached the shell, the
+browser switched to Playwright network-offline mode (`navigator.onLine=false`),
+reopened the page from cache, unlocked a synthetic encrypted vault, and saved a
+non-sensitive synthetic field note. The IndexedDB envelope retained ciphertext
+and did not contain the note text. On reconnect, a mocked first sync returned
+503 and the queue remained; a mocked retry returned 200 and removed the accepted
+item. Every `/api/mobile/*` request was intercepted, so this is client/offline
+queue acceptance, not live Gateway, enrollment, consent, or database
+acceptance. The existing user vault, candidate database, and legacy stack were
+not touched. See
+[browser evidence](builds/2026-10-14-recovery/field-collector-browser-offline-client.json).
+
+### Candidate seed discovery and ledger preflight — 14 October 2026
+
+Migration discovery previously skipped `schemas/seeds/064-068_impact_network.sql`
+because its range prefix was not all digits. The runner now accepts numeric
+range prefixes for seed files while retaining numeric-only schema versions; the
+focused migration suite passes 23 tests and source validation now covers 503
+files. The candidate's read-only plan reports 382 schemas applied, zero pending
+schemas, 121 pending seed files, and zero recorded applied seeds. No seed SQL
+was run. Read-only inventory also confirmed five active mobile forms and ten
+form revisions, while `seed:140_mobile_forms.sql` has no ledger row. The curated
+path in `scripts/seed.sh` currently sends seed SQL through `psql_exec` without
+recording ledger state. Exact row-to-source parity remains unverified, so no
+existing seed is adopted and no seed is applied; `064-068` is particularly
+sensitive because it contains pilot upserts and updates the seeded Adelphi
+location owner. See
+[preflight evidence](builds/2026-10-14-recovery/candidate-seed-ledger-reconciliation-preflight.json).
+
+### Curated seed ledger tracking — 14 October 2026
+
+The migration CLI now accepts an explicit repeated `--only-migration` list,
+validates each ID against the discovered sources, rejects duplicates and
+unknown IDs before applying anything, and preserves the supplied order. The
+curated `seed.sh` path now sends its existing reference-seed list through that
+transactional checksum-tracked runner; reference-only mode still omits the
+mobile-form seed. A pending 140_mobile_forms.sql accepts only empty state or
+a full match against the current source columns and active revision snapshots;
+it checks before a selected batch and again under table locks in the seed
+transaction. A read-only comparison found all five active 1.2.0 forms and their
+active revisions match all 20 seed columns; five retired 1.1.0 revisions are
+preserved. After a fresh encrypted checkpoint and the guarded source-derived
+parity check, the candidate applied only `seed:140_mobile_forms.sql` as a
+verified no-op for form data. Its ledger now records one applied seed; 120
+other seeds remain pending. The before/after form and revision fingerprints
+match, and the candidate app, database, Metabase, and proxy remain healthy.
+Focused migration/upgrade suites passed 44 tests; Ruff, shell syntax, migration
+source validation for 503 files, and diff checks passed. See
+[reconciliation evidence](builds/2026-10-14-recovery/candidate-mobile-form-seed-ledger-reconciliation.json).
+
+### Curated seed target inventory — 14 October 2026
+
+A read-only transaction inventoried all 52 relations referenced by the curated
+seed SQL in the candidate. Every relation exists; 50 are empty. The two
+non-empty targets are the five mobile forms already tracked by the guarded seed
+reconciliation and 63 existing `service_registry` rows. The four service keys
+that seed 091 would add are absent. No curated SQL ran and no container was
+recreated. This closes the candidate's row-count inventory, not clean-bootstrap
+or fresh-database bootstrap acceptance; 120 seed sources stay pending while
+that review continues. See
+[candidate inventory evidence](builds/2026-10-14-recovery/candidate-curated-seed-target-inventory.json).
+
+### Curated seed disposable replay — 14 October 2026
+
+Restored the encrypted pre-reconciliation candidate checkpoint into a new
+`template0` database in a database-only disposable Compose project. Age
+plaintext streamed directly to `pg_restore`. The ordered runner applied all 31
+curated seeds with zero failures; a second invocation reported all migrations
+already applied. The scratch ledger retained 382 applied schemas and 31 applied
+seeds, and representative table counts reflected the expected additions. The
+scratch volume was removed after capture. The live candidate remained healthy,
+with 382 applied schemas, one applied seed, 120 pending seed sources, 5 forms,
+63 service-catalog rows, and protected-route 401. This confirms ordered replay against the candidate snapshot. The legacy stack
+was not accessed ([replay evidence](builds/2026-10-14-recovery/curated-seed-disposable-replay.json)).
+
+### Fresh curated-seed bootstrap — 14 October 2026
+
+A separate empty database created from `template0` applied all 382 ordered
+schema migrations through 391 and all 31 curated seed migrations with zero
+failures. The ledger contained 382 applied schemas and 31 applied seeds, with
+no non-applied rows. The representative results were 33 business capabilities,
+38 dashboard datasets, 67 service catalog rows, and five current mobile forms
+with five active revisions. The disposable database and volume were removed.
+The live candidate stayed at 382 schemas, one applied seed, 120 pending seed
+sources, and retained health 200/protected route 401. This closes clean-schema
+bootstrap acceptance for the current curated list; applying the 30 missing
+curated seeds to the candidate remains a separately gated rollout. The fresh
+age-encrypted PostgreSQL checkpoint was restored transactionally into an
+isolated `template0` database; migration and extension fingerprints and
+selected form/service row counts matched, and its scratch project and volume
+were removed. The exact 30-seed scope, 90 deferred sources, candidate
+baseline, and rollback path are recorded. No seed SQL has run on the candidate
+during this preflight ([bootstrap evidence](builds/2026-10-14-recovery/fresh-curated-seed-bootstrap.json); [rollout preflight](builds/2026-10-14-recovery/candidate-curated-seed-rollout-preflight.json)).
+
+### Tenant/RLS call-site audit — 14 October 2026
+
+A source-only audit mapped device-token lookup, one-time enrollment redemption,
+tenant-scoped device queries, OIDC and API-key operator mutations, the legacy
+transport CLI, preflight inventory, Directus, and legacy mobile views. It found
+pre-context bearer-credential lookups plus capability/API-key mutation routes
+without operator tenant context; the legacy CLI also has unscoped queue/list/
+sync commands. The audit records the closure sequence and role boundary before
+RLS. No RLS was enabled and no database state changed
+([audit](mobile-tenant-rls-callsite-audit.md)).
+
+### Legacy mobile registration guard — 14 October 2026
+
+Disabled direct device creation in the older `services.analytics.mobile_offline`
+CLI, which did not require the location owner's single-use enrollment. The
+guard rejects before database writes and points operators to the governed
+enrollment and registration endpoints. Sixteen focused offline tests and 50
+mobile API/form-validation tests passed; Ruff and Python syntax checks are
+clean. Legacy queue/sync admission remains transport-only and requires separate
+assessment. MAN-CAP-053 remains partial.
+
+### Retired unscoped mobile CLI — 14 October 2026
+
+The source audit found that the remaining legacy device inventory, collection
+queue/pending read, sync, conflict-resolution, and global status helpers had no
+authenticated tenant identity and no in-repository runtime callers. All those
+helpers and the historic CLI commands now fail before database access. The
+consent-aware Field Collector retains enrollment, collection, and sync. A
+focused suite checks every helper plus each CLI command and confirms no database
+connection is opened. Operator device inventory and global queue statistics
+remain an explicit scoped-console gap; worker and other CLI review remains
+open. This is a source boundary, not a candidate rollout or MAN-CAP acceptance.
+
+### Gateway mobile-device mutation tenant context — 14 October 2026
+
+Gateway middleware now places its authenticated resource/action/location
+decision on an internal request-state marker. Enrollment, enrollment revoke,
+and device revoke require the exact `mobile_device` route marker and establish
+transaction-local current-owner context before their writes. The context query
+share-locks the active location, owner verification, and organization so a
+transfer serializes with each mutation. OIDC continues to use the
+tenant-qualified operator-grant helper. A denied or stale scope rolls back
+before mutation.
+
+The context value is application-verified scope, not a database-verifiable
+Gateway credential. PostgreSQL custom settings remain forgeable by a role with
+arbitrary SQL; RLS is still disabled pending the database-role/function
+boundary, pre-context device/enrollment credential paths, legacy CLI, workers,
+and Directus/view review. Focused tenant-context, mobile API, and operator-auth
+checks passed 126 tests; Ruff and Python compilation passed. No database or
+container was accessed ([evidence](builds/2026-10-14-recovery/gateway-mobile-tenant-context.json)).
+
+### Mobile credential lookup boundary — 14 October 2026
+
+Added migration 392 to move mobile device-token lookup and one-time enrollment
+redemption behind `kokonut_security` functions owned by a dedicated
+`NOLOGIN`, `NOBYPASSRLS` role. Token resolution accepts only the presented
+SHA-256 token hash and returns minimal device identity plus whether the current
+owner binding still matches. Redemption locks the unused enrollment and
+current owner, registers one device, and consumes the code in one transaction.
+The role has no direct application login; column-level `UPDATE(id)` grants
+exist only to allow PostgreSQL row locks on owner records, and do not grant
+updates to their business state. The migration also replaces migration 391's
+trigger body with a fixed search path and qualified public relations so the
+trigger remains valid inside restricted credential functions.
+
+The network-disabled PostgreSQL 16 acceptance applied migrations 391 and 392,
+replayed 392, and passed constrained-role direct-table denial, token current,
+legacy, and unknown outcomes, device conflict, one-time success/reuse, expiry,
+owner transfer, concurrent redemption (one device and one code consumption),
+and credential-owner attribute checks. The focused mobile API and tenant suite
+passed 56 tests; Ruff, Python compilation, and whitespace
+checks passed. The disposable container and synthetic rows were removed.
+Candidate and legacy databases were untouched; the candidate remains at
+migration 391 and RLS remains disabled. Migration 392 needs its separately
+gated candidate checkpoint/rollout; legacy CLI, workers, Directus/views, final
+app-role boundaries, and forced-RLS acceptance remain open. See the
+[call-site audit](mobile-tenant-rls-callsite-audit.md) and
+[disposable evidence](builds/2026-10-14-recovery/mobile-credential-functions-disposable.json).
+
+### Signed mobile tenant context — 14 October 2026
+
+Migration 393 adds a dedicated `NOLOGIN`, `NOBYPASSRLS` context-function role,
+a private random HMAC key, and database functions that validate the presented
+device-token hash/current owner and sign the resulting context for the current
+PostgreSQL backend and transaction. `current_tenant_context()` accepts only a
+valid signature for that backend/transaction. The application role cannot read
+the signing key. Dormant SELECT/UPDATE policies and key-column-only update
+privileges let the restricted credential/context functions lock current-owner
+rows under forced RLS; the migrations do not enable RLS on application tables.
+
+The network-disabled PostgreSQL 16 acceptance applied migration 391, applied
+and replayed 392–393, and forced RLS only in the disposable database. It passed
+valid mobile context, cross-tenant filtering, caller-GUC and payload/signature
+tampering denial, invalid-token clearing, context reset at transaction end,
+private-key and direct-table denial, single-use enrollment, owner transfer,
+and concurrent redemption. The test also confirmed both definer roles are
+non-login, non-bypass, without role memberships, and that application-table RLS
+remains disabled after migration replay. The disposable container and all
+synthetic rows were removed. Seventy-six focused tests passed; Ruff, Python
+compilation, and ordered migration validation (505 files) passed. Evidence is
+at `docs/refactor/builds/2026-10-14-recovery/mobile-tenant-context-proof-disposable.json`.
+
+The test uncovered PostgreSQL's requirement for an UPDATE policy on rows read
+with `FOR SHARE` under forced RLS. Migration 393 now adds matching dormant
+policies for the narrowly scoped no-login roles while preserving column-level
+update grants. The disposable runner's readiness probe also waits for a stable
+postmaster start time so it cannot mistake the temporary initdb server for the
+final PostgreSQL process.
+
+Migrations 392–393 were not applied to the candidate or legacy database. The
+candidate remains at migration 391, and application-table RLS stays disabled.
+The OFU-18 checkpoint, ordered rollout, candidate-app rebuild, and protected
+route verification remain separately gated. Operator/Gateway signed context,
+legacy CLI reads/sync, worker and Directus/view boundaries, and broader tenant
+RLS remain open. At that point, CI #306 and Security #30 had passed on pushed head
+`333507e844cd3937761087f1e7e03f895c509250`; they did not cover that local
+migration-393 batch. The current PR-head checks are summarized at the top of
+this ledger.
+
+### Signed OIDC operator tenant context — 14 October 2026
+
+Migration 394 adds a dedicated `NOLOGIN`, `NOBYPASSRLS` operator-context
+definer role. The Gateway binds the SHA-256 hash of its authenticated opaque
+OIDC session to request-local context, then each protected transaction passes
+that proof to PostgreSQL. The function checks the active, unexpired,
+nonrevoked session and enabled operator; current location; tenant-qualified
+resource/action grants; active organization membership; current verified
+location owner or unexpired explicit share; and that all additional scopes
+resolve to the same organization. It share-locks the validated rows and signs
+the resulting tenant/location/operator tuple for the current backend and
+transaction. The shared `current_tenant_context()` accessor now accepts only
+valid signatures for `mobile_device` and `operator` actors. Middleware resets
+the request-local session proof after the response.
+
+Disposable PostgreSQL 16 acceptance applied migration 394 twice, forced RLS
+only on the synthetic source/probe tables, and verified owner and shared
+tenant visibility; cross-tenant multi-scope, legacy NULL-tenant grant,
+disabled identity, revoked/expired session, unknown token, and expired/revoked
+share denial; forged diagnostic GUC and modified HMAC-payload rejection;
+denial cleanup; grant-revocation blocking while a signed transaction holds its
+scope; transaction-end cleanup; and private signing-key denial. The focused
+tenant-context and OIDC operator-auth suites passed 20 tests (one skipped);
+Ruff and Python compilation passed. Evidence is at
+`docs/refactor/builds/2026-10-14-recovery/operator-tenant-context-disposable.json`.
+
+This does not enable RLS or establish the final runtime database boundary.
+Migration 395 below removes direct runtime session-table access. The runtime
+role retains broad DML on other public tables, including mobile device-token
+and enrollment-code hashes. Migration 396 later adds signed Gateway credential
+context for tenant-bound mobile-device writes; worker/legacy CLI integration
+and Directus/view access remain explicit RLS prerequisites. The candidate
+remains at migration 391 under OFU-18; no candidate or legacy database was
+touched.
+
+### Operator-session runtime-role boundary — 14 October 2026
+
+Migration 395 adds a dedicated `NOLOGIN`, `NOBYPASSRLS` function owner with
+limited identity/session-table and column privileges. It exposes three
+`SECURITY DEFINER` session functions, with explicit execute grants to the
+separate operator-auth login: create a session for an existing enabled OIDC
+identity, authenticate and touch an active session, and revoke a session. The
+ordinary app runtime role has no session table or column privileges and cannot
+execute those functions. OIDC session operations now use an independent
+database connection configured with
+`KOKONUT_OPERATOR_AUTH_USER` and `KOKONUT_OPERATOR_AUTH_PASSWORD`; scope reads
+and application queries remain on the app role. The two service passwords
+must be distinct.
+
+The disposable PostgreSQL 16 check applied migration 395 twice, enabled and
+forced RLS on the synthetic identity/session tables, provisioned both roles
+through `provision_runtime_role()`, and verified direct session SELECT/INSERT/
+UPDATE/DELETE and function execution fail for the app role. The auth role had
+no direct table access, but its three functions successfully authenticated,
+created, and revoked synthetic sessions under forced RLS; revoked sessions
+failed immediately. Evidence is at
+`docs/refactor/builds/2026-10-14-recovery/operator-session-role-disposable.json`.
+The focused Gateway/session and tenant-context tests passed 83 cases; Ruff and
+Python compilation passed.
+
+The bootstrap now requires migrations 395 and 396 plus a separate generated auth
+credential. The repeatable synthetic/populated runtime-role fixtures and OIDC
+Compose configuration are updated. Mobile device/enrollment credential reads
+are now denied by the bootstrap's explicit column grants; this is not candidate
+rollout or complete RLS readiness. Runtime DML remains broad on other public
+tables. Migration 396 now covers Gateway credential tenant context for
+tenant-bound mobile-device writes; other Gateway routes, workers, legacy CLI,
+and Directus/view boundaries remain open. Candidate and legacy databases were
+untouched.
+### Runtime mobile credential column boundary — 14 October 2026
+
+The ordinary Kernel runtime bootstrap no longer leaves table-wide privileges
+on `mobile_device` and `mobile_device_enrollment`. Explicit column grants keep
+the current API SQL operations for non-secret reads, enrollment issue/revoke,
+device status/token revocation, and last-sync/last-seen updates. Direct reads of
+`device_token_hash`, `push_token`, and `code_hash` are denied, including
+`SELECT *` and predicates; device insertion, table-wide writes/deletes, and
+enrollment hash edits are denied. Future unknown columns remain ungranted until
+the allowlist is updated. The tenant preflight now reports active unbound
+devices without querying token hashes.
+
+The disposable PostgreSQL 16 check replayed migrations 391–396, provisioned
+the runtime and operator-auth roles twice through the current bootstrap, forced
+RLS on the operator identity/session fixture, and verified session functions
+plus the mobile column grants. The actual runtime login resolved an owner-bound
+device token and redeemed a single-use enrollment through the bounded
+PostgreSQL functions. Representative handler SQL for safe reads, last-seen
+updates, enrollment issue/revoke, and device revocation succeeded; direct
+credential reads and unauthorized table operations failed. The focused mobile,
+auth, and migration regression set passed 148 tests; Ruff passed, and all 507
+migration sources validated.
+Machine evidence is
+[runtime-mobile-credential-role-disposable.json](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
+
+This does not run every HTTP handler through the dedicated runtime login or
+close runtime DML on other public tables. Worker, legacy CLI, Directus/view,
+ownership, and final RLS gates remain open. No candidate or legacy database was
+changed; migrations 392–397 remain under separately gated candidate rollout
+OFU-18. Migration 397 has since passed isolated PostgreSQL acceptance against
+a synthetic schema fixture; full-bootstrap validation remains open.
+
+### Gateway credential tenant context — 14 October 2026
+
+Migration 396 adds `kokonut_security.set_gateway_tenant_context`, which
+revalidates the authenticated API-key or capability-token hash inside the
+protected database transaction. It requires an active, unexpired credential,
+an exact resource/action/location grant, and the location's current verified
+owner. Wildcard and location-free scopes fail closed. Credential, location,
+owner, and organization rows are locked through transaction end; PostgreSQL
+signs the context for the current backend and transaction. A duplicate API-key
+hash is prevented by the unique API-key index; the migration fails atomically
+if historic duplicates require cleanup. Capability usage limits retain the
+existing unlimited meaning for zero and allow the last authorized use after
+Gateway authentication has incremented the counter.
+
+The general runtime role now has only reviewed read columns on `api_key` for
+existing gRPC authentication, with all API-key table and column writes denied.
+The migration's function owner is `NOLOGIN`/`NOBYPASSRLS`, receives only
+credential/owner reads and lock privileges, and establishes context without
+enabling application-table RLS. Existing environment keys used for tenant-
+bound mobile writes need matching reviewed database hash/scope records.
+
+Focused Gateway, mobile, context, and runtime-role source checks passed 98
+tests; Ruff and the migration source validator passed (508 files). The
+network-disabled PostgreSQL 16 fixture replayed migration 396, forced RLS on
+synthetic probes, and passed eleven checks covering API keys, capabilities,
+exact scope, stale credentials, duplicate-key rejection, context tampering,
+capability final-use/over-limit behavior, zero-use-limit semantics, and
+transaction cleanup. A second disposable
+role-bootstrap check replayed migrations 391–396 and passed 13 checks,
+including signed Gateway
+context under the runtime login and denial of API-key writes. The runner now
+waits through PostgreSQL's temporary initdb server before issuing fixture SQL.
+Evidence is at
+[`gateway-tenant-context-disposable.json`](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)
+and
+[`runtime-mobile-credential-role-disposable.json`](builds/2026-10-14-recovery/runtime-mobile-credential-role-disposable.json).
+
+The contract covers only tenant-bound mobile-device writes. Other Gateway
+routes, shared-organization API-key affiliation, production credential
+provisioning, workers, legacy CLI, Directus/view boundaries, broad runtime
+grants, and application RLS remain open. Candidate and legacy databases were
+not touched; candidate rollout remains gated under OFU-18.
+
+### Phase 8 ARM64 code-only QEMU runtime acceptance — 14 October 2026
+
+The repository owner has no Raspberry Pi available and asked that this target
+be assessed with code tests. Both the minimal Kernel app and pinned PostGIS
+image were built and inspected as `linux/arm64`. The private assessment database
+ran PostgreSQL 16.15 with PostGIS 3.6.4; all 386 ordered schema migrations
+applied with zero failures and the follow-up plan reported zero pending. A
+transactional PostGIS raster pixel query returned the expected value, then
+rolled back the optional extension installation.
+
+The app passed its HTTP healthcheck. A 4.9 MB custom-format backup restored to
+a second database; source and restore matched all 386 migration checksums and
+1,010 public tables, and the Kernel schema-readiness command reported no missing
+or drifted objects. The database returned healthy after an orderly restart and
+retained all migration records. The app returned healthy after simulated
+SIGKILL/container loss followed by Compose start. Both services had no host
+ports. Container limits were 1.5 GiB and two CPUs for PostgreSQL, plus 1 GiB and
+two CPUs for the app; observed memory stayed below 402 MiB per service in the
+captured migration/startup samples.
+
+The assessment used Docker Buildx/QEMU, not Raspberry Pi hardware. QEMU build
+and migration timings are not hardware benchmarks; physical thermal, storage,
+power-loss, network, and sustained-load behavior remain unverified. An initial
+Compose build showed that runtime `platform` alone did not consistently select
+the app build architecture. The portability manifest now passes the selected
+platform through `build.platforms` as well, and its focused Compose contract
+check passed. Full evidence, image IDs, limits, and restoration fingerprints:
+[arm64-qemu-runtime-acceptance.json](builds/2026-10-14-recovery/arm64-qemu-runtime-acceptance.json).
+
+### Phase 7 persistent native public API SDK parity — 14 October 2026
+
+Added durable offline contract tests for both native public API clients. The
+Python and TypeScript suites each exercise location list/detail, metric summary,
+published CRISP assessment, and location summary through injected fake
+transports. They assert the shared operation paths, strict escaping of special
+path characters, `Accept` and API-key headers, representative typed payloads,
+and matching HTTP, invalid-JSON, and invalid-envelope errors. No live Gateway
+request is made.
+
+The focused Python suite passed **6 tests**; the focused Vitest suite passed
+**6 tests**; the JavaScript SDK TypeScript build and Ruff passed. The tests add
+regression protection for client behavior only: live Gateway route/auth,
+tenant-scope, Directus, and broader SDK parity remain open. Capability statuses
+and MAN-CAP acceptance counts do not change. See the [machine record](builds/2026-10-14-recovery/sdk-public-api-parity.json).
+
+#### Response-shape parity follow-up — 16 October 2026
+
+Both clients now enforce the top-level response shape for each operation:
+location-list data must be an array, while location detail, metrics, CRISP,
+and summary data must be objects. Wrong-shape payloads raise the same
+`Invalid public API response envelope` error instead of leaking language-specific
+iteration/type failures or silently returning a value with the wrong type. Two
+focused regressions pass in each language; the full JavaScript SDK suite passes
+11 tests and TypeScript compilation, Python Ruff, and Python compilation pass.
+Fake transports make zero network calls. This does not add live Gateway,
+authorization, tenant-scope, Directus, or release acceptance.
+
+### Gateway Data Stream write tenant boundary — 14 October 2026
+
+The protected `POST /api/data-stream/post` route previously called the core
+service without its required database connection. It now delegates to a
+Gateway command that opens one managed transaction, revalidates the exact
+credential scope and current owner in PostgreSQL, sets signed tenant context,
+and inserts the draft on the same connection. The database-derived actor UUID
+is used for `created_by`; any client-supplied actor is ignored. The route keeps
+the `post_id` response and draft lifecycle, returns 403 on database scope
+denial, and rejects malformed or mismatched location scope before DB access.
+
+Focused Gateway auth/route, new command, tenant-context, and DB-adapter tests:
+**55 passed**; Ruff passed. The migration-396 disposable PostgreSQL 16 fixture
+was extended with a forced-RLS Data Stream write probe. It replayed migration
+396 and passed 13 checks, including the owner/location/actor-matched insert,
+cross-location write denial, denial cleanup before a follow-up write, and
+transaction cleanup. Docker networking was disabled. Candidate and legacy
+databases were untouched; application RLS remains disabled. See
+[`gateway-tenant-context-disposable.json`](builds/2026-10-14-recovery/gateway-tenant-context-disposable.json)
+and [`gateway-tenant-context-contract.md`](gateway-tenant-context-contract.md).
+
+This closes only the Data Stream create path. Search, file/proof operations,
+other Gateway handlers, shared-organization API-key affiliation, production
+credential provisioning, worker/Directus boundaries, broad runtime grants,
+and application RLS remain open.
+
+### Event-driven cache invalidation scope — 14 October 2026
+
+The cache event handlers previously passed `location_id=None` to the cache
+backend when a malformed event omitted its location. Since `None` means
+all-location invalidation, one malformed message could invalidate cache rows
+across every farm. All four cache invalidation handlers now parse and
+canonicalize a UUID before constructing the provider; absent, NULL, or malformed
+scope raises a bounded handler error before any invalidation. The event bus
+retains its existing retry/dead-letter behavior.
+
+Focused cache, architecture, and durable event-delivery suites: **59 passed**;
+Ruff, Python syntax, and `git diff --check` passed. This closes only the broad
+cache side effect. It does not add worker-specific DB credentials or signed
+tenant context, and application RLS remains disabled.
+
+### Scheduler and event-worker tenant boundary trace — 14 October 2026
+
+The scheduler and event handler allowlists limit which modules/functions are
+eligible for dispatch, but they are not database authorization boundaries.
+The standard worker, scheduler subprocesses, and spawned event handlers inherit
+the same `PG_USER`/password; the default is `kokonut` unless a runtime-role
+override is configured. No worker-specific PostgreSQL principal or signed
+worker tenant-context setter appears in these execution paths. The anomaly
+handler performs tenant data work; the notification handler writes global
+outbox state; cache handlers use the selected cache provider.
+
+I left grants and RLS unchanged because assigning one location to cross-farm
+jobs would be unsafe. The next code-only step is a transitive per-entrypoint
+query/table/effect and idempotency map, followed by a non-forgeable system
+worker identity and narrow grants. Active schedule ownership and production
+identity semantics remain owner inputs. The source trace is in
+[`mobile-tenant-rls-callsite-audit.md`](mobile-tenant-rls-callsite-audit.md).
+
+### Saved dashboard SQL reader boundary — 14 October 2026
+
+The optional `dashboard_dataset.query_sql` worker no longer executes saved SQL
+on the application connection. It opens a separate analytics login, verifies
+the live identity and grants, and accepts only SELECT access to the three
+reviewed `kokonut_reporting` views. The reader transaction is read-only, has
+bounded statement and lock timeouts, returns only a row count, and rejects
+stale metadata writes if the saved query changed while running. The feature
+gate remains off by default. Compose passes the optional credentials only to
+the worker that runs refreshes.
+
+A synthetic PostgreSQL 16 fixture passed: app-role metadata update without
+report-view access; view-only reader verification; private base-table and
+data-changing CTE denials; and unchanged fixture rows. Focused reader/refresh/
+feature tests passed (30), Compose profile checks passed (15), and Ruff,
+Python compilation, and `git diff --check` passed. The fixture container was
+removed, and candidate/legacy databases were untouched. This closes the
+first-party runner's query-execution boundary only; external dashboard roles,
+retained report ownership, and tenant-scoped parity remain open. Evidence:
+[`saved-reporting-reader-disposable.json`](builds/2026-10-14-recovery/saved-reporting-reader-disposable.json).
+
+### Worker entrypoint and effect inventory — 14 October 2026
+
+Added a machine-readable source map for all 12 scheduler modules and all five
+allowlisted event-handler pairs. It records code-visible read/write objects,
+scope, external effects, and idempotency/retry limits, and it flags the shared
+runtime database identity and absent signed worker tenant context. The new test
+requires exact parity with both executable allowlists and verifies source
+references. It does not claim a complete transitive call graph or authorize
+worker grants/RLS: existing enabled-task reconciliation, imported
+calculator/provider paths, external schedule ownership, and populated-data
+replay remain open. The historical sensor, climate, and cleanup schedule-seed
+arguments are called out; the seed remains excluded from normal bootstrap. The focused inventory,
+allowlist, scheduler durability and event durability suites pass 32 tests;
+Ruff, format, JSON, syntax and diff checks pass. Evidence:
+[`worker-operation-map-check.json`](builds/2026-10-14-recovery/worker-operation-map-check.json).
+See
+[`worker-operation-map.md`](worker-operation-map.md) and
+[`worker-operation-map.json`](worker-operation-map.json).
+
+### Scheduled command argument contracts — 14 October 2026
+
+Added static per-module operation schemas for all 12 scheduler-allowlisted
+modules. Schedule graph activation/preflight, `run-now`, the reviewed job-plan
+builder, and runtime process dispatch now validate JSON token arrays, option
+values, required arguments, and option relationships. Invalid commands are
+rejected before subprocess creation and do not receive a retry deadline.
+Human metric verification, event dead-letter actions, unbounded event workers,
+retention-sensitive event cleanup, and recurring sensor ingestion without an
+input-source contract are rejected. Existing active task rows are not rewritten
+automatically, and their external schedule ownership still needs reconciliation.
+Focused contracts, scheduler, map, allowlist, and event tests pass (77), with
+Ruff, format, compilation, and diff checks passing. Evidence:
+[`scheduled-command-contract-check.json`](builds/2026-10-14-recovery/scheduled-command-contract-check.json).
+
+### Optional gRPC disabled-provider import boundary — 14 October 2026
+
+Added focused checks for the provider-off behavior of the gRPC adapter. Both
+server startup and health checks return the explicit `gRPC provider disabled`
+error before importing optional transport packages or the gRPC server module.
+The two tests pass with Ruff and formatting checks. This verifies the disabled
+provider boundary only; enabled transport/auth parity, streaming, TLS, and
+runtime acceptance remain open. No database or Docker service was used. See
+[`grpc-disabled-provider-import-boundary.json`](builds/2026-10-14-recovery/grpc-disabled-provider-import-boundary.json).
+
+### gRPC protobuf handler and scope inventory — 14 October 2026
+
+Added a source contract test that compares both application-service protobufs
+to their Python handlers and pins all **55 RPC methods** to reviewed scope
+policies. Each protected handler must declare exactly one expected
+resource/action check before acquiring a database connection. The sole public
+method, `ComputeContentHash`, must remain database-free. The focused AST test
+passes; Ruff, format, and diff checks pass. This does not establish live API-key
+authentication, tenant isolation, transport/streaming behavior, TLS, or native
+Gateway parity. See
+[`grpc-rpc-policy-inventory.json`](builds/2026-10-14-recovery/grpc-rpc-policy-inventory.json).
+
+### gRPC streaming authentication context lifecycle — 14 October 2026
+
+The auth interceptor previously held its `ContextVar` identity while a response
+generator was suspended at `yield`, leaking the current caller identity to the
+surrounding worker context. The wrapper now binds identity while constructing
+and advancing the response iterator, resets it before each response returns to
+gRPC, and closes a canceled iterator with identity bound while guaranteeing
+cleanup afterward. This applies to unary-stream and bidirectional-stream
+handlers; unary and client-streaming-unary behavior remains covered too.
+
+The five new lifecycle tests and existing `tests/test_grpc.py` suite pass (**33
+total**), including identity visibility inside handlers, reset between yielded
+responses, cancellation cleanup, and exception cleanup. Ruff, format, Python
+compilation, and `git diff --check` pass. No RPC listener or database was used.
+Live network transport, tenant isolation, and native Gateway policy parity
+remain open. See
+[`grpc-auth-context-lifecycle.json`](builds/2026-10-14-recovery/grpc-auth-context-lifecycle.json).
+
+### Enabled gRPC loopback transport and protobuf message mapping — 14 October 2026
+
+Extracted optional server construction into `_build_server` so the production
+registrations can be exercised without starting the production listener. An
+ephemeral loopback test generates the repository protos in a temporary
+directory, starts the configured health, Ecocredit, and Data services, and
+calls generated Data and Ecocredit stubs over gRPC. Health remains API-key exempt; missing
+keys return `UNAUTHENTICATED`; a read key cannot call a write method and is
+rejected before service database acquisition; a matching write scope succeeds;
+an Ecocredit read scope returns a nested generated class summary; all
+authentication and service connections are released.
+
+The loopback acceptance exposed that service methods constructed messages from
+the wrong generated modules: service request/response messages live in
+`service_pb2`, while shared domain messages live in `types_pb2`. Both servicers
+now use the correct modules, and a source check verifies every referenced
+generated message across all handlers. The focused gRPC set passes **37 tests**;
+Ruff, Python compilation, and SDK protobuf freshness checks with the pinned
+code-generator environment pass. No candidate/legacy database or Docker
+service was used. TLS, real DB behavior, tenant context, and REST parity remain
+open ([evidence](builds/2026-10-14-recovery/grpc-enabled-loopback-transport.json)).
+
+### Provider-aware encrypted database checkpoints — 14 October 2026
+
+`backup.sh` now follows `KOKONUT_FEATURE_CLICKHOUSE`: a disabled ClickHouse
+profile produces a PostgreSQL-only encrypted checkpoint without requiring a
+ClickHouse password or service. When ClickHouse is enabled, both required
+services are checked before any checkpoint artifact is created. The manifest
+records PostgreSQL database names and ClickHouse inclusion/database; the
+verifier requires the on-disk archive set to match its checksummed inventory.
+
+`restore.sh` restores only providers declared in the checkpoint. It verifies
+the complete manifest and checks required services before any database writes;
+`--preflight` exposes that read-only check, and `rollback.sh` runs it before
+stopping application services. Legacy manifests without provider metadata
+retain the prior ClickHouse behavior when their inventory contains the schema
+archive.
+
+Six fake-Compose provider tests and the existing upgrade/backup suite pass (**19
+tests**). They cover PostgreSQL-only backup, preflight and restore without
+ClickHouse; enabled ClickHouse backup/restore; and fail-fast behavior when an
+included ClickHouse service is absent. Shell syntax and `git diff --check`
+pass. No Docker service or database was used. Private media, external object
+stores, and provider-managed state remain separate recovery scopes. See
+[`provider-aware-backup-restore.json`](builds/2026-10-14-recovery/provider-aware-backup-restore.json).
+
+### Tenant database-readiness preflight extension — 14 October 2026
+
+Extended `python3 -m services.cli mobile-tenant-preflight` with aggregate-only
+database readiness indicators. When the migration ledger has the required
+columns, it compares local schema sources with applied ledger checksums and
+reports source, pending, drifted, and unmatched-applied counts only. It reports
+the current database role's elevated attributes, public relation/RLS counts,
+and relations where its DML privileges could bypass an RLS boundary. Enabled
+scheduled commands are checked against the shared module/argument contracts;
+the result reports accepted, rejected, explicitly known unbounded-scope counts,
+plus the number that lack signed tenant context. It states that a dedicated
+read-only preflight role is required before running after RLS is enabled. Task
+names, command arguments, role names, migration IDs, checksums, ownership IDs,
+and credential fields are not returned.
+
+Four new focused source checks and six existing tenant-preflight checks passed
+(10 total), with Ruff and formatting clean. Then a repeatable acceptance ran
+the real preflight queries against PostgreSQL 16 using synthetic fixtures on an
+internal Docker network with egress blocked and no published ports. It detected
+the expected migration matched/pending/drift/removed-source counts, elevated
+privilege flags, DML access to RLS-disabled and non-forced-RLS relations, and
+scheduler contract/unbounded-scope counts. The output omitted fixture names,
+arguments, role names, migration IDs, and checksums. The disposable database
+and network were removed. No candidate or legacy database was queried and no
+migration was applied. The CLI still connects with its configured identity; a
+dedicated read-only preflight role and authorization to run it after RLS remain
+open. These indicators do not establish worker isolation or settle tenant
+ownership. See the [sanitized source check](builds/2026-10-14-recovery/tenant-database-readiness-check.json), [PostgreSQL acceptance](builds/2026-10-14-recovery/tenant-database-readiness-postgres.json), and [repeatable runner](../../scripts/check-tenant-preflight-disposable.py).
+
+### Runtime-role future-object defaults — 14 October 2026
+
+The opt-in `provision_runtime_role()` path previously granted default DML and
+sequence privileges to the runtime role for future public objects. It now
+revokes both global and `public`-schema defaults for the configured migration
+owner and verifies that no direct runtime default ACL remains. Existing public
+tables retain the current grants and the reviewed mobile, API-key, and
+operator-session exceptions.
+
+The 391–396 disposable PostgreSQL 16 role acceptance passed its existing
+session, mobile credential, Gateway context, and allowed-table checks. A
+synthetic table and `BIGSERIAL` sequence created by the migration owner after
+role provisioning were denied to the runtime login for SELECT/INSERT/UPDATE/
+DELETE and sequence use. The fixture uses an isolated bridge with outbound NAT
+disabled and cleaned its container/network; no candidate or legacy database
+was accessed and no new migration was needed. Broad grants on existing public
+tables, grants for worker-specific roles, and candidate rollout remain open.
+See [acceptance evidence](builds/2026-10-14-recovery/runtime-role-default-privileges-disposable.json).
+
+### Bounded Field Collector device revocation and migration 398–399 rollout — 14 October 2026
+
+Device revocation now calls `kokonut_security.revoke_mobile_device`, a fixed
+SECURITY DEFINER function owned by a NOLOGIN/NOBYPASSRLS role. It revalidates
+the active API-key/capability or OIDC session grant for exact resource, action,
+tenant, and location scope in the same transaction, then changes only one
+active matching device and clears its token hash. The ordinary runtime role has
+only telemetry-column UPDATE access on `mobile_device`. Runtime-role bootstrap
+also removes inherited PUBLIC execute access from private auth/context/device
+functions, verifies their final ACLs, and grants `USAGE` on
+`kokonut_security`; migration 399 repairs that narrow schema grant when the
+runtime role already exists after DB-only restore.
+
+The exact encrypted pre-398 candidate checkpoint restored into PostgreSQL 16
+without a plaintext dump file. Ordered migrations 398–399 applied and replayed;
+the runtime role was provisioned in the disposable clone. Forced-RLS checks
+passed owner API-key, capability and operator revocation, cross-tenant hiding,
+wrong-action/location denial, direct credential-column denial, token clearing,
+and transaction context reset. The focused suite passed 155 tests, all 511
+migration sources validated, and Ruff passed.
+
+At that rollout, migrations 398–399 were on the local candidate, which had
+390 applied schemas through 399, one seed ledger entry, zero unapplied schema rows, zero
+RLS-enabled application tables, healthy app/database/Metabase services, health
+200, and anonymous device-revoke 401. Only the app was rebuilt. The candidate
+still connects as the `kokonut` superuser because runtime credentials are not
+provisioned; authenticated HTTP through the dedicated runtime login is the next
+human-input gate. The migration replay and candidate record are retained in
+[`candidate-migration-398-399-device-revocation.json`](builds/2026-10-14-recovery/candidate-migration-398-399-device-revocation.json).
+No Raspberry Pi hardware was available; this batch makes no physical-device
+claim.
+
+### Migration 400 database-only restore owner repair — 14 October 2026
+
+Migration 400 restores the six restricted NOLOGIN function-owner roles, the
+reviewed relation/column/function grants, SECURITY DEFINER ownership, and
+operator-auth/runtime access to `kokonut_security` after a database-only
+restore. `scripts/kernel-restore-role-prerequisites.sql` creates and validates
+the policy-referenced role names before `pg_restore`; the runtime bootstrap now
+fails closed if any protected function has an unexpected or elevated owner.
+
+The encrypted pre-400 candidate checkpoint is retained for rollback. A restored
+pre-398 clone replayed migrations 398–400, but at rollout time the role
+bootstrap did not complete on that populated clone because host-side Docker
+port access failed. A separate private-network synthetic owner/ACL-loss fixture
+passed bootstrap, forced-RLS bounded device revocation, and operator
+authentication without direct session/identity table reads. The later exact
+pre-400 restore and populated-clone bootstrap are recorded below. The migration
+rollout evidence remains a historical snapshot
+([migration 400 evidence](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json)).
+
+At the migration-400 rollout checkpoint, the candidate had 391 schema migrations through 400,
+zero pending/drift, one seed ledger entry, 120 seed sources pending, RLS still
+disabled, health 200, and anonymous protected device revocation 401. The later
+current state is recorded in the 15 October reference-seed and retention rollout evidence. The app
+was not recreated for this schema-only change; legacy services and Metabase
+were not altered. The candidate still uses the `kokonut` superuser until
+separate runtime credentials are provisioned. Focused checks passed 153 tests,
+512 migration sources, Ruff, and `git diff --check`. Raspberry Pi acceptance
+remains code-only.
+
+### Exact pre-400 candidate database restore and role bootstrap — 14 October 2026
+
+The exact age-encrypted pre-400 checkpoint was authenticated and restored
+without writing a plaintext archive into a new internal-only PostgreSQL 16.4 /
+PostGIS 3.4 `template0` clone. Ordered planning found only migration 400
+pending; it applied with zero failures and a second plan reported zero pending.
+The restored-copy role bootstrap passed twice with random synthetic
+credentials. Native DML/sequence access, PostGIS and the public-location
+projection passed; privileged DDL/role/database actions, mobile credential
+column reads, and connections to unrelated databases were denied. The archive
+had 1,010 public tables but zero public location rows; farm-data parity remains
+unproven. Both non-superuser logins had `BYPASSRLS` and inheritance disabled,
+and the synthetic probe table was removed. The container is stopped with its volume retained;
+the candidate remained healthy and unchanged. The first restore attempt raced
+the PostGIS image's initialization restart and rolled back transactionally;
+the successful retry waited for the database healthcheck. Full evidence is in
+[`candidate-pre400-restore-runtime-role-acceptance.json`](builds/2026-10-14-recovery/candidate-pre400-restore-runtime-role-acceptance.json).
+This does not provision credentials on the candidate, enable application RLS,
+or complete Directus/API runtime parity.
+
+### Directus parity fixture preflight guard — 14 October 2026
+
+The isolated Directus probe now blocks before creating synthetic users or
+farm-activity rows if `directus_users.location_id` is missing. That field is
+required by the configured `$CURRENT_USER.location_id` permission filters.
+Three source checks and one fake-schema execution passed, with Ruff and Python
+compilation. This does not choose a Directus identity/grant design or establish live API, field,
+write, hook, or schedule parity; that gate remains open
+([evidence](builds/2026-10-14-recovery/directus-schema-preflight-guard.json)).
+
+### Event cleanup preserves undisposed dead letters — 14 October 2026
+
+EventBus cleanup now validates that `days` is a positive integer and excludes
+an old `platform_event` row while an associated `event_dead_letter` has pending
+disposition. This keeps operator replay possible and avoids leaving a pending
+dead-letter record without its source event. The focused EventBus durability
+suite passes 15 tests; Ruff and `git diff --check` pass. This is source/unit
+evidence only; notification/attempt/operator-audit retention periods and live
+database cleanup acceptance remain open. No candidate or legacy database was
+accessed. [Evidence](builds/2026-10-14-recovery/event-cleanup-pending-disposition.json).
+
+### Location-scoped Field Collector operator inventory — 14 October 2026
+
+Added `GET /operator/api/mobile/locations/{location_id}/inventory`, protected
+by same-location `mobile_device:read` and `mobile_collection_review:read`
+grants. The single read-only query establishes signed operator tenant context,
+rechecks both grants, and returns bounded device identifiers/status/times
+plus aggregate queue counts. It omits device/push tokens, collection payloads,
+participant IDs, and media references. The console renders the overview only
+for locations with both grants and uses text nodes for returned values. The
+four focused operator service, auth, exact-policy, and console suites pass 83
+tests; Ruff, Python compilation, inline JavaScript syntax, and whitespace
+checks pass. No database was accessed. Live OIDC, database-role, populated
+tenant and browser acceptance remain open. [Evidence](builds/2026-10-14-recovery/mobile-operations-inventory-route.json).
+
+### Operator inventory ignores stale location responses — 15 October 2026
+
+The Field Collector operations panel now assigns each inventory request a
+monotonic version and ignores results/errors from earlier requests after the
+operator changes locations. A source-contract assertion pins the guard. The
+83-test focused route/service/auth/console set, Ruff, Python compilation,
+inline JavaScript syntax, and `git diff --check` pass. This source check does
+not simulate delayed requests in a real browser. [Evidence](builds/2026-10-15-recovery/operator-inventory-stale-response-guard.json).
+
+### Fake-provider operator OIDC route contract — 15 October 2026
+
+Added six focused checks for login state handoff, callback rejection of missing
+or unprovisioned identities, opaque session/CSRF cookie issuance, no-store
+active-scope response, CSRF-gated logout/revocation, and actual-adapter rejection
+of invalid issuer/subject claims before opening the auth database connection.
+The fake provider made no network or database calls. A seventh no-network check
+now pins the actual adapter's discovery URL, requested OIDC scopes, and S256
+PKCE configuration. The combined focused operator/mobile/event set passes 105
+tests, and Ruff passes. Authlib protocol execution, PKCE/token verification,
+provider credentials, valid identity/session SQL, and browser acceptance remain
+open. [Evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json).
+
+### Owner decisions and safe reference-seed scope — 15 October 2026
+
+The owner selected self-hosted ZITADEL, reference catalogs only with pilot rows
+held, and the United States plus Dominican Republic as retention jurisdictions.
+The identity hostname, live issuer/client details, test identities, secret
+provisioning, and exact record-category retention periods remain open. Kokonut's
+Gateway sessions and organization/location grants remain the authorization
+authority; no ZITADEL service or credentials were configured.
+
+Added `scripts/seed.sh --catalog-only`, a separate seed-only path that skips
+schema, ClickHouse, and Directus setup and selects five explicit, checksummed
+catalog migrations: expense categories, metric definitions, metric governance
+metadata, flow metrics, and carbon reference factors/benchmarks/protocols. The
+legacy `--reference-only` behavior remains unchanged and still applies the full
+curated seed list. The exact five-file scope and 25 held curated files are
+recorded in [reference-seed-scope.md](reference-seed-scope.md). At this implementation checkpoint, this changed only the selection
+mechanism; no candidate seed SQL had run yet. The later fresh checkpoint,
+restore rehearsal, and separately approved candidate rollout are documented
+in the following 15 October recovery entries.
+
+No test suite was added or run for this batch. `git diff --check` passed.
+Candidate databases, the legacy stack, R2, and GitHub were not changed.
+
+### Scheduler worker discards broken database connections — 15 October 2026
+
+The scheduler previously held one PostgreSQL connection for its full process
+lifetime. A broken connection could then fail again in the error handler's
+`rollback()` and prevent the worker from reconnecting. Each tick now opens a
+fresh connection with a bounded five-second connect timeout, retains the same
+worker identity across ticks, and discards the connection after success or
+failure. Two fault-injection tests verify recovery on a later tick after a
+connection or tick error; the scheduler durability suite also passes (10
+focused tests total), and Ruff is clean. A loopback-only disposable PostgreSQL
+stop/start check confirms that the worker process survives the outage and
+connects successfully after restart. The test stubbed scheduler task execution;
+actual task SQL, lease recovery, provider delivery, and long-duration outage
+acceptance remain open. The candidate and legacy databases were not accessed.
+[Unit evidence](builds/2026-10-15-recovery/scheduler-worker-connection-recovery.json); [runtime evidence](builds/2026-10-15-recovery/scheduler-worker-reconnect-disposable.json).
+
+### Event worker discards broken database sessions — 15 October 2026
+
+The EventBus worker previously reused one bus for its full process lifetime and
+let database errors escape its polling loop. It now creates and closes an
+EventBus each iteration, obtains notification connections inside that same
+iteration with a five-second connect timeout, logs failures, and retries after the configured poll interval. Three
+new fault-injection tests cover event-store failure, notification connection
+failure, and invalid poll intervals; a lazy-connection regression pins the
+timeout. With EventBus durability coverage, 20 focused tests pass. Ruff and
+Python compilation pass. No live event database,
+handler, or notification provider was accessed, so process-level event lease
+and delivery recovery remain open. [Evidence](builds/2026-10-15-recovery/event-worker-connection-recovery.json).
+
+### KGP indexer reconnects between durable scan cycles — 15 October 2026
+
+The continuous KGP indexer now creates a fresh PostgreSQL connection with a
+five-second connect timeout for each scan/lease cycle, closes it after each
+cycle, and keeps retrying when a database outage also prevents rollback or
+failure-state persistence. The durable lease remains the recovery boundary; a
+lost worker can be reclaimed after expiry. Two focused fault-injection tests
+cover reconnection and invalid poll intervals. The KGP worker/service/reorg set
+passes 14 tests, and Ruff and Python compilation pass. No live RPC or database
+was used; real lease reclaim and provider outage acceptance remain open.
+[Evidence](builds/2026-10-15-recovery/kgp-worker-connection-recovery.json).
+
+### Directus grants replace stale user-level location filters — 15 October 2026
+
+Directus staff permission filters referenced a `directus_users.location_id`
+column that is absent from the archive. The seed now removes only that stale
+predicate and its matching create validation while preserving other business
+filters; an unexpected old filter shape stops the seed. The grant hook now
+covers all 11 collections from the prior row-scope repair, including
+`revenue_event`. The isolated API fixture now creates a synthetic operator,
+organization membership, and one-location grants rather than inventing a
+user-level location field. Five focused Python checks, 61 extension tests, the
+TypeScript build, Ruff and compilation pass. A network-disabled PostgreSQL 16
+check confirmed filter preservation, replay idempotency, and fail-closed
+handling. The pinned Directus 12.1.1 API check confirms the loaded hook allows
+an own-location Field Note read and hides a cross-location Field Note. Its
+Field Worker `farm_activity` permissions remain hidden because the unlicensed
+API filters stored custom permission rules; own and cross requests both return
+403. No permissions were broadened. Licensed Directus versus Gateway-only
+operational access, field/relation parity, mutations, and schedules remain
+open. Synthetic rows and identities were cleaned; candidate and legacy
+databases were untouched.
+[Evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json).
+
+### Worker transitive-effect source index — 15 October 2026
+
+Added a deterministic source inventory over the current worker function graph.
+It records 40 unique high-confidence candidate calls across HTTP, email delivery,
+process lifecycle, EVM RPC/client setup, filesystem, and dynamic import
+boundaries, without argument values or payloads (45 operation/site
+memberships). The graph follows the EventBus's one statically named process
+callback edge, and the callback trace maps `_handler_process` through
+validation, dynamic import, and five allowlisted handlers; runtime dispatch
+configuration remains unverified. The reachable actuation helper records an
+approval-gated command and does not publish MQTT. Regenerated the
+stale dependency chain: 18 operation roots now reach 367 function memberships
+through 503 direct-call edges and one callback edge; the worker SQL inventory has 244 sites (208
+literal and 36 composed/variable), and 34 sites have no static function match.
+The four additional SQL sites are event-retention policy/hold queries. The inventory is
+deliberately an audit index: the graph includes mutually exclusive CLI
+branches, so it surfaces on-chain calls outside the scheduled credit
+adjustment contract; callbacks and provider internals can also be missed.
+Updated the worker operation map, tenant/RLS call-site audit, checklist, and
+capability-matrix notes. This advances source review only; persisted schedule
+reconciliation, provider effect review, worker identity/context, runtime grants,
+and RLS remain open. No candidate or legacy database was accessed, and no
+tests or candidate rollout were run.
+([inventory](worker-effect-inventory.json); [generator](../../scripts/worker_effect_inventory.py)).
+
+### Initial shared JobSpec default contract inventory — 15 October 2026
+
+Added a source-only comparison for all 15 entries in `services.core.jobs.JOBS`.
+At initial inventory, eleven default command lines passed Kernel module
+allowlisting and argument validation; the sensor and climate defaults failed
+for missing source/location inputs, and projection plus remote sensing were
+outside the allowlist. The later bounded projection contract is recorded in
+[the follow-up](#optional-clickhouse-projection-jobspec-contract-15-october-2026).
+The inventory stores only argument counts and generic rejection reasons. It
+does not query task rows, Prefect, databases, or providers, and does not enable
+or change a schedule. Sensor input and remote-sensing operation/tenant
+boundaries remain open.
+([inventory](worker-job-contract-inventory.json); [generator](../../scripts/worker_job_contract_inventory.py)).
+
+### Five-reference-catalog checkpoint and restore preflight — 15 October 2026
+
+Created a fresh age-encrypted checkpoint of the healthy local candidate at
+migration 400 for the owner-selected five reference catalogs. The 5,724,326
+byte archive is `backups/kernel-candidate-pre-five-reference-seeds-20261015T211905Z/postgres.dump.age`
+with SHA-256
+`56a08bdf48bce987deffc9a2075e7a4393246d02bfa12bc5f6897d8910e740f1`. Its
+manifest now records successful restore rehearsal. The archive is scoped to
+the `kokonut_intelligence` database; it excludes global roles, grants, other
+databases, external media and provider state, and this local copy is not an
+independent off-device backup.
+
+Age decryption streamed directly into a transactional `pg_restore` in a fresh
+internal-only PostgreSQL 16.4 `template0` database using the exact source image.
+The first attempt correctly rolled back when an RLS policy referenced a global
+role absent from the database-only archive. Applying
+`scripts/kernel-restore-role-prerequisites.sql` to the scratch cluster resolved
+the dependency; the retry passed. The candidate and restored archive match on
+391 applied schema migrations through migration 400, one existing seed
+(`seed:140_mobile_forms.sql`), zero non-applied ledger rows, migration and
+extension fingerprints, 1,010 public tables, all five empty catalog targets,
+five active forms, ten form revisions and 63 service-catalog rows. The
+temporary restore container/network were removed; its volume is retained. No
+candidate seed SQL ran at the time of this preflight; after separate owner
+approval the exact five-file allowlist was applied as documented in the
+[candidate rollout evidence](builds/2026-10-15-recovery/candidate-reference-catalog-seed-rollout.json). The preflight did not modify the candidate, legacy stack, or R2.
+
+Updated [the recovery runbook](recovery-preparation.md) with the missing
+cluster-role prerequisite and linked the current evidence from the seed scope,
+checklist, capability matrix, and owner follow-up. This improves the DB-only
+restore procedure; it does not establish role/grant parity, external backup
+availability, or candidate seed rollout.
+([checkpoint and restore evidence](builds/2026-10-15-recovery/candidate-reference-seed-checkpoint-preflight.json)).
+
+### Operator report-review tenant-context source checks — 15 October 2026
+
+Added direct service regressions for the OIDC report-review queue and detail
+readers. Five focused tests verify that tenant context is established on the
+same connection before each scoped `SELECT`, SQL keeps location-qualified
+grant rechecks, denied legacy/unqualified context runs no report query, and
+denial or an oversized detail rolls back and closes the connection. Ruff,
+Python compilation, `git diff --check`, and the capability-matrix validator
+pass; the matrix still has 66 rows (55 baseline-retained, 7 deployed, 4
+prepared), with MAN-CAP acceptance separately gated. Connections were
+synthetic, so signed PostgreSQL context behavior, live OIDC, populated report
+parity, runtime roles, and application RLS remain open. No candidate or legacy
+database was accessed
+([source evidence](builds/2026-10-15-recovery/operator-report-review-tenant-context-source.json)).
+
+### Report generator source inventory — 15 October 2026
+
+Added an AST-only registry walk that maps each of the 94 report keys to its
+defining callable, file/line, and declared inputs across 15 source modules.
+All signatures name `location_id`; 93 name a period boundary. The inventory
+does not claim those parameters constrain every query, and it does not inspect
+semantic outputs. Two focused tests cover full registry/source resolution and
+deterministic output/staleness detection; Ruff, Python compilation, artifact
+freshness, and matrix validation pass. The implementation avoids importing
+service modules, so SOPS configuration is not loaded. No reports or stored SQL
+were executed, and no database/provider was accessed
+([inventory](report-generator-source-inventory.json); [evidence](builds/2026-10-15-recovery/report-generator-source-inventory.json)).
+
+### Report query-scope source scan — 15 October 2026
+
+Added a conservative AST-only inventory for the direct database calls inside
+the 94 registered report generators. It records 177 `execute`/`query` sites;
+126 contain a bound location predicate, a bound `location.id` lookup, or a
+recognized indirect location key. The recognizer now includes attestation rows
+with `subject_type='location'` and bound `subject_id`, fixing a false negative
+in the farm-summary query. Thirty-four report functions show this signal on
+all direct queries, 3 add it conditionally across 5 query sites when a location
+is supplied, 16 mix signal and no-scope queries, 13 show no bound location scope
+in their direct SQL, and 28 have no direct query in the registered function.
+Twelve queries allow null-location records. All direct query strings resolved
+under the scanner's supported literal, f-string, string-join, and augmented-
+string patterns. These are review categories, not vulnerability or isolation
+findings: global reference data, network-level reports, conditional paths, and
+helper calls need their intended audience and scope checked. All query text is
+omitted; relation names and source lines are retained. Seven query-scope tests
+and two report-source inventory tests pass with Ruff and generated-inventory
+checks. No service module, database,
+stored SQL, provider, or secret was accessed. The report-owner and populated-output gates stay open ([inventory](report-generator-query-scope-inventory.json);
+[evidence](builds/2026-10-15-recovery/report-generator-query-scope-inventory.json)).
+
+### Retention mutation audit-input validation — 16 October 2026
+
+Applied one validator to retention policy creation, approval, retirement, and
+legal-hold placement/release. Actor identifiers are normalized and capped at
+the persisted 200-character limit; reasons must be nonblank strings. Invalid
+values fail before the database cursor is opened. The focused data-governance
+suite passes 52 tests and 49 subtests; Ruff, Python compilation, and
+`git diff --check` pass. This is input-shape validation only: actor values are
+not authenticated, periods remain unconfigured, and no policy or hold data
+was changed. No candidate/legacy database, provider, or Docker resource was
+accessed ([evidence](builds/2026-10-16-recovery/retention-audit-input-validation.json)).
+
+### Current-source ARM64 QEMU image smoke — 16 October 2026
+
+Built the default Kernel image for `linux/arm64` from the current pushed
+revision using the configured Buildx/QEMU builder. The exported image reports
+ARM64 and the configured non-root `appuser`; runtime CLI help and image
+manifest generation passed with networking disabled. Temporary image and
+archives were removed, and no Compose service was changed. This satisfies a
+current-source software build/import check only; Raspberry Pi hardware,
+database-backed startup, external ingress, and power-loss checks remain open
+([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
+
+The optional Kokonut OIDC image was then built separately for ARM64. Its
+Authlib, cryptography, and itsdangerous dependencies resolved, and a
+network-disabled QEMU container passed runtime CLI help and OIDC image-manifest
+generation. The temporary image and archive were removed. This verifies the
+Kernel OIDC application target only; ZITADEL image manifests and full login
+acceptance remain open ([evidence](builds/2026-10-16-recovery/kernel-arm64-oidc-smoke.json)).
+
+### Self-hosted ZITADEL ARM64 profile selection — 16 October 2026
+
+Read-only registry inspection verified the digest-pinned ZITADEL API, Login,
+identity PostgreSQL, and Caddy defaults all provide ARM64 manifests. The
+identity PostgreSQL default is now digest-pinned; dedicated Compose overlays
+force ARM64 for the proxy and all three provider services. The planner permits
+verified proxy/OIDC/ZITADEL combinations on ARM64 while keeping unverified
+optional services and analytics blocked. A merged standard+ZITADEL config
+check confirms `app`, database, worker, proxy, and the three identity services
+resolve to ARM64 using process-only placeholders. Twenty-two profile and
+Compose tests, Ruff,
+compilation, and diff validation pass. No provider container or credential was
+used; hostname selection, live login, browser flow, and real resource behavior
+remain open ([evidence](builds/2026-10-16-recovery/zitadel-arm64-profile.json);
+[deployment plan](zitadel-provider.md)).
+
+### Scheduler worker PostgreSQL reconnect — 16 October 2026
+
+The current-source scheduler worker completed a tick against a loopback-only
+disposable PostgreSQL instance, remained alive while the database container was
+stopped, then reconnected and completed another tick after restart. The
+scheduler engine was stubbed, so this verifies process and connection recovery
+only; lease/task recovery, provider delivery, scale, and long-duration behavior
+remain open. The no-volume disposable container was removed; the candidate and
+legacy databases were not involved ([evidence](builds/2026-10-16-recovery/scheduler-worker-postgres-reconnect.json)).
+
+### Runtime SQL and worker source inventory refresh — 16 October 2026
+
+Regenerated the direct-SQL inventory and verified its freshness. It now records
+3,799 execution sites across 807 service files, including 257 worker-linked
+sites and 1,034 regex-derived relation candidates. Worker source closure,
+function reachability, SQL reachability, boundary preflight, worker SQL
+inventory, and runtime SQL inventory checks all pass. This is static review
+evidence; it does not prove authorization, role isolation, tenant context, or
+RLS safety ([inventory evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh.json)).
+
+### ARM64 gRPC and MQTT profile checks — 16 October 2026
+
+Buildx built the optional gRPC and MQTT subscriber targets for ARM64. Their
+network-disabled QEMU checks passed CLI help, gRPC generated-stub imports, and
+the Paho MQTT import; the pinned Mosquitto ARM64 broker binary reported
+`aarch64`. The planner now selects explicit ARM64 overlays for each transport,
+and merged Compose checks resolve every service to `linux/arm64`. Twenty-five
+focused planner/Compose checks, Ruff, compilation, and matrix validation pass.
+No gRPC/PostgreSQL server, MQTT traffic, credentials, or mTLS session was
+exercised; this is not Raspberry Pi hardware acceptance ([evidence](builds/2026-10-16-recovery/kernel-arm64-transport-smokes.json)).
+
+### ARM64 analytics, Directus, and HTTP sensor profile checks — 16 October 2026
+
+Expanded the Kernel profile planner with dedicated ARM64 overlays for the HTTP
+sensor receiver, Directus service/bootstrap images, and ClickHouse analytics,
+including analytics with a separate worker. The ClickHouse-enabled application
+image built from the current worktree under QEMU, runs as `appuser`, imports
+`clickhouse-connect 1.10.0` with networking disabled, and starts the runtime
+CLI. The digest-pinned ClickHouse server reports 25.8.28.1 in a one-shot
+network-disabled container. The pinned Directus image's Node runtime reports
+`arm64` and v22.23.1. The default ARM64 application image already passed the
+HTTP sensor CLI smoke. Merged Compose configurations and 27 focused planner/
+Compose tests resolve selected services to ARM64; Ruff, Python compilation,
+capability-matrix validation, and diff checks pass. Temporary smoke images were
+removed and the candidate stack remained healthy. This does not exercise a live
+analytics database/projection, Directus bootstrap/hooks/permissions, or
+transport against PostgreSQL. It is QEMU software evidence only; Raspberry Pi
+resource/performance, physical recovery, and long-duration behavior remain
+open ([evidence](builds/2026-10-16-recovery/kernel-arm64-optional-profiles.json)).
+
+### KGP governance projection, reorg replay, and worker recovery — 16 October 2026
+
+Migration 403 adds a read-only current-state projection for the governance
+contract's target permission, selector permission, and guild-scope settings.
+The contract remains authoritative for execution. The isolated acceptance
+applied all 394 ordered schema sources to disposable PostgreSQL and processed
+seven synthetic guild, domain, task, and governance events through the real
+indexer. It linked projected rows to source events, confirmed a repeated target
+permission event updates the current value, and verified duplicate canonical
+replay is idempotent. A stubbed tip change orphaned all seven events; projection
+reset cleared chain-derived state, then replay rebuilt guild, domain, task, and
+governance policy rows on the replacement branch while retaining the configured
+guild-key anchor. The same run confirmed worker reconnect after PostgreSQL
+restart and expired-lease reclaim by a replacement worker. Forty-eight focused
+migration/KGP/guild tests pass; Ruff, compilation, the migration source
+validator (515 files), capability-matrix validation, JSON parsing, and diff checks pass. The
+database, contracts, cursor, policy and logs were synthetic; there was no seed
+data, live RPC, provider call, candidate/legacy access, or observation of a real
+chain reorg in this disposable run. A separate checkpointed candidate rollout
+applied migration 403 with no app recreation; health, protected-route behavior,
+zero pending schemas, an empty policy table, and disabled application-table RLS
+were confirmed ([rollout evidence](builds/2026-10-16-recovery/candidate-migration-403-kgp-governance-target-rollout.json)).
+Other event handlers, live-chain behavior, production-duration recovery, and
+provider delivery remain open
+([migration](../schemas/postgres/403_kgp_governance_target_policy_projection.sql);
+[runtime evidence](builds/2026-10-16-recovery/kgp-worker-postgres-reconnect.json)).
+
+### Isolated scheduled carbon-credit check — 16 October 2026
+
+The `credit_adjustment` JobSpec now runs
+`services.analytics.carbon_credit_adjustment_check`, a narrow command that
+recomputes and reports candidate differences within a database read-only
+transaction. `services.analytics.carbon_credits` remains the interactive
+issuance/adjustment/retirement CLI and is no longer scheduler-allowlisted.
+The function graph follows callbacks passed to the shared CLI `run(main)`
+wrapper, so the scheduled path reaches `check_adjustments` and its calculation
+helpers without reaching issuance, retirement, or chain-sync methods. The worker
+effect index falls from 43 unique sites / 49 memberships to 38 / 44, and the
+SQL graph now links 196 unique sites across 239 memberships; 61 sites still
+have no static function match. A combined 183-test focused suite, Ruff,
+compilation, and all generated inventory checks pass. The runtime SQL inventory
+remains at 3,799 callsites while its source count rises to 807. Tests mock the
+read-only connection selection; a live disposable PostgreSQL write-denial probe
+for this new option remains unrun. Persisted scheduler rows, external schedules,
+tenant context, worker roles, and candidate/legacy databases were not touched
+([evidence](builds/2026-10-16-recovery/worker-credit-check-isolation.json);
+[operation map](worker-operation-map.md)).
+
+### Tenant preflight execution identity — 16 October 2026
+
+The ownership/readiness CLI no longer falls back to the shared application
+connection. It reads a separate `KOKONUT_TENANT_PREFLIGHT_DSN` from the loaded
+secret environment, uses a read-only repeatable-read transaction with a pinned
+`pg_catalog, public` search path, and requires a direct
+`kokonut_tenant_preflight` login. Before inventory queries it checks that the
+identity has no role memberships, public-table DML or ownership privileges,
+and cannot create database or public-schema objects. The aggregate report records only sanitized
+privilege flags and evaluates the configured runtime login separately. Focused
+tests cover exact identity, role switching, unsafe grants, fail-before-inventory,
+and sanitized connection failures; Ruff is clean. A separate PostgreSQL 16
+fixture confirmed the real catalog check with a synthetic RLS-enabled
+`location`: the global preflight login must bypass RLS while retaining zero
+DML/ownership/create privileges and no role memberships. The application-role and scheduler checks
+passed in that isolated database; it and its internal network were removed.
+No candidate or legacy database was contacted. Provisioning the actual role
+and secret, confirming cross-tenant read scope, and limiting who can invoke
+the inventory remain deployment gates ([source evidence](builds/2026-10-16-recovery/tenant-preflight-identity-source.json);
+[PostgreSQL evidence](builds/2026-10-16-recovery/tenant-preflight-identity-postgres.json);
+[call-site audit](mobile-tenant-rls-callsite-audit.md)).
+
+### Signed worker tenant context — 16 October 2026
+
+Migration 405 adds private worker principals, SHA-256 credential digests,
+expiring and revocable exact tenant/location/resource/action grants, a separate
+non-login execution role, and the bounded setter for database-signed
+`system_worker` context. The existing accessor now verifies that actor type;
+`current_worker_scope(resource, action)` exposes only the exact signed operation.
+The adapter in `services/common/tenant_context.py` clears old scope, requires a
+non-autocommit transaction and worker-only secret, hashes it in memory, assumes
+the dedicated role locally, and calls the setter. It does not load credentials
+from event/job payloads, and the shared EventBus handler dispatch is not wired
+to it while per-handler credentials are not isolated.
+
+The migration replayed in a disposable PostgreSQL 16 fixture with forced RLS on
+the synthetic ownership and worker authorization tables. Seventeen acceptance
+checks pass: exact grant, HMAC tamper and cross-transaction replay denial,
+credential/key secrecy, shared runtime-role denial, grant lock serialization,
+owner transfer, inactive location/tenant/principal, expiry and revocation, and
+transaction cleanup. Migration unit tests pass 31 cases and tenant-context
+unit tests pass 30. Migration-source validation covers 396 inputs; Ruff,
+compilation, JSON parsing, and diff checks pass. No candidate or legacy
+database was contacted. Worker-handler integration, per-worker credential
+provisioning, effect-specific application RLS, control-plane isolation, and
+candidate rollout remain open
+([migration](../schemas/postgres/405_signed_worker_tenant_context.sql);
+[adapter](../services/common/tenant_context.py);
+[disposable acceptance](builds/2026-10-16-recovery/worker-tenant-context-disposable.json);
+[runner](../scripts/check-worker-tenant-context-disposable.py)).
+
+### Anomaly worker source and transaction boundaries — 16 October 2026
+
+The event-driven anomaly path now validates its location against the joined
+source reading before processing, treats shared alert rules as read-only, and
+publishes its alert event without taking ownership of the handler transaction.
+The interactive CLI retains default-rule bootstrap. `EventBus.publish` keeps
+its existing commit/rollback behavior by default and supports explicit
+caller-owned transaction control. Focused anomaly and seed-guard checks passed
+19 tests, EventBus durability passed 17 tests, and two transaction tests passed;
+Ruff, Python compilation, and diff checks are clean. These checks used mocks
+only and touched no database. The signed worker setter and disposable context
+acceptance are recorded above; handler integration, effect-specific
+application authorization, least-privilege table grants, and isolated
+per-handler credentials remain open ([contract](worker-tenant-context-contract.md);
+[evidence](builds/2026-10-16-recovery/worker-anomaly-transaction-source.json)).
+
+### Sensor anomaly worker effect contract — 16 October 2026
+
+Added a machine-readable, proposed-only source contract for the anomaly event
+handler. It matches the 12 read/write relations in the allowlisted operation
+map and documents location lineage, shared read-only alert references, draft
+claim creation, and the separate event, notification, and actuation intent
+boundaries. It explicitly adds no grants, policies, views, RLS, or dispatch
+integration. Twelve focused worker operation-map tests pass; Ruff, JSON parsing,
+`git diff --check`, and the 66-row capability-matrix validation pass. Security
+#70 passed and CI #346 was still running on the prior pushed head `a0ec3f45` at
+the time this batch began. The checklist is now 394 checked and 19 open; no
+separate capability is newly accepted ([effect contract](worker-sensor-anomaly-effects.json);
+[operation map](worker-operation-map.json); [test](../tests/test_worker_operation_map.py)).
+
+### Sensor anomaly location lineage — 16 October 2026
+
+Migration 406 adds nullable direct `location_id` keys to sensor alerts, anomaly
+effect receipts, ingestion audit rows, and notification outbox intents. Its
+backfill uses matching sensor device/reading locations, source-event identity
+and every supplied payload selector, and linked alert lineage. Conflicting or
+unresolved historical rows remain NULL. The anomaly event path now checks the
+event payload's location and every supplied sensor selector against the source
+reading; cooldown, alert insert/read, receipt updates, ingestion audit, and
+notification intent writes carry the source location. Generic ingestion and
+notification callers retain optional/unscoped behavior. No worker grants, row
+policies, RLS, or candidate rollout were added. Seventy-three focused anomaly,
+outbox, worker-map, and migration tests plus seven disposable PostgreSQL 16
+replay, backfill, unresolved-lineage, foreign-key, and application-write checks
+pass; Ruff, compilation, and diff checks pass. CI #347 was still running and
+Security #71 passed on the preceding pushed head
+([migration](../schemas/postgres/406_sensor_anomaly_location_lineage.sql);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-location-lineage.json);
+[runner](../scripts/check-sensor-anomaly-location-lineage-disposable.py)).
+
+### Bounded sensor anomaly receipt functions — 16 October 2026
+
+Migration 407 adds two `SECURITY DEFINER` functions for reserving a
+`sensor_anomaly_effect` receipt and recording its `cooldown` or `alert_created`
+outcome. They require the exact signed `sensor_reading/process` location scope,
+match event type/table/source, payload location and every supplied sensor
+selector against the reading and device, and require an enabled rule. Duplicate
+reservations are suppressed; only a matching `no_match` row can transition.
+Alert links must match the same reading, rule, device, and location. A dedicated
+non-login owner receives only the required source-read and receipt column
+privileges; `kokonut_worker_execution` receives only `EXECUTE` and cannot
+directly read or mutate receipt rows. Runtime and operator-auth roles have no
+function `EXECUTE`.
+
+All nine focused acceptance checks passed against disposable PostgreSQL 16,
+including wrong/missing scope, selector/source/rule denials, duplicate and
+transition replay, invalid and cross-location alert links, privilege checks,
+and migration replay. Ruff, Python compilation, and diff checks pass. The
+functions remain dormant: no handler/dispatcher integration, worker credential,
+candidate rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and
+legacy databases were not contacted
+([migration](../schemas/postgres/407_sensor_anomaly_effect_functions.sql);
+[fixture](../tests/fixtures/sensor_anomaly_effect_functions_disposable.sql);
+[runner](../scripts/check-sensor-anomaly-effect-functions-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-anomaly-effect-functions-disposable.json)).
+
+### Bounded sensor-alert event publication — 16 October 2026
+
+Migration 408 adds `kokonut_security.publish_sensor_alert_event` behind a
+separate non-login function owner. It accepts only the exact signed
+`sensor_reading/process` location and an `alert_created` receipt whose source
+event, reading, device, rule, alert, and location agree. The function derives
+the existing handler's event payload from canonical alert/reading/device/rule
+columns, preserves high priority for critical alerts, and inserts a pending
+event with three retries. An identical event ID/content is idempotent; a
+conflicting ID is rejected. A retry never updates status, lease, retry, or
+delivery state. `kokonut_worker_execution` can call the function but has no
+direct `platform_event` read or DML access; runtime and operator-auth roles
+cannot execute it.
+
+Eleven focused PostgreSQL 16 checks passed in a loopback-only disposable
+container, including migration replay, source and alert mismatch denial,
+canonical payload/priority, stable-ID collision, completed-event retry
+preservation, function ACLs, and direct queue-table denial. Ruff, Python
+compilation, capability-matrix validation, and diff checks pass. No handler
+integration, notification/actuation function, worker credential, candidate
+rollout, RLS policy, or MAN-CAP acceptance was added. Candidate and legacy
+databases were not contacted
+([migration](../schemas/postgres/408_sensor_alert_event_function.sql);
+[fixture](../tests/fixtures/sensor_alert_event_function_disposable.sql);
+[runner](../scripts/check-sensor-alert-event-function-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-event-function-disposable.json)).
+
+### Bounded sensor-alert notification intent — 16 October 2026
+
+Migration 409 adds the bounded sensor-alert notification enqueue function
+behind a separate non-login owner. It requires signed sensor_reading/process
+location scope and validates the original reading event, source reading/device,
+alert_created receipt, linked alert, and published sensor_alert event. It
+accepts only the existing webhook, Directus, and email payload shapes, limits
+payloads to 16 KiB, and fixes the destination key to primary. It inserts a
+pending outbox row only; it cannot update delivery status or touch attempt
+history. Exact retries are no-ops, while payload collisions fail closed.
+
+Twelve focused PostgreSQL 16 checks pass in a loopback-only disposable
+container, including all three channel contracts, scope/source mismatches,
+invalid fields/destinations, stable-identity conflict, completed-delivery
+retry preservation, function-owner and worker ACLs, runtime/auth denial, direct
+outbox/attempt denial, and migration replay. Ruff, Python compilation, and
+diff checks pass. The handler still writes notifications directly and
+currently enqueues before publishing the alert event; integration must reorder
+these effects within its existing transaction after an isolated worker
+credential is provisioned. No candidate rollout, provider delivery, RLS, or
+MAN-CAP acceptance was added. Candidate and legacy databases were not contacted
+([migration](../schemas/postgres/409_sensor_alert_notification_intent.sql);
+[fixture](../tests/fixtures/sensor_alert_notification_intent_disposable.sql);
+[runner](../scripts/check-sensor-alert-notification-intent-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-notification-intent-disposable.json)).
+
+### Bounded sensor-alert actuation intent — 16 October 2026
+
+Migration 410 adds a source-alert-event identity to `actuation_log` and a
+partial unique index so a published sensor-alert event can create at most one
+bounded actuation intent. The SECURITY DEFINER function requires the signed
+`sensor_reading/process` location and verifies the source event, source reading,
+anomaly receipt, linked alert, recorded alert event, current enabled rule, and
+device/location relationship. It derives command, topic, and payload from the
+canonical alert and rule; configured approval is preserved and `critical`
+severity always requires approval. Exact retries return the existing intent
+without changing approval, delivery, response, or lifecycle state. The worker
+role receives function EXECUTE only and no direct `actuation_log` access.
+
+Sixteen focused PostgreSQL 16 checks pass in a loopback-only disposable
+container. They cover migration apply/replay, missing and wrong scope, source
+and alert mismatches, canonical rule-derived command/topic/payload, critical
+approval override, configured warning approval, warning auto-pending behavior,
+retry preservation after simulated approval and delivery, changed-command
+collision rejection, disabled-rule denial, legacy-row preservation, role
+attributes/column boundaries, runtime/operator-auth denial, and direct worker
+table access denial. Migration validation reports 522 ordered source files;
+Ruff, Python compilation, capability-matrix validation, requirement-group
+alignment, JSON parsing, and diff checks pass.
+
+No handler integration, MQTT activity, worker credential, candidate rollout,
+RLS, or MAN-CAP acceptance occurred; candidate and legacy databases were not
+contacted. The checklist now has 399 complete items and 19 open. The function
+remains dormant until handler/credential integration is separately accepted
+([migration](../schemas/postgres/410_sensor_alert_actuation_intent.sql);
+[fixture](../tests/fixtures/sensor_alert_actuation_intent_disposable.sql);
+[runner](../scripts/check-sensor-alert-actuation-intent-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-actuation-intent-disposable.json)).
+
+### Bounded sensor-alert draft claim — 16 October 2026
+
+Migration 411 adds a separate non-login function owner and
+`create_sensor_alert_draft_claim`. It requires signed
+`sensor_reading/process` scope and verifies the source event, source reading,
+anomaly receipt, device/location, enabled rule relationship, and alert. It
+creates only a `draft` claim from rule and alert data, records both sensor
+reading provenance fields, and links the claim to the alert. A composite unique
+identity uses the source-reading event and alert. If the old handler already
+linked an exact sensor claim, the function attaches this source identity while
+preserving lifecycle, review, and attestation state. The operation follows the
+`alert_created` receipt and precedes downstream notification construction; the
+separate alert-event payload does not include `claim_id`. The worker receives
+function EXECUTE only; it has no direct `mrv_claim` or `sensor_alert` access.
+
+Fourteen focused disposable PostgreSQL 16 checks pass for missing and
+mismatched scope/source, canonical draft creation, retries, exact legacy-claim
+adoption without lifecycle mutation, role boundaries, direct-table denial, and
+migration replay. Candidate and legacy databases were not accessed. Handler
+integration, worker credential isolation, candidate rollout, RLS, and MAN-CAP
+acceptance remain open. The checklist now has 401 complete items and 19 open;
+the capability matrix remains at 66 rows with no additional MAN-CAP acceptance
+([migration](../schemas/postgres/411_sensor_alert_draft_claim_intent.sql);
+[fixture](../tests/fixtures/sensor_alert_draft_claim_intent_disposable.sql);
+[runner](../scripts/check-sensor-alert-draft-claim-disposable.py);
+[evidence](builds/2026-10-16-recovery/sensor-alert-draft-claim-disposable.json)).
+
+### Dedicated worker database and credential helpers — 16 October 2026
+
+Added `services/common/worker_database.py` as preparation for isolating
+tenant-scoped execution from shared dispatch. `get_worker_db(worker_key)` reads
+only the named `KOKONUT_<WORKER>_DATABASE_URL`, verifies the database login is
+`kokonut_worker_login`, and keeps the returned connection transaction-bound.
+The module does not load dotenv or import shared `PG_*` settings, and it never
+falls back to the application/control-plane DSN. `.env.example` documents the
+optional sensor-anomaly DSN without a secret value. Twelve focused mocked unit
+tests pass, covering required configuration, no shared-credential fallback,
+login verification, cleanup, transaction mode, and input validation. Ruff,
+Python compilation, migration-source validation, and `git diff --check` pass.
+Per-handler secret delivery, bounded source reads, and anomaly-handler
+integration remain open; no worker credential or database was used
+([evidence](builds/2026-10-16-recovery/worker-database-factory-unit.json)).
+The same module now has a secret resolver that accepts only the worker-specific
+credential variable and enforces the tenant-context adapter's 32–4096-byte
+boundary. It does not normalize/log the opaque value. No credential has been
+provisioned or placed in the shared event-worker environment. Nine new focused
+unit checks cover boundary length by UTF-8 bytes, missing/fallback behavior,
+invalid UTF-8, opaque-value preservation, worker-key validation, and
+worker-specific lookup; the combined worker database/credential file passes
+all 21 tests. Ruff, compilation, migration-source validation (523 files), and
+`git diff --check`
+pass ([evidence](builds/2026-10-16-recovery/worker-credential-resolver-unit.json)).
+
+### EventBus worker-secret subprocess boundary — 16 October 2026
+
+EventBus handler execution now uses `subprocess.Popen` with a copied child
+environment that strips every worker-specific `KOKONUT_<WORKER>_DATABASE_URL`
+and `KOKONUT_<WORKER>_WORKER_CREDENTIAL`. The request travels over stdin rather
+than process arguments; a dedicated runner validates the existing handler
+allowlist, preserves both supported handler signatures, redirects handler
+stdout away from the JSON result channel, and returns bounded error data. A
+timeout kills and reaps the child. All 22 EventBus durability tests and four
+runner tests pass, including environment filtering, request transport,
+success/failure handling, malformed input, and timeout cleanup. Ruff,
+Python compilation, and `git diff --check` pass. No real worker credential or
+database was used. This secures the current no-secret default; no identity-
+specific secret is delivered and no handler is yet integrated with the worker
+database/context helpers
+([evidence](builds/2026-10-16-recovery/event-handler-child-environment.json)).
+
+### Signed cache invalidation worker — four-handler extension — 16 October 2026
+
+Migrations 415–416 and source integration now cover all four registered
+EventBus cache handlers: `metric_computed`, `crisp_scored`, `sensor_reading`,
+and `harvest_recorded`. The bounded function verifies the durable event ID,
+exact event type, and signed location before invalidating only the associated
+analytics, CRISP, or metric cache rows. The feature remains disabled by default;
+Compose passes the worker DSN and credential only to the supervisor, and
+EventBus routes each secret pair only to its exact registered handler.
+
+Eighty focused cache/EventBus/allowlist and operation-map tests pass. Eight
+checks on network-isolated disposable PostgreSQL 16 pass for migrations 415–416
+replay, event/type/location mismatch denial, cache/location scoping, retry
+idempotency, handler registration, forced-RLS behavior, and direct-table
+denial. Ruff, Python compilation, migration-source validation, Compose profile
+validation, and worker SQL/source inventory checks pass. Evidence:
+[cache-invalidation-worker-four-handlers-disposable.json](builds/2026-10-16-recovery/cache-invalidation-worker-four-handlers-disposable.json).
+
+No cache worker credential or active location grant is provisioned, migration
+416 has not been applied to the candidate, and the feature flag remains off.
+This closes the source/disposable acceptance slice only; MAN-CAP status,
+candidate rollout, production identity provisioning, and application-wide RLS
+do not change. The checklist records 412 complete items and 19 open; the
+validated capability matrix remains at 66 rows, with MAN-CAP acceptance
+separately gated.
+
+### Notification handler location lineage — 16 October 2026
+
+The registered `data_stale` and `threshold_breached` handlers now forward an
+optional payload `location_id` to `notification_outbox`. The outbox validates
+UUID format before cursor use, preserves stable duplicate enqueue behavior, and
+can fill previously NULL lineage on a matching retry. Fourteen focused mocked
+tests pass, covering location forwarding, malformed-scope rejection, the
+no-destination/no-event path, and idempotency. Ruff, Python compilation, and
+diff checks pass ([evidence](builds/2026-10-16-recovery/notification-handler-location-lineage-unit.json)).
+This value is non-authoritative event-payload lineage: it does not authorize
+tenant access or establish signed worker context. No database or provider was
+contacted; the capability matrix and MAN-CAP statuses are unchanged. The
+checklist now records 411 complete items and 19 open. The batch is pushed in
+commit `30f9966`; Security #89 passed and CI #365 is pending.
+
+### EAS/RPC scheduler chain scope — 16 October 2026
+
+Native EAS and RPC JobSpec dispatch and disabled schedule planning now require
+exactly one supported `--chain`, and reject missing, duplicate, or unsupported
+chain arguments before subprocess launch. The optional EAS Prefect adapter
+runs Celo, Optimism, and Base separately; the RPC adapter retains all seven
+CLI-supported networks. The direct interactive indexers keep their existing
+all-chain modes. The RPC connection now closes on empty-chain returns and
+rolls back/closes on lookup failure. Focused dispatcher, command-contract,
+RPC cleanup, and Prefect-flow suites pass 156 tests with provider and process
+boundaries mocked. Generated JobSpec inventory, Ruff, compilation, and matrix
+structure checks pass. No chain endpoint, database, persisted task, or Prefect
+deployment was contacted or changed. This closes source contracts only;
+cursor/finality, duplicate/reorg recovery, active schedule reconciliation, and
+MAN-CAP-018/047 acceptance remain open ([EAS evidence](builds/2026-10-16-recovery/eas-chain-scoped-job-contract.json);
+[RPC evidence](builds/2026-10-16-recovery/rpc-chain-scoped-job-contract.json)).
+
+### Signed NOI snapshot worker — 16 October 2026
+
+Native NOI snapshot reconciliation now runs through a dedicated scheduled
+module, exact `noi_snapshot` worker-key mapping, and default-off
+`KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER`. The scheduler forwards only that
+worker's DSN and credential to the exact module and removes shared PostgreSQL
+login settings from the child environment. Migration 425 adds a bounded
+function that requires the database-signed `noi_snapshot/reconcile` location
+grant, constrains source and target rows to that signed location, and preserves
+conflicting cross-location snapshots instead of silently moving them. The
+worker has no direct source/target table privileges; the application runtime
+cannot execute the function.
+
+The focused source/scheduler/inventory suite passes 193 tests. Seven isolated
+PostgreSQL 16 checks pass, including migration replay, insert/update idempotency,
+missing/wrong grant denial, requested-location mismatch, stale cross-location
+conflict preservation, direct-table privilege denial, runtime function denial,
+and transaction-local context cleanup ([disposable evidence](builds/2026-10-16-recovery/noi-snapshot-worker-disposable.json)).
+No candidate/legacy database or provider was contacted; migration 425 is not
+deployed, the worker credential/grant are not provisioned, the feature remains
+off, and RLS is still deferred. The capability matrix's 66 status rows and
+MAN-CAP acceptance classifications do not change. The checklist now records
+430 complete and 21 open items (451 total).
+
+### Signed scheduled sensor-driver worker — 17 October 2026
+
+Scheduled CSV sensor pulls now use a dedicated `sensor_ingestion` worker
+identity with exact DSN/credential routing, a default-off feature gate, and no
+fallback to shared PostgreSQL credentials. Migration 431 exposes signed
+location-scoped driver and sensor-catalog reads, bounded atomic reading/event/
+audit/ClickHouse-outbox writes, duplicate suppression, and a location-bound
+driver status audit. Five disposable PostgreSQL 16 checks pass with forced RLS,
+including migration replay, cross-location denial, conflicting timestamp
+rollback, and worker/runtime privilege boundaries. The 200 focused
+sensor-worker/scheduler/runtime-role checks pass with Ruff, Python compilation,
+and capability-matrix validation. The PostGIS test runner now waits for TCP
+readiness so migrations do not race its initialization restart. Candidate and
+legacy databases, sensor files, providers, credentials, and schedules were not
+used; migration 431 and its login/grant are not deployed, the feature remains
+off, and existing persisted tasks stay on the legacy entrypoint pending owner
+reconciliation. Live sensor-source parity, application-wide RLS, and
+MAN-CAP-040/047 acceptance remain open. The checklist now records 436 complete
+and 21 open items (457 total); capability status rows and MAN-CAP classifications
+are unchanged ([migration](../../schemas/postgres/431_signed_sensor_driver_worker.sql);
+[worker](../../services/ingestion/sensor_worker.py);
+[disposable evidence](builds/2026-10-17-recovery/signed-sensor-ingestion-worker-disposable.json)).
+
+
+### Signed scheduled remote-sensing worker and bootstrap — 17 October 2026
+
+Native remote-sensing JobSpecs now use the default-off `remote_sensing` worker.
+GEE and Copernicus adapters return normalized records separately from
+persistence, and migration 432 adds signed location claims plus bounded atomic
+job, attempt, observation, ingestion-audit, and ClickHouse-outbox writes. The
+runtime-role bootstrap now provisions the dedicated login only after migration
+432 is applied; its password is confined to the one-shot bootstrap service,
+while the worker receives its own DSN and signed credential.
+
+The 226-test focused worker/provider/runtime-role/migration suite passes with Ruff and
+Python compilation. Three grouped PostgreSQL 16/PostGIS migration checks cover
+replay, forced-RLS location denial, atomic fallback/projection behavior, and
+direct-table/context cleanup
+([migration evidence](builds/2026-10-17-recovery/signed-remote-sensing-worker-disposable.json)).
+The no-egress role acceptance adds 22 checks across migrations 391–432,
+including actual bootstrap provisioning, notification-role compatibility, no
+application-table access, SET-only worker execution, and rejection of an
+unscoped claim
+([runtime-role evidence](builds/2026-10-17-recovery/runtime-remote-sensing-role-disposable.json)).
+PostGIS extension-owned metadata can retain extension-defined `PUBLIC` grants;
+these are excluded from application-relation checks and do not grant access to
+remote-sensing application tables.
+
+No candidate or legacy database, provider, schedule, credential, or production
+service was used. Candidate schema remains through migration 403, migration 432
+is not deployed, and the feature remains disabled. Live provider parity and
+MAN-CAP-040/047 remain open. The checklist remains 437 complete and 21 open
+items; capability rows and MAN-CAP classifications are unchanged.

@@ -1,5 +1,5 @@
 {
-  "name": "kokonut-hooks",
+  "name": "directus-extension-kokonut-hooks",
   "version": "0.1.0",
   "description": "Kokonut Intelligence Platform - Directus lifecycle hooks",
   "main": "dist/index.js",
@@ -8,10 +8,10 @@
     "type": "hook",
     "path": "dist/index.js",
     "source": "src/index.ts",
-    "host": "^11.0.0"
+    "host": "12.1.1"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "directus-extension build && tsc --noEmit",
     "dev": "tsc --watch",
     "test": "vitest run"
   },
@@ -20,6 +20,7 @@
     "node": ">=20.19.0"
   },
   "dependencies": {
+    "@directus/errors": "2.3.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {

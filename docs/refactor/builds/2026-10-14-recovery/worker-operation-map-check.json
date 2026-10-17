@@ -1,0 +1,32 @@
+{
+  "check": "worker_operation_map_inventory",
+  "date": "2026-10-14",
+  "result": "passed",
+  "scope": {
+    "scheduled_modules": 12,
+    "event_handler_pairs": 5,
+    "contracted_operation_effects": 2,
+    "registered_metric_calculators": 20,
+    "metric_calculator_effects": 20,
+    "mapped_database_functions": 1,
+    "freshness_source_table_mappings": 7,
+    "database_or_candidate_touched": false,
+    "raspberry_pi_hardware_used": false
+  },
+  "pytest": {
+    "command": ".venv/bin/python -m pytest tests/test_worker_operation_map.py tests/test_security_allowlist.py tests/test_scheduler_durability.py tests/test_event_bus_durability.py -q",
+    "passed": 38,
+    "failed": 0
+  },
+  "static_checks": {
+    "json_parse": "passed",
+    "ruff_check": "passed",
+    "ruff_format_check": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "The inventory records reviewed entrypoint effects and source references; it is not a complete transitive call graph, command argument contract, authorization policy, grant list, or RLS approval.",
+    "This check uses source tests only and does not certify deployment behavior or Raspberry Pi hardware."
+  ]
+}

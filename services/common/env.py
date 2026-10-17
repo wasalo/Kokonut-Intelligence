@@ -7,6 +7,13 @@ import re
 import subprocess
 from pathlib import Path
 
+from services.common.worker_environment import (
+    _SHARED_DATABASE_ENV,
+    ISOLATED_WORKER_KEY_ENV,
+    isolated_worker_key,
+    worker_subprocess_environment,
+)
+
 _LOADED = False
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 _KEY_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -57,6 +64,7 @@ def _sops_decrypt(sops_path: Path) -> str:
                 text=True,
                 check=True,
                 timeout=10,
+                env=worker_subprocess_environment(),
             )
             # A successful decrypt with empty output is valid (empty secret
             # file); only a non-zero exit triggers the next attempt.
@@ -125,7 +133,28 @@ def _validate_production_environment() -> None:
 
 def load_dotenv() -> None:
     global _LOADED
+    try:
+        worker_key = isolated_worker_key()
+    except ValueError as exc:
+        raise SecretLoadError(str(exc)) from exc
+    if worker_key is not None:
+        # The dispatcher should already have removed these values. Clear them
+        # defensively so an isolated child cannot import a shared identity.
+        for name in _SHARED_DATABASE_ENV:
+            os.environ.pop(name, None)
+        os.environ[ISOLATED_WORKER_KEY_ENV] = worker_key
+        _LOADED = True
+        return
     if _LOADED:
+        return
+
+    if os.environ.get("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "").lower() == "true":
+        # scripts/load-secrets.sh has already decrypted and exported the
+        # encrypted environment in the parent process. Re-decrypting it in
+        # each Python child is unnecessary and can exceed the SOPS timeout.
+        if os.environ.get("KOKONUT_ENV", "development").lower() in {"ci", "production"}:
+            _validate_production_environment()
+        _LOADED = True
         return
 
     sops_path = _PROJECT_ROOT / ".env.sops"

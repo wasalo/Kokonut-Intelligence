@@ -1,0 +1,11 @@
+{
+  "status": "passed",
+  "migration": 432,
+  "checks": [
+    "migration 432 applies after signed worker context and safely replays with the dedicated login; no candidate or legacy database used",
+    "signed claim returns only the granted location, derives the plot bbox, and denies another location under forced RLS",
+    "fallback attempt history, canopy fields, ingestion audit, and ClickHouse outbox commit atomically; source mismatch rolls back and duplicate replay is idempotent",
+    "dedicated login has no direct relation privileges, runtime cannot call bounded functions, and transaction end clears signed context/restores login"
+  ],
+  "scope": "synthetic data on an ephemeral PostgreSQL 16/PostGIS container with forced RLS; no candidate or legacy database used"
+}

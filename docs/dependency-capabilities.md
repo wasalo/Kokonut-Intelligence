@@ -29,7 +29,7 @@ file or image provides an exact version.
 | ClickHouse | `clickhouse-server:25.8`, digest-pinned | verified | `docker-compose.yml` |
 | Directus | `12.1.1`, digest-pinned | verified | `docker-compose.yml` |
 | Metabase | `v0.62.4`, digest-pinned | verified | `docker-compose.yml` |
-| Node.js | Node 22 in CI; hooks require Node `>=20.19.0` | verified | `.onedev-buildspec.yml`, hooks `package.json` |
+| Node.js | Node 22 in GitHub Actions CI; hooks require Node `>=20.19.0` | verified | `.node-version`, `.github/workflows/ci.yml`, hooks `package.json` |
 | Python packages | Range-based `requirements.txt` | range-only | `requirements.txt` |
 | Root Python lock file | No root `requirements.lock` | gap | CI installs from ranges |
 
@@ -346,7 +346,7 @@ When upgrading:
 - `pyproject.toml` — Python tooling and test configuration
 - `docker-compose.yml` — database, Directus, Metabase, and image pins
 - `Dockerfile.worker` / `Dockerfile.grpc` — Python runtime images
-- `.onedev-buildspec.yml` — CI runtime and verification gates
+- `.github/workflows/ci.yml` and `scripts/run-github-ci.sh` — CI runtime and verification gates
 - `extensions/kokonut-hooks/package.json` — Node and Directus extension constraints
 - `sdk/javascript/package.json` — JavaScript SDK dependencies
 - `services/common/database.py` — PostgreSQL access adapter

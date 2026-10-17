@@ -7,11 +7,26 @@ table, enabling runtime plugin loading without modifying core code.
 from __future__ import annotations
 
 import importlib
-from typing import Any, Optional
+from types import MappingProxyType
+from typing import Any
 
 from services.common.logging import get_logger
 
 logger = get_logger("drivers.registry")
+
+# Persisted driver_registry.module_path values are data, not executable policy.
+# Scheduled sensor pulls may load only driver targets declared in this source
+# controlled map. Adding another scheduled implementation requires a reviewed
+# code change and tests; manual driver operations retain the general registry.
+SCHEDULED_SENSOR_DRIVER_TARGETS = MappingProxyType(
+    {
+        "sensor_csv": (
+            "services.ingestion.drivers.sensor_csv",
+            "Driver",
+            "sensor",
+        ),
+    }
+)
 
 
 class DriverRegistry:
@@ -206,6 +221,83 @@ class DriverRegistry:
         except Exception:
             logger.exception("Failed to list driver instances")
             return []
+
+    def get_schedulable_instance(
+        self, instance_id: str, location_id: str,
+    ) -> dict | None:
+        """Load one enabled, code-allowlisted sensor pull for the exact location."""
+        import json
+
+        conn = self._get_conn()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT di.id, di.instance_name, dr.driver_name, dr.module_path,
+                       dr.class_name, dr.driver_type, di.config, di.location_id
+                FROM driver_instance di
+                JOIN driver_registry dr ON dr.id = di.driver_id
+                WHERE di.id = %s
+                  AND di.location_id = %s
+                  AND di.is_enabled = TRUE
+                  AND dr.is_enabled = TRUE
+                  AND dr.driver_type = 'sensor'
+                """,
+                (instance_id, location_id),
+            )
+            row = cur.fetchone()
+        if row is None:
+            return None
+        driver_name = str(row[2])
+        registered_target = (str(row[3]), str(row[4]), str(row[5]))
+        allowed_target = SCHEDULED_SENSOR_DRIVER_TARGETS.get(driver_name)
+        if allowed_target is None:
+            raise ValueError("sensor driver is not allowlisted for scheduled execution")
+        if registered_target != allowed_target:
+            raise ValueError(
+                "scheduled sensor driver registry identity does not match the code allowlist"
+            )
+        config = row[6]
+        if isinstance(config, str):
+            config = json.loads(config)
+        if not isinstance(config, dict):
+            raise ValueError("sensor driver instance config must be a JSON object")
+        return {
+            "instance_id": str(row[0]),
+            "instance_name": row[1],
+            "driver_name": driver_name,
+            # Use the static target after checking the registry copy. Never
+            # import a module path sourced from PostgreSQL.
+            "module_path": allowed_target[0],
+            "class_name": allowed_target[1],
+            "driver_type": allowed_target[2],
+            "config": config,
+            "location_id": str(row[7]),
+        }
+
+    @staticmethod
+    def load_schedulable_sensor_driver(instance: dict) -> Any:
+        """Load only a source-allowlisted scheduled sensor driver class."""
+        driver_name = instance.get("driver_name")
+        target = SCHEDULED_SENSOR_DRIVER_TARGETS.get(driver_name)
+        if target is None or (
+            instance.get("module_path"),
+            instance.get("class_name"),
+            instance.get("driver_type"),
+        ) != target:
+            raise ValueError("scheduled sensor driver identity is not code-allowlisted")
+
+        module_path, class_name, driver_type = target
+        module = importlib.import_module(module_path)
+        driver_class = getattr(module, class_name, None)
+        if (
+            driver_class is None
+            or getattr(driver_class, "name", None) != driver_name
+            or getattr(driver_class, "driver_type", None) != driver_type
+            or getattr(driver_class, "supports_scheduled_pull", False) is not True
+            or not callable(getattr(driver_class, "fetch_scheduled", None))
+        ):
+            raise ValueError("code-allowlisted sensor driver does not satisfy its contract")
+        return driver_class
 
     def create_instance(
         self,

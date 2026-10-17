@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "migration": 431,
+  "checks": [
+    "migrations 405, 419, and 431 apply in order and migration 431 replays with the configured login",
+    "signed driver and sensor catalog functions return only the granted location under forced RLS",
+    "accepted, exact duplicate, unknown sensor rejection, and conflicting timestamp preserve atomic effects",
+    "cross-location reads fail closed; the bounded status function appends a run audit",
+    "dedicated login can SET ROLE only into bounded execution and has no direct sensor-table or function access"
+  ],
+  "scope": "synthetic records on an ephemeral PostgreSQL 16 container with forced RLS; no candidate or legacy database used"
+}

@@ -1,0 +1,634 @@
+{
+  "version": 1,
+  "generated_by": "scripts/worker_effect_inventory.py",
+  "reviewed": "2026-10-16",
+  "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
+  "summary": {
+    "operation_roots": 31,
+    "candidate_effect_sites": 36,
+    "operation_site_memberships": 46,
+    "unique_sites_by_category": {
+      "dynamic_import": 1,
+      "email_delivery": 6,
+      "evm_client_setup": 4,
+      "evm_rpc": 3,
+      "filesystem": 8,
+      "http": 13,
+      "process": 1
+    },
+    "operation_memberships_by_category": {
+      "dynamic_import": 2,
+      "email_delivery": 6,
+      "evm_client_setup": 4,
+      "evm_rpc": 3,
+      "filesystem": 8,
+      "http": 22,
+      "process": 1
+    }
+  },
+  "callback_dispatches": [
+    {
+      "dispatcher": "services.events.bus:EventBus._invoke_handler",
+      "source": "services/events/bus.py",
+      "process_creation_line": 235,
+      "child_module": "services.events.handler_runner",
+      "child_entrypoint": "services.events.handler_runner:main",
+      "worker_secret_filter": "services.events.bus:_handler_child_environment",
+      "worker_secret_filter_line": 241,
+      "request_executor": "services.events.handler_runner:execute_request",
+      "request_executor_call_line": 61,
+      "callback_resolver": "services.events.bus:resolve_handler",
+      "resolver_call_line": 44,
+      "allowlist_validator": "services.security.execution_allowlist.validate_event_handler",
+      "allowlist_validation_line": 44,
+      "dynamic_import_line": 45,
+      "dynamic_handler_invocation_lines": [
+        46,
+        48
+      ],
+      "allowlisted_handler_targets": [
+        "services.cache.events.handle_crisp_scored",
+        "services.cache.events.handle_harvest_recorded",
+        "services.cache.events.handle_metric_computed",
+        "services.cache.events.handle_sensor_reading",
+        "services.events.handlers.handle_alert_notification",
+        "services.events.handlers.handle_stale_data",
+        "services.ingestion.anomaly_detector.handle_sensor_reading"
+      ],
+      "validation_precedes_dynamic_import": true,
+      "runtime_dispatch_verified": false
+    }
+  ],
+  "operations": [
+    {
+      "kind": "scheduled_module",
+      "name": "services.analytics.carbon_credit_adjustment_check",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.events",
+      "candidate_effect_sites": [
+        {
+          "source": "services/events/bus.py",
+          "line": 235,
+          "function": "services.events.bus:EventBus._invoke_handler",
+          "category": "process",
+          "call": "subprocess.Popen"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 411,
+          "function": "services.events.notification_outbox:_deliver",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 422,
+          "function": "services.events.notification_outbox:_deliver",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 446,
+          "function": "services.events.notification_outbox:_deliver",
+          "category": "email_delivery",
+          "call": "smtplib.SMTP"
+        },
+        {
+          "source": "services/events/notification_outbox.py",
+          "line": 454,
+          "function": "services.events.notification_outbox:_deliver",
+          "category": "email_delivery",
+          "call": "server.send_message"
+        }
+      ],
+      "category_counts": {
+        "email_delivery": 2,
+        "http": 2,
+        "process": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.export.dataset_refresh",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.anomaly_detector",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 521,
+          "function": "services.ingestion.anomaly_detector:send_email_notification",
+          "category": "email_delivery",
+          "call": "smtplib.SMTP"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 528,
+          "function": "services.ingestion.anomaly_detector:send_email_notification",
+          "category": "email_delivery",
+          "call": "server.send_message"
+        },
+        {
+          "source": "services/ingestion/anomaly_detector.py",
+          "line": 559,
+          "function": "services.ingestion.anomaly_detector:send_directus_notification",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 52,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 55,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 60,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.mkdir"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 63,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
+          "category": "filesystem",
+          "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 114,
+          "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
+          "category": "filesystem",
+          "call": "os.open"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 140,
+          "function": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
+          "category": "filesystem",
+          "call": "os.open"
+        }
+      ],
+      "category_counts": {
+        "email_delivery": 2,
+        "filesystem": 6,
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.clickhouse_outbox",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.climate_data",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.climate_worker",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.data_freshness",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/data_freshness.py",
+          "line": 340,
+          "function": "services.ingestion.data_freshness:_send_alert",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/data_freshness.py",
+          "line": 370,
+          "function": "services.ingestion.data_freshness:_send_alert",
+          "category": "email_delivery",
+          "call": "smtplib.SMTP"
+        },
+        {
+          "source": "services/ingestion/data_freshness.py",
+          "line": 371,
+          "function": "services.ingestion.data_freshness:_send_alert",
+          "category": "email_delivery",
+          "call": "server.send_message"
+        }
+      ],
+      "category_counts": {
+        "email_delivery": 2,
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.eas_indexer",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/base.py",
+          "line": 106,
+          "function": "services.ingestion.base:post_clickhouse_rows",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/eas_provider.py",
+          "line": 65,
+          "function": "services.ingestion.eas_provider:execute_eas_query",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        }
+      ],
+      "category_counts": {
+        "http": 2
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.eas_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/eas_provider.py",
+          "line": 65,
+          "function": "services.ingestion.eas_provider:execute_eas_query",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.gnosis_indexer",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/base.py",
+          "line": 106,
+          "function": "services.ingestion.base:post_clickhouse_rows",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 149,
+          "function": "services.ingestion.gnosis_indexer:load_abi",
+          "category": "filesystem",
+          "call": "open"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 155,
+          "function": "services.ingestion.gnosis_indexer:get_web3",
+          "category": "evm_client_setup",
+          "call": "web3.Web3.HTTPProvider"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 162,
+          "function": "services.ingestion.gnosis_indexer:get_moloch_contract",
+          "category": "evm_client_setup",
+          "call": "w3.eth.contract"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 169,
+          "function": "services.ingestion.gnosis_indexer:get_treasury_contract",
+          "category": "evm_client_setup",
+          "call": "w3.eth.contract"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 174,
+          "function": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_block"
+        },
+        {
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 624,
+          "function": "services.ingestion.gnosis_indexer:run",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_logs"
+        }
+      ],
+      "category_counts": {
+        "evm_client_setup": 3,
+        "evm_rpc": 2,
+        "filesystem": 1,
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.market_data",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 189,
+          "function": "services.ingestion.market_data:download_pink_sheet",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.market_data_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 189,
+          "function": "services.ingestion.market_data:download_pink_sheet",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.remote_sensing_fetcher",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/base.py",
+          "line": 106,
+          "function": "services.ingestion.base:post_clickhouse_rows",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 52,
+          "function": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 72,
+          "function": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 128,
+          "function": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 4
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.remote_sensing_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 52,
+          "function": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 72,
+          "function": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 128,
+          "function": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 3
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.rpc_indexer",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/rpc_indexer.py",
+          "line": 64,
+          "function": "services.ingestion.rpc_indexer:get_web3",
+          "category": "evm_client_setup",
+          "call": "web3.Web3.HTTPProvider"
+        },
+        {
+          "source": "services/ingestion/rpc_indexer.py",
+          "line": 84,
+          "function": "services.ingestion.rpc_indexer:fetch_balance",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_balance"
+        }
+      ],
+      "category_counts": {
+        "evm_client_setup": 1,
+        "evm_rpc": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_ingester",
+      "candidate_effect_sites": [
+        {
+          "source": "services/drivers/registry.py",
+          "line": 290,
+          "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
+          "category": "dynamic_import",
+          "call": "importlib.import_module"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 106,
+          "function": "services.ingestion.base:post_clickhouse_rows",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        },
+        {
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 273,
+          "function": "services.ingestion.sensor_ingester:run_csv",
+          "category": "filesystem",
+          "call": "open"
+        }
+      ],
+      "category_counts": {
+        "dynamic_import": 1,
+        "filesystem": 1,
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/drivers/registry.py",
+          "line": 290,
+          "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
+          "category": "dynamic_import",
+          "call": "importlib.import_module"
+        }
+      ],
+      "category_counts": {
+        "dynamic_import": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/weather.py",
+          "line": 41,
+          "function": "services.ingestion.weather:fetch_weather",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather_forecast",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/weather_forecast.py",
+          "line": 35,
+          "function": "services.ingestion.weather_forecast:fetch_forecast_raw",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather_forecast_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/weather_forecast.py",
+          "line": 35,
+          "function": "services.ingestion.weather_forecast:fetch_forecast_raw",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/weather_worker.py",
+          "line": 32,
+          "function": "services.ingestion.weather_worker:_fetch_weather",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.metrics",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.metrics.noi_snapshot_worker",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_crisp_scored",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_harvest_recorded",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_metric_computed",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.cache.events.handle_sensor_reading",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.events.handlers.handle_alert_notification",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.events.handlers.handle_stale_data",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    },
+    {
+      "kind": "event_handler",
+      "name": "services.ingestion.anomaly_detector.handle_sensor_reading",
+      "candidate_effect_sites": [],
+      "category_counts": {}
+    }
+  ]
+}
