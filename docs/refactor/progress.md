@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Feedback-automation failure containment — 17 October 2026
+
+Evaluation and full-cycle failures now persist and return bounded
+operation/exception-class summaries instead of raw database or decision
+details. Rollback, failed status persistence, commits, and cursor cleanup remain
+intact. Two mocked regressions pass within a 14-test automation suite with Ruff
+and compilation; no database was used
+([evidence](builds/2026-10-17-recovery/feedback-automation-error-redaction.json)).
+
 ### Process-simulation failure containment — 17 October 2026
 
 Failed process-simulation calculations now return a bounded exception-class

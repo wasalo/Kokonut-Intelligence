@@ -227,6 +227,10 @@ Process simulation now returns only an exception-class summary on calculation
 failure while retaining rollback and cancelled lifecycle state; one mocked
 regression passes with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/process-simulation-error-redaction.json)).
+Feedback automation now bounds evaluation and full-cycle errors in both API
+responses and persisted logs while preserving rollback and run-state behavior;
+two new regressions pass within its 14-test suite with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/feedback-automation-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

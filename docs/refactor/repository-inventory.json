@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "104fae55a57864d416738d3478bf7f609453c502",
+  "baseline_commit": "86bc426045633f7badc91631a4e004227e543e20",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2840,6 +2840,7 @@
       ],
       "test_references": [
         "tests/test_feedback_automation.py",
+        "tests/test_feedback_automation_error_redaction.py",
         "tests/test_feedback_controller.py",
         "tests/test_feedback_outcomes.py",
         "tests/test_tactical_layer.py"
@@ -4233,6 +4234,7 @@
     "tests/test_farm_activity_workflow.py",
     "tests/test_farmer_identity.py",
     "tests/test_feedback_automation.py",
+    "tests/test_feedback_automation_error_redaction.py",
     "tests/test_feedback_controller.py",
     "tests/test_feedback_outcomes.py",
     "tests/test_field_validation.py",

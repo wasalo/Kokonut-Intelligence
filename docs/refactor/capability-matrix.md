@@ -362,6 +362,12 @@ rollback and the existing cancelled record state remain intact. One mocked
 regression passes with Ruff and compilation; no database was used
 ([evidence](builds/2026-10-17-recovery/process-simulation-error-redaction.json)).
 
+**17 October 2026 feedback-automation failure containment (CAP-047):** evaluation
+and full-cycle failure summaries are bounded before being returned or stored in
+the automation log. Two mocked regressions pass within a 14-test automation
+suite with Ruff and compilation; no database was used
+([evidence](builds/2026-10-17-recovery/feedback-automation-error-redaction.json)).
+
 **17 October 2026 legacy KML/Shapefile error containment (CAP-040 / CAP-047):**
 parser, per-feature, and file-read failures omit raw coordinate, source-name,
 and driver details while preserving successful-record counts. Three new
