@@ -10,6 +10,14 @@ loading database configuration or SOPS secrets. Three mocked checks pass with
 Ruff and compilation; no database or provider was used
 ([evidence](builds/2026-10-17-recovery/ingestion-status-output-redaction.json)).
 
+### Optional gRPC health error containment — 17 October 2026
+
+Remote gRPC health failures now return a bounded exception class without
+embedding the remote diagnostic, and the channel closes on failure. The 29-test
+gRPC suite passes with Ruff and compilation using a mocked channel/RPC error;
+no endpoint was contacted. Transport security, authentication and tenant
+parity remain open ([evidence](builds/2026-10-17-recovery/grpc-health-error-redaction.json)).
+
 ### EAS reconciliation error containment — 17 October 2026
 
 On-chain attestation reconciliation now places only a fixed verification label

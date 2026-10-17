@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from services.common.errors import safe_exception_class
+
 
 def require_enabled() -> None:
     from services.core.providers import ProviderSettings
@@ -31,6 +33,8 @@ def check_health(target: str) -> int:
             raise RuntimeError(f"Health check returned non-serving status: {response.status}")
         return response.status
     except grpc.RpcError as error:
-        raise RuntimeError(f"Health check failed: {error}") from error
+        raise RuntimeError(
+            f"Health check failed ({safe_exception_class(error)})"
+        ) from error
     finally:
         channel.close()

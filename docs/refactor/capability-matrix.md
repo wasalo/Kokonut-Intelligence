@@ -535,6 +535,13 @@ database or provider was accessed; this improves diagnostic privacy without
 establishing live-source recovery or MAN-CAP acceptance
 ([evidence](builds/2026-10-17-recovery/ingestion-status-output-redaction.json)).
 
+**17 October 2026 gRPC health error containment (CAP-064 / CAP-047):** the
+optional health adapter now returns only the bounded remote exception class,
+and still closes the channel on failure. The 29-test gRPC suite, Ruff, and
+compilation pass with a mocked RPC failure; no endpoint was contacted. This
+does not close TLS, authenticated transport, tenant-scope, or MAN-CAP-064
+acceptance ([evidence](builds/2026-10-17-recovery/grpc-health-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes
