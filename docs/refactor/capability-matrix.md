@@ -349,6 +349,14 @@ One mocked regression passes within 52 attestation/EAS tests with Ruff and
 compilation; no provider or database was contacted
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
 
+**17 October 2026 credit-chain failure containment (CAP-020 / CAP-047):** RPC
+initialization errors omit endpoint details; mint/retirement logs and raised
+errors contain only bounded exception summaries; best-effort issuance returns a
+safe summary; failed balance queries cannot appear as a matching zero balance.
+Five new mocked regressions pass within a 27-test credit-chain/batch suite with
+Ruff and compilation; no database or provider was contacted
+([evidence](builds/2026-10-17-recovery/credit-chain-error-redaction.json)).
+
 **17 October 2026 carbon-retirement chain error containment (CAP-020 / CAP-047):**
 post-confirmation chain-sync failures now return and log bounded exception
 summaries, preserving the independently reviewed, committed retirement and its

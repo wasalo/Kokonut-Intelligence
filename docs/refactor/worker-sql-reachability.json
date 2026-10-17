@@ -1916,9 +1916,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/credit_class/chain_sync.py:176:12",
+      "id": "services/credit_class/chain_sync.py:182:12",
       "source": "services/credit_class/chain_sync.py",
-      "line": 176,
+      "line": 182,
       "scope": "sync_credits_to_chain",
       "method": "execute",
       "expression_kind": "literal",
@@ -1935,9 +1935,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:183:15",
+      "id": "services/credit_class/chain_sync.py:189:15",
       "source": "services/credit_class/chain_sync.py",
-      "line": 183,
+      "line": 189,
       "scope": "sync_credits_to_chain",
       "method": "execute",
       "expression_kind": "literal",
@@ -1954,9 +1954,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:196:22",
+      "id": "services/credit_class/chain_sync.py:202:22",
       "source": "services/credit_class/chain_sync.py",
-      "line": 196,
+      "line": 202,
       "scope": "sync_credits_to_chain",
       "method": "execute",
       "expression_kind": "literal",
@@ -1973,9 +1973,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:226:24",
+      "id": "services/credit_class/chain_sync.py:232:24",
       "source": "services/credit_class/chain_sync.py",
-      "line": 226,
+      "line": 232,
       "scope": "sync_credits_to_chain",
       "method": "execute",
       "expression_kind": "literal",
@@ -1992,9 +1992,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:261:12",
+      "id": "services/credit_class/chain_sync.py:267:12",
       "source": "services/credit_class/chain_sync.py",
-      "line": 261,
+      "line": 267,
       "scope": "sync_credits_to_chain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2011,9 +2011,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:311:17",
+      "id": "services/credit_class/chain_sync.py:322:17",
       "source": "services/credit_class/chain_sync.py",
-      "line": 311,
+      "line": 322,
       "scope": "retire_onchain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2030,9 +2030,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:318:13",
+      "id": "services/credit_class/chain_sync.py:329:13",
       "source": "services/credit_class/chain_sync.py",
-      "line": 318,
+      "line": 329,
       "scope": "retire_onchain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2049,9 +2049,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:325:22",
+      "id": "services/credit_class/chain_sync.py:336:22",
       "source": "services/credit_class/chain_sync.py",
-      "line": 325,
+      "line": 336,
       "scope": "retire_onchain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2068,9 +2068,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:335:16",
+      "id": "services/credit_class/chain_sync.py:346:16",
       "source": "services/credit_class/chain_sync.py",
-      "line": 335,
+      "line": 346,
       "scope": "retire_onchain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2087,9 +2087,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:340:30",
+      "id": "services/credit_class/chain_sync.py:351:30",
       "source": "services/credit_class/chain_sync.py",
-      "line": 340,
+      "line": 351,
       "scope": "retire_onchain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2107,9 +2107,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:364:18",
+      "id": "services/credit_class/chain_sync.py:371:18",
       "source": "services/credit_class/chain_sync.py",
-      "line": 364,
+      "line": 371,
       "scope": "retire_onchain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2126,9 +2126,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:397:8",
+      "id": "services/credit_class/chain_sync.py:404:8",
       "source": "services/credit_class/chain_sync.py",
-      "line": 397,
+      "line": 404,
       "scope": "retire_onchain",
       "method": "execute",
       "expression_kind": "literal",
@@ -2145,9 +2145,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:436:17",
+      "id": "services/credit_class/chain_sync.py:447:17",
       "source": "services/credit_class/chain_sync.py",
-      "line": 436,
+      "line": 447,
       "scope": "verify_chain_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -2164,9 +2164,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:464:23",
+      "id": "services/credit_class/chain_sync.py:474:23",
       "source": "services/credit_class/chain_sync.py",
-      "line": 464,
+      "line": 474,
       "scope": "verify_chain_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -2183,9 +2183,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:510:14",
+      "id": "services/credit_class/chain_sync.py:525:14",
       "source": "services/credit_class/chain_sync.py",
-      "line": 510,
+      "line": 525,
       "scope": "reconcile_all",
       "method": "execute",
       "expression_kind": "literal",
@@ -2202,9 +2202,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:523:23",
+      "id": "services/credit_class/chain_sync.py:538:23",
       "source": "services/credit_class/chain_sync.py",
-      "line": 523,
+      "line": 538,
       "scope": "reconcile_all",
       "method": "execute",
       "expression_kind": "literal",
@@ -2221,9 +2221,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/credit_class/chain_sync.py:533:26",
+      "id": "services/credit_class/chain_sync.py:548:26",
       "source": "services/credit_class/chain_sync.py",
-      "line": 533,
+      "line": 548,
       "scope": "reconcile_all",
       "method": "execute",
       "expression_kind": "literal",

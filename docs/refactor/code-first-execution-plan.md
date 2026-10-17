@@ -194,6 +194,11 @@ bounded summary while preserving the reviewer gate, committed internal state,
 and non-blocking sync; one new mocked regression passes within 53 credit and
 chain-sync tests with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/carbon-retirement-chain-error-redaction.json)).
+Credit batch mint/retirement, RPC initialization, and balance verification
+also omit provider details; query failures cannot be reported as a match, and
+best-effort batch issuance returns a bounded error summary. Five new mocked
+regressions pass within 27 credit-chain/batch tests with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/credit-chain-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

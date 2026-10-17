@@ -1,5 +1,15 @@
 # Kokonut Kernel implementation progress
 
+### Credit-chain failure containment — 17 October 2026
+
+RPC initialization, on-chain mint/retirement, batch-issuance fallback, and
+balance-verification failures now omit endpoint credentials and raw exception
+text. Balance-query failure is explicitly marked and cannot be reported as a
+matching zero balance. Five new mocked regressions pass within a 27-test
+credit-chain/batch suite with Ruff and compilation; no database, RPC endpoint,
+wallet, or contract was contacted
+([evidence](builds/2026-10-17-recovery/credit-chain-error-redaction.json)).
+
 ### Carbon-retirement chain error containment — 17 October 2026
 
 After an independent reviewer confirms and commits a retirement, a non-blocking

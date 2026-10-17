@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "c3dd3e4b1ed53816d312e0d19e5da5fc774414be",
+  "baseline_commit": "c93e31ca76c0fc72825c333906b7ffb57e2a224e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2580,6 +2580,7 @@
         "tests/test_credit_balance.py",
         "tests/test_credit_basket.py",
         "tests/test_credit_batch_manager.py",
+        "tests/test_credit_chain_error_redaction.py",
         "tests/test_credit_chain_sync.py",
         "tests/test_credit_class_manager.py",
         "tests/test_credit_enrollment.py",
@@ -3232,6 +3233,7 @@
         "tests/test_coordination_governance.py",
         "tests/test_coordination_market_cycles.py",
         "tests/test_coordination_strategy.py",
+        "tests/test_credit_chain_error_redaction.py",
         "tests/test_customer_value.py",
         "tests/test_device_manager.py",
         "tests/test_eas_indexer_recovery.py",
@@ -4144,6 +4146,7 @@
     "tests/test_credit_balance.py",
     "tests/test_credit_basket.py",
     "tests/test_credit_batch_manager.py",
+    "tests/test_credit_chain_error_redaction.py",
     "tests/test_credit_chain_sync.py",
     "tests/test_credit_class_manager.py",
     "tests/test_credit_enrollment.py",

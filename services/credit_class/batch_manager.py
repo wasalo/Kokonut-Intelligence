@@ -50,7 +50,7 @@ def create_batch(
     metadata: dict = None,
     created_by: str = None,
 ) -> dict:
-    cc = get_class_with_validation(conn, credit_class_id)
+    get_class_with_validation(conn, credit_class_id)
     batch_code = _generate_batch_code(conn, credit_class_id, location_id, vintage_year)
 
     result = conn.execute(
@@ -114,8 +114,9 @@ def issue_batch(conn, batch_id: str, issuer_address: str) -> dict:
         from services.credit_class.chain_sync import sync_credits_to_chain
         chain_result = sync_credits_to_chain(conn, batch_id)
     except Exception as e:
-        logger.warning("On-chain sync failed for batch %s (non-blocking): %s", batch_id, e)
-        chain_result = {"error": str(e)}
+        safe_error = f"on-chain sync failed ({type(e).__name__})"
+        logger.warning("On-chain sync failed for batch %s (non-blocking; %s)", batch_id, type(e).__name__)
+        chain_result = {"error": safe_error}
 
     logger.info("Issued credit_batch %s (%s)", batch_id, batch["batch_code"])
     return {"id": batch_id, "batch_code": batch["batch_code"], "status": "published",

@@ -148,13 +148,13 @@
         },
         {
           "source": "services/credit_class/chain_sync.py",
-          "line": 14,
+          "line": 13,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/credit_class/chain_sync.py",
-          "line": 106,
+          "line": 105,
           "target": "services.ingestion.config",
           "kind": "from"
         },

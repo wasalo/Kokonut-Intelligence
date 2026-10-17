@@ -202,87 +202,87 @@
         "import_closure_operation_count": 12
       },
       {
-        "site": "services/credit_class/chain_sync.py:176:12",
+        "site": "services/credit_class/chain_sync.py:182:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:183:15",
+        "site": "services/credit_class/chain_sync.py:189:15",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:196:22",
+        "site": "services/credit_class/chain_sync.py:202:22",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:226:24",
+        "site": "services/credit_class/chain_sync.py:232:24",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:261:12",
+        "site": "services/credit_class/chain_sync.py:267:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:311:17",
+        "site": "services/credit_class/chain_sync.py:322:17",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:318:13",
+        "site": "services/credit_class/chain_sync.py:329:13",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:325:22",
+        "site": "services/credit_class/chain_sync.py:336:22",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:335:16",
+        "site": "services/credit_class/chain_sync.py:346:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:340:30",
+        "site": "services/credit_class/chain_sync.py:351:30",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:364:18",
+        "site": "services/credit_class/chain_sync.py:371:18",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:397:8",
+        "site": "services/credit_class/chain_sync.py:404:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:436:17",
+        "site": "services/credit_class/chain_sync.py:447:17",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:464:23",
+        "site": "services/credit_class/chain_sync.py:474:23",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:510:14",
+        "site": "services/credit_class/chain_sync.py:525:14",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:523:23",
+        "site": "services/credit_class/chain_sync.py:538:23",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/credit_class/chain_sync.py:533:26",
+        "site": "services/credit_class/chain_sync.py:548:26",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
