@@ -6,8 +6,8 @@
     "catalog_jobs": 16,
     "allowlisted_modules": 16,
     "outcomes": {
-      "default_arguments_accepted": 8,
-      "required_runtime_inputs_validated": 8
+      "default_arguments_accepted": 7,
+      "required_runtime_inputs_validated": 9
     }
   },
   "jobs": [
@@ -53,9 +53,11 @@
       "job": "eas",
       "module": "services.ingestion.eas_indexer",
       "argument_count": 0,
-      "required_inputs": [],
-      "status": "default_arguments_accepted",
-      "reason": null
+      "required_inputs": [
+        "chain"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
     },
     {
       "job": "freshness",

@@ -25,6 +25,7 @@ def build_job_plan(
     *,
     location_id: str | None = None,
     driver_instance_id: str | None = None,
+    chain: str | None = None,
 ) -> dict:
     """Map a command contract to existing scheduled_task fields, disabled.
 
@@ -37,6 +38,7 @@ def build_job_plan(
     supplied_inputs = {
         "location_id": location_id,
         "driver_instance_id": driver_instance_id,
+        "chain": chain,
     }
     missing_inputs = [
         key for key in spec.required_inputs if supplied_inputs.get(key) is None
@@ -45,10 +47,12 @@ def build_job_plan(
         labels = {
             "location_id": "one location",
             "driver_instance_id": "one driver instance",
+            "chain": "one chain",
         }
         required = " and ".join(labels.get(key, key) for key in missing_inputs)
+        job_label = "EAS" if job_id == "eas" else job_id.replace("_", " ").capitalize()
         raise ValueError(
-            f"{job_id.replace('_', ' ').capitalize()} schedule planning requires {required}"
+            f"{job_label} schedule planning requires {required}"
         )
     unexpected_inputs = [
         key for key, value in supplied_inputs.items()
@@ -66,6 +70,9 @@ def build_job_plan(
         instance = str(UUID(str(driver_instance_id)))
         arguments.extend(("--driver-instance-id", instance))
         name += f"-{instance}"
+    if chain is not None:
+        arguments.extend(("--chain", chain))
+        name += f"-{chain}"
     validate_scheduled_command(spec.module, arguments)
     return {
         "job_id": job_id,

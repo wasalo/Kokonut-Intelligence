@@ -75,7 +75,7 @@
     },
     {
       "module": "services.ingestion.eas_indexer",
-      "scope": "All active tracked wallets on configured chains unless --chain selects one chain.",
+      "scope": "The direct indexer can process all active tracked wallets on configured chains unless --chain selects one chain. Kernel scheduled tasks require exactly one explicit supported --chain; the optional Prefect adapter preserves all three configured chains in Celo-first order.",
       "reads": [
         "public.wallet_profile",
         "public.chain_indexer_status",

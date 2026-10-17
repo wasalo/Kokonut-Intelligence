@@ -178,7 +178,14 @@ def cmd_worker(args):
 def cmd_job_plan(args):
     from services.scheduler.job_plan import build_job_plan
 
-    print_json(build_job_plan(args.job_plan, args.cadence, location_id=args.location_id))
+    print_json(
+        build_job_plan(
+            args.job_plan,
+            args.cadence,
+            location_id=args.location_id,
+            chain=getattr(args, "chain", None),
+        )
+    )
 
 
 def cmd_check_graph(args):
@@ -218,6 +225,7 @@ def main():
     parser.add_argument("--limit", type=int, default=20, help="Max results")
     parser.add_argument("--cadence", choices=["hourly", "every-6h", "daily", "weekly"], default="daily")
     parser.add_argument("--location-id", help="Location UUID for weather or climate job planning")
+    parser.add_argument("--chain", help="Explicit chain for EAS job planning (celo, optimism, or base)")
 
     args = parser.parse_args()
 

@@ -4,13 +4,20 @@ Defines the orchestration DAG for all Kokonut Intelligence workflows.
 """
 
 from services.core.adapters.prefect import flow, task
-from services.core.jobs import JOBS, run_job, run_job_for_kokonut_network_locations
+from services.core.jobs import (
+    JOBS,
+    run_job,
+    run_job_for_eas_chains,
+    run_job_for_kokonut_network_locations,
+)
 
 
 def _dispatch_catalog_job(job_id):
-    """Fan out location-required jobs through the confirmed operating org."""
+    """Fan out scoped jobs only through their explicit catalog adapters."""
     if "location_id" in JOBS[job_id].required_inputs:
         return run_job_for_kokonut_network_locations(job_id)
+    if job_id == "eas":
+        return run_job_for_eas_chains(job_id)
     return run_job(job_id)
 
 

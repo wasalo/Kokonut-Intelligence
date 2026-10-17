@@ -28,6 +28,7 @@ _INPUT_FIXTURES = {
     "driver_instance_id": (
         "--driver-instance-id", "00000000-0000-4000-8000-000000000002",
     ),
+    "chain": ("--chain", "celo"),
 }
 
 

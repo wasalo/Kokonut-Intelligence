@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-16",
+  "scope": "Source-only EAS scheduler contract and optional Prefect flow behavior",
+  "implementation": {
+    "native_job_required_input": "chain",
+    "supported_chains": [
+      "celo",
+      "optimism",
+      "base"
+    ],
+    "native_command_contract": "Exactly one explicit --chain is required; missing, duplicate, or unsupported values are rejected before process creation.",
+    "schedule_plan": "One disabled schedule plan per explicit chain; names include the chain.",
+    "prefect_adapter": "Runs each supported chain sequentially in Celo-first order and preserves the existing three-chain coverage.",
+    "interactive_indexer": "The existing direct CLI multi-chain behavior is unchanged."
+  },
+  "checks": {
+    "command": "python3 -m pytest tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py tests/test_prefect_workflow.py -q",
+    "result": "passed",
+    "passed_tests": 142,
+    "ruff": "passed for all changed Python files",
+    "python_compilation": "passed",
+    "capability_matrix_structure": "passed; 66 rows, existing status totals unchanged",
+    "job_contract_inventory": "regenerated and current"
+  },
+  "runtime_probe": {
+    "command": "python3 -m services.scheduler.cli --job-plan eas --cadence every-6h --chain celo",
+    "result": "returned a disabled plan named kernel-eas-every-6h-celo with command_args [--chain, celo]",
+    "activation_ready": false,
+    "schedule_enabled": false,
+    "missing_chain_probe": {
+      "command": "python3 -m services.scheduler.cli --job-plan eas --cadence every-6h",
+      "result": "exit 1: Error: EAS schedule planning requires one chain",
+      "database_accessed": false
+    }
+  },
+  "isolation": {
+    "subprocesses_mocked_in_tests": true,
+    "chain_endpoints_contacted": false,
+    "database_contacted": false,
+    "persisted_tasks_changed": false,
+    "prefect_deployment_changed": false,
+    "candidate_or_legacy_stack_changed": false
+  },
+  "remaining_gates": [
+    "Verify cursor/finality and late-attestation reconciliation per chain.",
+    "Verify duplicate and reorg behavior against isolated fixtures.",
+    "Reconcile persisted task rows and external Prefect schedules before any cutover.",
+    "Complete named MAN-CAP-018 and MAN-CAP-047 acceptance separately."
+  ]
+}

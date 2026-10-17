@@ -11,7 +11,10 @@ from types import MappingProxyType
 
 from services.common.worker_environment import worker_subprocess_environment
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
-from services.security.scheduled_command_contracts import validate_scheduled_command
+from services.security.scheduled_command_contracts import (
+    EAS_SCHEDULE_CHAINS,
+    validate_scheduled_command,
+)
 
 
 @dataclass(frozen=True)
@@ -62,7 +65,15 @@ JOBS = MappingProxyType(
         "market_data": JobSpec(
             "services.ingestion.market_data", ("--source", "world_bank"), 600, 2, 600, "Market data ingestion"
         ),
-        "eas": JobSpec("services.ingestion.eas_indexer", (), 120, 3, 60, "EAS indexing"),
+        "eas": JobSpec(
+            "services.ingestion.eas_indexer",
+            (),
+            120,
+            3,
+            60,
+            "EAS indexing",
+            required_inputs=("chain",),
+        ),
         "rpc": JobSpec("services.ingestion.rpc_indexer", (), 300, 3, 120, "RPC indexing"),
         "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
         "anomaly": JobSpec(
@@ -141,6 +152,7 @@ def run_job(
     *,
     location_id: str | None = None,
     driver_instance_id: str | None = None,
+    chain: str | None = None,
 ) -> dict[str, str]:
     """Invoke one known operation; never accept arbitrary modules or arguments.
 
@@ -152,6 +164,7 @@ def run_job(
     supplied_inputs = {
         "location_id": location_id,
         "driver_instance_id": driver_instance_id,
+        "chain": chain,
     }
     missing_inputs = [
         key for key in spec.required_inputs if supplied_inputs.get(key) is None
@@ -160,9 +173,11 @@ def run_job(
         labels = {
             "location_id": "a location",
             "driver_instance_id": "a driver instance",
+            "chain": "a chain",
         }
+        job_label = "EAS indexing" if job_id == "eas" else job_id.replace("_", " ").capitalize()
         raise ValueError(
-            f"{job_id.replace('_', ' ').capitalize()} refresh requires "
+            f"{job_label} refresh requires "
             f"{' and '.join(labels.get(key, key) for key in missing_inputs)}"
         )
     unexpected_inputs = [
@@ -182,6 +197,8 @@ def run_job(
         from uuid import UUID
 
         arguments.extend(("--driver-instance-id", str(UUID(str(driver_instance_id)))))
+    if chain is not None:
+        arguments.extend(("--chain", chain))
     if spec.scheduler_allowed:
         validate_scheduled_command(spec.module, arguments)
     result = subprocess.run(
@@ -194,6 +211,24 @@ def run_job(
     if result.returncode != 0:
         raise JobFailed(spec.label, result)
     return {"status": "success", "output": result.stdout[-500:]}
+
+
+def run_job_for_eas_chains(job_id: str = "eas") -> dict:
+    """Run supported EAS chains one at a time, with Celo as the primary chain.
+
+    This preserves the optional Prefect adapter's historical multi-chain
+    coverage while ensuring each child command has an explicit chain scope.
+    The native Kernel scheduler plans one chain per disabled task.
+    """
+    spec = JOBS[job_id]
+    if spec.required_inputs != ("chain",):
+        raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not chain-scoped")
+
+    results = [
+        {"chain": chain, **run_job(job_id, chain=chain)}
+        for chain in EAS_SCHEDULE_CHAINS
+    ]
+    return {"status": "success", "chains_processed": len(results), "results": results}
 
 
 def kokonut_network_location_ids() -> list[str]:

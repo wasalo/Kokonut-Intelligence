@@ -65,6 +65,18 @@ def test_ingestion_pipeline_skips_source_less_sensor_job_and_waits_for_other_job
     assert all(future.result.call_count == 1 for future in futures.values())
 
 
+def test_eas_flow_preserves_multi_chain_adapter():
+    from unittest.mock import patch
+
+    from services.flows.eas_indexer import eas_indexing_flow
+
+    expected = {"status": "success", "chains_processed": 3}
+    with patch("services.flows.eas_indexer.run_job_for_eas_chains", return_value=expected) as run:
+        assert eas_indexing_flow.fn() == expected
+
+    run.assert_called_once_with()
+
+
 def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() -> None:
     from unittest.mock import patch
 
@@ -204,6 +216,22 @@ def test_pipeline_dispatch_routes_required_location_jobs_through_owner_fanout() 
 
     assert result == {"status": "success"}
     fanout.assert_called_once_with("weather")
+    run_job.assert_not_called()
+
+
+def test_pipeline_dispatch_scopes_eas_to_explicit_chains():
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.pipelines.run_job_for_eas_chains", return_value={"status": "success"}) as eas,
+        patch("services.flows.pipelines.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("eas")
+
+    assert result == {"status": "success"}
+    eas.assert_called_once_with("eas")
     run_job.assert_not_called()
 
 

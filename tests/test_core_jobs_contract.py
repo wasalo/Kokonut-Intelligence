@@ -6,30 +6,40 @@ from unittest.mock import patch
 
 import pytest
 
-from services.core.jobs import JOBS, JobFailed, run_job
+from services.core.jobs import JOBS, JobFailed, run_job, run_job_for_eas_chains
 
 _LOCATION_ID = "a9aa6466-0754-4b7c-b20c-155a81134eaa"
-_DISPATCHES = [
-    (job_id, _LOCATION_ID if "location_id" in JOBS[job_id].required_inputs else None)
-    for job_id in JOBS
-    if job_id != "sensors"
-]
 
 
-@pytest.mark.parametrize(("job_id", "location_id"), _DISPATCHES)
-def test_job_dispatch_uses_catalog_interpreter_arguments_and_timeout(job_id, location_id):
+def _job_inputs(job_id):
+    required = JOBS[job_id].required_inputs
+    inputs = {}
+    if "location_id" in required:
+        inputs["location_id"] = _LOCATION_ID
+    if "chain" in required:
+        inputs["chain"] = "celo"
+    return inputs
+
+
+_DISPATCHES = [(job_id, _job_inputs(job_id)) for job_id in JOBS if job_id != "sensors"]
+
+
+@pytest.mark.parametrize(("job_id", "job_inputs"), _DISPATCHES)
+def test_job_dispatch_uses_catalog_interpreter_arguments_and_timeout(job_id, job_inputs):
     spec = JOBS[job_id]
     completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="complete", stderr="")
     expected_argv = [sys.executable, "-m", spec.module, *spec.arguments]
-    if location_id is not None:
-        expected_argv.extend(("--location-id", location_id))
+    if "location_id" in job_inputs:
+        expected_argv.extend(("--location-id", job_inputs["location_id"]))
+    if "chain" in job_inputs:
+        expected_argv.extend(("--chain", job_inputs["chain"]))
 
     child_env = {"PATH": "/synthetic/bin"}
     with (
         patch("services.core.jobs.worker_subprocess_environment", return_value=child_env),
         patch("services.core.jobs.subprocess.run", return_value=completed) as run,
     ):
-        result = run_job(job_id, location_id=location_id)
+        result = run_job(job_id, **job_inputs)
 
     run.assert_called_once_with(
         expected_argv,
@@ -79,6 +89,53 @@ def test_remote_sensing_dispatch_requires_one_location_before_subprocess():
             run_job("remote_sensing")
 
     run.assert_not_called()
+
+
+def test_eas_dispatch_requires_one_explicit_chain_before_subprocess():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="EAS indexing refresh requires a chain"):
+            run_job("eas")
+
+    run.assert_not_called()
+
+
+def test_eas_dispatch_rejects_unsupported_chain_before_subprocess():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="EAS chain is not supported"):
+            run_job("eas", chain="ethereum")
+
+    run.assert_not_called()
+
+
+def test_eas_multi_chain_adapter_runs_celo_first_with_explicit_scope():
+    from unittest.mock import call
+
+    results = [
+        {"status": "success", "output": chain}
+        for chain in ("celo", "optimism", "base")
+    ]
+    with patch("services.core.jobs.run_job", side_effect=results) as run:
+        result = run_job_for_eas_chains()
+
+    assert run.call_args_list == [
+        call("eas", chain="celo"),
+        call("eas", chain="optimism"),
+        call("eas", chain="base"),
+    ]
+    assert result == {
+        "status": "success",
+        "chains_processed": 3,
+        "results": [
+            {"chain": "celo", **results[0]},
+            {"chain": "optimism", **results[1]},
+            {"chain": "base", **results[2]},
+        ],
+    }
+
+
+def test_eas_chain_adapter_rejects_unrelated_job():
+    with pytest.raises(ValueError, match="not chain-scoped"):
+        run_job_for_eas_chains("weather")
 
 
 def test_nonzero_job_exit_retains_return_code_and_bounded_output():

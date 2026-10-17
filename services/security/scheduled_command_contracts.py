@@ -16,6 +16,10 @@ from services.security.execution_allowlist import (
     validate_scheduled_module,
 )
 
+# Celo is Kokonut's primary EAS chain. The remaining supported networks stay
+# available as explicit, separately scoped indexing operations.
+EAS_SCHEDULE_CHAINS = ("celo", "optimism", "base")
+
 
 class ScheduledCommandRejected(ValueError):
     """A scheduled command violates its module-specific operation contract."""
@@ -120,7 +124,7 @@ def _validate_value(kind: str, value: str) -> None:
         if value not in {"world_bank", "seed"}:
             raise _reject("market data source is not supported")
     elif kind == "eas_chain":
-        if value not in {"optimism", "base", "celo"}:
+        if value not in EAS_SCHEDULE_CHAINS:
             raise _reject("EAS chain is not supported")
     elif kind == "rpc_chain":
         if value not in {"ethereum", "optimism", "base", "arbitrum", "celo", "gnosis"}:
@@ -176,6 +180,9 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
 
     if module_path == "services.ingestion.weather" and "--location-id" not in options:
         raise _reject("weather ingestion requires one explicit location")
+
+    if module_path == "services.ingestion.eas_indexer" and options != {"--chain"}:
+        raise _reject("scheduled EAS indexing requires one explicit chain")
 
     if module_path == "services.ingestion.weather_forecast" and options != {"--location-id"}:
         raise _reject("weather forecast ingestion requires one explicit location")
