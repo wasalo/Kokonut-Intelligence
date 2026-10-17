@@ -295,6 +295,13 @@ exception classes, retaining the prior false-result behavior. Two new mocked
 checks pass within the 64-test actuator/anomaly suite with Ruff; no broker was
 contacted ([evidence](builds/2026-10-17-recovery/mqtt-actuator-error-redaction.json)).
 
+**17 October 2026 shared ingestion error containment (CAP-047):** owned
+connection failures in the canonical ingestion audit and indexer-status
+helpers now log only exception classes; caller-owned errors still propagate,
+and owned connections still close. Two mocked regressions pass with Ruff; no
+database was contacted
+([evidence](builds/2026-10-17-recovery/ingestion-base-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

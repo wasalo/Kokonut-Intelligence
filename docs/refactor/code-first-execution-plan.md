@@ -3,10 +3,10 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch — 17 October 2026:** Commit
-`f432b933e95c763f30adec131eb660ee4921a1f4` includes sanitized failure handling
-for remote sensing, EAS, the ClickHouse outbox, subgraph, RPC, and Baal indexers,
-with refreshed inventories and regression evidence. Security #135 passed and
-CI #411 is in progress. The previous pushed batch `5bb7457d` corrected the two stale
+`1820faae86ae0a42236eafe5686d399f146d8349` includes sanitized failure handling
+for remote sensing, EAS, the ClickHouse outbox, subgraph, RPC, Baal, weather,
+GEE climate, freshness, MQTT/HTTP sensor, and anomaly/actuator paths. Security
+#136 passed and CI #412 is pending. The previous pushed batch `5bb7457d` corrected the two stale
 CI #408 contracts; affected climate-worker/oracle modules pass 43 tests locally
 ([CI #408 evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
 CI #406 exposed stale generated line references in the report-generator
@@ -154,6 +154,10 @@ anomaly/IoT suite with Ruff; no delivery service or database was contacted
 publish failures now log only exception classes. Two new mocked checks pass in
 the 64-test actuator/anomaly suite with Ruff; no broker or database was
 contacted ([evidence](builds/2026-10-17-recovery/mqtt-actuator-error-redaction.json)).
+**Current local shared-ingestion follow-up — 17 October 2026:** owned-connection
+audit and indexer-status write failures now log only exception classes.
+Caller-owned errors still propagate; owned connections close. Two mocked checks
+pass with Ruff ([evidence](builds/2026-10-17-recovery/ingestion-base-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

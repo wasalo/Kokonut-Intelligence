@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-17",
+  "scope": "Shared ingestion audit and indexer-status failure logging",
+  "behavior": {
+    "audit_fallback": "Owned-connection ingestion audit failures log only the exception class and remain best-effort.",
+    "status_fallback": "Owned-connection indexer-status failures log only the exception class and remain best-effort.",
+    "cleanup": "Owned connections still close on both failure paths; caller-owned connection failures still propagate."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_ingestion_base_error_redaction.py -q",
+    "result": "2 passed",
+    "coverage": [
+      "secret-bearing audit insert error is redacted and owned connection closes",
+      "secret-bearing indexer-status error is redacted and owned connection closes"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_access": "none; fake connection only"
+  },
+  "limitations": [
+    "No database or provider was contacted.",
+    "Caller-owned database errors continue to propagate to the caller unchanged."
+  ]
+}

@@ -1,5 +1,13 @@
 # Kokonut Kernel implementation progress
 
+### Shared ingestion fallback error containment — 17 October 2026
+
+The shared ingestion audit and indexer-status helpers now report only
+exception classes if their owned-connection writes fail. Existing best-effort
+behavior, caller-owned error propagation, and owned connection cleanup remain
+unchanged. Two mocked regressions pass with Ruff; no database was contacted
+([evidence](builds/2026-10-17-recovery/ingestion-base-error-redaction.json)).
+
 ### MQTT actuator error containment — 17 October 2026
 
 Direct actuator MQTT client-creation and publish failures now log only the

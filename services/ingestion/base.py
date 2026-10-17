@@ -178,7 +178,7 @@ def log_ingestion(
     except Exception as e:
         if not owns_db:
             raise
-        logger.error("Failed to log ingestion: %s", e)
+        logger.error("Failed to log ingestion (%s)", type(e).__name__)
     finally:
         if owns_db and db is not None:
             db.close()
@@ -224,7 +224,7 @@ def update_indexer_status(
     except Exception as e:
         if not owns_db:
             raise
-        logger.error("Failed to update indexer status: %s", e)
+        logger.error("Failed to update indexer status (%s)", type(e).__name__)
     finally:
         if owns_db and db is not None:
             db.close()

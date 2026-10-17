@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "b2d54bca94579f3946d45dcf44e56976ad2713b4",
+  "baseline_commit": "1820faae86ae0a42236eafe5686d399f146d8349",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3250,6 +3250,7 @@
         "tests/test_governance_tensions.py",
         "tests/test_harvest_url_safety.py",
         "tests/test_http_sensor_error_redaction.py",
+        "tests/test_ingestion_base_error_redaction.py",
         "tests/test_ingestion_outbox_producers.py",
         "tests/test_ingestion_retry.py",
         "tests/test_iot_sensor_push.py",
@@ -4265,6 +4266,7 @@
     "tests/test_impact_office_integrity.py",
     "tests/test_impact_value_chain.py",
     "tests/test_improvement_tracker.py",
+    "tests/test_ingestion_base_error_redaction.py",
     "tests/test_ingestion_outbox_producers.py",
     "tests/test_ingestion_reliability.py",
     "tests/test_ingestion_retry.py",
