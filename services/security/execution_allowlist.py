@@ -29,6 +29,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.market_data",
         "services.ingestion.market_data_worker",
         "services.ingestion.eas_indexer",
+        "services.ingestion.eas_worker",
         "services.ingestion.rpc_indexer",
         "services.ingestion.sensor_ingester",
         "services.ingestion.sensor_worker",

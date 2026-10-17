@@ -35,6 +35,7 @@ _SCHEDULED_MODULE_WORKERS = {
     "services.ingestion.weather_forecast_worker": "weather_forecast",
     "services.ingestion.climate_worker": "climate",
     "services.ingestion.market_data_worker": "market_data",
+    "services.ingestion.eas_worker": "eas_indexer",
     "services.ingestion.sensor_worker": "sensor_ingestion",
     "services.ingestion.remote_sensing_worker": "remote_sensing",
 }

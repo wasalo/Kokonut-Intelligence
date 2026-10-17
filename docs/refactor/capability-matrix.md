@@ -107,6 +107,21 @@ MAN-CAP acceptance is not claimed
 [tests](../../tests/test_eas_indexer_recovery.py);
 [disposable evidence](builds/2026-10-16-recovery/eas-recipient-cursor-disposable.json)).
 
+**17 October 2026 isolated EAS scheduled worker (CAP-040 / CAP-047):** native
+Kernel EAS work now has a default-off worker identity and bounded migration 433
+functions. The dedicated login has no direct application-table privileges;
+forced-RLS disposable PostgreSQL 16 checks pass for recipient lookup, cursor
+advance, attestation plus outbox atomicity, replay suppression, status audit,
+and migration replay. Prefect intentionally stays on the legacy entrypoint
+until the worker feature and credentials are provisioned. Migration 433 has
+not been applied to the candidate, no worker login or grant is enabled, and no
+EAS endpoint or persisted schedule was used. Existing task reconciliation,
+offset-pagination movement, earlier-arrival recovery, provider parity, and
+live runtime acceptance remain open ([worker](../../services/ingestion/eas_worker.py);
+[migration](../../schemas/postgres/433_isolated_eas_indexer.sql);
+[disposable runner](../../scripts/check-eas-indexer-worker-disposable.py);
+[evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json)).
+
 **16 October 2026 market-data provider recovery (CAP-040 / CAP-047):** World
 Bank download and unusable-response errors now fail before PostgreSQL opens;
 reference seed rows have a separate source key, and price rows plus their

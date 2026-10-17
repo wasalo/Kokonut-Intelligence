@@ -1,0 +1,9 @@
+{
+  "migration": 433,
+  "checks": [
+    "migration 433 applies and replays on the isolated EAS schema fixture",
+    "the EAS login has no direct table grants; forced RLS stays enabled",
+    "recipient lookup, cursor advancement, attestation/outbox atomicity, duplicate replay, and status audit pass under forced RLS",
+    "direct relation access and runtime execution of EAS worker functions are denied"
+  ]
+}

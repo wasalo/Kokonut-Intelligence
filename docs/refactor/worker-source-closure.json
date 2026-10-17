@@ -1723,7 +1723,8 @@
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
         "services.ingestion.config",
-        "services.ingestion.eas_indexer"
+        "services.ingestion.eas_indexer",
+        "services.ingestion.eas_provider"
       ],
       "source_files": [
         "services/common/cli.py",
@@ -1738,7 +1739,8 @@
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
         "services/ingestion/config.py",
-        "services/ingestion/eas_indexer.py"
+        "services/ingestion/eas_indexer.py",
+        "services/ingestion/eas_provider.py"
       ],
       "local_import_edges": [
         {
@@ -1858,25 +1860,158 @@
         {
           "source": "services/ingestion/eas_indexer.py",
           "line": 18,
-          "target": "services.common.http",
-          "kind": "from"
-        },
-        {
-          "source": "services/ingestion/eas_indexer.py",
-          "line": 20,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/eas_indexer.py",
-          "line": 21,
+          "line": 19,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/eas_indexer.py",
-          "line": 22,
+          "line": 20,
           "target": "services.ingestion.clickhouse_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_indexer.py",
+          "line": 21,
+          "target": "services.ingestion.eas_provider",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_provider.py",
+          "line": 5,
+          "target": "services.common.http",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.eas_worker",
+      "root_modules": [
+        "services.ingestion.eas_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.http",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.features",
+        "services.core.providers",
+        "services.ingestion.eas_provider",
+        "services.ingestion.eas_worker"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/eas_provider.py",
+        "services/ingestion/eas_worker.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 23,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 7,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 9,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 180,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_provider.py",
+          "line": 5,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_worker.py",
+          "line": 12,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_worker.py",
+          "line": 13,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_worker.py",
+          "line": 15,
+          "target": "services.ingestion.eas_provider",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/eas_worker.py",
+          "line": 19,
+          "target": "services.ingestion.eas_provider",
           "kind": "from"
         }
       ],

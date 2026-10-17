@@ -162,6 +162,52 @@ def test_market_data_login_requires_its_paired_secret_and_distinct_function_owne
         )
 
 
+def test_eas_indexer_login_requires_its_paired_secret_and_distinct_function_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="EAS-indexer user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            eas_indexer_user="kokonut_eas_indexer_login",
+        )
+    with pytest.raises(ValueError, match="differ from the EAS-indexer function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            eas_indexer_user="kokonut_eas_indexer_owner",
+            eas_indexer_password="e" * 32,
+        )
+
+
+def test_eas_indexer_login_uses_only_its_bounded_database_functions():
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/433_isolated_eas_indexer.sql"
+    ).read_text()
+    runtime_source = (
+        Path(__file__).resolve().parents[1]
+        / "services/migration/runtime_role.py"
+    ).read_text()
+
+    assert len(runtime_role._EAS_INDEXER_FUNCTIONS) == 7
+    assert set(runtime_role._EAS_INDEXER_FUNCTIONS) <= set(runtime_role._PRIVATE_RUNTIME_FUNCTIONS)
+    assert all(
+        (function, "kokonut_eas_indexer_owner") in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._EAS_INDEXER_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_eas_indexer_login'" in migration
+    assert "EAS-indexer login retains direct relation privileges" in runtime_source
+    assert "runtime role can execute EAS-indexer worker functions" in runtime_source
+
+
 def test_market_data_function_is_private_and_owned_by_its_bounded_role():
     migration = (
         Path(__file__).resolve().parents[1]

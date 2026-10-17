@@ -161,6 +161,28 @@ def test_scheduled_market_data_worker_receives_only_its_named_database_url():
     }
 
 
+def test_scheduled_eas_worker_receives_only_its_named_database_url():
+    source = {
+        "KOKONUT_EAS_INDEXER_DATABASE_URL": "postgresql://eas-indexer-worker",
+        "KOKONUT_MARKET_DATA_DATABASE_URL": "postgresql://market-data-worker",
+        "PG_HOST": "database",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "POSTGRES_PASSWORD": "database-admin-secret",
+    }
+    module = "services.ingestion.eas_worker"
+    worker_key = scheduled_module_worker_key(module)
+
+    assert worker_key == "eas_indexer"
+    assert worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_EAS_INDEXER_DATABASE_URL": "postgresql://eas-indexer-worker",
+    }
+
+
 def test_scheduled_sensor_worker_receives_only_its_named_credentials():
     source = {
         "KOKONUT_SENSOR_INGESTION_DATABASE_URL": "postgresql://sensor-worker",

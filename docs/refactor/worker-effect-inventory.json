@@ -4,9 +4,9 @@
   "reviewed": "2026-10-16",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 30,
+    "operation_roots": 31,
     "candidate_effect_sites": 36,
-    "operation_site_memberships": 45,
+    "operation_site_memberships": 46,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 6,
@@ -22,7 +22,7 @@
       "evm_client_setup": 4,
       "evm_rpc": 3,
       "filesystem": 8,
-      "http": 21,
+      "http": 22,
       "process": 1
     }
   },
@@ -253,15 +253,31 @@
           "call": "services.common.http.http.post"
         },
         {
-          "source": "services/ingestion/eas_indexer.py",
-          "line": 83,
-          "function": "services.ingestion.eas_indexer:query_eas",
+          "source": "services/ingestion/eas_provider.py",
+          "line": 61,
+          "function": "services.ingestion.eas_provider:execute_eas_query",
           "category": "http",
           "call": "services.common.http.http.post"
         }
       ],
       "category_counts": {
         "http": 2
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.eas_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/eas_provider.py",
+          "line": 61,
+          "function": "services.ingestion.eas_provider:execute_eas_query",
+          "category": "http",
+          "call": "services.common.http.http.post"
+        }
+      ],
+      "category_counts": {
+        "http": 1
       }
     },
     {

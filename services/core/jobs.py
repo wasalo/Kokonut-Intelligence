@@ -13,6 +13,7 @@ from services.common.worker_environment import (
     scheduled_module_worker_key,
     worker_subprocess_environment,
 )
+from services.core.features import is_enabled
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
 from services.security.scheduled_command_contracts import (
     EAS_SCHEDULE_CHAINS,
@@ -70,12 +71,21 @@ JOBS = MappingProxyType(
             "services.ingestion.market_data_worker", (), 600, 2, 600, "Market data ingestion"
         ),
         "eas": JobSpec(
-            "services.ingestion.eas_indexer",
+            "services.ingestion.eas_worker",
             (),
             120,
             3,
             60,
             "EAS indexing",
+            required_inputs=("chain",),
+        ),
+        "eas_legacy": JobSpec(
+            "services.ingestion.eas_indexer",
+            (),
+            120,
+            3,
+            60,
+            "EAS indexing (legacy compatibility)",
             required_inputs=("chain",),
         ),
         "rpc": JobSpec(
@@ -165,8 +175,9 @@ class JobFailed(RuntimeError):
         super().__init__(f"{label} failed: {result.stderr}")
 
 
-def run_job(
+def _run_job_spec(
     job_id: str,
+    spec: JobSpec,
     *,
     location_id: str | None = None,
     driver_instance_id: str | None = None,
@@ -177,7 +188,6 @@ def run_job(
     Explicit invocation is separate from database-driven scheduler authorization.
     Metrics remain draft and credit checks do not confirm retirements.
     """
-    spec = JOBS[job_id]
     arguments = list(spec.arguments)
     supplied_inputs = {
         "location_id": location_id,
@@ -238,6 +248,23 @@ def run_job(
     return {"status": "success", "output": result.stdout[-500:]}
 
 
+def run_job(
+    job_id: str,
+    *,
+    location_id: str | None = None,
+    driver_instance_id: str | None = None,
+    chain: str | None = None,
+) -> dict[str, str]:
+    """Invoke one known operation through its canonical JobSpec."""
+    return _run_job_spec(
+        job_id,
+        JOBS[job_id],
+        location_id=location_id,
+        driver_instance_id=driver_instance_id,
+        chain=chain,
+    )
+
+
 def run_job_for_indexing_chains(job_id: str) -> dict:
     """Run supported EAS or RPC chains as separately scoped child commands.
 
@@ -248,13 +275,25 @@ def run_job_for_indexing_chains(job_id: str) -> dict:
         "eas": EAS_SCHEDULE_CHAINS,
         "rpc": RPC_SCHEDULE_CHAINS,
     }
-    spec = JOBS[job_id]
     chains = chains_by_job.get(job_id)
+    spec = JOBS[job_id]
     if chains is None or spec.required_inputs != ("chain",):
         raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not chain-scoped")
 
+    # Prefect remains an optional compatibility adapter. Until the isolated
+    # EAS database role is provisioned and its feature enabled, its historical
+    # flow continues through the original direct CLI. Native Kernel plans use
+    # the default-off isolated worker in JOBS["eas"].
+    dispatch_job_id = job_id
+    if job_id == "eas" and not is_enabled("isolated_eas_indexer_worker"):
+        dispatch_job_id = "eas_legacy"
+        spec = JOBS[dispatch_job_id]
+
     results = [
-        {"chain": chain, **run_job(job_id, chain=chain)}
+        {
+            "chain": chain,
+            **_run_job_spec(dispatch_job_id, spec, chain=chain),
+        }
         for chain in chains
     ]
     return {"status": "success", "chains_processed": len(results), "results": results}

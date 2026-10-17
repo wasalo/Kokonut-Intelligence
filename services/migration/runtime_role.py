@@ -49,6 +49,15 @@ _NOTIFICATION_ENQUEUE_FUNCTION = (
 _MARKET_DATA_FUNCTION = (
     "kokonut_security.store_world_bank_market_data(jsonb,text,text,integer)"
 )
+_EAS_INDEXER_FUNCTIONS = (
+    "kokonut_security.acquire_eas_indexer_chain_lock(text)",
+    "kokonut_security.release_eas_indexer_chain_lock(text)",
+    "kokonut_security.list_eas_indexer_recipients(text)",
+    "kokonut_security.read_eas_indexer_cursor(text,uuid)",
+    "kokonut_security.store_eas_indexer_page(text,uuid,jsonb)",
+    "kokonut_security.advance_eas_indexer_cursor(text,uuid,bigint)",
+    "kokonut_security.finish_eas_indexer_chain(text,text,text,integer,integer,text)",
+)
 _SENSOR_INGESTION_FUNCTIONS = (
     "kokonut_security.resolve_sensor_driver_instance(uuid,uuid)",
     "kokonut_security.read_sensor_driver_catalog(uuid)",
@@ -98,6 +107,7 @@ _SECURITY_DEFINER_OWNERS = (
     (_WORKER_SCOPE_FUNCTION, "kokonut_worker_context_owner"),
     (_NOTIFICATION_ENQUEUE_FUNCTION, "kokonut_notification_enqueue_owner"),
     (_MARKET_DATA_FUNCTION, "kokonut_market_data_owner"),
+    *((function, "kokonut_eas_indexer_owner") for function in _EAS_INDEXER_FUNCTIONS),
     *(
         (function, "kokonut_sensor_ingestion_owner")
         for function in _SENSOR_INGESTION_FUNCTIONS
@@ -120,6 +130,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _WORKER_SCOPE_FUNCTION,
     _NOTIFICATION_ENQUEUE_FUNCTION,
     _MARKET_DATA_FUNCTION,
+    *_EAS_INDEXER_FUNCTIONS,
     *_SENSOR_INGESTION_FUNCTIONS,
     *_REMOTE_SENSING_FUNCTIONS,
 )
@@ -725,6 +736,8 @@ def provision_runtime_role(
     notification_enqueue_password: str | None = None,
     market_data_user: str | None = None,
     market_data_password: str | None = None,
+    eas_indexer_user: str | None = None,
+    eas_indexer_password: str | None = None,
     sensor_ingestion_user: str | None = None,
     sensor_ingestion_password: str | None = None,
     remote_sensing_user: str | None = None,
@@ -744,7 +757,8 @@ def provision_runtime_role(
     switch to the worker execution role only to call the signed, bounded sensor
     driver functions from migration 431. When configured, the remote-sensing
     login can switch to that role only to call migration 432's signed bounded
-    claim and completion functions.
+    claim and completion functions. When configured, the global EAS login can
+    execute only the bounded chain and attestation functions from migration 433.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -753,6 +767,8 @@ def provision_runtime_role(
         raise ValueError("notification enqueue user and password must be provided together")
     if (market_data_user is None) != (market_data_password is None):
         raise ValueError("market-data user and password must be provided together")
+    if (eas_indexer_user is None) != (eas_indexer_password is None):
+        raise ValueError("EAS-indexer user and password must be provided together")
     if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
         raise ValueError("sensor-ingestion user and password must be provided together")
     if (remote_sensing_user is None) != (remote_sensing_password is None):
@@ -765,6 +781,11 @@ def provision_runtime_role(
     market_data_ident = (
         _role_identifier(market_data_user, "market_data_user")
         if market_data_user is not None
+        else None
+    )
+    eas_indexer_ident = (
+        _role_identifier(eas_indexer_user, "eas_indexer_user")
+        if eas_indexer_user is not None
         else None
     )
     sensor_ingestion_ident = (
@@ -782,6 +803,8 @@ def provision_runtime_role(
         role_names.append(notification_enqueue_user)
     if market_data_user is not None:
         role_names.append(market_data_user)
+    if eas_indexer_user is not None:
+        role_names.append(eas_indexer_user)
     if sensor_ingestion_user is not None:
         role_names.append(sensor_ingestion_user)
     if remote_sensing_user is not None:
@@ -790,13 +813,15 @@ def provision_runtime_role(
         raise ValueError("application logins must differ from the notification function owner")
     if "kokonut_market_data_owner" in role_names:
         raise ValueError("application logins must differ from the market-data function owner")
+    if "kokonut_eas_indexer_owner" in role_names:
+        raise ValueError("application logins must differ from the EAS-indexer function owner")
     if "kokonut_sensor_ingestion_owner" in role_names:
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if "kokonut_remote_sensing_owner" in role_names:
         raise ValueError("application logins must differ from the remote-sensing function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, market-data, sensor-ingestion, and remote-sensing roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, market-data, EAS-indexer, sensor-ingestion, and remote-sensing roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -808,6 +833,8 @@ def provision_runtime_role(
         credential_pairs.append(("notification_enqueue_password", notification_enqueue_password))
     if market_data_password is not None:
         credential_pairs.append(("market_data_password", market_data_password))
+    if eas_indexer_password is not None:
+        credential_pairs.append(("eas_indexer_password", eas_indexer_password))
     if sensor_ingestion_password is not None:
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     if remote_sensing_password is not None:
@@ -820,6 +847,8 @@ def provision_runtime_role(
         passwords.append(notification_enqueue_password)
     if market_data_password is not None:
         passwords.append(market_data_password)
+    if eas_indexer_password is not None:
+        passwords.append(eas_indexer_password)
     if sensor_ingestion_password is not None:
         passwords.append(sensor_ingestion_password)
     if remote_sensing_password is not None:
@@ -830,6 +859,7 @@ def provision_runtime_role(
         raise ValueError("database name is required")
 
     market_data_database_access: dict[str, bool] = {}
+    eas_indexer_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
     remote_sensing_database_access: dict[str, bool] = {}
     conn.autocommit = True
@@ -892,6 +922,16 @@ def provision_runtime_role(
             if cur.fetchone()[0] is None:
                 raise RuntimeError(
                     "migration 430 market-data function must be applied before "
+                    "provisioning its dedicated login"
+                )
+        if eas_indexer_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _EAS_INDEXER_FUNCTIONS),
+                _EAS_INDEXER_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 433 EAS-indexer functions must be applied before "
                     "provisioning its dedicated login"
                 )
         if sensor_ingestion_user is not None:
@@ -1029,6 +1069,50 @@ def provision_runtime_role(
                     sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
                 )
             )
+        if eas_indexer_user is not None:
+            assert eas_indexer_ident is not None and eas_indexer_password is not None
+            _ensure_login_role(
+                cur,
+                name=eas_indexer_user,
+                identifier=eas_indexer_ident,
+                password=eas_indexer_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=eas_indexer_user,
+                identifier=eas_indexer_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), eas_indexer_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), eas_indexer_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(eas_indexer_ident)
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    eas_indexer_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    eas_indexer_ident
+                )
+            )
+            for function in _EAS_INDEXER_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), eas_indexer_ident
+                    )
+                )
         if sensor_ingestion_user is not None:
             assert sensor_ingestion_ident is not None and sensor_ingestion_password is not None
             _ensure_login_role(
@@ -1145,6 +1229,8 @@ def provision_runtime_role(
             protected_login_idents.append(enqueue_ident)
         if market_data_ident is not None:
             protected_login_idents.append(market_data_ident)
+        if eas_indexer_ident is not None:
+            protected_login_idents.append(eas_indexer_ident)
         if sensor_ingestion_ident is not None:
             protected_login_idents.append(sensor_ingestion_ident)
         if remote_sensing_ident is not None:
@@ -1253,6 +1339,35 @@ def provision_runtime_role(
                     sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
                 )
             )
+        if eas_indexer_ident is not None:
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), eas_indexer_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), eas_indexer_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    eas_indexer_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    eas_indexer_ident
+                )
+            )
+            for function in _EAS_INDEXER_FUNCTIONS:
+                cur.execute(
+                    sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                        sql.SQL(function), eas_indexer_ident
+                    )
+                )
         if sensor_ingestion_ident is not None:
             for object_kind in ("TABLES", "SEQUENCES"):
                 cur.execute(
@@ -1810,6 +1925,100 @@ def provision_runtime_role(
             )
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute market-data worker function")
+        if eas_indexer_user is not None:
+            _verify_role_attributes(cur, eas_indexer_user)
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in _EAS_INDEXER_FUNCTIONS
+                ),
+                tuple(
+                    value
+                    for function in _EAS_INDEXER_FUNCTIONS
+                    for value in (eas_indexer_user, function)
+                ),
+            )
+            if cur.fetchone() != (True,) * len(_EAS_INDEXER_FUNCTIONS):
+                raise RuntimeError("EAS-indexer login is missing one of its bounded functions")
+            cur.execute(
+                "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
+                (eas_indexer_user, eas_indexer_user),
+            )
+            if cur.fetchone() != (True, False):
+                raise RuntimeError("EAS-indexer login has unsafe security schema privileges")
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_class AS relation
+                         JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND (
+                            has_table_privilege(%s, relation.oid, 'SELECT')
+                            OR has_table_privilege(%s, relation.oid, 'INSERT')
+                            OR has_table_privilege(%s, relation.oid, 'UPDATE')
+                            OR has_table_privilege(%s, relation.oid, 'DELETE')
+                            OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+                            OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+                            OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+                            OR has_any_column_privilege(%s, relation.oid, 'SELECT')
+                            OR has_any_column_privilege(%s, relation.oid, 'INSERT')
+                            OR has_any_column_privilege(%s, relation.oid, 'UPDATE')
+                            OR has_any_column_privilege(%s, relation.oid, 'REFERENCES')
+                          )
+                   )""",
+                (eas_indexer_user,) * 11,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("EAS-indexer login retains direct relation privileges")
+            cur.execute(
+                """SELECT procedure.oid::regprocedure::text
+                     FROM pg_proc AS procedure
+                     JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+                    WHERE namespace.nspname IN ('public', 'kokonut_security')
+                      AND procedure.prosecdef
+                      AND procedure.oid <> ALL(ARRAY[
+                          to_regprocedure(%s), to_regprocedure(%s), to_regprocedure(%s),
+                          to_regprocedure(%s), to_regprocedure(%s), to_regprocedure(%s),
+                          to_regprocedure(%s)
+                      ])
+                      AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
+                    LIMIT 1""",
+                (*_EAS_INDEXER_FUNCTIONS, eas_indexer_user),
+            )
+            unexpected_function = cur.fetchone()
+            if unexpected_function is not None:
+                raise RuntimeError(
+                    "EAS-indexer login can execute another SECURITY DEFINER function: "
+                    f"{unexpected_function[0]}"
+                )
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1 FROM pg_class AS sequence
+                       JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
+                        WHERE namespace.nspname = 'public' AND sequence.relkind = 'S'
+                          AND (has_sequence_privilege(%s, sequence.oid, 'USAGE')
+                               OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
+                               OR has_sequence_privilege(%s, sequence.oid, 'UPDATE'))
+                   )""",
+                (eas_indexer_user,) * 3,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("EAS-indexer login retains application sequence privileges")
+            cur.execute(
+                "SELECT " + " OR ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in _EAS_INDEXER_FUNCTIONS
+                ),
+                tuple(
+                    value
+                    for function in _EAS_INDEXER_FUNCTIONS
+                    for value in (runtime_user, function)
+                ),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("runtime role can execute EAS-indexer worker functions")
 
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
@@ -1848,6 +2057,7 @@ def provision_runtime_role(
                 )
         for function in (
             *_PRIVATE_RUNTIME_FUNCTIONS,
+            *_EAS_INDEXER_FUNCTIONS,
             *_SENSOR_INGESTION_FUNCTIONS,
             *_REMOTE_SENSING_FUNCTIONS,
         ):
@@ -1902,6 +2112,17 @@ def provision_runtime_role(
             market_data_database_access = {name: allowed for name, allowed in cur.fetchall()}
             if any(allowed != (name == database) for name, allowed in market_data_database_access.items()):
                 raise RuntimeError("market-data login must connect only to its configured database")
+        if eas_indexer_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (eas_indexer_user,),
+            )
+            eas_indexer_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in eas_indexer_database_access.items()):
+                raise RuntimeError("EAS-indexer login must connect only to its configured database")
         if sensor_ingestion_user is not None:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
@@ -1932,12 +2153,14 @@ def provision_runtime_role(
         "operator_auth_user": operator_auth_user,
         "notification_enqueue_user": notification_enqueue_user,
         "market_data_user": market_data_user,
+        "eas_indexer_user": eas_indexer_user,
         "sensor_ingestion_user": sensor_ingestion_user,
         "remote_sensing_user": remote_sensing_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
         "market_data_connect_grants": market_data_database_access,
+        "eas_indexer_connect_grants": eas_indexer_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "remote_sensing_connect_grants": remote_sensing_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
@@ -1964,6 +2187,7 @@ def provision_runtime_role(
         "operator_auth_owns_relations": False,
         "notification_enqueue_owns_relations": False,
         "market_data_owns_relations": False,
+        "eas_indexer_owns_relations": False,
         "sensor_ingestion_owns_relations": False,
         "remote_sensing_owns_relations": False,
     }
@@ -1987,6 +2211,10 @@ def main() -> int:
         "KOKONUT_MARKET_DATA_USER", "kokonut_market_data_login"
     )
     market_data_password = os.environ.get("KOKONUT_MARKET_DATA_PASSWORD", "")
+    eas_indexer_user = os.environ.get(
+        "KOKONUT_EAS_INDEXER_USER", "kokonut_eas_indexer_login"
+    )
+    eas_indexer_password = os.environ.get("KOKONUT_EAS_INDEXER_PASSWORD", "")
     sensor_ingestion_user = os.environ.get(
         "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
     )
@@ -2026,6 +2254,8 @@ def main() -> int:
             ),
             market_data_user=market_data_user if market_data_password else None,
             market_data_password=market_data_password if market_data_password else None,
+            eas_indexer_user=eas_indexer_user if eas_indexer_password else None,
+            eas_indexer_password=eas_indexer_password if eas_indexer_password else None,
             sensor_ingestion_user=(
                 sensor_ingestion_user if sensor_ingestion_password else None
             ),

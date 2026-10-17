@@ -18,6 +18,7 @@ _WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 _WORKER_LOGINS = {
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "market_data": "kokonut_market_data_login",
+    "eas_indexer": "kokonut_eas_indexer_login",
     "sensor_ingestion": "kokonut_sensor_ingestion_login",
     "remote_sensing": "kokonut_remote_sensing_login",
 }

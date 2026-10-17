@@ -155,13 +155,16 @@ def test_eas_multi_chain_adapter_runs_celo_first_with_explicit_scope():
         {"status": "success", "output": chain}
         for chain in ("celo", "optimism", "base")
     ]
-    with patch("services.core.jobs.run_job", side_effect=results) as run:
+    with (
+        patch("services.core.jobs.is_enabled", return_value=False),
+        patch("services.core.jobs._run_job_spec", side_effect=results) as run,
+    ):
         result = run_job_for_eas_chains()
 
     assert run.call_args_list == [
-        call("eas", chain="celo"),
-        call("eas", chain="optimism"),
-        call("eas", chain="base"),
+        call("eas_legacy", JOBS["eas_legacy"], chain="celo"),
+        call("eas_legacy", JOBS["eas_legacy"], chain="optimism"),
+        call("eas_legacy", JOBS["eas_legacy"], chain="base"),
     ]
     assert result == {
         "status": "success",
@@ -184,10 +187,12 @@ def test_rpc_multi_chain_adapter_preserves_all_configured_networks():
 
     chains = ("ethereum", "optimism", "base", "arbitrum", "celo", "celo-alfajores", "gnosis")
     results = [{"status": "success", "output": chain} for chain in chains]
-    with patch("services.core.jobs.run_job", side_effect=results) as run:
+    with patch("services.core.jobs._run_job_spec", side_effect=results) as run:
         result = run_job_for_rpc_chains()
 
-    assert run.call_args_list == [call("rpc", chain=chain) for chain in chains]
+    assert run.call_args_list == [
+        call("rpc", JOBS["rpc"], chain=chain) for chain in chains
+    ]
     assert result["status"] == "success"
     assert result["chains_processed"] == len(chains)
     assert [item["chain"] for item in result["results"]] == list(chains)

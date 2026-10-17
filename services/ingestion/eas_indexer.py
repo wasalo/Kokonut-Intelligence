@@ -15,87 +15,28 @@ import json
 import time
 from datetime import datetime, timezone
 
-from services.common.http import http
-
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry, update_indexer_status
 from .clickhouse_outbox import OutboxEnqueueError, enqueue
+from .eas_provider import (
+    ATTESTATIONS_BY_RECIPIENT,
+    EAS_ENDPOINTS,
+    execute_eas_query,
+)
 
 logger = get_logger("ingestion.eas")
-
-# EAS GraphQL endpoints per chain
-EAS_ENDPOINTS = {
-    "optimism": "https://optimism.easscan.org",
-    "base": "https://base.easscan.org",
-    "celo": "https://celo.easscan.org",
-}
-
-# GraphQL queries
-ATTESTATIONS_BY_RECIPIENT = """
-query GetAttestations($recipient: String!, $after: Int!) {
-    attestations(
-        where: { recipient: { equals: $recipient } }
-        orderBy: { time: desc }
-        take: 100
-        skip: $after
-    ) {
-        id
-        txid
-        schema { id schema }
-        attester
-        recipient
-        data
-        time
-        timeCreated
-        revocable
-        revoked
-        expirationTime
-    }
-}
-"""
-
-SCHEMAS_BY_CREATOR = """
-query GetSchemas($creator: String!, $after: Int!) {
-    schemata(
-        where: { creator: { equals: $creator } }
-        orderBy: { time: desc }
-        take: 100
-        skip: $after
-    ) {
-        id
-        schema
-        creator
-        resolver
-        revocable
-        time
-        txid
-    }
-}
-"""
 
 
 @retry(max_retries=3, backoff=2.0)
 def query_eas(chain: str, query: str, variables: dict) -> dict:
     """Execute GraphQL query against EAS."""
-    endpoint = EAS_ENDPOINTS.get(chain)
-    if not endpoint:
-        raise ValueError(f"No EAS endpoint configured for chain: {chain}")
-    resp = http.post(
-        f"{endpoint}/graphql",
-        json={"query": query, "variables": variables},
-        timeout=30,
-        headers={"Content-Type": "application/json"},
-    )
-    resp.raise_for_status()
-    return resp.json().get("data", {})
+    return execute_eas_query(chain, query, variables)
 
 
 def insert_attestation(db, att: dict, chain: str) -> str:
     """Insert EAS attestation into PostgreSQL."""
     attestation_uid = att["id"]
-    block_ts = datetime.fromtimestamp(
-        int(att.get("time", 0)), tz=timezone.utc
-    ).isoformat()
+    block_ts = datetime.fromtimestamp(int(att.get("time", 0)), tz=timezone.utc).isoformat()
 
     with db.cursor() as cur:
         # Check if schema exists, create if not
@@ -132,16 +73,19 @@ def insert_attestation(db, att: dict, chain: str) -> str:
             RETURNING id
             """,
             (
-                schema_id, attestation_uid,
+                schema_id,
+                attestation_uid,
                 "wallet",
-                json.dumps({
-                    "attester": att.get("attester"),
-                    "recipient": att.get("recipient"),
-                    "data": att.get("data"),
-                    "revocable": att.get("revocable"),
-                    "revoked": att.get("revoked"),
-                    "expiration_time": att.get("expirationTime"),
-                }),
+                json.dumps(
+                    {
+                        "attester": att.get("attester"),
+                        "recipient": att.get("recipient"),
+                        "data": att.get("data"),
+                        "revocable": att.get("revocable"),
+                        "revoked": att.get("revoked"),
+                        "expiration_time": att.get("expirationTime"),
+                    }
+                ),
                 "rejected" if att.get("revoked") else "published",
                 att.get("txid", ""),
                 chain,
@@ -159,26 +103,53 @@ def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
     attester = att.get("attester", "")
     recipient = att.get("recipient", "")
 
-    block_ts = datetime.fromtimestamp(
-        int(att.get("time", 0)), tz=timezone.utc
-    ).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+    block_ts = datetime.fromtimestamp(int(att.get("time", 0)), tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
-    columns = ["timestamp", "attestation_uid", "schema_uid", "chain", "attester", "recipient",
-               "subject_type", "status", "revoked", "metadata"]
-    rows = [[block_ts, attestation_uid, schema_uid, chain, attester, recipient,
-             "wallet", status, att.get("revoked", False), {}]]
+    columns = [
+        "timestamp",
+        "attestation_uid",
+        "schema_uid",
+        "chain",
+        "attester",
+        "recipient",
+        "subject_type",
+        "status",
+        "revoked",
+        "metadata",
+    ]
+    rows = [
+        [
+            block_ts,
+            attestation_uid,
+            schema_uid,
+            chain,
+            attester,
+            recipient,
+            "wallet",
+            status,
+            att.get("revoked", False),
+            {},
+        ]
+    ]
     try:
         if conn is not None:
             payload_hash = hash_payload(att)
-            enqueue(conn, event_key=f"attestation:attestation_events:{attestation_uid}",
-                    source_table="attestation_record", source_id=attestation_uid,
-                    target_table="attestation_events", columns=columns, rows=rows,
-                    payload_hash=payload_hash)
+            enqueue(
+                conn,
+                event_key=f"attestation:attestation_events:{attestation_uid}",
+                source_table="attestation_record",
+                source_id=attestation_uid,
+                target_table="attestation_events",
+                columns=columns,
+                rows=rows,
+                payload_hash=payload_hash,
+            )
             return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows(
             "attestation_events",
-            columns, rows,
+            columns,
+            rows,
         )
     except Exception as e:
         if conn is not None:
@@ -210,9 +181,7 @@ def get_last_attestation_time(db, chain: str, wallet_id: str) -> int:
     return int(row[0]) if row and row[0] else 0
 
 
-def advance_attestation_cursor(
-    db, chain: str, wallet_id: str, last_attestation_time: int
-) -> None:
+def advance_attestation_cursor(db, chain: str, wallet_id: str, last_attestation_time: int) -> None:
     """Advance one recipient cursor without allowing a regression."""
     with db.cursor() as cur:
         cur.execute(
@@ -255,9 +224,7 @@ def run(chain: str = None):
 
         # Get wallet addresses to track
         with db.cursor() as cur:
-            cur.execute(
-                "SELECT id, address, chain FROM wallet_profile WHERE is_active = true"
-            )
+            cur.execute("SELECT id, address, chain FROM wallet_profile WHERE is_active = true")
             wallets = cur.fetchall()
 
         wallet_map = {}
@@ -293,10 +260,14 @@ def run(chain: str = None):
                     offset = 0
 
                     while True:
-                        data = query_eas(c, ATTESTATIONS_BY_RECIPIENT, {
-                            "recipient": w_addr,
-                            "after": offset,
-                        })
+                        data = query_eas(
+                            c,
+                            ATTESTATIONS_BY_RECIPIENT,
+                            {
+                                "recipient": w_addr,
+                                "after": offset,
+                            },
+                        )
 
                         attestations = data.get("attestations", [])
                         if not attestations:
@@ -327,9 +298,7 @@ def run(chain: str = None):
 
                         time.sleep(0.5)
 
-                    advance_attestation_cursor(
-                        db, c, w_id, wallet_max_attestation_time
-                    )
+                    advance_attestation_cursor(db, c, w_id, wallet_max_attestation_time)
                     with db.cursor() as cur:
                         cur.execute("RELEASE SAVEPOINT eas_wallet_index")
                     total_inserted += wallet_inserted
@@ -375,10 +344,7 @@ def run(chain: str = None):
 
         db.commit()
         if failed_chains:
-            raise RuntimeError(
-                "EAS indexing incomplete for chain(s): "
-                + ", ".join(failed_chains)
-            )
+            raise RuntimeError("EAS indexing incomplete for chain(s): " + ", ".join(failed_chains))
         logger.info("Done")
     finally:
         db.close()

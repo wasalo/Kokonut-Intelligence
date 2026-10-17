@@ -161,6 +161,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated database login and bounded function for global World Bank price ingestion",
     },
+    "isolated_eas_indexer_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_EAS_INDEXER_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded functions for global EAS attestation indexing",
+    },
     "signed_sensor_ingestion_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER", "false").lower() == "true",
         "critical": False,

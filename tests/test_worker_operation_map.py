@@ -151,6 +151,8 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     weather_forecasts = scheduled["services.ingestion.weather_forecast_worker"]
     legacy_market_data = scheduled["services.ingestion.market_data"]
     market_data = scheduled["services.ingestion.market_data_worker"]
+    legacy_eas = scheduled["services.ingestion.eas_indexer"]
+    eas_worker = scheduled["services.ingestion.eas_worker"]
     legacy_sensor = scheduled["services.ingestion.sensor_ingester"]
     sensor = scheduled["services.ingestion.sensor_worker"]
 
@@ -206,6 +208,16 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "default-off" in market_data["scope"]
     assert "bounded batch function" in market_data["scope"]
     assert "feature remains off" in market_data["retry_boundary"]
+    assert "require exactly one explicit supported --chain" in legacy_eas["scope"]
+    assert eas_worker["worker_key"] == "eas_indexer"
+    assert "default-off global worker" in eas_worker["scope"].lower()
+    assert "does not establish a location tenant context" in eas_worker["scope"]
+    assert eas_worker["reads"] == ["public.wallet_profile", "public.eas_indexer_cursor"]
+    assert "public.attestation_record" in eas_worker["writes"]
+    assert "public.clickhouse_outbox" in eas_worker["writes"]
+    assert "migration 433" in eas_worker["idempotency"].lower()
+    assert "feature remains off" in eas_worker["retry_boundary"].lower()
+    assert "schemas/postgres/433_isolated_eas_indexer.sql" in eas_worker["sources"]
     assert "previously persisted tasks" in legacy_sensor["scope"]
     assert sensor["worker_key"] == "sensor_ingestion"
     assert "signed sensor_driver/ingest grant" in sensor["scope"]

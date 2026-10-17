@@ -54,6 +54,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--year": "year",
     },
     "services.ingestion.eas_indexer": {"--chain": "eas_chain"},
+    "services.ingestion.eas_worker": {"--chain": "eas_chain"},
     "services.ingestion.rpc_indexer": {
         "--chain": "rpc_chain",
         "--wallet": "wallet",
@@ -228,7 +229,7 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         if options - {"--location-id", "--limit"}:
             raise _reject("signed remote-sensing ingestion accepts one location and an optional bounded limit")
 
-    if module_path == "services.ingestion.eas_indexer" and options != {"--chain"}:
+    if module_path in {"services.ingestion.eas_indexer", "services.ingestion.eas_worker"} and options != {"--chain"}:
         raise _reject("scheduled EAS indexing requires one explicit chain")
 
     if module_path == "services.ingestion.rpc_indexer":

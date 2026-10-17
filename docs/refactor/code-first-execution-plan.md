@@ -2,28 +2,38 @@
 
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed acceptance batch — 17 October 2026:** Commit
-`a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema
-ARM64 app execution under QEMU with a 1 GiB/two-CPU app and a 1.5 GiB/two-CPU
-native-AMD64 database. The app stayed healthy, `/health` returned 200, and an
-anonymous protected read returned 401. The single resource sample is not a
-capacity benchmark or physical Raspberry Pi result. Security #126 is in progress
-and CI #402 is pending at the latest GitHub check.
+**Latest pushed batch before this work — 17 October 2026:** Commit
+`ba8762aada28854b7bc93821f77a6abac893bcf9` refreshed worker SQL reachability
+evidence on the PR branch. Security #127 passed; CI #403 was still running at
+the latest check. The preceding ARM64 acceptance commit
+`a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema app
+execution under QEMU with a 1 GiB/two-CPU app and a 1.5 GiB/two-CPU native
+AMD64 database; health returned 200 and an anonymous protected read returned
+401. That single resource sample is not a capacity benchmark or physical
+Raspberry Pi result.
 
-**Current local source-inventory follow-on — 17 October 2026:** Refreshed the
-worker source closure, function graph, SQL reachability and execution inventory,
-worker effects, and whole-service SQL inventory. The current graph covers 30
-operation roots and 90 source files; 73 SQL sites still lack a static function
-path, and the worker boundary preflight remains `review_required`. A new
-regression records the source-defined GEE climate SQL template dispatcher as an
-unknown dynamic site while confirming its four literal templates use bound
-values. All seven focused worker inventory/contract suites pass (45 tests), and
-Ruff, generated `--check` commands, capability-matrix validation, JSON parsing,
-and `git diff --check` pass. No database, provider, or credential was accessed
-for this inventory follow-on. The checklist remains 442 complete / 20 open; the
-66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with no
-accepted MAN-CAP checks ([ARM64 evidence](builds/2026-10-17-recovery/arm64-resource-limited-current-schema.json);
-[inventory evidence](builds/2026-10-17-recovery/worker-sql-inventory-refresh.json)).
+**Current code-first batch — 17 October 2026:** Native scheduled EAS
+indexing now routes through a default-off isolated worker and dedicated login.
+Migration 433 adds bounded chain lock, recipient, cursor, page/outbox, and status
+functions; the login has no direct table privileges and the protocol data is
+global, so the worker does not assert a location tenant context. The EAS
+GraphQL contract is extracted from the shared-database legacy module so the
+isolated child can start with shared PostgreSQL settings stripped. The 277-test
+focused EAS/scheduler/runtime-role/source-map suite, Ruff, compilation,
+generated worker/runtime inventories, and disposable PostgreSQL 16 forced-RLS
+and migration-replay check pass. No candidate migration, worker credential,
+persisted task, or live EAS endpoint was used. The candidate remains at
+migration 432; feature and grants stay off. Task reconciliation, provider
+pagination/recovery parity, live runtime acceptance, and MAN-CAP acceptance
+remain open ([migration](../../schemas/postgres/433_isolated_eas_indexer.sql);
+[worker](../../services/ingestion/eas_worker.py);
+[provider contract](../../services/ingestion/eas_provider.py);
+[disposable evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json)).
+The prior source-inventory batch refreshed the worker source closure, function
+graph, SQL reachability and execution inventory, worker effects, and whole-
+service SQL inventory; the graph covers 30 operation roots and 90 source files,
+73 SQL sites still lack a static function path, and the worker boundary
+preflight remains `review_required` ([inventory evidence](builds/2026-10-17-recovery/worker-sql-inventory-refresh.json)).
 **Previous pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
 **Previous functional batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
 
