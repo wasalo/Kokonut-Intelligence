@@ -10,14 +10,16 @@ global notification enqueue handlers. Signed cache invalidation and isolated
 notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
 bootstrap enforce the mobile/worker ACL boundary. Default-off signed workers now
 cover NOI snapshot, current weather, five-day forecasts, climate summaries,
-CSV sensor ingestion, and remote sensing through migrations 425–432. The global market-data worker
+CSV sensor ingestion, remote sensing, and EAS indexing through migrations
+425–433. The global market-data worker
 has its own isolated login/function boundary in migration 430. Forced-RLS
 disposable PostgreSQL 16 acceptance includes the sensor and remote-sensing
-workers. Production credentials and candidate rollout remain open. See the
+workers. Production credentials remain open; migration 433 is applied on the
+local candidate, while all isolated worker features remain default-off. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 23 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
+the exact 24 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -43,8 +45,8 @@ application-wide RLS or proof for other workers.
   The `data_stale` and `threshold_breached` handlers can opt into a distinct
   notification-enqueue login and bounded function. That path also remains off
   by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned, and migrations 405–432 have not
-  been rolled out to the candidate.
+  credential or location grant is provisioned. Migrations through 433 have
+  been rolled out to the candidate, but the worker features remain disabled.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
   code-owned job runs, and subprocess creation.
@@ -85,8 +87,8 @@ application-wide RLS or proof for other workers.
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
   command/request protocol rather than a local function call. Across 31
-  operation roots and 92 source files, entry functions reach 624 function
-  memberships through 850 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  operation roots and 92 source files, entry functions reach 625 function
+  memberships through 852 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use

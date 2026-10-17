@@ -3,9 +3,11 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch — 17 October 2026:** Commit
-`e8d895a1797c64fe400c403972c878a59d804464` includes the candidate migration 433
-rollout and EAS provider/cursor hardening. Security #131 passed; CI #407 is in
-progress. CI #406 exposed stale generated line references in the report-generator
+`4f5be68d42070e8cb9cd8be465d11d5b008832da` adds freshness-alert containment,
+current worker/runtime inventory refresh, fail-closed EAS timestamp bounds,
+and explicit EAS cursor replay to the prior candidate migration 433 rollout
+and EAS provider/cursor hardening. Security #132 passed; CI #408 is pending.
+CI #406 exposed stale generated line references in the report-generator
 helper-scope inventory; the artifact was regenerated and its exact local check
 passes. Earlier the ARM64 acceptance commit
 `a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema app
@@ -50,12 +52,13 @@ saved cursor without lowering it; zero remains the default. Five focused
 replay/argument checks pass. This does not recover arrivals beyond a requested
 interval or close concurrent offset-page movement ([timestamp evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json);
 [replay evidence](builds/2026-10-17-recovery/eas-explicit-replay-lookback.json)).
-**Local code-first follow-up — 17 October 2026:** the legacy freshness-alert
+**Code-first follow-up — 17 October 2026:** the legacy freshness-alert
 sender now closes webhook responses on success and failure, retains only an
 HTTP status or exception class for webhook/SMTP failures, and preserves the last
 known alert state when a database measurement fails. Thirty-three focused tests
 pass with Ruff and compilation; no destination or database was contacted. This
-follow-up is local and not included in the current PR run ([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
+follow-up is included in pushed commit `4f5be68d` and awaits hosted CI
+([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
 [state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
 **Current code-first follow-up — 17 October 2026:** scheduled worker import
 paths now remain usable with shared PostgreSQL settings stripped. An internal
