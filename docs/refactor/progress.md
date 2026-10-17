@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### ClickHouse fallback error containment — 17 October 2026
+
+The demo-only EAS, Gnosis, and remote-sensing ClickHouse projection fallbacks
+now log only exception classes. Transaction-backed outbox failures still
+propagate to their transaction owners. Four new mocked regressions pass within
+63 outbox/indexer/worker tests with Ruff and compilation; no service or
+provider was contacted
+([evidence](builds/2026-10-17-recovery/clickhouse-fallback-error-redaction.json)).
+
 ### Sensor-ingestion error containment — 17 October 2026
 
 Legacy CSV sensor processing now avoids putting raw timestamps, numeric cells,

@@ -487,7 +487,7 @@ def insert_dlego_clickhouse(record: dict, conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse dlego insert failed: %s", e)
+        logger.warning("ClickHouse dlego insert failed (%s)", type(e).__name__)
 
 
 def insert_activity_clickhouse(record: dict, conn=None) -> None:
@@ -536,7 +536,7 @@ def insert_activity_clickhouse(record: dict, conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 DECODE_MAP = {

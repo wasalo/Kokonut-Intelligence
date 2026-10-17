@@ -154,7 +154,7 @@ def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def get_last_attestation_time(db, chain: str, wallet_id: str) -> int:

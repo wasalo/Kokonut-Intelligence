@@ -3,10 +3,14 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch — 17 October 2026:** Commit
-`1820faae86ae0a42236eafe5686d399f146d8349` includes sanitized failure handling
-for remote sensing, EAS, the ClickHouse outbox, subgraph, RPC, Baal, weather,
-GEE climate, freshness, MQTT/HTTP sensor, and anomaly/actuator paths. Security
-#136 passed and CI #412 is pending. The previous pushed batch `5bb7457d` corrected the two stale
+`0e0cda53614895a4a106a194a4e1c3e63598c628` batches four local error-redaction
+commits after `1820faae`, covering shared ingestion, Yahoo Finance/Oracle price
+sync, EAS price attestation, and legacy CSV sensor ingestion. The wider branch
+also contains the earlier remote-sensing, EAS, ClickHouse outbox, subgraph,
+RPC, Baal, weather, GEE climate, freshness, MQTT/HTTP sensor, and
+anomaly/actuator containment work. Security #137 passed and CI #413 is pending;
+CI #412 was still in progress on the previous head at the last check. The
+previous pushed batch `5bb7457d` corrected the two stale
 CI #408 contracts; affected climate-worker/oracle modules pass 43 tests locally
 ([CI #408 evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
 CI #406 exposed stale generated line references in the report-generator
@@ -173,6 +177,10 @@ details from logs/audit, while retaining rollback and canonical projection
 failure propagation. Four new mocked regressions pass in an 88-test
 sensor/driver/outbox suite with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/sensor-ingester-error-redaction.json)).
+Demo-only EAS, Gnosis, and remote-sensing ClickHouse fallbacks now log only
+exception classes, while connection-backed outbox errors still propagate.
+Four new mocked regressions pass within 63 outbox/indexer/worker tests with
+Ruff and compilation ([evidence](builds/2026-10-17-recovery/clickhouse-fallback-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

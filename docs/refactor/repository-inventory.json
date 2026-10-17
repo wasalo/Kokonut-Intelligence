@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "fcdf061a2807fbd9bbb1796c668d4663d7ee1b63",
+  "baseline_commit": "0e0cda53614895a4a106a194a4e1c3e63598c628",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -4104,6 +4104,7 @@
     "tests/test_cli.py",
     "tests/test_cli_registry.py",
     "tests/test_clickhouse_failure_injection.py",
+    "tests/test_clickhouse_fallback_error_redaction.py",
     "tests/test_clickhouse_outbox.py",
     "tests/test_climate_data.py",
     "tests/test_climate_data_cli_scope.py",

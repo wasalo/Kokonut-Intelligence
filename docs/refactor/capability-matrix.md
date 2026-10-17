@@ -327,6 +327,13 @@ pass within an 88-test sensor/driver/outbox suite with Ruff and compilation; no
 live source or service was contacted
 ([evidence](builds/2026-10-17-recovery/sensor-ingester-error-redaction.json)).
 
+**17 October 2026 ClickHouse fallback error containment (CAP-040 / CAP-047):**
+demo-only EAS, Gnosis dLEGO/activity, and remote-sensing fallbacks now log only
+exception classes; transaction-backed outbox failures continue to propagate.
+Four new mocked regressions pass within 63 outbox/indexer/worker tests with
+Ruff and compilation. No database, ClickHouse service, or provider was used
+([evidence](builds/2026-10-17-recovery/clickhouse-fallback-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

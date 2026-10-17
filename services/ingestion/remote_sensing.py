@@ -185,7 +185,7 @@ def insert_clickhouse(record: dict, conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def run(file_path: str, location_id: str = None, *, all_locations: bool = False):
