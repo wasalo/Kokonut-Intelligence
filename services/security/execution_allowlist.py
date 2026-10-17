@@ -18,6 +18,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
     {
         "services.analytics.carbon_credit_adjustment_check",
         "services.ingestion.weather",
+        "services.ingestion.weather_forecast",
         "services.ingestion.market_data",
         "services.ingestion.eas_indexer",
         "services.ingestion.rpc_indexer",

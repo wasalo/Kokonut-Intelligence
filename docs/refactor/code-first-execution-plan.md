@@ -378,17 +378,17 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-  [worker operation map](worker-operation-map.md) inventories all 15 scheduled
+  [worker operation map](worker-operation-map.md) inventories all 16 scheduled
   modules and seven event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
-   open. The source-only effect index now records 33 unique direct effect sites
-  (36 operation/site memberships) across 22 worker roots. The scheduled carbon
+   open. The source-only effect index now records 35 unique direct effect sites
+  (38 operation/site memberships) across 23 worker roots. The scheduled carbon
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
-  covers 15 shared JobSpecs: eight no-input defaults pass, while anomaly,
-  climate, weather, metrics, credit adjustment, and remote sensing require a
+  covers 16 shared JobSpecs: eight no-input defaults pass, while anomaly,
+  climate, weather, weather forecast, metrics, credit adjustment, and remote sensing require a
   schema-validated location per scheduled task; scheduled sensor ingestion now requires one location-bound registered driver
   instance; no active source instance or schedule has been configured.
   The manual sensor CLI now requires a canonical `--location-id` for reads and
@@ -435,8 +435,8 @@ before protected reads and writes, and make direct database access fail closed.
    and proved a table/sequence created after provisioning is inaccessible to
    the runtime login. A new whole-services SQL inventory covers all 807 Python
    source files and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The current generated inventory covers 3,863
-   SQL execution sites across 815 source files, including 268 worker-linked
+   names without becoming an ACL. The current generated inventory covers 3,894
+   SQL execution sites across 815 source files, including 289 worker-linked
    sites; literal query wrappers are unwrapped while parameter values remain
    unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and
@@ -716,6 +716,21 @@ and 402 pass against an isolated synthetic PostgreSQL fixture. The candidate now
 policies were configured ([migration](../../schemas/postgres/402_retention_policy_scope_codes.sql);
 [scope evidence](builds/2026-10-15-recovery/retention-policy-scope-source-checks.json);
 [database evidence](builds/2026-10-15-recovery/retention-policy-disposable.json)).
+
+**Location-scoped scheduled forecast — 16 October 2026:** the shared job
+catalog now exposes the repository's five-day weather-forecast ingestion as a
+separate optional JobSpec. Its command contract requires exactly one location
+UUID and rejects aggregate mode; generated plans remain disabled and
+non-overlapping. Forecast inserts use the existing natural-key upsert, audit
+record, and same-transaction ClickHouse outbox boundary. The current worker map
+and source/function/SQL/effect inventories now include this root. The focused
+scheduler and worker-inventory suites pass 154 checks; forecast rollback,
+explicit-scope, and outbox regressions pass 43 checks, with Ruff clean. All
+provider/database boundaries are mocked; no schedule, API key, database, or
+provider was activated. The location selector is not tenant authorization;
+signed worker context, per-location grant, credentials, cadence, and live
+provider parity remain open ([evidence](builds/2026-10-16-recovery/weather-forecast-scheduled-job-contract.json);
+[source contract](worker-job-contract-inventory.json); [schedule inventory](schedule-ownership-inventory.md)).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and

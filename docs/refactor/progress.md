@@ -1,5 +1,25 @@
 # Kokonut Kernel implementation progress
 
+### Location-scoped scheduled weather forecast — 16 October 2026
+
+The five-day forecast importer now has a separate native `weather_forecast`
+JobSpec. Its command schema accepts exactly one location UUID and rejects the
+aggregate option; planned tasks remain disabled and non-overlapping. The
+forecast's existing natural-key upsert, ingestion audit, and ClickHouse outbox
+share the caller transaction. The worker map, source closure, function graph,
+SQL inventories, effects inventory, and boundary preflight were regenerated;
+the current source graph covers 16 scheduled modules and seven handler pairs.
+
+The scheduler/worker-inventory suite passes 154 tests; forecast scope,
+per-location rollback, and outbox tests pass 43. Ruff and all generated
+inventory checks pass. Checks used mocks and source analysis only: no provider,
+database, API key, candidate, legacy service, or schedule was accessed or
+activated. The UUID is a query scope and does not provide signed tenant context
+or authorization. Live provider parity, cadence/ownership, and MAN-CAP-040/047
+remain open; the 66-row capability matrix retains zero MAN-CAP acceptances
+([evidence](builds/2026-10-16-recovery/weather-forecast-scheduled-job-contract.json);
+[operation map](worker-operation-map.json); [schedule inventory](schedule-ownership-inventory.md)).
+
 ### Location-bound scheduled sensor pull contract — 16 October 2026
 
 Scheduled sensor jobs now require a canonical location UUID plus a registered

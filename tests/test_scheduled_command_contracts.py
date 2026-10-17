@@ -26,6 +26,7 @@ def test_every_scheduled_module_has_a_command_contract():
     ("module", "arguments"),
     [
         ("services.ingestion.weather", ["--location-id", str(uuid4())]),
+        ("services.ingestion.weather_forecast", ["--location-id", str(uuid4())]),
         ("services.ingestion.market_data", ["--source", "world_bank"]),
         ("services.ingestion.market_data", ["--month", "2", "--year", "2026"]),
         ("services.ingestion.eas_indexer", ["--chain", "celo"]),
@@ -75,6 +76,8 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ),
         ("services.analytics.carbon_credit_adjustment_check", []),
         ("services.ingestion.weather", []),
+        ("services.ingestion.weather_forecast", []),
+        ("services.ingestion.weather_forecast", ["--all-locations"]),
         ("services.ingestion.anomaly_detector", []),
         ("services.ingestion.anomaly_detector", ["--baseline-check"]),
         ("services.ingestion.climate_data", ["--all"]),
@@ -187,6 +190,26 @@ def test_weather_job_requires_one_explicit_location_before_dispatch():
 
     with pytest.raises(ValueError, match="Weather schedule planning requires one location"):
         build_job_plan("weather", "daily")
+
+
+def test_weather_forecast_job_requires_one_explicit_location_and_stays_disabled():
+    job = JOBS["weather_forecast"]
+
+    assert job.module == "services.ingestion.weather_forecast"
+    assert job.scheduler_allowed
+    assert job.required_inputs == ("location_id",)
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="Weather forecast refresh requires a location"):
+            run_job("weather_forecast")
+    run.assert_not_called()
+
+    location_id = str(uuid4())
+    plan = build_job_plan("weather_forecast", "every-6h", location_id=location_id)
+    task = plan["scheduled_task"]
+    assert task["module_path"] == job.module
+    assert task["command_args"] == ["--location-id", location_id]
+    assert task["is_enabled"] is False
+    assert task["allow_overlap"] is False
 
 
 def test_anomaly_job_requires_one_explicit_location_before_dispatch():

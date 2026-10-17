@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_job_contract_inventory.py",
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
-    "catalog_jobs": 15,
-    "allowlisted_modules": 15,
+    "catalog_jobs": 16,
+    "allowlisted_modules": 16,
     "outcomes": {
       "default_arguments_accepted": 8,
-      "required_runtime_inputs_validated": 7
+      "required_runtime_inputs_validated": 8
     }
   },
   "jobs": [
@@ -139,6 +139,16 @@
     {
       "job": "weather",
       "module": "services.ingestion.weather",
+      "argument_count": 0,
+      "required_inputs": [
+        "location_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "weather_forecast",
+      "module": "services.ingestion.weather_forecast",
       "argument_count": 0,
       "required_inputs": [
         "location_id"

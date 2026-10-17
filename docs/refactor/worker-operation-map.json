@@ -32,6 +32,28 @@
       ]
     },
     {
+      "module": "services.ingestion.weather_forecast",
+      "scope": "The scheduled contract requires one explicit --location-id; aggregate --all-locations is rejected. The query selects only active locations with coordinates and the CLI requires a scope before opening PostgreSQL.",
+      "reads": [
+        "public.location"
+      ],
+      "writes": [
+        "public.weather_forecast",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "OpenWeatherMap 5-day forecast HTTP requests"
+      ],
+      "idempotency": "PostgreSQL upserts on (location_id, forecast_date, forecast_hour, source); the ClickHouse outbox uses a canonical payload hash. A retry refreshes matching forecast slots without creating duplicate natural-key rows.",
+      "retry_boundary": "A retry repeats the OpenWeatherMap request and may update forecasts for the same location/window. The generated schedule remains disabled; no provider key, active schedule, or tenant authorization is established by this contract.",
+      "sources": [
+        "services/ingestion/weather_forecast.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
       "module": "services.ingestion.market_data",
       "scope": "Global crop/commodity market data; optional commodity and period arguments filter the run.",
       "reads": [

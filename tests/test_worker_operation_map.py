@@ -146,6 +146,7 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     events = scheduled["services.events"]
     credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_check"]
     projections = scheduled["services.ingestion.clickhouse_outbox"]
+    weather_forecasts = scheduled["services.ingestion.weather_forecast"]
 
     assert "public.noi_snapshot" in metrics["writes"]
     assert "public.v_crop_cycle_noi" in metrics["reads"]
@@ -172,6 +173,14 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "ClickHouse" in " ".join(projections["external_effects"])
     assert "--run-once" in projections["scope"]
     assert "--limit 100" in projections["scope"]
+    assert weather_forecasts["reads"] == ["public.location"]
+    assert weather_forecasts["writes"] == [
+        "public.weather_forecast",
+        "public.ingestion_log",
+        "public.clickhouse_outbox",
+    ]
+    assert "one explicit --location-id" in weather_forecasts["scope"]
+    assert "remains disabled" in weather_forecasts["retry_boundary"]
 
 
 def test_scheduled_credit_check_reachability_excludes_interactive_chain_effects():

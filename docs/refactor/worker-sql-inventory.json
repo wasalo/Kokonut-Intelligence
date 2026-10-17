@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 22,
-    "source_files": 82,
-    "execution_sites": 280,
-    "static_literal_sites": 239,
+    "operation_roots": 23,
+    "source_files": 83,
+    "execution_sites": 289,
+    "static_literal_sites": 248,
     "composed_or_variable_sites": 41
   },
   "execution_sites": [
@@ -841,6 +841,7 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.metrics"
       ]
     },
@@ -877,6 +878,7 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.metrics"
       ]
     },
@@ -913,6 +915,7 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.metrics"
       ]
     },
@@ -3148,6 +3151,7 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.metrics"
       ]
     },
@@ -3178,6 +3182,7 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.metrics"
       ]
     },
@@ -3207,6 +3212,7 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.metrics"
       ]
     },
@@ -3231,7 +3237,8 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {
@@ -3254,7 +3261,8 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {
@@ -3279,7 +3287,8 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {
@@ -3302,7 +3311,8 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {
@@ -3325,7 +3335,8 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {
@@ -3351,7 +3362,8 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {
@@ -3374,7 +3386,8 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {
@@ -4675,6 +4688,152 @@
       "static_sql_sha256": "4a64829b03c449f44b6c2bca0d964d1e89ec7907594766977dd8b5745c3ad19c",
       "operation_refs": [
         "scheduled_module:services.ingestion.weather"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:104:12",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 104,
+      "column": 12,
+      "scope": "insert_forecasts",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "weather_forecast"
+      ],
+      "static_sql_sha256": "7279376fc79a198fd639c8dcd73e263b5def1c0466c910672338d38b437ad6f5",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:154:8",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 154,
+      "column": 8,
+      "scope": "insert_location_forecasts",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "static_sql_sha256": "64fbd1d8ad706b05ee5a5add66fcc3f54fdcada9c8ebfed5bd49ce615fda76f9",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:159:12",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 159,
+      "column": 12,
+      "scope": "insert_location_forecasts",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "static_sql_sha256": "fe4568abe536e2f34e6b048355a374abed8869d2519b354d21c8e88f12de72f6",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:160:12",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 160,
+      "column": 12,
+      "scope": "insert_location_forecasts",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "1f5d15b90f04ef3537407e2f227453a059bbb6e19276054fe430ec23a7093117",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:163:8",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 163,
+      "column": 8,
+      "scope": "insert_location_forecasts",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "1f5d15b90f04ef3537407e2f227453a059bbb6e19276054fe430ec23a7093117",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:232:8",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 232,
+      "column": 8,
+      "scope": "get_daily_summary",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_weather_forecast_daily"
+      ],
+      "static_sql_sha256": "e873073c5f25714e4d947b0d18ebe5e640462d01ffffcce0f97bc5016b4e3522",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:252:8",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 252,
+      "column": 8,
+      "scope": "get_spray_windows",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "v_spray_window"
+      ],
+      "static_sql_sha256": "d9f9861640ab741af001699d8f9b9a389cd3baee757112985ed2755a3fcd303c",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:347:16",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 347,
+      "column": 16,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "static_sql_sha256": "3b7adcf5ec40077b7f03cf2d547211c636f2344f64b37f9f2eca4dfba69c4a65",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_forecast.py:353:16",
+      "source": "services/ingestion/weather_forecast.py",
+      "line": 353,
+      "column": 16,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "location"
+      ],
+      "static_sql_sha256": "4a64829b03c449f44b6c2bca0d964d1e89ec7907594766977dd8b5745c3ad19c",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_forecast"
       ]
     },
     {

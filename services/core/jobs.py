@@ -41,6 +41,15 @@ JOBS = MappingProxyType(
             "Weather ingestion",
             required_inputs=("location_id",),
         ),
+        "weather_forecast": JobSpec(
+            "services.ingestion.weather_forecast",
+            (),
+            300,
+            2,
+            300,
+            "Weather forecast ingestion",
+            required_inputs=("location_id",),
+        ),
         "sensors": JobSpec(
             "services.ingestion.sensor_ingester",
             (),

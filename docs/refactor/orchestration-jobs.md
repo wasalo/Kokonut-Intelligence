@@ -2,12 +2,13 @@
 
 ## Implemented boundary
 
-`services/core/jobs.py` defines fifteen immutable command specifications and
-`run_job(job_id, location_id=...)`. It imports no orchestration SDK or domain
+`services/core/jobs.py` defines sixteen immutable command specifications and
+`run_job(job_id, location_id=..., driver_instance_id=...)`. It imports no orchestration SDK or domain
 service. Commands use the current Python interpreter, fixed module names,
-fixed arguments, and the existing operation timeouts. Weather and climate accept
-a location override, validated as a UUID; anomaly, weather, and climate require
-it for scheduled runs. Results retain the legacy status and
+fixed arguments, and the existing operation timeouts. Location-scoped weather,
+weather forecast, anomaly, climate, metrics, credit checks, remote sensing, and
+sensor pulls validate their required UUID inputs before process creation.
+Results retain the legacy status and
 last 500 stdout characters. Nonzero exits and timeouts propagate to the owner.
 Captured subprocess output still uses memory; this is not a bounded log store.
 
@@ -28,9 +29,11 @@ against the selected Prefect installation remains pending.
 
 The catalog is not a schedule registry and creates no database rows.
 `scheduler_allowed` reports the existing execution allowlist; it does not grant
-permission. Credit adjustment checks remain outside that allowlist. Calling a
-known operation explicitly does not expand database-driven scheduler authority.
-The scheduler must continue validating its stored module paths independently.
+permission. The credit adjustment JobSpec uses a dedicated read-only entrypoint;
+the new weather-forecast module is allowlisted only for its one-location
+command contract. Neither entry permits other interactive operations. Calling a known
+operation explicitly does not expand database-driven scheduler authority. The
+scheduler must continue validating its stored module paths independently.
 
 The source-level dispatcher, cadence, cutover, and replay inventory is in the
 [schedule ownership record](schedule-ownership-inventory.md). It distinguishes
@@ -52,15 +55,20 @@ checks keep their sensor/baseline reads and resulting alert records on that
 location. An unscoped interactive CLI run retains the all-location behavior.
 The hourly Prefect flow and full-ingestion composite no longer call the
 source-less sensor operation. The hourly schedule now covers anomaly detection
-and freshness only. Sensor scheduling remains rejected because there is no
-recurring source contract. The CLI rejects missing, incomplete, and conflicting
+and freshness only. Sensor ingestion has a disabled native JobSpec only for a
+registered location-bound driver instance; CSV pulls are bounded and MQTT
+remains event-driven. Five-day forecasts have a separate disabled native
+JobSpec requiring one location; the repository has no dedicated Prefect or
+cron forecast schedule. Neither operation is activated or tenant-authorized by
+the JobSpec. The CLI rejects missing, incomplete, and conflicting
 input modes instead of printing help and exiting successfully; its help and validation
 paths also avoid loading SOPS/database configuration. Explicit CSV,
 single-reading, list, and calibration operations retain their dispatch. The
-shared `sensors` JobSpec fails before subprocess launch, so the Prefect wrapper
-cannot report a successful no-op. HTTP and MQTT device transports remain
-available. A reviewed source/input contract is required before recurring
-sensor ingestion is added to a composite workflow.
+shared `sensors` JobSpec rejects calls missing either its location or
+driver-instance UUID before subprocess launch, so the Prefect wrapper cannot
+report a successful no-op. HTTP and MQTT transports remain available. Recurring
+sensor execution remains disabled pending real source, identity, tenant, and
+schedule-owner review.
 
 Remote sensing now delegates to the shared job catalog without changing its
 internal durable job claims or retry state. It remains outside the scheduler
