@@ -8,16 +8,26 @@ end block healthy. It now commits each successful range's event writes,
 ClickHouse outbox intents, and `chain_indexer_status` checkpoint together.
 Failures roll back the active range, stop the run, preserve the last committed
 boundary, and persist an error status on the same connection. Typed outbox
-failures remain typed and propagate.
+failures remain typed and propagate. Migration 423 adds a transaction-hash/log-
+index receipt ledger. Identical logs are skipped before projection, while a
+reused identity with a changed block hash, number, or event type fails closed;
+the receipt commits with event projections, outbox intents, and the range
+checkpoint.
 
-The focused Gnosis recovery, outbox producer, and scheduled-command suite passes
-130 tests; Ruff and compilation pass. The new boundary checks mock RPC,
-PostgreSQL, and outbox calls. No provider, candidate/legacy database, or schedule
-was accessed. The existing `rpc` indexer type may share a cursor with the general
-RPC indexer; per-event replay idempotency, reorg behavior, and cursor ownership
-remain open, so the Gnosis schedule remains disabled and MAN-CAP-023/047 remain
-unaccepted ([tests](../../tests/test_gnosis_indexer_recovery.py);
-[evidence](builds/2026-10-16-recovery/gnosis-indexer-checkpoint-atomicity.json);
+The focused Gnosis recovery, outbox producer, scheduled-command, and migration
+suite passes 165 tests; Ruff and compilation pass. A disposable PostgreSQL 16
+runner verifies migration 423 apply/replay, new receipt insertion, duplicate
+suppression, fail-closed block-hash mismatch, and transaction rollback. No live
+provider, candidate/legacy database, or schedule was accessed. Migration 423 is
+not applied to the candidate. Historical event projections are not backfilled,
+removed-log rollback/deep reorg recovery is not automatic, and the existing
+`rpc` indexer type may share a cursor with the general RPC indexer. Those gates
+remain open, so the Gnosis schedule stays disabled and MAN-CAP-023/047 remain
+unaccepted ([migration](../../schemas/postgres/423_gnosis_event_log_receipts.sql);
+[tests](../../tests/test_gnosis_indexer_recovery.py);
+[disposable runner](../../scripts/check-gnosis-event-receipts-disposable.py);
+[evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json);
+[checkpoint evidence](builds/2026-10-16-recovery/gnosis-indexer-checkpoint-atomicity.json);
 [operation map](worker-operation-map.json)).
 
 ### Market-data provider failure and transaction boundaries — 16 October 2026

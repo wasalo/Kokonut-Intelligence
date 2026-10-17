@@ -60,16 +60,19 @@ compilation pass. No live provider, database, or schedule was used; historical
 correction semantics and live parity remain open ([tests](../../tests/test_market_data_recovery.py);
 [evidence](builds/2026-10-16-recovery/market-data-provider-atomicity.json)).
 
-**16 October 2026 Gnosis indexer checkpoint atomicity (CAP-023 / CAP-047):**
-each Gnosis block range now commits its indexed events, outbox intents, and
-status checkpoint together. A failed range rolls back, records the last
-committed boundary, and stops instead of marking later blocks healthy. The
-focused Gnosis/outbox/command suite passes 130 tests with mocked RPC/database
-boundaries, Ruff, and compilation. The existing `rpc` cursor namespace may be
-shared with the general RPC indexer; per-event replay idempotency and reorg
-recovery remain open, and no schedule/provider/candidate was exercised
-([tests](../../tests/test_gnosis_indexer_recovery.py);
-[evidence](builds/2026-10-16-recovery/gnosis-indexer-checkpoint-atomicity.json)).
+**16 October 2026 Gnosis indexer checkpoint and replay guard (CAP-023 / CAP-047):**
+each Gnosis block range commits indexed events, outbox intents, and its status
+checkpoint together; failures roll back and preserve the last committed block.
+Migration 423 adds transaction-hash/log-index receipts for newly processed
+events, skips identical replay, and fails closed on a reused identity with
+changed block hash, number, or event type. The 165-test Gnosis/outbox/command/
+migration suite, Ruff, compilation, and disposable PostgreSQL 16 apply/replay,
+duplicate, mismatch, and rollback checks pass. The migration is not candidate-
+deployed. Legacy events are not backfilled; removed-log/deep reorg rollback and
+the existing potentially shared `rpc` cursor remain unresolved. No provider or
+schedule was exercised ([migration](../../schemas/postgres/423_gnosis_event_log_receipts.sql);
+[tests](../../tests/test_gnosis_indexer_recovery.py);
+[disposable evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json)).
 
 **16 October 2026 forecast projection atomicity (CAP-040 / CAP-047):** the
 weather-forecast producer now rolls back a whole location batch to a PostgreSQL
@@ -1038,7 +1041,7 @@ acceptance remain open.
 | CAP-020 | Credit custody & retirement | services/analytics/carbon_credits.py; services/certificates/ | MAN-CAP-020: Atomic retirement reservation and independent confirmation prevent duplicate balance changes | tests/test_carbon_credits.py | B — baseline credit issuance/retirement capability remains unaccepted; scheduled adjustment review uses a separate database-enforced read-only entrypoint and requires one location per run, which does not verify custody or retirement parity. |
 | CAP-021 | Linked data infrastructure | services/iri/; services/rdf/; services/storage/; services/gateway/public_iri.py | MAN-CAP-021: Resolve versioned IRI, hashes, RDF and lineage without private data disclosure | tests/test_linked_data.py; tests/test_evidence_lineage_integrity.py; tests/test_iri_public_projection.py; tests/test_gateway_public_iri.py; tests/test_iri_cli_offline.py | P — a native Gateway JSON-LD path now resolves only explicitly snapshotted location IRIs while the location remains in the governed public view. Generation copies four allowlisted public fields; migration 420 stores immutable per-version projections; response hashes cover the returned public projection, not the potentially private registry hash, and predecessor links are checked against the same entity/version chain. The 217-test focused linked-data/Gateway/migration suite passes, including offline IRI and Metadata API CLI help; the reproducible disposable PostgreSQL 16 runner verifies migration apply/replay plus object/null constraints. No candidate rollout or historical backfill occurred. Other entity types, RDF graph/SPARQL and storage parity, live runtime/RLS, source-data parity, and MAN-CAP-021 acceptance remain open ([contract](../iri-system.md#native-gateway-public-location-resolution); [runner](../../scripts/check-iri-public-projection-disposable.py); [evidence](builds/2026-10-16-recovery/public-iri-projection.json)). |
 | CAP-022 | Data Stream | services/data_stream/ | MAN-CAP-022: Post, search, file references and proof verification preserve scope | tests/test_data_stream.py | B — baseline code retained. Protected Gateway draft creation, location-required list/search, attachment metadata, and recorded attestation reads now establish signed DB tenant context for exact resource/action/location grants. Queries bind posts and files to the verified location; responses omit source lineage, arbitrary metadata, evidence URLs, object URLs, and Directus identifiers. Attestation reads report stored database state and do not claim live chain verification. A dry-run-first source provisioner bridges environment key hashes and exact location scopes through a separate maintenance DSN without runtime API-key write access; its apply path uses create-only inserts compatible with SELECT/INSERT-only privileges. Focused route/service and provisioner checks and disposable forced-RLS owner/location/actor insert and cross-location denial pass. Signed attachment-byte delivery, live EAS validity checks, broader output parity, and actual candidate key provisioning remain open. |
-| CAP-023 | Governance framework abstraction | services/governance/ | MAN-CAP-023: Read Baal configuration/proposals/members; legacy Moloch identity remains distinct | tests/test_governance_framework.py; tests/test_gnosis_indexer_recovery.py | B — baseline code retained; Kernel capability path and parity unassessed. |
+| CAP-023 | Governance framework abstraction | services/governance/ | MAN-CAP-023: Read Baal configuration/proposals/members; legacy Moloch identity remains distinct | tests/test_governance_framework.py; tests/test_gnosis_indexer_recovery.py; tests/test_migration.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-024 | Governance circles & roles | services/analytics/ | MAN-CAP-024: Circle roles, tensions and tactical items enforce authority and approval | tests/test_governance_roles.py; tests/test_governance_role_authority.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-025 | Stakeholder ecosystem | services/analytics/ | MAN-CAP-025: Resolve stakeholder identity/trust while raw feedback stays private | tests/test_consent_privacy_p0.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-026 | Threatcasting & backcasting | services/threatcasting/ | MAN-CAP-026: Threat/cascade/backcast outputs remain advisory with evidence and acyclic milestones | tests/test_threatcasting.py; tests/test_backcasting_enhancements.py | B — baseline code retained; Kernel capability path and parity unassessed. |

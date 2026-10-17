@@ -65,6 +65,74 @@ EVENT_TOPICS = {
 VOTE_CHOICES = {0: "no", 1: "yes", 2: "block"}
 
 
+class GnosisEventReorgError(RuntimeError):
+    """A previously claimed event identity now points at a different block."""
+
+
+def _normalize_hash(value, name: str) -> str:
+    """Normalize a Web3 hash to lowercase 0x-prefixed 32-byte hex."""
+    if hasattr(value, "hex"):
+        value = value.hex()
+    if not isinstance(value, str):
+        raise ValueError(f"Gnosis log is missing a valid {name}")
+    normalized = value.lower()
+    if not normalized.startswith("0x"):
+        normalized = f"0x{normalized}"
+    if not re.fullmatch(r"0x[0-9a-f]{64}", normalized):
+        raise ValueError(f"Gnosis log has an invalid {name}")
+    return normalized
+
+
+def claim_gnosis_event_log(db, chain: str, log_entry: dict, event_name: str) -> bool:
+    """Claim a log identity or reject a same-identity block-hash mismatch.
+
+    The caller must keep the receipt and all event/outbox projections in the
+    same transaction. Returns False for an already-recorded canonical log.
+    """
+    tx_hash = _normalize_hash(log_entry.get("transactionHash"), "transaction hash")
+    block_hash = _normalize_hash(log_entry.get("blockHash"), "block hash")
+    try:
+        log_index = int(log_entry["logIndex"])
+        block_number = int(log_entry["blockNumber"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("Gnosis log is missing its block number or log index") from exc
+    if log_index < 0 or block_number < 0:
+        raise ValueError("Gnosis log block number and log index must be non-negative")
+
+    with db.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO public.gnosis_event_log_receipt (
+                chain, transaction_hash, log_index, block_number, block_hash, event_name
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (chain, transaction_hash, log_index) DO NOTHING
+            RETURNING block_hash, block_number, event_name
+            """,
+            (chain, tx_hash, log_index, block_number, block_hash, event_name),
+        )
+        inserted = cur.fetchone()
+        if inserted:
+            return True
+
+        cur.execute(
+            """
+            SELECT block_hash, block_number, event_name
+              FROM public.gnosis_event_log_receipt
+             WHERE chain = %s AND transaction_hash = %s AND log_index = %s
+             FOR KEY SHARE
+            """,
+            (chain, tx_hash, log_index),
+        )
+        existing = cur.fetchone()
+
+    expected = (block_hash, block_number, event_name)
+    if existing != expected:
+        raise GnosisEventReorgError(
+            f"Gnosis event identity {tx_hash}:{log_index} changed canonical block data"
+        )
+    return False
+
+
 def _validate_ch_value(value: str, pattern: re.Pattern, name: str) -> str:
     """Validate a value against a regex pattern for ClickHouse SQL safety."""
     if not pattern.match(value):
@@ -536,10 +604,21 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 })
 
                 for log_entry in logs:
-                    topic_hash = log_entry["topics"][0].hex()
+                    topic_hash = log_entry["topics"][0].hex().lower()
                     event_name = EVENT_TOPICS.get(topic_hash)
                     if not event_name:
                         continue
+                    decoder = DECODE_MAP.get(event_name)
+                    if not decoder:
+                        continue
+
+                    if not claim_gnosis_event_log(db, chain, log_entry, event_name):
+                        continue
+
+                    tx_hash = _normalize_hash(
+                        log_entry.get("transactionHash"), "transaction hash"
+                    )
+                    block_number = int(log_entry["blockNumber"])
 
                     try:
                         decoded = moloch.events[event_name]().process_log(log_entry)
@@ -548,12 +627,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                         # Fallback: raw topic decoding.
                         args = {}
 
-                    tx_hash = log_entry["transactionHash"].hex()
-                    block_number = log_entry["blockNumber"]
                     block_timestamp = fetch_block_timestamp(w3, block_number)
-                    decoder = DECODE_MAP.get(event_name)
-                    if not decoder:
-                        continue
 
                     if event_name in ("SubmitProposal", "VoteProposal"):
                         record = decoder(
@@ -654,7 +728,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 except Exception:
                     db.rollback()
                     logger.exception("Could not persist Gnosis indexer error status")
-                if isinstance(exc, OutboxEnqueueError):
+                if isinstance(exc, (OutboxEnqueueError, GnosisEventReorgError)):
                     raise
                 raise RuntimeError(
                     f"Gnosis block range {batch_start}-{batch_end} failed"

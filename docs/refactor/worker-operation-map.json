@@ -171,18 +171,20 @@
         "public.treasury_event",
         "public.digital_lego_usage",
         "public.chain_indexer_status",
+        "public.gnosis_event_log_receipt",
         "public.ingestion_log",
         "public.clickhouse_outbox"
       ],
       "external_effects": [
         "Gnosis JSON-RPC provider"
       ],
-      "idempotency": "digital_lego_usage uses conflict suppression; governance_event and treasury_event inserts shown in the indexer do not declare a conflict clause. End-to-end replay idempotency is therefore not established.",
-      "retry_boundary": "Each scanned block range and its chain_indexer_status checkpoint now commit on the same PostgreSQL connection; a failed range rolls back and stops the run, preserving the last committed boundary. The existing indexer_type=rpc cursor is retained for compatibility but may be shared with the general RPC indexer. Per-event table replay idempotency, reorg handling, and cursor ownership must be resolved before automatic activation.",
+      "idempotency": "Migration 423 adds a transaction-hash/log-index receipt for newly processed event logs. An identical receipt is skipped before projections; a reused log identity with changed block hash, number, or event type fails closed. Receipt creation shares the transaction with governance/treasury/digital-lego projections, ClickHouse outbox intents, and the block checkpoint. Historical event rows are not backfilled because they lack log_index and block_hash.",
+      "retry_boundary": "Each scanned block range and its chain_indexer_status checkpoint now commit on the same PostgreSQL connection; a failed range rolls back and stops the run, preserving the last committed boundary. The existing indexer_type=rpc cursor is retained for compatibility but may be shared with the general RPC indexer. Removed-log rollback, deep reorg reconciliation, historical receipt backfill, and cursor ownership must be resolved before automatic activation.",
       "sources": [
         "services/ingestion/gnosis_indexer.py",
         "services/ingestion/base.py",
-        "services/ingestion/clickhouse_outbox.py"
+        "services/ingestion/clickhouse_outbox.py",
+        "schemas/postgres/423_gnosis_event_log_receipts.sql"
       ]
     },
     {

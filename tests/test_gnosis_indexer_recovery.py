@@ -46,11 +46,37 @@ class _Connection:
         self.closed = True
 
 
+class _ReceiptCursor(_Cursor):
+    def __init__(self, inserted_row=None, existing_row=None):
+        super().__init__(None)
+        self.inserted_row = inserted_row
+        self.existing_row = existing_row
+        self._insert_statement = False
+
+    def execute(self, statement, params=None):
+        super().execute(statement, params)
+        self._insert_statement = statement.lstrip().startswith(
+            "INSERT INTO public.gnosis_event_log_receipt"
+        )
+
+    def fetchone(self):
+        return self.inserted_row if self._insert_statement else self.existing_row
+
+
+class _ReceiptConnection:
+    def __init__(self, inserted_row=None, existing_row=None):
+        self.cursor_instance = _ReceiptCursor(inserted_row, existing_row)
+
+    def cursor(self):
+        return self.cursor_instance
+
+
 class _Eth:
     block_number = 20
 
-    def __init__(self, failures=None):
+    def __init__(self, failures=None, logs=None):
         self.failures = failures or {}
+        self.logs = logs or []
         self.calls = []
 
     def get_logs(self, query):
@@ -58,7 +84,7 @@ class _Eth:
         failure = self.failures.get(query["fromBlock"])
         if failure:
             raise failure
-        return []
+        return self.logs
 
 
 class _Web3:
@@ -79,6 +105,72 @@ def _run_with(monkeypatch, connection, web3, status_calls, batches):
     )
 
 
+def _event_log(topic):
+    return {
+        "topics": [type("Topic", (), {"hex": lambda self: topic})()],
+        "transactionHash": bytes.fromhex("11" * 32),
+        "logIndex": 3,
+        "blockNumber": 12,
+        "blockHash": bytes.fromhex("22" * 32),
+    }
+
+
+def test_gnosis_receipt_claim_is_idempotent_for_same_canonical_log():
+    log = _event_log("unused")
+    block_hash = "0x" + "22" * 32
+    connection = _ReceiptConnection(
+        inserted_row=(block_hash, 12, "VoteProposal")
+    )
+
+    assert gnosis_indexer.claim_gnosis_event_log(
+        connection, "gnosis", log, "VoteProposal"
+    )
+    insert_params = connection.cursor_instance.statements[0][1]
+    assert insert_params == (
+        "gnosis",
+        "0x" + "11" * 32,
+        3,
+        12,
+        block_hash,
+        "VoteProposal",
+    )
+
+    duplicate = _ReceiptConnection(
+        inserted_row=None,
+        existing_row=(block_hash, 12, "VoteProposal"),
+    )
+    assert not gnosis_indexer.claim_gnosis_event_log(
+        duplicate, "gnosis", log, "VoteProposal"
+    )
+    assert len(duplicate.cursor_instance.statements) == 2
+
+
+def test_gnosis_receipt_claim_rejects_changed_canonical_block_hash():
+    log = _event_log("unused")
+    connection = _ReceiptConnection(
+        inserted_row=None,
+        existing_row=("0x" + "33" * 32, 12, "VoteProposal"),
+    )
+
+    with pytest.raises(gnosis_indexer.GnosisEventReorgError, match="canonical block data"):
+        gnosis_indexer.claim_gnosis_event_log(
+            connection, "gnosis", log, "VoteProposal"
+        )
+
+
+def test_gnosis_receipt_claim_requires_identity_before_database_access():
+    connection = _ReceiptConnection()
+    log = _event_log("unused")
+    del log["blockHash"]
+
+    with pytest.raises(ValueError, match="block hash"):
+        gnosis_indexer.claim_gnosis_event_log(
+            connection, "gnosis", log, "VoteProposal"
+        )
+
+    assert connection.cursor_instance.statements == []
+
+
 def test_gnosis_commits_each_range_with_its_checkpoint_in_same_connection(monkeypatch):
     connection = _Connection(last_synced=9)
     web3 = _Web3(_Eth())
@@ -94,6 +186,29 @@ def test_gnosis_commits_each_range_with_its_checkpoint_in_same_connection(monkey
     assert [call[0][2] for call in status_calls] == [15, 20, 20]
     assert [call[0][3] for call in status_calls] == ["syncing", "syncing", "healthy"]
     assert all(call[1]["db"] is connection for call in status_calls)
+
+
+def test_gnosis_run_skips_previously_claimed_log_before_projecting(monkeypatch):
+    connection = _Connection(last_synced=9)
+    topic = next(
+        topic for topic, name in gnosis_indexer.EVENT_TOPICS.items()
+        if name == "VoteProposal"
+    )
+    web3 = _Web3(_Eth(logs=[_event_log(topic)]))
+    status_calls = []
+    _run_with(monkeypatch, connection, web3, status_calls, [(10, 20)])
+    claimed = []
+    monkeypatch.setattr(
+        gnosis_indexer,
+        "claim_gnosis_event_log",
+        lambda *_args: claimed.append(True) or False,
+    )
+
+    gnosis_indexer.run()
+
+    assert claimed == [True]
+    assert connection.commits == 2
+    assert connection.closed
 
 
 def test_gnosis_failed_range_rolls_back_and_preserves_last_checkpoint(monkeypatch):
