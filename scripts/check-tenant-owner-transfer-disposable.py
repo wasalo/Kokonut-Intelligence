@@ -489,7 +489,7 @@ def wait_ready(container: str) -> None:
     last = ""
     while time.monotonic() < deadline:
         result = subprocess.run(
-            ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
+            ["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

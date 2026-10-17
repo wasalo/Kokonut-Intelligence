@@ -110,10 +110,10 @@ bash scripts/build-kernel-multiarch.sh
 echo '=== Clean bootstrap check ==='
 docker compose -f docker-compose.yml up -d database
 for _ in $(seq 1 30); do
-    docker compose -f docker-compose.yml exec -T database pg_isready -q && break
+    docker compose -f docker-compose.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q && break
     sleep 1
 done
-docker compose -f docker-compose.yml exec -T database pg_isready -q
+docker compose -f docker-compose.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q
 
 echo '=== Installing Python and system build dependencies ==='
 sudo apt-get update -qq
@@ -145,10 +145,10 @@ docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d database cli
 
 echo '=== Waiting for PostgreSQL ==='
 for _ in $(seq 1 30); do
-    docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q && break
+    docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q && break
     sleep 1
 done
-docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -q
+docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T database pg_isready -h 127.0.0.1 -U kokonut -d kokonut_intelligence -q
 
 echo '=== Applying required database extensions and schema ==='
 docker compose -f docker-compose.yml -f docker-compose.ci.yml \

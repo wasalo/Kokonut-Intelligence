@@ -281,6 +281,11 @@ def _run_health_check(tmp_path: Path, *, metabase_enabled: bool) -> tuple[dict, 
     stubs = {
         "curl": '#!/bin/sh\nprintf \'curl %s\\n\' "$*" >> "$HEALTH_TEST_LOG"\nexit 0\n',
         "psql": "#!/bin/sh\nexit 0\n",
+        "df": (
+            "#!/bin/sh\n"
+            "printf 'Filesystem 1K-blocks Used Available Capacity Mounted on\\n"
+            "/dev/test 100 40 60 40%% /\\n'\n"
+        ),
         "docker": (
             "#!/bin/sh\n"
             'printf \'docker %s\\n\' "$*" >> "$HEALTH_TEST_LOG"\n'

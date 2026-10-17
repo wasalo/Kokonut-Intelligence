@@ -566,7 +566,7 @@ def main() -> None:
             "      POSTGRES_USER: kokonut\n"
             f"      POSTGRES_PASSWORD: {json.dumps(password)}\n"
             "    healthcheck:\n"
-            "      test: [CMD-SHELL, pg_isready -U kokonut -d postgres]\n"
+            "      test: [CMD-SHELL, pg_isready -h 127.0.0.1 -U kokonut -d postgres]\n"
             "      interval: 1s\n"
             "      timeout: 3s\n"
             "      retries: 30\n"

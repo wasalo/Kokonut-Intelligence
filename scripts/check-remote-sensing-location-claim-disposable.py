@@ -83,7 +83,7 @@ def main() -> int:
                 "exec",
                 name,
                 "pg_isready",
-                "-U",
+                "-h", "127.0.0.1", "-U",
                 "postgres",
                 "-d",
                 "postgres",

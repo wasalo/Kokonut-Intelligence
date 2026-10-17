@@ -56,7 +56,7 @@ def wait_ready(docker: str, container: str) -> None:
     ready_count = 0
     while time.monotonic() < deadline:
         result = run(
-            [docker, "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"]
+            [docker, "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"]
         )
         ready_count = ready_count + 1 if result.returncode == 0 else 0
         if ready_count >= 4:

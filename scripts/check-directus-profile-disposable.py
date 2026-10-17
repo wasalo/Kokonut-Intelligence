@@ -140,7 +140,7 @@ def main() -> int:
                     "-T",
                     "database",
                     "pg_isready",
-                    "-U",
+                    "-h", "127.0.0.1", "-U",
                     "kokonut",
                     "-d",
                     "kokonut_intelligence",

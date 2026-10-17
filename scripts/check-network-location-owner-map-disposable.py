@@ -136,7 +136,7 @@ def owner_map_values(container: str) -> list[int]:
 
 def wait_ready(container: str) -> None:
     for _ in range(60):
-        result = run(["docker", "exec", container, "pg_isready", "-U", "postgres"], check=False)
+        result = run(["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"], check=False)
         if result.returncode == 0:
             return
         time.sleep(1)

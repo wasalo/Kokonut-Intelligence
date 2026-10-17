@@ -67,7 +67,7 @@ def docker_sql(container: str, statement: str) -> str:
 def wait_ready(container: str) -> None:
     for _ in range(100):
         result = subprocess.run(
-            ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
+            ["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"],
             text=True,
             capture_output=True,
             check=False,

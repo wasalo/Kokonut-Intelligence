@@ -291,7 +291,7 @@ def wait_until_ready(container: str) -> None:
     last_error = ""
     while time.monotonic() < deadline:
         check = subprocess.run(
-            ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
+            ["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "postgres"],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
