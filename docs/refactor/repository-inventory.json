@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "cb7cce1ef70cad4441ae016c8b6371f91c3887cb",
+  "baseline_commit": "c3dd3e4b1ed53816d312e0d19e5da5fc774414be",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2230,6 +2230,7 @@
         "tests/test_capability_map.py",
         "tests/test_carbon_credit_adjustment_check_cli.py",
         "tests/test_carbon_credits.py",
+        "tests/test_carbon_retirement_error_redaction.py",
         "tests/test_channel_health.py",
         "tests/test_competitive_landscape.py",
         "tests/test_competitive_report.py",
@@ -2575,6 +2576,7 @@
         "services/credit_class/safe_settlement.py"
       ],
       "test_references": [
+        "tests/test_carbon_retirement_error_redaction.py",
         "tests/test_credit_balance.py",
         "tests/test_credit_basket.py",
         "tests/test_credit_batch_manager.py",
@@ -4101,6 +4103,7 @@
     "tests/test_capital_efficiency.py",
     "tests/test_carbon_credit_adjustment_check_cli.py",
     "tests/test_carbon_credits.py",
+    "tests/test_carbon_retirement_error_redaction.py",
     "tests/test_cardinality_constraints.py",
     "tests/test_channel_health.py",
     "tests/test_cids_export.py",

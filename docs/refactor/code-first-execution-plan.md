@@ -189,6 +189,11 @@ The EAS signer now persists/returns only bounded exception summaries for failed
 requests while preserving failed status and attempt counting; one new mocked
 regression passes within 52 attestation/EAS tests with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
+Post-confirmation carbon-retirement chain failures likewise return/log only a
+bounded summary while preserving the reviewer gate, committed internal state,
+and non-blocking sync; one new mocked regression passes within 53 credit and
+chain-sync tests with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/carbon-retirement-chain-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

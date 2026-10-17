@@ -64,7 +64,7 @@
           "qualname": "check_adjustments",
           "class_scope": null,
           "source": "services/analytics/carbon_credits.py",
-          "line": 476
+          "line": 478
         },
         {
           "key": "services.analytics.carbon_credits:recompute_sequestration",
@@ -72,7 +72,7 @@
           "qualname": "recompute_sequestration",
           "class_scope": null,
           "source": "services/analytics/carbon_credits.py",
-          "line": 163
+          "line": 164
         },
         {
           "key": "services.common.cli:get_connection",
@@ -130,13 +130,13 @@
           "caller": "services.analytics.carbon_credits:check_adjustments",
           "callee": "services.analytics.carbon_credits:recompute_sequestration",
           "source": "services/analytics/carbon_credits.py",
-          "line": 495
+          "line": 497
         },
         {
           "caller": "services.analytics.carbon_credits:recompute_sequestration",
           "callee": "services.analytics.carbon_balance:compute_carbon_balance",
           "source": "services/analytics/carbon_credits.py",
-          "line": 165
+          "line": 166
         },
         {
           "caller": "services.common.cli:get_connection",

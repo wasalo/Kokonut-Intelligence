@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Carbon-retirement chain error containment — 17 October 2026
+
+After an independent reviewer confirms and commits a retirement, a non-blocking
+chain-sync failure now returns/logs only a bounded summary with exception
+class. The human-review gate, internal verified state, and no-rollback behavior
+remain unchanged. One new mocked regression passes within 53 carbon-credit and
+chain-sync tests with Ruff and compilation; no chain or database was contacted
+([evidence](builds/2026-10-17-recovery/carbon-retirement-chain-error-redaction.json)).
+
 ### EAS signer failure containment — 17 October 2026
 
 Pending price/data attestation failures now store and return a bounded error

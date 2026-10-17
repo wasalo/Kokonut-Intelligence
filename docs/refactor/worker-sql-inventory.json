@@ -141,9 +141,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:34:4",
+      "id": "services/analytics/carbon_credits.py:35:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 34,
+      "line": 35,
       "column": 4,
       "scope": "_generate_credit_code",
       "method": "execute",
@@ -158,9 +158,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:43:4",
+      "id": "services/analytics/carbon_credits.py:44:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 43,
+      "line": 44,
       "column": 4,
       "scope": "_generate_credit_code",
       "method": "execute",
@@ -175,9 +175,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:54:4",
+      "id": "services/analytics/carbon_credits.py:55:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 54,
+      "line": 55,
       "column": 4,
       "scope": "_query_climate_impact",
       "method": "execute",
@@ -194,9 +194,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:71:4",
+      "id": "services/analytics/carbon_credits.py:72:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 71,
+      "line": 72,
       "column": 4,
       "scope": "_get_latest_price",
       "method": "execute",
@@ -211,9 +211,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:128:4",
+      "id": "services/analytics/carbon_credits.py:129:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 128,
+      "line": 129,
       "column": 4,
       "scope": "issue_credit",
       "method": "execute",
@@ -228,9 +228,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:181:4",
+      "id": "services/analytics/carbon_credits.py:182:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 181,
+      "line": 182,
       "column": 4,
       "scope": "adjust_credit",
       "method": "execute",
@@ -245,9 +245,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:205:4",
+      "id": "services/analytics/carbon_credits.py:206:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 205,
+      "line": 206,
       "column": 4,
       "scope": "adjust_credit",
       "method": "execute",
@@ -262,9 +262,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:228:8",
+      "id": "services/analytics/carbon_credits.py:229:8",
       "source": "services/analytics/carbon_credits.py",
-      "line": 228,
+      "line": 229,
       "column": 8,
       "scope": "adjust_credit",
       "method": "execute",
@@ -279,9 +279,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:276:4",
+      "id": "services/analytics/carbon_credits.py:277:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 276,
+      "line": 277,
       "column": 4,
       "scope": "retire_credit",
       "method": "execute",
@@ -296,9 +296,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:287:4",
+      "id": "services/analytics/carbon_credits.py:288:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 287,
+      "line": 288,
       "column": 4,
       "scope": "retire_credit",
       "method": "execute",
@@ -313,9 +313,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:301:4",
+      "id": "services/analytics/carbon_credits.py:302:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 301,
+      "line": 302,
       "column": 4,
       "scope": "retire_credit",
       "method": "execute",
@@ -330,9 +330,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:315:4",
+      "id": "services/analytics/carbon_credits.py:316:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 315,
+      "line": 316,
       "column": 4,
       "scope": "retire_credit",
       "method": "execute",
@@ -347,9 +347,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:356:4",
+      "id": "services/analytics/carbon_credits.py:357:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 356,
+      "line": 357,
       "column": 4,
       "scope": "review_retirement",
       "method": "execute",
@@ -364,9 +364,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:384:8",
+      "id": "services/analytics/carbon_credits.py:385:8",
       "source": "services/analytics/carbon_credits.py",
-      "line": 384,
+      "line": 385,
       "column": 8,
       "scope": "review_retirement",
       "method": "execute",
@@ -381,9 +381,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:394:8",
+      "id": "services/analytics/carbon_credits.py:395:8",
       "source": "services/analytics/carbon_credits.py",
-      "line": 394,
+      "line": 395,
       "column": 8,
       "scope": "review_retirement",
       "method": "execute",
@@ -398,9 +398,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:408:4",
+      "id": "services/analytics/carbon_credits.py:409:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 408,
+      "line": 409,
       "column": 4,
       "scope": "review_retirement",
       "method": "execute",
@@ -415,9 +415,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:448:4",
+      "id": "services/analytics/carbon_credits.py:450:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 448,
+      "line": 450,
       "column": 4,
       "scope": "list_credits",
       "method": "execute",
@@ -430,9 +430,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:457:4",
+      "id": "services/analytics/carbon_credits.py:459:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 457,
+      "line": 459,
       "column": 4,
       "scope": "get_balance",
       "method": "execute",
@@ -447,9 +447,9 @@
       ]
     },
     {
-      "id": "services/analytics/carbon_credits.py:489:4",
+      "id": "services/analytics/carbon_credits.py:491:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 489,
+      "line": 491,
       "column": 4,
       "scope": "check_adjustments",
       "method": "execute",

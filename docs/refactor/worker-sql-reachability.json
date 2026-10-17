@@ -23,7 +23,7 @@
         "services/analytics/carbon_balance.py:168:8",
         "services/analytics/carbon_balance.py:177:8",
         "services/analytics/carbon_balance.py:205:8",
-        "services/analytics/carbon_credits.py:489:4"
+        "services/analytics/carbon_credits.py:491:4"
       ]
     },
     {
@@ -739,9 +739,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:34:4",
+      "id": "services/analytics/carbon_credits.py:35:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 34,
+      "line": 35,
       "scope": "_generate_credit_code",
       "method": "execute",
       "expression_kind": "literal",
@@ -758,9 +758,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:43:4",
+      "id": "services/analytics/carbon_credits.py:44:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 43,
+      "line": 44,
       "scope": "_generate_credit_code",
       "method": "execute",
       "expression_kind": "literal",
@@ -777,9 +777,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:54:4",
+      "id": "services/analytics/carbon_credits.py:55:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 54,
+      "line": 55,
       "scope": "_query_climate_impact",
       "method": "execute",
       "expression_kind": "literal",
@@ -798,9 +798,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:71:4",
+      "id": "services/analytics/carbon_credits.py:72:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 71,
+      "line": 72,
       "scope": "_get_latest_price",
       "method": "execute",
       "expression_kind": "literal",
@@ -817,9 +817,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:128:4",
+      "id": "services/analytics/carbon_credits.py:129:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 128,
+      "line": 129,
       "scope": "issue_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -836,9 +836,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:181:4",
+      "id": "services/analytics/carbon_credits.py:182:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 181,
+      "line": 182,
       "scope": "adjust_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -855,9 +855,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:205:4",
+      "id": "services/analytics/carbon_credits.py:206:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 205,
+      "line": 206,
       "scope": "adjust_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -874,9 +874,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:228:8",
+      "id": "services/analytics/carbon_credits.py:229:8",
       "source": "services/analytics/carbon_credits.py",
-      "line": 228,
+      "line": 229,
       "scope": "adjust_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -893,9 +893,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:276:4",
+      "id": "services/analytics/carbon_credits.py:277:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 276,
+      "line": 277,
       "scope": "retire_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -912,9 +912,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:287:4",
+      "id": "services/analytics/carbon_credits.py:288:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 287,
+      "line": 288,
       "scope": "retire_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -931,9 +931,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:301:4",
+      "id": "services/analytics/carbon_credits.py:302:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 301,
+      "line": 302,
       "scope": "retire_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -950,9 +950,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:315:4",
+      "id": "services/analytics/carbon_credits.py:316:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 315,
+      "line": 316,
       "scope": "retire_credit",
       "method": "execute",
       "expression_kind": "literal",
@@ -969,9 +969,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:356:4",
+      "id": "services/analytics/carbon_credits.py:357:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 356,
+      "line": 357,
       "scope": "review_retirement",
       "method": "execute",
       "expression_kind": "literal",
@@ -988,9 +988,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:384:8",
+      "id": "services/analytics/carbon_credits.py:385:8",
       "source": "services/analytics/carbon_credits.py",
-      "line": 384,
+      "line": 385,
       "scope": "review_retirement",
       "method": "execute",
       "expression_kind": "literal",
@@ -1007,9 +1007,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:394:8",
+      "id": "services/analytics/carbon_credits.py:395:8",
       "source": "services/analytics/carbon_credits.py",
-      "line": 394,
+      "line": 395,
       "scope": "review_retirement",
       "method": "execute",
       "expression_kind": "literal",
@@ -1026,9 +1026,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:408:4",
+      "id": "services/analytics/carbon_credits.py:409:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 408,
+      "line": 409,
       "scope": "review_retirement",
       "method": "execute",
       "expression_kind": "fstring",
@@ -1045,9 +1045,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:448:4",
+      "id": "services/analytics/carbon_credits.py:450:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 448,
+      "line": 450,
       "scope": "list_credits",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -1062,9 +1062,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:457:4",
+      "id": "services/analytics/carbon_credits.py:459:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 457,
+      "line": 459,
       "scope": "get_balance",
       "method": "execute",
       "expression_kind": "literal",
@@ -1081,9 +1081,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/analytics/carbon_credits.py:489:4",
+      "id": "services/analytics/carbon_credits.py:491:4",
       "source": "services/analytics/carbon_credits.py",
-      "line": 489,
+      "line": 491,
       "scope": "check_adjustments",
       "method": "execute",
       "expression_kind": "composed_or_variable",

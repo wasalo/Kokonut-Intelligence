@@ -58,31 +58,31 @@
         },
         {
           "source": "services/analytics/carbon_credits.py",
-          "line": 25,
-          "target": "services.common.logging",
-          "kind": "from"
-        },
-        {
-          "source": "services/analytics/carbon_credits.py",
-          "line": 26,
-          "target": "services.analytics.carbon_balance",
-          "kind": "from"
-        },
-        {
-          "source": "services/analytics/carbon_credits.py",
-          "line": 27,
+          "line": 24,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/analytics/carbon_credits.py",
-          "line": 420,
+          "line": 26,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credits.py",
+          "line": 27,
+          "target": "services.analytics.carbon_balance",
+          "kind": "from"
+        },
+        {
+          "source": "services/analytics/carbon_credits.py",
+          "line": 421,
           "target": "services.credit_class.chain_sync",
           "kind": "from"
         },
         {
           "source": "services/analytics/carbon_credits.py",
-          "line": 514,
+          "line": 516,
           "target": "services.common.db",
           "kind": "from"
         },

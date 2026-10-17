@@ -47,92 +47,92 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:128:4",
+        "site": "services/analytics/carbon_credits.py:129:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:181:4",
+        "site": "services/analytics/carbon_credits.py:182:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:205:4",
+        "site": "services/analytics/carbon_credits.py:206:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:228:8",
+        "site": "services/analytics/carbon_credits.py:229:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:276:4",
+        "site": "services/analytics/carbon_credits.py:277:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:287:4",
+        "site": "services/analytics/carbon_credits.py:288:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:301:4",
+        "site": "services/analytics/carbon_credits.py:302:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:315:4",
+        "site": "services/analytics/carbon_credits.py:316:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:34:4",
+        "site": "services/analytics/carbon_credits.py:357:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:356:4",
+        "site": "services/analytics/carbon_credits.py:35:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:384:8",
+        "site": "services/analytics/carbon_credits.py:385:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:394:8",
+        "site": "services/analytics/carbon_credits.py:395:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:408:4",
+        "site": "services/analytics/carbon_credits.py:409:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:43:4",
+        "site": "services/analytics/carbon_credits.py:44:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:448:4",
+        "site": "services/analytics/carbon_credits.py:450:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:457:4",
+        "site": "services/analytics/carbon_credits.py:459:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:54:4",
+        "site": "services/analytics/carbon_credits.py:55:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/analytics/carbon_credits.py:71:4",
+        "site": "services/analytics/carbon_credits.py:72:4",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       },

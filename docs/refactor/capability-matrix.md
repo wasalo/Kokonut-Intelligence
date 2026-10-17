@@ -349,6 +349,13 @@ One mocked regression passes within 52 attestation/EAS tests with Ruff and
 compilation; no provider or database was contacted
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
 
+**17 October 2026 carbon-retirement chain error containment (CAP-020 / CAP-047):**
+post-confirmation chain-sync failures now return and log bounded exception
+summaries, preserving the independently reviewed, committed retirement and its
+non-blocking chain-sync behavior. One new mocked regression passes within 53
+carbon-credit/chain-sync tests with Ruff and compilation; no chain or database
+was contacted ([evidence](builds/2026-10-17-recovery/carbon-retirement-chain-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps
