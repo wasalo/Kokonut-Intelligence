@@ -2,7 +2,7 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed head:** `46d3ef3` on PR #68; this push includes the EAS cursor rebaseline and market-data recovery batches. CI/Security status for this new head has not yet been checked.
+**Latest pushed batch:** EAS cursor rebaseline (`272fcde`) and market-data recovery (`46d3ef3`), followed by the execution-plan status correction. CI/Security status for the newest PR #68 head has not yet been checked.
 **Current pushed batch:** Commit `46d3ef3` contains the EAS cursor rebaseline and the market-data failure/atomicity work. For EAS, migration 422 resets inherited recipient cursors to zero, UID conflicts make the recovery scan idempotent, and revisiting the saved timestamp second catches same-second peers; 188 focused tests and disposable PostgreSQL 16 evidence pass. For market data, World Bank failures and unusable payloads fail before PostgreSQL opens, explicit seed rows use a separate source key, and price rows plus accurate ingestion audit commit atomically; 16 focused mocked checks pass with Ruff and compilation. No live provider, candidate, legacy database, or schedule was accessed. The checklist is 424 checked / 21 open (445 total); the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–422 have not been rolled out. Live provider parity/correction policy, earlier-time EAS pagination/late-arrival reconciliation, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
