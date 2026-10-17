@@ -34,13 +34,19 @@ def test_empty_chain_run_closes_database_without_contacting_rpc_provider():
 
 def test_wallet_lookup_error_rolls_back_and_closes_connection():
     connection = MagicMock()
+    secret = "rpc-lookup-secret"
 
     with (
         patch("services.ingestion.rpc_indexer.get_db", return_value=connection),
-        patch("services.ingestion.rpc_indexer.get_wallets", side_effect=RuntimeError("lookup failed")),
-        pytest.raises(RuntimeError, match="lookup failed"),
+        patch(
+            "services.ingestion.rpc_indexer.get_wallets",
+            side_effect=RuntimeError(f"database URL contained {secret}"),
+        ),
+        pytest.raises(RuntimeError, match=r"RPC indexer failed \(RuntimeError\)") as error,
     ):
         rpc_indexer.run(chain="celo")
 
+    assert secret not in str(error.value)
+    assert error.value.__suppress_context__ is True
     connection.rollback.assert_called_once_with()
     connection.close.assert_called_once_with()

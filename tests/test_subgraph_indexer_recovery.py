@@ -22,9 +22,7 @@ def test_provider_failure_redacts_status_audit_and_log(monkeypatch):
     monkeypatch.setattr(
         subgraph_indexer,
         "query_subgraph",
-        lambda *_args: (_ for _ in ()).throw(
-            RuntimeError(f"request failed https://graph.example/?token={secret}")
-        ),
+        lambda *_args: (_ for _ in ()).throw(RuntimeError(f"request failed https://graph.example/?token={secret}")),
     )
 
     with (
@@ -64,9 +62,7 @@ def test_outbox_failure_keeps_type_and_rollback_but_hides_detail(monkeypatch):
     monkeypatch.setattr(
         subgraph_indexer,
         "insert_clickhouse",
-        lambda *_args: (_ for _ in ()).throw(
-            OutboxEnqueueError(f"enqueue failed with token {secret}")
-        ),
+        lambda *_args: (_ for _ in ()).throw(OutboxEnqueueError(f"enqueue failed with token {secret}")),
     )
 
     with pytest.raises(OutboxEnqueueError, match="ClickHouse outbox enqueue failed") as error:

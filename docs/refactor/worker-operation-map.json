@@ -231,7 +231,7 @@
         "Configured EVM JSON-RPC providers"
       ],
       "idempotency": "wallet_activity_event suppresses duplicate transaction hashes; only inserted rows are projected under a stable outbox source key. Wallet activity, chain status, and projection intent commit together.",
-      "retry_boundary": "One run owns a single PostgreSQL transaction with a savepoint per wallet. A provider or insert failure rolls back that wallet, marks its chain error, and permits successful wallet rows and outbox intents to commit. A status, outbox, or commit failure rolls back the run; the indexer then attempts to persist error status on the same connection. Retries repeat point-in-time RPC reads. This module does not scan transaction history or prove confirmation depth/reorg completeness.",
+      "retry_boundary": "One run owns a single PostgreSQL transaction with a savepoint per wallet. A provider or insert failure rolls back that wallet, records only an exception-class summary in chain status/logs, and permits successful wallet rows and outbox intents to commit. A status, outbox, or commit failure rolls back the run; outbox errors remain typed with fixed summaries, other caller-visible failures are bounded, and the indexer attempts to persist safe error status on the same connection. Retries repeat point-in-time RPC reads. This module does not scan transaction history or prove confirmation depth/reorg completeness.",
       "sources": [
         "services/ingestion/rpc_indexer.py",
         "services/ingestion/base.py",

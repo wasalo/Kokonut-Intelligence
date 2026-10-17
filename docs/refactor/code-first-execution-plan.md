@@ -105,12 +105,21 @@ scheduler/operation-map suite and Ruff pass. No provider or database was
 contacted; live endpoint recovery and pagination remain open
 ([evidence](builds/2026-10-17-recovery/eas-error-sanitization.json)).
 This slice is in commit `541d3eb0`.
-**Current local ClickHouse outbox error-containment follow-up — 17 October
-2026:** the shared outbox now suppresses database exception causes on enqueue
+**Current local provider failure-containment batch — 17 October 2026:** the
+shared outbox now suppresses database exception causes on enqueue
 failure and persists/logs only fixed delivery summaries and exception classes.
 The focused outbox/producer suite passes 101 tests with Ruff. No database or
 ClickHouse endpoint was contacted; runtime delivery acceptance remains open
 ([evidence](builds/2026-10-17-recovery/clickhouse-outbox-error-sanitization.json)).
+The RPC indexer now also stores and reports only bounded failure summaries
+while preserving per-wallet savepoints, outbox rollback, and connection cleanup;
+six mocked contract/recovery tests pass with Ruff
+([evidence](builds/2026-10-17-recovery/rpc-indexer-error-sanitization.json)).
+The Baal indexer also aborts a block batch on provider query failure, preserves
+the last committed cursor in its failure status, and sanitizes provider and
+database errors. Four mocked recovery tests and Ruff pass; historical receipt
+and reorg recovery remain open
+([evidence](builds/2026-10-17-recovery/baal-indexer-error-recovery.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

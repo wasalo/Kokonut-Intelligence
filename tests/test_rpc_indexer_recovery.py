@@ -71,20 +71,24 @@ def test_rpc_partial_wallet_failure_marks_chain_error_on_same_transaction():
     status_calls = []
     events = []
     connection.commit.side_effect = lambda: events.append(("commit",))
+    secret = "wallet-rpc-secret"
+    logger = MagicMock()
     patches = _rpc_patches(
         connection,
         [_wallet("wallet-1"), _wallet("wallet-2")],
         status_calls,
         events,
-        balance_side_effect=[10**18, RuntimeError("balance unavailable")],
+        balance_side_effect=[10**18, RuntimeError(f"https://rpc.example/?token={secret}")],
     )
 
-    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+    with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patch.object(rpc_indexer, "logger", logger):
         rpc_indexer.run(chain="celo")
 
     assert status_calls == [
-        (("celo", "rpc", None, "error", "balance unavailable"), {"db": connection})
+        (("celo", "rpc", None, "error", "RPC wallet request failed (RuntimeError)"), {"db": connection})
     ]
+    assert secret not in str(status_calls)
+    assert secret not in str(logger.error.call_args)
     assert [event[0] for event in events] == ["status", "outbox", "commit"]
     savepoint_statements = [
         call.args[0]
@@ -107,14 +111,17 @@ def test_rpc_outbox_failure_rolls_back_data_then_persists_error_status():
         [_wallet()],
         status_calls,
         events,
-        outbox_side_effect=OutboxEnqueueError("outbox unavailable"),
+        outbox_side_effect=OutboxEnqueueError("https://ch.example/?token=rpc-outbox-secret"),
     )
 
     with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
-        with pytest.raises(OutboxEnqueueError, match="outbox unavailable"):
+        with pytest.raises(OutboxEnqueueError, match="ClickHouse outbox enqueue failed") as error:
             rpc_indexer.run(chain="celo")
 
     assert [call[0][3] for call in status_calls] == ["healthy", "error"]
+    assert status_calls[-1][0][4] == "ClickHouse outbox enqueue failed"
+    assert "rpc-outbox-secret" not in str(error.value)
+    assert error.value.__suppress_context__ is True
     assert all(call[1]["db"] is connection for call in status_calls)
     assert [event[0] for event in events] == ["status", "outbox", "rollback", "status", "commit"]
     connection.rollback.assert_called_once_with()

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Legacy RPC wallet indexer provider, outbox, and status failures",
+  "behavior": {
+    "wallet_failures": "Provider and per-wallet failures retain only an exception-class summary in chain status and logs.",
+    "run_failures": "Top-level failure status and caller-visible errors are bounded; outbox failures retain OutboxEnqueueError type and fixed summary.",
+    "transaction_behavior": "Per-wallet savepoints, whole-run rollback on outbox failure, same-connection status persistence, commit, and close behavior are preserved."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_rpc_indexer_contract.py tests/test_rpc_indexer_recovery.py -q",
+    "result": "6 passed",
+    "coverage": [
+      "secret-bearing wallet RPC exception redacted from chain status and logs",
+      "secret-bearing outbox exception redacted from status and caller while rollback and exception type remain",
+      "top-level lookup failure is sanitized, context-suppressed, rolled back, and closed",
+      "successful and partial wallet transaction contracts remain intact"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_provider_access": "none; mocked connections and RPC boundaries only"
+  },
+  "limitations": [
+    "No EVM RPC provider or database was contacted.",
+    "This does not add historical transaction scanning or prove confirmation-depth/reorg completeness."
+  ]
+}

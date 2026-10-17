@@ -49,6 +49,13 @@ BLOCK_BATCH = 100
 TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
 
+def _safe_failure_message(exc: Exception) -> str:
+    """Summarize RPC and outbox failures without retaining provider details."""
+    if isinstance(exc, OutboxEnqueueError):
+        return "ClickHouse outbox enqueue failed"
+    return f"RPC indexer failed ({type(exc).__name__})"
+
+
 def _validate_ch_value(value: str, pattern, name: str) -> str:
     """Validate a value against a regex pattern for ClickHouse SQL safety."""
     if not pattern.match(value):
@@ -210,11 +217,11 @@ def insert_activity_clickhouse(records: list[dict], conn=None) -> None:
             rows,
         )
     except OutboxEnqueueError:
-        raise
+        raise OutboxEnqueueError("ClickHouse outbox enqueue failed") from None
     except Exception as e:
         if conn is not None:
-            raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from e
-        logger.warning("ClickHouse insert failed: %s", e)
+            raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from None
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def run(chain: str = None, wallet_address: str = None):
@@ -280,8 +287,9 @@ def run(chain: str = None, wallet_address: str = None):
                 with db.cursor() as cur:
                     cur.execute("ROLLBACK TO SAVEPOINT rpc_wallet_activity")
                     cur.execute("RELEASE SAVEPOINT rpc_wallet_activity")
-                failed_chains[w_chain] = str(e)
-                logger.error("  ✗ %s: %s", label or address[:10], e)
+                failure = f"RPC wallet request failed ({type(e).__name__})"
+                failed_chains[w_chain] = failure
+                logger.error("  ✗ %s failed (%s)", label or address[:10], type(e).__name__)
 
         # Keep each chain's status in the same transaction as its wallet rows
         # and any ClickHouse outbox intent. A partial chain failure is never
@@ -306,17 +314,23 @@ def run(chain: str = None, wallet_address: str = None):
         db.commit()
     except Exception as exc:
         db.rollback()
+        safe_error = _safe_failure_message(exc)
         if attempted_chains:
             try:
                 for w_chain in sorted(attempted_chains):
                     update_indexer_status(
-                        w_chain, "rpc", None, "error", str(exc), db=db
+                        w_chain, "rpc", None, "error", safe_error, db=db
                     )
                 db.commit()
-            except Exception:
+            except Exception as status_exc:
                 db.rollback()
-                logger.exception("Could not persist RPC indexer failure status")
-        raise
+                logger.error(
+                    "Could not persist RPC indexer failure status (%s)",
+                    type(status_exc).__name__,
+                )
+        if isinstance(exc, OutboxEnqueueError):
+            raise OutboxEnqueueError(safe_error) from None
+        raise RuntimeError(safe_error) from None
     finally:
         db.close()
     logger.info("Done: %d wallets indexed", len(all_records))

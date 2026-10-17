@@ -57,14 +57,12 @@ def test_remote_sensing_queues_instead_of_inserting():
 def test_remote_sensing_api_adapters_queue_instead_of_inserting():
     record = {"id": "obs", "location_id": "loc", "plot_id": None,
               "observation_date": "2026-01-01", "source": "sentinel-2"}
-    import services.ingestion.gee_remote_sensing
     with patch("services.ingestion.gee_remote_sensing.enqueue") as gee_queue, patch("services.ingestion.gee_remote_sensing.post_clickhouse_rows") as gee_direct:
         from services.ingestion.gee_remote_sensing import _insert_ch as gee_insert
         gee_insert(record, MagicMock())
     gee_queue.assert_called_once()
     gee_direct.assert_not_called()
 
-    import services.ingestion.copernicus_remote_sensing
     with patch("services.ingestion.copernicus_remote_sensing.enqueue") as copernicus_queue, patch("services.ingestion.copernicus_remote_sensing.post_clickhouse_rows") as copernicus_direct:
         from services.ingestion.copernicus_remote_sensing import _insert_ch as copernicus_insert
         copernicus_insert(record, MagicMock())
@@ -74,14 +72,12 @@ def test_remote_sensing_api_adapters_queue_instead_of_inserting():
 
 def test_attestation_producers_queue_instead_of_inserting():
     att = {"id": "uid", "schema": {"id": "schema"}, "blockTimestamp": "1", "time": "1"}
-    import services.ingestion.subgraph_indexer
     with patch("services.ingestion.subgraph_indexer.enqueue") as subgraph_queue, patch("services.ingestion.subgraph_indexer.post_clickhouse_rows") as subgraph_direct:
         from services.ingestion.subgraph_indexer import insert_clickhouse
         insert_clickhouse("celo", att, "published", MagicMock())
     subgraph_queue.assert_called_once()
     subgraph_direct.assert_not_called()
 
-    import services.ingestion.eas_indexer
     with patch("services.ingestion.eas_indexer.enqueue") as eas_queue, patch("services.ingestion.eas_indexer.post_clickhouse_rows") as eas_direct:
         from services.ingestion.eas_indexer import insert_clickhouse as eas_insert
         eas_insert("celo", {"id": "uid", "schema": {"id": "schema"}, "time": "1"}, "published", MagicMock())
@@ -92,9 +88,8 @@ def test_attestation_producers_queue_instead_of_inserting():
 def test_gnosis_producers_queue_instead_of_inserting():
     record = {"usage_date": "2026-01-01", "chain": "gnosis", "tx_hash": "0xabc",
               "action_type": "vote", "event_type": "vote_cast", "block_timestamp": "2026-01-01T00:00:00+00:00"}
-    import services.ingestion.gnosis_indexer
     with patch("services.ingestion.gnosis_indexer.enqueue") as queue, patch("services.ingestion.gnosis_indexer.post_clickhouse_rows") as direct:
-        from services.ingestion.gnosis_indexer import insert_dlego_clickhouse, insert_activity_clickhouse
+        from services.ingestion.gnosis_indexer import insert_activity_clickhouse, insert_dlego_clickhouse
         insert_dlego_clickhouse(record, MagicMock())
         insert_activity_clickhouse(record, MagicMock())
     assert queue.call_count == 2
@@ -191,12 +186,19 @@ def test_transactional_projection_propagates_outbox_failure(module_name, functio
         else "services.ingestion.clickhouse_outbox.enqueue"
     )
 
-    with patch(enqueue_target, side_effect=RuntimeError("outbox unavailable")):
+    secret = "rpc-outbox-secret"
+    enqueue_error = (
+        RuntimeError(f"outbox URL included {secret}")
+        if module_name == "services.ingestion.rpc_indexer"
+        else RuntimeError("outbox unavailable")
+    )
+    with patch(enqueue_target, side_effect=enqueue_error):
         with pytest.raises(RuntimeError) as error:
             function(*args, conn=MagicMock())
     if module_name == "services.ingestion.rpc_indexer":
         assert "canonical ClickHouse projection" in str(error.value)
-        assert isinstance(error.value.__cause__, RuntimeError)
+        assert error.value.__suppress_context__ is True
+        assert secret not in str(error.value)
     else:
         assert "outbox unavailable" in str(error.value)
 

@@ -88,6 +88,10 @@ provider response/exception text. The 101-test outbox and producer suite plus
 Ruff pass without database or ClickHouse access. Live delivery recovery and
 MAN-CAP acceptance remain open
 ([evidence](builds/2026-10-17-recovery/clickhouse-outbox-error-sanitization.json)).
+The RPC wallet indexer now applies the same bounded failure reporting to
+provider and outbox errors without changing transactional recovery; six focused
+mocked tests and Ruff pass
+([evidence](builds/2026-10-17-recovery/rpc-indexer-error-sanitization.json)).
 The legacy subgraph caller also redacts provider failures from durable status,
 audit, and logs; its three mocked failure-path checks and Ruff pass without
 external access ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
@@ -230,6 +234,15 @@ text. The 13-test mocked Gnosis recovery suite passes. No provider or database
 was contacted. Reorg receipt reconciliation, live provider acceptance, and
 MAN-CAP-023/047 remain open
 ([evidence](builds/2026-10-17-recovery/gnosis-error-sanitization.json)).
+
+**17 October 2026 Baal event-query recovery (CAP-023):** a failed provider
+query now aborts its current block batch instead of skipping the failed event
+type and advancing the cursor. Failure status preserves the last committed
+block, including after protocol-lookup and event-persistence failures; provider
+and database details are reduced to safe summaries. Four mocked recovery tests
+and Ruff pass. No provider or database was contacted; historical receipt
+completeness, reorg recovery, live provider parity, and MAN-CAP-023 remain open
+([evidence](builds/2026-10-17-recovery/baal-indexer-error-recovery.json)).
 
 **16 October 2026 forecast projection atomicity (CAP-040 / CAP-047):** the
 weather-forecast producer now rolls back a whole location batch to a PostgreSQL

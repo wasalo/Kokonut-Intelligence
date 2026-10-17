@@ -1,5 +1,25 @@
 # Kokonut Kernel implementation progress
 
+### Baal indexer cursor recovery and error containment — 17 October 2026
+
+A failed event query now aborts the current block batch rather than skipping
+that event and advancing the cursor. Failure status retains the last committed
+block; provider initialization, event, database, and log messages expose no
+raw exception details. Four focused mocked recovery checks and Ruff pass; no
+RPC endpoint or database was contacted. Historical completeness and deep
+reorg recovery remain open
+([evidence](builds/2026-10-17-recovery/baal-indexer-error-recovery.json)).
+
+### RPC indexer error containment — 17 October 2026
+
+RPC wallet and outbox failures now use bounded summaries in chain status,
+logs, and caller-visible errors. The indexer retains per-wallet savepoints,
+whole-run rollback for outbox failure, and same-connection failure-status
+persistence. Six focused mocked contract/recovery checks and Ruff pass; no
+provider or database was contacted. Historical transaction scanning and
+reorg/confirmation-depth acceptance remain open
+([evidence](builds/2026-10-17-recovery/rpc-indexer-error-sanitization.json)).
+
 ### ClickHouse outbox error containment — 17 October 2026
 
 The canonical outbox now hides database exception text behind its fixed typed

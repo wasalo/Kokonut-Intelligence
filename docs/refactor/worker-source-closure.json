@@ -3400,7 +3400,7 @@
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 187,
+          "line": 194,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         }

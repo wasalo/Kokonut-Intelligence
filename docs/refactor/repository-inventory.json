@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "541d3eb0d424d214fd5814af8fa936678569ce60",
+  "baseline_commit": "6a29ba0edaf763f2255f153478afa5d649acc18b",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3209,6 +3209,7 @@
         "tests/test_anomaly_detector.py",
         "tests/test_anomaly_detector_cli_scope.py",
         "tests/test_ba_integration.py",
+        "tests/test_baal_indexer_recovery.py",
         "tests/test_bpm_state_models.py",
         "tests/test_business_model_canvas.py",
         "tests/test_business_plan.py",
@@ -4041,6 +4042,7 @@
     "tests/test_attestation.py",
     "tests/test_attestation_safe.py",
     "tests/test_ba_integration.py",
+    "tests/test_baal_indexer_recovery.py",
     "tests/test_backcast_dag.py",
     "tests/test_backcasting_enhancements.py",
     "tests/test_backup_optional_providers.py",
