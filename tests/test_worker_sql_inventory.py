@@ -101,16 +101,59 @@ def test_static_sqlalchemy_text_and_psycopg_sql_wrappers_are_unwrapped():
     )
 
 
-def test_only_generic_database_adapter_wrappers_remain_unknown():
+def test_unknown_sql_sites_include_generic_adapters_and_climate_template_dispatch():
     unknown = [site for site in _load_inventory()["execution_sites"] if site["statement_kind"] == "UNKNOWN"]
 
     assert [(site["source"], site["line"]) for site in unknown] == [
         ("services/common/database.py", 71),
         ("services/common/database.py", 74),
         ("services/common/database.py", 136),
+        # The provider selects one of four source-defined SQL templates, then
+        # passes the template and bound values to this shared persistence helper.
+        ("services/ingestion/gee_climate.py", 92),
         ("services/ingestion/sensor_anomaly_worker.py", 83),
         ("services/ingestion/sensor_anomaly_worker.py", 89),
     ]
+
+
+def test_gee_climate_template_dispatch_uses_literal_templates_and_bound_values():
+    source = (ROOT / "services" / "ingestion" / "gee_climate.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    templates = [
+        node.value.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "sql" for target in node.targets)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    ]
+    persist_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_persist_summary"
+    ]
+    execute_calls = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "execute"
+        and len(node.args) >= 2
+        and isinstance(node.args[0], ast.Name)
+        and node.args[0].id == "sql"
+        and isinstance(node.args[1], ast.Name)
+        and node.args[1].id == "parameters"
+    ]
+
+    assert len(templates) == 4
+    assert all("%s" in template for template in templates)
+    assert len(persist_calls) == 4
+    assert all(
+        any(keyword.arg == "sql" and isinstance(keyword.value, ast.Name) and keyword.value.id == "sql"
+            for keyword in call.keywords)
+        for call in persist_calls
+    )
+    assert len(execute_calls) == 1
 
 
 def test_dynamic_and_transaction_control_statement_kinds_are_classified():
@@ -141,6 +184,7 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/events/fork_detector.py": 1,
         "services/events/insight_transfer.py": 2,
         "services/ingestion/data_freshness.py": 5,
+        "services/ingestion/gee_climate.py": 1,
         "services/ingestion/ml_anomaly_detector.py": 1,
         "services/ingestion/remote_sensing_fetcher.py": 1,
         "services/ingestion/sensor_anomaly_worker.py": 2,

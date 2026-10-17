@@ -299,18 +299,24 @@
         {
           "source": "services/events/bus.py",
           "line": 15,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 16,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 68,
+          "line": 56,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 369,
+          "line": 357,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -547,7 +553,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 51,
+          "line": 39,
           "kind": "dynamic module expression"
         }
       ]
@@ -767,18 +773,24 @@
         {
           "source": "services/events/bus.py",
           "line": 15,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 16,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 68,
+          "line": 56,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 369,
+          "line": 357,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -961,7 +973,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 51,
+          "line": 39,
           "kind": "dynamic module expression"
         }
       ]
@@ -3211,18 +3223,24 @@
         {
           "source": "services/events/bus.py",
           "line": 15,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 16,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 68,
+          "line": 56,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 369,
+          "line": 357,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -3367,7 +3385,7 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 51,
+          "line": 39,
           "kind": "dynamic module expression"
         }
       ]
@@ -4591,18 +4609,24 @@
         {
           "source": "services/events/bus.py",
           "line": 15,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 16,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 68,
+          "line": 56,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 369,
+          "line": 357,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -4845,7 +4869,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 51,
+          "line": 39,
           "kind": "dynamic module expression"
         }
       ]
@@ -5919,18 +5943,24 @@
         {
           "source": "services/events/bus.py",
           "line": 15,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 16,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 68,
+          "line": 56,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 369,
+          "line": 357,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -6113,7 +6143,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 51,
+          "line": 39,
           "kind": "dynamic module expression"
         }
       ]

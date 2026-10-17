@@ -2,7 +2,28 @@
 
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed source before this acceptance batch — 17 October 2026:** Commit `4d946f6b0f0bf26af0544d3aff7de55847492415` contains the worker-identity routing and private-media hardening follow-ons. Security #125 passed; CI #401 was pending at last inspection. The isolated seed replay applied all 423 schema sources through migration 432 with zero failures; 25 focused readiness/profile checks passed. The candidate is applied through migration 432 after checkpoint/restore rehearsal with no seed rollout, and its rebuilt AMD64 app passed health 200, unknown-IRI 404, and anonymous farm-activity 401 checks. ARM64 QEMU schema replay and host-loopback ingress passed. This batch adds bounded current-schema ARM64 app execution under 1 GiB/two CPUs, with a 1.5 GiB/two-CPU native-AMD64 database; the app remained healthy and the protected route returned 401. This is not Pi hardware, sustained capacity, or 24-hour recovery evidence. The checklist remains 442 complete / 20 open; the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with no accepted MAN-CAP checks ([seed replay](builds/2026-10-17-recovery/seed-bootstrap-423-replay.json); [candidate evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json); [ARM64 schema evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json); [ingress evidence](builds/2026-10-17-recovery/arm64-loopback-ingress.json); [resource-limited evidence](builds/2026-10-17-recovery/arm64-resource-limited-current-schema.json); [private-media key checks](builds/2026-10-17-recovery/private-media-key-confinement.json)).
+**Latest pushed acceptance batch — 17 October 2026:** Commit
+`a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema
+ARM64 app execution under QEMU with a 1 GiB/two-CPU app and a 1.5 GiB/two-CPU
+native-AMD64 database. The app stayed healthy, `/health` returned 200, and an
+anonymous protected read returned 401. The single resource sample is not a
+capacity benchmark or physical Raspberry Pi result. Security #126 is in progress
+and CI #402 is pending at the latest GitHub check.
+
+**Current local source-inventory follow-on — 17 October 2026:** Refreshed the
+worker source closure, function graph, SQL reachability and execution inventory,
+worker effects, and whole-service SQL inventory. The current graph covers 30
+operation roots and 90 source files; 73 SQL sites still lack a static function
+path, and the worker boundary preflight remains `review_required`. A new
+regression records the source-defined GEE climate SQL template dispatcher as an
+unknown dynamic site while confirming its four literal templates use bound
+values. All seven focused worker inventory/contract suites pass (45 tests), and
+Ruff, generated `--check` commands, capability-matrix validation, JSON parsing,
+and `git diff --check` pass. No database, provider, or credential was accessed
+for this inventory follow-on. The checklist remains 442 complete / 20 open; the
+66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with no
+accepted MAN-CAP checks ([ARM64 evidence](builds/2026-10-17-recovery/arm64-resource-limited-current-schema.json);
+[inventory evidence](builds/2026-10-17-recovery/worker-sql-inventory-refresh.json)).
 **Previous pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
 **Previous functional batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
 
