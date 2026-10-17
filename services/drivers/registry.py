@@ -7,7 +7,7 @@ table, enabling runtime plugin loading without modifying core code.
 from __future__ import annotations
 
 import importlib
-from typing import Any, Optional
+from typing import Any
 
 from services.common.logging import get_logger
 
@@ -206,6 +206,47 @@ class DriverRegistry:
         except Exception:
             logger.exception("Failed to list driver instances")
             return []
+
+    def get_schedulable_instance(
+        self, instance_id: str, location_id: str,
+    ) -> dict | None:
+        """Load one enabled sensor pull instance bound to the requested location."""
+        import json
+
+        conn = self._get_conn()
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT di.id, di.instance_name, dr.driver_name, dr.module_path,
+                       dr.class_name, dr.driver_type, di.config, di.location_id
+                FROM driver_instance di
+                JOIN driver_registry dr ON dr.id = di.driver_id
+                WHERE di.id = %s
+                  AND di.location_id = %s
+                  AND di.is_enabled = TRUE
+                  AND dr.is_enabled = TRUE
+                  AND dr.driver_type = 'sensor'
+                """,
+                (instance_id, location_id),
+            )
+            row = cur.fetchone()
+        if row is None:
+            return None
+        config = row[6]
+        if isinstance(config, str):
+            config = json.loads(config)
+        if not isinstance(config, dict):
+            raise ValueError("sensor driver instance config must be a JSON object")
+        return {
+            "instance_id": str(row[0]),
+            "instance_name": row[1],
+            "driver_name": row[2],
+            "module_path": row[3],
+            "class_name": row[4],
+            "driver_type": row[5],
+            "config": config,
+            "location_id": str(row[7]),
+        }
 
     def create_instance(
         self,

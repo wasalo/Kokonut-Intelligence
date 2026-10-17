@@ -4,10 +4,10 @@
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
     "operation_roots": 22,
-    "source_files": 81,
-    "execution_sites": 269,
-    "static_literal_sites": 229,
-    "composed_or_variable_sites": 40
+    "source_files": 82,
+    "execution_sites": 280,
+    "static_literal_sites": 239,
+    "composed_or_variable_sites": 41
   },
   "execution_sites": [
     {
@@ -1354,6 +1354,196 @@
       "static_sql_sha256": "fbb4dd94a3b5583e8751174b25ed47c49592e895a75cc6d9fbf83a1d6032a1cb",
       "operation_refs": [
         "scheduled_module:services.analytics.carbon_credit_adjustment_check"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:47:16",
+      "source": "services/drivers/registry.py",
+      "line": 47,
+      "column": 16,
+      "scope": "DriverRegistry.register",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "SET",
+        "driver_registry"
+      ],
+      "static_sql_sha256": "bfe86051cd8335b42c7292e00f1f4f90e2e9562f17fd605acc9d6b2e9680eccf",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:92:16",
+      "source": "services/drivers/registry.py",
+      "line": 92,
+      "column": 16,
+      "scope": "DriverRegistry.load",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "static_sql_sha256": "e5021fe5a5771c036ef25f6894ed192cad8ee8492d050b12e21b9cbbe1b1ea1e",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:126:20",
+      "source": "services/drivers/registry.py",
+      "line": 126,
+      "column": 20,
+      "scope": "DriverRegistry.list_drivers",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "static_sql_sha256": "8c2e43af8309b51508e5651853b37fca6e52479e5db75098539c99e822a06412",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:137:20",
+      "source": "services/drivers/registry.py",
+      "line": 137,
+      "column": 20,
+      "scope": "DriverRegistry.list_drivers",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "static_sql_sha256": "a07203ee968479058517e74c28b67213b0b7fe286e1e8062757e6f75ae6096af",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:179:16",
+      "source": "services/drivers/registry.py",
+      "line": 179,
+      "column": 16,
+      "scope": "DriverRegistry.list_instances",
+      "method": "execute",
+      "expression_kind": "fstring",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_instance",
+        "driver_registry"
+      ],
+      "static_sql_sha256": null,
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:218:12",
+      "source": "services/drivers/registry.py",
+      "line": 218,
+      "column": 12,
+      "scope": "DriverRegistry.get_schedulable_instance",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_instance",
+        "driver_registry"
+      ],
+      "static_sql_sha256": "e681448c99e1a06cde19724110a438c3e63721c562140d04ca71075ceea9e7f6",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:264:16",
+      "source": "services/drivers/registry.py",
+      "line": 264,
+      "column": 16,
+      "scope": "DriverRegistry.create_instance",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "driver_registry"
+      ],
+      "static_sql_sha256": "b773f2bb81e592e12a1871dd365d28bca045857af917397c6796226e667bd49e",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:273:16",
+      "source": "services/drivers/registry.py",
+      "line": 273,
+      "column": 16,
+      "scope": "DriverRegistry.create_instance",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "driver_instance"
+      ],
+      "static_sql_sha256": "0fe1d8641018d48bf705d3f46e902d59202c3d407db1f218961626f6c240f3f3",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:305:16",
+      "source": "services/drivers/registry.py",
+      "line": 305,
+      "column": 16,
+      "scope": "DriverRegistry.update_instance_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "INSERT",
+      "candidate_relations": [
+        "driver_instance_log"
+      ],
+      "static_sql_sha256": "76017ec2a8e4e9854a4fc305eaf88185a80ed463f92b816bfe801f362246a286",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:317:20",
+      "source": "services/drivers/registry.py",
+      "line": 317,
+      "column": 20,
+      "scope": "DriverRegistry.update_instance_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "driver_instance"
+      ],
+      "static_sql_sha256": "6fa75d67de25c89bda742dade2a2ecec777374ceea3f59ab36f71e0a72c3975c",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
+      ]
+    },
+    {
+      "id": "services/drivers/registry.py:328:20",
+      "source": "services/drivers/registry.py",
+      "line": 328,
+      "column": 20,
+      "scope": "DriverRegistry.update_instance_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "driver_instance"
+      ],
+      "static_sql_sha256": "45c8e9bf3f8750f75740cedb7e6305c5e35ae590505725d71de292d870fc2e65",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.sensor_ingester"
       ]
     },
     {
@@ -4294,9 +4484,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:125:12",
+      "id": "services/ingestion/sensor_ingester.py:129:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 125,
+      "line": 129,
       "column": 12,
       "scope": "get_sensor_type_ranges",
       "method": "execute",
@@ -4311,9 +4501,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:139:8",
+      "id": "services/ingestion/sensor_ingester.py:143:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 139,
+      "line": 143,
       "column": 8,
       "scope": "get_active_sensors",
       "method": "execute",
@@ -4329,9 +4519,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:154:8",
+      "id": "services/ingestion/sensor_ingester.py:158:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 154,
+      "line": 158,
       "column": 8,
       "scope": "get_sensor_by_id_or_slug",
       "method": "execute",
@@ -4347,9 +4537,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:174:8",
+      "id": "services/ingestion/sensor_ingester.py:178:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 174,
+      "line": 178,
       "column": 8,
       "scope": "insert_reading",
       "method": "execute",
@@ -4365,9 +4555,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:196:8",
+      "id": "services/ingestion/sensor_ingester.py:201:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 196,
+      "line": 201,
       "column": 8,
       "scope": "insert_reading",
       "method": "execute",
@@ -4382,9 +4572,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:220:12",
+      "id": "services/ingestion/sensor_ingester.py:226:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 220,
+      "line": 226,
       "column": 12,
       "scope": "insert_reading_clickhouse",
       "method": "execute",
@@ -4399,9 +4589,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:517:8",
+      "id": "services/ingestion/sensor_ingester.py:788:8",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 517,
+      "line": 788,
       "column": 8,
       "scope": "check_calibration_status",
       "method": "execute",
@@ -4418,9 +4608,9 @@
       ]
     },
     {
-      "id": "services/ingestion/sensor_ingester.py:562:12",
+      "id": "services/ingestion/sensor_ingester.py:833:12",
       "source": "services/ingestion/sensor_ingester.py",
-      "line": 562,
+      "line": 833,
       "column": 12,
       "scope": "list_calibration_status",
       "method": "execute",

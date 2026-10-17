@@ -82,6 +82,25 @@ def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() 
     sensor.assert_not_called()
 
 
+def test_sensor_prefect_flow_requires_a_location_and_registered_driver_instance() -> None:
+    from unittest.mock import patch
+    from uuid import uuid4
+
+    from services.flows.sensors import sensor_ingestion_flow
+
+    location_id = str(uuid4())
+    driver_instance_id = str(uuid4())
+    with patch("services.flows.sensors.run_job", return_value={"status": "success"}) as run_job:
+        result = sensor_ingestion_flow.fn(location_id, driver_instance_id)
+
+    assert result == {"status": "success"}
+    run_job.assert_called_once_with(
+        "sensors",
+        location_id=location_id,
+        driver_instance_id=driver_instance_id,
+    )
+
+
 def test_anomaly_prefect_flow_uses_owner_scoped_location_fanout() -> None:
     from unittest.mock import patch
 

@@ -11,7 +11,7 @@ import json
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from services.common.logging import get_logger
 
@@ -25,6 +25,9 @@ class BaseDriver(ABC):
     name: str = "base"
     version: str = "1.0.0"
     driver_type: str = "unknown"
+    # Pull drivers must opt in before the native scheduler may invoke them.
+    # Event-driven drivers such as MQTT remain owned by their transport loop.
+    supports_scheduled_pull: bool = False
 
     def __init__(self, config: dict | None = None):
         self._config = config or {}

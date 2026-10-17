@@ -19,25 +19,53 @@ CADENCES = MappingProxyType(
 )
 
 
-def build_job_plan(job_id: str, cadence: str, *, location_id: str | None = None) -> dict:
+def build_job_plan(
+    job_id: str,
+    cadence: str,
+    *,
+    location_id: str | None = None,
+    driver_instance_id: str | None = None,
+) -> dict:
     """Map a command contract to existing scheduled_task fields, disabled.
 
     These are independent operations, not an equivalent pipeline DAG. The
     catalog never expands the scheduler's module allowlist.
     """
     spec = JOBS[job_id]
-    if job_id == "sensors":
-        raise ValueError("Sensor scheduling requires an explicit input contract")
     arguments = list(spec.arguments)
     name = f"kernel-{job_id}-{cadence}"
-    if "location_id" in spec.required_inputs and location_id is None:
-        raise ValueError(f"{job_id.replace('_', ' ').capitalize()} schedule planning requires one location")
+    supplied_inputs = {
+        "location_id": location_id,
+        "driver_instance_id": driver_instance_id,
+    }
+    missing_inputs = [
+        key for key in spec.required_inputs if supplied_inputs.get(key) is None
+    ]
+    if missing_inputs:
+        labels = {
+            "location_id": "one location",
+            "driver_instance_id": "one driver instance",
+        }
+        required = " and ".join(labels.get(key, key) for key in missing_inputs)
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} schedule planning requires {required}"
+        )
+    unexpected_inputs = [
+        key for key, value in supplied_inputs.items()
+        if value is not None and key not in spec.required_inputs
+    ]
+    if unexpected_inputs:
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} does not accept {', '.join(unexpected_inputs)}"
+        )
     if location_id is not None:
-        if "location_id" not in spec.required_inputs:
-            raise ValueError(f"{job_id.replace('_', ' ').capitalize()} does not accept a location")
         location = str(UUID(str(location_id)))
         arguments.extend(("--location-id", location))
         name += f"-{location}"
+    if driver_instance_id is not None:
+        instance = str(UUID(str(driver_instance_id)))
+        arguments.extend(("--driver-instance-id", instance))
+        name += f"-{instance}"
     validate_scheduled_command(spec.module, arguments)
     return {
         "job_id": job_id,

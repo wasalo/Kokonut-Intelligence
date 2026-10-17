@@ -41,7 +41,15 @@ JOBS = MappingProxyType(
             "Weather ingestion",
             required_inputs=("location_id",),
         ),
-        "sensors": JobSpec("services.ingestion.sensor_ingester", (), 120, 3, 60, "Sensor ingestion"),
+        "sensors": JobSpec(
+            "services.ingestion.sensor_ingester",
+            (),
+            120,
+            3,
+            60,
+            "Sensor ingestion",
+            required_inputs=("location_id", "driver_instance_id"),
+        ),
         "market_data": JobSpec(
             "services.ingestion.market_data", ("--source", "world_bank"), 600, 2, 600, "Market data ingestion"
         ),
@@ -119,7 +127,12 @@ class JobFailed(RuntimeError):
         super().__init__(f"{label} failed: {result.stderr}")
 
 
-def run_job(job_id: str, *, location_id: str | None = None) -> dict[str, str]:
+def run_job(
+    job_id: str,
+    *,
+    location_id: str | None = None,
+    driver_instance_id: str | None = None,
+) -> dict[str, str]:
     """Invoke one known operation; never accept arbitrary modules or arguments.
 
     Explicit invocation is separate from database-driven scheduler authorization.
@@ -127,14 +140,39 @@ def run_job(job_id: str, *, location_id: str | None = None) -> dict[str, str]:
     """
     spec = JOBS[job_id]
     arguments = list(spec.arguments)
-    if "location_id" in spec.required_inputs and location_id is None:
-        raise ValueError(f"{job_id.replace('_', ' ').capitalize()} refresh requires a location")
+    supplied_inputs = {
+        "location_id": location_id,
+        "driver_instance_id": driver_instance_id,
+    }
+    missing_inputs = [
+        key for key in spec.required_inputs if supplied_inputs.get(key) is None
+    ]
+    if missing_inputs:
+        labels = {
+            "location_id": "a location",
+            "driver_instance_id": "a driver instance",
+        }
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} refresh requires "
+            f"{' and '.join(labels.get(key, key) for key in missing_inputs)}"
+        )
+    unexpected_inputs = [
+        key for key, value in supplied_inputs.items()
+        if value is not None and key not in spec.required_inputs
+    ]
+    if unexpected_inputs:
+        raise ValueError(
+            f"{job_id.replace('_', ' ').capitalize()} does not accept "
+            f"{', '.join(unexpected_inputs)}"
+        )
     if location_id is not None:
-        if "location_id" not in spec.required_inputs:
-            raise ValueError(f"{job_id.replace('_', ' ').capitalize()} does not accept a location")
         from uuid import UUID
 
         arguments.extend(("--location-id", str(UUID(str(location_id)))))
+    if driver_instance_id is not None:
+        from uuid import UUID
+
+        arguments.extend(("--driver-instance-id", str(UUID(str(driver_instance_id)))))
     if spec.scheduler_allowed:
         validate_scheduled_command(spec.module, arguments)
     result = subprocess.run(

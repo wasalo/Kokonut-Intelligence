@@ -15,9 +15,9 @@
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 81,
+    "source_file_count": 82,
     "unresolved_local_module_count": 0,
-    "known_allowlisted_dynamic_import_site_count": 1,
+    "known_allowlisted_dynamic_import_site_count": 2,
     "passed": true
   },
   "worker_identity": {
@@ -27,9 +27,9 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 269,
-    "sites_with_static_operation_path": 206,
-    "sites_without_static_function_match": 63,
+    "execution_site_count": 280,
+    "sites_with_static_operation_path": 211,
+    "sites_without_static_function_match": 69,
     "site_refs_for_review": [
       {
         "site": "services/analytics/carbon_balance.py:297:4",
@@ -287,6 +287,36 @@
         "import_closure_operation_count": 1
       },
       {
+        "site": "services/drivers/registry.py:126:20",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/drivers/registry.py:137:20",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/drivers/registry.py:179:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/drivers/registry.py:264:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/drivers/registry.py:273:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
+        "site": "services/drivers/registry.py:47:16",
+        "review_status": "function_not_reached_by_any_static_worker_root",
+        "import_closure_operation_count": 1
+      },
+      {
         "site": "services/events/insight_transfer.py:206:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
@@ -342,7 +372,7 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/ingestion/sensor_ingester.py:517:8",
+        "site": "services/ingestion/sensor_ingester.py:788:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 1
       }

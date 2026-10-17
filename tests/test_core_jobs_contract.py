@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 
 from services.core.jobs import JOBS, JobFailed, run_job
-from services.security.scheduled_command_contracts import ScheduledCommandRejected
 
 _LOCATION_ID = "a9aa6466-0754-4b7c-b20c-155a81134eaa"
 _DISPATCHES = [
@@ -97,9 +96,9 @@ def test_nonzero_job_exit_retains_return_code_and_bounded_output():
     assert len(error.value.output) == 500
 
 
-def test_source_less_sensor_job_is_rejected_before_subprocess():
+def test_sensor_job_requires_a_location_and_driver_before_subprocess():
     with patch("services.core.jobs.subprocess.run") as run:
-        with pytest.raises(ScheduledCommandRejected, match="no recurring source contract"):
+        with pytest.raises(ValueError, match="requires a location and a driver instance"):
             run_job("sensors")
 
     run.assert_not_called()

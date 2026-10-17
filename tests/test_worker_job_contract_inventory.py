@@ -12,14 +12,13 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from worker_job_contract_inventory import build_inventory  # noqa: E402
 
 
-def test_inventory_distinguishes_location_input_from_missing_sensor_source():
+def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     inventory = build_inventory()
     jobs = {entry["job"]: entry for entry in inventory["jobs"]}
 
     assert inventory["summary"]["outcomes"] == {
         "default_arguments_accepted": 8,
-        "required_runtime_inputs_validated": 6,
-        "source_contract_missing": 1,
+        "required_runtime_inputs_validated": 7,
     }
     assert jobs["weather"]["required_inputs"] == ["location_id"]
     assert jobs["weather"]["status"] == "required_runtime_inputs_validated"
@@ -30,7 +29,8 @@ def test_inventory_distinguishes_location_input_from_missing_sensor_source():
     assert jobs["credit_adjustment"]["status"] == "required_runtime_inputs_validated"
     assert jobs["metrics"]["required_inputs"] == ["location_id"]
     assert jobs["metrics"]["status"] == "required_runtime_inputs_validated"
-    assert jobs["sensors"]["status"] == "source_contract_missing"
-    assert jobs["sensors"]["reason"] == "sensor ingestion has no recurring source contract"
+    assert jobs["sensors"]["required_inputs"] == ["location_id", "driver_instance_id"]
+    assert jobs["sensors"]["status"] == "required_runtime_inputs_validated"
+    assert jobs["sensors"]["reason"] == "schema accepts the modeled input; each scheduled instance must provide it"
     assert jobs["anomaly"]["required_inputs"] == ["location_id"]
     assert jobs["anomaly"]["status"] == "required_runtime_inputs_validated"

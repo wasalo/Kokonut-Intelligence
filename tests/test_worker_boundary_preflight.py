@@ -34,7 +34,7 @@ def test_preflight_covers_every_worker_root_but_keeps_identity_gate_blocked(repo
     assert coverage["missing_function_graph_operations"] == []
     assert coverage["unresolved_function_roots"] == 0
     assert coverage["passed"] is True
-    assert report["source_closure"]["known_allowlisted_dynamic_import_site_count"] == 1
+    assert report["source_closure"]["known_allowlisted_dynamic_import_site_count"] == 2
     assert report["source_closure"]["passed"] is True
     assert report["worker_identity"]["signed_tenant_context_established_by_dispatch"] is False
     assert report["worker_identity"]["unbound_operation_root_count"] == coverage["expected_operation_count"]

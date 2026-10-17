@@ -1,5 +1,24 @@
 # Kokonut Kernel implementation progress
 
+### Location-bound scheduled sensor pull contract — 16 October 2026
+
+Scheduled sensor jobs now require a canonical location UUID plus a registered
+sensor driver-instance UUID. Registry resolution accepts only an enabled sensor
+driver assigned to that exact location; a code-installed driver must explicitly
+opt into scheduled pull. The built-in CSV pull is limited to 100 sources and
+10,000 records, while MQTT remains event-driven. Reading inserts, ingestion
+audit, platform events, and ClickHouse outbox projection entries share a single
+PostgreSQL transaction. Exact timestamp/value retries are deduplicated without
+republishing events; conflicting values abort the batch. The focused sensor,
+scheduler, Prefect, and inventory suite passes 162 tests; Ruff and generated
+worker inventories pass. These checks use mocks and static source only: no
+source instance, database, provider, Prefect deployment, or schedule was
+activated. The query UUID is not authenticated tenant context. Candidate and
+legacy databases were not accessed. The checklist now records 419 complete /
+20 open items; capability-matrix MAN-CAP acceptance remains zero
+([operation map](worker-operation-map.json); [schedule ownership](schedule-ownership-inventory.md);
+[evidence](builds/2026-10-16-recovery/sensor-driver-scheduled-source-contract.json)).
+
 ### Scheduler post-effect crash recovery and handler protocol — 16 October 2026
 
 The disposable SchedulerEngine check now covers the crash window after a task
@@ -589,7 +608,7 @@ owner-confirmed Kokonut Network organization; weather, credit, climate, and
 remote sensing use the same selector. The 126-test scheduler/Prefect slice passes. At
 that checkpoint, the static JobSpec inventory recorded nine no-input jobs,
 five jobs with validated required location inputs, and one source-less sensor
-job; the later anomaly-scope slice changes the current totals to eight and six.
+job; later anomaly and sensor-scope slices changed the current totals to eight no-input jobs and seven validated-input jobs, including the sensor location/driver-instance pair.
 No persisted task was read or
 changed. Existing task rows need reconciliation before activation, and the
 shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);
@@ -613,8 +632,9 @@ missing location, and Prefect routing. The actual claim function also passed a
 disposable PostgreSQL 16 probe using two locations, verifying scoped leases and
 the then-existing direct operator global-queue behavior. At that checkpoint, the inventory
 contained nine no-input jobs, five required-location jobs, and one sensor job
-without a source contract; the later anomaly-scope slice changes the current
-totals to eight and six. No persisted task, Prefect deployment, provider, candidate database,
+without a source contract; later anomaly and sensor-scope slices changed the
+current totals to eight no-input and seven validated-input jobs, including the
+sensor location/driver-instance pair. No persisted task, Prefect deployment, provider, candidate database,
 or legacy database was accessed; the probe used a temporary no-volume local
 PostgreSQL database. This is code-level scope only; signed worker identity and RLS remain
 open ([evidence](builds/2026-10-16-recovery/remote-sensing-location-scope.json);

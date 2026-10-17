@@ -24,6 +24,9 @@ from services.ingestion import sensor_ingester
         ["--list"],
         ["--calibration"],
         ["--file", "readings.csv", "--location-id", "not-a-uuid"],
+        ["--driver-instance-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+        ["--driver-instance-id", "not-a-uuid", "--location-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+        ["--driver-instance-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "--location-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "--list"],
     ],
 )
 def test_missing_or_conflicting_source_arguments_fail_before_database_access(
@@ -82,6 +85,10 @@ def test_help_and_missing_input_do_not_load_sops_or_database_configuration():
          "list_sensors", ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",)),
         (["--calibration", "--location-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
          "list_calibration_status", ("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",)),
+        (["--driver-instance-id", "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          "--location-id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"],
+         "run_driver_instance",
+         ("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")),
     ],
 )
 def test_explicit_sensor_cli_operations_keep_their_existing_dispatch(
@@ -122,7 +129,7 @@ def test_sensor_lookup_rejects_invalid_location_before_opening_a_cursor():
 
 @pytest.mark.parametrize(
     "operation",
-    ["run_csv", "run_single"],
+    ["run_csv", "run_single", "run_driver_instance"],
 )
 def test_sensor_ingestion_helpers_require_scope_before_opening_database(operation, monkeypatch):
     monkeypatch.setattr(
@@ -134,5 +141,7 @@ def test_sensor_ingestion_helpers_require_scope_before_opening_database(operatio
     with pytest.raises(ValueError, match="explicit location UUID"):
         if operation == "run_csv":
             sensor_ingester.run_csv("readings.csv")
-        else:
+        elif operation == "run_single":
             sensor_ingester.run_single("sensor-1", 12.5)
+        else:
+            sensor_ingester.run_driver_instance("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", None)

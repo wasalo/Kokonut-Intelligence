@@ -2380,6 +2380,7 @@
         "services.common.worker_environment",
         "services.core.adapters.clickhouse",
         "services.core.providers",
+        "services.drivers.registry",
         "services.events.bus",
         "services.events.retention",
         "services.ingestion.base",
@@ -2400,6 +2401,7 @@
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
+        "services/drivers/registry.py",
         "services/events/bus.py",
         "services/events/retention.py",
         "services/ingestion/base.py",
@@ -2463,6 +2465,18 @@
           "source": "services/core/adapters/clickhouse.py",
           "line": 14,
           "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 12,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 26,
+          "target": "services.common.database",
           "kind": "from"
         },
         {
@@ -2557,50 +2571,56 @@
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 28,
+          "line": 30,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 29,
+          "line": 31,
           "target": "services.ingestion.field_validation",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 38,
+          "line": 40,
           "target": "services.events.bus",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 47,
+          "line": 49,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 54,
+          "line": 56,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 61,
+          "line": 63,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 68,
+          "line": 70,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 217,
+          "line": 223,
           "target": "services.ingestion.sensor_projection",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 426,
+          "target": "services.drivers.registry",
           "kind": "from"
         },
         {
@@ -2618,6 +2638,11 @@
       ],
       "unresolved_local_modules": [],
       "dynamic_import_sites": [
+        {
+          "source": "services/drivers/registry.py",
+          "line": 111,
+          "kind": "dynamic module expression"
+        },
         {
           "source": "services/events/bus.py",
           "line": 51,

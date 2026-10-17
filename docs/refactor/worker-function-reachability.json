@@ -4,10 +4,10 @@
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 22,
-    "source_files": 81,
+    "source_files": 82,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 448,
-    "direct_call_edges": 628,
+    "function_memberships": 453,
+    "direct_call_edges": 653,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -5086,6 +5086,7 @@
         "services/common/worker_environment.py",
         "services/core/adapters/clickhouse.py",
         "services/core/providers.py",
+        "services/drivers/registry.py",
         "services/events/bus.py",
         "services/events/retention.py",
         "services/ingestion/base.py",
@@ -5100,7 +5101,7 @@
         {
           "function": "services.ingestion.sensor_ingester:main",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 642
+          "line": 933
         }
       ],
       "reachable_functions": [
@@ -5127,6 +5128,38 @@
           "class_scope": "ProviderSettings",
           "source": "services/core/providers.py",
           "line": 25
+        },
+        {
+          "key": "services.drivers.registry:DriverRegistry._get_conn",
+          "module": "services.drivers.registry",
+          "qualname": "DriverRegistry._get_conn",
+          "class_scope": "DriverRegistry",
+          "source": "services/drivers/registry.py",
+          "line": 24
+        },
+        {
+          "key": "services.drivers.registry:DriverRegistry.get_schedulable_instance",
+          "module": "services.drivers.registry",
+          "qualname": "DriverRegistry.get_schedulable_instance",
+          "class_scope": "DriverRegistry",
+          "source": "services/drivers/registry.py",
+          "line": 210
+        },
+        {
+          "key": "services.drivers.registry:DriverRegistry.load",
+          "module": "services.drivers.registry",
+          "qualname": "DriverRegistry.load",
+          "class_scope": "DriverRegistry",
+          "source": "services/drivers/registry.py",
+          "line": 84
+        },
+        {
+          "key": "services.drivers.registry:DriverRegistry.update_instance_status",
+          "module": "services.drivers.registry",
+          "qualname": "DriverRegistry.update_instance_status",
+          "class_scope": "DriverRegistry",
+          "source": "services/drivers/registry.py",
+          "line": 291
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -5222,7 +5255,7 @@
           "qualname": "_canonical_location_id",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 80
+          "line": 84
         },
         {
           "key": "services.ingestion.sensor_ingester:_get_event_bus",
@@ -5230,7 +5263,7 @@
           "qualname": "_get_event_bus",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 35
+          "line": 37
         },
         {
           "key": "services.ingestion.sensor_ingester:get_active_sensors",
@@ -5238,7 +5271,7 @@
           "qualname": "get_active_sensors",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 135
+          "line": 139
         },
         {
           "key": "services.ingestion.sensor_ingester:get_db",
@@ -5246,7 +5279,7 @@
           "qualname": "get_db",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 45
+          "line": 47
         },
         {
           "key": "services.ingestion.sensor_ingester:get_sensor_by_id_or_slug",
@@ -5254,7 +5287,7 @@
           "qualname": "get_sensor_by_id_or_slug",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 150
+          "line": 154
         },
         {
           "key": "services.ingestion.sensor_ingester:get_sensor_type_ranges",
@@ -5262,7 +5295,7 @@
           "qualname": "get_sensor_type_ranges",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 120
+          "line": 124
         },
         {
           "key": "services.ingestion.sensor_ingester:hash_payload",
@@ -5270,7 +5303,7 @@
           "qualname": "hash_payload",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 52
+          "line": 54
         },
         {
           "key": "services.ingestion.sensor_ingester:insert_clickhouse_rows",
@@ -5278,7 +5311,7 @@
           "qualname": "insert_clickhouse_rows",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 59
+          "line": 61
         },
         {
           "key": "services.ingestion.sensor_ingester:insert_reading",
@@ -5286,7 +5319,7 @@
           "qualname": "insert_reading",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 165
+          "line": 169
         },
         {
           "key": "services.ingestion.sensor_ingester:insert_reading_clickhouse",
@@ -5294,7 +5327,7 @@
           "qualname": "insert_reading_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 209
+          "line": 215
         },
         {
           "key": "services.ingestion.sensor_ingester:list_calibration_status",
@@ -5302,7 +5335,7 @@
           "qualname": "list_calibration_status",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 556
+          "line": 827
         },
         {
           "key": "services.ingestion.sensor_ingester:list_sensors",
@@ -5310,7 +5343,7 @@
           "qualname": "list_sensors",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 491
+          "line": 762
         },
         {
           "key": "services.ingestion.sensor_ingester:log_ingestion",
@@ -5318,7 +5351,7 @@
           "qualname": "log_ingestion",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 66
+          "line": 68
         },
         {
           "key": "services.ingestion.sensor_ingester:main",
@@ -5326,7 +5359,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 597
+          "line": 868
         },
         {
           "key": "services.ingestion.sensor_ingester:run_csv",
@@ -5334,7 +5367,15 @@
           "qualname": "run_csv",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 260
+          "line": 266
+        },
+        {
+          "key": "services.ingestion.sensor_ingester:run_driver_instance",
+          "module": "services.ingestion.sensor_ingester",
+          "qualname": "run_driver_instance",
+          "class_scope": null,
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 412
         },
         {
           "key": "services.ingestion.sensor_ingester:run_single",
@@ -5342,7 +5383,7 @@
           "qualname": "run_single",
           "class_scope": null,
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 406
+          "line": 677
         },
         {
           "key": "services.ingestion.sensor_projection:project_sensor_reading",
@@ -5359,6 +5400,30 @@
           "callee": "services.core.providers:ProviderSettings.from_environment",
           "source": "services/core/adapters/clickhouse.py",
           "line": 16
+        },
+        {
+          "caller": "services.drivers.registry:DriverRegistry._get_conn",
+          "callee": "services.common.database:get_db",
+          "source": "services/drivers/registry.py",
+          "line": 27
+        },
+        {
+          "caller": "services.drivers.registry:DriverRegistry.get_schedulable_instance",
+          "callee": "services.drivers.registry:DriverRegistry._get_conn",
+          "source": "services/drivers/registry.py",
+          "line": 216
+        },
+        {
+          "caller": "services.drivers.registry:DriverRegistry.load",
+          "callee": "services.drivers.registry:DriverRegistry._get_conn",
+          "source": "services/drivers/registry.py",
+          "line": 89
+        },
+        {
+          "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
+          "callee": "services.drivers.registry:DriverRegistry._get_conn",
+          "source": "services/drivers/registry.py",
+          "line": 301
         },
         {
           "caller": "services.ingestion.base:get_clickhouse",
@@ -5406,289 +5471,415 @@
           "caller": "services.ingestion.sensor_ingester:get_active_sensors",
           "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 137
+          "line": 141
         },
         {
           "caller": "services.ingestion.sensor_ingester:get_db",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 49
+          "line": 51
         },
         {
           "caller": "services.ingestion.sensor_ingester:get_sensor_by_id_or_slug",
           "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 152
+          "line": 156
         },
         {
           "caller": "services.ingestion.sensor_ingester:hash_payload",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 56
+          "line": 58
         },
         {
           "caller": "services.ingestion.sensor_ingester:insert_clickhouse_rows",
           "callee": "services.ingestion.base:insert_clickhouse_rows",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 63
+          "line": 65
         },
         {
           "caller": "services.ingestion.sensor_ingester:insert_reading_clickhouse",
           "callee": "services.ingestion.sensor_ingester:insert_clickhouse_rows",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 252
+          "line": 258
         },
         {
           "caller": "services.ingestion.sensor_ingester:insert_reading_clickhouse",
           "callee": "services.ingestion.sensor_projection:project_sensor_reading",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 230
+          "line": 236
         },
         {
           "caller": "services.ingestion.sensor_ingester:list_calibration_status",
           "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 558
+          "line": 829
         },
         {
           "caller": "services.ingestion.sensor_ingester:list_calibration_status",
           "callee": "services.ingestion.sensor_ingester:get_db",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 559
+          "line": 830
         },
         {
           "caller": "services.ingestion.sensor_ingester:list_sensors",
           "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 493
+          "line": 764
         },
         {
           "caller": "services.ingestion.sensor_ingester:list_sensors",
           "callee": "services.ingestion.sensor_ingester:get_active_sensors",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 496
+          "line": 767
         },
         {
           "caller": "services.ingestion.sensor_ingester:list_sensors",
           "callee": "services.ingestion.sensor_ingester:get_db",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 494
+          "line": 765
         },
         {
           "caller": "services.ingestion.sensor_ingester:log_ingestion",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 70
+          "line": 72
         },
         {
           "caller": "services.ingestion.sensor_ingester:main",
           "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 627
+          "line": 908
         },
         {
           "caller": "services.ingestion.sensor_ingester:main",
           "callee": "services.ingestion.sensor_ingester:list_calibration_status",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 634
+          "line": 920
         },
         {
           "caller": "services.ingestion.sensor_ingester:main",
           "callee": "services.ingestion.sensor_ingester:list_sensors",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 632
+          "line": 918
         },
         {
           "caller": "services.ingestion.sensor_ingester:main",
           "callee": "services.ingestion.sensor_ingester:run_csv",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 636
+          "line": 927
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:main",
+          "callee": "services.ingestion.sensor_ingester:run_driver_instance",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 923
         },
         {
           "caller": "services.ingestion.sensor_ingester:main",
           "callee": "services.ingestion.sensor_ingester:run_single",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 638
+          "line": 929
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.field_validation:parse_reading_timestamp",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 294
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.field_validation:validate_sensor_reading",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 322
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 262
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:_get_event_bus",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 363
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:get_db",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 263
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:get_sensor_by_id_or_slug",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 314
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:get_sensor_type_ranges",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 265
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:hash_payload",
-          "source": "services/ingestion/sensor_ingester.py",
-          "line": 287
-        },
-        {
-          "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:hash_payload",
           "source": "services/ingestion/sensor_ingester.py",
           "line": 300
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
-          "callee": "services.ingestion.sensor_ingester:hash_payload",
+          "callee": "services.ingestion.field_validation:validate_sensor_reading",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 330
+          "line": 328
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 268
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:_get_event_bus",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 369
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:get_db",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 269
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:get_sensor_by_id_or_slug",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 320
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:get_sensor_type_ranges",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 271
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:hash_payload",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 355
+          "line": 293
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:hash_payload",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 392
+          "line": 306
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:hash_payload",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 336
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:hash_payload",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 361
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_csv",
+          "callee": "services.ingestion.sensor_ingester:hash_payload",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 398
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:insert_reading",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 341
+          "line": 347
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:insert_reading_clickhouse",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 346
+          "line": 352
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:log_ingestion",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 284
+          "line": 290
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:log_ingestion",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 297
+          "line": 303
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:log_ingestion",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 327
+          "line": 333
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:log_ingestion",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 348
+          "line": 354
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_csv",
           "callee": "services.ingestion.sensor_ingester:log_ingestion",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 385
+          "line": 391
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.drivers.registry:DriverRegistry.get_schedulable_instance",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 438
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.drivers.registry:DriverRegistry.load",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 442
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.drivers.registry:DriverRegistry.update_instance_status",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 638
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.drivers.registry:DriverRegistry.update_instance_status",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 663
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.field_validation:parse_reading_timestamp",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 493
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.field_validation:validate_sensor_reading",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 548
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 420
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 483
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:_get_event_bus",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 617
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:get_db",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 428
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:get_sensor_by_id_or_slug",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 527
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:get_sensor_type_ranges",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 476
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:hash_payload",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 473
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:hash_payload",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 507
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:insert_reading",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 584
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:insert_reading_clickhouse",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 597
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:log_ingestion",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 509
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:log_ingestion",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 530
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:log_ingestion",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 557
+        },
+        {
+          "caller": "services.ingestion.sensor_ingester:run_driver_instance",
+          "callee": "services.ingestion.sensor_ingester:log_ingestion",
+          "source": "services/ingestion/sensor_ingester.py",
+          "line": 600
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.field_validation:parse_reading_timestamp",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 427
+          "line": 698
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.field_validation:validate_sensor_reading",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 431
+          "line": 702
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:_canonical_location_id",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 414
+          "line": 685
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:_get_event_bus",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 463
+          "line": 734
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:get_db",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 415
+          "line": 686
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:get_sensor_by_id_or_slug",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 419
+          "line": 690
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:get_sensor_type_ranges",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 417
+          "line": 688
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:hash_payload",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 455
+          "line": 726
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:insert_reading",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 440
+          "line": 711
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:insert_reading_clickhouse",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 446
+          "line": 717
         },
         {
           "caller": "services.ingestion.sensor_ingester:run_single",
           "callee": "services.ingestion.sensor_ingester:log_ingestion",
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 448
+          "line": 719
         },
         {
           "caller": "services.ingestion.sensor_projection:project_sensor_reading",

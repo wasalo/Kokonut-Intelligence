@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-16",
+  "scope": "Source and mocked acceptance for the location-bound scheduled sensor pull contract. No candidate or legacy database, external provider, configured driver instance, Prefect deployment, or persisted schedule was accessed or changed.",
+  "base_commit": "526857998c2bb6ca11eb9efd46113cf42ddde1ea",
+  "implementation": {
+    "job_inputs": ["location_id", "driver_instance_id"],
+    "registry_constraints": [
+      "driver instance is enabled",
+      "registered driver is enabled and sensor typed",
+      "instance location exactly matches task location",
+      "loaded driver identity matches registry name",
+      "driver explicitly opts into scheduled pull"
+    ],
+    "source_limits": {
+      "max_sources": 100,
+      "max_records": 10000,
+      "built_in_pull_driver": "sensor_csv",
+      "mqtt_scheduled_polling": false
+    },
+    "transaction": "Accepted sensor reading, ingestion audit, platform event and ClickHouse outbox projection writes share one PostgreSQL transaction. Exact timestamp/value retries are suppressed without republishing the event; conflicting values fail and roll back the batch.",
+    "schedule_activation": false
+  },
+  "focused_tests": {
+    "command": "python3 -m pytest -q tests/test_sensor_driver_schedule.py tests/test_scheduled_command_contracts.py tests/test_core_jobs_contract.py tests/test_sensor_ingester_cli_contract.py tests/test_prefect_workflow.py tests/test_worker_job_contract_inventory.py",
+    "passed": 162,
+    "failed": 0
+  },
+  "inventory_tests": {
+    "command": "python3 -m pytest -q tests/test_worker_operation_map.py tests/test_worker_job_contract_inventory.py tests/test_runtime_sql_inventory.py tests/test_worker_sql_inventory.py tests/test_worker_source_closure.py tests/test_worker_function_reachability.py tests/test_worker_sql_reachability.py tests/test_worker_boundary_preflight.py",
+    "passed": 49,
+    "failed": 0
+  },
+  "quality_checks": {
+    "ruff": "passed",
+    "generated_worker_inventories": "all eight --check commands passed",
+    "capability_matrix": "valid: 66 rows; 55 baseline-retained, 7 deployed, 4 prepared; zero MAN-CAP acceptances"
+  },
+  "remaining_gates": [
+    "real driver source and owner configuration",
+    "provider output parity and replay-watermark acceptance",
+    "active schedule and external dispatcher reconciliation",
+    "signed worker identity and tenant authorization",
+    "candidate rollout and MAN-CAP-040/047 acceptance"
+  ]
+}

@@ -20,8 +20,10 @@ Usage:
 import argparse
 import csv
 import json
+import math
 import re
 import sys
+import time
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -75,6 +77,8 @@ _TS_RE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$')
 _QUALITY_RE = re.compile(r'^(good|suspect|missing|estimated)$')
 _SENSOR_TYPE_RE = re.compile(r'^[a-z_]+$')
 _UNIT_RE = re.compile(r'^[a-zA-Z°%µ]+$')
+_MAX_SCHEDULED_SENSOR_SOURCES = 100
+_MAX_SCHEDULED_SENSOR_RECORDS = 10_000
 
 
 def _canonical_location_id(location_id: str | None) -> str:
@@ -165,8 +169,8 @@ def get_sensor_by_id_or_slug(db, identifier: str, location_id: str):
 def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
                    value: float, quality: str = "good", metadata: dict = None,
                    source_system: str = "sensor_ingester", source_id: str = None,
-                   source_raw: dict = None) -> str:
-    """Insert a sensor reading into PostgreSQL. Returns record ID."""
+                   source_raw: dict = None, *, return_created: bool = False) -> str | tuple[str, bool]:
+    """Insert a sensor reading and optionally report whether it was new."""
     sensor_id, name, slug, sensor_type_id, sensor_type, location_id, plot_id, status, protocol = sensor_info
     reading_time = reading_time or "00:00:00"
 
@@ -192,7 +196,8 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
         )
         row = cur.fetchone()
         if row:
-            return str(row[0])
+            result = str(row[0])
+            return (result, True) if return_created else result
         cur.execute(
             "SELECT id, value, quality FROM sensor_reading WHERE sensor_id = %s AND reading_date = %s AND reading_time = %s",
             (str(sensor_id), reading_date, reading_time),
@@ -203,7 +208,8 @@ def insert_reading(db, sensor_info: dict, reading_date: str, reading_time: str,
         canonical_value = Decimal(str(value)).quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP)
         if existing[1] != canonical_value or existing[2] != quality:
             raise ValueError("Sensor timestamp conflicts with an existing reading")
-        return str(existing[0])
+        result = str(existing[0])
+        return (result, False) if return_created else result
 
 
 def insert_reading_clickhouse(sensor_info: dict, reading_date: str, reading_time: str,
@@ -399,6 +405,271 @@ def run_csv(file_path: str, location_id: str | None = None):
         logger.info("Done: %d success, %d warnings, %d errors", success, warnings, errors)
     finally:
         global _event_bus
+        _event_bus = None
+        db.close()
+
+
+def run_driver_instance(instance_id: str, location_id: str) -> dict:
+    """Fetch and ingest one enabled sensor pull-driver instance for one location.
+
+    Persisted scheduler arguments contain only the instance and location UUIDs;
+    driver configuration and source paths are resolved from the scoped registry.
+    The complete instance batch shares one PostgreSQL transaction so a failed
+    canonical projection or event enqueue cannot leave partially accepted rows.
+    """
+    location_id = _canonical_location_id(location_id)
+    try:
+        instance_id = str(UUID(str(instance_id)))
+    except (ValueError, AttributeError, TypeError):
+        raise ValueError("driver_instance_id must be a UUID") from None
+
+    from services.drivers.registry import DriverRegistry
+
+    db = get_db()
+    registry = DriverRegistry(conn=db)
+    instance = None
+    started = time.monotonic()
+    records_fetched = 0
+    records_written = 0
+    rejected = 0
+    global _event_bus
+    _event_bus = None
+    try:
+        instance = registry.get_schedulable_instance(instance_id, location_id)
+        if instance is None:
+            raise ValueError("enabled sensor driver instance was not found for this location")
+
+        driver_class = registry.load(instance["driver_name"])
+        driver = driver_class(config=instance["config"])
+        if getattr(driver, "name", None) != instance["driver_name"]:
+            raise ValueError("sensor driver identity does not match its registry entry")
+        if getattr(driver, "supports_scheduled_pull", False) is not True:
+            raise ValueError("sensor driver does not support scheduled pull ingestion")
+        if driver.driver_type != "sensor" or not driver.validate_config(instance["config"]):
+            raise ValueError("sensor driver configuration is invalid")
+
+        sources = driver.discover(instance["config"])
+        if (
+            not isinstance(sources, list)
+            or not sources
+            or len(sources) > _MAX_SCHEDULED_SENSOR_SOURCES
+        ):
+            raise ValueError("sensor driver returned an invalid or oversized source list")
+
+        batches = []
+        for source_index, source in enumerate(sources):
+            if not isinstance(source, dict):
+                raise ValueError("sensor driver source descriptors must be objects")
+            source_id = source.get("source_id")
+            if not isinstance(source_id, str) or not source_id.strip():
+                raise ValueError("sensor driver source requires a non-empty source_id")
+            raw = driver.fetch(source)
+            records = driver.transform(raw)
+            if not isinstance(records, list):
+                raise ValueError("sensor driver transform must return a list")
+            records_fetched += len(records)
+            if records_fetched > _MAX_SCHEDULED_SENSOR_RECORDS:
+                raise ValueError("sensor driver exceeded the scheduled record limit")
+            source_digest = hash_payload({"source_id": source_id})
+            batches.append((source_index, source_digest, records))
+
+        ranges = get_sensor_type_ranges(db, strict=True)
+        bus = None
+        for source_index, source_digest, records in batches:
+            for record_index, record in enumerate(records):
+                if not isinstance(record, dict):
+                    raise ValueError("sensor driver records must be objects")
+                record_location = record.get("location_id")
+                if record_location is not None and _canonical_location_id(record_location) != location_id:
+                    raise ValueError("sensor driver record location does not match its instance")
+
+                device_id = record.get("device_id")
+                reading_date = record.get("reading_date")
+                reading_time = record.get("reading_time") or "00:00:00"
+                value = record.get("value")
+                errors = []
+                timestamp = None
+                try:
+                    timestamp = parse_reading_timestamp(reading_date, reading_time)
+                except (TypeError, ValueError):
+                    errors.append("invalid reading timestamp")
+                try:
+                    numeric_value = float(value)
+                    if not math.isfinite(numeric_value):
+                        raise ValueError
+                except (TypeError, ValueError, OverflowError):
+                    numeric_value = None
+                    errors.append("reading value must be a finite number")
+                if not isinstance(device_id, str) or not device_id.strip():
+                    errors.append("device_id is required")
+
+                source_key = f"{instance_id}:{source_digest}:{record_index}"
+                payload_hash = hash_payload(record)
+                if errors:
+                    log_ingestion(
+                        source_system="sensor_driver",
+                        source_table="sensor_driver_record",
+                        source_id=source_key,
+                        target_table="sensor_reading",
+                        target_id=None,
+                        operation="insert",
+                        payload_hash=payload_hash,
+                        status="failed",
+                        error_message="; ".join(errors),
+                        validation_status="rejected",
+                        validation_errors=errors,
+                        db=db,
+                        location_id=location_id,
+                    )
+                    rejected += 1
+                    continue
+
+                sensor_info = get_sensor_by_id_or_slug(db, device_id, location_id)
+                if not sensor_info:
+                    errors = ["sensor is not registered as active in the instance location"]
+                    log_ingestion(
+                        source_system="sensor_driver",
+                        source_table="sensor_driver_record",
+                        source_id=source_key,
+                        target_table="sensor_reading",
+                        target_id=None,
+                        operation="insert",
+                        payload_hash=payload_hash,
+                        status="failed",
+                        error_message=errors[0],
+                        validation_status="rejected",
+                        validation_errors=errors,
+                        db=db,
+                        location_id=location_id,
+                    )
+                    rejected += 1
+                    continue
+
+                validation = validate_sensor_reading(
+                    numeric_value,
+                    sensor_info[4],
+                    "sensor",
+                    timestamp,
+                    ranges=ranges,
+                    identity=device_id,
+                )
+                if validation.status == "rejected":
+                    log_ingestion(
+                        source_system="sensor_driver",
+                        source_table="sensor_driver_record",
+                        source_id=source_key,
+                        target_table="sensor_reading",
+                        target_id=None,
+                        operation="insert",
+                        payload_hash=payload_hash,
+                        status="failed",
+                        error_message="; ".join(validation.errors),
+                        validation_status="rejected",
+                        validation_errors=validation.errors,
+                        validation_warnings=validation.warnings,
+                        dedupe_key=validation.dedupe_key,
+                        db=db,
+                        location_id=location_id,
+                    )
+                    rejected += 1
+                    continue
+
+                quality = "suspect" if validation.status == "suspect" else "good"
+                metadata = {
+                    "driver_instance_id": instance_id,
+                    "source_id_sha256": source_digest,
+                    "source_index": source_index,
+                    "record_index": record_index,
+                }
+                pg_id, created = insert_reading(
+                    db,
+                    sensor_info,
+                    reading_date,
+                    reading_time,
+                    numeric_value,
+                    quality,
+                    metadata,
+                    source_system="sensor_driver",
+                    source_id=source_key,
+                    source_raw=record,
+                    return_created=True,
+                )
+                insert_reading_clickhouse(
+                    sensor_info, reading_date, reading_time, numeric_value, quality, db
+                )
+                log_ingestion(
+                    source_system="sensor_driver",
+                    source_table="sensor_driver_record",
+                    source_id=source_key,
+                    target_table="sensor_reading",
+                    target_id=pg_id,
+                    operation="insert",
+                    payload_hash=payload_hash,
+                    rows_affected=1,
+                    validation_status=validation.status,
+                    validation_warnings=validation.warnings,
+                    dedupe_key=validation.dedupe_key,
+                    db=db,
+                    location_id=location_id,
+                )
+                if created:
+                    if bus is None:
+                        bus = _get_event_bus(conn=db)
+                    bus.publish(
+                        "sensor_reading",
+                        {
+                            "sensor_id": str(sensor_info[0]),
+                            "sensor_type": sensor_info[4],
+                            "location_id": location_id,
+                            "value": numeric_value,
+                            "quality": quality,
+                            "reading_date": reading_date,
+                            "reading_time": reading_time,
+                        },
+                        source_table="sensor_reading",
+                        source_id=pg_id,
+                        priority="normal",
+                        commit=False,
+                    )
+                    records_written += 1
+
+        db.commit()
+        duration_ms = int((time.monotonic() - started) * 1000)
+        registry.update_instance_status(
+            instance_id,
+            "success",
+            records_fetched=records_fetched,
+            records_written=records_written,
+            duration_ms=duration_ms,
+        )
+        logger.info(
+            "Scheduled sensor driver %s processed %d records (%d written, %d rejected)",
+            instance_id,
+            records_fetched,
+            records_written,
+            rejected,
+        )
+        return {
+            "instance_id": instance_id,
+            "location_id": location_id,
+            "records_fetched": records_fetched,
+            "records_written": records_written,
+            "records_rejected": rejected,
+            "duration_ms": duration_ms,
+        }
+    except Exception as exc:
+        db.rollback()
+        if instance is not None:
+            registry.update_instance_status(
+                instance_id,
+                "failed",
+                records_fetched=records_fetched,
+                records_written=0,
+                duration_ms=int((time.monotonic() - started) * 1000),
+                error_message=type(exc).__name__,
+            )
+        raise
+    finally:
         _event_bus = None
         db.close()
 
@@ -603,11 +874,21 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--date", help="Reading date YYYY-MM-DD (with --sensor)")
     parser.add_argument("--time", help="Reading time HH:MM:SS (with --sensor)")
     parser.add_argument("--location-id", help="Required UUID scope for every sensor operation")
+    parser.add_argument(
+        "--driver-instance-id",
+        help="Run one registered, enabled sensor pull-driver instance",
+    )
     parser.add_argument("--list", action="store_true", help="List active sensors")
     parser.add_argument("--calibration", action="store_true", help="List calibration status")
     args = parser.parse_args(argv)
 
-    operations = [args.file is not None, args.sensor is not None, args.list, args.calibration]
+    operations = [
+        args.file is not None,
+        args.sensor is not None,
+        args.list,
+        args.calibration,
+        args.driver_instance_id is not None,
+    ]
     if sum(operations) != 1:
         parser.error("choose exactly one of --file, --sensor, --list, or --calibration")
     if args.file is not None and not args.file.strip():
@@ -627,11 +908,21 @@ def main(argv: list[str] | None = None) -> None:
         location_id = _canonical_location_id(args.location_id)
     except ValueError as exc:
         parser.error(str(exc))
+    if args.driver_instance_id is not None:
+        try:
+            args.driver_instance_id = str(UUID(str(args.driver_instance_id)))
+        except (ValueError, AttributeError, TypeError):
+            parser.error("--driver-instance-id must be a UUID")
 
     if args.list:
         list_sensors(location_id)
     elif args.calibration:
         list_calibration_status(location_id)
+    elif args.driver_instance_id is not None:
+        try:
+            run_driver_instance(args.driver_instance_id, location_id)
+        except Exception as exc:
+            parser.exit(1, f"sensor driver failed: {type(exc).__name__}\n")
     elif args.file:
         run_csv(args.file, location_id)
     elif args.sensor and args.value is not None:

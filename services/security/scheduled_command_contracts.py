@@ -34,10 +34,13 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--chain": "rpc_chain",
         "--wallet": "wallet",
     },
-    # Sensor CLI input is interactive/file driven. Repeating a fixed value or
-    # reading an arbitrary path from a recurring database task is not a source
-    # contract; use the sensor transport/ingestion workers instead.
-    "services.ingestion.sensor_ingester": {},
+    # Scheduled sensor ingestion resolves a registered, enabled, location-bound
+    # pull driver instance from PostgreSQL. Arbitrary file paths and payloads
+    # never come from persisted task arguments.
+    "services.ingestion.sensor_ingester": {
+        "--driver-instance-id": "uuid",
+        "--location-id": "uuid",
+    },
     "services.ingestion.gnosis_indexer": {
         "--from-block": "block",
         "--to-block": "block",
@@ -165,7 +168,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     options = set(values)
 
     if module_path == "services.ingestion.sensor_ingester":
-        raise _reject("sensor ingestion has no recurring source contract")
+        if options != {"--driver-instance-id", "--location-id"}:
+            raise _reject(
+                "scheduled sensor ingestion requires one driver instance and one location"
+            )
 
     if module_path == "services.ingestion.weather" and "--location-id" not in options:
         raise _reject("weather ingestion requires one explicit location")
@@ -250,8 +256,9 @@ def validate_scheduled_command(module_path: str, command_args: object) -> tuple[
     """Validate and return immutable argv tokens for one scheduled operation.
 
     Unsupported commands include human-review actions, event cleanup without a
-    retention decision, unbounded event workers, and recurring sensor ingestion
-    without a source adapter. Validation never invokes the target module.
+    retention decision, and unbounded event workers. Sensor ingestion accepts
+    only an explicit location and registered driver-instance identity;
+    validation never invokes the target module.
     """
     try:
         validate_scheduled_module(module_path)

@@ -31,6 +31,10 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.ingestion.eas_indexer", ["--chain", "celo"]),
         ("services.ingestion.rpc_indexer", ["--wallet", "0x" + "a" * 40]),
         ("services.ingestion.gnosis_indexer", ["--from-block", "1", "--to-block", "2"]),
+        (
+            "services.ingestion.sensor_ingester",
+            ["--location-id", str(uuid4()), "--driver-instance-id", str(uuid4())],
+        ),
         ("services.ingestion.anomaly_detector", ["--location-id", str(uuid4())]),
         ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
@@ -64,6 +68,11 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("os", ["--help"]),
         ("services.ingestion.sensor_ingester", []),
         ("services.ingestion.sensor_ingester", ["--file", "/tmp/readings.csv"]),
+        ("services.ingestion.sensor_ingester", ["--location-id", str(uuid4())]),
+        (
+            "services.ingestion.sensor_ingester",
+            ["--location-id", str(uuid4()), "--driver-instance-id", "invalid"],
+        ),
         ("services.analytics.carbon_credit_adjustment_check", []),
         ("services.ingestion.weather", []),
         ("services.ingestion.anomaly_detector", []),
@@ -222,9 +231,9 @@ def test_remote_sensing_job_defaults_to_one_due_job_batch():
     assert plan["scheduled_task"]["is_enabled"] is False
 
 
-def test_sensor_job_rejects_missing_source_before_launching_the_noop_cli():
+def test_sensor_job_requires_a_registered_instance_and_location_before_launch():
     with patch("services.core.jobs.subprocess.run") as run:
-        with pytest.raises(ScheduledCommandRejected, match="no recurring source contract"):
+        with pytest.raises(ValueError, match="requires a location and a driver instance"):
             run_job("sensors")
 
     run.assert_not_called()
@@ -304,7 +313,7 @@ def test_run_now_passes_filtered_environment_to_task_child():
     connection.close.assert_called_once()
 
 
-def test_reviewable_job_plans_require_tenant_inputs_and_sensor_source():
+def test_reviewable_job_plans_require_tenant_and_driver_inputs():
     weather = build_job_plan("weather", "hourly", location_id=str(uuid4()))
     assert weather["scheduled_task"]["command_args"][0] == "--location-id"
 
@@ -314,13 +323,44 @@ def test_reviewable_job_plans_require_tenant_inputs_and_sensor_source():
     snapshots = build_job_plan("noi_snapshots", "daily")
     assert snapshots["scheduled_task"]["command_args"] == ["--reconcile-noi-snapshots"]
 
-    with pytest.raises(ValueError, match="input contract"):
+    with pytest.raises(ValueError, match="requires one location and one driver instance"):
         build_job_plan("sensors", "hourly")
 
+    location_id = str(uuid4())
+    driver_instance_id = str(uuid4())
+    sensors = build_job_plan(
+        "sensors",
+        "hourly",
+        location_id=location_id,
+        driver_instance_id=driver_instance_id,
+    )
+    assert sensors["scheduled_task"]["command_args"] == [
+        "--location-id",
+        location_id,
+        "--driver-instance-id",
+        driver_instance_id,
+    ]
+    assert sensors["scheduled_task"]["is_enabled"] is False
 
-def test_curated_job_runner_rejects_source_less_sensor_job_before_spawn():
-    with patch("services.core.jobs.subprocess.run") as run:
-        with pytest.raises(ScheduledCommandRejected, match="no recurring source contract"):
-            run_job("sensors")
 
-    run.assert_not_called()
+def test_sensor_job_dispatch_passes_only_registered_instance_and_location():
+    location_id = str(uuid4())
+    driver_instance_id = str(uuid4())
+    completed = MagicMock(returncode=0, stdout='{"records_written": 1}')
+    with patch("services.core.jobs.subprocess.run", return_value=completed) as run:
+        result = run_job(
+            "sensors",
+            location_id=location_id,
+            driver_instance_id=driver_instance_id,
+        )
+
+    assert result["status"] == "success"
+    assert run.call_args.args[0] == [
+        sys.executable,
+        "-m",
+        "services.ingestion.sensor_ingester",
+        "--location-id",
+        location_id,
+        "--driver-instance-id",
+        driver_instance_id,
+    ]

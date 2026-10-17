@@ -23,7 +23,12 @@ from services.security.scheduled_command_contracts import (  # noqa: E402
     validate_scheduled_command,
 )
 
-_INPUT_FIXTURES = {"location_id": ("--location-id", "00000000-0000-4000-8000-000000000001")}
+_INPUT_FIXTURES = {
+    "location_id": ("--location-id", "00000000-0000-4000-8000-000000000001"),
+    "driver_instance_id": (
+        "--driver-instance-id", "00000000-0000-4000-8000-000000000002",
+    ),
+}
 
 
 def build_inventory() -> dict:
@@ -48,7 +53,7 @@ def build_inventory() -> dict:
             try:
                 validate_scheduled_command(job.module, arguments)
             except ScheduledCommandRejected as exc:
-                status = "source_contract_missing" if name == "sensors" else "default_arguments_rejected"
+                status = "default_arguments_rejected"
                 reason = str(exc)
             else:
                 if job.required_inputs:

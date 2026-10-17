@@ -4,11 +4,14 @@ from __future__ import annotations
 
 from services.drivers.base import BaseDriver
 
+MAX_SENSOR_CSV_RECORDS = 10_000
+
 
 class Driver(BaseDriver):
     name = "sensor_csv"
     version = "1.0.0"
     driver_type = "sensor"
+    supports_scheduled_pull = True
 
     def validate_config(self, config: dict) -> bool:
         return "file_path" in config
@@ -22,7 +25,13 @@ class Driver(BaseDriver):
         file_path = source.get("source_id", "")
         with open(file_path, "r") as f:
             reader = csv.DictReader(f)
-            rows = list(reader)
+            rows = []
+            for row in reader:
+                if len(rows) >= MAX_SENSOR_CSV_RECORDS:
+                    raise ValueError(
+                        f"sensor CSV exceeds the {MAX_SENSOR_CSV_RECORDS}-record limit"
+                    )
+                rows.append(row)
         return {"data": rows}
 
     def transform(self, raw: dict) -> list[dict]:

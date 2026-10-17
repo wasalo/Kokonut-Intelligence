@@ -7,8 +7,7 @@
     "allowlisted_modules": 15,
     "outcomes": {
       "default_arguments_accepted": 8,
-      "required_runtime_inputs_validated": 6,
-      "source_contract_missing": 1
+      "required_runtime_inputs_validated": 7
     }
   },
   "jobs": [
@@ -130,9 +129,12 @@
       "job": "sensors",
       "module": "services.ingestion.sensor_ingester",
       "argument_count": 0,
-      "required_inputs": [],
-      "status": "source_contract_missing",
-      "reason": "sensor ingestion has no recurring source contract"
+      "required_inputs": [
+        "location_id",
+        "driver_instance_id"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
     },
     {
       "job": "weather",

@@ -46,8 +46,9 @@ application-wide RLS or proof for other workers.
   code-owned job runs, and subprocess creation.
   They check supported options, value formats, required arguments and option
   relationships. Human-review commands, unbounded event workers, event cleanup
-  without a retention decision, source-less recurring sensor ingestion, and
-  scheduled weather/anomaly scans without an explicit location are rejected.
+  without a retention decision, scheduled sensor ingestion without one
+  location-bound driver instance, and weather/anomaly scans without an explicit
+  location are rejected.
 - A rejected runtime command fails without spawning a process or scheduling a
   retry. The task row is not automatically rewritten; active legacy rows need
   operator review before deployment.
@@ -204,9 +205,14 @@ application-wide RLS or proof for other workers.
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
   compares all 15 shared job templates with the Kernel module allowlist and
-  command validation. Eight no-input defaults pass, six jobs require a
-  validated location, and sensor ingestion still lacks a recurring source
-  contract. Remote sensing requires one `--location-id` for every CLI mode and
+  command validation. Eight no-input defaults pass and seven jobs require
+  validated runtime inputs. Scheduled sensor ingestion requires one
+  `--location-id` and one `--driver-instance-id`; the registry accepts only an
+  enabled sensor instance assigned to that exact location, and the loaded
+  driver must explicitly opt into scheduled pull. The built-in CSV driver is
+  pull-capable; MQTT remains event-driven. This source contract does not prove
+  a configured instance, active schedule, tenant authorization, or RLS. Remote
+  sensing requires one `--location-id` for every CLI mode and
   its due-job API, and scheduled runs remain limited to a sequential
   `--run-jobs --limit` batch of 1–10 due jobs (the default JobSpec runs one),
   while ClickHouse projections are limited to one bounded `--run-once` delivery

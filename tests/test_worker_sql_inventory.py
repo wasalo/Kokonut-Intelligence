@@ -144,6 +144,7 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/ingestion/ml_anomaly_detector.py": 1,
         "services/ingestion/remote_sensing_fetcher.py": 1,
         "services/ingestion/sensor_anomaly_worker.py": 2,
+        "services/drivers/registry.py": 1,
         "services/metrics/calculators/allocated_shared_cost.py": 1,
         "services/metrics/calculators/attestation_coverage.py": 2,
         "services/metrics/calculators/crop_revenue.py": 1,

@@ -5,9 +5,10 @@
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
     "operation_roots": 22,
-    "candidate_effect_sites": 33,
-    "operation_site_memberships": 36,
+    "candidate_effect_sites": 34,
+    "operation_site_memberships": 37,
     "unique_sites_by_category": {
+      "dynamic_import": 1,
       "email_delivery": 6,
       "evm_client_setup": 4,
       "evm_rpc": 3,
@@ -16,6 +17,7 @@
       "process": 1
     },
     "operation_memberships_by_category": {
+      "dynamic_import": 1,
       "email_delivery": 6,
       "evm_client_setup": 4,
       "evm_rpc": 3,
@@ -28,21 +30,21 @@
     {
       "dispatcher": "services.events.bus:EventBus._invoke_handler",
       "source": "services/events/bus.py",
-      "process_creation_line": 239,
+      "process_creation_line": 241,
       "child_module": "services.events.handler_runner",
       "child_entrypoint": "services.events.handler_runner:main",
       "worker_secret_filter": "services.events.bus:_handler_child_environment",
-      "worker_secret_filter_line": 245,
+      "worker_secret_filter_line": 247,
       "request_executor": "services.events.handler_runner:execute_request",
-      "request_executor_call_line": 41,
+      "request_executor_call_line": 61,
       "callback_resolver": "services.events.bus:resolve_handler",
-      "resolver_call_line": 28,
+      "resolver_call_line": 44,
       "allowlist_validator": "services.security.execution_allowlist.validate_event_handler",
-      "allowlist_validation_line": 48,
-      "dynamic_import_line": 49,
+      "allowlist_validation_line": 50,
+      "dynamic_import_line": 51,
       "dynamic_handler_invocation_lines": [
-        30,
-        32
+        46,
+        48
       ],
       "allowlisted_handler_targets": [
         "services.cache.events.handle_crisp_scored",
@@ -70,35 +72,35 @@
       "candidate_effect_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 239,
+          "line": 241,
           "function": "services.events.bus:EventBus._invoke_handler",
           "category": "process",
           "call": "subprocess.Popen"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 341,
+          "line": 411,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 352,
+          "line": 422,
           "function": "services.events.notification_outbox:_deliver",
           "category": "http",
           "call": "services.common.http.http.post"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 376,
+          "line": 446,
           "function": "services.events.notification_outbox:_deliver",
           "category": "email_delivery",
           "call": "smtplib.SMTP"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 384,
+          "line": 454,
           "function": "services.events.notification_outbox:_deliver",
           "category": "email_delivery",
           "call": "server.send_message"
@@ -304,7 +306,7 @@
         },
         {
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 509,
+          "line": 513,
           "function": "services.ingestion.gnosis_indexer:run",
           "category": "evm_rpc",
           "call": "w3.eth.get_logs"
@@ -376,14 +378,14 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 52,
+          "line": 53,
           "function": "services.ingestion.rpc_indexer:get_web3",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 72,
+          "line": 73,
           "function": "services.ingestion.rpc_indexer:fetch_balance",
           "category": "evm_rpc",
           "call": "w3.eth.get_balance"
@@ -399,6 +401,13 @@
       "name": "services.ingestion.sensor_ingester",
       "candidate_effect_sites": [
         {
+          "source": "services/drivers/registry.py",
+          "line": 111,
+          "function": "services.drivers.registry:DriverRegistry.load",
+          "category": "dynamic_import",
+          "call": "importlib.import_module"
+        },
+        {
           "source": "services/ingestion/base.py",
           "line": 106,
           "function": "services.ingestion.base:post_clickhouse_rows",
@@ -407,13 +416,14 @@
         },
         {
           "source": "services/ingestion/sensor_ingester.py",
-          "line": 267,
+          "line": 273,
           "function": "services.ingestion.sensor_ingester:run_csv",
           "category": "filesystem",
           "call": "open"
         }
       ],
       "category_counts": {
+        "dynamic_import": 1,
         "filesystem": 1,
         "http": 1
       }

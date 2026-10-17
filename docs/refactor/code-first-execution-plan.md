@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Batch base (last pushed head before this work):** `54d84d80e06ba25401f8cf1b4350ac91e2af85b2` on PR #68.
-**Current local batch:** The handler runner now keeps configured INFO logs off its JSON stdout protocol, fixing a real case where an event handler could commit an outbox effect and then be reported as failed. Five focused handler-runner tests pass. The real SchedulerEngine disposable PostgreSQL 16 acceptance now kills the scheduler after that handler commits, reclaims the task lease, retries attempt two, and confirms one notification outbox row and one successful handler delivery. It also retains database stop/start and crash-before-dispatch recovery. Ruff, compilation, migration checks, and whitespace checks pass; the container was removed and no provider request or candidate/legacy access occurred. Prior pushed migrations 418–419 close inherited `PUBLIC EXECUTE` access on mobile credential and signed worker-context functions; their 19-check PostgreSQL integration and 49 focused pytest checks pass. The default-off notification enqueue remains unprovisioned and unapplied to the candidate. The repository inventory records 465 test files. The checklist has 418 checked / 20 open items; the capability matrix remains at 66 rows, and zero MAN-CAP checks are accepted. Candidate remains through migration 403; migrations 405–419 are supported by source/disposable evidence only. No worker credential or active location grant is provisioned, and MAN-CAP statuses remain unchanged. Query filters and focused tests do not establish authenticated tenant grants or application-wide RLS. Other worker scopes, provider delivery, and production acceptance remain open.
+**Batch base (last pushed head before this work):** `526857998c2bb6ca11eb9efd46113cf42ddde1ea` on PR #68.
+**Current local batch:** Scheduled sensor pull now has a source contract across JobSpec dispatch, disabled schedule planning, CLI validation, and the driver registry. Each run needs one location UUID and one enabled sensor driver-instance UUID bound to that location; the code-installed pull driver must opt in. The built-in CSV pull is bounded to 100 sources/10,000 records, MQTT remains event-driven, and canonical reading/audit/event/outbox changes are transactional and idempotent by sensor timestamp/value. The focused sensor/scheduler/Prefect/inventory suite passes 162 tests, Ruff passes, and all eight generated worker inventory checks pass. No provider, configured driver instance, database, or external schedule was used or activated. The latest pushed head remains `526857998c2bb6ca11eb9efd46113cf42ddde1ea` (Security #94 passed; CI #370 was last observed pending). The checklist is now 419 checked / 20 open; the capability matrix remains at 66 rows with zero accepted MAN-CAP checks. Candidate remains through migration 403; signed worker context, configured source parity, candidate rollout, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -46,7 +46,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **418 checked and 20 open items (438 total)**,
+- The execution checklist has **419 checked and 20 open items (439 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -389,8 +389,8 @@ before protected reads and writes, and make direct database access fail closed.
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
   covers 15 shared JobSpecs: eight no-input defaults pass, while anomaly,
   climate, weather, metrics, credit adjustment, and remote sensing require a
-  schema-validated location per scheduled task; recurring sensor ingestion
-  still lacks a source contract.
+  schema-validated location per scheduled task; scheduled sensor ingestion now requires one location-bound registered driver
+  instance; no active source instance or schedule has been configured.
   The manual sensor CLI now requires a canonical `--location-id` for reads and
   writes and binds sensor lookup, inventory, and calibration SQL to that
   location. One hundred ten focused sensor/scheduler checks pass. This is a
