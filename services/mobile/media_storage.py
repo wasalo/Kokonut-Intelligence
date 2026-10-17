@@ -64,6 +64,7 @@ class S3CompatibleMediaStore:
         self._bucket = bucket
 
     def put_private(self, key: str, body: bytes, content_type: str) -> None:
+        key = _validated_private_key(key)
         if content_type not in ALLOWED_CONTENT_TYPES:
             raise ValueError("Unsupported private media type")
         if not body or len(body) > MAX_MEDIA_BYTES:
@@ -76,9 +77,11 @@ class S3CompatibleMediaStore:
         )
 
     def head_private(self, key: str) -> dict:
+        key = _validated_private_key(key)
         return self._client.head_object(Bucket=self._bucket, Key=key)
 
     def delete_private(self, key: str) -> None:
+        key = _validated_private_key(key)
         self._client.delete_object(Bucket=self._bucket, Key=key)
 
     def object_id_for_key(self, key: str) -> str:

@@ -717,6 +717,14 @@ unchanged. Fifty-seven focused outbox, failure-injection, and producer tests
 pass. The checks use mocks and source contracts only; no database or ClickHouse
 service was contacted ([evidence](builds/2026-10-16-recovery/clickhouse-outbox-backoff.json)).
 
+**Private-media key confinement (17 October 2026):** the S3-compatible
+Field Collector adapter now validates the private object prefix for upload,
+head, and delete operations, including rejecting traversal and empty path
+segments before provider access. The storage/reconcile/cleanup suite passes 49
+tests with Ruff and compilation clean. No R2 credentials, objects, or live
+provider calls were used. This hardens the code path but does not close live
+R2 inventory/deletion or retention acceptance.
+
 **Scheduler crash-after-effect recovery (16 October 2026):** the disposable
 PostgreSQL acceptance now kills the real SchedulerEngine after an allowlisted
 event-processing child commits a notification outbox effect but before task

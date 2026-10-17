@@ -1,5 +1,16 @@
 # Kokonut Kernel implementation progress
 
+### Private-media S3 key confinement — 17 October 2026
+
+The S3-compatible Field Collector store now validates the `private/field-collector/`
+prefix and rejects empty, traversal, and malformed path segments before upload,
+metadata lookup, or deletion. This matches the existing local-store and orphan
+inventory boundary, preventing a corrupt stored key from selecting an unrelated
+object in a configured bucket. The storage, reconciliation, and expiration
+suite passes 49 tests; Ruff, Python compilation, and diff checks pass. No
+database, provider, R2 bucket, or credential was accessed. Live R2 inventory,
+deletion, and production retention acceptance remain open.
+
 ### Cross-runner PostgreSQL TCP readiness contract — 17 October 2026
 
 Follow-up source review found that the PostGIS init-server readiness race also
