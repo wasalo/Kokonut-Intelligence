@@ -31,6 +31,7 @@ from ..common.db import (
     CH_PORT,
     CH_USER,
 )
+from ..common.errors import safe_exception_class
 from ..common.utils import serialize_value
 
 ALLOWED_COLLECTIONS = frozenset(
@@ -223,13 +224,19 @@ class Exporter:
             print(f"Exported {row_count} rows to {file_path} ({duration_ms}ms)")
             return result
         except Exception as exc:
-            self._log_export(collection, fmt, filters, len(rows), 0, file_path, user_id, "failed", str(exc))
+            safe_error = f"export failed ({safe_exception_class(exc)})"
+            self._log_export(collection, fmt, filters, len(rows), 0, file_path, user_id, "failed")
             if "temp_path" in locals():
                 try:
                     os.unlink(temp_path)
                 except FileNotFoundError:
                     pass
-            raise
+                except OSError as cleanup_exc:
+                    print(
+                        "WARNING: Failed to remove temporary export "
+                        f"({safe_exception_class(cleanup_exc)})"
+                    )
+            raise RuntimeError(safe_error) from None
 
     # ------------------------------------------------------------------
     # Query helpers
@@ -498,13 +505,28 @@ class Exporter:
                 (user_id, fmt, collection, json.dumps(filters, default=str), row_count, file_size, file_path, status),
             )
             conn.commit()
-        except Exception as e:
-            print(f"WARNING: Failed to log export: {e}")
+        except Exception as exc:
+            print(
+                "WARNING: Failed to log export "
+                f"({safe_exception_class(exc)})"
+            )
         finally:
             if cur is not None:
-                cur.close()
+                try:
+                    cur.close()
+                except Exception as exc:
+                    print(
+                        "WARNING: Failed to close export log cursor "
+                        f"({safe_exception_class(exc)})"
+                    )
             if conn is not None:
-                conn.close()
+                try:
+                    conn.close()
+                except Exception as exc:
+                    print(
+                        "WARNING: Failed to close export log connection "
+                        f"({safe_exception_class(exc)})"
+                    )
 
 
 # ---------------------------------------------------------------------------

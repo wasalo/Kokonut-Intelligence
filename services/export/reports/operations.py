@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 import psycopg2
 import psycopg2.extras
 
+from services.common.errors import safe_exception_class
+
 from .common import (
     _serialize_rows,
 )
@@ -352,7 +354,9 @@ def generate_reward_calibration(conn, location_id: str, period_start: str = None
     try:
         overjustification = detect_overjustification_risk(conn, location_id)
     except Exception as exc:  # advisory: never fatal
-        overjustification = {"error": str(exc)}
+        overjustification = {
+            "error": f"overjustification analysis failed ({safe_exception_class(exc)})"
+        }
     return {
         "report_type": "reward_calibration",
         "location_id": location_id,

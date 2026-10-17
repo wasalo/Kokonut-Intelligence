@@ -6,6 +6,8 @@ from typing import Any, Optional
 import psycopg2
 import psycopg2.extras
 
+from services.common.errors import safe_exception_class
+
 
 def generate_data_stream_summary(conn, location_id: str, period_start: str = None, period_end: str = None) -> dict:
     """Generate a summary of data stream activity for a location."""
@@ -788,7 +790,9 @@ def generate_simulation_wargame(
         try:
             result["reserve_clash"] = stress_reserve(conn, location_id)
         except Exception as exc:  # advisory: never fatal
-            result["reserve_clash"] = {"error": str(exc)}
+            result["reserve_clash"] = {
+                "error": f"reserve clash failed ({safe_exception_class(exc)})"
+            }
 
     return result
 

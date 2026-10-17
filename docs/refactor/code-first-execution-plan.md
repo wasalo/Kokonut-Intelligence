@@ -263,6 +263,16 @@ returned query-error text, preserve all-mode continuation, and close the
 single-refresh connection; four mocked regressions pass within the 12-test
 read-only/CLI suite with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/dataset-refresh-error-redaction.json)).
+Nested best-effort business-plan, reference-class, reward-calibration, and
+simulation-reserve failures also use exception-class summaries within otherwise
+successful report payloads; four mocked regressions pass in the report and
+business-plan compatibility suite (41 passed, 2 database-backed tests
+skipped) with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/nested-report-error-redaction.json)).
+The governed file exporter also returns only bounded failure classes, removes
+partial files, and keeps audit-write/cleanup warnings free of database error
+text; three mocked regressions pass with the export reliability checks
+([evidence](builds/2026-10-17-recovery/export-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

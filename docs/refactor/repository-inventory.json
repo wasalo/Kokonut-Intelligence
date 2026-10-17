@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "93bba7dbf767671d5e85c74d6a356cb9ae6d113e",
+  "baseline_commit": "3dee3e2e6c568ec73e3e47070becae2f9f599f05",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2305,6 +2305,7 @@
         "tests/test_publics.py",
         "tests/test_regional_readiness.py",
         "tests/test_remaining_gaps.py",
+        "tests/test_report_embedded_error_redaction.py",
         "tests/test_reporting_cadence_error_redaction.py",
         "tests/test_reporting_reader.py",
         "tests/test_revenue_model.py",
@@ -2456,6 +2457,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
@@ -2788,6 +2790,7 @@
         "tests/test_ebf_csv_import.py",
         "tests/test_ecological_modeling.py",
         "tests/test_ecological_modeling_v2.py",
+        "tests/test_export_error_redaction.py",
         "tests/test_export_reliability.py",
         "tests/test_farm_activity_summary_report.py",
         "tests/test_financial_resilience.py",
@@ -2800,6 +2803,7 @@
         "tests/test_process_health.py",
         "tests/test_regenerative_outcomes.py",
         "tests/test_remaining_gaps.py",
+        "tests/test_report_embedded_error_redaction.py",
         "tests/test_report_generator_cli.py",
         "tests/test_report_generator_error_redaction.py",
         "tests/test_report_generator_readonly.py",
@@ -2911,6 +2915,7 @@
         "tests/test_forecast.py",
         "tests/test_forecast_error_redaction.py",
         "tests/test_reference_class.py",
+        "tests/test_report_embedded_error_redaction.py",
         "tests/test_scenario_parameters.py"
       ]
     },
@@ -3828,6 +3833,7 @@
         "services/simulation/resolution.py"
       ],
       "test_references": [
+        "tests/test_report_embedded_error_redaction.py",
         "tests/test_simulation_resolution.py"
       ]
     },
@@ -4227,6 +4233,7 @@
     "tests/test_event_retention_cleanup_gate.py",
     "tests/test_event_worker_recovery.py",
     "tests/test_evidence_lineage_integrity.py",
+    "tests/test_export_error_redaction.py",
     "tests/test_export_reliability.py",
     "tests/test_extension.py",
     "tests/test_farm_activity_lifecycle.py",
@@ -4420,6 +4427,7 @@
     "tests/test_remote_sensing_provider_records.py",
     "tests/test_remote_sensing_scheduler_contract.py",
     "tests/test_remote_sensing_worker.py",
+    "tests/test_report_embedded_error_redaction.py",
     "tests/test_report_generator_cli.py",
     "tests/test_report_generator_error_redaction.py",
     "tests/test_report_generator_helper_scope_inventory.py",

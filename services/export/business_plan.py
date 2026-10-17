@@ -16,7 +16,10 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
+
 from services.common.cli import print_json
+from services.common.errors import safe_exception_class
+
 
 def _section(conn, fn):
     try:
@@ -28,7 +31,10 @@ def _section(conn, fn):
             conn.rollback()
         except Exception:
             pass
-        return {"available": False, "error": f"{type(exc).__name__}: {exc}"}
+        return {
+            "available": False,
+            "error": f"business-plan section failed ({safe_exception_class(exc)})",
+        }
 
 
 def _org_locations(conn, org_id: str) -> List[str]:
@@ -77,7 +83,7 @@ def _financial(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[
                     "as_of": str(row[2]) if row[2] else None,
                 }
     else:
-        from services.planning.budget import list_plans, get_plan
+        from services.planning.budget import list_plans
 
         plans = list_plans(conn, org_id)
         out["plans"] = [
@@ -92,12 +98,15 @@ def _financial(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[
         if rc_loc:
             out["reference_class"] = apply_reference_class(conn, rc_loc, "crop_noi", 0.5)
     except Exception as exc:
-        out["reference_class"] = {"available": False, "error": str(exc)}
+        out["reference_class"] = {
+            "available": False,
+            "error": f"reference-class analysis failed ({safe_exception_class(exc)})",
+        }
     return out
 
 
 def _flow(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[str, Any]:
-    from services.analytics.value_stream import current_state_map, bottleneck_ranking
+    from services.analytics.value_stream import bottleneck_ranking, current_state_map
 
     if location_id:
         locs = [location_id]
@@ -128,10 +137,10 @@ def _swot(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[str, 
 
 
 def _strategy(conn, org_id: Optional[str], location_id: Optional[str]) -> Dict[str, Any]:
+    from services.analytics.competitive_report import report as competitive_report
+    from services.analytics.strategy_coherence import list_findings
     from services.analytics.strategy_execution import dashboard
     from services.analytics.strategy_kernel import list_strategy_plans
-    from services.analytics.strategy_coherence import list_findings
-    from services.analytics.competitive_report import report as competitive_report
 
     scope_type = "location" if location_id else "organization"
     scope_id = location_id or org_id

@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Governed export error containment — 17 October 2026
+
+Export generation now raises a bounded exception-class error, attempts failure
+audit logging without passing raw exception text, and removes a partial file.
+Audit database and cleanup warnings also omit raw details. Three mocked
+regressions pass with the three existing export reliability checks, Ruff, and
+compilation; no data source or database was used
+([evidence](builds/2026-10-17-recovery/export-error-redaction.json)).
+
+### Nested-report error containment — 17 October 2026
+
+Best-effort business-plan sections and reference-class analysis, reward-
+calibration guardrails, and simulation reserve-clash reports no longer include
+raw exception details in their returned payloads. Four mocked regressions pass
+within the 41-test report/business-plan compatibility suite; two database-
+backed tests skipped. Ruff and compilation pass; no database or provider was
+used ([evidence](builds/2026-10-17-recovery/nested-report-error-redaction.json)).
+
 ### Report-generator failure containment — 17 October 2026
 
 Single-report CLI failures and automatic report-item errors persisted to the

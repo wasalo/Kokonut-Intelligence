@@ -438,6 +438,21 @@ closes its connection. Four new regressions pass within the 12-test
 read-only/CLI suite with Ruff and compilation using fake connections
 ([evidence](builds/2026-10-17-recovery/dataset-refresh-error-redaction.json)).
 
+**17 October 2026 nested-report error containment (CAP-007 / CAP-047):**
+business-plan sections and reference-class estimates, reward-calibration
+guardrails, and simulation reserve-clash summaries now omit raw exception
+details inside successful report payloads. Four mocked regressions pass within
+the 41-test report/business-plan compatibility suite; two database-backed
+integration tests skipped. Ruff and compilation pass
+([evidence](builds/2026-10-17-recovery/nested-report-error-redaction.json)).
+
+**17 October 2026 governed export error containment (CAP-047):** failed file
+exports now raise only a bounded exception-class summary, clear partial output,
+and best-effort failure logging plus its cleanup path no longer print database
+details. Three new mocked regressions pass with the three export reliability
+checks, Ruff, and compilation
+([evidence](builds/2026-10-17-recovery/export-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes
