@@ -1,5 +1,31 @@
 # Kokonut Kernel implementation progress
 
+### Privacy-safe native IRI resolution — 16 October 2026
+
+The native Gateway's public IRI route previously imported a nonexistent
+resolver and would fail at request time; its intended generic resolver also
+returned every registry field. Added a public JSON-LD contract limited to
+canonical, versioned location IRIs. An explicit `--publish-public-location`
+generation option snapshots only name, country, region, and active status from
+`v_public_farm_summary`; migration 420 stores that allowlisted object without
+changing historical migrations. The resolver requires both that snapshot and
+current public-view eligibility, omits registry `metadata_json` and
+`content_hash`, computes a SHA-256 over the exact public projection, and links
+only a validated same-location predecessor that also has a public snapshot.
+
+The focused linked-data, Gateway, route-policy, and migration suites pass 217
+tests, including IRI and Metadata API CLI help without SOPS or database access.
+Ruff, Python compilation, and capability-matrix validation pass. A
+fresh, no-port PostgreSQL 16 container applied migration 420 twice, accepted an
+object snapshot, and rejected an array; the disposable container was stopped
+and removed. The repeatable isolated check is
+[`check-iri-public-projection-disposable.py`](../../scripts/check-iri-public-projection-disposable.py).
+Candidate/legacy databases, services, and existing IRI rows were not changed.
+Migration 420 is not candidate-deployed. Non-location IRI types,
+RDF graph/SPARQL and storage parity, live runtime authorization, and named
+MAN-CAP-021 acceptance remain open ([contract](../iri-system.md#native-gateway-public-location-resolution);
+[evidence](builds/2026-10-16-recovery/public-iri-projection.json)).
+
 ### Location-scoped scheduled weather forecast — 16 October 2026
 
 The five-day forecast importer now has a separate native `weather_forecast`

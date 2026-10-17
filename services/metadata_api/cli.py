@@ -6,11 +6,11 @@ import argparse
 import json
 import sys
 
-from services.common.cli import print_json
-from services.common.database import get_connection
-from services.common.cli import print_json
 
 def cmd_resolve(args):
+    from services.common.cli import print_json
+    from services.common.database import get_connection
+
     with get_connection() as conn:
         from services.metadata_api.resolver import resolve_metadata_graph
         result = resolve_metadata_graph(conn, args.iri)
@@ -22,6 +22,9 @@ def cmd_resolve(args):
 
 
 def cmd_generate(args):
+    from services.common.cli import print_json
+    from services.common.database import get_connection
+
     with get_connection() as conn:
         from services.metadata_api.resolver import generate_iri_from_metadata
         metadata = json.loads(args.metadata)

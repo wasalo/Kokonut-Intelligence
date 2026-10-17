@@ -441,13 +441,24 @@ async def create_data_stream_post(request: Request):
 
 @router.get("/iri/resolve")
 async def resolve_iri(iri: str):
-    """Resolve an IRI to its governed record."""
+    """Resolve a public location IRI to its non-sensitive JSON-LD projection."""
+    from starlette.concurrency import run_in_threadpool
+
     try:
-        from services.iri.resolver import resolve
-        result = resolve(iri)
+        from services.gateway.public_iri import resolve_public_location_iri
+
+        result = await run_in_threadpool(resolve_public_location_iri, iri)
         if result:
-            return JSONResponse(content=result)
-        return JSONResponse(status_code=404, content={"error": "IRI not found"})
+            return JSONResponse(
+                content=result,
+                media_type="application/ld+json",
+                headers={"Cache-Control": "no-store"},
+            )
+        return JSONResponse(
+            status_code=404,
+            content={"error": "IRI not found"},
+            headers={"Cache-Control": "no-store"},
+        )
     except Exception as exc:
         return _internal_error(exc)
 

@@ -1,0 +1,17 @@
+{
+  "candidate_or_legacy_modified": false,
+  "database_image": "postgres:16-alpine",
+  "date": "2026-10-17",
+  "fixture_counts": "2:1",
+  "host_port": null,
+  "invalid_row_persisted": false,
+  "migration": "420_iri_public_projection_snapshot.sql",
+  "migration_apply": "passed",
+  "migration_replay": "passed",
+  "network": "none",
+  "non_object_snapshot": "rejected",
+  "null_snapshot": "accepted",
+  "persistent_volume": false,
+  "result": "passed",
+  "valid_object": "accepted"
+}
