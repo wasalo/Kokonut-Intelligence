@@ -1,5 +1,29 @@
 # Kokonut Kernel implementation progress
 
+### Remote-sensing provider error containment — 17 October 2026
+
+The signed worker and legacy remote-sensing job runner now replace provider
+response or exception text with bounded outcome summaries or exception-class
+names before attempt/job persistence and scheduler output. GEE, Copernicus,
+and connection-free ClickHouse adapter logs also omit raw exception details.
+The legacy ClickHouse outbox path preserves its typed failure and rollback
+while returning a fixed summary.
+The 74-test mocked remote-sensing worker/scheduler/automation suite passes with
+Ruff; no provider or database was contacted. Live source parity, credential
+provisioning, active schedule reconciliation, and MAN-CAP acceptance remain
+open ([evidence](builds/2026-10-17-recovery/remote-sensing-error-sanitization.json)).
+
+### EAS provider error containment — 17 October 2026
+
+Legacy and isolated EAS indexing now retain only a recipient prefix and
+exception class when a provider call fails. Status, ingestion audit, logs, and
+scheduler errors omit raw provider details. Outbox failure remains typed and
+transaction rollback is preserved with a fixed message; isolated persistence
+errors suppress the underlying database exception text. The 184-test
+EAS/provider/scheduled-command/operation-map suite and Ruff pass. No provider
+or database was contacted. Live provider pagination and recovery remain open
+([evidence](builds/2026-10-17-recovery/eas-error-sanitization.json)).
+
 ### Gnosis provider error containment — 17 October 2026
 
 The Gnosis indexer no longer stores raw block-range, RPC, or ClickHouse outbox

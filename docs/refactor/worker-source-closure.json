@@ -2892,13 +2892,13 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 313,
+          "line": 334,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 317,
+          "line": 338,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         }
@@ -3155,13 +3155,13 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 313,
+          "line": 334,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 317,
+          "line": 338,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         },
@@ -3197,13 +3197,13 @@
         },
         {
           "source": "services/ingestion/remote_sensing_worker.py",
-          "line": 72,
+          "line": 73,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_worker.py",
-          "line": 76,
+          "line": 77,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         }

@@ -143,9 +143,9 @@ def _fetch_wallet_pages(
                         raise RuntimeError("EAS worker returned no page result")
                     inserted += int(row[0])
                 connection.commit()
-            except Exception as exc:
+            except Exception:
                 connection.rollback()
-                raise EASWorkerPersistenceError("EAS page could not be persisted atomically") from exc
+                raise EASWorkerPersistenceError("EAS page could not be persisted atomically") from None
 
         if reached_cursor:
             break
@@ -164,9 +164,9 @@ def _fetch_wallet_pages(
             if row is None:
                 raise RuntimeError("EAS worker returned no cursor result")
         connection.commit()
-    except Exception as exc:
+    except Exception:
         connection.rollback()
-        raise EASWorkerPersistenceError("EAS recipient cursor could not be advanced") from exc
+        raise EASWorkerPersistenceError("EAS recipient cursor could not be advanced") from None
     return inserted, max_time
 
 
@@ -224,7 +224,9 @@ def ingest(chain: str, replay_lookback_seconds: int = 0) -> dict[str, Any]:
                 raise
             except Exception as exc:
                 connection.rollback()
-                errors.append(f"{recipient[:10]}: {type(exc).__name__}: {str(exc)[:300]}")
+                errors.append(
+                    f"{recipient[:10]}: EAS recipient fetch failed ({type(exc).__name__})"
+                )
 
         error_message = "; ".join(errors[:3])[:500] or None
         status = "error" if errors else "healthy"

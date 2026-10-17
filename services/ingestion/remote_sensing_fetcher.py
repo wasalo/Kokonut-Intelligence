@@ -64,6 +64,27 @@ def _classify_provider_result(result: Optional[Dict[str, Any]] = None, error: Op
     return "retryable" if RETRYABLE_MESSAGES.search(str(result.get("message", ""))) else "non_retryable"
 
 
+def _safe_provider_attempt_message(
+    provider: str,
+    outcome: str,
+    *,
+    error: Exception | None = None,
+) -> str | None:
+    """Summarize provider failures without persisting exception or response text."""
+    label = provider if provider in PROVIDERS else "remote-sensing"
+    if error is not None:
+        return f"{label} provider failed ({type(error).__name__})"
+    if outcome == "success":
+        return None
+    if outcome == "no_data":
+        return f"{label} returned no observations"
+    if outcome == "retryable":
+        return f"{label} provider failed (retryable)"
+    if outcome == "non_retryable":
+        return f"{label} provider rejected the request"
+    return "remote-sensing provider failed"
+
+
 def _fallback_provider(provider: str, job: Dict[str, Any]) -> Optional[str]:
     """Resolve the configured fallback without allowing an arbitrary provider."""
     metadata = job.get("metadata") or {}
@@ -320,15 +341,16 @@ def fetch_job(conn, job: Dict[str, Any], *, location_id: str) -> Dict[str, Any]:
             else:
                 result = {"status": "error", "message": f"Unknown provider: {selected_provider}", "retryable": False}
             outcome = _classify_provider_result(result)
-            error = result.get("message")
         except OutboxEnqueueError:
             # Provider source writes and their projection must stay atomic.
             conn.rollback()
-            raise
+            raise OutboxEnqueueError("ClickHouse outbox enqueue failed") from None
         except Exception as exc:
-            result = {"status": "error", "message": str(exc), "observations": 0}
+            result = {"status": "error", "observations": 0}
             outcome = _classify_provider_result(error=exc)
-            error = str(exc)
+            error = _safe_provider_attempt_message(selected_provider, outcome, error=exc)
+        else:
+            error = _safe_provider_attempt_message(selected_provider, outcome)
 
         attempt = {
             "provider": selected_provider,

@@ -63,6 +63,24 @@ data parity and MAN-CAP-040/047 remain open
 [disposable runner](../../scripts/check-remote-sensing-worker-disposable.py);
 [evidence](builds/2026-10-17-recovery/signed-remote-sensing-worker-disposable.json)).
 
+**17 October 2026 remote-sensing error containment (CAP-040 / CAP-047):** both
+the signed worker and legacy job runner now persist fixed outcome summaries or
+exception-class names instead of provider response/exception text. GEE,
+Copernicus, and connection-free ClickHouse adapter logs also omit raw exception
+details. The 74-test mocked worker/scheduler/automation suite and Ruff pass; no
+provider or database was contacted. Legacy ClickHouse outbox errors preserve rollback
+and error type while using a fixed summary. Live provider parity and MAN-CAP acceptance
+remain open ([evidence](builds/2026-10-17-recovery/remote-sensing-error-sanitization.json)).
+
+**17 October 2026 EAS error containment (CAP-040 / CAP-047):** legacy and
+isolated EAS indexing now redact provider exception text from chain status,
+ingestion audit, logs, and scheduler-facing errors. Fixed persistence summaries
+hide database exception details; outbox errors remain typed and preserve
+rollback. The 184-test focused EAS/provider/scheduler/operation-map suite and
+Ruff pass without live provider or database access. Live pagination, recovery,
+and MAN-CAP acceptance remain open
+([evidence](builds/2026-10-17-recovery/eas-error-sanitization.json)).
+
 **16 October 2026 RPC wallet transaction integrity (CAP-040 / CAP-047):**
 wallet activity, chain status, and ClickHouse outbox intent now share one
 transaction, with per-wallet savepoints and explicit partial-failure status.

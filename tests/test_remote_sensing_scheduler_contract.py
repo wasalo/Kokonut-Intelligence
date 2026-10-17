@@ -235,16 +235,53 @@ def test_fetch_job_rolls_back_and_propagates_outbox_failure(monkeypatch):
 
     conn = MagicMock()
     job = {"id": "job-1", "provider": "gee", "location_id": LOCATION_ID}
+    secret = "remote-sensing-outbox-secret"
     monkeypatch.setattr(remote_sensing_fetcher, "_resolve_bbox_from_job", lambda *_args: None)
     monkeypatch.setattr(
         "services.ingestion.gee_remote_sensing.fetch_gee",
-        lambda *_args: (_ for _ in ()).throw(OutboxEnqueueError("outbox unavailable")),
+        lambda *_args: (_ for _ in ()).throw(OutboxEnqueueError(f"outbox failed: {secret}")),
         raising=False,
     )
     with patch.object(remote_sensing_fetcher, "_record_provider_attempt") as record_attempt:
-        with pytest.raises(OutboxEnqueueError, match="outbox unavailable"):
+        with pytest.raises(OutboxEnqueueError, match="ClickHouse outbox enqueue failed") as error:
             remote_sensing_fetcher.fetch_job(conn, job, location_id=LOCATION_ID)
 
     conn.rollback.assert_called_once_with()
     conn.commit.assert_not_called()
     record_attempt.assert_not_called()
+    assert secret not in str(error.value)
+
+
+def test_fetch_job_redacts_provider_response_before_audit_and_status(monkeypatch):
+    from services.ingestion import remote_sensing_fetcher
+
+    conn = MagicMock()
+    job = {
+        "id": "job-1",
+        "provider": "gee",
+        "location_id": LOCATION_ID,
+        "metadata": {"fallback_enabled": False},
+    }
+    secret = "provider-secret-token"
+    monkeypatch.setattr(remote_sensing_fetcher, "_resolve_bbox_from_job", lambda *_args: None)
+    monkeypatch.setattr(
+        "services.ingestion.gee_remote_sensing.fetch_gee",
+        lambda *_args: {
+            "status": "error",
+            "retryable": True,
+            "observations": 0,
+            "message": f"request failed at https://catalog.example/{secret}",
+        },
+        raising=False,
+    )
+    with (
+        patch.object(remote_sensing_fetcher, "_record_provider_attempt") as record_attempt,
+        patch.object(remote_sensing_fetcher, "_update_job_status") as update_status,
+    ):
+        result = remote_sensing_fetcher.fetch_job(conn, job, location_id=LOCATION_ID)
+
+    attempt = record_attempt.call_args.args[2]
+    assert attempt["message"] == "gee provider failed (retryable)"
+    assert update_status.call_args.kwargs["error_message"] == "gee provider failed (retryable)"
+    assert result["message"] == "gee provider failed (retryable)"
+    assert secret not in str((attempt, update_status.call_args, result))

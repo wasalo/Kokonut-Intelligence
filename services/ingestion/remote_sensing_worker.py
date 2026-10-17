@@ -15,6 +15,7 @@ from services.ingestion.remote_sensing_fetcher import (
     MAX_RUN_BATCH_SIZE,
     _classify_provider_result,
     _fallback_provider,
+    _safe_provider_attempt_message,
 )
 
 _WORKER_KEY = "remote_sensing"
@@ -90,12 +91,12 @@ def _attempt_provider_chain(job: dict) -> tuple[list[dict], list[dict], dict]:
         try:
             result, provider_records = _fetch_records(job)
             outcome = _classify_provider_result(result)
-            message = result.get("message")
+            message = _safe_provider_attempt_message(provider, outcome)
         except Exception as exc:
             result = {"observations": 0}
             provider_records = []
             outcome = _classify_provider_result(error=exc)
-            message = str(exc)
+            message = _safe_provider_attempt_message(provider, outcome, error=exc)
         finished_at = datetime.now(UTC)
         observations = int(result.get("observations", 0) or 0)
         attempts.append({

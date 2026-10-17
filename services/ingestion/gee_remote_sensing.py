@@ -59,7 +59,7 @@ def _get_gee_client():
             logger.info("GEE initialized with service account")
             return ee
         except Exception as e:
-            logger.error("GEE service account init failed: %s", e)
+            logger.error("GEE service account init failed (%s)", type(e).__name__)
             return None
 
     # Try default credentials (for development)
@@ -68,7 +68,7 @@ def _get_gee_client():
         logger.info("GEE initialized with default credentials")
         return ee
     except Exception as e:
-        logger.error("GEE default init failed: %s", e)
+        logger.error("GEE default init failed (%s)", type(e).__name__)
         return None
 
 
@@ -367,7 +367,7 @@ def _insert_ch(record: dict, conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def _ch_num(value) -> str:

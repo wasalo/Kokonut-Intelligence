@@ -164,11 +164,14 @@ def test_failed_wallet_rolls_back_its_rows_and_keeps_prior_watermark():
     )
     cursor_updates = []
 
+    provider_secret = "eas-provider-secret-token"
+
     def query(_chain, _query, variables):
         if variables["recipient"] == "0x222":
-            raise RuntimeError("provider unavailable")
+            raise RuntimeError(f"request failed at https://eas.example/{provider_secret}")
         return {"attestations": [_attestation("known", 150)]}
 
+    logger = MagicMock()
     with (
         patch("services.ingestion.eas_indexer.get_db", return_value=connection),
         patch("services.ingestion.eas_indexer.get_last_attestation_time", return_value=100),
@@ -182,6 +185,7 @@ def test_failed_wallet_rolls_back_its_rows_and_keeps_prior_watermark():
         patch("services.ingestion.eas_indexer.query_eas", side_effect=query),
         patch("services.ingestion.eas_indexer.insert_attestation", return_value="record-id"),
         patch("services.ingestion.eas_indexer.insert_clickhouse"),
+        patch("services.ingestion.eas_indexer.logger", logger),
         patch("services.ingestion.base.get_db", side_effect=AssertionError("opened a second connection")),
         pytest.raises(RuntimeError, match=r"incomplete for chain\(s\): celo"),
     ):
@@ -191,7 +195,9 @@ def test_failed_wallet_rolls_back_its_rows_and_keeps_prior_watermark():
     status_writes = [args for args in calls if "INSERT INTO chain_indexer_status" in args[0]]
     audit_writes = [args for args in calls if "INSERT INTO ingestion_log" in args[0]]
     assert status_writes[0][1][3] == "error"
-    assert status_writes[0][1][4] == "provider unavailable"
+    assert status_writes[0][1][4] == "0x222: EAS recipient fetch failed (RuntimeError)"
+    assert provider_secret not in str(status_writes[0])
+    assert provider_secret not in str(logger.error.call_args)
     assert json.loads(status_writes[0][1][5]) == {"last_attestation_time": 150}
     assert audit_writes[0][1][7] == "partial"
     assert audit_writes[0][1][9] == 1
@@ -217,10 +223,10 @@ def test_outbox_failure_rolls_back_records_and_never_commits_cursor():
         patch("services.ingestion.eas_indexer.advance_attestation_cursor") as advance_cursor,
         patch(
             "services.ingestion.eas_indexer.insert_clickhouse",
-            side_effect=OutboxEnqueueError("queue unavailable"),
+            side_effect=OutboxEnqueueError("queue request failed with token eas-outbox-secret-token"),
         ),
         patch("services.ingestion.base.get_db", side_effect=AssertionError("opened a second connection")),
-        pytest.raises(OutboxEnqueueError, match="queue unavailable"),
+        pytest.raises(OutboxEnqueueError, match="ClickHouse outbox enqueue failed") as error,
     ):
         eas_indexer.run(chain="celo")
 
@@ -231,6 +237,7 @@ def test_outbox_failure_rolls_back_records_and_never_commits_cursor():
     )
     advance_cursor.assert_not_called()
     connection.close.assert_called_once_with()
+    assert "eas-outbox-secret-token" not in str(error.value)
 
 
 def test_invalid_chain_fails_before_opening_database():

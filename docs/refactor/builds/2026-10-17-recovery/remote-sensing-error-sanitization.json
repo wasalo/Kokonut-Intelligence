@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-17",
+  "scope": "Remote-sensing provider failures in the default-off signed worker and legacy job runner",
+  "behavior": {
+    "retry_classification": "The existing retryability classifier evaluates provider outcomes before any message is normalized.",
+    "persisted_messages": "Provider response text is replaced with fixed outcome summaries; caught exceptions retain only their exception class name. Legacy ClickHouse outbox failures retain their type and rollback behavior with a fixed summary.",
+    "provider_logs": "GEE and Copernicus adapter errors, plus connection-free ClickHouse projection warnings, log exception class names without exception text."
+  },
+  "focused_tests": {
+    "command": ".venv/bin/python -s -m pytest tests/test_remote_sensing_worker.py tests/test_remote_sensing_scheduler_contract.py tests/test_remote_sensing_automation.py -q",
+    "result": "74 passed",
+    "coverage": [
+      "signed-worker exception and response-message redaction",
+      "legacy attempt, job-status, and returned-result redaction",
+      "GEE and Copernicus adapter log/result redaction",
+      "connection-free ClickHouse warning redaction in both adapters",
+      "legacy ClickHouse outbox error redaction with rollback preserved",
+      "existing fallback, tenant scope, scheduling, and automation behavior"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "generated_worker_runtime_inventories": "refreshed",
+    "database_or_provider_access": "none"
+  },
+  "limitations": [
+    "No live GEE/Copernicus parity or credential behavior was tested.",
+    "No migration or candidate/legacy database was used.",
+    "The feature remains disabled pending credentials, grants, and schedule reconciliation."
+  ]
+}

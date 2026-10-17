@@ -175,7 +175,7 @@
         "EAS GraphQL/API requests"
       ],
       "idempotency": "attestation_record uses attestation_uid conflict suppression; ClickHouse projection has an attestation UID key. Migration 421 stores a timestamp cursor per chain and tracked recipient; migration 422 resets inherited cursors to zero for a one-time full-history recovery. Each successful recipient's records, projection intents, and cursor advance commit together.",
-      "retry_boundary": "A provider failure rolls back only that recipient, leaves its cursor unchanged, commits successful recipients, and returns a retryable command failure. The scan intentionally revisits the saved timestamp second; UID conflict suppression makes repeats idempotent. An outbox failure rolls back all current transaction state. Earlier-timestamp late arrivals and concurrent offset-page shifts still need provider/runtime reconciliation.",
+      "retry_boundary": "Provider response and exception text is replaced by a fixed recipient/error-class summary before status, ingestion-audit, or scheduler output; provider logs omit exception text. A provider failure rolls back only that recipient, leaves its cursor unchanged, commits successful recipients, and returns a retryable command failure. The scan intentionally revisits the saved timestamp second; UID conflict suppression makes repeats idempotent. An outbox failure rolls back all current transaction state and is reported with a fixed message. Earlier-timestamp late arrivals and concurrent offset-page shifts still need provider/runtime reconciliation.",
       "sources": [
         "services/ingestion/eas_indexer.py",
         "services/ingestion/base.py",
@@ -202,7 +202,7 @@
         "EAS GraphQL/API requests"
       ],
       "idempotency": "Migration 433 validates chain, active wallet, recipient address, page shape, schema and UID fields, and inserts each page of attestation rows with ClickHouse outbox intents atomically. Unique attestation UIDs suppress replay; each recipient cursor advances only after its complete provider scan. A session advisory lock serializes the same chain across old and new worker paths.",
-      "retry_boundary": "Provider failure leaves that recipient cursor unchanged while prior recipient/page commits remain durable; the next run safely replays duplicate pages. Database page, outbox, cursor, or status failures roll back their bounded function transaction and fail the run. Feature remains off until migration 433 and the isolated EAS login/DSN are provisioned; existing persisted tasks remain on the legacy module until owner reconciliation. Offset pagination and historical provider reorg/late-arrival behavior still need live reconciliation.",
+      "retry_boundary": "Provider exception details are omitted from persisted chain status and scheduler errors; failures retain only the recipient prefix and exception class. Persistence failures use fixed summaries without chained exception text. Provider failure leaves that recipient cursor unchanged while prior recipient/page commits remain durable; the next run safely replays duplicate pages. Database page, outbox, cursor, or status failures roll back their bounded function transaction and fail the run. Feature remains off until migration 433 and the isolated EAS login/DSN are provisioned; existing persisted tasks remain on the legacy module until owner reconciliation. Offset pagination and historical provider reorg/late-arrival behavior still need live reconciliation.",
       "sources": [
         "services/ingestion/eas_worker.py",
         "services/ingestion/eas_indexer.py",
@@ -927,7 +927,7 @@
         "ClickHouse projection delivery only through the separately optional outbox worker"
       ],
       "idempotency": "Due rows are claimed with FOR UPDATE SKIP LOCKED, filtered by the required location, and protected by one 30-minute lease at a time. remote_sensing_observation has a unique source_system/source_id key; provider attempts are append-only and can repeat across retries.",
-      "retry_boundary": "The configured provider can fall back to the other supported provider. Retryable failure schedules the job for 15 minutes later; completion updates are lease-owner guarded. The process bounds each invocation and claims the next row only after the current provider attempt finishes.",
+      "retry_boundary": "The configured provider can fall back to the other supported provider. Provider error messages persisted in append-only attempts or job status are reduced to fixed outcome summaries or exception-class names; provider and ClickHouse adapter logs record exception classes only. Retryable failure schedules the job for 15 minutes later; completion updates are lease-owner guarded. The process bounds each invocation and claims the next row only after the current provider attempt finishes.",
       "sources": [
         "services/ingestion/remote_sensing_fetcher.py",
         "services/ingestion/remote_sensing.py",
@@ -962,7 +962,7 @@
         "ClickHouse projection delivery only through the separately optional outbox worker"
       ],
       "idempotency": "Due rows are claimed with FOR UPDATE SKIP LOCKED under a 30-minute lease for the signed location. Provider attempts, observation insertion, source audit, outbox enqueue, and job state update share one database transaction. Unique source_system/source_id suppresses same-scope replay; a conflicting cross-scope source identity aborts the transaction.",
-      "retry_boundary": "The configured provider can fall back to the other supported provider after a retryable outcome. A retryable final outcome schedules a 15-minute retry; success/no-data use the configured cadence, and non-retryable failure marks the job error. Every completion is lease-owner guarded; the worker bounds each invocation and claims the next row only after finishing the current one.",
+      "retry_boundary": "The configured provider can fall back to the other supported provider after a retryable outcome. Provider response text and exception details are not returned or persisted: attempt/job messages use bounded fixed outcome summaries or exception-class names, and adapter logs record exception classes only. A retryable final outcome schedules a 15-minute retry; success/no-data use the configured cadence, and non-retryable failure marks the job error. Every completion is lease-owner guarded; the worker bounds each invocation and claims the next row only after finishing the current one.",
       "sources": [
         "services/ingestion/remote_sensing_worker.py",
         "services/ingestion/remote_sensing_fetcher.py",

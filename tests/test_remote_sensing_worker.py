@@ -1,5 +1,7 @@
 """Source contracts for the isolated remote-sensing worker."""
 
+import sys
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -49,6 +51,122 @@ def test_provider_chain_stops_after_success_without_fallback():
     assert len(attempts) == 1
     assert records == []
     assert final["outcome"] == "no_data"
+
+
+def test_provider_chain_redacts_exception_details_from_retry_attempts():
+    job = {"provider": "gee", "metadata": {"fallback_enabled": False}}
+    secret = "provider-secret-token"
+    with patch(
+        "services.ingestion.remote_sensing_worker._fetch_records",
+        side_effect=TimeoutError(f"request failed at https://catalog.example/{secret}"),
+    ):
+        attempts, records, final = _attempt_provider_chain(job)
+
+    assert final["outcome"] == "retryable"
+    assert attempts[0]["message"] == "gee provider failed (TimeoutError)"
+    assert secret not in str(attempts)
+    assert records == []
+
+
+def test_provider_chain_redacts_provider_response_text_from_persisted_attempts():
+    job = {"provider": "gee", "metadata": {"fallback_enabled": False}}
+    secret = "provider-secret-token"
+    with patch(
+        "services.ingestion.remote_sensing_worker._fetch_records",
+        return_value=(
+            {
+                "status": "error",
+                "retryable": False,
+                "observations": 0,
+                "message": f"authorization failed for https://catalog.example/{secret}",
+            },
+            [],
+        ),
+    ):
+        attempts, records, final = _attempt_provider_chain(job)
+
+    assert final["outcome"] == "non_retryable"
+    assert attempts[0]["message"] == "gee provider rejected the request"
+    assert secret not in str(attempts)
+    assert records == []
+
+
+def test_gee_initialization_log_redacts_provider_exception(monkeypatch):
+    from services.ingestion import gee_remote_sensing
+
+    secret = "service-account-secret"
+    logger = MagicMock()
+    monkeypatch.setattr(gee_remote_sensing, "logger", logger)
+
+    def fail_initialization(*_args):
+        raise OSError(f"credential request failed https://gee.example/{secret}")
+
+    monkeypatch.setitem(sys.modules, "ee", SimpleNamespace(ServiceAccountCredentials=fail_initialization))
+    monkeypatch.setenv("KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY", "/run/secrets/gee.json")
+
+    assert gee_remote_sensing._get_gee_client() is None
+    assert logger.error.call_args.args == ("GEE service account init failed (%s)", "OSError")
+    assert secret not in str(logger.error.call_args)
+
+
+def test_copernicus_catalog_error_is_redacted_at_adapter_boundary(monkeypatch):
+    from services.ingestion import copernicus_remote_sensing
+
+    secret = "copernicus-secret-token"
+    logger = MagicMock()
+    monkeypatch.setattr(copernicus_remote_sensing, "logger", logger)
+    monkeypatch.setattr(copernicus_remote_sensing, "_get_token", lambda: "synthetic-token")
+    monkeypatch.setattr(copernicus_remote_sensing, "_resolve_bbox", lambda _job: {
+        "west": -70,
+        "south": 18,
+        "east": -69,
+        "north": 19,
+    })
+    monkeypatch.setattr(
+        copernicus_remote_sensing.http,
+        "get",
+        MagicMock(side_effect=OSError(f"catalog request failed https://catalog.example/{secret}")),
+    )
+
+    result, records = copernicus_remote_sensing.fetch_copernicus_records(
+        {"location_id": LOCATION_ID, "cadence_days": 7}
+    )
+
+    assert result["message"] == "Copernicus catalog query failed (OSError)"
+    assert result["retryable"] is False
+    assert records == []
+    assert secret not in str(result)
+    assert secret not in str(logger.error.call_args)
+
+
+@pytest.mark.parametrize(
+    "module_name",
+    [
+        "services.ingestion.gee_remote_sensing",
+        "services.ingestion.copernicus_remote_sensing",
+    ],
+)
+def test_connection_free_clickhouse_warning_redacts_exception(monkeypatch, module_name):
+    from importlib import import_module
+
+    adapter = import_module(module_name)
+    secret = "clickhouse-secret-token"
+    logger = MagicMock()
+    monkeypatch.setattr(adapter, "logger", logger)
+    monkeypatch.setattr(
+        adapter,
+        "post_clickhouse_rows",
+        MagicMock(side_effect=OSError(f"insert failed https://clickhouse.example/{secret}")),
+    )
+
+    adapter._insert_ch({
+        "observation_date": "2026-10-17",
+        "id": "observation-1",
+        "location_id": LOCATION_ID,
+    })
+
+    assert logger.warning.call_args.args == ("ClickHouse insert failed (%s)", "OSError")
+    assert secret not in str(logger.warning.call_args)
 
 
 def test_records_are_rejected_when_the_provider_changes_location():

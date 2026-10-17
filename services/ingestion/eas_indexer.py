@@ -306,13 +306,14 @@ def run(chain: str = None):
 
                 except OutboxEnqueueError:
                     db.rollback()
-                    raise
+                    raise OutboxEnqueueError("ClickHouse outbox enqueue failed") from None
                 except Exception as e:
                     with db.cursor() as cur:
                         cur.execute("ROLLBACK TO SAVEPOINT eas_wallet_index")
                         cur.execute("RELEASE SAVEPOINT eas_wallet_index")
-                    chain_errors.append(str(e))
-                    logger.error("  ✗ Wallet %s...: %s", w_addr[:10], e)
+                    safe_error = f"{w_addr[:10]}: EAS recipient fetch failed ({type(e).__name__})"
+                    chain_errors.append(safe_error)
+                    logger.error("  ✗ Wallet %s... failed (%s)", w_addr[:10], type(e).__name__)
 
             chain_status = "error" if chain_errors else "healthy"
             watermark = get_chain_attestation_watermark(db, c)

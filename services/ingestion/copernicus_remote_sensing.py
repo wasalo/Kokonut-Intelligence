@@ -129,10 +129,18 @@ def fetch_copernicus_records(job: Dict[str, Any]) -> tuple[Dict[str, Any], list[
         resp.raise_for_status()
         products = resp.json().get("value", [])
     except Exception as e:
-        logger.error("Copernicus catalog query failed: %s", e)
+        logger.error("Copernicus catalog query failed (%s)", type(e).__name__)
         status_code = getattr(getattr(e, "response", None), "status_code", None)
         retryable = isinstance(e, (Timeout, ConnectionError)) or status_code in (429, 500, 502, 503, 504)
-        return ({"status": "error", "message": str(e), "observations": 0, "retryable": retryable}, [])
+        return (
+            {
+                "status": "error",
+                "message": f"Copernicus catalog query failed ({type(e).__name__})",
+                "observations": 0,
+                "retryable": retryable,
+            },
+            [],
+        )
 
     if not products:
         logger.info("No Copernicus products for location %s", location_id[:8])
@@ -259,7 +267,7 @@ def _insert_ch(record: dict, conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def _ch_num(value) -> str:

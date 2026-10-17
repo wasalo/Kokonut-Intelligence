@@ -174,6 +174,31 @@ def test_ingest_result_reports_the_selected_replay_lookback():
     assert connection.closed is True
 
 
+def test_ingest_redacts_provider_exception_from_status_and_scheduler_error():
+    connection = _Connection()
+    secret = "eas-provider-secret-token"
+    with (
+        patch.object(eas_worker, "get_worker_db", return_value=connection),
+        patch.object(
+            eas_worker,
+            "_fetch_wallet_pages",
+            side_effect=OSError(f"request failed https://eas.example/{secret}"),
+        ),
+        pytest.raises(RuntimeError, match="EAS indexing incomplete for chain celo") as error,
+    ):
+        eas_worker.ingest("celo")
+
+    finish_params = next(
+        params for statement, params in connection.statements
+        if "finish_eas_indexer_chain" in statement
+    )
+    assert finish_params[1] == "error"
+    assert finish_params[2] == f"{RECIPIENT[:10]}: EAS recipient fetch failed (OSError)"
+    assert secret not in str(finish_params)
+    assert secret not in str(error.value)
+    assert connection.closed is True
+
+
 def test_wallet_pages_use_only_bounded_functions_and_advance_after_success():
     connection = _Connection()
     attestation = _attestation(timestamp=150)
@@ -465,7 +490,7 @@ def test_persistence_failure_aborts_without_cursor_advance():
     connection = _Connection()
     connection.cursor = MagicMock(side_effect=RuntimeError("database error"))
     with patch.object(eas_worker, "query_eas", return_value={"attestations": [_attestation(timestamp=150)]}):
-        with pytest.raises(eas_worker.EASWorkerPersistenceError):
+        with pytest.raises(eas_worker.EASWorkerPersistenceError) as error:
             eas_worker._fetch_wallet_pages(
                 connection,
                 chain="celo",
@@ -475,3 +500,4 @@ def test_persistence_failure_aborts_without_cursor_advance():
                 sleep=lambda _seconds: None,
             )
     assert connection.rollbacks == 1
+    assert error.value.__suppress_context__ is True
