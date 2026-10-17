@@ -7781,7 +7781,7 @@
         {
           "function": "services.ingestion.weather:main",
           "source": "services/ingestion/weather.py",
-          "line": 298
+          "line": 299
         }
       ],
       "reachable_functions": [
@@ -7903,7 +7903,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 276
+          "line": 277
         },
         {
           "key": "services.ingestion.weather:parse_weather",
@@ -7987,7 +7987,7 @@
           "caller": "services.ingestion.weather:main",
           "callee": "services.ingestion.weather:run",
           "source": "services/ingestion/weather.py",
-          "line": 292
+          "line": 293
         },
         {
           "caller": "services.ingestion.weather:run",
@@ -8011,7 +8011,7 @@
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather.py",
-          "line": 250
+          "line": 251
         },
         {
           "caller": "services.ingestion.weather:run",
@@ -8029,7 +8029,7 @@
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:insert_weather_clickhouse",
           "source": "services/ingestion/weather.py",
-          "line": 265
+          "line": 266
         },
         {
           "caller": "services.ingestion.weather:run",
@@ -8063,7 +8063,7 @@
         {
           "function": "services.ingestion.weather_forecast:main",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 418
+          "line": 419
         }
       ],
       "reachable_functions": [
@@ -8201,7 +8201,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 396
+          "line": 397
         },
         {
           "key": "services.ingestion.weather_forecast:parse_forecast_list",
@@ -8217,7 +8217,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/weather_forecast.py",
-          "line": 346
+          "line": 347
         }
       ],
       "direct_call_edges": [
@@ -8273,7 +8273,7 @@
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 323
+          "line": 324
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
@@ -8285,7 +8285,7 @@
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
           "callee": "services.ingestion.weather_forecast:insert_forecasts_clickhouse",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 339
+          "line": 340
         },
         {
           "caller": "services.ingestion.weather_forecast:_ingest_locations",
@@ -8333,19 +8333,19 @@
           "caller": "services.ingestion.weather_forecast:main",
           "callee": "services.ingestion.weather_forecast:run",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 412
+          "line": 413
         },
         {
           "caller": "services.ingestion.weather_forecast:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 362
+          "line": 363
         },
         {
           "caller": "services.ingestion.weather_forecast:run",
           "callee": "services.ingestion.weather_forecast:_ingest_locations",
           "source": "services/ingestion/weather_forecast.py",
-          "line": 381
+          "line": 382
         }
       ],
       "callback_edges": [],

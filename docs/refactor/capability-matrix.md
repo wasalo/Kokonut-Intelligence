@@ -253,6 +253,14 @@ fails. Six mocked regressions and existing forecast/scope/shared-producer tests
 pass 36 tests. Live provider/database acceptance and MAN-CAP-040/047 remain open
 ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
 
+**17 October 2026 legacy weather error containment (CAP-040 / CAP-047):**
+current-weather and forecast runners now persist only bounded exception-class
+summaries for per-location failures, and their direct ClickHouse fallback logs
+omit raw exception details. Four new mocked regressions pass within the
+26-test weather scope and atomicity suite with Ruff. No provider, database, or
+ClickHouse endpoint was contacted; live recovery and MAN-CAP-040/047 remain
+open ([evidence](builds/2026-10-17-recovery/weather-legacy-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

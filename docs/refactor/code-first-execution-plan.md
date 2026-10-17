@@ -3,9 +3,10 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch — 17 October 2026:** Commit
-`541d3eb0d424d214fd5814af8fa936678569ce60` adds sanitized provider-failure
-reporting across remote sensing and both EAS indexers, plus regression evidence
-and refreshed worker/runtime inventories. Security #134 passed and CI #410 is in progress. The previous pushed batch `5bb7457d` corrected the two stale
+`f432b933e95c763f30adec131eb660ee4921a1f4` includes sanitized failure handling
+for remote sensing, EAS, the ClickHouse outbox, subgraph, RPC, and Baal indexers,
+with refreshed inventories and regression evidence. Security #135 passed and
+CI #411 is in progress. The previous pushed batch `5bb7457d` corrected the two stale
 CI #408 contracts; affected climate-worker/oracle modules pass 43 tests locally
 ([CI #408 evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
 CI #406 exposed stale generated line references in the report-generator
@@ -105,7 +106,7 @@ scheduler/operation-map suite and Ruff pass. No provider or database was
 contacted; live endpoint recovery and pagination remain open
 ([evidence](builds/2026-10-17-recovery/eas-error-sanitization.json)).
 This slice is in commit `541d3eb0`.
-**Current local provider failure-containment batch — 17 October 2026:** the
+**Pushed provider failure-containment batch — 17 October 2026 (commit f432b933):** the
 shared outbox now suppresses database exception causes on enqueue
 failure and persists/logs only fixed delivery summaries and exception classes.
 The focused outbox/producer suite passes 101 tests with Ruff. No database or
@@ -120,6 +121,11 @@ the last committed cursor in its failure status, and sanitizes provider and
 database errors. Four mocked recovery tests and Ruff pass; historical receipt
 and reorg recovery remain open
 ([evidence](builds/2026-10-17-recovery/baal-indexer-error-recovery.json)).
+**Local weather follow-up — 17 October 2026:** the legacy current-weather and
+forecast runners now store bounded failure summaries and omit provider details
+from direct ClickHouse fallback logs. Four new mocked regressions pass within a
+26-test weather scope/atomicity suite with Ruff; no endpoint or database was
+contacted ([evidence](builds/2026-10-17-recovery/weather-legacy-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

@@ -402,8 +402,8 @@
         "services/ingestion/weather_forecast.py:159:12",
         "services/ingestion/weather_forecast.py:160:12",
         "services/ingestion/weather_forecast.py:163:8",
-        "services/ingestion/weather_forecast.py:366:16",
-        "services/ingestion/weather_forecast.py:372:16"
+        "services/ingestion/weather_forecast.py:367:16",
+        "services/ingestion/weather_forecast.py:373:16"
       ]
     },
     {
@@ -7028,9 +7028,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:366:16",
+      "id": "services/ingestion/weather_forecast.py:367:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 366,
+      "line": 367,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -7050,9 +7050,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:372:16",
+      "id": "services/ingestion/weather_forecast.py:373:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 372,
+      "line": 373,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",

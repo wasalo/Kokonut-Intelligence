@@ -1,5 +1,15 @@
 # Kokonut Kernel implementation progress
 
+### Legacy weather error containment — 17 October 2026
+
+Legacy current-weather and forecast runners now persist only exception-class
+summaries for per-location failures, and their direct ClickHouse fallback logs
+no longer expose provider or database exception text. Four new mocked
+regressions pass inside the 26-test weather scope/atomicity suite with Ruff.
+No provider, ClickHouse endpoint, or database was contacted; live recovery
+remains open
+([evidence](builds/2026-10-17-recovery/weather-legacy-error-redaction.json)).
+
 ### Baal indexer cursor recovery and error containment — 17 October 2026
 
 A failed event query now aborts the current block batch rather than skipping

@@ -177,7 +177,7 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def run(location_id: str = None, *, all_locations: bool = False):
@@ -247,6 +247,7 @@ def run(location_id: str = None, *, all_locations: bool = False):
 
         except Exception as e:
             errors += 1
+            safe_error = f"weather location processing failed ({type(e).__name__})"
             log_ingestion(
                 source_system="openweathermap",
                 source_table="weather_api",
@@ -256,9 +257,9 @@ def run(location_id: str = None, *, all_locations: bool = False):
                 operation="insert",
                 payload_hash="",
                 status="failed",
-                error_message=str(e),
+                error_message=safe_error,
             )
-            logger.error("  ✗ %s: %s", name, e)
+            logger.error("  ✗ %s failed (%s)", name, type(e).__name__)
 
     try:
         if records:

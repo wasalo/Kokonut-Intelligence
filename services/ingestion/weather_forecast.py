@@ -241,7 +241,7 @@ def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
             # Let enqueue failures abort that transaction instead of committing
             # forecasts with no recoverable ClickHouse delivery record.
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def get_daily_summary(db, location_id: str, days: int = 5) -> list[dict]:
@@ -320,6 +320,7 @@ def _ingest_locations(db, locations) -> None:
 
         except Exception as e:
             errors += 1
+            safe_error = f"forecast location processing failed ({type(e).__name__})"
             log_ingestion(
                 source_system="openweathermap",
                 source_table="forecast_api",
@@ -329,11 +330,11 @@ def _ingest_locations(db, locations) -> None:
                 operation="insert",
                 payload_hash="",
                 status="failed",
-                error_message=str(e),
+                error_message=safe_error,
                 db=db,
                 location_id=str(loc_id),
             )
-            logger.error("  ✗ %s: %s", name, e)
+            logger.error("  ✗ %s failed (%s)", name, type(e).__name__)
 
     if all_records:
         insert_forecasts_clickhouse(all_records, db)
