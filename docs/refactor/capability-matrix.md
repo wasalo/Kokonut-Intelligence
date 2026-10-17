@@ -269,6 +269,14 @@ Ruff. No Earth Engine endpoint or database was accessed; live source and
 MAN-CAP-040/047 acceptance remain open
 ([evidence](builds/2026-10-17-recovery/gee-climate-error-redaction.json)).
 
+**17 October 2026 MQTT sensor error containment (CAP-040 / CAP-047):** MQTT
+callback and direct ClickHouse fallback logs omit raw exception details; QoS 1
+failures retain the unacknowledged broker-retry behavior and raise only a
+bounded summary. Three new mocked checks pass within the 74-test MQTT/producer
+suite with Ruff. No broker, database, or ClickHouse service was contacted;
+live delivery and MAN-CAP-040/047 remain open
+([evidence](builds/2026-10-17-recovery/mqtt-subscriber-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

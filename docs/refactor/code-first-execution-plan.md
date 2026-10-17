@@ -135,6 +135,11 @@ bounded evaluation summaries and log only the exception class. Savepoint rollbac
 and preservation of the previous stale/critical state remain unchanged. The
 33-test mocked freshness suite passes with Ruff and no database or destination
 was contacted ([evidence](builds/2026-10-17-recovery/freshness-query-error-redaction.json)).
+**Local MQTT follow-up — 17 October 2026:** callback and ClickHouse fallback logs
+now report exception classes only. QoS 1 failures still remain unacknowledged
+for broker retry and propagate a bounded error. Three new mocked checks pass
+within the 74-test MQTT/producer suite with Ruff and no live service access
+([evidence](builds/2026-10-17-recovery/mqtt-subscriber-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

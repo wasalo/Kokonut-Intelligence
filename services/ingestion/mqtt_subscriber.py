@@ -149,10 +149,12 @@ class MQTTSensorSubscriber:
                 if client.ack(msg.mid, msg.qos) != 0:
                     raise RuntimeError("MQTT acknowledgement failed")
         except Exception as e:
-            logger.error("Error processing MQTT message: %s", e)
+            logger.error("Error processing MQTT message (%s)", type(e).__name__)
             if self._delivery_mode == "qos1":
                 # Exit without ACK. Broker session can redeliver after restart.
-                raise
+                raise RuntimeError(
+                    f"MQTT message processing failed ({type(e).__name__})"
+                ) from None
 
     def _on_subscribe(self, client, userdata, mid, reason_codes, properties=None):
         if mid != self._subscription_mid:
@@ -369,7 +371,7 @@ class MQTTSensorSubscriber:
             project_sensor_reading(reading_id, location_id, plot_id, sensor_id, sensor_type,
                                    value, unit, timestamp, quality)
         except Exception as exc:
-            logger.warning("ClickHouse insert failed: %s", exc)
+            logger.warning("ClickHouse insert failed (%s)", type(exc).__name__)
 
     def start(self):
         """Start the MQTT subscriber."""

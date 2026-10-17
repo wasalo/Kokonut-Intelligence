@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### MQTT sensor error containment — 17 October 2026
+
+MQTT callback and direct ClickHouse fallback logs now omit raw exception
+details. QoS 1 processing failures still remain unacknowledged for broker retry,
+and propagate only a bounded exception-class summary. Three new mocked checks
+pass within the 74-test MQTT/producer suite with Ruff; no broker, database, or
+ClickHouse service was contacted
+([evidence](builds/2026-10-17-recovery/mqtt-subscriber-error-redaction.json)).
+
 ### Freshness query error containment — 17 October 2026
 
 Failed freshness measurements now store a bounded summary in result metadata
