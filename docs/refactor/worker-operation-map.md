@@ -9,13 +9,14 @@ anomaly handler, all four registered cache invalidation handlers, and the two
 global notification enqueue handlers. Signed cache invalidation and isolated
 notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
 bootstrap enforce the mobile/worker ACL boundary. Default-off signed workers now
-cover NOI snapshot, current weather, and five-day forecasts through migrations
-425–427, with current-weather forced-RLS replay and outbox-collision acceptance
-in a disposable PostgreSQL 16 fixture. Production credentials and candidate rollout remain open. See the
+cover NOI snapshot, current weather, five-day forecasts, and climate summaries
+through migrations 425–429, with current-weather and climate forced-RLS
+acceptance in disposable PostgreSQL 16 fixtures. Production credentials and
+candidate rollout remain open. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 19 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
+the exact 20 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -41,7 +42,7 @@ application-wide RLS or proof for other workers.
   The `data_stale` and `threshold_breached` handlers can opt into a distinct
   notification-enqueue login and bounded function. That path also remains off
   by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned, and migrations 405–427 have not
+  credential or location grant is provisioned, and migrations 405–429 have not
   been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
@@ -60,11 +61,12 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  19 scheduled modules and seven allowlisted handler pairs. It covers 86
-  distinct local source files across 26 operation roots,
-  with no unresolved local modules and the EventBus's one dynamic handler-import
-  site. That site is dispatched through `validate_event_handler` and the exact
-  allowlist. Package `__main__.py` entrypoints are included.
+  20 scheduled modules and seven allowlisted handler pairs. It covers 87
+  distinct local source files across 27 operation roots, with no unresolved
+  local modules and two known dynamic import sites (EventBus handler dispatch
+  and driver registry lookup). EventBus dispatch is constrained by
+  `validate_event_handler` and the exact allowlist. Package `__main__.py`
+  entrypoints are included.
 - Regenerate or verify the source closure with
   `python3 scripts/worker_source_closure.py --output docs/refactor/worker-source-closure.json`
   or `python3 scripts/worker_source_closure.py --check docs/refactor/worker-source-closure.json`.
@@ -81,25 +83,25 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 26
-  operation roots and 86 source files, entry functions reach 526 function
-  memberships through 736 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 27
+  operation roots and 87 source files, entry functions reach 546 function
+  memberships through 766 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 309
-  Python `.execute` sites in those 86 files. It fingerprints 267 literal
-  statements and flags 42 composed/variable statements. Candidate relation tokens are
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 308
+  Python `.execute` sites in those 87 files. It fingerprints 265 literal
+  statements and flags 43 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 309 sites to the operation graph without including SQL text or
-  values. It links 237 unique sites across 295 operation/site memberships;
+  joins those 308 sites to the operation graph without including SQL text or
+  values. It links 236 unique sites across 298 operation/site memberships;
   72 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
@@ -108,7 +110,7 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 26 operation roots and local imports, reports that the scheduler
+  confirms all 27 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
   RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather, and
   weather-forecast integrations establish context within exact worker paths. It
@@ -121,7 +123,7 @@ application-wide RLS or proof for other workers.
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
   finds 36 unique candidate sites across 40 operation/site memberships: HTTP
   (13 unique / 17 memberships), email delivery (6), process (1), EVM RPC (3),
-  EVM client setup (4), filesystem (8), and dynamic import (1), across 26 operation roots. These are review candidates,
+  EVM client setup (4), filesystem (8), and dynamic import (1), across 27 operation roots. These are review candidates,
   not confirmed runtime effects. Other worker roots may still conservatively
   include mutually exclusive CLI branches. The credit-adjustment schedule now
   uses a dedicated read-only entrypoint; the interactive issuance/retirement
@@ -140,8 +142,9 @@ application-wide RLS or proof for other workers.
   docs/refactor/worker-effect-inventory.json`. The inventory does not inspect
   provider internals, arbitrary callbacks, database-side effects, or establish
   replay safety, tenant context, or database grants.
-- Source-pattern review now covers all 36 dynamic/composed sites. The original
-  30-site review found that 21 use fixed
+- Source-pattern review covers all 43 composed/variable statements found by the
+  generated SQL inventory across 27 operation roots. The original 30-site
+  review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
   table names from the fixed freshness-source map; one adds fixed optional
@@ -181,11 +184,16 @@ application-wide RLS or proof for other workers.
   its all-location behavior by running one bounded catalog command for each
   active location directly assigned to `kokonut-network`; the lookup is
   read-only and does not establish signed worker tenant context.
-- The climate worker entry names all five provider-output relations and records
-  that `--worldclim` is a latitude proxy, while four other branches call Google
-  Earth Engine. The proxy upsert and location fallback have focused source,
-  migration-discovery, and PostgreSQL restored-checkpoint replay coverage; live
-  provider acceptance remains open.
+- The legacy climate entry names the five provider-output relations and keeps
+  the `climate_data` CLI available for manual compatibility. The native JobSpec
+  now routes through `services.ingestion.climate_worker`, which requires one
+  explicit location, uses only the exact climate worker DSN/credential/GEE key
+  path, and reaches location/bbox data and the five summary/audit writes only
+  through migration 429's signed bounded functions. The latitude proxy remains
+  explicit, and GEE requests remain external provider effects. All five source
+  writes, failure audit, retries, scope denial, and forced-RLS privilege
+  boundaries pass disposable PostGIS checks; no real provider, key, schedule,
+  or candidate database was used.
 - The carbon-credit job's `credit_adjustment` JobSpec uses a dedicated
   `services.analytics.carbon_credit_adjustment_check` entrypoint and requires
   one explicit `--location-id` at the CLI, schedule-plan, and scheduler-command
@@ -248,11 +256,12 @@ application-wide RLS or proof for other workers.
 
 This map, import closure, SQL inventories, effect candidates, job-template
 comparison, and argument schemas are not an ACL, tenant policy, or complete
-dynamic call graph. Source-pattern review now covers all 42 composed/variable
+dynamic call graph. Source-pattern review now covers all 43 composed/variable
 SQL sites: the prior 36-site review, the remote-sensing update builder, signed
 context cleanup, the anomaly worker's generic query wrappers, shared database
-helper calls, and the NOI reconciliation's fixed location-filter fragment
-with a bound UUID. Reviewed application fragments bind values and use
+helper calls, the NOI reconciliation's fixed location-filter fragment with a
+bound UUID, and the climate worker's fixed migration-function calls. Reviewed
+application fragments bind values and use
 fixed source-controlled fragments; three generic database-adapter sites remain
 `UNKNOWN` because their SQL is supplied by callers, so their complete caller
 set still needs tracing. No user-derived identifier interpolation was found

@@ -37,6 +37,9 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.data_freshness",
         "services.export.dataset_refresh",
         "services.ingestion.climate_data",
+        # New Kernel schedules use a signed location-scoped worker. Keep the
+        # interactive/shared-identity CLI contract for manual compatibility.
+        "services.ingestion.climate_worker",
         "services.ingestion.remote_sensing_fetcher",
         "services.ingestion.clickhouse_outbox",
         "services.events",

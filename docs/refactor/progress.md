@@ -17,14 +17,36 @@ shares one transaction, and provider failures return a nonzero result. The 25
 focused climate tests, Ruff, compilation, and four disposable PostgreSQL 16
 replay/duplicate/upsert/plot-isolation checks pass. This is source and synthetic
 database evidence only; no real provider, candidate, legacy database, or
-schedule was used. The candidate remains through migration 403, migration 428
-is not deployed, and the scheduled path still uses the shared runtime identity.
-Signed climate scope, live provider parity, schedule ownership and acceptance
-remain open ([migration](../../schemas/postgres/428_climate_summary_idempotency.sql);
+schedule was used. The candidate remains through migration 403, and migrations
+428–429 are not deployed. The scheduled path now uses the default-off signed
+climate worker; credential/grant provisioning, live provider parity, schedule
+ownership and acceptance remain open ([migration](../../schemas/postgres/428_climate_summary_idempotency.sql);
 [tests](../../tests/test_climate_data.py);
 [disposable runner](../../scripts/check-climate-summary-idempotency-disposable.py);
 [migration evidence](builds/2026-10-17-recovery/climate-summary-idempotency-disposable.json);
 [contract evidence](builds/2026-10-17-recovery/climate-provider-contract.json)).
+
+### Signed climate worker — 17 October 2026
+
+Scheduled climate refresh now uses `services.ingestion.climate_worker`, with a
+dedicated default-off `climate` worker key and exact subprocess routing for its
+database URL, signed worker credential, and climate-specific GEE key path. The
+manual `services.ingestion.climate_data` CLI remains available. Migration 429
+adds signed location/bbox lookup and source-specific bounded writes for the
+WorldClim proxy, ERA5-Land, MODIS, SMAP, and Sentinel-1 summaries; each summary
+and its ingestion audit share one transaction. The worker login receives no
+direct climate-table privileges, and the bounded functions pass forced-RLS
+PostGIS acceptance for nine migration, scope, source-contract, retry, failure,
+and privilege checks. The 156-test climate/worker/scheduler suite, Ruff, and
+Python compilation pass. No real GEE key, provider, schedule, candidate, or
+legacy database was used. Migration 429 is not candidate-deployed; the feature
+is off, and credentials/location grants and live provider parity remain open
+([worker](../../services/ingestion/climate_worker.py);
+[migration](../../schemas/postgres/429_signed_climate_worker.sql);
+[focused tests](../../tests/test_climate_worker.py);
+[disposable runner](../../scripts/check-climate-worker-disposable.py);
+[evidence](builds/2026-10-17-recovery/climate-worker-disposable.json);
+[operation map](worker-operation-map.json)).
 
 ### Signed current-weather worker — 17 October 2026
 

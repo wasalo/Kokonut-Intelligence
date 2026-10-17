@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 26,
-    "source_files": 86,
-    "execution_sites": 306,
-    "static_literal_sites": 263,
+    "operation_roots": 27,
+    "source_files": 87,
+    "execution_sites": 308,
+    "static_literal_sites": 265,
     "composed_or_variable_sites": 43
   },
   "execution_sites": [
@@ -833,6 +833,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
@@ -873,6 +874,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
@@ -913,6 +915,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
@@ -946,6 +949,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -969,6 +973,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -994,6 +999,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1019,6 +1025,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1044,6 +1051,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1069,6 +1077,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1094,6 +1103,7 @@
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -3173,6 +3183,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
@@ -3206,6 +3217,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
@@ -3238,6 +3250,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.data_freshness",
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
@@ -3455,7 +3468,8 @@
       ],
       "static_sql_sha256": "17c99193e06ba6cd8e6f27dd3e94ba97ff5c5ff658668bc615dda117a15ce1e3",
       "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data"
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker"
       ]
     },
     {
@@ -3472,7 +3486,8 @@
       ],
       "static_sql_sha256": "3b423730652249be4b8b95fbe4ab8e3d8de495bae9789ffffa49b1a7e560e078",
       "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data"
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker"
       ]
     },
     {
@@ -3490,7 +3505,40 @@
       ],
       "static_sql_sha256": "f87c88368e85ede4f80cb393fbdc52f04049f8742d3f7bfdec5ee0f49148e74c",
       "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data"
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/climate_worker.py:51:12",
+      "source": "services/ingestion/climate_worker.py",
+      "line": 51,
+      "column": 12,
+      "scope": "_load_location",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.climate_location"
+      ],
+      "static_sql_sha256": "417d65508274017684de1f7ab3d36ee966bbda53d2d98057e9db29ea22266127",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.climate_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/climate_worker.py:90:12",
+      "source": "services/ingestion/climate_worker.py",
+      "line": 90,
+      "column": 12,
+      "scope": "_store_result",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "ef59e8076b64fb230a39f99423b83ae856f6eab21f3c64d53a0a35b2460ae7ed",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.climate_worker"
       ]
     },
     {
@@ -4055,9 +4103,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gee_climate.py:76:8",
+      "id": "services/ingestion/gee_climate.py:92:8",
       "source": "services/ingestion/gee_climate.py",
-      "line": 76,
+      "line": 92,
       "column": 8,
       "scope": "_persist_summary",
       "method": "execute",
@@ -4066,7 +4114,8 @@
       "candidate_relations": [],
       "static_sql_sha256": null,
       "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data"
+        "scheduled_module:services.ingestion.climate_data",
+        "scheduled_module:services.ingestion.climate_worker"
       ]
     },
     {

@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 26,
-    "source_files": 86,
+    "operation_roots": 27,
+    "source_files": 87,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 530,
-    "direct_call_edges": 748,
+    "function_memberships": 546,
+    "direct_call_edges": 766,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -211,7 +211,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 44
+          "line": 45
         },
         {
           "key": "services.core.features:is_enabled",
@@ -219,7 +219,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -1536,7 +1536,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         },
         {
           "key": "services.core.features:require_feature",
@@ -1544,7 +1544,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 176
+          "line": 182
         },
         {
           "key": "services.export.dataset_refresh:get_pg",
@@ -1590,7 +1590,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 178
+          "line": 184
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -2720,7 +2720,7 @@
           "qualname": "_build_bbox_geometry",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 47
+          "line": 54
         },
         {
           "key": "services.ingestion.gee_climate:_get_gee_client",
@@ -2736,7 +2736,7 @@
           "qualname": "_metadata",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 99
+          "line": 115
         },
         {
           "key": "services.ingestion.gee_climate:_period",
@@ -2744,7 +2744,7 @@
           "qualname": "_period",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 52
+          "line": 59
         },
         {
           "key": "services.ingestion.gee_climate:_persist_summary",
@@ -2752,7 +2752,7 @@
           "qualname": "_persist_summary",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 63
+          "line": 70
         },
         {
           "key": "services.ingestion.gee_climate:_rounded",
@@ -2760,7 +2760,7 @@
           "qualname": "_rounded",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 59
+          "line": 66
         },
         {
           "key": "services.ingestion.gee_climate:fetch_era5_land",
@@ -2768,7 +2768,7 @@
           "qualname": "fetch_era5_land",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 300
+          "line": 379
         },
         {
           "key": "services.ingestion.gee_climate:fetch_modis_lst",
@@ -2776,7 +2776,7 @@
           "qualname": "fetch_modis_lst",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 120
+          "line": 136
         },
         {
           "key": "services.ingestion.gee_climate:fetch_sentinel1_sar",
@@ -2784,7 +2784,7 @@
           "qualname": "fetch_sentinel1_sar",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 240
+          "line": 298
         },
         {
           "key": "services.ingestion.gee_climate:fetch_smap_moisture",
@@ -2792,7 +2792,7 @@
           "qualname": "fetch_smap_moisture",
           "class_scope": null,
           "source": "services/ingestion/gee_climate.py",
-          "line": 183
+          "line": 220
         }
       ],
       "direct_call_edges": [
@@ -2986,169 +2986,446 @@
           "caller": "services.ingestion.gee_climate:_persist_summary",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/gee_climate.py",
-          "line": 89
+          "line": 105
         },
         {
           "caller": "services.ingestion.gee_climate:_persist_summary",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/gee_climate.py",
-          "line": 82
+          "line": 98
         },
         {
           "caller": "services.ingestion.gee_climate:fetch_era5_land",
           "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 400
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_era5_land",
+          "callee": "services.ingestion.gee_climate:_get_gee_client",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 394
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_era5_land",
+          "callee": "services.ingestion.gee_climate:_metadata",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 425
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_era5_land",
+          "callee": "services.ingestion.gee_climate:_period",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 399
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_era5_land",
+          "callee": "services.ingestion.gee_climate:_persist_summary",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 478
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_era5_land",
+          "callee": "services.ingestion.gee_climate:_rounded",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 424
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 157
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "callee": "services.ingestion.gee_climate:_get_gee_client",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 151
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "callee": "services.ingestion.gee_climate:_metadata",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 172
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "callee": "services.ingestion.gee_climate:_period",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 156
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "callee": "services.ingestion.gee_climate:_persist_summary",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 200
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "callee": "services.ingestion.gee_climate:_rounded",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 168
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "callee": "services.ingestion.gee_climate:_rounded",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 169
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
+          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 314
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
+          "callee": "services.ingestion.gee_climate:_get_gee_client",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 308
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
+          "callee": "services.ingestion.gee_climate:_metadata",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 331
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
+          "callee": "services.ingestion.gee_climate:_period",
           "source": "services/ingestion/gee_climate.py",
           "line": 313
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_get_gee_client",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 307
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_metadata",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 338
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
-          "callee": "services.ingestion.gee_climate:_period",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 312
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
+          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
           "callee": "services.ingestion.gee_climate:_persist_summary",
           "source": "services/ingestion/gee_climate.py",
-          "line": 375
+          "line": 359
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_era5_land",
+          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
           "callee": "services.ingestion.gee_climate:_rounded",
           "source": "services/ingestion/gee_climate.py",
-          "line": 337
+          "line": 329
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
+          "callee": "services.ingestion.gee_climate:_rounded",
+          "source": "services/ingestion/gee_climate.py",
+          "line": 330
+        },
+        {
+          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
           "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
           "source": "services/ingestion/gee_climate.py",
-          "line": 133
+          "line": 240
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
           "callee": "services.ingestion.gee_climate:_get_gee_client",
           "source": "services/ingestion/gee_climate.py",
-          "line": 127
+          "line": 234
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
           "callee": "services.ingestion.gee_climate:_metadata",
           "source": "services/ingestion/gee_climate.py",
-          "line": 148
+          "line": 251
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
           "callee": "services.ingestion.gee_climate:_period",
           "source": "services/ingestion/gee_climate.py",
-          "line": 132
+          "line": 239
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
           "callee": "services.ingestion.gee_climate:_persist_summary",
           "source": "services/ingestion/gee_climate.py",
-          "line": 166
+          "line": 278
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
+          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
           "callee": "services.ingestion.gee_climate:_rounded",
           "source": "services/ingestion/gee_climate.py",
-          "line": 144
-        },
+          "line": 250
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.climate_worker",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/climate_data.py",
+        "services/ingestion/climate_worker.py",
+        "services/ingestion/config.py",
+        "services/ingestion/gee_climate.py"
+      ],
+      "entry_functions": [
         {
-          "caller": "services.ingestion.gee_climate:fetch_modis_lst",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 145
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 248
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_get_gee_client",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 242
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_metadata",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 265
-        },
-        {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_period",
-          "source": "services/ingestion/gee_climate.py",
+          "function": "services.common.cli:run",
+          "source": "services/ingestion/climate_worker.py",
           "line": 247
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_persist_summary",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 283
+          "function": "services.ingestion.climate_worker:main",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 247
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:print_json",
+          "module": "services.common.cli",
+          "qualname": "print_json",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 73
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 263
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 78
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_sentinel1_sar",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 264
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_build_bbox_geometry",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 195
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_get_gee_client",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 189
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_metadata",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 206
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 30
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_period",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 194
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 36
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_persist_summary",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 223
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
         },
         {
-          "caller": "services.ingestion.gee_climate:fetch_smap_moisture",
-          "callee": "services.ingestion.gee_climate:_rounded",
-          "source": "services/ingestion/gee_climate.py",
-          "line": 205
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 159
+        },
+        {
+          "key": "services.ingestion.climate_data:_estimate_bioclim",
+          "module": "services.ingestion.climate_data",
+          "qualname": "_estimate_bioclim",
+          "class_scope": null,
+          "source": "services/ingestion/climate_data.py",
+          "line": 170
+        },
+        {
+          "key": "services.ingestion.climate_worker:_load_location",
+          "module": "services.ingestion.climate_worker",
+          "qualname": "_load_location",
+          "class_scope": null,
+          "source": "services/ingestion/climate_worker.py",
+          "line": 46
+        },
+        {
+          "key": "services.ingestion.climate_worker:_open_scoped_connection",
+          "module": "services.ingestion.climate_worker",
+          "qualname": "_open_scoped_connection",
+          "class_scope": null,
+          "source": "services/ingestion/climate_worker.py",
+          "line": 30
+        },
+        {
+          "key": "services.ingestion.climate_worker:_store_result",
+          "module": "services.ingestion.climate_worker",
+          "qualname": "_store_result",
+          "class_scope": null,
+          "source": "services/ingestion/climate_worker.py",
+          "line": 77
+        },
+        {
+          "key": "services.ingestion.climate_worker:_worldclim_summary",
+          "module": "services.ingestion.climate_worker",
+          "qualname": "_worldclim_summary",
+          "class_scope": null,
+          "source": "services/ingestion/climate_worker.py",
+          "line": 114
+        },
+        {
+          "key": "services.ingestion.climate_worker:ingest",
+          "module": "services.ingestion.climate_worker",
+          "qualname": "ingest",
+          "class_scope": null,
+          "source": "services/ingestion/climate_worker.py",
+          "line": 145
+        },
+        {
+          "key": "services.ingestion.climate_worker:main",
+          "module": "services.ingestion.climate_worker",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/climate_worker.py",
+          "line": 227
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 152
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 143
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 47
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 85
+        },
+        {
+          "caller": "services.ingestion.climate_worker:_load_location",
+          "callee": "services.ingestion.climate_worker:_open_scoped_connection",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 48
+        },
+        {
+          "caller": "services.ingestion.climate_worker:_open_scoped_connection",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 33
+        },
+        {
+          "caller": "services.ingestion.climate_worker:_open_scoped_connection",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 31
+        },
+        {
+          "caller": "services.ingestion.climate_worker:_store_result",
+          "callee": "services.ingestion.climate_worker:_open_scoped_connection",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 87
+        },
+        {
+          "caller": "services.ingestion.climate_worker:_worldclim_summary",
+          "callee": "services.ingestion.climate_data:_estimate_bioclim",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 116
+        },
+        {
+          "caller": "services.ingestion.climate_worker:ingest",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 148
+        },
+        {
+          "caller": "services.ingestion.climate_worker:ingest",
+          "callee": "services.ingestion.climate_worker:_load_location",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 149
+        },
+        {
+          "caller": "services.ingestion.climate_worker:ingest",
+          "callee": "services.ingestion.climate_worker:_store_result",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 157
+        },
+        {
+          "caller": "services.ingestion.climate_worker:ingest",
+          "callee": "services.ingestion.climate_worker:_store_result",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 190
+        },
+        {
+          "caller": "services.ingestion.climate_worker:ingest",
+          "callee": "services.ingestion.climate_worker:_store_result",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 203
+        },
+        {
+          "caller": "services.ingestion.climate_worker:ingest",
+          "callee": "services.ingestion.climate_worker:_worldclim_summary",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 155
+        },
+        {
+          "caller": "services.ingestion.climate_worker:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 241
+        },
+        {
+          "caller": "services.ingestion.climate_worker:main",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 237
+        },
+        {
+          "caller": "services.ingestion.climate_worker:main",
+          "callee": "services.ingestion.climate_worker:ingest",
+          "source": "services/ingestion/climate_worker.py",
+          "line": 240
         }
       ],
       "callback_edges": [],
@@ -6804,7 +7081,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -7109,7 +7386,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -8086,7 +8363,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         },
         {
           "key": "services.metrics.noi_snapshot_worker:main",
@@ -8314,7 +8591,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         }
       ],
       "direct_call_edges": [
@@ -8556,7 +8833,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         }
       ],
       "direct_call_edges": [
@@ -8798,7 +9075,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         }
       ],
       "direct_call_edges": [
@@ -9040,7 +9317,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         }
       ],
       "direct_call_edges": [
@@ -9192,7 +9469,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -9368,7 +9645,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 153
+          "line": 159
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "b41f40688f0d18564f8ee66a6612a9ddf4f52e8e",
+  "baseline_commit": "f28a63c05f183ec21a7b57030ee9b9cfd6ed8116",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1821,7 +1821,8 @@
       "schemas/postgres/425_signed_noi_snapshot_worker.sql",
       "schemas/postgres/426_signed_weather_forecast_worker.sql",
       "schemas/postgres/427_signed_weather_observation_worker.sql",
-      "schemas/postgres/428_climate_summary_idempotency.sql"
+      "schemas/postgres/428_climate_summary_idempotency.sql",
+      "schemas/postgres/429_signed_climate_worker.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2458,6 +2459,7 @@
         "tests/conftest.py",
         "tests/test_agent_safety.py",
         "tests/test_clickhouse_failure_injection.py",
+        "tests/test_climate_worker.py",
         "tests/test_common_commands.py",
         "tests/test_common_database.py",
         "tests/test_common_env.py",
@@ -2499,6 +2501,7 @@
         "KOKONUT_FEATURE_REPORTS",
         "KOKONUT_FEATURE_SCHEDULER",
         "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION",
+        "KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER",
         "KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER",
         "KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER",
         "KOKONUT_FEATURE_SIGNED_WEATHER_WORKER"
@@ -2525,6 +2528,7 @@
       ],
       "test_references": [
         "tests/test_clickhouse_outbox.py",
+        "tests/test_climate_worker.py",
         "tests/test_core_features.py",
         "tests/test_core_jobs_contract.py",
         "tests/test_driver_registry.py",
@@ -3103,6 +3107,7 @@
         "INGESTION_BACKOFF",
         "INGESTION_JITTER",
         "INGESTION_MAX_RETRIES",
+        "KOKONUT_CLIMATE_GEE_SERVICE_ACCOUNT_KEY",
         "KOKONUT_SENSOR_TIMESTAMP_MODE",
         "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY",
         "ML_MODEL_DIR",
@@ -3132,6 +3137,7 @@
         "services/ingestion/cli.py",
         "services/ingestion/clickhouse_outbox.py",
         "services/ingestion/climate_data.py",
+        "services/ingestion/climate_worker.py",
         "services/ingestion/config.py",
         "services/ingestion/copernicus_remote_sensing.py",
         "services/ingestion/data_freshness.py",
@@ -3201,6 +3207,7 @@
         "tests/test_clickhouse_outbox.py",
         "tests/test_climate_data.py",
         "tests/test_climate_data_cli_scope.py",
+        "tests/test_climate_worker.py",
         "tests/test_competitive_landscape.py",
         "tests/test_competitive_report.py",
         "tests/test_coordination.py",
@@ -3746,6 +3753,7 @@
         "services/security/scheduled_command_contracts.py"
       ],
       "test_references": [
+        "tests/test_climate_worker.py",
         "tests/test_phase3_4.py",
         "tests/test_rpc_indexer_contract.py",
         "tests/test_scheduled_command_contracts.py",
@@ -4060,6 +4068,7 @@
     "tests/test_clickhouse_outbox.py",
     "tests/test_climate_data.py",
     "tests/test_climate_data_cli_scope.py",
+    "tests/test_climate_worker.py",
     "tests/test_common_cli_lazy_database.py",
     "tests/test_common_commands.py",
     "tests/test_common_database.py",

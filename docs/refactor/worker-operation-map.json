@@ -3,8 +3,8 @@
   "reviewed": "2026-10-17",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, and weather-forecast modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, and climate modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -698,14 +698,50 @@
         "ERA5 Land (--ncep), MODIS, SMAP, and Sentinel-1 requests through Google Earth Engine; the worldclim command makes no network request and records a latitude_proxy_v1 estimate"
       ],
       "idempotency": "worldclim_climate uses a partial unique key for one location-level row (plot_id IS NULL); migration 397 refuses duplicate legacy rows without deleting them. Migration 428 adds guarded location/date/source partial unique keys for the four GEE summary tables; same-day provider retries upsert the same location-level summary, while plot rows remain independent.",
-      "retry_boundary": "Per-location retry is the intended unit. GEE summaries and ingestion_log rows now commit in one transaction, and provider errors return nonzero from the CLI. A signed worker identity and provider/runtime replay remain open; the historical seed's --all argument is invalid because --location-id is required.",
+      "retry_boundary": "This shared-identity module remains for interactive/manual compatibility and legacy persisted-task reconciliation. The manual path keeps each persisted summary and ingestion audit together and will commit in one transaction. New native JobSpecs use the default-off signed climate_worker, which requires migration 429, a dedicated climate DSN/credential, an exact climate/ingest location grant, and the separately scoped GEE service-account file. Provider failures are audited with bounded messages and return nonzero; no shared-DSN fallback exists in the worker.",
       "sources": [
         "services/ingestion/climate_data.py",
         "services/ingestion/gee_climate.py",
         "services/ingestion/base.py",
         "schemas/postgres/074_dsm_soc_prediction.sql",
         "schemas/postgres/397_worldclim_location_baseline_key.sql",
-        "schemas/postgres/428_climate_summary_idempotency.sql"
+        "schemas/postgres/428_climate_summary_idempotency.sql",
+        "services/ingestion/climate_worker.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.climate_worker",
+      "worker_key": "climate",
+      "scope": "Default-off native operation requires one explicit --location-id and establishes a signed climate/ingest grant before every location lookup and summary write. It reads the active location point and plot-derived/fallback bbox only through migration 429 functions; no shared database or GEE key-path fallback is used.",
+      "reads": [
+        "public.location",
+        "public.farm",
+        "public.plot"
+      ],
+      "writes": [
+        "public.worldclim_climate",
+        "public.ncep_weather_summary",
+        "public.modis_lst_summary",
+        "public.smap_soil_moisture",
+        "public.sentinel1_sar_summary",
+        "public.ingestion_log"
+      ],
+      "external_effects": [
+        "ERA5 Land, MODIS, SMAP, and Sentinel-1 requests through Google Earth Engine using the climate-specific service-account key file; WorldClim remains a no-network latitude proxy"
+      ],
+      "idempotency": "Migration 428 keys the four location-level GEE summaries by location/date/source; migration 397 keys the WorldClim location baseline. Migration 429 restricts fields per source and commits each summary with its ingestion audit through one bounded function; plot rows remain independent.",
+      "retry_boundary": "One location is the retry unit. GEE provider results are fetched before a short signed database transaction; failed provider outcomes record a safe failure audit and the command exits nonzero. KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER defaults off; no task, worker credential, location grant, provider key, or candidate migration is activated by this inventory.",
+      "sources": [
+        "services/ingestion/climate_worker.py",
+        "services/ingestion/gee_climate.py",
+        "services/ingestion/climate_data.py",
+        "services/common/worker_database.py",
+        "services/common/tenant_context.py",
+        "schemas/postgres/428_climate_summary_idempotency.sql",
+        "schemas/postgres/429_signed_climate_worker.sql",
+        "scripts/check-climate-worker-disposable.py",
+        "tests/fixtures/climate_worker_disposable.sql",
+        "tests/test_climate_worker.py"
       ]
     },
     {

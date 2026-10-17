@@ -9,7 +9,7 @@
 
 **Previous pushed functional batch — 17 October 2026:** Scheduled current-weather ingestion now uses the dedicated default-off `services.ingestion.weather_worker`; migration 427 adds signed location lookup and bounded atomic observation/audit/outbox/receipt storage. Commit `b41f4068` is on the remote feature branch. Its 178 focused tests and nine disposable PostgreSQL 16 checks pass; the candidate remains through migration 403 and the feature/grants are not deployed.
 
-**Current local code-first batch — 17 October 2026 (commit `9bb38f94`, pending push):** Climate provider persistence now matches the canonical schema. Location lookup uses `center` or stored coordinates; MODIS/SMAP/Sentinel-1/ERA5-Land use valid datasets and bands, correct stored columns and aggregation/units, same-transaction ingestion audit, and location/date/source upserts. Migration 428 refuses unreviewed duplicates, preserves plot-level records, and makes location-level retries idempotent. Twenty-five focused climate tests, Ruff, compilation, and four disposable PostgreSQL 16 checks pass. No provider, candidate, legacy database, or schedule was accessed. The checklist is 433 checked / 21 open (454 total); the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. The candidate remains through migration 403; migration 428 is not deployed. Signed climate worker identity, live parity, provider ownership, and rollout remain open ([evidence](builds/2026-10-17-recovery/climate-summary-idempotency-disposable.json)).
+**Current code-first batch — 17 October 2026:** Scheduled climate refresh now uses the default-off signed `services.ingestion.climate_worker`; the manual CLI remains intact. Migration 429 provides signed location/bbox lookup and source-specific bounded writes for WorldClim, ERA5-Land, MODIS, SMAP, and Sentinel-1 summaries, with same-transaction ingestion audits and no direct climate-table grants. The 156-test climate/worker/scheduler suite, Ruff, compilation, generated worker inventories, and nine disposable PostgreSQL 16 forced-RLS checks pass. No real provider/key, candidate or legacy database, or schedule was accessed. The checklist is 434 checked / 21 open (455 total); the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. The candidate remains through migration 403; migrations 428–429 are not deployed. Worker credentials/location grants, live provider parity, provider ownership, and rollout remain open ([migration](../../schemas/postgres/429_signed_climate_worker.sql); [evidence](builds/2026-10-17-recovery/climate-worker-disposable.json)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -27,6 +27,14 @@ Nine producer helpers now have paired failure and connection-free fallback
 regressions; 158 focused tests pass across outbox, weather, remote-sensing, and
 attestation contracts. This does not close live provider/PostgreSQL recovery
 acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
+
+The climate scheduled path now has a default-off signed worker and migration
+429's bounded source-specific location lookup and summary/audit functions. Its
+156 focused checks, Ruff, compilation, worker inventory refresh, and nine
+forced-RLS disposable PostgreSQL checks pass. Migration 429 is not on the
+candidate (still at 403); no worker credential, location grant, provider, or
+schedule was activated. See the current batch summary and retained evidence
+above.
 
 - The Gnosis indexer now commits each block range with its event projections,
   outbox intents, and status checkpoint. Migration 423 adds new-event receipts:
@@ -74,7 +82,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **433 checked and 21 open items (454 total)**,
+- The execution checklist has **434 checked and 21 open items (455 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,

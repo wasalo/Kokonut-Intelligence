@@ -97,6 +97,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--all": None,
         "--location-id": "uuid",
     },
+    "services.ingestion.climate_worker": {"--location-id": "uuid"},
     "services.events": {
         "--process": None,
         "--notification-process": None,
@@ -271,6 +272,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("climate refresh requires --location-id")
         if len(providers) != 1:
             raise _reject("climate refresh requires exactly one provider or --all")
+
+    elif module_path == "services.ingestion.climate_worker":
+        if options != {"--location-id"}:
+            raise _reject("signed climate ingestion requires one explicit location")
 
     elif module_path == "services.events":
         operations = options & {"--process", "--notification-process"}

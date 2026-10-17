@@ -7,7 +7,7 @@ import re
 from typing import Mapping, Sequence
 
 _WORKER_SECRET_ENV = re.compile(
-    r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|OPENWEATHERMAP_API_KEY)$"
+    r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|OPENWEATHERMAP_API_KEY|GEE_SERVICE_ACCOUNT_KEY)$"
 )
 _WORKER_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 _SHARED_DATABASE_ENV = frozenset({
@@ -33,6 +33,7 @@ _SCHEDULED_MODULE_WORKERS = {
     "services.metrics.noi_snapshot_worker": "noi_snapshot",
     "services.ingestion.weather_worker": "weather",
     "services.ingestion.weather_forecast_worker": "weather_forecast",
+    "services.ingestion.climate_worker": "climate",
 }
 
 

@@ -147,6 +147,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a worker-specific provider key, database credential, signed location grant, and bounded functions for current-weather ingestion",
     },
+    "signed_climate_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated GEE key path, database credential, signed location grant, and bounded functions for climate ingestion",
+    },
 }
 
 

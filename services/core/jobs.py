@@ -136,8 +136,8 @@ JOBS = MappingProxyType(
             required_inputs=("location_id",),
         ),
         "climate": JobSpec(
-            "services.ingestion.climate_data",
-            ("--all",),
+            "services.ingestion.climate_worker",
+            (),
             600,
             1,
             3600,
