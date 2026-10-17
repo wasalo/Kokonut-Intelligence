@@ -163,7 +163,7 @@ def test_dynamic_and_transaction_control_statement_kinds_are_classified():
     assert by_location[("services/ingestion/data_freshness.py", 104)] == "SELECT"
     assert by_location[("services/ingestion/data_freshness.py", 408)] == "SAVEPOINT"
     assert by_location[("services/ingestion/data_freshness.py", 420)] == "ROLLBACK"
-    assert by_location[("services/ingestion/data_freshness.py", 502)] == "RELEASE"
+    assert by_location[("services/ingestion/data_freshness.py", 504)] == "RELEASE"
     assert by_location[("services/ingestion/ml_anomaly_detector.py", 489)] == "SELECT"
 
 

@@ -3883,9 +3883,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:490:20",
+      "id": "services/ingestion/data_freshness.py:492:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 490,
+      "line": 492,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -3900,9 +3900,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:496:16",
+      "id": "services/ingestion/data_freshness.py:498:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 496,
+      "line": 498,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -3917,9 +3917,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:502:16",
+      "id": "services/ingestion/data_freshness.py:504:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 502,
+      "line": 504,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -3932,9 +3932,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:545:4",
+      "id": "services/ingestion/data_freshness.py:547:4",
       "source": "services/ingestion/data_freshness.py",
-      "line": 545,
+      "line": 547,
       "column": 4,
       "scope": "get_freshness_summary",
       "method": "execute",

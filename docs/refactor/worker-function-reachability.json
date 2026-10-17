@@ -3466,27 +3466,27 @@
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/data_freshness.py",
-          "line": 564
+          "line": 566
         },
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/data_freshness.py",
-          "line": 567
+          "line": 569
         },
         {
           "function": "services.ingestion.base:get_db",
           "source": "services/ingestion/data_freshness.py",
-          "line": 560
+          "line": 562
         },
         {
           "function": "services.ingestion.data_freshness:check_freshness",
           "source": "services/ingestion/data_freshness.py",
-          "line": 563
+          "line": 565
         },
         {
           "function": "services.ingestion.data_freshness:get_freshness_summary",
           "source": "services/ingestion/data_freshness.py",
-          "line": 566
+          "line": 568
         }
       ],
       "reachable_functions": [
@@ -3624,7 +3624,7 @@
           "qualname": "get_freshness_summary",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 542
+          "line": 544
         }
       ],
       "direct_call_edges": [
@@ -3656,7 +3656,7 @@
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_alert_event",
           "source": "services/ingestion/data_freshness.py",
-          "line": 446
+          "line": 448
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
@@ -3686,13 +3686,13 @@
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_persist_alert_event",
           "source": "services/ingestion/data_freshness.py",
-          "line": 458
+          "line": 460
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_persist_delivery_attempt",
           "source": "services/ingestion/data_freshness.py",
-          "line": 481
+          "line": 483
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
@@ -3710,7 +3710,7 @@
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_send_alert",
           "source": "services/ingestion/data_freshness.py",
-          "line": 471
+          "line": 473
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",

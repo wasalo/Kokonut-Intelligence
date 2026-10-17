@@ -195,10 +195,10 @@
         "services/ingestion/data_freshness.py:280:4",
         "services/ingestion/data_freshness.py:408:12",
         "services/ingestion/data_freshness.py:420:16",
-        "services/ingestion/data_freshness.py:490:20",
-        "services/ingestion/data_freshness.py:496:16",
-        "services/ingestion/data_freshness.py:502:16",
-        "services/ingestion/data_freshness.py:545:4",
+        "services/ingestion/data_freshness.py:492:20",
+        "services/ingestion/data_freshness.py:498:16",
+        "services/ingestion/data_freshness.py:504:16",
+        "services/ingestion/data_freshness.py:547:4",
         "services/ingestion/data_freshness.py:54:8",
         "services/ingestion/data_freshness.py:59:8",
         "services/ingestion/data_freshness.py:73:4"
@@ -5179,9 +5179,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:490:20",
+      "id": "services/ingestion/data_freshness.py:492:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 490,
+      "line": 492,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -5200,9 +5200,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:496:16",
+      "id": "services/ingestion/data_freshness.py:498:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 496,
+      "line": 498,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -5221,9 +5221,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:502:16",
+      "id": "services/ingestion/data_freshness.py:504:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 502,
+      "line": 504,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5240,9 +5240,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:545:4",
+      "id": "services/ingestion/data_freshness.py:547:4",
       "source": "services/ingestion/data_freshness.py",
-      "line": 545,
+      "line": 547,
       "scope": "get_freshness_summary",
       "method": "execute",
       "expression_kind": "literal",

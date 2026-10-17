@@ -443,15 +443,17 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 last_event_at = state.get("last_event_at")
                 if last_event_at and last_event_at.tzinfo is None:
                     last_event_at = last_event_at.replace(tzinfo=timezone.utc)
-                event_type = _alert_event(
-                    previous_status,
-                    status,
-                    state.get("last_event_status"),
-                    last_event_at,
-                    now,
-                    int(config.get("alert_cooldown_minutes", 60)),
-                    int(config.get("escalation_cooldown_minutes", 15)),
-                )
+                event_type = None
+                if status != "error":
+                    event_type = _alert_event(
+                        previous_status,
+                        status,
+                        state.get("last_event_status"),
+                        last_event_at,
+                        now,
+                        int(config.get("alert_cooldown_minutes", 60)),
+                        int(config.get("escalation_cooldown_minutes", 15)),
+                    )
                 alert_sent = False
                 alert_channel = None
                 if event_type:
@@ -485,7 +487,7 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                             attempt["error"] is None,
                             attempt["error"],
                         )
-                else:
+                elif status != "error":
                     update_cur = conn.cursor()
                     update_cur.execute(
                         "UPDATE data_freshness_alert_state SET current_status = %s, updated_at = %s WHERE id = %s",

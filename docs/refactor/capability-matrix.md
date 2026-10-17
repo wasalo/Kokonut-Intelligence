@@ -609,13 +609,16 @@ parsing with failure/lease-loss exit codes. No real provider or database was
 used; this does not accept MAN-CAP-047 or provider availability
 ([evidence](builds/2026-10-14-recovery/notification-outbox-failure-injection.json)).
 
-**17 October 2026 freshness alert failure containment (CAP-047):** the legacy
+**17 October 2026 freshness alert reliability (CAP-047):** the legacy
 data-freshness sender closes webhook responses on success and failure, and
 reduces webhook/SMTP error details to an HTTP status or exception class before
-logging or persistence. Thirty-two focused freshness checks pass with mocked
-providers; no destination or database was used. This does not verify production
-delivery, destination ownership, retention, or MAN-CAP-047 acceptance
-([evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json)).
+logging or persistence. Failed database measurements no longer replace the
+last known stale/critical alert state, preserving a later recovery transition.
+Thirty-three focused freshness checks pass with mocked providers/reads; no
+destination or database was used. Production delivery, destination ownership,
+retention, and MAN-CAP-047 acceptance remain open
+([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
+[state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
 
 **17 October 2026 worker inventory refresh (CAP-047):** after the EAS provider
 extraction and freshness-alert helper changes, the current static inventories

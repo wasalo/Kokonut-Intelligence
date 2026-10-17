@@ -100,6 +100,69 @@ def test_email_failure_persists_only_error_type(monkeypatch) -> None:
     assert attempts == [{"channel": "email", "error": "OSError"}]
 
 
+def test_failed_freshness_read_preserves_prior_alert_state(monkeypatch) -> None:
+    from services.ingestion.data_freshness import check_freshness
+
+    class Cursor:
+        def __init__(self, connection):
+            self.connection = connection
+
+        def execute(self, statement, _parameters=None):
+            self.connection.statements.append(statement)
+
+        def close(self):
+            pass
+
+    class Connection:
+        def __init__(self):
+            self.statements = []
+            self.commits = 0
+
+        def cursor(self, **_kwargs):
+            return Cursor(self)
+
+        def commit(self):
+            self.commits += 1
+
+        def rollback(self):
+            raise AssertionError("failed read should be isolated by its savepoint")
+
+    config = {
+        "id": "config-id",
+        "source_system": "weather",
+        "stale_threshold_minutes": 30,
+        "critical_threshold_minutes": 60,
+        "location_scoped": False,
+        "alert_cooldown_minutes": 60,
+        "escalation_cooldown_minutes": 15,
+    }
+    prior_state = {
+        "id": "state-id",
+        "current_status": "stale",
+        "last_event_status": "stale",
+        "last_event_at": datetime.now(timezone.utc),
+    }
+    connection = Connection()
+    monkeypatch.setattr(
+        "services.ingestion.data_freshness._query_freshness_configs", lambda _conn, _source=None: [config]
+    )
+    monkeypatch.setattr(
+        "services.ingestion.data_freshness._query_latest_data_at",
+        lambda *_args: (_ for _ in ()).throw(RuntimeError("temporary database failure")),
+    )
+    monkeypatch.setattr("services.ingestion.data_freshness._insert_check_result", lambda *_args: "check-id")
+    monkeypatch.setattr("services.ingestion.data_freshness._alert_state", lambda *_args: prior_state)
+
+    result = check_freshness(connection)
+
+    assert result["error"] == 1
+    assert result["results"][0]["status"] == "error"
+    assert prior_state["current_status"] == "stale"
+    assert not any("UPDATE data_freshness_alert_state SET current_status" in sql for sql in connection.statements)
+    assert "ROLLBACK TO SAVEPOINT freshness_scope" in connection.statements
+    assert connection.commits == 1
+
+
 def test_determine_status_fresh() -> None:
     from services.ingestion.data_freshness import _determine_status
 

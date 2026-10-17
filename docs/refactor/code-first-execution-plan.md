@@ -43,10 +43,12 @@ concurrent offset-page stability or earlier-than-cursor recovery; no live
 endpoint was queried ([error evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json);
 [cursor-scan evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
 **Local code-first follow-up — 17 October 2026:** the legacy freshness-alert
-sender now closes webhook responses on success and failure and retains only an
-HTTP status or exception class for webhook/SMTP failures. Thirty-two focused
-tests pass with Ruff and compilation; no destination was contacted. This
-follow-up is local and not included in the current PR run ([evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json)).
+sender now closes webhook responses on success and failure, retains only an
+HTTP status or exception class for webhook/SMTP failures, and preserves the last
+known alert state when a database measurement fails. Thirty-three focused tests
+pass with Ruff and compilation; no destination or database was contacted. This
+follow-up is local and not included in the current PR run ([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
+[state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
 **Current code-first follow-up — 17 October 2026:** scheduled worker import
 paths now remain usable with shared PostgreSQL settings stripped. An internal
 worker marker prevents shared dotenv decryption and shared production DB

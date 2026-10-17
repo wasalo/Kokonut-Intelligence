@@ -19,12 +19,15 @@ schedules, runtime identity, or MAN-CAP acceptance
 The legacy data-freshness alert sender now closes webhook responses after both
 successful and failed requests. It records only an HTTP status or exception
 class for webhook/SMTP failures, avoiding raw provider response, recipient, or
-endpoint text in logs and delivery-attempt records. Thirty-two focused freshness
+endpoint text in logs and delivery-attempt records. Thirty-three focused freshness
 tests pass with Ruff, compilation, and diff checks; all provider calls were
 mocked and no database was used. Destination ownership and live delivery remain
-open. Checklist count is 449 complete / 20 open (469 total); no MAN-CAP
+open. A failed measurement also leaves the last known alert state intact, so a
+later fresh measurement can still emit the expected recovery event. Checklist
+count is 450 complete / 20 open (470 total); no MAN-CAP
 acceptance changed
-([evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json)).
+([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
+[state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
 
 ### CI #406 report-helper inventory refresh — 17 October 2026
 
