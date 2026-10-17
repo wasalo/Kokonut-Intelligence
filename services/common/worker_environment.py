@@ -7,7 +7,7 @@ import re
 from typing import Mapping, Sequence
 
 _WORKER_SECRET_ENV = re.compile(
-    r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|OPENWEATHERMAP_API_KEY|GEE_SERVICE_ACCOUNT_KEY)$"
+    r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|OPENWEATHERMAP_API_KEY|GEE_SERVICE_ACCOUNT_KEY|COPERNICUS_EMAIL|COPERNICUS_PASSWORD|COPERNICUS_CLIENT_ID|COPERNICUS_CLIENT_SECRET)$"
 )
 _WORKER_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 _SHARED_DATABASE_ENV = frozenset({
@@ -36,7 +36,16 @@ _SCHEDULED_MODULE_WORKERS = {
     "services.ingestion.climate_worker": "climate",
     "services.ingestion.market_data_worker": "market_data",
     "services.ingestion.sensor_worker": "sensor_ingestion",
+    "services.ingestion.remote_sensing_worker": "remote_sensing",
 }
+
+_GLOBAL_PROVIDER_SECRETS = frozenset({
+    "GEE_SERVICE_ACCOUNT_KEY",
+    "COPERNICUS_EMAIL",
+    "COPERNICUS_PASSWORD",
+    "COPERNICUS_CLIENT_ID",
+    "COPERNICUS_CLIENT_SECRET",
+})
 
 
 def scheduled_module_worker_key(module_path: str) -> str | None:
@@ -74,6 +83,8 @@ def worker_subprocess_environment(
     child_environment: dict[str, str] = {}
     for name, value in source.items():
         if isolated_database_credentials and name in _SHARED_DATABASE_ENV:
+            continue
+        if isolated_database_credentials and name in _GLOBAL_PROVIDER_SECRETS:
             continue
         match = _WORKER_SECRET_ENV.fullmatch(name)
         if match is None or match.group(1) in allowed:

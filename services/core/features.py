@@ -167,6 +167,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated database login, signed location grant, and bounded functions for scheduled CSV sensor ingestion",
     },
+    "signed_remote_sensing_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_REMOTE_SENSING_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login, signed location grant, and bounded functions for scheduled remote-sensing ingestion",
+    },
 }
 
 

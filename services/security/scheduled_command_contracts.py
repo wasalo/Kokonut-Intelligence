@@ -122,6 +122,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--limit": "small_batch_size",
         "--location-id": "uuid",
     },
+    "services.ingestion.remote_sensing_worker": {
+        "--limit": "small_batch_size",
+        "--location-id": "uuid",
+    },
     "services.ingestion.clickhouse_outbox": {
         "--run-once": None,
         "--limit": "batch_size",
@@ -217,6 +221,12 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
 
     if module_path == "services.ingestion.weather_worker" and options != {"--location-id"}:
         raise _reject("signed current-weather ingestion accepts one location only")
+
+    if module_path == "services.ingestion.remote_sensing_worker":
+        if "--location-id" not in options:
+            raise _reject("signed remote-sensing ingestion requires one explicit location")
+        if options - {"--location-id", "--limit"}:
+            raise _reject("signed remote-sensing ingestion accepts one location and an optional bounded limit")
 
     if module_path == "services.ingestion.eas_indexer" and options != {"--chain"}:
         raise _reject("scheduled EAS indexing requires one explicit chain")

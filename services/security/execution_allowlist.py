@@ -43,6 +43,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         # interactive/shared-identity CLI contract for manual compatibility.
         "services.ingestion.climate_worker",
         "services.ingestion.remote_sensing_fetcher",
+        "services.ingestion.remote_sensing_worker",
         "services.ingestion.clickhouse_outbox",
         "services.events",
     }

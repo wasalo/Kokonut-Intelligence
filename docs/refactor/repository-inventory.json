@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "804284ecb07140d3590c9e7451300be5be59137e",
+  "baseline_commit": "65a201410f0ce224136541f33e7597a108a0dd8f",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1824,7 +1824,8 @@
       "schemas/postgres/428_climate_summary_idempotency.sql",
       "schemas/postgres/429_signed_climate_worker.sql",
       "schemas/postgres/430_isolated_market_data_worker.sql",
-      "schemas/postgres/431_signed_sensor_driver_worker.sql"
+      "schemas/postgres/431_signed_sensor_driver_worker.sql",
+      "schemas/postgres/432_signed_remote_sensing_worker.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2506,6 +2507,7 @@
         "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION",
         "KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER",
         "KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER",
+        "KOKONUT_FEATURE_SIGNED_REMOTE_SENSING_WORKER",
         "KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER",
         "KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER",
         "KOKONUT_FEATURE_SIGNED_WEATHER_WORKER"
@@ -3098,9 +3100,6 @@
         "CELO_ALFAJORES_RPC_URL",
         "CELO_RPC_URL",
         "COPERNICUS_CLIENT_ID",
-        "COPERNICUS_CLIENT_SECRET",
-        "COPERNICUS_EMAIL",
-        "COPERNICUS_PASSWORD",
         "DIRECTUS_ADMIN_TOKEN",
         "DIRECTUS_URL",
         "EAS_GRAPHQL_URL",
@@ -3112,6 +3111,7 @@
         "INGESTION_JITTER",
         "INGESTION_MAX_RETRIES",
         "KOKONUT_CLIMATE_GEE_SERVICE_ACCOUNT_KEY",
+        "KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY",
         "KOKONUT_SENSOR_TIMESTAMP_MODE",
         "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY",
         "ML_MODEL_DIR",
@@ -3181,6 +3181,7 @@
         "services/ingestion/raster_metadata.py",
         "services/ingestion/remote_sensing.py",
         "services/ingestion/remote_sensing_fetcher.py",
+        "services/ingestion/remote_sensing_worker.py",
         "services/ingestion/rpc_indexer.py",
         "services/ingestion/sensor_anomaly_worker.py",
         "services/ingestion/sensor_ingester.py",
@@ -3277,7 +3278,9 @@
         "tests/test_regional_readiness.py",
         "tests/test_remote_sensing_automation.py",
         "tests/test_remote_sensing_csv_location_scope.py",
+        "tests/test_remote_sensing_provider_records.py",
         "tests/test_remote_sensing_scheduler_contract.py",
+        "tests/test_remote_sensing_worker.py",
         "tests/test_responsibility_assignment.py",
         "tests/test_revenue_model.py",
         "tests/test_revenue_multiplier.py",
@@ -3485,6 +3488,8 @@
         "KOKONUT_NOTIFICATION_ENQUEUE_USER",
         "KOKONUT_OPERATOR_AUTH_PASSWORD",
         "KOKONUT_OPERATOR_AUTH_USER",
+        "KOKONUT_REMOTE_SENSING_PASSWORD",
+        "KOKONUT_REMOTE_SENSING_USER",
         "KOKONUT_RUNTIME_PASSWORD",
         "KOKONUT_RUNTIME_USER",
         "KOKONUT_SENSOR_INGESTION_PASSWORD",
@@ -4353,7 +4358,9 @@
     "tests/test_remaining_gaps.py",
     "tests/test_remote_sensing_automation.py",
     "tests/test_remote_sensing_csv_location_scope.py",
+    "tests/test_remote_sensing_provider_records.py",
     "tests/test_remote_sensing_scheduler_contract.py",
+    "tests/test_remote_sensing_worker.py",
     "tests/test_report_generator_cli.py",
     "tests/test_report_generator_helper_scope_inventory.py",
     "tests/test_report_generator_inventory.py",

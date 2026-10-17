@@ -259,6 +259,67 @@ def test_sensor_ingestion_password_is_bootstrap_only_and_worker_secrets_are_rout
     assert "KOKONUT_SENSOR_INGESTION_PASSWORD" not in app_profiles
 
 
+def test_remote_sensing_login_requires_its_paired_secret_and_distinct_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="remote-sensing user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            remote_sensing_user="kokonut_remote_sensing_login",
+        )
+    with pytest.raises(ValueError, match="differ from the remote-sensing function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            remote_sensing_user="kokonut_remote_sensing_owner",
+            remote_sensing_password="r" * 32,
+        )
+
+
+def test_remote_sensing_login_uses_only_the_signed_worker_function_boundary():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/432_signed_remote_sensing_worker.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert set(runtime_role._REMOTE_SENSING_FUNCTIONS) <= set(
+        runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    )
+    assert all(
+        (function, "kokonut_remote_sensing_owner") in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._REMOTE_SENSING_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_remote_sensing_login'" in migration
+    assert "GRANT kokonut_worker_execution TO kokonut_remote_sensing_login" in migration
+    assert "WITH INHERIT FALSE, SET TRUE" in runtime_source
+    assert "remote-sensing login retains application relation access" in runtime_source
+    assert "runtime role can execute remote-sensing worker functions" in runtime_source
+
+
+def test_remote_sensing_password_is_bootstrap_only():
+    root = Path(__file__).resolve().parents[1]
+    bootstrap = (root / "docker-compose.kernel-runtime-role.yml").read_text()
+    app_profiles = "\n".join(
+        (root / name).read_text()
+        for name in (
+            "docker-compose.kernel-portability.yml",
+            "docker-compose.kernel-standard.yml",
+        )
+    )
+
+    assert "KOKONUT_REMOTE_SENSING_PASSWORD: ${KOKONUT_REMOTE_SENSING_PASSWORD:-}" in bootstrap
+    assert "KOKONUT_REMOTE_SENSING_DATABASE_URL" in app_profiles
+    assert "KOKONUT_REMOTE_SENSING_WORKER_CREDENTIAL" in app_profiles
+    assert "KOKONUT_REMOTE_SENSING_PASSWORD" not in app_profiles
+
+
 def test_runtime_api_key_access_is_read_only_and_column_scoped():
     assert runtime_role._API_KEY_COLUMNS == (
         "id",

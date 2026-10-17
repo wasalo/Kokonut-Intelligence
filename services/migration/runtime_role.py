@@ -55,6 +55,10 @@ _SENSOR_INGESTION_FUNCTIONS = (
     "kokonut_security.store_sensor_driver_batch(uuid,uuid,jsonb)",
     "kokonut_security.update_sensor_driver_status(uuid,uuid,text,integer,integer,integer,text)",
 )
+_REMOTE_SENSING_FUNCTIONS = (
+    "kokonut_security.claim_remote_sensing_job(uuid)",
+    "kokonut_security.finish_remote_sensing_job(uuid,uuid,text,jsonb,jsonb)",
+)
 _SECURITY_DEFINER_OWNERS = (
     (
         "kokonut_security.resolve_mobile_device_token(text)",
@@ -98,6 +102,10 @@ _SECURITY_DEFINER_OWNERS = (
         (function, "kokonut_sensor_ingestion_owner")
         for function in _SENSOR_INGESTION_FUNCTIONS
     ),
+    *(
+        (function, "kokonut_remote_sensing_owner")
+        for function in _REMOTE_SENSING_FUNCTIONS
+    ),
     ("public.guard_farm_activity_operator_event_insert()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_gateway_farm_activity_create()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_farm_activity_gateway_operation()", _FARM_ACTIVITY_EVENT_OWNER),
@@ -113,6 +121,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _NOTIFICATION_ENQUEUE_FUNCTION,
     _MARKET_DATA_FUNCTION,
     *_SENSOR_INGESTION_FUNCTIONS,
+    *_REMOTE_SENSING_FUNCTIONS,
 )
 _MOBILE_DEVICE_READ_COLUMNS = (
     "id",
@@ -718,6 +727,8 @@ def provision_runtime_role(
     market_data_password: str | None = None,
     sensor_ingestion_user: str | None = None,
     sensor_ingestion_password: str | None = None,
+    remote_sensing_user: str | None = None,
+    remote_sensing_password: str | None = None,
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
@@ -731,7 +742,9 @@ def provision_runtime_role(
     When configured, the market-data login receives only the bounded global
     World Bank batch function. When configured, the sensor-ingestion login can
     switch to the worker execution role only to call the signed, bounded sensor
-    driver functions from migration 431.
+    driver functions from migration 431. When configured, the remote-sensing
+    login can switch to that role only to call migration 432's signed bounded
+    claim and completion functions.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -742,6 +755,8 @@ def provision_runtime_role(
         raise ValueError("market-data user and password must be provided together")
     if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
         raise ValueError("sensor-ingestion user and password must be provided together")
+    if (remote_sensing_user is None) != (remote_sensing_password is None):
+        raise ValueError("remote-sensing user and password must be provided together")
     enqueue_ident = (
         _role_identifier(notification_enqueue_user, "notification_enqueue_user")
         if notification_enqueue_user is not None
@@ -757,6 +772,11 @@ def provision_runtime_role(
         if sensor_ingestion_user is not None
         else None
     )
+    remote_sensing_ident = (
+        _role_identifier(remote_sensing_user, "remote_sensing_user")
+        if remote_sensing_user is not None
+        else None
+    )
     role_names = [admin_user, runtime_user, operator_auth_user]
     if notification_enqueue_user is not None:
         role_names.append(notification_enqueue_user)
@@ -764,15 +784,19 @@ def provision_runtime_role(
         role_names.append(market_data_user)
     if sensor_ingestion_user is not None:
         role_names.append(sensor_ingestion_user)
+    if remote_sensing_user is not None:
+        role_names.append(remote_sensing_user)
     if "kokonut_notification_enqueue_owner" in role_names:
         raise ValueError("application logins must differ from the notification function owner")
     if "kokonut_market_data_owner" in role_names:
         raise ValueError("application logins must differ from the market-data function owner")
     if "kokonut_sensor_ingestion_owner" in role_names:
         raise ValueError("application logins must differ from the sensor-ingestion function owner")
+    if "kokonut_remote_sensing_owner" in role_names:
+        raise ValueError("application logins must differ from the remote-sensing function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, market-data, and sensor-ingestion roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, market-data, sensor-ingestion, and remote-sensing roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -786,6 +810,8 @@ def provision_runtime_role(
         credential_pairs.append(("market_data_password", market_data_password))
     if sensor_ingestion_password is not None:
         credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
+    if remote_sensing_password is not None:
+        credential_pairs.append(("remote_sensing_password", remote_sensing_password))
     for label, secret in credential_pairs:
         if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
             raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
@@ -796,6 +822,8 @@ def provision_runtime_role(
         passwords.append(market_data_password)
     if sensor_ingestion_password is not None:
         passwords.append(sensor_ingestion_password)
+    if remote_sensing_password is not None:
+        passwords.append(remote_sensing_password)
     if len(set(passwords)) != len(passwords):
         raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
@@ -803,6 +831,7 @@ def provision_runtime_role(
 
     market_data_database_access: dict[str, bool] = {}
     sensor_ingestion_database_access: dict[str, bool] = {}
+    remote_sensing_database_access: dict[str, bool] = {}
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute(
@@ -879,6 +908,21 @@ def provision_runtime_role(
             if cur.fetchone() is None:
                 raise RuntimeError(
                     "migration 405 worker execution role must exist before sensor-login provisioning"
+                )
+        if remote_sensing_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _REMOTE_SENSING_FUNCTIONS),
+                _REMOTE_SENSING_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 432 remote-sensing functions must be applied before "
+                    "provisioning the dedicated login"
+                )
+            cur.execute("SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_execution'")
+            if cur.fetchone() is None:
+                raise RuntimeError(
+                    "migration 405 worker execution role must exist before remote-sensing login provisioning"
                 )
 
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
@@ -1028,6 +1072,49 @@ def provision_runtime_role(
                     "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
                 ).format(sensor_ingestion_ident)
             )
+        if remote_sensing_user is not None:
+            assert remote_sensing_ident is not None and remote_sensing_password is not None
+            _ensure_login_role(
+                cur,
+                name=remote_sensing_user,
+                identifier=remote_sensing_ident,
+                password=remote_sensing_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=remote_sensing_user,
+                identifier=remote_sensing_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), remote_sensing_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), remote_sensing_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(remote_sensing_ident)
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    remote_sensing_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    remote_sensing_ident
+                )
+            )
+            cur.execute(
+                sql.SQL(
+                    "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
+                ).format(remote_sensing_ident)
+            )
         cur.execute(
             sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident)
         )
@@ -1060,6 +1147,8 @@ def provision_runtime_role(
             protected_login_idents.append(market_data_ident)
         if sensor_ingestion_ident is not None:
             protected_login_idents.append(sensor_ingestion_ident)
+        if remote_sensing_ident is not None:
+            protected_login_idents.append(remote_sensing_ident)
         for name in database_names:
             database_ident = sql.Identifier(name)
             cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
@@ -1237,16 +1326,18 @@ def provision_runtime_role(
                 """SELECT role.rolcanlogin, role.rolsuper, role.rolcreatedb,
                           role.rolcreaterole, role.rolreplication, role.rolbypassrls,
                           role.rolinherit, has_schema_privilege(role.oid, 'public', 'CREATE'),
-                          count(membership.roleid),
-                          bool_and(granted.rolname = 'kokonut_worker_execution'
-                                   AND NOT membership.admin_option
-                                   AND NOT membership.inherit_option
-                                   AND membership.set_option)
+                          (SELECT count(*) FROM pg_auth_members AS membership
+                            WHERE membership.member = role.oid),
+                          (SELECT bool_and(granted.rolname = 'kokonut_worker_execution'
+                                           AND NOT membership.admin_option
+                                           AND NOT membership.inherit_option
+                                           AND membership.set_option)
+                             FROM pg_auth_members AS membership
+                             JOIN pg_roles AS granted ON granted.oid = membership.roleid
+                            WHERE membership.member = role.oid)
                      FROM pg_roles AS role
-                     LEFT JOIN pg_auth_members AS membership ON membership.member = role.oid
-                     LEFT JOIN pg_roles AS granted ON granted.oid = membership.roleid
                     WHERE role.rolname = %s
-                    GROUP BY role.oid""",
+                    """,
                 (sensor_ingestion_user,),
             )
             sensor_login_state = cur.fetchone()
@@ -1278,6 +1369,13 @@ def provision_runtime_role(
                          JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
                         WHERE namespace.nspname = 'public'
                           AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = relation.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
                           AND (has_table_privilege(%s, relation.oid, 'SELECT')
                             OR has_table_privilege(%s, relation.oid, 'INSERT')
                             OR has_table_privilege(%s, relation.oid, 'UPDATE')
@@ -1298,12 +1396,19 @@ def provision_runtime_role(
                 (sensor_ingestion_user,) * 11,
             )
             if cur.fetchone()[0]:
-                raise RuntimeError("sensor-ingestion login retains direct relation access")
+                raise RuntimeError("sensor-ingestion login retains application relation access")
             cur.execute(
                 """SELECT EXISTS (
                        SELECT 1 FROM pg_class AS sequence
                        JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
                         WHERE namespace.nspname = 'public' AND sequence.relkind = 'S'
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = sequence.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
                           AND (has_sequence_privilege(%s, sequence.oid, 'USAGE')
                             OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
                             OR has_sequence_privilege(%s, sequence.oid, 'UPDATE'))
@@ -1311,7 +1416,133 @@ def provision_runtime_role(
                 (sensor_ingestion_user,) * 3,
             )
             if cur.fetchone()[0]:
-                raise RuntimeError("sensor-ingestion login retains direct sequence privileges")
+                raise RuntimeError("sensor-ingestion login retains application sequence privileges")
+        if remote_sensing_user is not None:
+            cur.execute(
+                """SELECT role.rolcanlogin, role.rolsuper, role.rolcreatedb,
+                          role.rolcreaterole, role.rolreplication, role.rolbypassrls,
+                          role.rolinherit, has_schema_privilege(role.oid, 'public', 'CREATE'),
+                          (SELECT count(*) FROM pg_auth_members AS membership
+                            WHERE membership.member = role.oid),
+                          (SELECT bool_and(granted.rolname = 'kokonut_worker_execution'
+                                           AND NOT membership.admin_option
+                                           AND NOT membership.inherit_option
+                                           AND membership.set_option)
+                             FROM pg_auth_members AS membership
+                             JOIN pg_roles AS granted ON granted.oid = membership.roleid
+                            WHERE membership.member = role.oid)
+                     FROM pg_roles AS role
+                    WHERE role.rolname = %s
+                    """,
+                (remote_sensing_user,),
+            )
+            remote_login_state = cur.fetchone()
+            if remote_login_state != (True, False, False, False, False, False, False, False, 1, True):
+                raise RuntimeError(
+                    "remote-sensing login must have only a non-inheriting SET membership in kokonut_worker_execution"
+                )
+            cur.execute(
+                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = "
+                "(SELECT oid FROM pg_roles WHERE rolname = %s))",
+                (remote_sensing_user,),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("remote-sensing login must not own database relations")
+            cur.execute(
+                "SELECT pg_has_role(%s, 'kokonut_worker_execution', 'SET'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
+                (remote_sensing_user, remote_sensing_user, remote_sensing_user),
+            )
+            if cur.fetchone() != (True, True, False):
+                raise RuntimeError(
+                    "remote-sensing login is missing its restricted worker-role boundary"
+                )
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in _REMOTE_SENSING_FUNCTIONS
+                ),
+                tuple(
+                    value
+                    for function in _REMOTE_SENSING_FUNCTIONS
+                    for value in ("kokonut_worker_execution", function)
+                ),
+            )
+            if cur.fetchone() != (True, True):
+                raise RuntimeError(
+                    "worker execution role is missing a bounded remote-sensing function grant"
+                )
+            cur.execute(
+                "SELECT " + ", ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in _REMOTE_SENSING_FUNCTIONS
+                ),
+                tuple(
+                    value
+                    for function in _REMOTE_SENSING_FUNCTIONS
+                    for value in (remote_sensing_user, function)
+                ),
+            )
+            if cur.fetchone() != (False, False):
+                raise RuntimeError(
+                    "remote-sensing login can call bounded functions without entering worker execution"
+                )
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_class AS relation
+                         JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = relation.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
+                          AND (has_table_privilege(%s, relation.oid, 'SELECT')
+                            OR has_table_privilege(%s, relation.oid, 'INSERT')
+                            OR has_table_privilege(%s, relation.oid, 'UPDATE')
+                            OR has_table_privilege(%s, relation.oid, 'DELETE')
+                            OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+                            OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+                            OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+                            OR EXISTS (
+                                SELECT 1 FROM pg_attribute AS attribute
+                                 WHERE attribute.attrelid = relation.oid
+                                   AND attribute.attnum > 0 AND NOT attribute.attisdropped
+                                   AND (has_column_privilege(%s, relation.oid, attribute.attname, 'SELECT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'INSERT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'UPDATE')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'REFERENCES'))
+                            ))
+                   )""",
+                (remote_sensing_user,) * 11,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("remote-sensing login retains application relation access")
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1 FROM pg_class AS sequence
+                       JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
+                        WHERE namespace.nspname = 'public' AND sequence.relkind = 'S'
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = sequence.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
+                          AND (has_sequence_privilege(%s, sequence.oid, 'USAGE')
+                            OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
+                            OR has_sequence_privilege(%s, sequence.oid, 'UPDATE'))
+                   )""",
+                (remote_sensing_user,) * 3,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("remote-sensing login retains application sequence privileges")
         checked_login_names = [runtime_user, operator_auth_user]
         if notification_enqueue_user is not None:
             checked_login_names.append(notification_enqueue_user)
@@ -1398,6 +1629,13 @@ def provision_runtime_role(
                          JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
                         WHERE namespace.nspname = 'public'
                           AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = relation.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
                           AND (
                             has_table_privilege(%s, relation.oid, 'SELECT')
                             OR has_table_privilege(%s, relation.oid, 'INSERT')
@@ -1424,7 +1662,7 @@ def provision_runtime_role(
             )
             if cur.fetchone()[0]:
                 raise RuntimeError(
-                    "notification-enqueue role retains direct table or column privileges"
+                    "notification-enqueue role retains application table or column privileges"
                 )
             cur.execute(
                 """SELECT EXISTS (
@@ -1433,6 +1671,13 @@ def provision_runtime_role(
                          JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
                         WHERE namespace.nspname = 'public'
                           AND sequence.relkind = 'S'
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = sequence.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
                           AND (
                             has_sequence_privilege(%s, sequence.oid, 'USAGE')
                             OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
@@ -1442,7 +1687,7 @@ def provision_runtime_role(
                 (notification_enqueue_user,) * 3,
             )
             if cur.fetchone()[0]:
-                raise RuntimeError("notification-enqueue role retains direct sequence privileges")
+                raise RuntimeError("notification-enqueue role retains application sequence privileges")
             cur.execute(
                 """SELECT procedure.oid::regprocedure::text
                      FROM pg_proc AS procedure
@@ -1485,6 +1730,13 @@ def provision_runtime_role(
                          JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
                         WHERE namespace.nspname = 'public'
                           AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = relation.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
                           AND (
                             has_table_privilege(%s, relation.oid, 'SELECT')
                             OR has_table_privilege(%s, relation.oid, 'INSERT')
@@ -1510,7 +1762,7 @@ def provision_runtime_role(
                 (market_data_user,) * 11,
             )
             if cur.fetchone()[0]:
-                raise RuntimeError("market-data login retains direct table or column privileges")
+                raise RuntimeError("market-data login retains application table or column privileges")
             cur.execute(
                 """SELECT EXISTS (
                        SELECT 1
@@ -1518,6 +1770,13 @@ def provision_runtime_role(
                          JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
                         WHERE namespace.nspname = 'public'
                           AND sequence.relkind = 'S'
+                          AND NOT EXISTS (
+                              SELECT 1 FROM pg_depend AS extension_member
+                               WHERE extension_member.classid = 'pg_class'::regclass
+                                 AND extension_member.objid = sequence.oid
+                                 AND extension_member.refclassid = 'pg_extension'::regclass
+                                 AND extension_member.deptype = 'e'
+                          )
                           AND (
                             has_sequence_privilege(%s, sequence.oid, 'USAGE')
                             OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
@@ -1527,7 +1786,7 @@ def provision_runtime_role(
                 (market_data_user,) * 3,
             )
             if cur.fetchone()[0]:
-                raise RuntimeError("market-data login retains direct sequence privileges")
+                raise RuntimeError("market-data login retains application sequence privileges")
             cur.execute(
                 """SELECT procedure.oid::regprocedure::text
                      FROM pg_proc AS procedure
@@ -1587,9 +1846,27 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "notification-enqueue login has unsafe security schema privileges"
                 )
-        for function in (*_PRIVATE_RUNTIME_FUNCTIONS, *_SENSOR_INGESTION_FUNCTIONS):
+        for function in (
+            *_PRIVATE_RUNTIME_FUNCTIONS,
+            *_SENSOR_INGESTION_FUNCTIONS,
+            *_REMOTE_SENSING_FUNCTIONS,
+        ):
             _verify_no_public_function_execute(cur, function)
         _verify_security_definer_owners(cur)
+        if remote_sensing_user is not None:
+            cur.execute(
+                "SELECT " + " OR ".join(
+                    "has_function_privilege(%s, %s, 'EXECUTE')"
+                    for _ in _REMOTE_SENSING_FUNCTIONS
+                ),
+                tuple(
+                    value
+                    for function in _REMOTE_SENSING_FUNCTIONS
+                    for value in (runtime_user, function)
+                ),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("runtime role can execute remote-sensing worker functions")
         if farm_activity_event_owner_ready:
             for function in (
                 "public.guard_farm_activity_operator_event_insert()",
@@ -1636,6 +1913,17 @@ def provision_runtime_role(
             sensor_ingestion_database_access = {name: allowed for name, allowed in cur.fetchall()}
             if any(allowed != (name == database) for name, allowed in sensor_ingestion_database_access.items()):
                 raise RuntimeError("sensor-ingestion login must connect only to its configured database")
+        if remote_sensing_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (remote_sensing_user,),
+            )
+            remote_sensing_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in remote_sensing_database_access.items()):
+                raise RuntimeError("remote-sensing login must connect only to its configured database")
 
     return {
         "status": "provisioned",
@@ -1645,11 +1933,13 @@ def provision_runtime_role(
         "notification_enqueue_user": notification_enqueue_user,
         "market_data_user": market_data_user,
         "sensor_ingestion_user": sensor_ingestion_user,
+        "remote_sensing_user": remote_sensing_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
         "market_data_connect_grants": market_data_database_access,
         "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
+        "remote_sensing_connect_grants": remote_sensing_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
         "runtime_table_privilege_scope": "existing_public_tables_only",
         "runtime_future_object_privileges": [],
@@ -1675,6 +1965,7 @@ def provision_runtime_role(
         "notification_enqueue_owns_relations": False,
         "market_data_owns_relations": False,
         "sensor_ingestion_owns_relations": False,
+        "remote_sensing_owns_relations": False,
     }
 
 
@@ -1700,6 +1991,10 @@ def main() -> int:
         "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
     )
     sensor_ingestion_password = os.environ.get("KOKONUT_SENSOR_INGESTION_PASSWORD", "")
+    remote_sensing_user = os.environ.get(
+        "KOKONUT_REMOTE_SENSING_USER", "kokonut_remote_sensing_login"
+    )
+    remote_sensing_password = os.environ.get("KOKONUT_REMOTE_SENSING_PASSWORD", "")
     if not admin_password or not runtime_password or not operator_auth_password:
         raise SystemExit(
             "admin, runtime, and operator-auth credentials must be provided through the environment"
@@ -1736,6 +2031,10 @@ def main() -> int:
             ),
             sensor_ingestion_password=(
                 sensor_ingestion_password if sensor_ingestion_password else None
+            ),
+            remote_sensing_user=(remote_sensing_user if remote_sensing_password else None),
+            remote_sensing_password=(
+                remote_sensing_password if remote_sensing_password else None
             ),
         )
     finally:

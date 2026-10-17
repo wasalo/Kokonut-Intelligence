@@ -19,6 +19,7 @@ _WORKER_LOGINS = {
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "market_data": "kokonut_market_data_login",
     "sensor_ingestion": "kokonut_sensor_ingestion_login",
+    "remote_sensing": "kokonut_remote_sensing_login",
 }
 _DEFAULT_WORKER_LOGIN = "kokonut_worker_login"
 _WORKER_CREDENTIAL_MIN_BYTES = 32

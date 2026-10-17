@@ -7484,3 +7484,34 @@ and 21 open items (457 total); capability status rows and MAN-CAP classification
 are unchanged ([migration](../../schemas/postgres/431_signed_sensor_driver_worker.sql);
 [worker](../../services/ingestion/sensor_worker.py);
 [disposable evidence](builds/2026-10-17-recovery/signed-sensor-ingestion-worker-disposable.json)).
+
+
+### Signed scheduled remote-sensing worker and bootstrap — 17 October 2026
+
+Native remote-sensing JobSpecs now use the default-off `remote_sensing` worker.
+GEE and Copernicus adapters return normalized records separately from
+persistence, and migration 432 adds signed location claims plus bounded atomic
+job, attempt, observation, ingestion-audit, and ClickHouse-outbox writes. The
+runtime-role bootstrap now provisions the dedicated login only after migration
+432 is applied; its password is confined to the one-shot bootstrap service,
+while the worker receives its own DSN and signed credential.
+
+The 226-test focused worker/provider/runtime-role/migration suite passes with Ruff and
+Python compilation. Three grouped PostgreSQL 16/PostGIS migration checks cover
+replay, forced-RLS location denial, atomic fallback/projection behavior, and
+direct-table/context cleanup
+([migration evidence](builds/2026-10-17-recovery/signed-remote-sensing-worker-disposable.json)).
+The no-egress role acceptance adds 22 checks across migrations 391–432,
+including actual bootstrap provisioning, notification-role compatibility, no
+application-table access, SET-only worker execution, and rejection of an
+unscoped claim
+([runtime-role evidence](builds/2026-10-17-recovery/runtime-remote-sensing-role-disposable.json)).
+PostGIS extension-owned metadata can retain extension-defined `PUBLIC` grants;
+these are excluded from application-relation checks and do not grant access to
+remote-sensing application tables.
+
+No candidate or legacy database, provider, schedule, credential, or production
+service was used. Candidate schema remains through migration 403, migration 432
+is not deployed, and the feature remains disabled. Live provider parity and
+MAN-CAP-040/047 remain open. The checklist remains 437 complete and 21 open
+items; capability rows and MAN-CAP classifications are unchanged.

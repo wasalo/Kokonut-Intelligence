@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 FIXTURE = ROOT / "tests/fixtures/operator_tenant_context_disposable.sql"
 MOBILE_ROLE_FIXTURE = ROOT / "tests/fixtures/operator_session_mobile_role_boundary.sql"
+REMOTE_SENSING_FIXTURE = ROOT / "tests/fixtures/remote_sensing_worker_disposable.sql"
 MIGRATIONS = (
     ROOT / "schemas/postgres/391_mobile_device_tenant_binding.sql",
     ROOT / "schemas/postgres/392_mobile_credential_functions.sql",
@@ -32,6 +33,7 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/417_isolated_notification_enqueue.sql",
     ROOT / "schemas/postgres/418_mobile_credential_function_acl.sql",
     ROOT / "schemas/postgres/419_private_worker_context_functions.sql",
+    ROOT / "schemas/postgres/432_signed_remote_sensing_worker.sql",
 )
 DEFAULT_OUTPUT = (
     ROOT
@@ -82,25 +84,36 @@ def docker_sql(container: str, statement: str) -> str:
 
 
 def wait_ready(container: str) -> None:
-    deadline = time.monotonic() + 60
+    deadline = time.monotonic() + 90
     consecutive_successes = 0
+    initialization_complete = False
     while time.monotonic() < deadline:
-        result = subprocess.run(
-            ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            consecutive_successes += 1
-            if consecutive_successes >= 4:
-                return
-        else:
-            consecutive_successes = 0
-        # The official image briefly starts a temporary PostgreSQL server during
-        # initdb. Require a stable readiness window before issuing fixture SQL.
+        if not initialization_complete:
+            logs = subprocess.run(
+                ["docker", "logs", container],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            initialization_complete = (
+                "PostgreSQL init process complete; ready for start up."
+                in (logs.stdout + logs.stderr)
+            )
+        if initialization_complete:
+            result = subprocess.run(
+                ["docker", "exec", container, "pg_isready", "-U", "postgres", "-d", "postgres"],
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                consecutive_successes += 1
+                if consecutive_successes >= 4:
+                    return
+            else:
+                consecutive_successes = 0
         time.sleep(0.5)
-    raise RuntimeError("disposable PostgreSQL did not become stably ready")
+    raise RuntimeError("disposable PostGIS PostgreSQL did not finish initialization and become ready")
 
 
 def provision_roles(
@@ -108,6 +121,7 @@ def provision_roles(
     runtime_password: str,
     auth_password: str,
     notification_password: str,
+    remote_sensing_password: str,
     admin_password: str,
 ) -> tuple[dict, int]:
     published = run(["docker", "port", container, "5432/tcp"]).strip().splitlines()
@@ -136,6 +150,8 @@ def provision_roles(
             operator_auth_password=auth_password,
             notification_enqueue_user="kokonut_notification_enqueue_login",
             notification_enqueue_password=notification_password,
+            remote_sensing_user="kokonut_remote_sensing_login",
+            remote_sensing_password=remote_sensing_password,
         )
         return result, host_port
     finally:
@@ -160,6 +176,8 @@ def assert_public_protected_function_acl(container: str) -> None:
         "kokonut_security.redeem_mobile_enrollment(text,text,text,text,text,text,text,text)",
         "kokonut_security.set_mobile_device_context(text,text,uuid)",
         "kokonut_security.current_tenant_context()",
+        "kokonut_security.claim_remote_sensing_job(uuid)",
+        "kokonut_security.finish_remote_sensing_job(uuid,uuid,text,jsonb,jsonb)",
         "kokonut_security.set_worker_tenant_context(text,uuid,text,text)",
         "kokonut_security.current_worker_scope(text,text)",
     )
@@ -493,6 +511,54 @@ def assert_notification_enqueue_role(host_port: int, password: str) -> list[str]
     ]
 
 
+def assert_remote_sensing_role(host_port: int, password: str) -> list[str]:
+    connection = psycopg2.connect(
+        host="127.0.0.1", port=host_port, dbname="postgres",
+        user="kokonut_remote_sensing_login", password=password,
+        connect_timeout=5,
+    )
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT current_user, has_function_privilege(current_user, "
+                "'kokonut_security.claim_remote_sensing_job(uuid)', 'EXECUTE')"
+            )
+            if cursor.fetchone() != ("kokonut_remote_sensing_login", False):
+                raise AssertionError("remote-sensing login can execute its function without SET ROLE")
+        for statement in (
+            "SELECT id FROM public.remote_sensing_job LIMIT 1",
+            "SELECT kokonut_security.claim_remote_sensing_job(NULL::uuid)",
+        ):
+            expect_privilege_denial(connection, statement)
+        with connection.cursor() as cursor:
+            cursor.execute("SET ROLE kokonut_worker_execution")
+            cursor.execute("SELECT current_user")
+            if cursor.fetchone()[0] != "kokonut_worker_execution":
+                raise AssertionError("remote-sensing login could not enter its restricted execution role")
+            try:
+                cursor.execute(
+                    "SELECT kokonut_security.claim_remote_sensing_job(NULL::uuid)"
+                )
+            except psycopg2.Error as exc:
+                connection.rollback()
+                if exc.pgcode != "42501":
+                    raise
+            else:
+                raise AssertionError("unscoped remote-sensing claim unexpectedly succeeded")
+        connection.rollback()
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT current_user")
+            if cursor.fetchone()[0] != "kokonut_remote_sensing_login":
+                raise AssertionError("transaction end did not restore the remote-sensing login")
+    finally:
+        connection.close()
+    return [
+        "runtime-role bootstrap provisions the migration 432 login only after its bounded functions exist",
+        "remote-sensing login cannot access application tables or call functions before entering worker execution; extension metadata PUBLIC ACLs are reviewed separately",
+        "SET ROLE exposes only a signed-scope-checked claim; transaction rollback restores the login identity",
+    ]
+
+
 def main() -> int:
     import argparse
 
@@ -521,13 +587,18 @@ def main() -> int:
             [
                 "docker", "run", "--detach", "--rm", "--network", network,
                 "--name", container, "--publish", "127.0.0.1::5432",
-                "--env", f"POSTGRES_PASSWORD={DOCKER_ADMIN_PASSWORD}", "postgres:16",
+                "--env", f"POSTGRES_PASSWORD={DOCKER_ADMIN_PASSWORD}", "postgis/postgis:16-3.4",
             ]
         )
         started = True
         wait_ready(container)
         docker_sql(container, FIXTURE.read_text())
         docker_sql(container, MOBILE_ROLE_FIXTURE.read_text())
+        docker_sql(
+            container,
+            "CREATE ROLE kokonut_worker_login NOLOGIN NOINHERIT NOSUPERUSER "
+            "NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;",
+        )
         docker_sql(
             container,
             """CREATE TABLE public.operator_session_runtime_probe (
@@ -539,6 +610,8 @@ def main() -> int:
         )
         for migration in MIGRATIONS:
             sql_text = migration.read_text()
+            if migration.name == "432_signed_remote_sensing_worker.sql":
+                docker_sql(container, REMOTE_SENSING_FIXTURE.read_text())
             if migration.name == "417_isolated_notification_enqueue.sql":
                 docker_sql(
                     container,
@@ -573,8 +646,10 @@ def main() -> int:
         runtime_password = secrets.token_urlsafe(32)
         auth_password = secrets.token_urlsafe(32)
         notification_password = secrets.token_urlsafe(32)
+        remote_sensing_password = secrets.token_urlsafe(32)
         role_result, host_port = provision_roles(
             container, runtime_password, auth_password, notification_password,
+            remote_sensing_password,
             DOCKER_ADMIN_PASSWORD,
         )
         docker_sql(
@@ -588,6 +663,7 @@ def main() -> int:
         )
         checks = assert_roles(host_port, runtime_password, auth_password)
         checks.extend(assert_notification_enqueue_role(host_port, notification_password))
+        checks.extend(assert_remote_sensing_role(host_port, remote_sensing_password))
         worker_acl = docker_sql(
             container,
             """SELECT has_function_privilege('kokonut_worker_execution',
@@ -628,11 +704,14 @@ def main() -> int:
                 "418_mobile_credential_function_acl.sql (idempotency replay)",
                 "419_private_worker_context_functions.sql",
                 "419_private_worker_context_functions.sql (idempotency replay)",
+                "432_signed_remote_sensing_worker.sql",
+                "432_signed_remote_sensing_worker.sql (idempotency replay)",
             ],
             "provisioner_status": role_result["status"],
             "runtime_user": role_result["runtime_user"],
             "operator_auth_user": role_result["operator_auth_user"],
             "notification_enqueue_user": role_result["notification_enqueue_user"],
+            "remote_sensing_user": role_result["remote_sensing_user"],
             "checks": checks,
             "candidate_database_touched": False,
             "legacy_database_touched": False,
@@ -641,7 +720,7 @@ def main() -> int:
             "candidate_application_table_rls_enabled": False,
             "disposable_operator_table_rls_forced": True,
             "synthetic_rows_remaining": 0,
-            "scope_limit": "Verifies the general runtime role cannot read browser credential material or manage API keys; mobile credential SECURITY DEFINER functions are no longer executable by PUBLIC and are explicitly granted to the runtime login. The notification login has the migration 417 enqueue function only and cannot directly access source/outbox tables. This is not the final application-table allowlist, Directus boundary, or candidate RLS acceptance.",
+            "scope_limit": "Verifies the general runtime role cannot read browser credential material or manage API keys; mobile credential SECURITY DEFINER functions are no longer executable by PUBLIC and are explicitly granted to the runtime login. Dedicated notification and remote-sensing logins are provisioned through the runtime bootstrap. The notification login can execute only its bounded enqueue function. The remote-sensing login has no application-table or sequence access, can SET ROLE only to kokonut_worker_execution, and its claim remains signed-scope checked. Extension-owned metadata may retain extension-defined PUBLIC access and is excluded from application-relation checks. This is not the final application-table allowlist, Directus boundary, or candidate RLS acceptance.",
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, indent=2) + "\n")

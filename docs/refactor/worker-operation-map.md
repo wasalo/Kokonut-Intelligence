@@ -9,15 +9,15 @@ anomaly handler, all four registered cache invalidation handlers, and the two
 global notification enqueue handlers. Signed cache invalidation and isolated
 notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
 bootstrap enforce the mobile/worker ACL boundary. Default-off signed workers now
-cover NOI snapshot, current weather, five-day forecasts, climate summaries, and
-CSV sensor ingestion through migrations 425–431. The global market-data worker
+cover NOI snapshot, current weather, five-day forecasts, climate summaries,
+CSV sensor ingestion, and remote sensing through migrations 425–432. The global market-data worker
 has its own isolated login/function boundary in migration 430. Forced-RLS
-disposable PostgreSQL 16 acceptance includes the sensor worker. Production
-credentials and candidate rollout remain open. See the
+disposable PostgreSQL 16 acceptance includes the sensor and remote-sensing
+workers. Production credentials and candidate rollout remain open. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 22 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
+the exact 23 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -43,7 +43,7 @@ application-wide RLS or proof for other workers.
   The `data_stale` and `threshold_breached` handlers can opt into a distinct
   notification-enqueue login and bounded function. That path also remains off
   by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned, and migrations 405–431 have not
+  credential or location grant is provisioned, and migrations 405–432 have not
   been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
@@ -62,9 +62,9 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  22 scheduled modules and seven allowlisted handler pairs. It covers 89
-  distinct local source files across 29 operation roots, with no unresolved
-  local modules and two known dynamic import sites (EventBus handler dispatch
+  23 scheduled modules and seven allowlisted handler pairs. It covers 90
+  distinct local source files across 30 operation roots, with no unresolved
+  local modules and known dynamic import sites (EventBus handler dispatch
   and driver registry lookup). EventBus dispatch is constrained by
   `validate_event_handler` and the exact allowlist. Package `__main__.py`
   entrypoints are included.
@@ -84,16 +84,16 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 29
-  operation roots and 89 source files, entry functions reach 582 function
-  memberships through 804 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 30
+  operation roots and 90 source files, entry functions reach 611 function
+  memberships through 836 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 313
-  Python `.execute` sites in those 89 files. It fingerprints 270 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 315
+  Python `.execute` sites in those 90 files. It fingerprints 272 literal
   statements and flags 43 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -101,8 +101,8 @@ application-wide RLS or proof for other workers.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 313 sites to the operation graph without including SQL text or
-  values. It links 240 unique sites across 307 operation/site memberships;
+  joins those 315 sites to the operation graph without including SQL text or
+  values. It links 242 unique sites across 313 operation/site memberships;
   73 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
@@ -111,10 +111,10 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 29 operation roots and local imports, reports that the scheduler
+  confirms all 30 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
   RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather,
-  weather-forecast, climate, and sensor-ingestion integrations establish
+  weather-forecast, climate, sensor-ingestion, and remote-sensing integrations establish
   context within exact worker paths. It
   explicitly leaves live grants, migration state, active schedules, and owner
   mappings `not_assessed`; it never connects to PostgreSQL. Use
@@ -123,9 +123,9 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 36 unique candidate sites across 42 operation/site memberships: HTTP
+  finds 36 unique candidate sites across 45 operation/site memberships: HTTP
   (13 unique / 17 memberships), email delivery (6), process (1), EVM RPC (3),
-  EVM client setup (4), filesystem (8), and dynamic import (1), across 29 operation roots. These are review candidates,
+  EVM client setup (4), filesystem (8), and dynamic import (1), across 30 operation roots. These are review candidates,
   not confirmed runtime effects. Other worker roots may still conservatively
   include mutually exclusive CLI branches. The credit-adjustment schedule now
   uses a dedicated read-only entrypoint; the interactive issuance/retirement
@@ -145,7 +145,7 @@ application-wide RLS or proof for other workers.
   provider internals, arbitrary callbacks, database-side effects, or establish
   replay safety, tenant context, or database grants.
 - Source-pattern review covers all 43 composed/variable statements found by the
-  generated SQL inventory across 29 operation roots. The original 30-site
+  generated SQL inventory across 30 operation roots. The original 30-site
   review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds
@@ -224,10 +224,20 @@ application-wide RLS or proof for other workers.
   driver must explicitly opt into scheduled pull. The built-in CSV driver is
   pull-capable; MQTT remains event-driven. This source contract does not prove
   a configured instance, active schedule, tenant authorization, or RLS. Remote
-  sensing requires one `--location-id` for every CLI mode and
-  its due-job API, and scheduled runs remain limited to a sequential
-  `--run-jobs --limit` batch of 1–10 due jobs (the default JobSpec runs one),
-  while ClickHouse projections are limited to one bounded `--run-once` delivery
+  sensing requires one `--location-id` for every legacy CLI mode and its
+  due-job API. New native JobSpecs use the default-off
+  `services.ingestion.remote_sensing_worker`; migration 432 gives it a distinct
+  login, signed `remote_sensing/run` location grant, and bounded atomic claim,
+  attempt, observation, audit, and outbox functions. Its provider adapters
+  return normalized records without opening a database connection. The optional
+  runtime-role bootstrap provisions that login only after migration 432 and
+  grants it a non-inheriting SET boundary to the worker execution role; Compose
+  keeps its database password in the one-shot bootstrap environment. No
+  deployment credential is configured by this source slice. The legacy
+  `remote_sensing_fetcher` remains allowlisted for manual use and persisted task
+  compatibility until owners reconcile those rows. The signed worker accepts
+  one location and a bounded batch, while ClickHouse projections are limited
+  to one bounded `--run-once` delivery
   batch. The five-day weather forecast has a default-off
   `services.ingestion.weather_forecast_worker` JobSpec, requires one explicit
   location, and rejects aggregate mode. Its exact scheduler secret route strips
@@ -250,9 +260,11 @@ application-wide RLS or proof for other workers.
   reconcile persisted tasks or external schedules. Check it with
   `python3 scripts/worker_job_contract_inventory.py --check
   docs/refactor/worker-job-contract-inventory.json`. Keep the two rejected
-  defaults inactive until their source/input contracts are defined. Provider
-  credentials, tenant context, and worker identity remain separate gates for
-  both provider jobs.
+  defaults inactive until their source/input contracts are defined. Remote
+  sensing and climate workers remain disabled until their dedicated credentials,
+  signed location grants, provider configuration, and owner-reviewed schedules
+  are provisioned. Neither disposable acceptance nor these source contracts
+  prove live-provider parity or candidate deployment.
 
 ## What remains open
 

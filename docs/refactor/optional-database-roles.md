@@ -58,6 +58,15 @@ Neither service is part of the default, minimal, edge, or standard profile.
 | `kokonut_directus_runtime` | Kernel application database | `CONNECT`; `USAGE`; `SELECT`, `INSERT`, `UPDATE`, `DELETE` on Directus-managed relations; sequence `USAGE`, `SELECT`, `UPDATE` | No ownership, schema `CREATE`, role/database administration, or access to the metadata database. Directus CRUD permissions remain a separate API authorization layer. |
 | `kokonut_metabase_app` | One dedicated Metabase metadata database | Owns that database's application relations so Metabase can create and migrate its metadata schema | No superuser, `CREATEDB`, `CREATEROLE`, or connection to the Kernel application database. Do not reuse it as an analytics-source account. |
 | `kokonut_analytics_ro` | Candidate application database, restricted to the reviewed reporting schema | `CONNECT`, `USAGE` on `kokonut_reporting`, and `SELECT` on its three approved views | No application-table access, writes, schema creation, metadata-database access, or public sharing of private evidence. The optional candidate Metabase source uses this identity; production credentials and source setup remain separate release work. |
+| `kokonut_remote_sensing_login` | Kernel application database | `CONNECT`; `USAGE` on `kokonut_security`; non-inheriting `SET` membership in `kokonut_worker_execution` | No application relation or sequence privileges. Extension-owned metadata may retain extension-defined `PUBLIC` access. The execution role can call only the bounded migration 432 claim/finish functions, which require the dedicated `session_user` and a signed `remote_sensing/run` location context. The optional runtime-role bootstrap provisions the login only after migration 432 is applied. |
+
+The signed remote-sensing identity follows the same one-shot bootstrap boundary
+as the other optional worker credentials. Set the dedicated login password
+only in encrypted deployment secrets, then run the runtime-role bootstrap after
+the ordered schema runner has applied migration 432. Compose passes that
+password only to the bootstrap service; the worker receives its separate DSN
+and signed worker credential. The feature remains disabled by default, and no
+candidate or production credential is provisioned by this source change.
 
 PostgreSQL's `PUBLIC CONNECT` and extension relation grants are inherited by all
 roles unless revoked. The recovery fixture revokes `PUBLIC CONNECT` on every

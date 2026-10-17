@@ -127,12 +127,12 @@ JOBS = MappingProxyType(
             required_inputs=("location_id",),
         ),
         "remote_sensing": JobSpec(
-            "services.ingestion.remote_sensing_fetcher",
-            ("--run-jobs", "--limit", "1"),
+            "services.ingestion.remote_sensing_worker",
+            (),
             1800,
             2,
             600,
-            "Remote sensing fetch",
+            "Signed remote sensing fetch",
             required_inputs=("location_id",),
         ),
         "climate": JobSpec(

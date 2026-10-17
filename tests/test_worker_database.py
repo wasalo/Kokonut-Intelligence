@@ -316,6 +316,46 @@ def test_sensor_ingestion_factory_has_no_shared_dsn_fallback(monkeypatch):
     connect.assert_not_called()
 
 
+def test_remote_sensing_factory_requires_its_dedicated_database_login(monkeypatch):
+    connection, cursor = _connection("kokonut_remote_sensing_login")
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = "postgresql://kokonut_remote_sensing_login:secret@database/kokonut_intelligence"
+
+    result = worker_database.get_worker_db(
+        "remote_sensing",
+        environ={
+            "KOKONUT_REMOTE_SENSING_DATABASE_URL": dsn,
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "unused-shared-password",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name="kokonut-worker-remote_sensing",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+
+
+def test_remote_sensing_factory_has_no_shared_dsn_fallback(monkeypatch):
+    connect = MagicMock()
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="KOKONUT_REMOTE_SENSING_DATABASE_URL is required",
+    ):
+        worker_database.get_worker_db(
+            "remote_sensing",
+            environ={"DATABASE_URL": "postgresql://kokonut_runtime@database/kokonut_intelligence"},
+        )
+
+    connect.assert_not_called()
+
+
 def test_unexpected_database_login_closes_connection_without_exposing_dsn(monkeypatch):
     connection, _ = _connection("kokonut_runtime")
     monkeypatch.setattr(worker_database.psycopg2, "connect", MagicMock(return_value=connection))

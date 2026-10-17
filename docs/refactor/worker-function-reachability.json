@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 29,
-    "source_files": 89,
+    "operation_roots": 30,
+    "source_files": 90,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 582,
-    "direct_call_edges": 804,
+    "function_memberships": 611,
+    "direct_call_edges": 836,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -211,7 +211,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 47
+          "line": 56
         },
         {
           "key": "services.core.features:is_enabled",
@@ -219,7 +219,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -1536,7 +1536,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.core.features:require_feature",
@@ -1544,7 +1544,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 196
+          "line": 202
         },
         {
           "key": "services.export.dataset_refresh:get_pg",
@@ -1590,7 +1590,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 198
+          "line": 204
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -3235,7 +3235,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -3243,7 +3243,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -3251,7 +3251,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -3259,7 +3259,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.ingestion.climate_data:_estimate_bioclim",
@@ -3335,13 +3335,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.ingestion.climate_worker:_load_location",
@@ -4757,7 +4757,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -4765,7 +4765,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -4773,7 +4773,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -4837,7 +4837,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.ingestion.market_data_worker:ingest",
@@ -5009,7 +5009,7 @@
           "qualname": "_insert_ch",
           "class_scope": null,
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 236
+          "line": 237
         },
         {
           "key": "services.ingestion.copernicus_remote_sensing:_insert_pg",
@@ -5017,7 +5017,7 @@
           "qualname": "_insert_pg",
           "class_scope": null,
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 202
+          "line": 203
         },
         {
           "key": "services.ingestion.copernicus_remote_sensing:_resolve_bbox",
@@ -5025,7 +5025,7 @@
           "qualname": "_resolve_bbox",
           "class_scope": null,
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 195
+          "line": 196
         },
         {
           "key": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
@@ -5033,7 +5033,15 @@
           "qualname": "fetch_copernicus",
           "class_scope": null,
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 87
+          "line": 174
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "fetch_copernicus_records",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 90
         },
         {
           "key": "services.ingestion.gee_remote_sensing:_compute_indices",
@@ -5041,7 +5049,7 @@
           "qualname": "_compute_indices",
           "class_scope": null,
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 73
+          "line": 75
         },
         {
           "key": "services.ingestion.gee_remote_sensing:_get_gee_client",
@@ -5057,7 +5065,7 @@
           "qualname": "_insert_ch",
           "class_scope": null,
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 330
+          "line": 344
         },
         {
           "key": "services.ingestion.gee_remote_sensing:_insert_pg",
@@ -5065,7 +5073,7 @@
           "qualname": "_insert_pg",
           "class_scope": null,
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 279
+          "line": 293
         },
         {
           "key": "services.ingestion.gee_remote_sensing:_resolve_bbox",
@@ -5073,7 +5081,7 @@
           "qualname": "_resolve_bbox",
           "class_scope": null,
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 271
+          "line": 285
         },
         {
           "key": "services.ingestion.gee_remote_sensing:fetch_gee",
@@ -5081,7 +5089,15 @@
           "qualname": "fetch_gee",
           "class_scope": null,
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 160
+          "line": 259
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "fetch_gee_records",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 162
         },
         {
           "key": "services.ingestion.remote_sensing_fetcher:_canonical_location_id",
@@ -5211,115 +5227,127 @@
           "caller": "services.ingestion.copernicus_remote_sensing:_insert_ch",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 247
+          "line": 248
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:_insert_ch",
           "callee": "services.ingestion.base:post_clickhouse_rows",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 254
+          "line": 255
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:_insert_ch",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 248
+          "line": 249
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 186
+          "line": 189
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 179
-        },
-        {
-          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
-          "callee": "services.ingestion.copernicus_remote_sensing:_get_token",
-          "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 101
+          "line": 182
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
           "callee": "services.ingestion.copernicus_remote_sensing:_insert_ch",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 177
+          "line": 181
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
           "callee": "services.ingestion.copernicus_remote_sensing:_insert_pg",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 174
+          "line": 178
         },
         {
           "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus",
+          "callee": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 176
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "callee": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 92
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
           "callee": "services.ingestion.copernicus_remote_sensing:_resolve_bbox",
           "source": "services/ingestion/copernicus_remote_sensing.py",
-          "line": 105
+          "line": 99
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:_insert_ch",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 345
+          "line": 359
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:_insert_ch",
           "callee": "services.ingestion.base:post_clickhouse_rows",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 352
+          "line": 366
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:_insert_ch",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 346
+          "line": 360
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 263
+          "line": 275
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 256
-        },
-        {
-          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
-          "callee": "services.ingestion.gee_remote_sensing:_compute_indices",
-          "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 226
-        },
-        {
-          "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
-          "callee": "services.ingestion.gee_remote_sensing:_get_gee_client",
-          "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 170
+          "line": 268
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
           "callee": "services.ingestion.gee_remote_sensing:_insert_ch",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 254
+          "line": 267
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
           "callee": "services.ingestion.gee_remote_sensing:_insert_pg",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 249
+          "line": 264
         },
         {
           "caller": "services.ingestion.gee_remote_sensing:fetch_gee",
+          "callee": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 261
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "callee": "services.ingestion.gee_remote_sensing:_compute_indices",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 231
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "callee": "services.ingestion.gee_remote_sensing:_get_gee_client",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 169
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee_records",
           "callee": "services.ingestion.gee_remote_sensing:_resolve_bbox",
           "source": "services/ingestion/gee_remote_sensing.py",
-          "line": 174
+          "line": 176
         },
         {
           "caller": "services.ingestion.remote_sensing_fetcher:_claim_due_jobs",
@@ -5476,6 +5504,445 @@
           "callee": "services.ingestion.remote_sensing_fetcher:fetch_job",
           "source": "services/ingestion/remote_sensing_fetcher.py",
           "line": 400
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.remote_sensing_worker",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/config.py",
+        "services/ingestion/copernicus_remote_sensing.py",
+        "services/ingestion/gee_remote_sensing.py",
+        "services/ingestion/remote_sensing_fetcher.py",
+        "services/ingestion/remote_sensing_worker.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.common.cli:run",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 239
+        },
+        {
+          "function": "services.ingestion.remote_sensing_worker:main",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 239
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:print_json",
+          "module": "services.common.cli",
+          "qualname": "print_json",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 73
+        },
+        {
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 78
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 33
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 39
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 69
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 179
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "_get_token",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 34
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:_resolve_bbox",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "_resolve_bbox",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 196
+        },
+        {
+          "key": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "module": "services.ingestion.copernicus_remote_sensing",
+          "qualname": "fetch_copernicus_records",
+          "class_scope": null,
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 90
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_compute_indices",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_compute_indices",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 75
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_get_gee_client",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_get_gee_client",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 44
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:_resolve_bbox",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "_resolve_bbox",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 285
+        },
+        {
+          "key": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "module": "services.ingestion.gee_remote_sensing",
+          "qualname": "fetch_gee_records",
+          "class_scope": null,
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 162
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_classify_provider_result",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 49
+        },
+        {
+          "key": "services.ingestion.remote_sensing_fetcher:_fallback_provider",
+          "module": "services.ingestion.remote_sensing_fetcher",
+          "qualname": "_fallback_provider",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 67
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:_attempt_provider_chain",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "_attempt_provider_chain",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 82
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:_canonical_location_id",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "_canonical_location_id",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 25
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:_claim",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "_claim",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 48
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:_fetch_records",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "_fetch_records",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 69
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:_finish",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "_finish",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 149
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:_normalize_records",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "_normalize_records",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 125
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:_open_scoped_connection",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "_open_scoped_connection",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 32
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:main",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 222
+        },
+        {
+          "key": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "module": "services.ingestion.remote_sensing_worker",
+          "qualname": "run_due_jobs",
+          "class_scope": null,
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 182
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 152
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 143
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 50
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 88
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "callee": "services.ingestion.copernicus_remote_sensing:_get_token",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 92
+        },
+        {
+          "caller": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "callee": "services.ingestion.copernicus_remote_sensing:_resolve_bbox",
+          "source": "services/ingestion/copernicus_remote_sensing.py",
+          "line": 99
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "callee": "services.ingestion.gee_remote_sensing:_compute_indices",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 231
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "callee": "services.ingestion.gee_remote_sensing:_get_gee_client",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 169
+        },
+        {
+          "caller": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "callee": "services.ingestion.gee_remote_sensing:_resolve_bbox",
+          "source": "services/ingestion/gee_remote_sensing.py",
+          "line": 176
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_attempt_provider_chain",
+          "callee": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 92
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_attempt_provider_chain",
+          "callee": "services.ingestion.remote_sensing_fetcher:_classify_provider_result",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 97
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_attempt_provider_chain",
+          "callee": "services.ingestion.remote_sensing_fetcher:_fallback_provider",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 86
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_attempt_provider_chain",
+          "callee": "services.ingestion.remote_sensing_worker:_fetch_records",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 91
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_claim",
+          "callee": "services.ingestion.remote_sensing_worker:_open_scoped_connection",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 49
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_fetch_records",
+          "callee": "services.ingestion.copernicus_remote_sensing:fetch_copernicus_records",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 78
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_fetch_records",
+          "callee": "services.ingestion.gee_remote_sensing:fetch_gee_records",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 74
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_finish",
+          "callee": "services.ingestion.remote_sensing_worker:_open_scoped_connection",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 156
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_normalize_records",
+          "callee": "services.ingestion.remote_sensing_worker:_canonical_location_id",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 133
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_open_scoped_connection",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 35
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:_open_scoped_connection",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 33
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 235
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:main",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 233
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:main",
+          "callee": "services.ingestion.remote_sensing_worker:_canonical_location_id",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 228
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:main",
+          "callee": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 235
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 187
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "callee": "services.ingestion.remote_sensing_worker:_attempt_provider_chain",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 197
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "callee": "services.ingestion.remote_sensing_worker:_canonical_location_id",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 184
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "callee": "services.ingestion.remote_sensing_worker:_claim",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 190
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "callee": "services.ingestion.remote_sensing_worker:_finish",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 199
+        },
+        {
+          "caller": "services.ingestion.remote_sensing_worker:run_due_jobs",
+          "callee": "services.ingestion.remote_sensing_worker:_normalize_records",
+          "source": "services/ingestion/remote_sensing_worker.py",
+          "line": 198
         }
       ],
       "callback_edges": [],
@@ -6688,7 +7155,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -6696,7 +7163,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -6704,7 +7171,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -6712,7 +7179,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
@@ -6836,13 +7303,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.ingestion.field_validation:validate_sensor_reading",
@@ -7653,7 +8120,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -7661,7 +8128,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -7669,7 +8136,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -7677,7 +8144,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -7769,13 +8236,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.ingestion.weather_forecast:build_forecast_clickhouse_projection",
@@ -7958,7 +8425,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -7966,7 +8433,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -7974,7 +8441,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -7982,7 +8449,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -8082,13 +8549,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.ingestion.weather:build_weather_clickhouse_projection",
@@ -8935,7 +9402,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -8943,7 +9410,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -8951,7 +9418,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -8959,7 +9426,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.metrics.noi_snapshot_worker:main",
@@ -8995,13 +9462,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.metrics.noi_snapshot_worker:main",
@@ -9163,7 +9630,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -9171,7 +9638,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9179,7 +9646,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9187,7 +9654,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         }
       ],
       "direct_call_edges": [
@@ -9273,13 +9740,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         }
       ],
       "callback_edges": [],
@@ -9405,7 +9872,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -9413,7 +9880,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9421,7 +9888,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9429,7 +9896,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         }
       ],
       "direct_call_edges": [
@@ -9515,13 +9982,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         }
       ],
       "callback_edges": [],
@@ -9647,7 +10114,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -9655,7 +10122,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9663,7 +10130,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9671,7 +10138,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         }
       ],
       "direct_call_edges": [
@@ -9757,13 +10224,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         }
       ],
       "callback_edges": [],
@@ -9889,7 +10356,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -9897,7 +10364,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -9905,7 +10372,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -9913,7 +10380,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         }
       ],
       "direct_call_edges": [
@@ -9999,13 +10466,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         }
       ],
       "callback_edges": [],
@@ -10049,7 +10516,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -10057,7 +10524,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -10065,7 +10532,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -10121,7 +10588,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -10225,7 +10692,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -10233,7 +10700,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.features:is_enabled",
@@ -10241,7 +10708,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 173
+          "line": 179
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -10305,7 +10772,7 @@
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.events.handlers:handle_alert_notification",
@@ -10442,7 +10909,7 @@
           "qualname": "_worker_key",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 32
+          "line": 33
         },
         {
           "key": "services.common.worker_database:get_worker_credential",
@@ -10450,7 +10917,7 @@
           "qualname": "get_worker_credential",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 38
+          "line": 39
         },
         {
           "key": "services.common.worker_database:get_worker_db",
@@ -10458,7 +10925,7 @@
           "qualname": "get_worker_db",
           "class_scope": null,
           "source": "services/common/worker_database.py",
-          "line": 68
+          "line": 69
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -10566,13 +11033,13 @@
           "caller": "services.common.worker_database:get_worker_credential",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 49
+          "line": 50
         },
         {
           "caller": "services.common.worker_database:get_worker_db",
           "callee": "services.common.worker_database:_worker_key",
           "source": "services/common/worker_database.py",
-          "line": 87
+          "line": 88
         },
         {
           "caller": "services.events.notification_outbox:_notification_payloads",
