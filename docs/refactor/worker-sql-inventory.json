@@ -5,9 +5,9 @@
   "summary": {
     "operation_roots": 26,
     "source_files": 86,
-    "execution_sites": 309,
-    "static_literal_sites": 267,
-    "composed_or_variable_sites": 42
+    "execution_sites": 306,
+    "static_literal_sites": 263,
+    "composed_or_variable_sites": 43
   },
   "execution_sites": [
     {
@@ -3470,15 +3470,15 @@
       "candidate_relations": [
         "location"
       ],
-      "static_sql_sha256": "4f9a3e98bfb8f4cef87b90be7fde95d03260c85079bf162b3c5b354806fcf349",
+      "static_sql_sha256": "3b423730652249be4b8b95fbe4ab8e3d8de495bae9789ffffa49b1a7e560e078",
       "operation_refs": [
         "scheduled_module:services.ingestion.climate_data"
       ]
     },
     {
-      "id": "services/ingestion/climate_data.py:100:4",
+      "id": "services/ingestion/climate_data.py:104:4",
       "source": "services/ingestion/climate_data.py",
-      "line": 100,
+      "line": 104,
       "column": 4,
       "scope": "fetch_worldclim",
       "method": "execute",
@@ -4055,69 +4055,16 @@
       ]
     },
     {
-      "id": "services/ingestion/gee_climate.py:97:8",
+      "id": "services/ingestion/gee_climate.py:76:8",
       "source": "services/ingestion/gee_climate.py",
-      "line": 97,
+      "line": 76,
       "column": 8,
-      "scope": "fetch_modis_lst",
+      "scope": "_persist_summary",
       "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "modis_lst_summary"
-      ],
-      "static_sql_sha256": "c55876cdc0fff088a1256232fb01b04b17e0671d2865252df89a488faff4295a",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data"
-      ]
-    },
-    {
-      "id": "services/ingestion/gee_climate.py:160:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 160,
-      "column": 8,
-      "scope": "fetch_smap_moisture",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "smap_soil_moisture"
-      ],
-      "static_sql_sha256": "43861c737301edd4aacb39cee1cccf47de40c68deba2ce6afc589d0a609d1320",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data"
-      ]
-    },
-    {
-      "id": "services/ingestion/gee_climate.py:229:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 229,
-      "column": 8,
-      "scope": "fetch_sentinel1_sar",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "sentinel1_sar_summary"
-      ],
-      "static_sql_sha256": "ba0bac4c593ab7cb3fdc2e3bed5e2bb5d2c7346a2b9207cfd7c0261cf783ab5d",
-      "operation_refs": [
-        "scheduled_module:services.ingestion.climate_data"
-      ]
-    },
-    {
-      "id": "services/ingestion/gee_climate.py:299:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 299,
-      "column": 8,
-      "scope": "fetch_era5_land",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "ncep_weather_summary"
-      ],
-      "static_sql_sha256": "664168f84cbe5e183ada74acf1a1d8694265851ac343aad11176b4bc64026721",
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
+      "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.ingestion.climate_data"
       ]

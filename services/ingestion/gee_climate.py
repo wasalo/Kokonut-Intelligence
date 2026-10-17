@@ -1,12 +1,8 @@
-"""Google Earth Engine climate data fetching.
+"""Google Earth Engine climate data fetching and canonical persistence.
 
-Fetches MODIS LST, SMAP soil moisture, Sentinel-1 SAR, and ERA5 Land
-data via GEE for climate covariates. Replaces placeholder implementations
-in climate_data.py with actual data fetching.
-
-Usage:
-    from services.ingestion.gee_climate import fetch_all_climate
-    result = fetch_all_climate(conn, location_id, bbox)
+The provider summaries are written to the tables defined by
+``074_dsm_soc_prediction.sql``. Writes and ingestion audit records share one
+PostgreSQL transaction so a failed audit cannot leave an unaudited summary.
 """
 
 from __future__ import annotations
@@ -53,154 +49,203 @@ def _build_bbox_geometry(ee, bbox: Dict[str, float]):
     return ee.Geometry.Rectangle([bbox["west"], bbox["south"], bbox["east"], bbox["north"]])
 
 
-def fetch_modis_lst(conn, location_id: str, bbox: Dict[str, float], lookback_days: int = 180) -> Dict[str, Any]:
-    """Fetch MODIS MOD11A2 Land Surface Temperature via GEE.
+def _period(lookback_days: int) -> tuple[datetime, datetime]:
+    if isinstance(lookback_days, bool) or not isinstance(lookback_days, int) or lookback_days <= 0:
+        raise ValueError("lookback_days must be a positive integer")
+    end_date = datetime.now(timezone.utc)
+    return end_date - timedelta(days=lookback_days), end_date
 
-    Dataset: MODIS/061/MOD11A2 (8-day LST, 1km resolution)
-    Variables: LST_Day_1km, LST_Night_1km
+
+def _rounded(value: Any, digits: int) -> float | None:
+    return round(float(value), digits) if value is not None else None
+
+
+def _persist_summary(
+    conn,
+    *,
+    sql: str,
+    parameters: tuple,
+    source_table: str,
+    source_id: str,
+    target_table: str,
+    payload: dict,
+    location_id: str,
+) -> str:
+    """Upsert a summary and its audit row atomically on the caller connection."""
+    with conn.cursor() as cur:
+        cur.execute(sql, parameters)
+        row = cur.fetchone()
+        if row is None:
+            raise RuntimeError(f"{target_table} upsert returned no row")
+        record_id = str(row[0])
+
+    log_ingestion(
+        source_system="gee_api",
+        source_table=source_table,
+        source_id=source_id,
+        target_table=target_table,
+        target_id=record_id,
+        operation="upsert",
+        payload_hash=hash_payload(payload),
+        status="success",
+        rows_affected=1,
+        db=conn,
+        location_id=location_id,
+    )
+    conn.commit()
+    return record_id
+
+
+def _metadata(
+    dataset: str,
+    start_date: datetime,
+    end_date: datetime,
+    lookback_days: int,
+    temporal_reducer: str,
+    resolution_m: int,
+    value_units: dict[str, str],
+) -> str:
+    return json.dumps({
+        "dataset": dataset,
+        "lookback_days": lookback_days,
+        "period_start": start_date.date().isoformat(),
+        "period_end_exclusive": end_date.date().isoformat(),
+        "temporal_reducer": temporal_reducer,
+        "spatial_reducer": "mean",
+        "resolution_m": resolution_m,
+        "value_units": value_units,
+    })
+
+
+def fetch_modis_lst(conn, location_id: str, bbox: Dict[str, float], lookback_days: int = 180) -> Dict[str, Any]:
+    """Fetch 180-day MODIS MOD11A2 mean daytime and nighttime LST.
+
+    The catalog scale factor (0.02 K) is applied before conversion to Celsius.
+    The canonical table stores the spatial mean of the temporal mean as-of
+    ``target_date``.
     """
     ee = _get_gee_client()
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
-    bbox_geom = _build_bbox_geometry(ee, bbox)
-    end_date = datetime.now(timezone.utc)
-    start_date = end_date - timedelta(days=lookback_days)
-
     try:
+        start_date, end_date = _period(lookback_days)
+        bbox_geom = _build_bbox_geometry(ee, bbox)
         collection = (
             ee.ImageCollection("MODIS/061/MOD11A2")
             .filterBounds(bbox_geom)
             .filterDate(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
             .select(["LST_Day_1km", "LST_Night_1km"])
         )
-
-        # Compute mean LST over the period
-        mean_lst = collection.mean()
-        stats = mean_lst.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=bbox_geom,
-            scale=1000,
-            maxPixels=1e9,
+        stats = collection.mean().reduceRegion(
+            reducer=ee.Reducer.mean(), geometry=bbox_geom, scale=1000, maxPixels=1e9,
         ).getInfo()
 
-        lst_day = stats.get("LST_Day_1km")
-        lst_night = stats.get("LST_Night_1km")
-
-        # Convert from Kelvin*0.02 to Celsius
-        lst_day_c = round((lst_day * 0.02) - 273.15, 2) if lst_day else None
-        lst_night_c = round((lst_night * 0.02) - 273.15, 2) if lst_night else None
-        lst_mean_c = round((lst_day_c + lst_night_c) / 2, 2) if lst_day_c and lst_night_c else lst_day_c
-
-        # Insert into PostgreSQL
-        cur = conn.cursor()
-        cur.execute("""
+        lst_day_c = _rounded(stats.get("LST_Day_1km"), 2)
+        lst_night_c = _rounded(stats.get("LST_Night_1km"), 2)
+        lst_day_c = round(lst_day_c * 0.02 - 273.15, 2) if lst_day_c is not None else None
+        lst_night_c = round(lst_night_c * 0.02 - 273.15, 2) if lst_night_c is not None else None
+        metadata = _metadata("MODIS/061/MOD11A2", start_date, end_date,
+                             lookback_days, "mean", 1000,
+                             {"lst_day_mean_6m": "degC", "lst_night_mean_6m": "degC"})
+        sql = """
             INSERT INTO modis_lst_summary
-                (location_id, period_type, period_start, period_end,
-                 mean_lst_day_c, mean_lst_night_c, mean_lst_c, source)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                (location_id, target_date, source, resolution_m,
+                 lst_day_mean_6m, lst_night_mean_6m, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
+            ON CONFLICT (location_id, target_date, source)
+                WHERE plot_id IS NULL AND source IS NOT NULL
+            DO UPDATE SET
+                resolution_m = EXCLUDED.resolution_m,
+                lst_day_mean_6m = EXCLUDED.lst_day_mean_6m,
+                lst_night_mean_6m = EXCLUDED.lst_night_mean_6m,
+                metadata = EXCLUDED.metadata,
+                updated_at = NOW()
             RETURNING id
-        """, (
-            location_id, "6month",
-            start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"),
-            lst_day_c, lst_night_c, lst_mean_c, "modis_mod11a2",
-        ))
-        record_id = str(cur.fetchone()[0])
-        conn.commit()
-        cur.close()
-
-        log_ingestion(
-            source_system="gee_api", source_table="modis_lst",
-            source_id="MODIS/061/MOD11A2", target_table="modis_lst_summary",
-            target_id=record_id, operation="insert",
-            payload_hash=hash_payload({"lst_day": lst_day_c, "lst_night": lst_night_c}),
-            status="success", rows_affected=1,
+        """
+        record_id = _persist_summary(
+            conn, sql=sql,
+            parameters=(location_id, end_date.date(), "modis_mod11a2_v061", 1000,
+                        lst_day_c, lst_night_c, metadata),
+            source_table="modis_lst", source_id="MODIS/061/MOD11A2",
+            target_table="modis_lst_summary",
+            payload={"lst_day_mean_6m_c": lst_day_c, "lst_night_mean_6m_c": lst_night_c},
+            location_id=location_id,
         )
-
-        return {"status": "success", "record_id": record_id, "lst_day_c": lst_day_c, "lst_night_c": lst_night_c}
+        return {"status": "success", "record_id": record_id,
+                "lst_day_c": lst_day_c, "lst_night_c": lst_night_c}
     except Exception as e:
+        conn.rollback()
         logger.error("MODIS LST fetch failed: %s", e)
         return {"status": "error", "message": str(e)}
 
 
 def fetch_smap_moisture(conn, location_id: str, bbox: Dict[str, float], lookback_days: int = 180) -> Dict[str, Any]:
-    """Fetch SMAP L3 soil moisture via GEE.
+    """Fetch SMAP L3 Enhanced 9km PM soil-moisture volume fraction.
 
-    Dataset: NASA/SMAP/SPL3SMP_E/005 (Enhanced L3, 9km, daily)
-    Variables: sm_pm (soil moisture polar metric)
+    Collection 006 contains the post-2023 data and exposes the
+    ``soil_moisture_pm`` band in volume fraction.
     """
     ee = _get_gee_client()
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
-    bbox_geom = _build_bbox_geometry(ee, bbox)
-    end_date = datetime.now(timezone.utc)
-    start_date = end_date - timedelta(days=lookback_days)
-
     try:
+        start_date, end_date = _period(lookback_days)
+        bbox_geom = _build_bbox_geometry(ee, bbox)
         collection = (
-            ee.ImageCollection("NASA/SMAP/SPL3SMP_E/005")
+            ee.ImageCollection("NASA/SMAP/SPL3SMP_E/006")
             .filterBounds(bbox_geom)
             .filterDate(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
-            .select(["sm_pm"])
+            .select(["soil_moisture_pm"])
         )
-
-        mean_sm = collection.mean()
-        stats = mean_sm.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=bbox_geom,
-            scale=9000,
-            maxPixels=1e9,
+        stats = collection.mean().reduceRegion(
+            reducer=ee.Reducer.mean(), geometry=bbox_geom, scale=9000, maxPixels=1e9,
         ).getInfo()
-
-        sm_value = stats.get("sm_pm")
-        sm_m3 = round(float(sm_value), 4) if sm_value else None
-
-        cur = conn.cursor()
-        cur.execute("""
+        soil_moisture = _rounded(stats.get("soil_moisture_pm"), 4)
+        metadata = _metadata("NASA/SMAP/SPL3SMP_E/006", start_date, end_date,
+                             lookback_days, "mean", 9000,
+                             {"soil_moisture_6m": "volume_fraction"})
+        sql = """
             INSERT INTO smap_soil_moisture
                 (location_id, target_date, source, resolution_m,
                  soil_moisture_6m, metadata)
             VALUES (%s, %s, %s, %s, %s, %s::jsonb)
+            ON CONFLICT (location_id, target_date, source)
+                WHERE plot_id IS NULL AND source IS NOT NULL
+            DO UPDATE SET
+                resolution_m = EXCLUDED.resolution_m,
+                soil_moisture_6m = EXCLUDED.soil_moisture_6m,
+                metadata = EXCLUDED.metadata,
+                updated_at = NOW()
             RETURNING id
-        """, (
-            location_id, end_date.strftime("%Y-%m-%d"),
-            "smap_l3_daily_9km", 9000, sm_m3,
-            json.dumps({"lookback_days": lookback_days}),
-        ))
-        record_id = str(cur.fetchone()[0])
-        conn.commit()
-        cur.close()
-
-        log_ingestion(
-            source_system="gee_api", source_table="smap_soil_moisture",
-            source_id="NASA/SMAP/SPL3SMP_E/005", target_table="smap_soil_moisture",
-            target_id=record_id, operation="insert",
-            payload_hash=hash_payload({"soil_moisture": sm_m3}),
-            status="success", rows_affected=1,
+        """
+        record_id = _persist_summary(
+            conn, sql=sql,
+            parameters=(location_id, end_date.date(), "smap_l3_enhanced_9km_v006",
+                        9000, soil_moisture, metadata),
+            source_table="smap_soil_moisture", source_id="NASA/SMAP/SPL3SMP_E/006",
+            target_table="smap_soil_moisture",
+            payload={"soil_moisture_6m_volume_fraction": soil_moisture},
+            location_id=location_id,
         )
-
-        return {"status": "success", "record_id": record_id, "soil_moisture_m3": sm_m3}
+        return {"status": "success", "record_id": record_id,
+                "soil_moisture_volume_fraction": soil_moisture}
     except Exception as e:
+        conn.rollback()
         logger.error("SMAP fetch failed: %s", e)
         return {"status": "error", "message": str(e)}
 
 
 def fetch_sentinel1_sar(conn, location_id: str, bbox: Dict[str, float], lookback_days: int = 180) -> Dict[str, Any]:
-    """Fetch Sentinel-1 GRD SAR backscatter via GEE.
-
-    Dataset: COPERNICUS/S1_GRD (Ground Range Detected, 10m, 12-day)
-    Variables: VH, VV backscatter
-    """
+    """Fetch 180-day Sentinel-1 GRD temporal median VV/VH backscatter in dB."""
     ee = _get_gee_client()
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
-    bbox_geom = _build_bbox_geometry(ee, bbox)
-    end_date = datetime.now(timezone.utc)
-    start_date = end_date - timedelta(days=lookback_days)
-
     try:
+        start_date, end_date = _period(lookback_days)
+        bbox_geom = _build_bbox_geometry(ee, bbox)
         collection = (
             ee.ImageCollection("COPERNICUS/S1_GRD")
             .filterBounds(bbox_geom)
@@ -208,149 +253,155 @@ def fetch_sentinel1_sar(conn, location_id: str, bbox: Dict[str, float], lookback
             .filter(ee.Filter.eq("instrumentMode", "IW"))
             .select(["VV", "VH"])
         )
-
         image_count = collection.size().getInfo()
         if image_count == 0:
             return {"status": "success", "record_id": None, "message": "No Sentinel-1 data"}
 
-        mean_sar = collection.mean()
-        stats = mean_sar.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=bbox_geom,
-            scale=10,
-            maxPixels=1e9,
+        stats = collection.median().reduceRegion(
+            reducer=ee.Reducer.mean(), geometry=bbox_geom, scale=10, maxPixels=1e9,
         ).getInfo()
-
-        vh_db = round(float(stats.get("VH", 0)), 4) if stats.get("VH") else None
-        vv_db = round(float(stats.get("VV", 0)), 4) if stats.get("VV") else None
-        vh_vv_ratio = round(vh_db / vv_db, 4) if vh_db and vv_db and vv_db != 0 else None
-
-        cur = conn.cursor()
-        cur.execute("""
+        vh_db = _rounded(stats.get("VH"), 4)
+        vv_db = _rounded(stats.get("VV"), 4)
+        metadata = _metadata("COPERNICUS/S1_GRD", start_date, end_date,
+                             lookback_days, "median", 10,
+                             {"vh_median_6m": "dB", "vv_median_6m": "dB"})
+        sql = """
             INSERT INTO sentinel1_sar_summary
-                (location_id, period_type, period_start, period_end,
-                 mean_vh_db, mean_vv_db, vh_vv_ratio, source)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                (location_id, target_date, source, resolution_m,
+                 vh_median_6m, vv_median_6m, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s::jsonb)
+            ON CONFLICT (location_id, target_date, source)
+                WHERE plot_id IS NULL AND source IS NOT NULL
+            DO UPDATE SET
+                resolution_m = EXCLUDED.resolution_m,
+                vh_median_6m = EXCLUDED.vh_median_6m,
+                vv_median_6m = EXCLUDED.vv_median_6m,
+                metadata = EXCLUDED.metadata,
+                updated_at = NOW()
             RETURNING id
-        """, (
-            location_id, "6month",
-            start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"),
-            vh_db, vv_db, vh_vv_ratio, "sentinel1_grd",
-        ))
-        record_id = str(cur.fetchone()[0])
-        conn.commit()
-        cur.close()
-
-        log_ingestion(
-            source_system="gee_api", source_table="sentinel1_sar",
-            source_id="COPERNICUS/S1_GRD", target_table="sentinel1_sar_summary",
-            target_id=record_id, operation="insert",
-            payload_hash=hash_payload({"vh": vh_db, "vv": vv_db}),
-            status="success", rows_affected=1,
+        """
+        record_id = _persist_summary(
+            conn, sql=sql,
+            parameters=(location_id, end_date.date(), "sentinel1_grd", 10,
+                        vh_db, vv_db, metadata),
+            source_table="sentinel1_sar", source_id="COPERNICUS/S1_GRD",
+            target_table="sentinel1_sar_summary",
+            payload={"vh_median_6m_db": vh_db, "vv_median_6m_db": vv_db},
+            location_id=location_id,
         )
-
-        return {"status": "success", "record_id": record_id, "vh_db": vh_db, "vv_db": vv_db, "images": image_count}
+        return {"status": "success", "record_id": record_id,
+                "vh_db": vh_db, "vv_db": vv_db, "images": image_count}
     except Exception as e:
+        conn.rollback()
         logger.error("Sentinel-1 SAR fetch failed: %s", e)
         return {"status": "error", "message": str(e)}
 
 
 def fetch_era5_land(conn, location_id: str, bbox: Dict[str, float], lookback_days: int = 180) -> Dict[str, Any]:
-    """Fetch ERA5 Land daily aggregates via GEE.
+    """Fetch 180-day ERA5-Land daily climate summaries via GEE.
 
-    Dataset: ECMWF/ERA5_LAND/DAILY_AGGR (9km, hourly → daily aggregated)
-    Variables: temperature_2m, total_precipitation_sum, soil_moisture_0_to_7cm
-    Replaces NCEP CFS with higher resolution data.
+    Temperatures are stored in Celsius, total precipitation in millimeters,
+    and soil moisture as volumetric fraction, matching the canonical summary
+    table's semantic columns.
     """
     ee = _get_gee_client()
     if not ee:
         return {"status": "error", "message": "GEE client not available"}
 
-    bbox_geom = _build_bbox_geometry(ee, bbox)
-    end_date = datetime.now(timezone.utc)
-    start_date = end_date - timedelta(days=lookback_days)
-
     try:
+        start_date, end_date = _period(lookback_days)
+        bbox_geom = _build_bbox_geometry(ee, bbox)
         collection = (
             ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
             .filterBounds(bbox_geom)
             .filterDate(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
-            .select(["temperature_2m", "total_precipitation_sum", "soil_moisture_0_to_7cm"])
         )
-
-        mean_data = collection.mean()
-        stats = mean_data.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=bbox_geom,
-            scale=9000,
-            maxPixels=1e9,
+        temperature_soil = collection.select([
+            "temperature_2m", "temperature_2m_max", "temperature_2m_min",
+            "volumetric_soil_water_layer_1",
+        ]).mean().reduceRegion(
+            reducer=ee.Reducer.mean(), geometry=bbox_geom, scale=11132, maxPixels=1e9,
         ).getInfo()
+        precipitation = collection.select(["total_precipitation_sum"]).sum().reduceRegion(
+            reducer=ee.Reducer.mean(), geometry=bbox_geom, scale=11132, maxPixels=1e9,
+        ).getInfo().get("total_precipitation_sum")
 
-        temp_k = stats.get("temperature_2m")
-        precip = stats.get("total_precipitation_sum")
-        soil_moisture = stats.get("soil_moisture_0_to_7cm")
+        def kelvin_to_celsius(name: str) -> float | None:
+            value = temperature_soil.get(name)
+            return round(float(value) - 273.15, 2) if value is not None else None
 
-        temp_c = round(float(temp_k) - 273.15, 2) if temp_k else None
-        precip_mm = round(float(precip), 2) if precip else None
-        sm_m3 = round(float(soil_moisture), 4) if soil_moisture else None
-
-        # Insert into ncep_weather_summary (using ERA5 data, same schema)
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO ncep_weather_summary
-                (location_id, summary_type, avg_surface_temp_k,
-                 avg_precipitation_kg_m2, avg_soil_moisture_kg_m2,
-                 period_start, period_end, source)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id
-        """, (
-            location_id, "6month", temp_k,
-            precip_mm, sm_m3,
-            start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"),
-            "era5_land",
-        ))
-        record_id = str(cur.fetchone()[0])
-        conn.commit()
-        cur.close()
-
-        log_ingestion(
-            source_system="gee_api", source_table="era5_land",
-            source_id="ECMWF/ERA5_LAND/DAILY_AGGR", target_table="ncep_weather_summary",
-            target_id=record_id, operation="insert",
-            payload_hash=hash_payload({"temp_c": temp_c, "precip_mm": precip_mm}),
-            status="success", rows_affected=1,
+        mean_temp_c = kelvin_to_celsius("temperature_2m")
+        max_temp_c = kelvin_to_celsius("temperature_2m_max")
+        min_temp_c = kelvin_to_celsius("temperature_2m_min")
+        precipitation_mm = round(float(precipitation) * 1000, 2) if precipitation is not None else None
+        soil_moisture = _rounded(temperature_soil.get("volumetric_soil_water_layer_1"), 4)
+        metadata = _metadata(
+            "ECMWF/ERA5_LAND/DAILY_AGGR", start_date, end_date, lookback_days,
+            "mean (temperature/soil); sum (precipitation)", 11132,
+            {
+                "soil_moisture_6m": "volume_fraction",
+                "mean_temp_6m": "degC",
+                "max_temp_6m": "degC",
+                "min_temp_6m": "degC",
+                "precipitation_6m": "mm",
+            },
         )
-
-        return {
-            "status": "success",
-            "record_id": record_id,
-            "temperature_c": temp_c,
-            "precipitation_mm": precip_mm,
-            "soil_moisture_m3": sm_m3,
+        sql = """
+            INSERT INTO ncep_weather_summary
+                (location_id, target_date, source, resolution_m,
+                 soil_moisture_6m, mean_temp_6m, max_temp_6m, min_temp_6m,
+                 precipitation_6m, metadata)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+            ON CONFLICT (location_id, target_date, source)
+                WHERE plot_id IS NULL AND source IS NOT NULL
+            DO UPDATE SET
+                resolution_m = EXCLUDED.resolution_m,
+                soil_moisture_6m = EXCLUDED.soil_moisture_6m,
+                mean_temp_6m = EXCLUDED.mean_temp_6m,
+                max_temp_6m = EXCLUDED.max_temp_6m,
+                min_temp_6m = EXCLUDED.min_temp_6m,
+                precipitation_6m = EXCLUDED.precipitation_6m,
+                metadata = EXCLUDED.metadata,
+                updated_at = NOW()
+            RETURNING id
+        """
+        payload = {
+            "soil_moisture_6m_volume_fraction": soil_moisture,
+            "mean_temp_6m_c": mean_temp_c,
+            "max_temp_6m_c": max_temp_c,
+            "min_temp_6m_c": min_temp_c,
+            "precipitation_6m_mm": precipitation_mm,
         }
+        record_id = _persist_summary(
+            conn, sql=sql,
+            parameters=(location_id, end_date.date(), "era5_land_daily_aggr", 11132,
+                        soil_moisture, mean_temp_c, max_temp_c, min_temp_c,
+                        precipitation_mm, metadata),
+            source_table="era5_land", source_id="ECMWF/ERA5_LAND/DAILY_AGGR",
+            target_table="ncep_weather_summary", payload=payload,
+            location_id=location_id,
+        )
+        return {"status": "success", "record_id": record_id,
+                "temperature_c": mean_temp_c, "precipitation_mm": precipitation_mm,
+                "soil_moisture_volume_fraction": soil_moisture}
     except Exception as e:
+        conn.rollback()
         logger.error("ERA5 Land fetch failed: %s", e)
         return {"status": "error", "message": str(e)}
 
 
 def fetch_all_climate(conn, location_id: str, bbox: Dict[str, float]) -> Dict[str, Any]:
-    """Fetch all climate data sources for a location via GEE.
-
-    Returns:
-        Summary of all fetch results.
-    """
+    """Fetch all climate data sources for a location via GEE."""
     results = {
         "modis_lst": fetch_modis_lst(conn, location_id, bbox),
         "smap_moisture": fetch_smap_moisture(conn, location_id, bbox),
         "sentinel1_sar": fetch_sentinel1_sar(conn, location_id, bbox),
         "era5_land": fetch_era5_land(conn, location_id, bbox),
     }
-
-    success = sum(1 for r in results.values() if r.get("status") == "success")
-    failed = sum(1 for r in results.values() if r.get("status") == "error")
-
+    success = sum(1 for result in results.values() if result.get("status") == "success")
+    failed = sum(1 for result in results.values() if result.get("status") == "error")
     return {
-        "status": "success",
+        "status": "error" if failed else "success",
         "location_id": location_id,
         "sources_success": success,
         "sources_failed": failed,

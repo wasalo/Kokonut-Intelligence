@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "5d3206f070f0d040ada4a28951d2b8e6d591107e",
+  "baseline_commit": "b41f40688f0d18564f8ee66a6612a9ddf4f52e8e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1820,7 +1820,8 @@
       "schemas/postgres/424_gnosis_indexer_cursor_namespace.sql",
       "schemas/postgres/425_signed_noi_snapshot_worker.sql",
       "schemas/postgres/426_signed_weather_forecast_worker.sql",
-      "schemas/postgres/427_signed_weather_observation_worker.sql"
+      "schemas/postgres/427_signed_weather_observation_worker.sql",
+      "schemas/postgres/428_climate_summary_idempotency.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

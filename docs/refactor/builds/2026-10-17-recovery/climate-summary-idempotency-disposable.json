@@ -1,0 +1,9 @@
+{
+  "migration": "428_climate_summary_idempotency.sql",
+  "checks": [
+    "migration refuses unreviewed location-level duplicates",
+    "migration applies and replays cleanly after duplicate reconciliation",
+    "all four canonical summary keys collapse repeated provider retries",
+    "plot-level records retain their existing independent key space"
+  ]
+}

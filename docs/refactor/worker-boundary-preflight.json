@@ -27,8 +27,8 @@
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 309,
-    "sites_with_static_operation_path": 237,
+    "execution_site_count": 306,
+    "sites_with_static_operation_path": 234,
     "sites_without_static_function_match": 72,
     "site_refs_for_review": [
       {

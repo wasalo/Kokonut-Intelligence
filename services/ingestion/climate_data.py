@@ -59,12 +59,16 @@ def _query_location_bbox(conn, location_id: str) -> Optional[Dict[str, Any]]:
 
 
 def _query_location_centroid(conn, location_id: str) -> Optional[Dict[str, float]]:
-    """Get location centroid."""
+    """Resolve the canonical location point, with coordinates as a fallback."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cur.execute(
         """
-        SELECT ST_Y(centroid) AS lat, ST_X(centroid) AS lon
-        FROM location WHERE id = %s AND centroid IS NOT NULL
+        SELECT
+            COALESCE(ST_Y(center), latitude)::double precision AS lat,
+            COALESCE(ST_X(center), longitude)::double precision AS lon
+        FROM location
+        WHERE id = %s
+          AND (center IS NOT NULL OR (latitude IS NOT NULL AND longitude IS NOT NULL))
     """,
         (location_id,),
     )
@@ -139,8 +143,6 @@ def fetch_worldclim(conn, location_id: str) -> Dict[str, Any]:
     )
     record_id = str(cur.fetchone()[0])
     cur.close()
-    conn.commit()
-
     log_ingestion(
         source_system="latitude_proxy",
         source_table="worldclim_climate",
@@ -151,7 +153,10 @@ def fetch_worldclim(conn, location_id: str) -> Dict[str, Any]:
         payload_hash=hash_payload(bio_variables),
         status="success",
         rows_affected=1,
+        db=conn,
+        location_id=location_id,
     )
+    conn.commit()
 
     return {
         "status": "success",
@@ -292,12 +297,15 @@ def run_all(conn, location_id: str) -> Dict[str, Any]:
 
     success = sum(1 for r in results.values() if r.get("status") == "success")
     skipped = sum(1 for r in results.values() if r.get("status") == "skipped")
+    failed = sum(1 for r in results.values() if r.get("status") == "error")
 
     return {
+        "status": "error" if failed else "success",
         "location_id": location_id,
         "results": results,
         "success": success,
         "skipped": skipped,
+        "failed": failed,
         "total": len(results),
     }
 
@@ -339,6 +347,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         else:
             result = fetch_sentinel1(conn, location_id)
         print_json(result)
+        if result.get("status") == "error":
+            return 1
     finally:
         conn.close()
     return 0

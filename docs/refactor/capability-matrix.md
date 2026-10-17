@@ -16,6 +16,25 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
+**17 October 2026 climate provider persistence contract (CAP-040 / CAP-047):**
+climate location lookup now uses the canonical `location.center` point with the
+stored latitude/longitude fallback. MODIS, SMAP, Sentinel-1, and ERA5-Land now
+write columns present in the canonical schema; provider identifiers and band
+units are normalized, MODIS scaling and ERA5 precipitation accumulation are
+applied, and SMAP uses the current collection/band. The four location-level
+summary writes use migration 428's guarded `(location_id, target_date, source)`
+partial keys, preserving independent plot-level records. Ingestion audit rows
+share the same transaction, provider failures return nonzero, and the batch
+reports failed sources explicitly. Twenty-five focused climate checks, Ruff,
+Python compilation, and four disposable PostgreSQL 16 migration/replay,
+duplicate-rejection, retry-upsert, and plot-row checks pass. No real provider,
+candidate, legacy database, or schedule was used. Signed climate worker
+identity, live source parity, candidate rollout, and MAN-CAP acceptance remain
+open ([migration](../../schemas/postgres/428_climate_summary_idempotency.sql);
+[runner](../../scripts/check-climate-summary-idempotency-disposable.py);
+[evidence](builds/2026-10-17-recovery/climate-summary-idempotency-disposable.json);
+[official band references](builds/2026-10-17-recovery/climate-provider-contract.json)).
+
 **16 October 2026 RPC wallet transaction integrity (CAP-040 / CAP-047):**
 wallet activity, chain status, and ClickHouse outbox intent now share one
 transaction, with per-wallet savepoints and explicit partial-failure status.

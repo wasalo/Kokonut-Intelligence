@@ -4,9 +4,9 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 26,
-    "sql_execution_sites": 309,
-    "statically_reachable_site_memberships": 295,
-    "unique_sites_with_static_operation_path": 237,
+    "sql_execution_sites": 306,
+    "statically_reachable_site_memberships": 292,
+    "unique_sites_with_static_operation_path": 234,
     "sites_without_static_function_match": 72,
     "unmatched_functions_absent_from_all_worker_graphs": 72,
     "sites_reached_by_multiple_operations": 13
@@ -155,16 +155,13 @@
       "kind": "scheduled_module",
       "name": "services.ingestion.climate_data",
       "operation_ref": "scheduled_module:services.ingestion.climate_data",
-      "statically_reachable_sql_site_count": 8,
+      "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:157:12",
-        "services/ingestion/climate_data.py:100:4",
+        "services/ingestion/climate_data.py:104:4",
         "services/ingestion/climate_data.py:36:4",
         "services/ingestion/climate_data.py:64:4",
-        "services/ingestion/gee_climate.py:160:8",
-        "services/ingestion/gee_climate.py:229:8",
-        "services/ingestion/gee_climate.py:299:8",
-        "services/ingestion/gee_climate.py:97:8"
+        "services/ingestion/gee_climate.py:76:8"
       ]
     },
     {
@@ -4616,9 +4613,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/climate_data.py:100:4",
+      "id": "services/ingestion/climate_data.py:104:4",
       "source": "services/ingestion/climate_data.py",
-      "line": 100,
+      "line": 104,
       "scope": "fetch_worldclim",
       "method": "execute",
       "expression_kind": "literal",
@@ -5333,79 +5330,14 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/gee_climate.py:97:8",
+      "id": "services/ingestion/gee_climate.py:76:8",
       "source": "services/ingestion/gee_climate.py",
-      "line": 97,
-      "scope": "fetch_modis_lst",
+      "line": 76,
+      "scope": "_persist_summary",
       "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "modis_lst_summary"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.ingestion.climate_data"
-      ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.ingestion.climate_data"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/ingestion/gee_climate.py:160:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 160,
-      "scope": "fetch_smap_moisture",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "smap_soil_moisture"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.ingestion.climate_data"
-      ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.ingestion.climate_data"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/ingestion/gee_climate.py:229:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 229,
-      "scope": "fetch_sentinel1_sar",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "sentinel1_sar_summary"
-      ],
-      "import_closure_operations": [
-        "scheduled_module:services.ingestion.climate_data"
-      ],
-      "statically_reachable_operations": [
-        "scheduled_module:services.ingestion.climate_data"
-      ],
-      "static_link_status": "linked",
-      "function_in_any_worker_graph": true,
-      "review_status": "linked_to_operation"
-    },
-    {
-      "id": "services/ingestion/gee_climate.py:299:8",
-      "source": "services/ingestion/gee_climate.py",
-      "line": 299,
-      "scope": "fetch_era5_land",
-      "method": "execute",
-      "expression_kind": "literal",
-      "statement_kind": "INSERT",
-      "candidate_relations": [
-        "ncep_weather_summary"
-      ],
+      "expression_kind": "composed_or_variable",
+      "statement_kind": "UNKNOWN",
+      "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.climate_data"
       ],

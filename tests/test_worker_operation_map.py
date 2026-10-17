@@ -276,6 +276,9 @@ def test_climate_worker_map_names_current_schema_and_provider_effects():
     }
     assert "latitude_proxy_v1" in " ".join(climate["external_effects"])
     assert "schemas/postgres/397_worldclim_location_baseline_key.sql" in climate["sources"]
+    assert "schemas/postgres/428_climate_summary_idempotency.sql" in climate["sources"]
+    assert "same-day provider retries upsert" in climate["idempotency"]
+    assert "commit in one transaction" in climate["retry_boundary"]
 
 
 def test_remote_sensing_job_is_bounded_and_provider_execution_is_not_claimed():

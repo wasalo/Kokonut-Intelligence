@@ -4,20 +4,20 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 819,
-    "execution_sites": 3918,
+    "execution_sites": 3915,
     "worker_operation_roots": 26,
-    "sites_with_worker_operation_refs": 309,
+    "sites_with_worker_operation_refs": 306,
     "sites_without_worker_operation_refs": 3609,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
-      "INSERT": 677,
+      "INSERT": 673,
       "RELEASE": 8,
       "ROLLBACK": 6,
       "SAVEPOINT": 5,
       "SELECT": 2495,
       "SET": 68,
-      "UNKNOWN": 145,
+      "UNKNOWN": 146,
       "UPDATE": 442,
       "WITH": 24
     },
@@ -25,18 +25,18 @@
       "read_candidate": 2495,
       "schema_change": 1,
       "transaction_or_session": 87,
-      "unknown_requires_manual_review": 145,
+      "unknown_requires_manual_review": 146,
       "with_requires_manual_review": 24,
-      "write_candidate": 1166
+      "write_candidate": 1162
     },
     "expression_kinds": {
       "composed": 5,
-      "composed_or_variable": 216,
+      "composed_or_variable": 217,
       "fstring": 272,
-      "literal": 3425
+      "literal": 3421
     },
-    "relation_candidates": 1046,
-    "sites_without_relation_candidates": 407,
+    "relation_candidates": 1042,
+    "sites_without_relation_candidates": 408,
     "service_packages": 67
   },
   "service_packages": {
@@ -452,18 +452,18 @@
     },
     "ingestion": {
       "source_files": 58,
-      "execution_sites": 214,
+      "execution_sites": 211,
       "statement_groups": {
         "read_candidate": 112,
         "transaction_or_session": 19,
-        "unknown_requires_manual_review": 2,
+        "unknown_requires_manual_review": 3,
         "with_requires_manual_review": 3,
-        "write_candidate": 78
+        "write_candidate": 74
       },
-      "candidate_relation_names": 63,
-      "sites_without_relation_candidates": 29,
-      "non_literal_sites": 17,
-      "sites_with_worker_operation_refs": 140
+      "candidate_relation_names": 59,
+      "sites_without_relation_candidates": 30,
+      "non_literal_sites": 18,
+      "sites_with_worker_operation_refs": 137
     },
     "innovation": {
       "source_files": 6,
@@ -1319,12 +1319,10 @@
     "mobile_form_version": {"execution_site_count": 6,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/farm_activity_lifecycle.py","services/gateway/farm_activity_workflow.py","services/mobile/api.py","services/mobile/forms_cli.py"]},
     "mobile_media_upload": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/mobile/api.py"]},
     "mobile_participant_link": {"execution_site_count": 4,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/farm_activity_workflow.py","services/mobile/api.py"]},
-    "modis_lst_summary": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/ingestion/gee_climate.py"]},
     "mqtt_delivery": {"execution_site_count": 6,"statement_kinds": ["INSERT","SELECT","UPDATE"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/ingestion/mqtt_delivery.py","services/ingestion/mqtt_delivery_cli.py"]},
     "mqtt_delivery_action": {"execution_site_count": 2,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/ingestion/mqtt_delivery.py","services/ingestion/mqtt_delivery_cli.py"]},
     "mrv_claim": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/ingestion/anomaly_detector.py","services/metrics/calculators/attestation_coverage.py","services/revenue_multiplier/dimensions/ecological_verification.py"]},
     "natural_capital_valuation": {"execution_site_count": 7,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/abundance/currency_stability.py","services/abundance/externalities.py","services/analytics/systems_thinking.py","services/analytics/true_cost_accounting.py"]},
-    "ncep_weather_summary": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/ingestion/gee_climate.py"]},
     "nearby": {"execution_site_count": 1,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/revenue_multiplier/dimensions/regional_clusters.py"]},
     "needs_assessment": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/configurable_containers.py"]},
     "network_membership": {"execution_site_count": 3,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/grant_network.py"]},
@@ -1546,7 +1544,6 @@
     "sensor_reading": {"execution_site_count": 28,"statement_kinds": ["DELETE","INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/agents/ai_summary.py","services/analytics/advisor.py","services/analytics/ecology.py","services/analytics/llm_chat.py","services/analytics/precision_irrigation.py","services/analytics/promotion_ladder.py","services/forecast/engine.py","services/ingestion/adaptive_sampler.py","services/ingestion/anomaly_detector.py","services/ingestion/http_sensor_receiver.py","services/ingestion/ml_anomaly_detector.py","services/ingestion/mock_sensors.py","services/ingestion/mqtt_subscriber.py","services/ingestion/sensor_ingester.py"]},
     "sensor_registry": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/regional_readiness.py"]},
     "sensor_type": {"execution_site_count": 18,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/ingestion/anomaly_detector.py","services/ingestion/device_manager.py","services/ingestion/http_sensor_receiver.py","services/ingestion/mock_sensors.py","services/ingestion/mqtt_subscriber.py","services/ingestion/sensor_ingester.py"]},
-    "sentinel1_sar_summary": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/ingestion/gee_climate.py"]},
     "service_registry": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/capability_map.py"]},
     "shared_asset": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/cooperative.py"]},
     "shipment": {"execution_site_count": 4,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/logistics.py"]},
@@ -1556,7 +1553,6 @@
     "simulation_state": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/analytics/digital_twin.py"]},
     "situation_assessment": {"execution_site_count": 5,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/decision/policy_engine.py","services/orientation/assess.py","services/systems/leverage.py"]},
     "skill_assessment": {"execution_site_count": 3,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/extension.py"]},
-    "smap_soil_moisture": {"execution_site_count": 1,"statement_kinds": ["INSERT"],"statement_groups": ["write_candidate"],"source_files": ["services/ingestion/gee_climate.py"]},
     "social_impact_valuation": {"execution_site_count": 6,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/abundance/currency_stability.py","services/analytics/curriculum.py","services/analytics/systems_thinking.py","services/analytics/true_cost_accounting.py"]},
     "soil_carbon_measurement": {"execution_site_count": 11,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/agents/ai_summary.py","services/analytics/carbon_balance.py","services/analytics/ecology.py","services/analytics/regional_readiness.py","services/analytics/soc_prediction.py","services/crisp/carbon_yield.py","services/crisp/implementation_risk.py","services/export/reports/core.py","services/metrics/calculators/soil_carbon_delta.py","services/revenue_multiplier/dimensions/ecological_verification.py","services/systems/leverage.py"]},
     "soil_input_application": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/ecological_modeling_v2.py","services/analytics/gap_closures.py"]},
@@ -4648,8 +4644,8 @@
     {"id": "services/ingestion/clickhouse_outbox.py:251:12","source": "services/ingestion/clickhouse_outbox.py","line": 251,"column": 12,"scope": "_operator_transition","method": "execute","expression_kind": "literal","statement_kind": "WITH","candidate_relations": ["clickhouse_outbox","clickhouse_outbox_operator_audit","eligible","transitioned"],"static_sql_sha256": "b75a4dd07b6fae3efdaee44bc699616c96e2b734fbd1137ae77d75e2a9cbb80c","operation_refs": ["scheduled_module:services.ingestion.clickhouse_outbox","scheduled_module:services.ingestion.eas_indexer","scheduled_module:services.ingestion.gnosis_indexer","scheduled_module:services.ingestion.remote_sensing_fetcher","scheduled_module:services.ingestion.rpc_indexer","scheduled_module:services.ingestion.sensor_ingester","scheduled_module:services.ingestion.weather","scheduled_module:services.ingestion.weather_forecast","scheduled_module:services.ingestion.weather_forecast_worker","scheduled_module:services.ingestion.weather_worker"],"statement_group": "with_requires_manual_review"},
     {"id": "services/ingestion/clickhouse_outbox.py:298:8","source": "services/ingestion/clickhouse_outbox.py","line": 298,"column": 8,"scope": "list_dead_letters","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["clickhouse_outbox"],"static_sql_sha256": "a89fc52ad6fa8a45c4fd03f04ec741d8abc2f17ec8f35d038a9cdf8391e1e6ab","operation_refs": ["scheduled_module:services.ingestion.clickhouse_outbox","scheduled_module:services.ingestion.eas_indexer","scheduled_module:services.ingestion.gnosis_indexer","scheduled_module:services.ingestion.remote_sensing_fetcher","scheduled_module:services.ingestion.rpc_indexer","scheduled_module:services.ingestion.sensor_ingester","scheduled_module:services.ingestion.weather","scheduled_module:services.ingestion.weather_forecast","scheduled_module:services.ingestion.weather_forecast_worker","scheduled_module:services.ingestion.weather_worker"],"statement_group": "read_candidate"},
     {"id": "services/ingestion/climate_data.py:36:4","source": "services/ingestion/climate_data.py","line": 36,"column": 4,"scope": "_query_location_bbox","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm","plot"],"static_sql_sha256": "17c99193e06ba6cd8e6f27dd3e94ba97ff5c5ff658668bc615dda117a15ce1e3","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "read_candidate"},
-    {"id": "services/ingestion/climate_data.py:64:4","source": "services/ingestion/climate_data.py","line": 64,"column": 4,"scope": "_query_location_centroid","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location"],"static_sql_sha256": "4f9a3e98bfb8f4cef87b90be7fde95d03260c85079bf162b3c5b354806fcf349","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "read_candidate"},
-    {"id": "services/ingestion/climate_data.py:100:4","source": "services/ingestion/climate_data.py","line": 100,"column": 4,"scope": "fetch_worldclim","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["SET","worldclim_climate"],"static_sql_sha256": "f87c88368e85ede4f80cb393fbdc52f04049f8742d3f7bfdec5ee0f49148e74c","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "write_candidate"},
+    {"id": "services/ingestion/climate_data.py:64:4","source": "services/ingestion/climate_data.py","line": 64,"column": 4,"scope": "_query_location_centroid","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location"],"static_sql_sha256": "3b423730652249be4b8b95fbe4ab8e3d8de495bae9789ffffa49b1a7e560e078","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "read_candidate"},
+    {"id": "services/ingestion/climate_data.py:104:4","source": "services/ingestion/climate_data.py","line": 104,"column": 4,"scope": "fetch_worldclim","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["SET","worldclim_climate"],"static_sql_sha256": "f87c88368e85ede4f80cb393fbdc52f04049f8742d3f7bfdec5ee0f49148e74c","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "write_candidate"},
     {"id": "services/ingestion/copernicus_remote_sensing.py:204:4","source": "services/ingestion/copernicus_remote_sensing.py","line": 204,"column": 4,"scope": "_insert_pg","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["remote_sensing_observation"],"static_sql_sha256": "e6a1e46c77d29d6b16e0e7a6cf93a3499aedc5f0a3d58b6a75b5d1e08fdccac0","operation_refs": ["scheduled_module:services.ingestion.remote_sensing_fetcher"],"statement_group": "write_candidate"},
     {"id": "services/ingestion/copernicus_remote_sensing.py:227:8","source": "services/ingestion/copernicus_remote_sensing.py","line": 227,"column": 8,"scope": "_insert_pg","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["remote_sensing_observation"],"static_sql_sha256": "ad8a00bca34c9183850be8e32dc0f5e95fedf307ff5c594562efecd7e0b1eaa7","operation_refs": ["scheduled_module:services.ingestion.remote_sensing_fetcher"],"statement_group": "read_candidate"},
     {"id": "services/ingestion/data_freshness.py:54:8","source": "services/ingestion/data_freshness.py","line": 54,"column": 8,"scope": "_query_freshness_configs","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["data_freshness_config"],"static_sql_sha256": "4c102ca184fdc3f91ab311d7c0a7f6e794a0050c635ea894b776b5b122b41d0d","operation_refs": ["scheduled_module:services.ingestion.data_freshness"],"statement_group": "read_candidate"},
@@ -4694,10 +4690,7 @@
     {"id": "services/ingestion/eas_indexer.py:334:24","source": "services/ingestion/eas_indexer.py","line": 334,"column": 24,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "RELEASE","candidate_relations": [],"static_sql_sha256": "b420e6a7675876ac24a0b63b2eb2a5ee7bc69935ca9c60c28e244f6024e4c65d","operation_refs": ["scheduled_module:services.ingestion.eas_indexer"],"statement_group": "transaction_or_session"},
     {"id": "services/ingestion/eas_indexer.py:343:24","source": "services/ingestion/eas_indexer.py","line": 343,"column": 24,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "ROLLBACK","candidate_relations": [],"static_sql_sha256": "ce4392cad1437ff61f7ba48aa64b6fd19e516e26c8b36c62db5a20098efed229","operation_refs": ["scheduled_module:services.ingestion.eas_indexer"],"statement_group": "transaction_or_session"},
     {"id": "services/ingestion/eas_indexer.py:344:24","source": "services/ingestion/eas_indexer.py","line": 344,"column": 24,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "RELEASE","candidate_relations": [],"static_sql_sha256": "b420e6a7675876ac24a0b63b2eb2a5ee7bc69935ca9c60c28e244f6024e4c65d","operation_refs": ["scheduled_module:services.ingestion.eas_indexer"],"statement_group": "transaction_or_session"},
-    {"id": "services/ingestion/gee_climate.py:97:8","source": "services/ingestion/gee_climate.py","line": 97,"column": 8,"scope": "fetch_modis_lst","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["modis_lst_summary"],"static_sql_sha256": "c55876cdc0fff088a1256232fb01b04b17e0671d2865252df89a488faff4295a","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "write_candidate"},
-    {"id": "services/ingestion/gee_climate.py:160:8","source": "services/ingestion/gee_climate.py","line": 160,"column": 8,"scope": "fetch_smap_moisture","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["smap_soil_moisture"],"static_sql_sha256": "43861c737301edd4aacb39cee1cccf47de40c68deba2ce6afc589d0a609d1320","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "write_candidate"},
-    {"id": "services/ingestion/gee_climate.py:229:8","source": "services/ingestion/gee_climate.py","line": 229,"column": 8,"scope": "fetch_sentinel1_sar","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["sentinel1_sar_summary"],"static_sql_sha256": "ba0bac4c593ab7cb3fdc2e3bed5e2bb5d2c7346a2b9207cfd7c0261cf783ab5d","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "write_candidate"},
-    {"id": "services/ingestion/gee_climate.py:299:8","source": "services/ingestion/gee_climate.py","line": 299,"column": 8,"scope": "fetch_era5_land","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["ncep_weather_summary"],"static_sql_sha256": "664168f84cbe5e183ada74acf1a1d8694265851ac343aad11176b4bc64026721","operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "write_candidate"},
+    {"id": "services/ingestion/gee_climate.py:76:8","source": "services/ingestion/gee_climate.py","line": 76,"column": 8,"scope": "_persist_summary","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": ["scheduled_module:services.ingestion.climate_data"],"statement_group": "unknown_requires_manual_review"},
     {"id": "services/ingestion/gee_remote_sensing.py:282:4","source": "services/ingestion/gee_remote_sensing.py","line": 282,"column": 4,"scope": "_insert_pg","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["remote_sensing_observation"],"static_sql_sha256": "ff0023398ce86e069bbfe95608f9df032ab18394eaa4add9425d00f240714e9a","operation_refs": ["scheduled_module:services.ingestion.remote_sensing_fetcher"],"statement_group": "write_candidate"},
     {"id": "services/ingestion/gee_remote_sensing.py:321:8","source": "services/ingestion/gee_remote_sensing.py","line": 321,"column": 8,"scope": "_insert_pg","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["remote_sensing_observation"],"static_sql_sha256": "ad8a00bca34c9183850be8e32dc0f5e95fedf307ff5c594562efecd7e0b1eaa7","operation_refs": ["scheduled_module:services.ingestion.remote_sensing_fetcher"],"statement_group": "read_candidate"},
     {"id": "services/ingestion/gis_import.py:203:8","source": "services/ingestion/gis_import.py","line": 203,"column": 8,"scope": "resolve_target_record","method": "execute","expression_kind": "fstring","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": null,"operation_refs": [],"statement_group": "read_candidate"},

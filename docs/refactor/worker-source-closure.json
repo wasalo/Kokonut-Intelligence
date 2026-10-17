@@ -1260,25 +1260,25 @@
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 222,
+          "line": 227,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 241,
+          "line": 246,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 260,
+          "line": 265,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 279,
+          "line": 284,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
@@ -1290,13 +1290,13 @@
         },
         {
           "source": "services/ingestion/gee_climate.py",
-          "line": 19,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/gee_climate.py",
-          "line": 20,
+          "line": 16,
           "target": "services.ingestion.base",
           "kind": "from"
         }

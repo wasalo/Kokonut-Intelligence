@@ -1,5 +1,31 @@
 # Kokonut Kernel implementation progress
 
+### Climate provider schema and retry contract — 17 October 2026
+
+The climate source path queried a nonexistent location `centroid` and four
+GEE writes used columns that were absent from the canonical migration-074
+tables. It also used an obsolete SMAP band, averaged accumulated ERA5
+precipitation without converting meters to millimeters, committed provider rows
+before their audit records, and could report provider failure as successful
+scheduled execution. Location resolution now uses `location.center` with the
+stored latitude/longitude fallback. MODIS, current SMAP collection 006,
+Sentinel-1, and ERA5-Land persist into their declared columns with the intended
+scaling, reducer, resolution, provenance, and stored units. Migration 428 adds
+partial location/date/source keys only after refusing duplicate location rows;
+plot-level records remain outside those keys. Each GEE upsert and audit row now
+shares one transaction, and provider failures return a nonzero result. The 25
+focused climate tests, Ruff, compilation, and four disposable PostgreSQL 16
+replay/duplicate/upsert/plot-isolation checks pass. This is source and synthetic
+database evidence only; no real provider, candidate, legacy database, or
+schedule was used. The candidate remains through migration 403, migration 428
+is not deployed, and the scheduled path still uses the shared runtime identity.
+Signed climate scope, live provider parity, schedule ownership and acceptance
+remain open ([migration](../../schemas/postgres/428_climate_summary_idempotency.sql);
+[tests](../../tests/test_climate_data.py);
+[disposable runner](../../scripts/check-climate-summary-idempotency-disposable.py);
+[migration evidence](builds/2026-10-17-recovery/climate-summary-idempotency-disposable.json);
+[contract evidence](builds/2026-10-17-recovery/climate-provider-contract.json)).
+
 ### Signed current-weather worker — 17 October 2026
 
 Native scheduled current-weather ingestion now uses a dedicated default-off worker. The scheduler forwards only its exact `weather` database URL, worker credential, and OpenWeatherMap API key; shared PostgreSQL settings are stripped from the worker environment. The worker resolves coordinates and stores one location-scoped observation under signed `weather_observation/ingest` context. Migration 427 commits the canonical observation, sanitized success/failure audit, ClickHouse outbox intent, and idempotency receipt atomically through a bounded function. Conflicting outbox identities fail closed, while an exact pre-existing projection intent can be reused safely.
