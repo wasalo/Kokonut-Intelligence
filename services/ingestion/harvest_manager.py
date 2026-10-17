@@ -7,7 +7,7 @@ import json
 import os
 import socket
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit, urlunsplit
 
 from services.common.logging import get_logger
 
@@ -36,10 +36,44 @@ def _validate_external_url(source_url: str) -> None:
         raise ValueError("source_url cannot target a private or local network")
 
 
+def _redact_source_url(source_url: str) -> str:
+    """Keep a useful origin/path reference without storing URL credentials or query data."""
+    try:
+        parsed = urlsplit(source_url)
+        hostname = parsed.hostname
+        if not parsed.scheme or not parsed.netloc or not hostname:
+            return "[invalid source URL]"
+        host = f"[{hostname}]" if ":" in hostname else hostname
+        try:
+            port = parsed.port
+        except ValueError:
+            return "[invalid source URL]"
+        netloc = f"{host}:{port}" if port is not None else host
+        return urlunsplit((parsed.scheme, netloc, parsed.path, "", ""))
+    except (TypeError, ValueError):
+        return "[invalid source URL]"
+
+
+def _harvest_error_summary(error: Exception) -> str:
+    """Preserve known local validation guidance and redact other exception text."""
+    safe_validation_messages = {
+        "source_url must be an HTTPS URL without embedded credentials",
+        "source_url cannot target localhost",
+        "source_url hostname could not be resolved safely",
+        "source_url cannot target a private or local network",
+        "source_url redirects are not allowed",
+    }
+    if type(error) is ValueError:
+        message = str(error)
+        if message in safe_validation_messages:
+            return message
+    return f"harvest failed ({type(error).__name__})"
+
+
 def harvest_from_url(conn, location_id: str, source_url: str,
                      source_format: str = "json",
                      source_system: str = "manual") -> dict:
-    log_id = _create_log(conn, location_id, source_url, source_format, source_system)
+    log_id = _create_log(conn, location_id, _redact_source_url(source_url), source_format, source_system)
 
     try:
         _validate_external_url(source_url)
@@ -63,8 +97,9 @@ def harvest_from_url(conn, location_id: str, source_url: str,
         _complete_log(conn, log_id, records_count)
         return {"status": "success", "records_ingested": records_count, "log_id": log_id}
     except Exception as e:
-        _fail_log(conn, log_id, str(e))
-        return {"status": "error", "message": str(e), "log_id": log_id}
+        safe_error = _harvest_error_summary(e)
+        _fail_log(conn, log_id, safe_error)
+        return {"status": "error", "message": safe_error, "log_id": log_id}
 
 
 def harvest_from_file(conn, location_id: str, filepath: str,

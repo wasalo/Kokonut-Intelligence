@@ -203,6 +203,10 @@ Data Stream batch anchoring also bounds per-post failures while retaining
 successful pending requests and partial-success totals; one new mocked
 regression passes within the 47-test Data Stream suite with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/data-stream-anchor-error-redaction.json)).
+Remote harvest logs now retain a URL source reference without user-info/query/
+fragment data, and provider failures are class-only in persisted/returned
+messages; safe validation guidance remains. Two mocked regressions pass with
+Ruff and compilation ([evidence](builds/2026-10-17-recovery/harvest-manager-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

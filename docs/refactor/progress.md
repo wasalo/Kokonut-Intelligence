@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Remote harvest failure containment — 17 October 2026
+
+Remote harvest logs now remove URL user-info, query data, and fragments, while
+unexpected provider/parse failures persist and return only a bounded exception
+summary. Safe URL validation guidance and original request behavior remain.
+Two mocked regressions pass with Ruff and compilation; no DNS, database, or
+external request was used
+([evidence](builds/2026-10-17-recovery/harvest-manager-error-redaction.json)).
+
 ### Data Stream anchor failure containment — 17 October 2026
 
 Batch anchoring now returns only a bounded exception-class summary for a failed

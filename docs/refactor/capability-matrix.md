@@ -349,6 +349,13 @@ One mocked regression passes within 52 attestation/EAS tests with Ruff and
 compilation; no provider or database was contacted
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
 
+**17 October 2026 remote harvest error containment (CAP-040 / CAP-047):**
+stored URL references omit user-info, query data, and fragments; provider
+failures omit raw exception text in persisted and returned results, while known
+safe URL validation guidance remains. Two mocked regressions pass with Ruff
+and compilation; no DNS, database, or external request was used
+([evidence](builds/2026-10-17-recovery/harvest-manager-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes
