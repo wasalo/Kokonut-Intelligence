@@ -294,6 +294,7 @@ class DriverRegistry:
             or getattr(driver_class, "name", None) != driver_name
             or getattr(driver_class, "driver_type", None) != driver_type
             or getattr(driver_class, "supports_scheduled_pull", False) is not True
+            or not callable(getattr(driver_class, "fetch_scheduled", None))
         ):
             raise ValueError("code-allowlisted sensor driver does not satisfy its contract")
         return driver_class

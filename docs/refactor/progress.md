@@ -1,5 +1,27 @@
 # Kokonut Kernel implementation progress
 
+### Scheduled sensor input confinement — 17 October 2026
+
+The built-in scheduled `sensor_csv` driver now reads only beneath a configured
+input root. Compose exposes `/var/lib/kokonut/sensor-inputs` as a read-only
+mount, with the host source selected by `KOKONUT_SENSOR_CSV_HOST_DIR`; direct
+host execution uses `KOKONUT_SENSOR_CSV_ROOT`. The implementation rejects
+paths outside the root, parent traversal, symlinked components, missing roots,
+and non-regular files, and opens each path component with `O_NOFOLLOW`.
+Scheduled drivers must provide this code-owned `fetch_scheduled` method; the
+manual CSV CLI remains unchanged. The combined sensor schedule/CLI/command
+contract/worker-map suite passes 179 tests; Ruff, compilation, and legacy,
+Kernel candidate-standard, and portability Compose config checks pass. Tests
+used synthetic temporary files; no configured sensor input, database, provider,
+persisted schedule, candidate service, or legacy service was accessed. This
+closes only scheduled code selection and input-root confinement. Signed worker
+identity, bounded SQL functions, tenant authorization/RLS, live source parity,
+and MAN-CAP-040/047 acceptance remain open
+([contract](sensor-driver-scheduled-contract.md);
+[implementation](../../services/ingestion/drivers/sensor_csv.py);
+[tests](../../tests/test_sensor_driver_schedule.py);
+[evidence](builds/2026-10-17-recovery/scheduled-sensor-csv-path-confinement.json)).
+
 ### Scheduled sensor-driver import boundary — 17 October 2026
 
 The scheduled sensor-pull path previously verified the instance's location and
@@ -13,8 +35,7 @@ available; new scheduled plug-ins require a reviewed code allowlist entry. The
 Ruff, compilation, and `git diff --check`. No database, driver instance, file,
 provider, persisted schedule, migration, or candidate service was accessed.
 This closes the database-selected import boundary only: signed worker
-identity, bounded database functions, CSV path confinement, runtime source
-parity, and MAN-CAP-040/047 acceptance remain open
+identity, bounded database functions, runtime source parity, provider behavior, and MAN-CAP-040/047 acceptance remain open; CSV path confinement is closed by the later scheduled sensor input confinement entry
 ([implementation](../../services/drivers/registry.py);
 [tests](../../tests/test_sensor_driver_schedule.py);
 [evidence](builds/2026-10-17-recovery/scheduled-sensor-driver-code-allowlist.json);

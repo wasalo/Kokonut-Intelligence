@@ -5869,7 +5869,7 @@
           "qualname": "DriverRegistry.update_instance_status",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 341
+          "line": 342
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -6127,7 +6127,7 @@
           "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
           "callee": "services.drivers.registry:DriverRegistry._get_conn",
           "source": "services/drivers/registry.py",
-          "line": 351
+          "line": 352
         },
         {
           "caller": "services.ingestion.base:get_clickhouse",

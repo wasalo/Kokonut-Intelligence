@@ -463,7 +463,7 @@ def run_driver_instance(instance_id: str, location_id: str) -> dict:
             source_id = source.get("source_id")
             if not isinstance(source_id, str) or not source_id.strip():
                 raise ValueError("sensor driver source requires a non-empty source_id")
-            raw = driver.fetch(source)
+            raw = driver.fetch_scheduled(source)
             records = driver.transform(raw)
             if not isinstance(records, list):
                 raise ValueError("sensor driver transform must return a list")

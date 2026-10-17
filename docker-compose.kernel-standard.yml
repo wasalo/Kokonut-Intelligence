@@ -75,6 +75,7 @@ services:
       KOKONUT_FEATURE_METABASE: "false"
       KOKONUT_FEATURE_MQTT: "false"
       KOKONUT_FEATURE_PREFECT: "false"
+      KOKONUT_SENSOR_CSV_ROOT: /var/lib/kokonut/sensor-inputs
       DIRECTUS_URL: ${DIRECTUS_URL:-http://directus:8055}
       DIRECTUS_ADMIN_TOKEN: ${DIRECTUS_ADMIN_TOKEN:-}
       ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
@@ -88,3 +89,6 @@ services:
       KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES: ${KOKONUT_NOTIFICATION_OUTBOX_CRITICAL_BYTES:-536870912}
     networks:
       - kernel
+    volumes:
+      - kernel-gateway-audit-spool:/var/lib/kokonut/gateway-audit
+      - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro

@@ -222,7 +222,7 @@ def scheduled_sensor_runtime(monkeypatch):
     driver.supports_scheduled_pull = True
     driver.validate_config.return_value = True
     driver.discover.return_value = [source]
-    driver.fetch.return_value = {"raw": True}
+    driver.fetch_scheduled.return_value = {"raw": True}
     driver.transform.return_value = [record]
     registry = MagicMock()
     registry.get_schedulable_instance.return_value = {
@@ -398,4 +398,81 @@ def test_sensor_csv_scheduled_pull_caps_source_rows(tmp_path):
     with pytest.raises(ValueError, match="record limit"):
         SensorCsvDriver(config={"file_path": str(source)}).fetch(
             {"source_id": str(source)}
+        )
+
+
+def test_sensor_csv_scheduled_fetch_reads_relative_path_under_configured_root(
+    tmp_path, monkeypatch
+):
+    root = tmp_path / "sensor-inputs"
+    root.mkdir()
+    source = root / "readings.csv"
+    source.write_text(
+        "device_id,reading_date,reading_time,value\n"
+        "soil-probe-1,2026-10-16,12:00:00,34.5\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("KOKONUT_SENSOR_CSV_ROOT", str(root))
+
+    result = SensorCsvDriver(config={}).fetch_scheduled(
+        {"source_id": "readings.csv"}
+    )
+
+    assert result["data"] == [
+        {
+            "device_id": "soil-probe-1",
+            "reading_date": "2026-10-16",
+            "reading_time": "12:00:00",
+            "value": "34.5",
+        }
+    ]
+
+
+def test_sensor_csv_scheduled_fetch_rejects_parent_traversal(tmp_path, monkeypatch):
+    root = tmp_path / "sensor-inputs"
+    root.mkdir()
+    (tmp_path / "private.csv").write_text("secret\n", encoding="utf-8")
+    monkeypatch.setenv("KOKONUT_SENSOR_CSV_ROOT", str(root))
+
+    with pytest.raises(ValueError, match="configured root"):
+        SensorCsvDriver(config={}).fetch_scheduled(
+            {"source_id": "../private.csv"}
+        )
+
+
+def test_sensor_csv_scheduled_fetch_rejects_symlinked_file(tmp_path, monkeypatch):
+    root = tmp_path / "sensor-inputs"
+    root.mkdir()
+    outside = tmp_path / "private.csv"
+    outside.write_text("secret\n", encoding="utf-8")
+    (root / "readings.csv").symlink_to(outside)
+    monkeypatch.setenv("KOKONUT_SENSOR_CSV_ROOT", str(root))
+
+    with pytest.raises(ValueError, match="unavailable"):
+        SensorCsvDriver(config={}).fetch_scheduled(
+            {"source_id": "readings.csv"}
+        )
+
+
+def test_sensor_csv_scheduled_fetch_rejects_symlinked_parent(tmp_path, monkeypatch):
+    root = tmp_path / "sensor-inputs"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "private.csv").write_text("secret\n", encoding="utf-8")
+    (root / "alias").symlink_to(outside, target_is_directory=True)
+    monkeypatch.setenv("KOKONUT_SENSOR_CSV_ROOT", str(root))
+
+    with pytest.raises(ValueError, match="unavailable"):
+        SensorCsvDriver(config={}).fetch_scheduled(
+            {"source_id": "alias/private.csv"}
+        )
+
+
+def test_sensor_csv_scheduled_fetch_requires_configured_root(tmp_path, monkeypatch):
+    monkeypatch.delenv("KOKONUT_SENSOR_CSV_ROOT", raising=False)
+
+    with pytest.raises(ValueError, match="root is not configured"):
+        SensorCsvDriver(config={}).fetch_scheduled(
+            {"source_id": "readings.csv"}
         )

@@ -206,7 +206,7 @@
     },
     {
       "module": "services.ingestion.sensor_ingester",
-      "scope": "Manual capture modes retain their explicit location-bound inputs. Scheduled mode requires one canonical --location-id and one --driver-instance-id; the registry query accepts only an enabled sensor driver instance assigned to that exact location. Before any import, the stored driver name/type/module/class must match the immutable source-controlled scheduled-driver map. The scheduler imports only that static target; database values cannot select Python code. The built-in sensor_csv pull remains available and is bounded to 100 sources/10,000 records; new scheduled plug-ins require a code-reviewed allowlist entry. MQTT remains event-driven. The location UUID is still only query scope and does not authenticate the scheduler or establish tenant authorization/RLS.",
+      "scope": "Manual capture modes retain their explicit location-bound inputs. Scheduled mode requires one canonical --location-id and one --driver-instance-id; the registry query accepts only an enabled sensor driver instance assigned to that exact location. Before any import, stored driver name/type/module/class must match the immutable source-controlled scheduled-driver map. The scheduler imports only that static target; database values cannot select Python code. Scheduled drivers must implement fetch_scheduled. The built-in sensor_csv fetch is bounded to 100 sources/10,000 records and reads only beneath KOKONUT_SENSOR_CSV_ROOT (container path /var/lib/kokonut/sensor-inputs); Compose mounts the operator-selected KOKONUT_SENSOR_CSV_HOST_DIR read-only. Parent traversal, outside-root paths, symlinked components, and non-regular files are rejected with no-follow descriptor opens. New scheduled plug-ins require a code-reviewed allowlist entry. MQTT remains event-driven. The location UUID is still only query scope and does not authenticate the scheduler or establish tenant authorization/RLS.",
       "reads": [
         "public.driver_instance",
         "public.driver_registry",
@@ -222,7 +222,7 @@
         "public.clickhouse_outbox"
       ],
       "external_effects": [
-        "Filesystem read from the configured sensor_csv source path"
+        "Filesystem read only beneath the configured sensor_csv root; Compose input mount is read-only and path components are opened with O_NOFOLLOW"
       ],
       "idempotency": "The batch writes canonical readings, ClickHouse outbox projections, ingestion audit, and new-reading events in one PostgreSQL transaction. Sensor timestamp uniqueness suppresses exact duplicate values and rejects conflicting values; duplicate rows do not publish another event. Source ordering and external file changes are not checkpointed.",
       "retry_boundary": "A failed database batch rolls back all accepted rows/projections/events; the driver instance status is updated separately. Replaying the same sensor timestamp/value is idempotent, while a conflicting timestamp fails the batch. Provider-file advancement and populated-source parity remain unverified.",
@@ -236,7 +236,12 @@
         "services/ingestion/sensor_ingester.py",
         "services/scheduler/job_plan.py",
         "services/security/scheduled_command_contracts.py",
-        "tests/test_sensor_driver_schedule.py"
+        "tests/test_sensor_driver_schedule.py",
+        ".env.example",
+        "docker-compose.worker.yml",
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.kernel-standard.yml",
+        "docs/refactor/sensor-driver-scheduled-contract.md"
       ]
     },
     {
@@ -1106,7 +1111,7 @@
   "known_open_items": [
     "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, and market-data integrations remain default-off and require credential provisioning and candidate rollout after disposable SQL acceptance. The scheduled sensor pull still needs its own isolated worker identity, signed bounded database functions, and configured-path confinement.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, and market-data integrations remain default-off and require credential provisioning and candidate rollout after disposable SQL acceptance. The scheduled sensor pull still needs its own isolated worker identity, signed bounded database functions,.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]
 }

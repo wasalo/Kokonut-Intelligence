@@ -120,6 +120,10 @@ services:
       KOKONUT_FEATURE_SCHEDULER: "true"
       KOKONUT_FEATURE_EVENT_BUS: "true"
       KOKONUT_FEATURE_NOTIFICATION_DELIVERY: ${KOKONUT_FEATURE_NOTIFICATION_DELIVERY:-true}
+      KOKONUT_SENSOR_CSV_ROOT: /var/lib/kokonut/sensor-inputs
+    volumes:
+      - portability-gateway-audit-spool:/var/lib/kokonut/gateway-audit
+      - ${KOKONUT_SENSOR_CSV_HOST_DIR:-./data/sensor-inputs}:/var/lib/kokonut/sensor-inputs:ro
     # The image HTTP probe belongs to the API; durable records track worker progress.
     healthcheck:
       disable: true
