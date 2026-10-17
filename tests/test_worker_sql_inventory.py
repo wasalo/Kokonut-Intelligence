@@ -105,9 +105,9 @@ def test_unknown_sql_sites_include_generic_adapters_and_climate_template_dispatc
     unknown = [site for site in _load_inventory()["execution_sites"] if site["statement_kind"] == "UNKNOWN"]
 
     assert [(site["source"], site["line"]) for site in unknown] == [
-        ("services/common/database.py", 71),
-        ("services/common/database.py", 74),
-        ("services/common/database.py", 136),
+        ("services/common/database.py", 77),
+        ("services/common/database.py", 80),
+        ("services/common/database.py", 142),
         # The provider selects one of four source-defined SQL templates, then
         # passes the template and bound values to this shared persistence helper.
         ("services/ingestion/gee_climate.py", 92),
@@ -161,9 +161,9 @@ def test_dynamic_and_transaction_control_statement_kinds_are_classified():
     by_location = {(site["source"], site["line"]): site["statement_kind"] for site in inventory["execution_sites"]}
 
     assert by_location[("services/ingestion/data_freshness.py", 104)] == "SELECT"
-    assert by_location[("services/ingestion/data_freshness.py", 390)] == "SAVEPOINT"
-    assert by_location[("services/ingestion/data_freshness.py", 402)] == "ROLLBACK"
-    assert by_location[("services/ingestion/data_freshness.py", 484)] == "RELEASE"
+    assert by_location[("services/ingestion/data_freshness.py", 408)] == "SAVEPOINT"
+    assert by_location[("services/ingestion/data_freshness.py", 420)] == "ROLLBACK"
+    assert by_location[("services/ingestion/data_freshness.py", 502)] == "RELEASE"
     assert by_location[("services/ingestion/ml_anomaly_detector.py", 489)] == "SELECT"
 
 

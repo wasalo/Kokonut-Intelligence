@@ -18,8 +18,11 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
 
     assert inventory["summary"]["outcomes"] == {
         "default_arguments_accepted": 5,
-        "required_runtime_inputs_validated": 11,
+        "required_runtime_inputs_validated": 12,
     }
+    assert jobs["eas"]["required_inputs"] == ["chain"]
+    assert jobs["eas"]["module"] == "services.ingestion.eas_worker"
+    assert jobs["eas_legacy"]["required_inputs"] == ["chain"]
     assert jobs["noi_snapshots"]["required_inputs"] == ["location_id"]
     assert jobs["noi_snapshots"]["status"] == "required_runtime_inputs_validated"
     assert jobs["noi_snapshots"]["module"] == "services.metrics.noi_snapshot_worker"

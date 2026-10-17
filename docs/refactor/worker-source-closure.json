@@ -106,8 +106,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -123,6 +129,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -130,7 +142,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -226,8 +238,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -243,6 +261,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -250,7 +274,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -298,25 +322,19 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 16,
+          "line": 18,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 56,
+          "line": 62,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 357,
+          "line": 363,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -553,7 +571,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 39,
+          "line": 45,
           "kind": "dynamic module expression"
         }
       ]
@@ -587,8 +605,14 @@
       "local_import_edges": [
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -604,6 +628,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -611,7 +641,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -718,8 +748,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -735,6 +771,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -742,7 +784,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -772,25 +814,19 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 16,
+          "line": 18,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 56,
+          "line": 62,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 357,
+          "line": 363,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -973,7 +1009,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 39,
+          "line": 45,
           "kind": "dynamic module expression"
         }
       ]
@@ -1033,8 +1069,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -1050,6 +1092,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -1057,7 +1105,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -1188,8 +1236,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -1205,6 +1259,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -1212,7 +1272,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -1381,8 +1441,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -1398,6 +1464,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -1405,7 +1477,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -1606,8 +1678,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -1623,6 +1701,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -1630,7 +1714,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -1696,7 +1780,7 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 328,
+          "line": 338,
           "target": "services.common.http",
           "kind": "from"
         }
@@ -1763,8 +1847,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -1780,6 +1870,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -1787,7 +1883,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -1944,8 +2040,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -1961,6 +2063,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -1968,7 +2076,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -2075,8 +2183,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -2092,6 +2206,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -2099,7 +2219,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -2232,8 +2352,14 @@
       "local_import_edges": [
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -2249,6 +2375,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -2256,7 +2388,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -2385,8 +2517,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -2402,6 +2540,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -2409,7 +2553,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -2574,8 +2718,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -2591,6 +2741,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -2598,7 +2754,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -2819,8 +2975,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -2836,6 +2998,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -2843,7 +3011,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3100,8 +3268,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -3117,6 +3291,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -3124,7 +3304,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3297,8 +3477,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -3314,6 +3500,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -3321,7 +3513,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3357,25 +3549,19 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 16,
+          "line": 18,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 56,
+          "line": 62,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 357,
+          "line": 363,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -3520,7 +3706,7 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 39,
+          "line": 45,
           "kind": "dynamic module expression"
         }
       ]
@@ -3590,8 +3776,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -3607,6 +3799,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -3614,7 +3812,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3792,8 +3990,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -3809,6 +4013,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -3816,7 +4026,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3977,8 +4187,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -3994,6 +4210,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -4001,7 +4223,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4170,8 +4392,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -4187,6 +4415,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -4194,7 +4428,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4411,8 +4645,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -4428,6 +4668,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -4435,7 +4681,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4695,8 +4941,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -4712,6 +4964,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -4719,7 +4977,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -4743,25 +5001,19 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 16,
+          "line": 18,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 56,
+          "line": 62,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 357,
+          "line": 363,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -5004,7 +5256,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 39,
+          "line": 45,
           "kind": "dynamic module expression"
         }
       ]
@@ -5060,8 +5312,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -5077,6 +5335,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -5084,7 +5348,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5221,8 +5485,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -5238,6 +5508,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -5245,7 +5521,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5358,8 +5634,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -5375,6 +5657,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -5382,7 +5670,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5495,8 +5783,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -5512,6 +5806,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -5519,7 +5819,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5632,8 +5932,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -5649,6 +5955,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -5656,7 +5968,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5705,8 +6017,14 @@
       "local_import_edges": [
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -5722,6 +6040,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -5729,7 +6053,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5844,8 +6168,14 @@
       "local_import_edges": [
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -5861,6 +6191,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -5868,7 +6204,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -6023,8 +6359,14 @@
         },
         {
           "source": "services/common/database.py",
-          "line": 23,
+          "line": 24,
           "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
@@ -6040,6 +6382,12 @@
           "kind": "from"
         },
         {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
           "source": "services/common/env.py",
           "line": 10,
           "target": "services.common.worker_environment",
@@ -6047,7 +6395,7 @@
         },
         {
           "source": "services/common/env.py",
-          "line": 180,
+          "line": 197,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -6077,25 +6425,19 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 15,
-          "target": "services.common.worker_environment",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/bus.py",
-          "line": 16,
+          "line": 18,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 56,
+          "line": 62,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 357,
+          "line": 363,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -6278,7 +6620,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 39,
+          "line": 45,
           "kind": "dynamic module expression"
         }
       ]

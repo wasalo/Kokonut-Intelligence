@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### Worker inventory refresh — 17 October 2026
+
+Refreshing generated maps after the EAS provider extraction and freshness-alert
+helper update brought the source graph to 31 operation roots and 92 source files.
+The graph contains 624 function memberships, 850 direct-call edges, 20 dynamic
+dispatch edges, 322 worker SQL sites, 249 unique SQL sites on static paths, and
+73 sites without a static function match. The runtime SQL inventory records
+4,004 sites across 825 files. All worker source/function/SQL/effect/preflight,
+JobSpec, runtime SQL, and capability-matrix checks pass; eight focused
+inventory test files pass 50 tests. The preflight remains
+`review_required`; this source inventory does not establish grants, RLS, active
+schedules, runtime identity, or MAN-CAP acceptance
+([evidence](builds/2026-10-17-recovery/worker-inventory-refresh-current.json)).
+
 ### Freshness alert failure containment — 17 October 2026
 
 The legacy data-freshness alert sender now closes webhook responses after both

@@ -62,8 +62,8 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  23 scheduled modules and seven allowlisted handler pairs. It covers 90
-  distinct local source files across 30 operation roots, with no unresolved
+  24 scheduled modules and seven allowlisted handler pairs. It covers 92
+  distinct local source files across 31 operation roots, with no unresolved
   local modules and known dynamic import sites (EventBus handler dispatch
   and driver registry lookup). EventBus dispatch is constrained by
   `validate_event_handler` and the exact allowlist. Package `__main__.py`
@@ -84,16 +84,16 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 30
-  operation roots and 90 source files, entry functions reach 611 function
-  memberships through 836 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 31
+  operation roots and 92 source files, entry functions reach 624 function
+  memberships through 850 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 315
-  Python `.execute` sites in those 90 files. It fingerprints 272 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 322
+  Python `.execute` sites in those 92 files. It fingerprints 279 literal
   statements and flags 43 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -101,8 +101,8 @@ application-wide RLS or proof for other workers.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 315 sites to the operation graph without including SQL text or
-  values. It links 242 unique sites across 313 operation/site memberships;
+  joins those 322 sites to the operation graph without including SQL text or
+  values. It links 249 unique sites across 321 operation/site memberships;
   73 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
@@ -111,7 +111,7 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 30 operation roots and local imports, reports that the scheduler
+  confirms all 31 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
   RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather,
   weather-forecast, climate, sensor-ingestion, and remote-sensing integrations establish
@@ -123,9 +123,9 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 36 unique candidate sites across 45 operation/site memberships: HTTP
-  (13 unique / 17 memberships), email delivery (6), process (1), EVM RPC (3),
-  EVM client setup (4), filesystem (8), and dynamic import (1), across 30 operation roots. These are review candidates,
+  finds 36 unique candidate sites across 46 operation/site memberships: HTTP
+  (13 unique / 22 memberships), email delivery (6), process (1), EVM RPC (3),
+  EVM client setup (4), filesystem (8), and dynamic import (1), across 31 operation roots. These are review candidates,
   not confirmed runtime effects. Other worker roots may still conservatively
   include mutually exclusive CLI branches. The credit-adjustment schedule now
   uses a dedicated read-only entrypoint; the interactive issuance/retirement
@@ -145,7 +145,7 @@ application-wide RLS or proof for other workers.
   provider internals, arbitrary callbacks, database-side effects, or establish
   replay safety, tenant context, or database grants.
 - Source-pattern review covers all 43 composed/variable statements found by the
-  generated SQL inventory across 30 operation roots. The original 30-site
+  generated SQL inventory across 31 operation roots. The original 30-site
   review found that 21 use fixed
   application-owned fragments with bound values (including two timeout
   constants); three use the fixed `freshness_scope` savepoint name; one builds

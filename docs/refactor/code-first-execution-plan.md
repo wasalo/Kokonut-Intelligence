@@ -57,11 +57,13 @@ focused worker/import/EventBus/scheduler suite passes 130 tests, all eight
 scheduled worker `--help` checks pass, and Ruff, compilation, and diff checks
 are clean. No candidate migration, database, provider, schedule, or real
 credential was used ([evidence](builds/2026-10-17-recovery/isolated-worker-import-boundary.json)).
-The prior source-inventory batch refreshed the worker source closure, function
-graph, SQL reachability and execution inventory, worker effects, and whole-
-service SQL inventory; the graph covers 30 operation roots and 90 source files,
-73 SQL sites still lack a static function path, and the worker boundary
-preflight remains `review_required` ([inventory evidence](builds/2026-10-17-recovery/worker-sql-inventory-refresh.json)).
+The current source-inventory refresh covers 31 operation roots and 92 source
+files; 73 worker SQL sites still lack a static function path and the worker
+boundary preflight remains `review_required`. The whole-service SQL inventory
+covers 4,004 execution sites across 825 files. Generated worker/runtime maps
+were regenerated after current source edits, their check modes pass, and the
+eight focused inventory suites pass 50 tests
+([inventory evidence](builds/2026-10-17-recovery/worker-inventory-refresh-current.json)).
 **Previous pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
 **Previous functional batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
 
