@@ -18,7 +18,11 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
     {
         "services.analytics.carbon_credit_adjustment_check",
         "services.ingestion.weather",
+        # Keep the pre-isolation module available for persisted tasks until
+        # active schedules have been reconciled. New Kernel plans use the
+        # signed worker module below.
         "services.ingestion.weather_forecast",
+        "services.ingestion.weather_forecast_worker",
         "services.ingestion.market_data",
         "services.ingestion.eas_indexer",
         "services.ingestion.rpc_indexer",

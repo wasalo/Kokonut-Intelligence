@@ -87,7 +87,7 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 "events": "event_bus",
             }.get(name)
             allowed_worker_keys = (
-                ("scheduler", "noi_snapshot")
+                ("scheduler", "noi_snapshot", "weather_forecast")
                 if name == "scheduler"
                 else (worker_key,) if worker_key is not None else ()
             )

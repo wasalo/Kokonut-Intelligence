@@ -4,7 +4,7 @@
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
     "catalog_jobs": 16,
-    "allowlisted_modules": 17,
+    "allowlisted_modules": 18,
     "outcomes": {
       "default_arguments_accepted": 5,
       "required_runtime_inputs_validated": 11
@@ -169,8 +169,8 @@
     },
     {
       "job": "weather_forecast",
-      "module": "services.ingestion.weather_forecast",
-      "worker_key": null,
+      "module": "services.ingestion.weather_forecast_worker",
+      "worker_key": "weather_forecast",
       "argument_count": 0,
       "required_inputs": [
         "location_id"

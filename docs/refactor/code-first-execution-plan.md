@@ -5,7 +5,9 @@
 **Previous pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
 **Previous functional batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
 
-**Current code-first batch:** Native NOI snapshot reconciliation now runs through a dedicated scheduled module, exact worker-secret route, and default-off feature gate. The child receives its NOI DSN/credential pair only; shared PostgreSQL login settings are removed. Migration 425's bounded function requires the signed `noi_snapshot/reconcile` grant, limits reads/writes to the signed location, preserves a conflicting cross-location row, and gives the worker no direct table access. The focused source/scheduler/inventory suite passes 193 tests; seven disposable PostgreSQL 16 checks pass. The checklist is 430 checked / 21 open (451 total); the matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; no candidate or legacy database, provider, or persisted schedule was accessed. Credentials/grants are not provisioned and migration 425 is not rolled out, so the feature stays disabled and RLS remains open ([evidence](builds/2026-10-16-recovery/noi-snapshot-worker-disposable.json)).
+**Previous pushed functional batch:** Commit `61088543` routes native NOI snapshot reconciliation through its dedicated default-off worker, exact secret mapping, and migration 425's signed `noi_snapshot/reconcile` function. Its source/scheduler/inventory suite passed 193 tests and seven isolated PostgreSQL checks passed.
+
+**Current code-first batch:** Scheduled weather forecasts now use a dedicated default-off `services.ingestion.weather_forecast_worker`. The scheduler forwards only its named DSN/credential pair and strips shared PostgreSQL settings. Migration 426 adds signed location lookup, atomic forecast/audit/outbox storage, exact column privileges, and function-owner-only policies that pass with forced RLS in the disposable fixture. The focused forecast, scheduler, worker-boundary, and operation-map suite passes 203 checks; nine disposable PostgreSQL 16 checks pass; Ruff and generated inventories are clean. The 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. The checklist is 431 checked / 21 open (452 total). The candidate remains through migration 403; migration 426 is not rolled out, credentials/grants are unprovisioned, the feature stays off, and no provider or persisted schedule was accessed. Existing persisted forecast tasks remain on the legacy shared-identity module until schedule owners reconcile them. Broader RLS and live provider/schedule acceptance remain open ([evidence](builds/2026-10-16-recovery/weather-forecast-worker-disposable.json)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -70,7 +72,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **430 checked and 21 open items (451 total)**,
+- The execution checklist has **431 checked and 21 open items (452 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -402,12 +404,12 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-  [worker operation map](worker-operation-map.md) inventories all 16 scheduled
+  [worker operation map](worker-operation-map.md) inventories all 18 scheduled
   modules and seven event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
    open. The source-only effect index now records 35 unique direct effect sites
-  (38 operation/site memberships) across 23 worker roots. The scheduled carbon
+  (39 operation/site memberships) across 25 worker roots. The scheduled carbon
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
@@ -457,14 +459,14 @@ before protected reads and writes, and make direct database access fail closed.
 3. Complete runtime-role restrictions for remaining public tables and verify
    existing handlers still work through their narrow grants/functions.
    **Partial:** the opt-in bootstrap still grants broad DML on existing public
-   tables outside reviewed exceptions, but it now revokes both global and
+  tables outside reviewed exceptions, but it now revokes both global and
    `public`-schema default privileges for future tables and sequences. The
   disposable PostgreSQL 16 role acceptance still passed current-handler SQL
   and proved a table/sequence created after provisioning is inaccessible to
-  the runtime login. A new whole-services SQL inventory covers all 817 Python
+  the runtime login. A new whole-services SQL inventory covers all 818 Python
    source files and identifies direct execution sites and candidate relation
-  names without becoming an ACL. The current generated inventory covers 3,914
-  SQL execution sites across 817 source files, including 305 worker-linked
+  names without becoming an ACL. The current generated inventory covers 3,916
+  SQL execution sites across 818 source files, including 307 worker-linked
    sites; literal query wrappers are unwrapped while parameter values remain
    unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and
@@ -473,7 +475,7 @@ before protected reads and writes, and make direct database access fail closed.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
-  preflight confirms all 24 allowlisted roots and imports, reports the shared
+  preflight confirms all 25 allowlisted roots and imports, reports the shared
   runtime identity and 72 SQL sites without static function matches,
   and keeps RLS blocked. The complementary aggregate tenant preflight now
   reports pending/current-source checksum drift counts, connected-role
@@ -759,6 +761,25 @@ provider was activated. The location selector is not tenant authorization;
 signed worker context, per-location grant, credentials, cadence, and live
 provider parity remain open ([evidence](builds/2026-10-16-recovery/weather-forecast-scheduled-job-contract.json);
 [source contract](worker-job-contract-inventory.json); [schedule inventory](schedule-ownership-inventory.md)).
+
+**Signed weather-forecast worker — 16 October 2026:** the native scheduled
+module now routes through `services.ingestion.weather_forecast_worker` with an
+exact `weather_forecast` secret mapping and a default-off feature flag. The
+scheduler child receives only that DSN/credential pair; shared PostgreSQL
+settings are stripped. Migration 426 adds signed location lookup and bounded
+atomic forecast/audit/ClickHouse-outbox persistence. It uses only required
+column grants and a no-login function owner, and the disposable PostgreSQL 16
+fixture proves the path with forced RLS on location, forecast, audit, and
+outbox. The 127-test focused source/scheduler/map suite, Ruff, generated
+inventories, and nine disposable migration checks pass. The feature remains
+off and migration 426 is not candidate-deployed; real credentials/grants,
+provider parity, active schedule state, and legacy task reconciliation remain
+open. The legacy module stays allowlisted for persisted tasks and still uses
+the shared runtime identity until owners reconcile them. No candidate or
+legacy database, provider, schedule, or MAN-CAP acceptance was touched.
+Evidence: [migration check](builds/2026-10-16-recovery/weather-forecast-worker-disposable.json),
+[worker operation map](worker-operation-map.json), and
+[updated static inventories](worker-boundary-preflight.json).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and

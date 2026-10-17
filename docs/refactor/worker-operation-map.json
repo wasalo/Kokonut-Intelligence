@@ -3,8 +3,8 @@
   "reviewed": "2026-10-16",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The optional NOI snapshot module uses a separately named worker DSN, strips shared PostgreSQL settings from the child, and uses an exact secret mapping; other scheduled jobs and handlers still use the shared runtime database identity.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migration 425 adds the default-off NOI snapshot worker function and signed location grant; other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The optional NOI snapshot and weather-forecast modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425 and 426 add default-off signed location-scoped NOI snapshot reconciliation and weather-forecast ingestion; other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -46,11 +46,38 @@
         "OpenWeatherMap 5-day forecast HTTP requests"
       ],
       "idempotency": "PostgreSQL upserts on (location_id, forecast_date, forecast_hour, source); the ClickHouse outbox uses a canonical payload hash. A retry refreshes matching forecast slots without creating duplicate natural-key rows.",
-      "retry_boundary": "A retry repeats the OpenWeatherMap request and may update forecasts for the same location/window. The generated schedule remains disabled; no provider key, active schedule, or tenant authorization is established by this contract.",
+      "retry_boundary": "Legacy persisted tasks still use the shared runtime identity and remain allowlisted until schedule owners reconcile them. A retry repeats the OpenWeatherMap request and may update forecasts for the same location/window; the generated schedule remains disabled.",
       "sources": [
         "services/ingestion/weather_forecast.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.weather_forecast_worker",
+      "worker_key": "weather_forecast",
+      "scope": "The default-off worker requires one explicit --location-id, strips shared PostgreSQL identity settings from its child environment, and establishes a signed weather_forecast/ingest grant for the exact location before each database operation. Migration 426 exposes only signed coordinate lookup and a bounded atomic forecast/audit/outbox function; no direct application-table privileges are granted.",
+      "reads": [
+        "public.location"
+      ],
+      "writes": [
+        "public.weather_forecast",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "OpenWeatherMap 5-day forecast HTTP requests"
+      ],
+      "idempotency": "PostgreSQL upserts on (location_id, forecast_date, forecast_hour, source); the canonical ClickHouse outbox uses a payload hash and rejects a conflicting reused key. Forecast rows, audit state, and outbox intent commit atomically.",
+      "retry_boundary": "A retry repeats the provider request and signed location lookup, then revalidates the grant in the write transaction. Provider/parse errors produce a sanitized failed-ingestion audit row with no forecast or outbox rows. The feature remains off until migration 426 and a worker-specific grant/credential are provisioned; existing persisted tasks using the legacy module remain mapped separately until owner reconciliation.",
+      "sources": [
+        "services/ingestion/weather_forecast_worker.py",
+        "services/ingestion/weather_forecast.py",
+        "services/ingestion/base.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "schemas/postgres/426_signed_weather_forecast_worker.sql"
       ]
     },
     {

@@ -147,7 +147,8 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     events = scheduled["services.events"]
     credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_check"]
     projections = scheduled["services.ingestion.clickhouse_outbox"]
-    weather_forecasts = scheduled["services.ingestion.weather_forecast"]
+    legacy_weather_forecasts = scheduled["services.ingestion.weather_forecast"]
+    weather_forecasts = scheduled["services.ingestion.weather_forecast_worker"]
 
     assert "public.noi_snapshot" not in metrics["writes"]
     assert "public.v_crop_cycle_noi" not in metrics["reads"]
@@ -181,14 +182,18 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "ClickHouse" in " ".join(projections["external_effects"])
     assert "--run-once" in projections["scope"]
     assert "--limit 100" in projections["scope"]
+    assert legacy_weather_forecasts["reads"] == ["public.location"]
+    assert "persisted tasks" in legacy_weather_forecasts["retry_boundary"]
+    assert weather_forecasts["worker_key"] == "weather_forecast"
     assert weather_forecasts["reads"] == ["public.location"]
     assert weather_forecasts["writes"] == [
         "public.weather_forecast",
         "public.ingestion_log",
         "public.clickhouse_outbox",
     ]
-    assert "one explicit --location-id" in weather_forecasts["scope"]
-    assert "remains disabled" in weather_forecasts["retry_boundary"]
+    assert "signed weather_forecast/ingest grant" in weather_forecasts["scope"]
+    assert "default-off" in weather_forecasts["scope"]
+    assert "feature remains off" in weather_forecasts["retry_boundary"]
 
 
 def test_scheduled_credit_check_reachability_excludes_interactive_chain_effects():

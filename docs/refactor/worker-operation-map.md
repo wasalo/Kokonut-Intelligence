@@ -58,8 +58,8 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  16 scheduled modules and seven allowlisted handler pairs. It covers 83
-  distinct local source files across 23 operation roots and 587
+  18 scheduled modules and seven allowlisted handler pairs. It covers 85
+  distinct local source files across 25 operation roots and 632
   operation/import-edge memberships,
   with no unresolved local modules and the EventBus's one dynamic handler-import
   site. That site is dispatched through `validate_event_handler` and the exact
@@ -80,16 +80,16 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 23
-  operation roots and 83 source files, entry functions reach 476 function
-  memberships through 683 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 25
+  operation roots and 85 source files, entry functions reach 506 function
+  memberships through 714 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 304
-  Python `.execute` sites in those 83 files. It fingerprints 262 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 307
+  Python `.execute` sites in those 85 files. It fingerprints 265 literal
   statements and flags 42 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -97,8 +97,8 @@ application-wide RLS or proof for other workers.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 304 sites to the operation graph without including SQL text or
-  values. It links 232 unique sites across 278 operation/site memberships;
+  joins those 307 sites to the operation graph without including SQL text or
+  values. It links 235 unique sites across 289 operation/site memberships;
   72 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
@@ -107,10 +107,10 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 23 operation roots and local imports, reports that the scheduler
+  confirms all 25 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
-  RLS blocked. The anomaly and optional cache integrations establish context
-  within exact handler paths. It
+  RLS blocked. The anomaly, optional cache, NOI snapshot, and weather forecast
+  integrations establish context within exact worker paths. It
   explicitly leaves live grants, migration state, active schedules, and owner
   mappings `not_assessed`; it never connects to PostgreSQL. Use
   `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
@@ -118,9 +118,9 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 35 unique candidate sites across 38 operation/site memberships: HTTP
+  finds 35 unique candidate sites across 39 operation/site memberships: HTTP
   (12 unique / 15 memberships), email delivery (6), process (1), EVM RPC (3),
-  EVM client setup (4), filesystem (8), and dynamic import (1), across 23 operation roots. These are review candidates,
+  EVM client setup (4), filesystem (8), and dynamic import (1), across 25 operation roots. These are review candidates,
   not confirmed runtime effects. Other worker roots may still conservatively
   include mutually exclusive CLI branches. The credit-adjustment schedule now
   uses a dedicated read-only entrypoint; the interactive issuance/retirement
@@ -205,7 +205,7 @@ application-wide RLS or proof for other workers.
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
   compares all 16 shared job templates with the Kernel module allowlist and
-  command validation. Six no-input defaults pass and ten jobs require
+  command validation. Five no-input defaults pass and eleven jobs require
   validated runtime inputs; EAS and RPC each require one supported chain.
   Scheduled sensor ingestion requires one
   `--location-id` and one `--driver-instance-id`; the registry accepts only an
@@ -217,10 +217,15 @@ application-wide RLS or proof for other workers.
   its due-job API, and scheduled runs remain limited to a sequential
   `--run-jobs --limit` batch of 1–10 due jobs (the default JobSpec runs one),
   while ClickHouse projections are limited to one bounded `--run-once` delivery
-  batch. The five-day weather forecast has its own disabled `weather_forecast`
-  JobSpec, requires one explicit location, and rejects aggregate mode. Its
-  natural-key upsert and projection outbox support duplicate-safe retries; the
-  provider key, signed tenant context, source, and cadence remain unconfigured.
+  batch. The five-day weather forecast has a default-off
+  `services.ingestion.weather_forecast_worker` JobSpec, requires one explicit
+  location, and rejects aggregate mode. Its exact scheduler secret route strips
+  shared PostgreSQL settings; migration 426 bounds lookup and writes to a signed
+  `weather_forecast/ingest` grant. Natural-key upsert, ingestion audit, and
+  projection outbox are atomic and replay-safe. Existing persisted tasks using
+  `services.ingestion.weather_forecast` remain allowlisted under the shared
+  identity until schedule owners reconcile them. The provider key, grant,
+  cadence, and active task state remain unconfigured.
   The scheduler contract permits only the bounded run operation; the
   operator CLI and helper APIs require one canonical location for listing,
   lookup, creation, provider dispatch, and due-job claims; there is no global
@@ -251,7 +256,7 @@ fixed source-controlled fragments; three generic database-adapter sites remain
 `UNKNOWN` because their SQL is supplied by callers, so their complete caller
 set still needs tracing. No user-derived identifier interpolation was found
 in the reviewed call sites. Keep this review current as the inventory changes. The static call graph
-follows local instance types and the explicit metric registry, but 71 SQL sites
+follows local instance types and the explicit metric registry, but 72 SQL sites
 still have no direct static function match.
 It does not account for all callback/provider dispatch,
 database functions/views, extension behavior, or external effects. The map

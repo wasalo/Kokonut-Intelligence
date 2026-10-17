@@ -31,6 +31,7 @@ _SHARED_DATABASE_ENV = frozenset({
 # is separately configured to hold these operation secrets.
 _SCHEDULED_MODULE_WORKERS = {
     "services.metrics.noi_snapshot_worker": "noi_snapshot",
+    "services.ingestion.weather_forecast_worker": "weather_forecast",
 }
 
 

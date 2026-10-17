@@ -4,9 +4,9 @@
   "reviewed": "2026-10-16",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 24,
+    "operation_roots": 25,
     "candidate_effect_sites": 35,
-    "operation_site_memberships": 38,
+    "operation_site_memberships": 39,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 6,
@@ -22,7 +22,7 @@
       "evm_client_setup": 4,
       "evm_rpc": 3,
       "filesystem": 8,
-      "http": 15,
+      "http": 16,
       "process": 1
     }
   },
@@ -447,6 +447,22 @@
     {
       "kind": "scheduled_module",
       "name": "services.ingestion.weather_forecast",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/weather_forecast.py",
+          "line": 35,
+          "function": "services.ingestion.weather_forecast:fetch_forecast_raw",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather_forecast_worker",
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/weather_forecast.py",

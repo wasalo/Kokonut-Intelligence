@@ -27,6 +27,7 @@ def test_every_scheduled_module_has_a_command_contract():
     [
         ("services.ingestion.weather", ["--location-id", str(uuid4())]),
         ("services.ingestion.weather_forecast", ["--location-id", str(uuid4())]),
+        ("services.ingestion.weather_forecast_worker", ["--location-id", str(uuid4())]),
         ("services.ingestion.market_data", ["--source", "world_bank"]),
         ("services.ingestion.market_data", ["--month", "2", "--year", "2026"]),
         ("services.ingestion.eas_indexer", ["--chain", "celo"]),
@@ -247,7 +248,7 @@ def test_weather_job_requires_one_explicit_location_before_dispatch():
 def test_weather_forecast_job_requires_one_explicit_location_and_stays_disabled():
     job = JOBS["weather_forecast"]
 
-    assert job.module == "services.ingestion.weather_forecast"
+    assert job.module == "services.ingestion.weather_forecast_worker"
     assert job.scheduler_allowed
     assert job.required_inputs == ("location_id",)
     with patch("services.core.jobs.subprocess.run") as run:
@@ -262,6 +263,34 @@ def test_weather_forecast_job_requires_one_explicit_location_and_stays_disabled(
     assert task["command_args"] == ["--location-id", location_id]
     assert task["is_enabled"] is False
     assert task["allow_overlap"] is False
+
+
+def test_weather_forecast_dispatch_forwards_only_its_exact_worker_credentials():
+    location_id = str(uuid4())
+    completed = MagicMock(returncode=0, stdout='{"rows_written": 1}')
+    environment = {
+        "KOKONUT_WEATHER_FORECAST_DATABASE_URL": "synthetic-dsn",
+        "KOKONUT_WEATHER_FORECAST_WORKER_CREDENTIAL": "synthetic-credential",
+    }
+    with (
+        patch("services.core.jobs.subprocess.run", return_value=completed) as run,
+        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+    ):
+        result = run_job("weather_forecast", location_id=location_id)
+
+    assert result["status"] == "success"
+    assert run.call_args.args[0] == [
+        sys.executable,
+        "-m",
+        "services.ingestion.weather_forecast_worker",
+        "--location-id",
+        location_id,
+    ]
+    assert run.call_args.kwargs["env"] is environment
+    child_environment.assert_called_once_with(
+        allowed_worker_keys=("weather_forecast",),
+        isolated_database_credentials=True,
+    )
 
 
 def test_anomaly_job_requires_one_explicit_location_before_dispatch():

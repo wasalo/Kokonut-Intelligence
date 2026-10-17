@@ -2376,17 +2376,43 @@ not change MAN-CAP status ([adapter](../services/ingestion/sensor_anomaly_worker
 
 ### CAP-040/047 worker SQL inventory reconciliation — 16 October 2026
 
-The current static inventories cover 23 operation roots, 83 source files, and
-304 SQL execution sites. The call graph links 232 unique sites across 278
+The current static inventories cover 25 operation roots, 85 source files, and
+307 SQL execution sites. The call graph links 235 unique sites across 289
 operation/site memberships and leaves 72 without a static function match.
 Source-pattern review now covers the 42 composed/variable SQL sites, including
 the signed-context cleanup, anomaly worker query wrappers, and fixed NOI
-location-filter fragment with bound values. These are review aids only: no least-privilege grants, worker
-credential, candidate rollout, or application RLS was added, and no MAN-CAP
-status changes ([source map](worker-operation-map.md);
+location-filter fragment with bound values. The inventory refresh itself only
+changed static reports; it did not alter database ACLs or RLS. Migration 426's
+function-owner grants and policies are documented below. No worker credential
+or candidate rollout was added, and no MAN-CAP status changed ([source map](worker-operation-map.md);
 [SQL inventory](worker-sql-inventory.json);
 [reachability](worker-sql-reachability.json);
 [refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)).
+
+### CAP-040/047 signed weather-forecast worker — 16 October 2026
+
+Native scheduled five-day forecast ingestion now uses a dedicated worker
+module, exact scheduler secret routing, and a default-off feature gate. The
+child receives only its named DSN/credential pair and the shared PostgreSQL
+login settings are stripped. Migration 426 provides signed location lookup
+and bounded batch storage; the forecast natural-key upsert, ingestion audit,
+and ClickHouse outbox intent commit atomically. A mismatch between the signed
+location and requested or row scope is rejected. The no-login function owner
+has only required column grants and function-owner-only RLS policies; the
+disposable fixture forces RLS on location, forecast, audit, and outbox tables.
+The 203 focused forecast, scheduler, worker-boundary, and operation-map checks pass;
+Ruff is clean, and nine disposable
+PostgreSQL 16 checks pass for replay, RLS, idempotency, scope denial, audit,
+context cleanup, and direct-table/function ACLs. No provider, candidate or
+legacy database, or persisted schedule was accessed. Migration 426 and worker
+credentials/grant are not deployed, the feature remains off, and legacy
+persisted forecast tasks remain on the previous shared-identity module until
+schedule owners reconcile them. No MAN-CAP check is accepted; broader provider
+parity, live schedule state, application-wide RLS, and recovery acceptance
+remain open ([worker](../services/ingestion/weather_forecast_worker.py);
+[migration](../schemas/postgres/426_signed_weather_forecast_worker.sql);
+[runner](../scripts/check-weather-forecast-worker-disposable.py);
+[evidence](builds/2026-10-16-recovery/weather-forecast-worker-disposable.json)).
 
 ### CAP-040/047 isolated global notification enqueue — 16 October 2026
 

@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 24,
-    "sql_execution_sites": 305,
-    "statically_reachable_site_memberships": 283,
-    "unique_sites_with_static_operation_path": 233,
+    "operation_roots": 25,
+    "sql_execution_sites": 307,
+    "statically_reachable_site_memberships": 289,
+    "unique_sites_with_static_operation_path": 235,
     "sites_without_static_function_match": 72,
     "unmatched_functions_absent_from_all_worker_graphs": 72,
     "sites_reached_by_multiple_operations": 13
@@ -336,8 +336,22 @@
         "services/ingestion/weather_forecast.py:159:12",
         "services/ingestion/weather_forecast.py:160:12",
         "services/ingestion/weather_forecast.py:163:8",
-        "services/ingestion/weather_forecast.py:347:16",
-        "services/ingestion/weather_forecast.py:353:16"
+        "services/ingestion/weather_forecast.py:366:16",
+        "services/ingestion/weather_forecast.py:372:16"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather_forecast_worker",
+      "operation_ref": "scheduled_module:services.ingestion.weather_forecast_worker",
+      "statically_reachable_sql_site_count": 6,
+      "statically_reachable_sql_site_ids": [
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:160:8",
+        "services/common/tenant_context.py:161:8",
+        "services/common/worker_database.py:109:12",
+        "services/ingestion/weather_forecast_worker.py:44:12",
+        "services/ingestion/weather_forecast_worker.py:85:12"
       ]
     },
     {
@@ -1452,6 +1466,7 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
@@ -1492,6 +1507,7 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
@@ -1532,6 +1548,7 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
@@ -1556,6 +1573,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
@@ -1564,6 +1582,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
@@ -1586,6 +1605,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
@@ -1594,6 +1614,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
@@ -1618,6 +1639,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
@@ -1626,6 +1648,7 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
@@ -1650,6 +1673,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
@@ -1675,6 +1699,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
@@ -1700,6 +1725,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
@@ -1725,6 +1751,7 @@
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
@@ -1735,6 +1762,7 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
@@ -4215,6 +4243,7 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [
@@ -4257,6 +4286,7 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [
@@ -4293,6 +4323,7 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.metrics"
       ],
       "statically_reachable_operations": [],
@@ -4320,7 +4351,8 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.eas_indexer",
@@ -4354,7 +4386,8 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4382,7 +4415,8 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4408,7 +4442,8 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4434,7 +4469,8 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4463,7 +4499,8 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -4489,7 +4526,8 @@
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -6402,7 +6440,8 @@
         "weather_forecast"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather_forecast"
@@ -6421,7 +6460,8 @@
       "statement_kind": "SAVEPOINT",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather_forecast"
@@ -6440,7 +6480,8 @@
       "statement_kind": "ROLLBACK",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather_forecast"
@@ -6459,7 +6500,8 @@
       "statement_kind": "RELEASE",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather_forecast"
@@ -6478,7 +6520,8 @@
       "statement_kind": "RELEASE",
       "candidate_relations": [],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather_forecast"
@@ -6488,9 +6531,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:232:8",
+      "id": "services/ingestion/weather_forecast.py:251:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 232,
+      "line": 251,
       "scope": "get_daily_summary",
       "method": "execute",
       "expression_kind": "literal",
@@ -6499,7 +6542,8 @@
         "v_weather_forecast_daily"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -6507,9 +6551,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:252:8",
+      "id": "services/ingestion/weather_forecast.py:271:8",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 252,
+      "line": 271,
       "scope": "get_spray_windows",
       "method": "execute",
       "expression_kind": "literal",
@@ -6518,7 +6562,8 @@
         "v_spray_window"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -6526,9 +6571,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:347:16",
+      "id": "services/ingestion/weather_forecast.py:366:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 347,
+      "line": 366,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6537,7 +6582,8 @@
         "location"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather_forecast"
@@ -6547,9 +6593,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/weather_forecast.py:353:16",
+      "id": "services/ingestion/weather_forecast.py:372:16",
       "source": "services/ingestion/weather_forecast.py",
-      "line": 353,
+      "line": 372,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6558,10 +6604,51 @@
         "location"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.weather_forecast"
+        "scheduled_module:services.ingestion.weather_forecast",
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.weather_forecast"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/weather_forecast_worker.py:44:12",
+      "source": "services/ingestion/weather_forecast_worker.py",
+      "line": 44,
+      "scope": "_load_location",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.weather_forecast_location"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.weather_forecast_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.weather_forecast_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/weather_forecast_worker.py:85:12",
+      "source": "services/ingestion/weather_forecast_worker.py",
+      "line": 85,
+      "scope": "_store_batch",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.weather_forecast_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.weather_forecast_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,

@@ -49,7 +49,7 @@ JOBS = MappingProxyType(
             required_inputs=("location_id",),
         ),
         "weather_forecast": JobSpec(
-            "services.ingestion.weather_forecast",
+            "services.ingestion.weather_forecast_worker",
             (),
             300,
             2,

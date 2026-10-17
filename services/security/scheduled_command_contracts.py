@@ -36,6 +36,8 @@ class ScheduledCommandRejected(ValueError):
 
 _OPTIONS: dict[str, dict[str, str | None]] = {
     "services.ingestion.weather": {"--location-id": "uuid"},
+    # Legacy persisted rows stay operable until schedule owners reconcile them.
+    "services.ingestion.weather_forecast_worker": {"--location-id": "uuid"},
     "services.ingestion.weather_forecast": {"--location-id": "uuid"},
     "services.ingestion.market_data": {
         "--commodity": "commodity",
@@ -199,7 +201,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         if options - {"--chain", "--wallet"}:
             raise _reject("scheduled RPC indexing accepts only one chain and an optional wallet")
 
-    if module_path == "services.ingestion.weather_forecast" and options != {"--location-id"}:
+    if module_path in {
+        "services.ingestion.weather_forecast",
+        "services.ingestion.weather_forecast_worker",
+    } and options != {"--location-id"}:
         raise _reject("weather forecast ingestion requires one explicit location")
 
     if module_path == "services.ingestion.market_data":

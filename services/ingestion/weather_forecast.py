@@ -164,8 +164,15 @@ def insert_location_forecasts(db, records: list[dict], source_raw: dict = None) 
     return inserted
 
 
-def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
-    """Queue canonical forecast rows; direct writes are demo-only when conn is absent."""
+WEATHER_EVENTS_COLUMNS = [
+    "timestamp", "location_id", "source", "temperature_c", "precipitation_mm",
+    "humidity_pct", "wind_speed_kmh", "solar_radiation_wm2", "cloud_cover_pct",
+    "metadata",
+]
+
+
+def build_forecast_clickhouse_projection(records: list[dict]) -> dict:
+    """Build the canonical durable projection without opening a database."""
     rows = []
     for rec in records:
         meta = rec.get("metadata", "{}")
@@ -192,29 +199,41 @@ def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
             {str(k): str(v) for k, v in meta.items()},
         ])
 
-    if not rows:
+    return {
+        "columns": WEATHER_EVENTS_COLUMNS.copy(),
+        "rows": rows,
+        "payload_hash": hash_payload(records),
+    }
+
+
+def insert_forecasts_clickhouse(records: list[dict], conn=None) -> None:
+    """Queue canonical forecast rows; direct writes are demo-only when conn is absent."""
+    if not records:
+        return
+
+    projection = build_forecast_clickhouse_projection(records)
+    if not projection["rows"]:
         return
 
     try:
         if conn is not None:
-            payload_hash = hash_payload(records)
-            enqueue(conn, event_key=f"weather_forecast:weather_events:{payload_hash}",
-                    source_table="weather_forecast", source_id=payload_hash,
-                    target_table="weather_events",
-                    columns=["timestamp", "location_id", "source", "temperature_c",
-                             "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                             "solar_radiation_wm2", "cloud_cover_pct", "metadata"],
-                    rows=rows, payload_hash=payload_hash)
+            payload_hash = projection["payload_hash"]
+            enqueue(
+                conn,
+                event_key=f"weather_forecast:weather_events:{payload_hash}",
+                source_table="weather_forecast",
+                source_id=payload_hash,
+                target_table="weather_events",
+                columns=projection["columns"],
+                rows=projection["rows"],
+                payload_hash=payload_hash,
+            )
             return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         insert_clickhouse_rows(
             "weather_events",
-            [
-                "timestamp", "location_id", "source", "temperature_c",
-                "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                "solar_radiation_wm2", "cloud_cover_pct", "metadata",
-            ],
-            rows,
+            projection["columns"],
+            projection["rows"],
         )
     except Exception as e:
         if conn is not None:
