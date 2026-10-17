@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Revenue Multiplier best-effort dimension failures",
+  "behavior": {
+    "failed_dimension": "Analyzer exception details are replaced by a bounded exception-class summary and safe recovery guidance.",
+    "partial_report": "Other dimension results remain available and the owned connection closes after aggregation."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_revenue_multiplier_error_redaction.py -q",
+    "result": "1 passed",
+    "coverage": [
+      "synthetic database detail is omitted from the failed dimension",
+      "remaining nine dimensions continue and retain their output",
+      "connection close is preserved"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked analyzer functions and connection"
+  },
+  "limitations": [
+    "No live revenue provider or database was used.",
+    "This does not establish populated opportunity-model parity or MAN-CAP-056 acceptance."
+  ]
+}

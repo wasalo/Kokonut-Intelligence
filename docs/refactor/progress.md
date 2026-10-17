@@ -1,5 +1,31 @@
 # Kokonut Kernel implementation progress
 
+### Graph projection failure persistence — 17 October 2026
+
+Synchronized graph rebuilds now persist a fixed operation and exception-class
+summary after rollback instead of raw builder/database diagnostics. The failed
+status is committed separately, and the original exception still propagates
+to the caller. Thirteen graph-projection tests pass with Ruff and compilation
+using mocked builders/connections; no database was used
+([evidence](builds/2026-10-17-recovery/graph-projection-error-redaction.json)).
+
+### Revenue Multiplier failure containment — 17 October 2026
+
+Best-effort dimension failures now place only a bounded exception-class
+summary and safe recovery guidance in the advisory map. Successful dimensions
+remain in the aggregate, and the connection closes after analysis. One focused
+mocked regression passes with Ruff and compilation; no data source or database
+was used ([evidence](builds/2026-10-17-recovery/revenue-multiplier-error-redaction.json)).
+
+### Decision-action error containment — 17 October 2026
+
+Approved decision adapter exceptions now return a bounded operation and
+exception-class summary instead of provider or action details. Failure remains
+failed, the transaction rolls back, and the cursor closes without committing
+an outcome. The 21-test policy-engine suite passes with Ruff and compilation
+using a mocked adapter and connection; no database or external action was used
+([evidence](builds/2026-10-17-recovery/decision-policy-error-redaction.json)).
+
 ### Driver failure redaction and historical test-fixture cleanup — 17 October 2026
 
 Driver registry health results and lifecycle/import logs now expose only

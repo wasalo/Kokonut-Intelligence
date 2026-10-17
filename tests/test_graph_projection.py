@@ -1,10 +1,9 @@
-from unittest.mock import MagicMock, patch
 import uuid
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from services.graph_projection import evidence_lineage, kernel, policy, query
-from services.graph_projection import coordinator
+from services.graph_projection import coordinator, evidence_lineage, kernel, policy, query
 
 
 def test_rebuild_orders_transaction_and_activation():
@@ -12,7 +11,8 @@ def test_rebuild_orders_transaction_and_activation():
     cur = MagicMock()
     cur.fetchone.side_effect = [(generation_id,), (0, 0)]
     cur.rowcount = 1
-    conn = MagicMock(); conn.cursor.return_value = cur
+    conn = MagicMock()
+    conn.cursor.return_value = cur
     with patch.object(kernel, "load_sources", return_value={}), patch.object(kernel, "build", return_value=([], [])):
         result = kernel.rebuild(conn, "operator")
     statements = [call.args[0] for call in cur.execute.call_args_list]
@@ -26,7 +26,8 @@ def test_rebuild_orders_transaction_and_activation():
 
 
 def test_rebuild_rolls_back_and_propagates_without_failed_write():
-    conn = MagicMock(); cur = conn.cursor.return_value
+    conn = MagicMock()
+    cur = conn.cursor.return_value
     cur.execute.side_effect = RuntimeError("database failed")
     with pytest.raises(RuntimeError, match="database failed"):
         kernel.rebuild(conn, "operator")
@@ -47,22 +48,28 @@ def test_public_policy_is_conservative():
 
 
 def test_iri_lookup_is_exact_read_only_and_allowlisted():
-    cur = MagicMock(); cur.description = [("entity_type",), ("entity_id",), ("iri",)]; entity_id = uuid.uuid4(); cur.fetchall.return_value = [("location", entity_id, "kokonut:location:x:v1")]
+    cur = MagicMock()
+    cur.description = [("entity_type",), ("entity_id",), ("iri",)]
+    entity_id = uuid.uuid4()
+    cur.fetchall.return_value = [("location", entity_id, "kokonut:location:x:v1")]
     result = evidence_lineage.lookup_iris(cur, [("location", entity_id)])
     sql = cur.execute.call_args.args[0].lower()
     assert sql.lstrip().startswith("select")
     assert "insert" not in sql and "update" not in sql
     assert result[("location", str(entity_id))] == "kokonut:location:x:v1"
-    with pytest.raises(ValueError): evidence_lineage.lookup_iris(cur, [("not_allowed", entity_id)])
+    with pytest.raises(ValueError):
+        evidence_lineage.lookup_iris(cur, [("not_allowed", entity_id)])
 
 
 @pytest.mark.parametrize("kwargs", [{"depth": 6}, {"depth": -1}, {"node_cap": 501}, {"node_cap": 0}, {"edge_types": ["arbitrary"]}, {"audience": "private"}])
 def test_query_rejects_unbounded_or_unsupported_inputs(kwargs):
-    with pytest.raises(ValueError): query.query_graph(MagicMock(), "location:x", **kwargs)
+    with pytest.raises(ValueError):
+        query.query_graph(MagicMock(), "location:x", **kwargs)
 
 
 def test_query_filters_every_read_to_active_generation():
-    conn = MagicMock(); cur = conn.cursor.return_value
+    conn = MagicMock()
+    cur = conn.cursor.return_value
     cur.fetchall.side_effect = [[{"id": uuid.uuid4()}], []]
     query.query_graph(conn, "location:x")
     node_sql = cur.execute.call_args_list[1].args[0]
@@ -104,12 +111,19 @@ def test_synchronized_rebuild_records_failure_without_partial_activation():
     conn.execute.return_value = result
     with (
         patch.object(coordinator, "_rebuild", return_value={"generation_id": "typed"}),
-        patch.object(coordinator, "_persist_graph", side_effect=RuntimeError("rdf failed")),
+        patch.object(
+            coordinator,
+            "_persist_graph",
+            side_effect=RuntimeError("synthetic projection diagnostic marker"),
+        ),
     ):
-        with pytest.raises(RuntimeError, match="rdf failed"):
+        with pytest.raises(RuntimeError, match="synthetic projection diagnostic marker"):
             coordinator.rebuild_synchronized(conn, "operator", "loc-001")
     assert conn.rollback.call_count == 1
     assert conn.commit.call_count == 2
     updates = [call.args[0] for call in conn.text.call_args_list if "graph_rebuild_coordinator SET" in call.args[0]]
     assert updates and "status = :status" in updates[-1]
     assert conn.execute.call_args_list[-1].args[1]["status"] == "failed"
+    failure_args = conn.execute.call_args_list[-1].args[1]
+    assert failure_args["error"] == "Graph projection rebuild failed (RuntimeError)"
+    assert "synthetic projection diagnostic marker" not in failure_args["error"]
