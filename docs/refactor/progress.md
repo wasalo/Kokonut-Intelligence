@@ -1,5 +1,13 @@
 # Kokonut Kernel implementation progress
 
+### Data Stream anchor failure containment — 17 October 2026
+
+Batch anchoring now returns only a bounded exception-class summary for a failed
+post while preserving successful pending requests and accurate batch totals.
+One new mocked regression passes within the 47-test Data Stream suite with Ruff
+and compilation; no database or attestation provider was contacted
+([evidence](builds/2026-10-17-recovery/data-stream-anchor-error-redaction.json)).
+
 ### Credit-chain failure containment — 17 October 2026
 
 RPC initialization, on-chain mint/retirement, batch-issuance fallback, and

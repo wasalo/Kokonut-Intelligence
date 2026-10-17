@@ -88,7 +88,11 @@ def anchor_batch(conn, post_ids: list[str], chain: str = "celo") -> dict:
             result = anchor_post(conn, post_id, chain=chain)
             results.append({"post_id": post_id, "status": "pending", **result})
         except Exception as e:
-            results.append({"post_id": post_id, "status": "error", "error": str(e)})
+            results.append({
+                "post_id": post_id,
+                "status": "error",
+                "error": f"anchor request failed ({type(e).__name__})",
+            })
 
     pending = sum(1 for r in results if r["status"] == "pending")
     errors = sum(1 for r in results if r["status"] == "error")

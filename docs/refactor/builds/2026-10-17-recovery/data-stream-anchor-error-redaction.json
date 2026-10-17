@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-17",
+  "scope": "Batch Data Stream anchoring result error reporting",
+  "behavior": {
+    "failed_post": "Per-post failures return a bounded summary containing only the exception class; raw database/provider text is omitted.",
+    "partial_success": "Successful posts retain their pending result, and batch totals continue to distinguish pending, failed, and skipped posts."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_data_stream.py -q",
+    "result": "47 passed",
+    "new_regressions": 1,
+    "coverage": [
+      "a secret-bearing failure for one post is excluded from batch output",
+      "a neighboring successful post remains pending and aggregate counts remain correct"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; anchor function mocked"
+  },
+  "limitations": [
+    "No database or attestation provider was contacted.",
+    "This checks result redaction and partial-success accounting, not live EAS anchoring or signer delivery."
+  ]
+}

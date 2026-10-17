@@ -1,13 +1,11 @@
 """Unit tests for Data Stream feature."""
 
 import hashlib
-import json
 import uuid
-from unittest.mock import MagicMock, patch
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -105,12 +103,11 @@ class TestCreatePost:
         assert result["id"] == POST_ID
 
     def test_create_post_markdown_content(self):
-        from services.data_stream.post import create_post, _compute_content_hash
+        from services.data_stream.post import create_post
         conn = _fake_conn(rows={"id": POST_ID, "created_at": "2026-07-01"})
         content = "# Heading\n\n**Bold text** and [link](https://example.com)"
         result = create_post(conn, location_id=LOCATION_ID, title="MD Post", content=content)
         assert result["id"] == POST_ID
-        expected_hash = hashlib.sha256(content.encode()).hexdigest()
         call_kwargs = conn.execute.call_args
         assert call_kwargs is not None
 
@@ -226,6 +223,32 @@ class TestStream:
 # ---------------------------------------------------------------------------
 
 class TestAnchor:
+    def test_anchor_batch_redacts_failure_and_keeps_partial_success(self, monkeypatch):
+        from services.data_stream import anchor
+
+        secret = "postgres://operator:password@db.example.invalid/private"
+        monkeypatch.setattr(
+            anchor,
+            "anchor_post",
+            MagicMock(side_effect=[
+                {"post_id": "post-ok", "attestation_request_id": "request-1", "chain": "celo"},
+                RuntimeError(secret),
+            ]),
+        )
+
+        result = anchor.anchor_batch(MagicMock(), ["post-ok", "post-failed"])
+
+        assert result["total"] == 2
+        assert result["pending"] == 1
+        assert result["errors"] == 1
+        assert result["results"][0]["status"] == "pending"
+        assert result["results"][1] == {
+            "post_id": "post-failed",
+            "status": "error",
+            "error": "anchor request failed (RuntimeError)",
+        }
+        assert secret not in repr(result)
+
     def test_anchor_post(self):
         from services.data_stream.anchor import anchor_post
         conn = _fake_conn_sequential([

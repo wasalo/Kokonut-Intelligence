@@ -349,6 +349,13 @@ One mocked regression passes within 52 attestation/EAS tests with Ruff and
 compilation; no provider or database was contacted
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
 
+**17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
+batch anchor results omit raw failure text while preserving successful pending
+requests and correct partial-success counts. One new mocked regression passes
+within the 47-test Data Stream suite with Ruff and compilation; no database or
+attestation provider was contacted
+([evidence](builds/2026-10-17-recovery/data-stream-anchor-error-redaction.json)).
+
 **17 October 2026 credit-chain failure containment (CAP-020 / CAP-047):** RPC
 initialization errors omit endpoint details; mint/retirement logs and raised
 errors contain only bounded exception summaries; best-effort issuance returns a

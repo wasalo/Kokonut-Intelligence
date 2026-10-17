@@ -199,6 +199,10 @@ also omit provider details; query failures cannot be reported as a match, and
 best-effort batch issuance returns a bounded error summary. Five new mocked
 regressions pass within 27 credit-chain/batch tests with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/credit-chain-error-redaction.json)).
+Data Stream batch anchoring also bounds per-post failures while retaining
+successful pending requests and partial-success totals; one new mocked
+regression passes within the 47-test Data Stream suite with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/data-stream-anchor-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
