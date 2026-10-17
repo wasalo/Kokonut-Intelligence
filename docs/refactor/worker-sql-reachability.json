@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 23,
-    "sql_execution_sites": 304,
-    "statically_reachable_site_memberships": 278,
-    "unique_sites_with_static_operation_path": 232,
+    "operation_roots": 24,
+    "sql_execution_sites": 305,
+    "statically_reachable_site_memberships": 283,
+    "unique_sites_with_static_operation_path": 233,
     "sites_without_static_function_match": 72,
     "unmatched_functions_absent_from_all_worker_graphs": 72,
     "sites_reached_by_multiple_operations": 13
@@ -375,6 +375,19 @@
         "services/metrics/engine.py:177:8",
         "services/metrics/engine.py:46:8",
         "services/metrics/engine.py:74:8"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.metrics.noi_snapshot_worker",
+      "operation_ref": "scheduled_module:services.metrics.noi_snapshot_worker",
+      "statically_reachable_sql_site_count": 5,
+      "statically_reachable_sql_site_ids": [
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:160:8",
+        "services/common/tenant_context.py:161:8",
+        "services/common/worker_database.py:109:12",
+        "services/metrics/noi_snapshot_worker.py:29:12"
       ]
     },
     {
@@ -1439,7 +1452,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.metrics"
+        "scheduled_module:services.metrics",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1478,7 +1492,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.metrics"
+        "scheduled_module:services.metrics",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1517,7 +1532,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.metrics"
+        "scheduled_module:services.metrics",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1539,14 +1555,16 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
         "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -1567,14 +1585,16 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
         "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -1597,14 +1617,16 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
         "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -1627,7 +1649,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1651,7 +1674,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1675,7 +1699,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -1699,7 +1724,8 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "statically_reachable_operations": [
         "event_handler:services.cache.events.handle_crisp_scored",
@@ -1708,7 +1734,8 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
-        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading"
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,
@@ -7161,6 +7188,25 @@
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.metrics"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/metrics/noi_snapshot_worker.py:29:12",
+      "source": "services/metrics/noi_snapshot_worker.py",
+      "line": 29,
+      "scope": "reconcile",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.metrics.noi_snapshot_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,

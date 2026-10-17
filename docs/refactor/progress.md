@@ -7318,3 +7318,27 @@ deployment was contacted or changed. This closes source contracts only;
 cursor/finality, duplicate/reorg recovery, active schedule reconciliation, and
 MAN-CAP-018/047 acceptance remain open ([EAS evidence](builds/2026-10-16-recovery/eas-chain-scoped-job-contract.json);
 [RPC evidence](builds/2026-10-16-recovery/rpc-chain-scoped-job-contract.json)).
+
+### Signed NOI snapshot worker — 16 October 2026
+
+Native NOI snapshot reconciliation now runs through a dedicated scheduled
+module, exact `noi_snapshot` worker-key mapping, and default-off
+`KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER`. The scheduler forwards only that
+worker's DSN and credential to the exact module and removes shared PostgreSQL
+login settings from the child environment. Migration 425 adds a bounded
+function that requires the database-signed `noi_snapshot/reconcile` location
+grant, constrains source and target rows to that signed location, and preserves
+conflicting cross-location snapshots instead of silently moving them. The
+worker has no direct source/target table privileges; the application runtime
+cannot execute the function.
+
+The focused source/scheduler/inventory suite passes 193 tests. Seven isolated
+PostgreSQL 16 checks pass, including migration replay, insert/update idempotency,
+missing/wrong grant denial, requested-location mismatch, stale cross-location
+conflict preservation, direct-table privilege denial, runtime function denial,
+and transaction-local context cleanup ([disposable evidence](builds/2026-10-16-recovery/noi-snapshot-worker-disposable.json)).
+No candidate/legacy database or provider was contacted; migration 425 is not
+deployed, the worker credential/grant are not provisioned, the feature remains
+off, and RLS is still deferred. The capability matrix's 66 status rows and
+MAN-CAP acceptance classifications do not change. The checklist now records
+430 complete and 21 open items (451 total).

@@ -73,8 +73,8 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--period-start": "date",
         "--period-end": "date",
         "--json": None,
-        "--reconcile-noi-snapshots": None,
     },
+    "services.metrics.noi_snapshot_worker": {"--location-id": "uuid"},
     "services.ingestion.data_freshness": {
         "--check": None,
         "--source": "identifier",
@@ -225,12 +225,6 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("baseline check cannot be combined with sensor-window options")
 
     elif module_path == "services.metrics":
-        if "--reconcile-noi-snapshots" in options:
-            if options != {"--reconcile-noi-snapshots", "--location-id"}:
-                raise _reject(
-                    "scheduled NOI snapshot reconciliation requires one explicit location"
-                )
-            return
         if "--compute" not in options:
             raise _reject("scheduled metric operation requires --compute")
         all_metrics = "--all" in options
@@ -244,6 +238,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
         if "--period-start" in options and "--period-end" in options:
             if date.fromisoformat(str(values["--period-start"])) > date.fromisoformat(str(values["--period-end"])):
                 raise _reject("period start must not exceed period end")
+
+    elif module_path == "services.metrics.noi_snapshot_worker":
+        if options != {"--location-id"}:
+            raise _reject("scheduled NOI snapshot reconciliation requires one explicit location")
 
     elif module_path == "services.ingestion.data_freshness":
         if "--check" not in options:

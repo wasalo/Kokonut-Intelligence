@@ -16,6 +16,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from services.common.worker_environment import scheduled_module_worker_key  # noqa: E402
 from services.core.jobs import JOBS  # noqa: E402
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES  # noqa: E402
 from services.security.scheduled_command_contracts import (  # noqa: E402
@@ -68,6 +69,7 @@ def build_inventory() -> dict:
             {
                 "job": name,
                 "module": job.module,
+                "worker_key": scheduled_module_worker_key(job.module),
                 "argument_count": len(job.arguments),
                 "required_inputs": list(job.required_inputs),
                 "status": status,

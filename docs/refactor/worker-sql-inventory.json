@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 23,
-    "source_files": 83,
-    "execution_sites": 304,
-    "static_literal_sites": 262,
+    "operation_roots": 24,
+    "source_files": 84,
+    "execution_sites": 305,
+    "static_literal_sites": 263,
     "composed_or_variable_sites": 42
   },
   "execution_sites": [
@@ -842,7 +842,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.metrics"
+        "scheduled_module:services.metrics",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -879,7 +880,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.metrics"
+        "scheduled_module:services.metrics",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -916,7 +918,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.metrics"
+        "scheduled_module:services.metrics",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -936,7 +939,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -956,7 +960,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -978,7 +983,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -1000,7 +1006,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -1022,7 +1029,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -1044,7 +1052,8 @@
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -1066,7 +1075,8 @@
         "event_handler:services.events.handlers.handle_alert_notification",
         "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
-        "scheduled_module:services.ingestion.anomaly_detector"
+        "scheduled_module:services.ingestion.anomaly_detector",
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
     {
@@ -5581,6 +5591,21 @@
       "static_sql_sha256": "ed684f11a40372e45e4b73ff2c89bf278f433719ee28df843737056da9dea094",
       "operation_refs": [
         "scheduled_module:services.metrics"
+      ]
+    },
+    {
+      "id": "services/metrics/noi_snapshot_worker.py:29:12",
+      "source": "services/metrics/noi_snapshot_worker.py",
+      "line": 29,
+      "column": 12,
+      "scope": "reconcile",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "d910e5b803f7264f071247d7a499a6ac67c14fd37511e45c63a7806b168adbb4",
+      "operation_refs": [
+        "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     }
   ]

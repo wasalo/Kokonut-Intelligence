@@ -4,18 +4,18 @@
   "scope": "Static source preflight only. It does not connect to a database or inspect live role grants, applied migrations, enabled schedules, tenant ownership, or external dispatchers.",
   "status": "review_required",
   "operation_coverage": {
-    "scheduled_allowlist_count": 16,
+    "scheduled_allowlist_count": 17,
     "event_handler_allowlist_count": 7,
-    "expected_operation_count": 23,
-    "source_closure_operation_count": 23,
-    "function_graph_operation_count": 23,
+    "expected_operation_count": 24,
+    "source_closure_operation_count": 24,
+    "function_graph_operation_count": 24,
     "missing_source_closure_operations": [],
     "missing_function_graph_operations": [],
     "unresolved_function_roots": 0,
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 83,
+    "source_file_count": 84,
     "unresolved_local_module_count": 0,
     "known_allowlisted_dynamic_import_site_count": 2,
     "passed": true
@@ -23,12 +23,12 @@
   "worker_identity": {
     "database_identity": "shared_configured_runtime_identity",
     "signed_tenant_context_established_by_dispatch": false,
-    "unbound_operation_root_count": 23,
+    "unbound_operation_root_count": 24,
     "status": "not_tenant_bound"
   },
   "sql_reachability": {
-    "execution_site_count": 304,
-    "sites_with_static_operation_path": 232,
+    "execution_site_count": 305,
+    "sites_with_static_operation_path": 233,
     "sites_without_static_function_match": 72,
     "site_refs_for_review": [
       {
@@ -174,32 +174,32 @@
       {
         "site": "services/common/database.py:136:12",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 23
+        "import_closure_operation_count": 24
       },
       {
         "site": "services/common/database.py:71:15",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 23
+        "import_closure_operation_count": 24
       },
       {
         "site": "services/common/database.py:74:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 23
+        "import_closure_operation_count": 24
       },
       {
         "site": "services/common/tenant_context.py:215:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 6
+        "import_closure_operation_count": 7
       },
       {
         "site": "services/common/tenant_context.py:295:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 6
+        "import_closure_operation_count": 7
       },
       {
         "site": "services/common/tenant_context.py:361:8",
         "review_status": "function_not_reached_by_any_static_worker_root",
-        "import_closure_operation_count": 6
+        "import_closure_operation_count": 7
       },
       {
         "site": "services/credit_class/chain_sync.py:176:12",

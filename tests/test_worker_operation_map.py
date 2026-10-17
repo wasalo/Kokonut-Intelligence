@@ -143,16 +143,23 @@ def test_anomaly_handler_records_database_effects_without_claiming_mqtt_delivery
 def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     scheduled = {entry["module"]: entry for entry in _load_map()["scheduled_modules"]}
     metrics = scheduled["services.metrics"]
+    noi_snapshot = scheduled["services.metrics.noi_snapshot_worker"]
     events = scheduled["services.events"]
     credit_adjustments = scheduled["services.analytics.carbon_credit_adjustment_check"]
     projections = scheduled["services.ingestion.clickhouse_outbox"]
     weather_forecasts = scheduled["services.ingestion.weather_forecast"]
 
-    assert "public.noi_snapshot" in metrics["writes"]
-    assert "public.v_crop_cycle_noi" in metrics["reads"]
+    assert "public.noi_snapshot" not in metrics["writes"]
+    assert "public.v_crop_cycle_noi" not in metrics["reads"]
     assert "requires exactly one --location-id" in metrics["scope"]
     assert "--all-locations mode is rejected" in metrics["scope"]
-    assert "Manual NOI aggregate reconciliation remains available only through an explicit --all-locations CLI option" in metrics["scope"]
+    assert noi_snapshot["worker_key"] == "noi_snapshot"
+    assert noi_snapshot["reads"] == ["public.crop_cycle", "public.v_crop_cycle_noi"]
+    assert noi_snapshot["writes"] == ["public.noi_snapshot"]
+    assert "default-off" in noi_snapshot["scope"]
+    assert "signed noi_snapshot/reconcile grant" in noi_snapshot["scope"]
+    assert "location different from signed context" not in noi_snapshot["retry_boundary"]
+    assert "location mismatch" in noi_snapshot["retry_boundary"]
     assert "public.notification_outbox" in events["reads"]
     assert "public.notification_outbox_attempt" in events["writes"]
     assert set(credit_adjustments["reads"]) == {

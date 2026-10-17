@@ -3,8 +3,8 @@
   "reviewed": "2026-10-16",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. Other scheduled jobs and handlers still use the shared runtime database identity.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The optional NOI snapshot module uses a separately named worker DSN, strips shared PostgreSQL settings from the child, and uses an exact secret mapping; other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migration 425 adds the default-off NOI snapshot worker function and signed location grant; other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -227,7 +227,7 @@
     },
     {
       "module": "services.metrics",
-      "scope": "Scheduled metric compute requires exactly one --location-id and uses --all or --metric; its --all-locations mode is rejected. NOI snapshot reconciliation requires the same one-location-per-task contract. Manual NOI aggregate reconciliation remains available only through an explicit --all-locations CLI option. The optional Prefect adapter fans out over active locations directly assigned to Kokonut Network.",
+      "scope": "Scheduled metric compute requires exactly one --location-id and uses --all or --metric; its --all-locations mode is rejected. NOI snapshot reconciliation has a separate default-off worker entrypoint and signed function boundary. The optional Prefect adapter fans out over active locations directly assigned to Kokonut Network.",
       "reads": [
         "public.agent_task",
         "public.ai_summary",
@@ -256,14 +256,12 @@
         "public.stakeholder_consent",
         "public.stakeholder_feedback",
         "public.value_flow_event",
-        "public.v_crop_cycle_noi",
         "public.v_mobile_collection_use_eligibility",
         "public.wallet_activity_event",
         "public.wallet_profile"
       ],
       "writes": [
         "public.metric_value",
-        "public.noi_snapshot",
         "public.platform_event"
       ],
       "calculator_effects": {
@@ -481,8 +479,8 @@
         }
       },
       "external_effects": [],
-      "idempotency": "Each compute inserts a new metric_value with verified=false; repeated calculations are not deduplicated by the engine. NOI snapshot reconciliation upserts by crop_cycle_id. Recalculation remains a draft write, never human verification.",
-      "retry_boundary": "A scheduler retry may create another metric draft for the same location/period; snapshot reconciliation updates its natural-key row. Human review state remains separate.",
+      "idempotency": "Each compute inserts a new metric_value with verified=false; repeated calculations are not deduplicated by the engine. Recalculation remains a draft write, never human verification.",
+      "retry_boundary": "A scheduler retry may create another metric draft for the same location/period; human review state remains separate.",
       "sources": [
         "services/metrics/cli.py",
         "services/metrics/engine.py",
@@ -509,8 +507,61 @@
         "services/metrics/calculators/wallet_retention.py",
         "schemas/postgres/004_finance.sql",
         "schemas/postgres/381_mobile_consent_form_revisions.sql",
-        "schemas/postgres/386_farm_activity_consent_use_gate.sql",
-        "schemas/postgres/353_crop_cycle_noi_view.sql"
+        "schemas/postgres/386_farm_activity_consent_use_gate.sql"
+      ]
+    },
+    {
+      "module": "services.metrics.noi_snapshot_worker",
+      "worker_key": "noi_snapshot",
+      "scope": "Requires one canonical --location-id and the default-off KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER gate. It opens only KOKONUT_NOI_SNAPSHOT_DATABASE_URL, establishes the exact signed noi_snapshot/reconcile grant, and calls migration 425; its child environment strips shared PostgreSQL login settings. The bounded function repeats the signed location predicate on both crop_cycle and v_crop_cycle_noi.",
+      "reads": [
+        "public.crop_cycle",
+        "public.v_crop_cycle_noi"
+      ],
+      "writes": [
+        "public.noi_snapshot"
+      ],
+      "external_effects": [],
+      "idempotency": "Snapshots upsert by crop_cycle_id within the signed location. A conflicting existing snapshot assigned to a different location is left unchanged; retry refreshes the same location row.",
+      "retry_boundary": "The function runs in the caller-owned worker transaction. Missing credentials, a revoked/expired grant, wrong resource/action, or a location mismatch fails before a snapshot write. No aggregate mode is accepted.",
+      "database_functions": {
+        "kokonut_security.reconcile_noi_snapshot_for_location": {
+          "called_by": [
+            "reconcile"
+          ],
+          "reads": [
+            "public.crop_cycle",
+            "public.v_crop_cycle_noi"
+          ],
+          "writes": [
+            "public.noi_snapshot"
+          ],
+          "sources": [
+            "schemas/postgres/425_signed_noi_snapshot_worker.sql"
+          ],
+          "view_base_relations": [
+            "public.crop_cost_allocation",
+            "public.expense_event",
+            "public.harvest_event",
+            "public.sales_event"
+          ]
+        }
+      },
+      "sources": [
+        "services/metrics/noi_snapshot_worker.py",
+        "services/common/worker_database.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/jobs.py",
+        "services/core/runtime.py",
+        "services/scheduler/cli.py",
+        "services/scheduler/engine.py",
+        "services/security/scheduled_command_contracts.py",
+        "schemas/postgres/353_crop_cycle_noi_view.sql",
+        "schemas/postgres/405_signed_worker_tenant_context.sql",
+        "schemas/postgres/419_private_worker_context_functions.sql",
+        "schemas/postgres/425_signed_noi_snapshot_worker.sql"
       ]
     },
     {
@@ -937,7 +988,7 @@
   "known_open_items": [
     "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; anomaly, opt-in cache handler, and notification-enqueue integrations remain default-off and require credential provisioning and candidate rollout after disposable SQL acceptance.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, and notification-enqueue integrations remain default-off and require credential provisioning and candidate rollout after disposable SQL acceptance.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]
 }

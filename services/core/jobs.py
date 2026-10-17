@@ -9,7 +9,10 @@ import sys
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from services.common.worker_environment import worker_subprocess_environment
+from services.common.worker_environment import (
+    scheduled_module_worker_key,
+    worker_subprocess_environment,
+)
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
 from services.security.scheduled_command_contracts import (
     EAS_SCHEDULE_CHAINS,
@@ -105,8 +108,8 @@ JOBS = MappingProxyType(
             required_inputs=("location_id",),
         ),
         "noi_snapshots": JobSpec(
-            "services.metrics",
-            ("--reconcile-noi-snapshots",),
+            "services.metrics.noi_snapshot_worker",
+            (),
             300,
             2,
             600,
@@ -219,12 +222,16 @@ def run_job(
         arguments.extend(("--chain", chain))
     if spec.scheduler_allowed:
         validate_scheduled_command(spec.module, arguments)
+    worker_key = scheduled_module_worker_key(spec.module)
     result = subprocess.run(
         [sys.executable, "-m", spec.module, *arguments],
         capture_output=True,
         text=True,
         timeout=spec.timeout_seconds,
-        env=worker_subprocess_environment(),
+        env=worker_subprocess_environment(
+            allowed_worker_keys=(worker_key,) if worker_key is not None else (),
+            isolated_database_credentials=worker_key is not None,
+        ),
     )
     if result.returncode != 0:
         raise JobFailed(spec.label, result)

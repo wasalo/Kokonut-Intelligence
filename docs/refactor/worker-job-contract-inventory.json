@@ -4,7 +4,7 @@
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
     "catalog_jobs": 16,
-    "allowlisted_modules": 16,
+    "allowlisted_modules": 17,
     "outcomes": {
       "default_arguments_accepted": 5,
       "required_runtime_inputs_validated": 11
@@ -14,6 +14,7 @@
     {
       "job": "anomaly",
       "module": "services.ingestion.anomaly_detector",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [
         "location_id"
@@ -24,6 +25,7 @@
     {
       "job": "climate",
       "module": "services.ingestion.climate_data",
+      "worker_key": null,
       "argument_count": 1,
       "required_inputs": [
         "location_id"
@@ -34,6 +36,7 @@
     {
       "job": "credit_adjustment",
       "module": "services.analytics.carbon_credit_adjustment_check",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [
         "location_id"
@@ -44,6 +47,7 @@
     {
       "job": "dashboards",
       "module": "services.export.dataset_refresh",
+      "worker_key": null,
       "argument_count": 1,
       "required_inputs": [],
       "status": "default_arguments_accepted",
@@ -52,6 +56,7 @@
     {
       "job": "eas",
       "module": "services.ingestion.eas_indexer",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [
         "chain"
@@ -62,6 +67,7 @@
     {
       "job": "freshness",
       "module": "services.ingestion.data_freshness",
+      "worker_key": null,
       "argument_count": 1,
       "required_inputs": [],
       "status": "default_arguments_accepted",
@@ -70,6 +76,7 @@
     {
       "job": "gnosis",
       "module": "services.ingestion.gnosis_indexer",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [],
       "status": "default_arguments_accepted",
@@ -78,6 +85,7 @@
     {
       "job": "market_data",
       "module": "services.ingestion.market_data",
+      "worker_key": null,
       "argument_count": 2,
       "required_inputs": [],
       "status": "default_arguments_accepted",
@@ -86,6 +94,7 @@
     {
       "job": "metrics",
       "module": "services.metrics",
+      "worker_key": null,
       "argument_count": 2,
       "required_inputs": [
         "location_id"
@@ -95,8 +104,9 @@
     },
     {
       "job": "noi_snapshots",
-      "module": "services.metrics",
-      "argument_count": 1,
+      "module": "services.metrics.noi_snapshot_worker",
+      "worker_key": "noi_snapshot",
+      "argument_count": 0,
       "required_inputs": [
         "location_id"
       ],
@@ -106,6 +116,7 @@
     {
       "job": "projections",
       "module": "services.ingestion.clickhouse_outbox",
+      "worker_key": null,
       "argument_count": 3,
       "required_inputs": [],
       "status": "default_arguments_accepted",
@@ -114,6 +125,7 @@
     {
       "job": "remote_sensing",
       "module": "services.ingestion.remote_sensing_fetcher",
+      "worker_key": null,
       "argument_count": 3,
       "required_inputs": [
         "location_id"
@@ -124,6 +136,7 @@
     {
       "job": "rpc",
       "module": "services.ingestion.rpc_indexer",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [
         "chain"
@@ -134,6 +147,7 @@
     {
       "job": "sensors",
       "module": "services.ingestion.sensor_ingester",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [
         "location_id",
@@ -145,6 +159,7 @@
     {
       "job": "weather",
       "module": "services.ingestion.weather",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [
         "location_id"
@@ -155,6 +170,7 @@
     {
       "job": "weather_forecast",
       "module": "services.ingestion.weather_forecast",
+      "worker_key": null,
       "argument_count": 0,
       "required_inputs": [
         "location_id"

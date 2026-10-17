@@ -55,6 +55,29 @@ class SchedulerDurabilityTests(TestCase):
         )
         engine._complete_task.assert_called_once()
 
+    def test_noi_snapshot_dispatch_forwards_only_its_worker_secret_key(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._complete_task = Mock()
+        completed = Mock(returncode=0, stdout='{"reconciled":1}', stderr="")
+        child_env = {"KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "synthetic"}
+        with (
+            patch("services.scheduler.engine.worker_subprocess_environment", return_value=child_env) as environment,
+            patch("services.scheduler.engine.subprocess.run", return_value=completed) as run,
+        ):
+            result = engine._execute_task(
+                "run", "task", "noi_snapshots",
+                "services.metrics.noi_snapshot_worker",
+                ["--location-id", "a9aa6466-0754-4b7c-b20c-155a81134eaa"],
+                30, None,
+            )
+
+        self.assertTrue(result)
+        environment.assert_called_once_with(
+            allowed_worker_keys=("noi_snapshot",),
+            isolated_database_credentials=True,
+        )
+        self.assertIs(run.call_args.kwargs["env"], child_env)
+
     def test_execute_records_spawn_failure_for_retry(self):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()

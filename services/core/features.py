@@ -129,6 +129,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated worker login and signed location grant for EventBus cache invalidation",
     },
+    "signed_noi_snapshot_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a worker-specific credential, signed location grant, and bounded function for NOI snapshot reconciliation",
+    },
 }
 
 

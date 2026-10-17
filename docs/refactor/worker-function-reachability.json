@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 23,
-    "source_files": 83,
+    "operation_roots": 24,
+    "source_files": 84,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 476,
-    "direct_call_edges": 683,
+    "function_memberships": 487,
+    "direct_call_edges": 693,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -211,7 +211,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 15
+          "line": 42
         },
         {
           "key": "services.core.features:is_enabled",
@@ -219,7 +219,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -1536,7 +1536,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         },
         {
           "key": "services.core.features:require_feature",
@@ -1544,7 +1544,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 158
+          "line": 164
         },
         {
           "key": "services.export.dataset_refresh:get_pg",
@@ -1590,7 +1590,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 160
+          "line": 166
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -7233,6 +7233,188 @@
       ]
     },
     {
+      "kind": "scheduled_module",
+      "name": "services.metrics.noi_snapshot_worker",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/metrics/noi_snapshot_worker.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.common.cli:run",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 70
+        },
+        {
+          "function": "services.metrics.noi_snapshot_worker:main",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 70
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:print_json",
+          "module": "services.common.cli",
+          "qualname": "print_json",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 73
+        },
+        {
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 78
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 30
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 36
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 141
+        },
+        {
+          "key": "services.metrics.noi_snapshot_worker:main",
+          "module": "services.metrics.noi_snapshot_worker",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 46
+        },
+        {
+          "key": "services.metrics.noi_snapshot_worker:reconcile",
+          "module": "services.metrics.noi_snapshot_worker",
+          "qualname": "reconcile",
+          "class_scope": null,
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 12
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 152
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 143
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 47
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 85
+        },
+        {
+          "caller": "services.metrics.noi_snapshot_worker:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 60
+        },
+        {
+          "caller": "services.metrics.noi_snapshot_worker:main",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 56
+        },
+        {
+          "caller": "services.metrics.noi_snapshot_worker:main",
+          "callee": "services.metrics.noi_snapshot_worker:reconcile",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 59
+        },
+        {
+          "caller": "services.metrics.noi_snapshot_worker:reconcile",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 21
+        },
+        {
+          "caller": "services.metrics.noi_snapshot_worker:reconcile",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 18
+        },
+        {
+          "caller": "services.metrics.noi_snapshot_worker:reconcile",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/metrics/noi_snapshot_worker.py",
+          "line": 19
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
       "kind": "event_handler",
       "name": "services.cache.events.handle_crisp_scored",
       "source_files": [
@@ -7376,7 +7558,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         }
       ],
       "direct_call_edges": [
@@ -7618,7 +7800,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         }
       ],
       "direct_call_edges": [
@@ -7860,7 +8042,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         }
       ],
       "direct_call_edges": [
@@ -8102,7 +8284,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         }
       ],
       "direct_call_edges": [
@@ -8254,7 +8436,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -8430,7 +8612,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 135
+          "line": 141
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",

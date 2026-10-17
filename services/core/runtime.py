@@ -86,7 +86,11 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 "scheduler": "scheduler",
                 "events": "event_bus",
             }.get(name)
-            allowed_worker_keys = (worker_key,) if worker_key is not None else ()
+            allowed_worker_keys = (
+                ("scheduler", "noi_snapshot")
+                if name == "scheduler"
+                else (worker_key,) if worker_key is not None else ()
+            )
             process = subprocess.Popen(
                 argv,
                 start_new_session=True,

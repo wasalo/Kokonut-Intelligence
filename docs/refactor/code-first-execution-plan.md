@@ -5,7 +5,7 @@
 **Previous pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
 **Previous functional batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
 
-**Current code-first batch:** Native NOI snapshot reconciliation requires one location per scheduled task. The CLI validates and canonicalizes UUID scope before DB access, constrains both source relations, and retains an explicit manual `--all-locations` option. The curated dispatcher, disabled plan builder, and database-driven command contract enforce the same scope. The 158-test CLI/scheduler/inventory suite passes alongside Ruff, compilation, generated SQL/worker inventory checks, and capability-matrix validation. The checklist is 429 checked / 21 open (450 total); the matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; no database, provider, persisted schedule, or legacy service was accessed. Worker identity, signed tenant context, runtime-role grants, and RLS remain open ([evidence](builds/2026-10-16-recovery/noi-snapshot-location-scope.json)).
+**Current code-first batch:** Native NOI snapshot reconciliation now runs through a dedicated scheduled module, exact worker-secret route, and default-off feature gate. The child receives its NOI DSN/credential pair only; shared PostgreSQL login settings are removed. Migration 425's bounded function requires the signed `noi_snapshot/reconcile` grant, limits reads/writes to the signed location, preserves a conflicting cross-location row, and gives the worker no direct table access. The focused source/scheduler/inventory suite passes 193 tests; seven disposable PostgreSQL 16 checks pass. The checklist is 430 checked / 21 open (451 total); the matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; no candidate or legacy database, provider, or persisted schedule was accessed. Credentials/grants are not provisioned and migration 425 is not rolled out, so the feature stays disabled and RLS remains open ([evidence](builds/2026-10-16-recovery/noi-snapshot-worker-disposable.json)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -70,7 +70,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **429 checked and 21 open items (450 total)**,
+- The execution checklist has **430 checked and 21 open items (451 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -438,8 +438,10 @@ before protected reads and writes, and make direct database access fail closed.
    combinations at activation, run-now, generated job plans, and subprocess
    dispatch; they reject human-review actions, unsafe cleanup, unbounded event
    loops and recurring sensor ingestion without a source. Scheduler and event
-   allowlists still inherit the shared runtime environment; they are not
-   DB-identity or RLS boundaries. The broader code trace is recorded in
+  operations still inherit the shared runtime identity. The exact NOI worker
+  module now receives its named worker key only, with shared PostgreSQL login
+  settings stripped from that child; this does not establish RLS for other
+  jobs. The broader code trace is recorded in
    [the tenant call-site audit](mobile-tenant-rls-callsite-audit.md). A new
    location-scoped OIDC operations overview supplies device inventory and
    aggregate queue counts only when both `mobile_device:read` and
@@ -457,12 +459,12 @@ before protected reads and writes, and make direct database access fail closed.
    **Partial:** the opt-in bootstrap still grants broad DML on existing public
    tables outside reviewed exceptions, but it now revokes both global and
    `public`-schema default privileges for future tables and sequences. The
-   disposable PostgreSQL 16 role acceptance still passed current-handler SQL
-   and proved a table/sequence created after provisioning is inaccessible to
-   the runtime login. A new whole-services SQL inventory covers all 807 Python
+  disposable PostgreSQL 16 role acceptance still passed current-handler SQL
+  and proved a table/sequence created after provisioning is inaccessible to
+  the runtime login. A new whole-services SQL inventory covers all 817 Python
    source files and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The current generated inventory covers 3,906
-   SQL execution sites across 816 source files, including 297 worker-linked
+  names without becoming an ACL. The current generated inventory covers 3,914
+  SQL execution sites across 817 source files, including 305 worker-linked
    sites; literal query wrappers are unwrapped while parameter values remain
    unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and
@@ -471,8 +473,8 @@ before protected reads and writes, and make direct database access fail closed.
 4. Add a machine-readable preflight that detects unbounded callers, unsafe
    grants, missing migration prerequisites, and pending tenant mappings without
   printing personal or secret values. **Partial:** the static-only worker
-  preflight confirms all 20 allowlisted roots and imports, reports the shared
-  runtime identity and 64 SQL sites without static function matches,
+  preflight confirms all 24 allowlisted roots and imports, reports the shared
+  runtime identity and 72 SQL sites without static function matches,
   and keeps RLS blocked. The complementary aggregate tenant preflight now
   reports pending/current-source checksum drift counts, connected-role
   superuser/BYPASSRLS and public DML/RLS indicators, and enabled scheduler

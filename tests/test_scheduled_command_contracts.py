@@ -44,7 +44,7 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--metric", "value_flowed", "--location-id", str(uuid4())]),
-        ("services.metrics", ["--reconcile-noi-snapshots", "--location-id", str(uuid4())]),
+        ("services.metrics.noi_snapshot_worker", ["--location-id", str(uuid4())]),
         ("services.ingestion.data_freshness", ["--check"]),
         ("services.export.dataset_refresh", ["--all"]),
         (
@@ -101,10 +101,10 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.metrics", ["--compute", "--all-locations"]),
         ("services.metrics", ["--compute", "--all"]),
         ("services.metrics", ["--compute", "--all-locations", "--location-id", str(uuid4())]),
-        ("services.metrics", ["--reconcile-noi-snapshots"]),
-        ("services.metrics", ["--reconcile-noi-snapshots", "--all-locations"]),
-        ("services.metrics", ["--reconcile-noi-snapshots", "--location-id", "invalid"]),
-        ("services.metrics", ["--reconcile-noi-snapshots", "--location-id", str(uuid4()), "--compute"]),
+        ("services.metrics", ["--reconcile-noi-snapshots", "--location-id", str(uuid4())]),
+        ("services.metrics.noi_snapshot_worker", []),
+        ("services.metrics.noi_snapshot_worker", ["--location-id", "invalid"]),
+        ("services.metrics.noi_snapshot_worker", ["--location-id", str(uuid4()), "--all-locations"]),
         ("services.metrics", ["--compute", "--metric", "value_flowed"]),
         ("services.events", ["--cleanup"]),
         ("services.events", ["--worker"]),
@@ -388,6 +388,37 @@ def test_run_now_passes_filtered_environment_to_task_child():
     connection.close.assert_called_once()
 
 
+def test_run_now_forwards_noi_worker_secrets_only_to_signed_module():
+    from services.scheduler.cli import cmd_run_now
+
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    location_id = str(uuid4())
+    cursor.fetchone.return_value = (
+        "services.metrics.noi_snapshot_worker",
+        ["--location-id", location_id],
+        30,
+    )
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+    child_env = {"KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "synthetic"}
+    completed = MagicMock(returncode=0)
+
+    with (
+        patch("services.common.database.get_db", return_value=connection),
+        patch("subprocess.run", return_value=completed) as run,
+        patch("services.scheduler.cli.worker_subprocess_environment", return_value=child_env) as env_builder,
+    ):
+        result = cmd_run_now(Namespace(task_name="noi_snapshots"))
+
+    assert result == 0
+    env_builder.assert_called_once_with(
+        allowed_worker_keys=("noi_snapshot",), isolated_database_credentials=True
+    )
+    assert run.call_args.kwargs["env"] is child_env
+    connection.close.assert_called_once()
+
+
 def test_reviewable_job_plans_require_tenant_and_driver_inputs():
     weather = build_job_plan("weather", "hourly", location_id=str(uuid4()))
     assert weather["scheduled_task"]["command_args"][0] == "--location-id"
@@ -400,11 +431,8 @@ def test_reviewable_job_plans_require_tenant_and_driver_inputs():
 
     location_id = str(uuid4())
     snapshots = build_job_plan("noi_snapshots", "daily", location_id=location_id)
-    assert snapshots["scheduled_task"]["command_args"] == [
-        "--reconcile-noi-snapshots",
-        "--location-id",
-        location_id,
-    ]
+    assert snapshots["scheduled_task"]["module_path"] == "services.metrics.noi_snapshot_worker"
+    assert snapshots["scheduled_task"]["command_args"] == ["--location-id", location_id]
     assert snapshots["scheduled_task"]["is_enabled"] is False
 
     with pytest.raises(ValueError, match="requires one location and one driver instance"):
@@ -430,27 +458,38 @@ def test_reviewable_job_plans_require_tenant_and_driver_inputs():
 def test_noi_snapshot_job_requires_location_before_dispatch():
     job = JOBS["noi_snapshots"]
 
-    assert job.module == "services.metrics"
+    assert job.module == "services.metrics.noi_snapshot_worker"
     assert job.required_inputs == ("location_id",)
-    with patch("services.core.jobs.subprocess.run") as run:
+    with (
+        patch("services.core.jobs.subprocess.run") as run,
+        patch("services.core.jobs.worker_subprocess_environment") as child_environment,
+    ):
         with pytest.raises(ValueError, match="requires a location"):
             run_job("noi_snapshots")
     run.assert_not_called()
+    child_environment.assert_not_called()
 
     location_id = str(uuid4())
     completed = MagicMock(returncode=0, stdout='{"reconciled": 1}')
-    with patch("services.core.jobs.subprocess.run", return_value=completed) as run:
+    environment = {"KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "synthetic"}
+    with (
+        patch("services.core.jobs.subprocess.run", return_value=completed) as run,
+        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+    ):
         result = run_job("noi_snapshots", location_id=location_id)
 
     assert result["status"] == "success"
     assert run.call_args.args[0] == [
         sys.executable,
         "-m",
-        "services.metrics",
-        "--reconcile-noi-snapshots",
+        "services.metrics.noi_snapshot_worker",
         "--location-id",
         location_id,
     ]
+    assert run.call_args.kwargs["env"] is environment
+    child_environment.assert_called_once_with(
+        allowed_worker_keys=("noi_snapshot",), isolated_database_credentials=True
+    )
 
 
 def test_sensor_job_dispatch_passes_only_registered_instance_and_location():

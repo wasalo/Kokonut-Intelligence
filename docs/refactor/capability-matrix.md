@@ -2458,8 +2458,30 @@ schedule planner, and persisted-command validator enforce the same location
 contract. The focused CLI, scheduler, operation-map, and SQL/source inventory
 suites pass 158 tests. No database,
 provider, candidate, or persisted schedule was accessed; no task was activated.
-This adds source-level scope only: the shared worker identity still lacks
-signed tenant context for this operation, so RLS and MAN-CAP classifications
-remain unchanged ([command](../services/metrics/cli.py); [scheduler contract](../services/security/scheduled_command_contracts.py);
+This earlier query-filter slice did not establish worker identity or signed
+context; that integration is recorded in the following section. Broader metrics
+worker identity, application RLS, and MAN-CAP classifications remain open
+([command](../services/metrics/cli.py); [scheduler contract](../services/security/scheduled_command_contracts.py);
 [job inventory](worker-job-contract-inventory.json);
 [evidence](builds/2026-10-16-recovery/noi-snapshot-location-scope.json)).
+
+### CAP-040/047 signed NOI snapshot worker — 16 October 2026
+
+Native NOI snapshot reconciliation now has a separate scheduled module and
+worker-key route. Its default-off feature gate requires one canonical location;
+the scheduler forwards only the NOI worker DSN/credential to that exact module
+and strips shared PostgreSQL login settings from the child environment. The
+worker establishes the database-signed `noi_snapshot/reconcile` context and
+calls migration 425's bounded function. That function upserts only snapshots
+for the signed location, refuses a caller-supplied location mismatch, and
+leaves a stale conflicting cross-location snapshot untouched. The worker login
+and execution role have no direct source or target table privileges; the
+application runtime cannot execute the function. The focused source/scheduler/
+inventory suite passes 193 tests; seven disposable PostgreSQL 16 checks pass,
+including replay, exact grants, mismatch denial, and transaction cleanup.
+Migration 425 is not candidate-deployed, credentials and grants are not
+provisioned, the feature remains off, application RLS remains disabled, and no
+MAN-CAP acceptance is claimed ([worker](../services/metrics/noi_snapshot_worker.py);
+[migration](../schemas/postgres/425_signed_noi_snapshot_worker.sql);
+[runner](../scripts/check-noi-snapshot-worker-disposable.py);
+[evidence](builds/2026-10-16-recovery/noi-snapshot-worker-disposable.json)).
