@@ -1,5 +1,15 @@
 # Kokonut Kernel implementation progress
 
+### Ingestion status output containment — 17 October 2026
+
+The status CLI now redacts persisted ingestion and indexer error details while
+retaining a visible marker that a failure was recorded. Failed-record
+filtering and connection cleanup are preserved. The package-qualified
+database adapter is imported only when a query runs, so `--help` works without
+loading database configuration or SOPS secrets. Three mocked checks pass with
+Ruff and compilation; no database or provider was used
+([evidence](builds/2026-10-17-recovery/ingestion-status-output-redaction.json)).
+
 ### EAS reconciliation error containment — 17 October 2026
 
 On-chain attestation reconciliation now places only a fixed verification label

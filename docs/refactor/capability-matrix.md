@@ -526,6 +526,15 @@ provider, chain, or database was contacted. This source regression does not
 close MAN-CAP-018 or live attestation validity acceptance
 ([evidence](builds/2026-10-17-recovery/attestation-reconciliation-error-redaction.json)).
 
+**17 October 2026 ingestion status output containment (CAP-040 / CAP-047):**
+the operator CLI now shows that ingestion and indexer failures were recorded
+without printing persisted provider/database diagnostics. Its documented
+module-qualified help path also starts without loading database configuration
+or SOPS secrets. Three mocked checks plus Ruff and compilation pass. No
+database or provider was accessed; this improves diagnostic privacy without
+establishing live-source recovery or MAN-CAP acceptance
+([evidence](builds/2026-10-17-recovery/ingestion-status-output-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes
