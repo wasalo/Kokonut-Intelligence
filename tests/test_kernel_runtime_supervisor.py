@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from services.common.worker_environment import SCHEDULED_WORKER_KEYS
 from services.core import runtime
 
 
@@ -112,9 +113,10 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
 
     assert runtime.run(with_workers=True) == 0
 
-    assert allowlists == [(), ("scheduler", "noi_snapshot", "weather", "weather_forecast"), ("event_bus",), ()]
+    scheduler_allowlist = ("scheduler", *SCHEDULED_WORKER_KEYS)
+    assert allowlists == [(), scheduler_allowlist, ("event_bus",), ()]
     assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == [
-        "", "scheduler,noi_snapshot,weather,weather_forecast", "event_bus", ""
+        "", ",".join(scheduler_allowlist), "event_bus", ""
     ]
 
 

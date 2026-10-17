@@ -12,7 +12,10 @@ import time
 import uuid
 
 from services.common.logging import get_logger
-from services.common.worker_environment import worker_subprocess_environment
+from services.common.worker_environment import (
+    SCHEDULED_WORKER_KEYS,
+    worker_subprocess_environment,
+)
 
 logger = get_logger("core.runtime")
 
@@ -87,7 +90,7 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
                 "events": "event_bus",
             }.get(name)
             allowed_worker_keys = (
-                ("scheduler", "noi_snapshot", "weather", "weather_forecast")
+                ("scheduler", *SCHEDULED_WORKER_KEYS)
                 if name == "scheduler"
                 else (worker_key,) if worker_key is not None else ()
             )

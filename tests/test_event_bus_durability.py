@@ -86,7 +86,10 @@ def test_handler_child_environment_allows_only_exact_anomaly_worker_identity():
             "KOKONUT_OTHER_WORKER_DATABASE_URL": "postgresql://other",
             "KOKONUT_OTHER_WORKER_WORKER_CREDENTIAL": "other-secret",
             "PG_PASSWORD": "legacy-runtime-secret",
+            "PG_USER": "kokonut_runtime",
             "KOKONUT_OPERATOR_AUTH_PASSWORD": "operator-secret",
+            "GEE_SERVICE_ACCOUNT_KEY": "global-gee-secret",
+            "COPERNICUS_CLIENT_SECRET": "global-copernicus-secret",
             "DATABASE_URL": "application-config",
         }
     )
@@ -94,9 +97,6 @@ def test_handler_child_environment_allows_only_exact_anomaly_worker_identity():
     assert env == {
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
-        "PG_PASSWORD": "legacy-runtime-secret",
-        "KOKONUT_OPERATOR_AUTH_PASSWORD": "operator-secret",
-        "DATABASE_URL": "application-config",
     }
 
 
@@ -109,6 +109,8 @@ def test_cache_handlers_receive_only_their_exact_worker_identity():
         "KOKONUT_SCHEDULER_DATABASE_URL": "postgresql://scheduler",
         "KOKONUT_SCHEDULER_WORKER_CREDENTIAL": "scheduler-secret",
         "PG_PASSWORD": "legacy-runtime-secret",
+        "PG_USER": "kokonut_runtime",
+        "DATABASE_URL": "application-config",
     }
 
     for function_name in (
@@ -123,7 +125,6 @@ def test_cache_handlers_receive_only_their_exact_worker_identity():
         assert env == {
             "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
             "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "cache-secret",
-            "PG_PASSWORD": "legacy-runtime-secret",
         }
 
 
@@ -143,7 +144,6 @@ def test_notification_handlers_receive_only_their_enqueue_identity():
 
     assert env == {
         "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
-        "DATABASE_URL": "application-config",
     }
 
 
@@ -156,10 +156,14 @@ def test_unmapped_event_handler_receives_no_worker_identity():
             "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
             "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
             "DATABASE_URL": "application-config",
+            "PG_PASSWORD": "legacy-runtime-secret",
         },
     )
 
-    assert env == {"DATABASE_URL": "application-config"}
+    assert env == {
+        "DATABASE_URL": "application-config",
+        "PG_PASSWORD": "legacy-runtime-secret",
+    }
 
 
 def test_handler_success_uses_filtered_environment_and_stdin_request():
@@ -192,7 +196,6 @@ def test_handler_success_uses_filtered_environment_and_stdin_request():
     assert kwargs["env"] == {
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
-        "PG_PASSWORD": "runtime-secret",
     }
     assert "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL" not in kwargs["env"]
     assert kwargs["stdin"] == subprocess.PIPE

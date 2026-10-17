@@ -41,6 +41,7 @@ def _handler_child_environment(module_path, function_name, environ=None):
     allowed_worker_keys = _HANDLER_WORKER_KEYS.get((module_path, function_name), ())
     return worker_subprocess_environment(
         allowed_worker_keys=allowed_worker_keys,
+        isolated_database_credentials=bool(allowed_worker_keys),
         environ=environ,
     )
 

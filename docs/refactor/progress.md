@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### Dedicated EventBus handler environment isolation — 17 October 2026
+
+Exact source-mapped EventBus handlers now receive only their dedicated worker
+DSN and credential. Shared PostgreSQL settings and global geospatial provider
+secrets are removed from these children; unmapped legacy handlers retain their
+current environment until their own dedicated identity boundary is implemented.
+The Kernel supervisor's scheduler child allowlist is now derived from the exact
+scheduled-module mapping, covering every registered worker. The expanded
+scheduler/EventBus boundary suite passes 224 tests; Ruff, Python compilation,
+dependency-group alignment, provider-boundary, and diff checks pass. The checks
+use synthetic environment values and mocked subprocesses only; no database,
+provider, candidate, legacy stack, or real credential was accessed. Live worker
+credential provisioning and broader runtime recovery remain open
+([evidence](builds/2026-10-17-recovery/event-handler-dedicated-environment.json)).
+
 ### Private-media S3 key confinement — 17 October 2026
 
 The S3-compatible Field Collector store now validates the `private/field-collector/`

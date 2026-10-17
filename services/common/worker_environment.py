@@ -38,6 +38,8 @@ _SCHEDULED_MODULE_WORKERS = {
     "services.ingestion.sensor_worker": "sensor_ingestion",
     "services.ingestion.remote_sensing_worker": "remote_sensing",
 }
+# Keep the Kernel supervisor allowlist aligned with the scheduler dispatch map.
+SCHEDULED_WORKER_KEYS = tuple(dict.fromkeys(_SCHEDULED_MODULE_WORKERS.values()))
 
 _GLOBAL_PROVIDER_SECRETS = frozenset({
     "GEE_SERVICE_ACCOUNT_KEY",
