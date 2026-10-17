@@ -226,8 +226,10 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
 
     elif module_path == "services.metrics":
         if "--reconcile-noi-snapshots" in options:
-            if options != {"--reconcile-noi-snapshots"}:
-                raise _reject("NOI snapshot reconciliation is a standalone operation")
+            if options != {"--reconcile-noi-snapshots", "--location-id"}:
+                raise _reject(
+                    "scheduled NOI snapshot reconciliation requires one explicit location"
+                )
             return
         if "--compute" not in options:
             raise _reject("scheduled metric operation requires --compute")

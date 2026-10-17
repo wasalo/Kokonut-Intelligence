@@ -6,8 +6,8 @@
     "operation_roots": 23,
     "source_files": 83,
     "execution_sites": 304,
-    "static_literal_sites": 263,
-    "composed_or_variable_sites": 41
+    "static_literal_sites": 262,
+    "composed_or_variable_sites": 42
   },
   "execution_sites": [
     {
@@ -5462,13 +5462,13 @@
       ]
     },
     {
-      "id": "services/metrics/cli.py:43:21",
+      "id": "services/metrics/cli.py:79:21",
       "source": "services/metrics/cli.py",
-      "line": 43,
+      "line": 79,
       "column": 21,
       "scope": "main",
       "method": "execute",
-      "expression_kind": "literal",
+      "expression_kind": "fstring",
       "statement_kind": "INSERT",
       "candidate_relations": [
         "SET",
@@ -5476,15 +5476,15 @@
         "noi_snapshot",
         "v_crop_cycle_noi"
       ],
-      "static_sql_sha256": "229b389eb1dd2bf5886be2a4cd005c12c3ea9180e48105cacec2e63c4563b80d",
+      "static_sql_sha256": null,
       "operation_refs": [
         "scheduled_module:services.metrics"
       ]
     },
     {
-      "id": "services/metrics/cli.py:113:16",
+      "id": "services/metrics/cli.py:152:16",
       "source": "services/metrics/cli.py",
-      "line": 113,
+      "line": 152,
       "column": 16,
       "scope": "main",
       "method": "execute",
@@ -5499,9 +5499,9 @@
       ]
     },
     {
-      "id": "services/metrics/cli.py:138:20",
+      "id": "services/metrics/cli.py:177:20",
       "source": "services/metrics/cli.py",
-      "line": 138,
+      "line": 177,
       "column": 20,
       "scope": "main",
       "method": "execute",

@@ -12,7 +12,7 @@ Usage:
 """
 
 import argparse
-import sys
+from uuid import UUID
 
 from services.common.cli import get_connection, print_json, run
 
@@ -22,9 +22,14 @@ def main():
     parser.add_argument("--compute", action="store_true", help="Compute metrics")
     parser.add_argument("--metric", help="Specific metric_key to compute")
     parser.add_argument("--all", action="store_true", help="Compute all active metrics")
-    parser.add_argument("--all-locations", action="store_true", help="Compute all metrics for all locations")
+    location_scope = parser.add_mutually_exclusive_group()
+    location_scope.add_argument(
+        "--all-locations",
+        action="store_true",
+        help="Explicitly compute/reconcile across all locations (manual operation)",
+    )
     parser.add_argument("--list", action="store_true", help="List all metric definitions")
-    parser.add_argument("--location-id", help="Location UUID")
+    location_scope.add_argument("--location-id", help="Location UUID")
     parser.add_argument("--period-start", help="Period start date (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Period end date (YYYY-MM-DD)")
     parser.add_argument("--verify-value", help="Metric value UUID to verify")
@@ -39,8 +44,39 @@ def main():
     args = parser.parse_args()
 
     if args.reconcile_noi_snapshots:
+        if args.location_id is None and not args.all_locations:
+            parser.error(
+                "--reconcile-noi-snapshots requires --location-id or --all-locations"
+            )
+        if any((
+            args.compute,
+            args.metric,
+            args.all,
+            args.list,
+            args.period_start,
+            args.period_end,
+            args.verify_value,
+            args.verified_by,
+            args.verification_notes,
+        )):
+            parser.error("--reconcile-noi-snapshots is a standalone operation")
+        location_id = None
+        if args.location_id is not None:
+            try:
+                location_id = str(UUID(str(args.location_id)))
+            except (TypeError, ValueError, AttributeError):
+                parser.error("--location-id must be a UUID")
+
+        location_filter = ""
+        parameters = {}
+        if location_id is not None:
+            location_filter = (
+                " AND v.location_id = :location_id"
+                " AND cc.location_id = :location_id"
+            )
+            parameters["location_id"] = location_id
         with get_connection() as conn:
-            result = conn.execute("""
+            result = conn.execute(f"""
                 INSERT INTO noi_snapshot (
                     crop_cycle_id, location_id, period_start, period_end,
                     gross_revenue, returns_and_discounts, net_revenue,
@@ -65,6 +101,7 @@ def main():
                 WHERE cc.status IN (
                     'active', 'flowering', 'harvesting', 'harvested', 'completed'
                 )
+                {location_filter}
                 ON CONFLICT (crop_cycle_id) DO UPDATE SET
                     location_id = EXCLUDED.location_id,
                     period_start = EXCLUDED.period_start,
@@ -82,11 +119,13 @@ def main():
                     calculated_at = EXCLUDED.calculated_at,
                     inputs = EXCLUDED.inputs
                 RETURNING crop_cycle_id
-            """)
+            """, parameters)
         print_json({
             "status": "success",
             "reconciled": result.rowcount,
             "source": "v_crop_cycle_noi",
+            "scope": "location" if location_id is not None else "all_locations",
+            **({"location_id": location_id} if location_id is not None else {}),
         })
         return
 
@@ -131,7 +170,7 @@ def main():
     if args.compute:
         conn = get_db()
         try:
-            from .engine import compute_metric, compute_all
+            from .engine import compute_all, compute_metric
 
             if args.all_locations:
                 with conn.cursor() as cur:

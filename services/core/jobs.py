@@ -105,7 +105,13 @@ JOBS = MappingProxyType(
             required_inputs=("location_id",),
         ),
         "noi_snapshots": JobSpec(
-            "services.metrics", ("--reconcile-noi-snapshots",), 300, 2, 600, "Crop-cycle NOI snapshot reconciliation"
+            "services.metrics",
+            ("--reconcile-noi-snapshots",),
+            300,
+            2,
+            600,
+            "Crop-cycle NOI snapshot reconciliation",
+            required_inputs=("location_id",),
         ),
         "dashboards": JobSpec("services.export.dataset_refresh", ("--all",), 900, 2, 300, "Dashboard refresh"),
         "credit_adjustment": JobSpec(

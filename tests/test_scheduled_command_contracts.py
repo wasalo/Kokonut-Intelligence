@@ -44,7 +44,7 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--metric", "value_flowed", "--location-id", str(uuid4())]),
-        ("services.metrics", ["--reconcile-noi-snapshots"]),
+        ("services.metrics", ["--reconcile-noi-snapshots", "--location-id", str(uuid4())]),
         ("services.ingestion.data_freshness", ["--check"]),
         ("services.export.dataset_refresh", ["--all"]),
         (
@@ -101,6 +101,10 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.metrics", ["--compute", "--all-locations"]),
         ("services.metrics", ["--compute", "--all"]),
         ("services.metrics", ["--compute", "--all-locations", "--location-id", str(uuid4())]),
+        ("services.metrics", ["--reconcile-noi-snapshots"]),
+        ("services.metrics", ["--reconcile-noi-snapshots", "--all-locations"]),
+        ("services.metrics", ["--reconcile-noi-snapshots", "--location-id", "invalid"]),
+        ("services.metrics", ["--reconcile-noi-snapshots", "--location-id", str(uuid4()), "--compute"]),
         ("services.metrics", ["--compute", "--metric", "value_flowed"]),
         ("services.events", ["--cleanup"]),
         ("services.events", ["--worker"]),
@@ -391,8 +395,17 @@ def test_reviewable_job_plans_require_tenant_and_driver_inputs():
     climate = build_job_plan("climate", "weekly", location_id=str(uuid4()))
     assert "--location-id" in climate["scheduled_task"]["command_args"]
 
-    snapshots = build_job_plan("noi_snapshots", "daily")
-    assert snapshots["scheduled_task"]["command_args"] == ["--reconcile-noi-snapshots"]
+    with pytest.raises(ValueError, match="requires one location"):
+        build_job_plan("noi_snapshots", "daily")
+
+    location_id = str(uuid4())
+    snapshots = build_job_plan("noi_snapshots", "daily", location_id=location_id)
+    assert snapshots["scheduled_task"]["command_args"] == [
+        "--reconcile-noi-snapshots",
+        "--location-id",
+        location_id,
+    ]
+    assert snapshots["scheduled_task"]["is_enabled"] is False
 
     with pytest.raises(ValueError, match="requires one location and one driver instance"):
         build_job_plan("sensors", "hourly")
@@ -412,6 +425,32 @@ def test_reviewable_job_plans_require_tenant_and_driver_inputs():
         driver_instance_id,
     ]
     assert sensors["scheduled_task"]["is_enabled"] is False
+
+
+def test_noi_snapshot_job_requires_location_before_dispatch():
+    job = JOBS["noi_snapshots"]
+
+    assert job.module == "services.metrics"
+    assert job.required_inputs == ("location_id",)
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="requires a location"):
+            run_job("noi_snapshots")
+    run.assert_not_called()
+
+    location_id = str(uuid4())
+    completed = MagicMock(returncode=0, stdout='{"reconciled": 1}')
+    with patch("services.core.jobs.subprocess.run", return_value=completed) as run:
+        result = run_job("noi_snapshots", location_id=location_id)
+
+    assert result["status"] == "success"
+    assert run.call_args.args[0] == [
+        sys.executable,
+        "-m",
+        "services.metrics",
+        "--reconcile-noi-snapshots",
+        "--location-id",
+        location_id,
+    ]
 
 
 def test_sensor_job_dispatch_passes_only_registered_instance_and_location():

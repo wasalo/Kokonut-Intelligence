@@ -2,10 +2,10 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
-**Current pushed batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. The checklist is now 428 checked / 21 open (449 total); the matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–424 have not been rolled out. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
+**Previous pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
+**Previous functional batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
 
-**Current batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC, preserving the legacy wallet row and requiring explicit review before advancing an inherited boundary. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, using per-wallet savepoints and explicit chain-error status on partial failure. The Gnosis cursor suite passes 184 tests; the RPC recovery/contract/outbox/scheduler suite passes 133 tests. Ruff and compilation pass, and a network-disabled disposable PostgreSQL 16 check confirms migration 424 apply/replay and source-row preservation. The checklist is 428 checked / 21 open (449 total). Historical Gnosis receipt backfill, removed-log/deep reorg recovery, RPC transaction-history coverage, confirmation depth, and live-provider behavior remain open; no candidate, provider, or schedule was accessed ([RPC evidence](builds/2026-10-16-recovery/rpc-indexer-atomicity.json)).
+**Current code-first batch:** Native NOI snapshot reconciliation requires one location per scheduled task. The CLI validates and canonicalizes UUID scope before DB access, constrains both source relations, and retains an explicit manual `--all-locations` option. The curated dispatcher, disabled plan builder, and database-driven command contract enforce the same scope. The 158-test CLI/scheduler/inventory suite passes alongside Ruff, compilation, generated SQL/worker inventory checks, and capability-matrix validation. The checklist is 429 checked / 21 open (450 total); the matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; no database, provider, persisted schedule, or legacy service was accessed. Worker identity, signed tenant context, runtime-role grants, and RLS remain open ([evidence](builds/2026-10-16-recovery/noi-snapshot-location-scope.json)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -70,7 +70,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **428 checked and 21 open items (449 total)**,
+- The execution checklist has **429 checked and 21 open items (450 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -411,8 +411,8 @@ before protected reads and writes, and make direct database access fail closed.
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
-  covers 16 shared JobSpecs: the current inventory has six no-input defaults
-  and ten validated-input jobs, while EAS/RPC now require explicit supported
+  covers 16 shared JobSpecs: the current inventory has five no-input defaults
+  and eleven validated-input jobs, while EAS/RPC now require explicit supported
   chains. The earlier eight-no-input comparison recorded that anomaly,
   climate, weather, weather forecast, metrics, credit adjustment, and remote sensing require a
   schema-validated location per scheduled task; scheduled sensor ingestion now requires one location-bound registered driver

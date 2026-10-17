@@ -6955,19 +6955,7 @@
           "caller": "services.metrics.cli:main",
           "callee": "services.common.cli:get_connection",
           "source": "services/metrics/cli.py",
-          "line": 42
-        },
-        {
-          "caller": "services.metrics.cli:main",
-          "callee": "services.common.cli:print_json",
-          "source": "services/metrics/cli.py",
-          "line": 86
-        },
-        {
-          "caller": "services.metrics.cli:main",
-          "callee": "services.common.cli:print_json",
-          "source": "services/metrics/cli.py",
-          "line": 106
+          "line": 78
         },
         {
           "caller": "services.metrics.cli:main",
@@ -6979,55 +6967,67 @@
           "caller": "services.metrics.cli:main",
           "callee": "services.common.cli:print_json",
           "source": "services/metrics/cli.py",
-          "line": 154
+          "line": 145
         },
         {
           "caller": "services.metrics.cli:main",
           "callee": "services.common.cli:print_json",
           "source": "services/metrics/cli.py",
-          "line": 167
-        },
-        {
-          "caller": "services.metrics.cli:main",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/metrics/cli.py",
-          "line": 98
-        },
-        {
-          "caller": "services.metrics.cli:main",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/metrics/cli.py",
-          "line": 110
-        },
-        {
-          "caller": "services.metrics.cli:main",
-          "callee": "services.ingestion.base:get_db",
-          "source": "services/metrics/cli.py",
-          "line": 132
-        },
-        {
-          "caller": "services.metrics.cli:main",
-          "callee": "services.metrics.engine:compute_all",
-          "source": "services/metrics/cli.py",
-          "line": 148
-        },
-        {
-          "caller": "services.metrics.cli:main",
-          "callee": "services.metrics.engine:compute_all",
-          "source": "services/metrics/cli.py",
           "line": 162
+        },
+        {
+          "caller": "services.metrics.cli:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/metrics/cli.py",
+          "line": 193
+        },
+        {
+          "caller": "services.metrics.cli:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/metrics/cli.py",
+          "line": 206
+        },
+        {
+          "caller": "services.metrics.cli:main",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/metrics/cli.py",
+          "line": 137
+        },
+        {
+          "caller": "services.metrics.cli:main",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/metrics/cli.py",
+          "line": 149
+        },
+        {
+          "caller": "services.metrics.cli:main",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/metrics/cli.py",
+          "line": 171
+        },
+        {
+          "caller": "services.metrics.cli:main",
+          "callee": "services.metrics.engine:compute_all",
+          "source": "services/metrics/cli.py",
+          "line": 187
+        },
+        {
+          "caller": "services.metrics.cli:main",
+          "callee": "services.metrics.engine:compute_all",
+          "source": "services/metrics/cli.py",
+          "line": 201
         },
         {
           "caller": "services.metrics.cli:main",
           "callee": "services.metrics.engine:compute_metric",
           "source": "services/metrics/cli.py",
-          "line": 164
+          "line": 203
         },
         {
           "caller": "services.metrics.cli:main",
           "callee": "services.metrics.engine:verify_metric_value",
           "source": "services/metrics/cli.py",
-          "line": 101
+          "line": 140
         },
         {
           "caller": "services.metrics.engine:_publish_metric_event",

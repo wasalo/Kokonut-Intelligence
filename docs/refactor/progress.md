@@ -777,13 +777,25 @@ that checkpoint, the static JobSpec inventory recorded nine no-input jobs,
 five jobs with validated required location inputs, and one source-less sensor
 job; later anomaly and sensor-scope slices changed that checkpoint's totals to
 eight no-input jobs and seven validated-input jobs. EAS/RPC chain scoping now
-makes the current catalog six no-input jobs and ten validated-input jobs,
+makes the current catalog five no-input jobs and eleven validated-input jobs,
 including the sensor location/driver-instance pair.
 No persisted task was read or
 changed. Existing task rows need reconciliation before activation, and the
 shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);
 [operation map](worker-operation-map.json);
 [evidence](builds/2026-10-16-recovery/prefect-location-scoped-job-fanout.json)).
+
+The next code-first scheduler slice scopes crop-cycle NOI snapshot
+reconciliation to one location per native task. The CLI validates and
+canonicalizes the UUID before opening a connection and binds it against both
+the source view and crop-cycle relation; manual aggregate reconciliation
+remains explicit via `--all-locations`. The dispatcher, disabled plan builder,
+and scheduled command contract enforce the same scope. The focused CLI,
+scheduler, worker-operation-map, and SQL/source inventory suites pass 158 tests.
+The catalog now has five no-input and eleven
+validated-input jobs. No database, provider, candidate, persisted schedule, or
+legacy service was accessed; this does not establish worker identity or RLS
+([evidence](builds/2026-10-16-recovery/noi-snapshot-location-scope.json)).
 
 ### Per-location remote-sensing scheduled claims — 16 October 2026
 

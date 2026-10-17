@@ -81,25 +81,25 @@ application-wide RLS or proof for other workers.
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
   command/request protocol rather than a local function call. Across 23
-  operation roots and 83 source files, entry functions reach 473 function
-  memberships through 674 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  operation roots and 83 source files, entry functions reach 476 function
+  memberships through 683 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 297
-  Python `.execute` sites in those 83 files. It fingerprints 256 literal
-  statements and flags 41 composed/variable statements. Candidate relation tokens are
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 304
+  Python `.execute` sites in those 83 files. It fingerprints 262 literal
+  statements and flags 42 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
   `python3 scripts/worker_sql_inventory.py --check docs/refactor/worker-sql-inventory.json`
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 297 sites to the operation graph without including SQL text or
-  values. It links 226 unique sites across 271 operation/site memberships;
-  71 sites have no current static function match, and each belongs to a
+  joins those 304 sites to the operation graph without including SQL text or
+  values. It links 232 unique sites across 278 operation/site memberships;
+  72 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
   invoke it. Generic database adapters and other effects remain in review. Use
@@ -242,10 +242,11 @@ application-wide RLS or proof for other workers.
 
 This map, import closure, SQL inventories, effect candidates, job-template
 comparison, and argument schemas are not an ACL, tenant policy, or complete
-dynamic call graph. Source-pattern review now covers all 41 composed/variable
+dynamic call graph. Source-pattern review now covers all 42 composed/variable
 SQL sites: the prior 36-site review, the remote-sensing update builder, signed
-context cleanup, the anomaly worker's generic query wrappers, and shared
-database helper calls. Reviewed application fragments bind values and use
+context cleanup, the anomaly worker's generic query wrappers, shared database
+helper calls, and the NOI reconciliation's fixed location-filter fragment
+with a bound UUID. Reviewed application fragments bind values and use
 fixed source-controlled fragments; three generic database-adapter sites remain
 `UNKNOWN` because their SQL is supplied by callers, so their complete caller
 set still needs tracing. No user-derived identifier interpolation was found

@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-16",
+  "slice": "Location-scoped scheduled NOI snapshot reconciliation",
+  "base_commit": "b742cc6ac008eb39017d659d13f5329e0e51cdaa",
+  "implementation": {
+    "cli": "services.metrics validates/canonicalizes location UUID before database access and constrains both v_crop_cycle_noi and crop_cycle; explicit --all-locations preserves manual aggregate maintenance",
+    "scheduler": "noi_snapshots JobSpec, dispatcher, disabled plan builder, and stored-command validator require exactly one location per native task",
+    "schedule_activation": false
+  },
+  "focused_checks": [
+    {
+      "command": "python3 -m pytest tests/test_metrics_noi_snapshot_scope.py tests/test_scheduled_command_contracts.py tests/test_worker_operation_map.py tests/test_worker_job_contract_inventory.py tests/test_worker_sql_inventory.py tests/test_runtime_sql_inventory.py tests/test_worker_function_reachability.py tests/test_worker_source_closure.py tests/test_worker_sql_reachability.py -q",
+      "passed": 158,
+      "failed": 0
+    }
+  ],
+  "isolation": {
+    "database": "mocked only; no database contacted",
+    "provider": "none contacted",
+    "candidate_or_legacy": "not accessed",
+    "persisted_schedule_state": "not read or modified"
+  },
+  "limitations": [
+    "Location filtering is not signed tenant context or authorization.",
+    "RLS and least-privilege worker database boundaries remain open.",
+    "Existing persisted task rows were not inventoried or reconciled."
+  ]
+}

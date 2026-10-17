@@ -368,9 +368,9 @@
         "services/metrics/calculators/value_flowed.py:54:4",
         "services/metrics/calculators/wallet_retention.py:34:4",
         "services/metrics/calculators/wallet_retention.py:45:4",
-        "services/metrics/cli.py:113:16",
-        "services/metrics/cli.py:138:20",
-        "services/metrics/cli.py:43:21",
+        "services/metrics/cli.py:152:16",
+        "services/metrics/cli.py:177:20",
+        "services/metrics/cli.py:79:21",
         "services/metrics/engine.py:116:4",
         "services/metrics/engine.py:177:8",
         "services/metrics/engine.py:46:8",
@@ -7017,12 +7017,12 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/cli.py:43:21",
+      "id": "services/metrics/cli.py:79:21",
       "source": "services/metrics/cli.py",
-      "line": 43,
+      "line": 79,
       "scope": "main",
       "method": "execute",
-      "expression_kind": "literal",
+      "expression_kind": "fstring",
       "statement_kind": "INSERT",
       "candidate_relations": [
         "SET",
@@ -7041,9 +7041,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/cli.py:113:16",
+      "id": "services/metrics/cli.py:152:16",
       "source": "services/metrics/cli.py",
-      "line": 113,
+      "line": 152,
       "scope": "main",
       "method": "execute",
       "expression_kind": "literal",
@@ -7062,9 +7062,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/cli.py:138:20",
+      "id": "services/metrics/cli.py:177:20",
       "source": "services/metrics/cli.py",
-      "line": 138,
+      "line": 177,
       "scope": "main",
       "method": "execute",
       "expression_kind": "literal",

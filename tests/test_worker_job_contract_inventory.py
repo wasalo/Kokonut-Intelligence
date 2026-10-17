@@ -17,9 +17,11 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     jobs = {entry["job"]: entry for entry in inventory["jobs"]}
 
     assert inventory["summary"]["outcomes"] == {
-        "default_arguments_accepted": 8,
-        "required_runtime_inputs_validated": 8,
+        "default_arguments_accepted": 5,
+        "required_runtime_inputs_validated": 11,
     }
+    assert jobs["noi_snapshots"]["required_inputs"] == ["location_id"]
+    assert jobs["noi_snapshots"]["status"] == "required_runtime_inputs_validated"
     assert jobs["weather"]["required_inputs"] == ["location_id"]
     assert jobs["weather"]["status"] == "required_runtime_inputs_validated"
     assert jobs["weather_forecast"]["module"] == "services.ingestion.weather_forecast"

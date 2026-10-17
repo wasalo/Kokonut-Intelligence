@@ -891,8 +891,8 @@ CLI rejects it before opening a database connection. Ninety-three focused
 command/contract checks pass; the then-current JobSpec inventory distinguished
 nine no-input jobs, five required-location jobs, and one source-less sensor job.
 Anomaly and sensor-scope slices later changed that inventory to eight no-input
-jobs and seven validated-input jobs. The current catalog has six no-input jobs
-and ten validated-input jobs after EAS/RPC chain scoping; the sensor
+jobs and seven validated-input jobs. The current catalog has five no-input jobs
+and eleven validated-input jobs after EAS/RPC chain and NOI location scoping; the sensor
 location/driver-instance pair remains required.
 This remains a source contract: workers inherit the shared runtime identity
 without signed tenant context, RLS remains blocked, and no MAN-CAP status or
@@ -2377,11 +2377,11 @@ not change MAN-CAP status ([adapter](../services/ingestion/sensor_anomaly_worker
 ### CAP-040/047 worker SQL inventory reconciliation — 16 October 2026
 
 The current static inventories cover 23 operation roots, 83 source files, and
-289 SQL execution sites. The call graph links 218 unique sites across 263
-operation/site memberships and leaves 71 without a static function match.
-Source-pattern review now covers the 41 composed/variable SQL sites, including
-the signed-context cleanup and anomaly worker query wrappers added with the
-integration. These are review aids only: no least-privilege grants, worker
+304 SQL execution sites. The call graph links 232 unique sites across 278
+operation/site memberships and leaves 72 without a static function match.
+Source-pattern review now covers the 42 composed/variable SQL sites, including
+the signed-context cleanup, anomaly worker query wrappers, and fixed NOI
+location-filter fragment with bound values. These are review aids only: no least-privilege grants, worker
 credential, candidate rollout, or application RLS was added, and no MAN-CAP
 status changes ([source map](worker-operation-map.md);
 [SQL inventory](worker-sql-inventory.json);
@@ -2447,3 +2447,19 @@ disposable container was removed ([runner](../scripts/check-scheduler-engine-rec
 [evidence](builds/2026-10-16-recovery/scheduler-engine-postgres-reconnect.json)).
 This strengthens implementation/recovery evidence only; CAP-040 and CAP-047
 classifications and MAN-CAP acceptance remain unchanged.
+
+### CAP-040/047 per-location NOI snapshot scheduling — 16 October 2026
+
+Native NOI snapshot jobs now require one location per task. The CLI validates
+and canonicalizes scope before opening a database connection, constrains both
+the source view and crop-cycle row, and preserves an explicit manual
+`--all-locations` reconciliation mode. The curated job dispatcher, disabled
+schedule planner, and persisted-command validator enforce the same location
+contract. The focused CLI, scheduler, operation-map, and SQL/source inventory
+suites pass 158 tests. No database,
+provider, candidate, or persisted schedule was accessed; no task was activated.
+This adds source-level scope only: the shared worker identity still lacks
+signed tenant context for this operation, so RLS and MAN-CAP classifications
+remain unchanged ([command](../services/metrics/cli.py); [scheduler contract](../services/security/scheduled_command_contracts.py);
+[job inventory](worker-job-contract-inventory.json);
+[evidence](builds/2026-10-16-recovery/noi-snapshot-location-scope.json)).

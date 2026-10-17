@@ -145,6 +145,7 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/ingestion/remote_sensing_fetcher.py": 1,
         "services/ingestion/sensor_anomaly_worker.py": 2,
         "services/drivers/registry.py": 1,
+        "services/metrics/cli.py": 1,
         "services/metrics/calculators/allocated_shared_cost.py": 1,
         "services/metrics/calculators/attestation_coverage.py": 2,
         "services/metrics/calculators/crop_revenue.py": 1,
@@ -158,6 +159,7 @@ def test_dynamic_sql_review_categories_remain_explicit():
         "services/metrics/calculators/value_flowed.py": 2,
     }
     assert {site["expression_kind"] for site in by_source["services/common/database.py"]} == {"composed_or_variable"}
+    assert {site["expression_kind"] for site in by_source["services/metrics/cli.py"]} == {"fstring"}
     assert (
         sum(site["expression_kind"] == "composed" for site in by_source["services/analytics/reporting_reader.py"]) == 1
     )
@@ -253,4 +255,6 @@ def test_generic_database_sql_wrappers_have_no_unreviewed_worker_callsite():
     # closure even though the bounded check path calls compute_carbon_balance
     # directly; keep the exact callsites visible for future path review.
     assert query_callers == ["services/analytics/carbon_balance.py:79", "services/analytics/carbon_balance.py:236"]
-    assert connection_execute_callers == [("services/metrics/cli.py", 43, "literal")]
+    assert [(source, expression_kind) for source, _, expression_kind in connection_execute_callers] == [
+        ("services/metrics/cli.py", "dynamic")
+    ]
