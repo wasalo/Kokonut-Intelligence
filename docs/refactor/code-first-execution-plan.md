@@ -42,6 +42,9 @@ provider/worker/cursor tests plus Ruff and compilation pass. This does not close
 concurrent offset-page stability or earlier-than-cursor recovery; no live
 endpoint was queried ([error evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json);
 [cursor-scan evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
+The worker now also rejects absent, null, boolean, negative, fractional, and
+malformed attestation timestamps before persistence or cursor advancement; six
+focused cases and the combined 28-test EAS suite pass ([evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json)).
 **Local code-first follow-up — 17 October 2026:** the legacy freshness-alert
 sender now closes webhook responses on success and failure, retains only an
 HTTP status or exception class for webhook/SMTP failures, and preserves the last

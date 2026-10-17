@@ -121,7 +121,11 @@ validates newest-first page ordering and stops after it crosses below the saved
 timestamp cursor, while retaining the inclusive cursor second; 22 mocked
 provider, worker, and cursor checks pass. This bounds repeated history reads but
 does not resolve concurrent offset-pagination movement, earlier-than-cursor
-arrivals, or live provider acceptance.
+arrivals, or live provider acceptance. The worker also rejects missing, null,
+boolean, negative, fractional, and malformed timestamps before page persistence
+or cursor advancement; six fail-closed cases and the combined 28-test EAS
+provider/worker/cursor suite pass. No live endpoint or database was contacted
+([timestamp evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json)).
 Prefect intentionally stays on the legacy entrypoint until feature and
 credential provisioning. Existing task reconciliation, provider parity, and
 live runtime acceptance remain open ([worker](../../services/ingestion/eas_worker.py);

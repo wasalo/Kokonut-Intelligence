@@ -69,10 +69,17 @@ def _fetch_wallet_pages(
         for attestation in attestations:
             if not isinstance(attestation, dict):
                 raise ValueError("EAS provider returned an invalid attestation")
+            raw_attestation_time = attestation.get("time")
+            if isinstance(raw_attestation_time, bool) or not isinstance(raw_attestation_time, (int, str)):
+                raise ValueError("EAS attestation timestamp is invalid")
+            if isinstance(raw_attestation_time, str) and not raw_attestation_time.isdigit():
+                raise ValueError("EAS attestation timestamp is invalid")
             try:
-                attestation_time = int(attestation.get("time", 0))
+                attestation_time = int(raw_attestation_time)
             except (ValueError, TypeError):
                 raise ValueError("EAS attestation timestamp is invalid") from None
+            if attestation_time < 0:
+                raise ValueError("EAS attestation timestamp is invalid")
             if previous_attestation_time is not None and attestation_time > previous_attestation_time:
                 raise ValueError("EAS provider page is not ordered newest first")
             previous_attestation_time = attestation_time

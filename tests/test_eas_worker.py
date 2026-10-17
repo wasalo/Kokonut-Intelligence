@@ -241,6 +241,51 @@ def test_unordered_provider_page_fails_before_cursor_advance():
     assert connection.commits == 0
 
 
+@pytest.mark.parametrize("timestamp", [None, True, -1, "not-a-time", 100.5])
+def test_invalid_attestation_timestamp_fails_before_persistence(timestamp):
+    connection = _Connection()
+    attestation = _attestation(timestamp=200)
+    attestation["time"] = timestamp
+    with (
+        patch.object(eas_worker, "query_eas", return_value={"attestations": [attestation]}),
+        pytest.raises(ValueError, match="timestamp is invalid"),
+    ):
+        eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=100,
+            sleep=lambda _seconds: None,
+        )
+
+    assert not any("store_eas_indexer_page" in statement for statement, _ in connection.statements)
+    assert not any("advance_eas_indexer_cursor" in statement for statement, _ in connection.statements)
+    assert connection.commits == 0
+
+
+def test_missing_attestation_timestamp_fails_before_persistence():
+    connection = _Connection()
+    attestation = _attestation(timestamp=200)
+    del attestation["time"]
+    with (
+        patch.object(eas_worker, "query_eas", return_value={"attestations": [attestation]}),
+        pytest.raises(ValueError, match="timestamp is invalid"),
+    ):
+        eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=100,
+            sleep=lambda _seconds: None,
+        )
+
+    assert not any("store_eas_indexer_page" in statement for statement, _ in connection.statements)
+    assert not any("advance_eas_indexer_cursor" in statement for statement, _ in connection.statements)
+    assert connection.commits == 0
+
+
 def test_missing_attestations_field_does_not_advance_the_cursor():
     connection = _Connection()
     with (

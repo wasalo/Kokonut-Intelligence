@@ -4011,12 +4011,12 @@
         {
           "function": "services.common.cli:run",
           "source": "services/ingestion/eas_worker.py",
-          "line": 241
+          "line": 248
         },
         {
           "function": "services.ingestion.eas_worker:main",
           "source": "services/ingestion/eas_worker.py",
-          "line": 241
+          "line": 248
         }
       ],
       "reachable_functions": [
@@ -4090,7 +4090,7 @@
           "qualname": "ingest",
           "class_scope": null,
           "source": "services/ingestion/eas_worker.py",
-          "line": 137
+          "line": 144
         },
         {
           "key": "services.ingestion.eas_worker:main",
@@ -4098,7 +4098,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/eas_worker.py",
-          "line": 231
+          "line": 238
         }
       ],
       "direct_call_edges": [
@@ -4118,43 +4118,43 @@
           "caller": "services.ingestion.eas_worker:_fetch_wallet_pages",
           "callee": "services.ingestion.eas_worker:_hash_payload",
           "source": "services/ingestion/eas_worker.py",
-          "line": 94
+          "line": 101
         },
         {
           "caller": "services.ingestion.eas_worker:ingest",
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/ingestion/eas_worker.py",
-          "line": 143
+          "line": 150
         },
         {
           "caller": "services.ingestion.eas_worker:ingest",
           "callee": "services.ingestion.eas_worker:_fetch_wallet_pages",
           "source": "services/ingestion/eas_worker.py",
-          "line": 177
+          "line": 184
         },
         {
           "caller": "services.ingestion.eas_worker:ingest",
           "callee": "services.ingestion.eas_worker:_hash_payload",
           "source": "services/ingestion/eas_worker.py",
-          "line": 194
+          "line": 201
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/eas_worker.py",
-          "line": 237
+          "line": 244
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/eas_worker.py",
-          "line": 235
+          "line": 242
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.ingestion.eas_worker:ingest",
           "source": "services/ingestion/eas_worker.py",
-          "line": 237
+          "line": 244
         }
       ],
       "callback_edges": [],

@@ -2,8 +2,8 @@
 
 ### Worker inventory refresh — 17 October 2026
 
-Refreshing generated maps after the EAS provider extraction and freshness-alert
-helper update brought the source graph to 31 operation roots and 92 source files.
+Refreshing generated maps after the EAS provider extraction/timestamp change and
+freshness-alert delivery/state changes brought the source graph to 31 operation roots and 92 source files.
 The graph contains 624 function memberships, 850 direct-call edges, 20 dynamic
 dispatch edges, 322 worker SQL sites, 249 unique SQL sites on static paths, and
 73 sites without a static function match. The runtime SQL inventory records
@@ -24,7 +24,7 @@ tests pass with Ruff, compilation, and diff checks; all provider calls were
 mocked and no database was used. Destination ownership and live delivery remain
 open. A failed measurement also leaves the last known alert state intact, so a
 later fresh measurement can still emit the expected recovery event. Checklist
-count is 450 complete / 20 open (470 total); no MAN-CAP
+count is 451 complete / 20 open (471 total); no MAN-CAP
 acceptance changed
 ([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
 [state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
@@ -51,6 +51,18 @@ database was contacted. Concurrent offset-page movement and earlier-than-cursor
 arrivals remain open. Checklist count is 448 complete / 20 open (468 total);
 capability status and MAN-CAP acceptance are unchanged
 ([evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
+
+### EAS attestation timestamp validation — 17 October 2026
+
+The isolated EAS worker now rejects missing, null, boolean, negative,
+fractional, or malformed attestation timestamps before persisting a provider
+page or advancing a recipient cursor. This prevents an invalid timestamp from
+being coerced to zero and silently discarded as older than the saved cursor.
+Six focused malformed-timestamp cases pass; the combined EAS provider/worker/
+cursor suite passes 28 tests with Ruff and compilation. All provider responses
+were mocked; no EAS endpoint or database was contacted. Concurrent offset-page
+movement, earlier-than-cursor arrivals, and live provider acceptance remain
+open ([evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json)).
 
 ### EAS GraphQL error handling — 17 October 2026
 
