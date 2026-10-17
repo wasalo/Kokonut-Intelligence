@@ -4,9 +4,9 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 23,
-    "sql_execution_sites": 289,
-    "statically_reachable_site_memberships": 263,
-    "unique_sites_with_static_operation_path": 218,
+    "sql_execution_sites": 297,
+    "statically_reachable_site_memberships": 271,
+    "unique_sites_with_static_operation_path": 226,
     "sites_without_static_function_match": 71,
     "unmatched_functions_absent_from_all_worker_graphs": 71,
     "sites_reached_by_multiple_operations": 13
@@ -197,16 +197,24 @@
       "kind": "scheduled_module",
       "name": "services.ingestion.eas_indexer",
       "operation_ref": "scheduled_module:services.ingestion.eas_indexer",
-      "statically_reachable_sql_site_count": 8,
+      "statically_reachable_sql_site_count": 16,
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:157:12",
-        "services/ingestion/base.py:205:12",
+        "services/ingestion/base.py:207:12",
         "services/ingestion/clickhouse_outbox.py:53:12",
         "services/ingestion/eas_indexer.py:107:12",
         "services/ingestion/eas_indexer.py:113:16",
         "services/ingestion/eas_indexer.py:125:8",
-        "services/ingestion/eas_indexer.py:193:8",
-        "services/ingestion/eas_indexer.py:213:12"
+        "services/ingestion/eas_indexer.py:192:8",
+        "services/ingestion/eas_indexer.py:200:8",
+        "services/ingestion/eas_indexer.py:218:8",
+        "services/ingestion/eas_indexer.py:234:8",
+        "services/ingestion/eas_indexer.py:258:12",
+        "services/ingestion/eas_indexer.py:278:16",
+        "services/ingestion/eas_indexer.py:291:20",
+        "services/ingestion/eas_indexer.py:329:24",
+        "services/ingestion/eas_indexer.py:338:24",
+        "services/ingestion/eas_indexer.py:339:24"
       ]
     },
     {
@@ -215,8 +223,8 @@
       "operation_ref": "scheduled_module:services.ingestion.gnosis_indexer",
       "statically_reachable_sql_site_count": 9,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:205:12",
-        "services/ingestion/base.py:234:12",
+        "services/ingestion/base.py:207:12",
+        "services/ingestion/base.py:239:12",
         "services/ingestion/clickhouse_outbox.py:53:12",
         "services/ingestion/gnosis_indexer.py:113:8",
         "services/ingestion/gnosis_indexer.py:124:8",
@@ -266,11 +274,11 @@
       "operation_ref": "scheduled_module:services.ingestion.rpc_indexer",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/ingestion/base.py:205:12",
+        "services/ingestion/base.py:207:12",
         "services/ingestion/clickhouse_outbox.py:53:12",
-        "services/ingestion/rpc_indexer.py:121:8",
-        "services/ingestion/rpc_indexer.py:60:12",
-        "services/ingestion/rpc_indexer.py:65:12"
+        "services/ingestion/rpc_indexer.py:132:8",
+        "services/ingestion/rpc_indexer.py:71:12",
+        "services/ingestion/rpc_indexer.py:76:12"
       ]
     },
     {
@@ -4189,9 +4197,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/base.py:205:12",
+      "id": "services/ingestion/base.py:207:12",
       "source": "services/ingestion/base.py",
-      "line": 205,
+      "line": 207,
       "scope": "update_indexer_status",
       "method": "execute",
       "expression_kind": "literal",
@@ -4226,9 +4234,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/base.py:234:12",
+      "id": "services/ingestion/base.py:239:12",
       "source": "services/ingestion/base.py",
-      "line": 234,
+      "line": 239,
       "scope": "get_last_synced_block",
       "method": "execute",
       "expression_kind": "literal",
@@ -5016,15 +5024,15 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_indexer.py:193:8",
+      "id": "services/ingestion/eas_indexer.py:192:8",
       "source": "services/ingestion/eas_indexer.py",
-      "line": 193,
+      "line": 192,
       "scope": "get_last_attestation_time",
       "method": "execute",
       "expression_kind": "literal",
-      "statement_kind": "SELECT",
+      "statement_kind": "INSERT",
       "candidate_relations": [
-        "chain_indexer_status"
+        "eas_indexer_cursor"
       ],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.eas_indexer"
@@ -5037,9 +5045,72 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_indexer.py:213:12",
+      "id": "services/ingestion/eas_indexer.py:200:8",
       "source": "services/ingestion/eas_indexer.py",
-      "line": 213,
+      "line": 200,
+      "scope": "get_last_attestation_time",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "eas_indexer_cursor"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:218:8",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 218,
+      "scope": "advance_attestation_cursor",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "UPDATE",
+      "candidate_relations": [
+        "eas_indexer_cursor"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:234:8",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 234,
+      "scope": "get_chain_attestation_watermark",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "eas_indexer_cursor"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:258:12",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 258,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -5047,6 +5118,101 @@
       "candidate_relations": [
         "wallet_profile"
       ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:278:16",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 278,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:291:20",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 291,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:329:24",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 329,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:338:24",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 338,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.eas_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/eas_indexer.py:339:24",
+      "source": "services/ingestion/eas_indexer.py",
+      "line": 339,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.eas_indexer"
       ],
@@ -5713,9 +5879,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:60:12",
+      "id": "services/ingestion/rpc_indexer.py:71:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 60,
+      "line": 71,
       "scope": "get_wallets",
       "method": "execute",
       "expression_kind": "literal",
@@ -5734,9 +5900,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:65:12",
+      "id": "services/ingestion/rpc_indexer.py:76:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 65,
+      "line": 76,
       "scope": "get_wallets",
       "method": "execute",
       "expression_kind": "literal",
@@ -5755,9 +5921,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:121:8",
+      "id": "services/ingestion/rpc_indexer.py:132:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 121,
+      "line": 132,
       "scope": "insert_activity",
       "method": "execute",
       "expression_kind": "literal",

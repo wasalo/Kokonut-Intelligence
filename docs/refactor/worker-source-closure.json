@@ -2356,7 +2356,7 @@
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 176,
+          "line": 187,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         }

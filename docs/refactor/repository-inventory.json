@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "316a4b7a1ac3beb8c5a6f1fbb715f7f7fe0a04af",
+  "baseline_commit": "74d919842b983cff0688e0fdd4dc6eebd952ac78",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1813,7 +1813,8 @@
       "schemas/postgres/417_isolated_notification_enqueue.sql",
       "schemas/postgres/418_mobile_credential_function_acl.sql",
       "schemas/postgres/419_private_worker_context_functions.sql",
-      "schemas/postgres/420_iri_public_projection_snapshot.sql"
+      "schemas/postgres/420_iri_public_projection_snapshot.sql",
+      "schemas/postgres/421_eas_recipient_cursors.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3196,6 +3197,7 @@
         "tests/test_coordination_strategy.py",
         "tests/test_customer_value.py",
         "tests/test_device_manager.py",
+        "tests/test_eas_indexer_recovery.py",
         "tests/test_env_scanning.py",
         "tests/test_field_validation.py",
         "tests/test_flow_metrics.py",
@@ -4097,6 +4099,7 @@
     "tests/test_drone_raster_integration.py",
     "tests/test_dsm_soc_prediction.py",
     "tests/test_e2e_platform.py",
+    "tests/test_eas_indexer_recovery.py",
     "tests/test_ebf_agent_safety.py",
     "tests/test_ebf_agents.py",
     "tests/test_ebf_calibration.py",

@@ -191,6 +191,7 @@ def update_indexer_status(
     status: str = "syncing",
     error_message: Optional[str] = None,
     metadata: Optional[dict] = None,
+    db=None,
 ) -> None:
     """Update chain_indexer_status table.
 
@@ -198,9 +199,10 @@ def update_indexer_status(
     column; used by indexers that track non-block positions (e.g. EAS
     attestation time) without writing a fake block number.
     """
-    db = None
+    owns_db = db is None
     try:
-        db = get_db()
+        if owns_db:
+            db = get_db()
         with db.cursor() as cur:
             cur.execute(
                 """
@@ -217,11 +219,14 @@ def update_indexer_status(
                 (chain, indexer_type, last_synced_block, status, error_message,
                  json.dumps(metadata or {})),
             )
-        db.commit()
+        if owns_db:
+            db.commit()
     except Exception as e:
+        if not owns_db:
+            raise
         logger.error("Failed to update indexer status: %s", e)
     finally:
-        if db is not None:
+        if owns_db and db is not None:
             db.close()
 
 

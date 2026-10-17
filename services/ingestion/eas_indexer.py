@@ -158,7 +158,6 @@ def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
     schema_uid = att.get("schema", {}).get("id", "") if att.get("schema") else ""
     attester = att.get("attester", "")
     recipient = att.get("recipient", "")
-    revoked = str(att.get("revoked", False)).lower()
 
     block_ts = datetime.fromtimestamp(
         int(att.get("time", 0)), tz=timezone.utc
@@ -187,24 +186,70 @@ def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
         logger.warning("ClickHouse insert failed: %s", e)
 
 
-def get_last_attestation_time(db, chain: str) -> int:
-    """Get the last indexed EAS attestation timestamp for a chain."""
+def get_last_attestation_time(db, chain: str, wallet_id: str) -> int:
+    """Read or initialize the timestamp cursor for one tracked recipient."""
     with db.cursor() as cur:
         cur.execute(
             """
-            SELECT metadata->>'last_attestation_time'
-            FROM chain_indexer_status
-            WHERE chain = %s AND indexer_type = 'eas'
+            INSERT INTO eas_indexer_cursor (chain, wallet_id, last_attestation_time)
+            VALUES (%s, %s, 0)
+            ON CONFLICT (chain, wallet_id) DO NOTHING
             """,
-            (chain,),
+            (chain, wallet_id),
+        )
+        cur.execute(
+            """
+            SELECT last_attestation_time
+              FROM eas_indexer_cursor
+             WHERE chain = %s AND wallet_id = %s
+             FOR UPDATE
+            """,
+            (chain, wallet_id),
         )
         row = cur.fetchone()
     return int(row[0]) if row and row[0] else 0
 
 
+def advance_attestation_cursor(
+    db, chain: str, wallet_id: str, last_attestation_time: int
+) -> None:
+    """Advance one recipient cursor without allowing a regression."""
+    with db.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE eas_indexer_cursor
+               SET last_attestation_time = GREATEST(last_attestation_time, %s),
+                   updated_at = NOW()
+             WHERE chain = %s AND wallet_id = %s
+            """,
+            (last_attestation_time, chain, wallet_id),
+        )
+        if cur.rowcount != 1:
+            raise RuntimeError("EAS recipient cursor was not updated")
+
+
+def get_chain_attestation_watermark(db, chain: str) -> int:
+    """Return the highest recipient cursor for status display only."""
+    with db.cursor() as cur:
+        cur.execute(
+            """
+            SELECT COALESCE(MAX(last_attestation_time), 0)
+              FROM eas_indexer_cursor
+             WHERE chain = %s
+            """,
+            (chain,),
+        )
+        row = cur.fetchone()
+    return int(row[0]) if row else 0
+
+
 def run(chain: str = None):
     """Main ingestion entry point."""
+    if chain is not None and chain not in EAS_ENDPOINTS:
+        raise ValueError(f"Unsupported EAS chain: {chain}")
+
     db = get_db()
+    failed_chains = []
     try:
         chains = [chain] if chain else list(EAS_ENDPOINTS.keys())
 
@@ -227,14 +272,25 @@ def run(chain: str = None):
                 logger.info("  ⊙ No tracked wallets for %s", c)
                 continue
 
-            last_attestation_time = get_last_attestation_time(db, c)
+            # Serialize chain scans so cursor and status writes from overlapping
+            # runs cannot race each other.
+            with db.cursor() as cur:
+                cur.execute(
+                    "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+                    (f"kokonut:eas-indexer:{c}",),
+                )
 
+            chain_errors = []
             total_inserted = 0
 
             for w_id, w_addr in tracked_wallets:
+                recipient_cursor = get_last_attestation_time(db, c, w_id)
+                wallet_max_attestation_time = recipient_cursor
+                wallet_inserted = 0
+                with db.cursor() as cur:
+                    cur.execute("SAVEPOINT eas_wallet_index")
                 try:
                     offset = 0
-                    max_attestation_time = last_attestation_time
 
                     while True:
                         data = query_eas(c, ATTESTATIONS_BY_RECIPIENT, {
@@ -248,17 +304,17 @@ def run(chain: str = None):
 
                         for att in attestations:
                             att_time = int(att.get("time", 0))
-                            if att_time <= last_attestation_time:
+                            if att_time <= recipient_cursor:
                                 continue
 
                             if insert_attestation(db, att, c):
-                                total_inserted += 1
+                                wallet_inserted += 1
                                 # Dual-write to ClickHouse
                                 status = "rejected" if att.get("revoked") else "published"
                                 insert_clickhouse(c, att, status, db)
 
-                            if att_time > max_attestation_time:
-                                max_attestation_time = att_time
+                            if att_time > wallet_max_attestation_time:
+                                wallet_max_attestation_time = att_time
 
                         offset += len(attestations)
                         if len(attestations) < 100:
@@ -266,18 +322,35 @@ def run(chain: str = None):
 
                         time.sleep(0.5)
 
-                    update_indexer_status(c, "eas", status="healthy",
-                                          metadata={"last_attestation_time": max_attestation_time})
+                    advance_attestation_cursor(
+                        db, c, w_id, wallet_max_attestation_time
+                    )
+                    with db.cursor() as cur:
+                        cur.execute("RELEASE SAVEPOINT eas_wallet_index")
+                    total_inserted += wallet_inserted
                     logger.info("  ✓ Wallet %s...: indexed", w_addr[:10])
 
                 except OutboxEnqueueError:
                     db.rollback()
                     raise
                 except Exception as e:
-                    update_indexer_status(c, "eas", status="error", error_message=str(e),
-                                          metadata={"last_attestation_time": last_attestation_time})
+                    with db.cursor() as cur:
+                        cur.execute("ROLLBACK TO SAVEPOINT eas_wallet_index")
+                        cur.execute("RELEASE SAVEPOINT eas_wallet_index")
+                    chain_errors.append(str(e))
                     logger.error("  ✗ Wallet %s...: %s", w_addr[:10], e)
 
+            chain_status = "error" if chain_errors else "healthy"
+            watermark = get_chain_attestation_watermark(db, c)
+            error_message = "; ".join(chain_errors[:3])[:500] or None
+            update_indexer_status(
+                c,
+                "eas",
+                status=chain_status,
+                error_message=error_message,
+                metadata={"last_attestation_time": watermark},
+                db=db,
+            )
             log_ingestion(
                 source_system="eas_api",
                 source_table=f"{c}_attestations",
@@ -286,12 +359,21 @@ def run(chain: str = None):
                 target_id=None,
                 operation="batch_insert",
                 payload_hash=hash_payload({"chain": c, "wallets": len(tracked_wallets)}),
-                status="success",
+                status="partial" if chain_errors else "success",
+                error_message=error_message,
                 rows_affected=total_inserted,
+                db=db,
             )
+            if chain_errors:
+                failed_chains.append(c)
             logger.info("  Total: %d attestations", total_inserted)
 
         db.commit()
+        if failed_chains:
+            raise RuntimeError(
+                "EAS indexing incomplete for chain(s): "
+                + ", ".join(failed_chains)
+            )
         logger.info("Done")
     finally:
         db.close()

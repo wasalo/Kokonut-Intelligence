@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Batch base (last pushed head before this work):** `526857998c2bb6ca11eb9efd46113cf42ddde1ea` on PR #68.
-**Current local batch:** Scheduled sensor pull now has a source contract across JobSpec dispatch, disabled schedule planning, CLI validation, and the driver registry. Each run needs one location UUID and one enabled sensor driver-instance UUID bound to that location; the code-installed pull driver must opt in. The built-in CSV pull is bounded to 100 sources/10,000 records, MQTT remains event-driven, and canonical reading/audit/event/outbox changes are transactional and idempotent by sensor timestamp/value. The focused sensor/scheduler/Prefect/inventory suite passes 162 tests, Ruff passes, and all eight generated worker inventory checks pass. No provider, configured driver instance, database, or external schedule was used or activated. The latest pushed head remains `526857998c2bb6ca11eb9efd46113cf42ddde1ea` (Security #94 passed; CI #370 was last observed pending). The checklist is now 419 checked / 20 open; the capability matrix remains at 66 rows with zero accepted MAN-CAP checks. Candidate remains through migration 403; signed worker context, configured source parity, candidate rollout, and production acceptance remain open.
+**Previous pushed base:** `74d9198` on PR #68 (`feat/mobile-offline-acceptance`).
+**EAS recipient cursor batch:** EAS ingestion now uses migration 421's independent timestamp cursor per chain/recipient. Existing supported recipients backfill from the legacy watermark, new recipients start at zero, successful records/outbox intents/cursor updates commit together, and a recipient failure rolls back to its savepoint while returning a retryable partial failure. The focused EAS/producer/scheduler/migration suite passes 186 tests; the disposable PostgreSQL 16 runner verifies replay, backfill, independent advancement, and rollback coupling. Generated worker inventories were refreshed. No live EAS provider, candidate, legacy database, or schedule was touched. The checklist is 421 checked / 21 open (442 total); the 66-row capability matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–421 have not been rolled out, and pagination/late-arrival reconciliation, live-provider acceptance, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -46,7 +46,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **419 checked and 20 open items (439 total)**,
+- The execution checklist has **421 checked and 21 open items (442 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -437,8 +437,8 @@ before protected reads and writes, and make direct database access fail closed.
    and proved a table/sequence created after provisioning is inaccessible to
    the runtime login. A new whole-services SQL inventory covers all 807 Python
    source files and identifies direct execution sites and candidate relation
-   names without becoming an ACL. The current generated inventory covers 3,894
-   SQL execution sites across 815 source files, including 289 worker-linked
+   names without becoming an ACL. The current generated inventory covers 3,906
+   SQL execution sites across 816 source files, including 297 worker-linked
    sites; literal query wrappers are unwrapped while parameter values remain
    unobserved. The report is static
    evidence, not an ACL. The next review classifies API, worker, CLI, and

@@ -1,5 +1,28 @@
 # Kokonut Kernel implementation progress
 
+### EAS recipient cursor recovery — 16 October 2026
+
+EAS ingestion previously reused a chain-wide maximum timestamp across separate
+recipient feeds and committed indexer status on an independent connection.
+That could move the watermark ahead of another recipient's older feed or leave
+status ahead of a rolled-back projection. Migration 421 now maintains one
+cursor per chain/recipient and idempotently backfills the legacy watermark for
+existing supported wallets. Each successful recipient's records, ClickHouse
+outbox intents, status, and cursor advancement share the caller transaction;
+same-chain scans serialize, failed pages roll back to a savepoint, and a failed
+outbox enqueue rolls back the complete transaction.
+
+The focused EAS, ingestion-outbox producer, scheduler-contract, Prefect, and
+migration suites pass 186 tests. A repeatable disposable PostgreSQL 16 run
+passes migration replay, legacy backfill, independent cursor advancement, and
+transaction rollback coupling. Ruff and Python compilation pass. The candidate,
+legacy database, live provider, and external schedules were not touched.
+Offset pagination and late-arriving events below a recipient cursor remain
+live-provider reconciliation risks; migration 421 is not candidate-deployed and
+MAN-CAP-040/047 remain unaccepted ([migration](../../schemas/postgres/421_eas_recipient_cursors.sql);
+[unit tests](../../tests/test_eas_indexer_recovery.py);
+[disposable evidence](builds/2026-10-16-recovery/eas-recipient-cursor-disposable.json)).
+
 ### Privacy-safe native IRI resolution — 16 October 2026
 
 The native Gateway's public IRI route previously imported a nonexistent

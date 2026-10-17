@@ -39,7 +39,7 @@ application-wide RLS or proof for other workers.
   The `data_stale` and `threshold_breached` handlers can opt into a distinct
   notification-enqueue login and bounded function. That path also remains off
   by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned, and migrations 405–419 have not
+  credential or location grant is provisioned, and migrations 405–421 have not
   been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
@@ -81,15 +81,15 @@ application-wide RLS or proof for other workers.
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
   command/request protocol rather than a local function call. Across 23
-  operation roots and 83 source files, entry functions reach 471 function
-  memberships through 673 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  operation roots and 83 source files, entry functions reach 473 function
+  memberships through 674 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 289
-  Python `.execute` sites in those 83 files. It fingerprints 248 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 297
+  Python `.execute` sites in those 83 files. It fingerprints 256 literal
   statements and flags 41 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -97,8 +97,8 @@ application-wide RLS or proof for other workers.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 289 sites to the operation graph without including SQL text or
-  values. It links 218 unique sites across 263 operation/site memberships;
+  joins those 297 sites to the operation graph without including SQL text or
+  values. It links 226 unique sites across 271 operation/site memberships;
   71 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still

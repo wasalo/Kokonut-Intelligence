@@ -6,8 +6,8 @@
     "operation_roots": 23,
     "source_files": 83,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 471,
-    "direct_call_edges": 673,
+    "function_memberships": 473,
+    "direct_call_edges": 674,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -3323,7 +3323,7 @@
         {
           "function": "services.ingestion.eas_indexer:run",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 304
+          "line": 386
         }
       ],
       "reachable_functions": [
@@ -3392,12 +3392,28 @@
           "line": 39
         },
         {
+          "key": "services.ingestion.eas_indexer:advance_attestation_cursor",
+          "module": "services.ingestion.eas_indexer",
+          "qualname": "advance_attestation_cursor",
+          "class_scope": null,
+          "source": "services/ingestion/eas_indexer.py",
+          "line": 213
+        },
+        {
+          "key": "services.ingestion.eas_indexer:get_chain_attestation_watermark",
+          "module": "services.ingestion.eas_indexer",
+          "qualname": "get_chain_attestation_watermark",
+          "class_scope": null,
+          "source": "services/ingestion/eas_indexer.py",
+          "line": 231
+        },
+        {
           "key": "services.ingestion.eas_indexer:get_last_attestation_time",
           "module": "services.ingestion.eas_indexer",
           "qualname": "get_last_attestation_time",
           "class_scope": null,
           "source": "services/ingestion/eas_indexer.py",
-          "line": 190
+          "line": 189
         },
         {
           "key": "services.ingestion.eas_indexer:insert_attestation",
@@ -3429,7 +3445,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/eas_indexer.py",
-          "line": 205
+          "line": 246
         }
       ],
       "direct_call_edges": [
@@ -3455,79 +3471,85 @@
           "caller": "services.ingestion.base:update_indexer_status",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 203
+          "line": 205
         },
         {
           "caller": "services.ingestion.eas_indexer:insert_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 173
+          "line": 172
         },
         {
           "caller": "services.ingestion.eas_indexer:insert_clickhouse",
           "callee": "services.ingestion.base:post_clickhouse_rows",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 180
+          "line": 179
         },
         {
           "caller": "services.ingestion.eas_indexer:insert_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 174
+          "line": 173
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 207
+          "line": 251
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 288
+          "line": 361
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 281
+          "line": 354
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 269
+          "line": 346
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
-          "callee": "services.ingestion.base:update_indexer_status",
+          "callee": "services.ingestion.eas_indexer:advance_attestation_cursor",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 277
+          "line": 325
+        },
+        {
+          "caller": "services.ingestion.eas_indexer:run",
+          "callee": "services.ingestion.eas_indexer:get_chain_attestation_watermark",
+          "source": "services/ingestion/eas_indexer.py",
+          "line": 344
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:get_last_attestation_time",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 230
+          "line": 287
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:insert_attestation",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 254
+          "line": 310
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:insert_clickhouse",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 258
+          "line": 314
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:query_eas",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 240
+          "line": 296
         }
       ],
       "callback_edges": [],
@@ -3581,7 +3603,7 @@
           "qualname": "batch_ranges",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 289
+          "line": 294
         },
         {
           "key": "services.ingestion.base:get_db",
@@ -3597,7 +3619,7 @@
           "qualname": "get_last_synced_block",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 228
+          "line": 233
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -3613,7 +3635,7 @@
           "qualname": "now_utc",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 284
+          "line": 289
         },
         {
           "key": "services.ingestion.base:post_clickhouse_rows",
@@ -3771,7 +3793,7 @@
           "caller": "services.ingestion.base:get_last_synced_block",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 232
+          "line": 237
         },
         {
           "caller": "services.ingestion.base:post_clickhouse_rows",
@@ -3783,7 +3805,7 @@
           "caller": "services.ingestion.base:update_indexer_status",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 203
+          "line": 205
         },
         {
           "caller": "services.ingestion.gnosis_indexer:get_moloch_contract",
@@ -4799,7 +4821,7 @@
         {
           "function": "services.ingestion.rpc_indexer:run",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 280
+          "line": 294
         }
       ],
       "reachable_functions": [
@@ -4873,7 +4895,7 @@
           "qualname": "now_utc",
           "class_scope": null,
           "source": "services/ingestion/base.py",
-          "line": 284
+          "line": 289
         },
         {
           "key": "services.ingestion.base:update_indexer_status",
@@ -4897,7 +4919,7 @@
           "qualname": "fetch_balance",
           "class_scope": null,
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 71
+          "line": 82
         },
         {
           "key": "services.ingestion.rpc_indexer:fetch_latest_block",
@@ -4905,7 +4927,7 @@
           "qualname": "fetch_latest_block",
           "class_scope": null,
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 76
+          "line": 87
         },
         {
           "key": "services.ingestion.rpc_indexer:get_wallets",
@@ -4913,7 +4935,7 @@
           "qualname": "get_wallets",
           "class_scope": null,
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 56
+          "line": 67
         },
         {
           "key": "services.ingestion.rpc_indexer:get_web3",
@@ -4921,7 +4943,7 @@
           "qualname": "get_web3",
           "class_scope": null,
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 48
+          "line": 59
         },
         {
           "key": "services.ingestion.rpc_indexer:insert_activity",
@@ -4929,7 +4951,7 @@
           "qualname": "insert_activity",
           "class_scope": null,
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 118
+          "line": 129
         },
         {
           "key": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
@@ -4937,7 +4959,7 @@
           "qualname": "insert_activity_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 144
+          "line": 155
         },
         {
           "key": "services.ingestion.rpc_indexer:run",
@@ -4945,7 +4967,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 209
+          "line": 220
         }
       ],
       "direct_call_edges": [
@@ -4983,91 +5005,91 @@
           "caller": "services.ingestion.base:update_indexer_status",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/base.py",
-          "line": 203
+          "line": 205
         },
         {
           "caller": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 178
+          "line": 189
         },
         {
           "caller": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 190
+          "line": 201
         },
         {
           "caller": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.base:insert_clickhouse_rows",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 193
+          "line": 204
         },
         {
           "caller": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 179
+          "line": 190
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 211
+          "line": 222
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.base:now_utc",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 234
+          "line": 246
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 255
+          "line": 267
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 259
+          "line": 271
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:fetch_balance",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 230
+          "line": 242
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:fetch_latest_block",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 229
+          "line": 241
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:get_wallets",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 212
+          "line": 224
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:get_web3",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 226
+          "line": 238
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:insert_activity",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 251
+          "line": 263
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 265
+          "line": 276
         }
       ],
       "callback_edges": [],
