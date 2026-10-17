@@ -4252,9 +4252,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:246:20",
+      "id": "services/ingestion/eas_worker.py:247:20",
       "source": "services/ingestion/eas_worker.py",
-      "line": 246,
+      "line": 247,
       "column": 20,
       "scope": "ingest",
       "method": "execute",

@@ -19,7 +19,7 @@
       "tests/test_eas_provider.py",
       "tests/test_eas_indexer_recovery.py"
     ],
-    "tests": 34,
+    "tests": 35,
     "result": "passed"
   },
   "additional_checks": {

@@ -46,10 +46,11 @@ endpoint was queried ([error evidence](builds/2026-10-17-recovery/eas-provider-g
 [cursor-scan evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
 The worker now also rejects absent, null, boolean, negative, fractional,
 malformed, and out-of-range attestation timestamps before persistence or cursor
-advancement; seven focused cases pass within the combined 34-test EAS suite. An optional
+advancement; seven focused cases pass within the combined 35-test EAS suite. An optional
 `--replay-lookback-seconds` enables operator-selected idempotent replay below a
-saved cursor without lowering it; zero remains the default. Five focused
-replay/argument checks pass. This does not recover arrivals beyond a requested
+saved cursor without lowering it; zero remains the default. Six focused
+replay/argument/output checks pass, and successful worker output reports the
+selected interval. This does not recover arrivals beyond a requested
 interval or close concurrent offset-page movement ([timestamp evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json);
 [replay evidence](builds/2026-10-17-recovery/eas-explicit-replay-lookback.json)).
 **Code-first follow-up — 17 October 2026:** the legacy freshness-alert

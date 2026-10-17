@@ -241,7 +241,7 @@
         "services/ingestion/eas_worker.py:176:12",
         "services/ingestion/eas_worker.py:185:16",
         "services/ingestion/eas_worker.py:221:12",
-        "services/ingestion/eas_worker.py:246:20"
+        "services/ingestion/eas_worker.py:247:20"
       ]
     },
     {
@@ -5640,9 +5640,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:246:20",
+      "id": "services/ingestion/eas_worker.py:247:20",
       "source": "services/ingestion/eas_worker.py",
-      "line": 246,
+      "line": 247,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",

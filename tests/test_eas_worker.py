@@ -161,6 +161,19 @@ def test_ingest_rejects_invalid_replay_lookback_before_database_access(monkeypat
     get_db.assert_not_called()
 
 
+def test_ingest_result_reports_the_selected_replay_lookback():
+    connection = _Connection()
+    with (
+        patch.object(eas_worker, "get_worker_db", return_value=connection),
+        patch.object(eas_worker, "_fetch_wallet_pages", return_value=(2, 200)),
+    ):
+        result = eas_worker.ingest("celo", replay_lookback_seconds=3600)
+
+    assert result["status"] == "success"
+    assert result["replay_lookback_seconds"] == 3600
+    assert connection.closed is True
+
+
 def test_wallet_pages_use_only_bounded_functions_and_advance_after_success():
     connection = _Connection()
     attestation = _attestation(timestamp=150)

@@ -235,6 +235,7 @@ def ingest(chain: str, replay_lookback_seconds: int = 0) -> dict[str, Any]:
             "wallets": len(recipients),
             "attestations_inserted": total_inserted,
             "last_attestation_time": watermark,
+            "replay_lookback_seconds": replay_lookback_seconds,
         }
     except Exception:
         connection.rollback()

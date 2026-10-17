@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "65a201410f0ce224136541f33e7597a108a0dd8f",
+  "baseline_commit": "b151ab349aeec956195836e54a2b246eb277d9f5",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1825,7 +1825,8 @@
       "schemas/postgres/429_signed_climate_worker.sql",
       "schemas/postgres/430_isolated_market_data_worker.sql",
       "schemas/postgres/431_signed_sensor_driver_worker.sql",
-      "schemas/postgres/432_signed_remote_sensing_worker.sql"
+      "schemas/postgres/432_signed_remote_sensing_worker.sql",
+      "schemas/postgres/433_isolated_eas_indexer.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2473,6 +2474,7 @@
         "tests/test_gateway_auth.py",
         "tests/test_gateway_data_stream.py",
         "tests/test_gateway_public_locations.py",
+        "tests/test_kernel_runtime_supervisor.py",
         "tests/test_mobile_api.py",
         "tests/test_notification_outbox.py",
         "tests/test_operator_auth.py",
@@ -2480,7 +2482,8 @@
         "tests/test_operator_report_review.py",
         "tests/test_tenant_context.py",
         "tests/test_worker_database.py",
-        "tests/test_worker_environment.py"
+        "tests/test_worker_environment.py",
+        "tests/test_worker_operation_map.py"
       ]
     },
     "compliance": {
@@ -2499,6 +2502,7 @@
         "KOKONUT_FEATURE_CRISP",
         "KOKONUT_FEATURE_EVENT_BUS",
         "KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP",
+        "KOKONUT_FEATURE_ISOLATED_EAS_INDEXER_WORKER",
         "KOKONUT_FEATURE_ISOLATED_MARKET_DATA_WORKER",
         "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE",
         "KOKONUT_FEATURE_NOTIFICATION_DELIVERY",
@@ -2727,8 +2731,7 @@
         "tests/test_insight_transfer.py",
         "tests/test_notification_outbox.py",
         "tests/test_os_architecture.py",
-        "tests/test_tactical_layer.py",
-        "tests/test_worker_operation_map.py"
+        "tests/test_tactical_layer.py"
       ]
     },
     "export": {
@@ -3158,6 +3161,8 @@
         "services/ingestion/drivers/weather_forecast.py",
         "services/ingestion/drivers/weather_openweathermap.py",
         "services/ingestion/eas_indexer.py",
+        "services/ingestion/eas_provider.py",
+        "services/ingestion/eas_worker.py",
         "services/ingestion/field_validation.py",
         "services/ingestion/gee_climate.py",
         "services/ingestion/gee_remote_sensing.py",
@@ -3225,6 +3230,8 @@
         "tests/test_customer_value.py",
         "tests/test_device_manager.py",
         "tests/test_eas_indexer_recovery.py",
+        "tests/test_eas_provider.py",
+        "tests/test_eas_worker.py",
         "tests/test_env_scanning.py",
         "tests/test_field_validation.py",
         "tests/test_flow_metrics.py",
@@ -3481,6 +3488,8 @@
         "KOKONUT_DB_ADMIN_USER",
         "KOKONUT_DIRECTUS_RUNTIME_PASSWORD",
         "KOKONUT_DIRECTUS_RUNTIME_USER",
+        "KOKONUT_EAS_INDEXER_PASSWORD",
+        "KOKONUT_EAS_INDEXER_USER",
         "KOKONUT_MARKET_DATA_PASSWORD",
         "KOKONUT_MARKET_DATA_USER",
         "KOKONUT_METABASE_ROLE_DEDICATED_INSTANCE",
@@ -4147,6 +4156,8 @@
     "tests/test_dsm_soc_prediction.py",
     "tests/test_e2e_platform.py",
     "tests/test_eas_indexer_recovery.py",
+    "tests/test_eas_provider.py",
+    "tests/test_eas_worker.py",
     "tests/test_ebf_agent_safety.py",
     "tests/test_ebf_agents.py",
     "tests/test_ebf_calibration.py",
@@ -4251,6 +4262,7 @@
     "tests/test_iri_public_projection.py",
     "tests/test_iri_synchronization.py",
     "tests/test_kernel_profile.py",
+    "tests/test_kernel_restore_role_prerequisites.py",
     "tests/test_kernel_runtime_supervisor.py",
     "tests/test_kernel_schema_startup.py",
     "tests/test_kgp_service.py",
@@ -4325,6 +4337,7 @@
     "tests/test_pollinator_health.py",
     "tests/test_polymorphic_references.py",
     "tests/test_portfolio.py",
+    "tests/test_postgres_readiness_contract.py",
     "tests/test_precision_irrigation.py",
     "tests/test_prediction_calibration.py",
     "tests/test_predictive_bpm.py",

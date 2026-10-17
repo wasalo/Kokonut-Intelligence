@@ -4011,12 +4011,12 @@
         {
           "function": "services.common.cli:run",
           "source": "services/ingestion/eas_worker.py",
-          "line": 274
+          "line": 275
         },
         {
           "function": "services.ingestion.eas_worker:main",
           "source": "services/ingestion/eas_worker.py",
-          "line": 274
+          "line": 275
         }
       ],
       "reachable_functions": [
@@ -4106,7 +4106,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/eas_worker.py",
-          "line": 256
+          "line": 257
         }
       ],
       "direct_call_edges": [
@@ -4162,19 +4162,19 @@
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/eas_worker.py",
-          "line": 270
+          "line": 271
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/eas_worker.py",
-          "line": 268
+          "line": 269
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.ingestion.eas_worker:ingest",
           "source": "services/ingestion/eas_worker.py",
-          "line": 270
+          "line": 271
         }
       ],
       "callback_edges": [],

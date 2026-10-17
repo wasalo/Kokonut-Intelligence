@@ -6,14 +6,15 @@
     "services/ingestion/eas_worker.py",
     "tests/test_eas_worker.py"
   ],
-  "focused_tests": 5,
+  "focused_tests": 6,
   "result": "passed",
   "checks": [
     "Explicit lookback reprocesses records older than the saved cursor but not older than the requested floor",
     "Replayed records use the existing idempotent bounded page write",
     "The saved cursor remains monotonic after replay",
     "Negative CLI lookback and negative, boolean, or fractional direct-call values fail before database access",
-    "The isolated worker help exposes the manual recovery option without shared database configuration"
+    "The isolated worker help exposes the manual recovery option without shared database configuration",
+    "The successful worker result reports the selected replay interval"
   ],
   "combined_suite": {
     "files": [
@@ -21,7 +22,7 @@
       "tests/test_eas_provider.py",
       "tests/test_eas_indexer_recovery.py"
     ],
-    "tests": 34,
+    "tests": 35,
     "result": "passed"
   },
   "scheduled_command_contract": {

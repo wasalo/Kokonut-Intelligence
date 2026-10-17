@@ -123,11 +123,12 @@ provider, worker, and cursor checks pass. This bounds repeated history reads but
 does not resolve concurrent offset-pagination movement, earlier-than-cursor
 arrivals, or live provider acceptance. The worker also rejects missing, null,
 boolean, negative, fractional, malformed, and out-of-range timestamps before page persistence
-or cursor advancement. Seven fail-closed cases and the combined 34-test EAS
+or cursor advancement. Seven fail-closed cases and the combined 35-test EAS
 provider/worker/cursor suite pass. An explicit `--replay-lookback-seconds`
 option reprocesses an operator-selected interval below the saved cursor with
 idempotent writes and monotonic cursor retention; zero remains the default.
-Five replay/argument checks pass. This does not automatically recover late
+Six replay/argument/output checks pass, and successful worker results report
+the selected interval. This does not automatically recover late
 arrivals beyond the chosen interval or resolve concurrent offset-page movement.
 The 130-test scheduled-command contract suite confirms automated EAS tasks
 remain limited to a single explicit chain and cannot pass the replay option.

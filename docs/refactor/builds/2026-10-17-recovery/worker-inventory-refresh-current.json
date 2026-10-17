@@ -1,7 +1,7 @@
 {
   "format": 1,
   "date": "2026-10-17",
-  "scope": "Regenerated static worker and runtime SQL inventories after EAS provider, timestamp-range, and replay changes plus freshness-alert delivery/state changes; source analysis only",
+  "scope": "Regenerated static worker and runtime SQL inventories after EAS provider, timestamp-range, replay, and replay-result changes plus freshness-alert delivery/state changes; source analysis only",
   "result": "passed",
   "focused_tests": 50,
   "test_files": [
@@ -18,8 +18,8 @@
     "operation_roots": 31,
     "source_files": 92,
     "unresolved_local_modules": 0,
-    "function_memberships": 624,
-    "direct_call_edges": 850,
+    "function_memberships": 625,
+    "direct_call_edges": 852,
     "dynamic_dispatch_edges": 20,
     "sql_execution_sites": 322,
     "statically_reachable_site_memberships": 321,
