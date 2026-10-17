@@ -6,6 +6,7 @@ import socket
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.core.ports import HealthProbe
 
@@ -52,8 +53,8 @@ def _check_postgres() -> HealthStatus:
             db.close()
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("database", True, True, "PostgreSQL connected", latency)
-    except Exception:
-        logger.exception("PostgreSQL health check failed")
+    except Exception as exc:
+        logger.error("PostgreSQL health check failed (%s)", safe_exception_class(exc))
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("database", False, True, "PostgreSQL unavailable", latency)
 
@@ -77,8 +78,8 @@ def _check_clickhouse() -> HealthStatus:
         if not responding:
             return HealthStatus("clickhouse", False, False, "ClickHouse ping failed", latency)
         return HealthStatus("clickhouse", True, False, "ClickHouse connected", latency)
-    except Exception:
-        logger.exception("ClickHouse health check failed")
+    except Exception as exc:
+        logger.error("ClickHouse health check failed (%s)", safe_exception_class(exc))
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("clickhouse", False, False, "ClickHouse unavailable", latency)
 
@@ -97,8 +98,8 @@ def _check_directus() -> HealthStatus:
         resp.raise_for_status()
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("directus", True, True, "Directus responding", latency)
-    except Exception:
-        logger.exception("Directus health check failed")
+    except Exception as exc:
+        logger.error("Directus health check failed (%s)", safe_exception_class(exc))
         latency = int((time.monotonic() - start) * 1000)
         return HealthStatus("directus", False, True, "Directus unavailable", latency)
 

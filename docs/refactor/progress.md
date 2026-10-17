@@ -25,6 +25,14 @@ passes within 34 route-policy/auth checks with Ruff and compilation; no live
 request or database was accessed
 ([evidence](builds/2026-10-17-recovery/gateway-internal-error-redaction.json)).
 
+### Core health-probe error containment — 17 October 2026
+
+PostgreSQL, ClickHouse, and Directus probe failures now log only their
+exception classes while keeping the existing generic unhealthy statuses. The
+three mocked failure checks pass within the 33-test health/driver-registry
+suite with Ruff and compilation; no endpoint or database was contacted
+([evidence](builds/2026-10-17-recovery/core-health-error-redaction.json)).
+
 ### Durable worker history output containment — 17 October 2026
 
 Scheduler run history, event dead-letter listings, MQTT delivery recovery, and

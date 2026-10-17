@@ -559,6 +559,9 @@ fallback; both mocked regressions pass within nine Gateway audit checks with
 Ruff, compilation, and targeted Gitleaks. No database or journal was accessed.
 Gateway internal-error logs also omit exception messages and tracebacks while
 retaining the generic HTTP 500 response; 34 route-policy/auth checks pass.
+Core PostgreSQL, ClickHouse, and Directus health-probe failures likewise log
+only exception classes while preserving generic unhealthy status; three new
+checks pass within a 33-test health/driver-registry suite.
 This source-level display change does not
 substitute for live worker retry or dead-letter acceptance
 ([worker history](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json);
@@ -567,7 +570,8 @@ substitute for live worker retry or dead-letter acceptance
 [sandbox](builds/2026-10-17-recovery/sandbox-history-error-redaction.json);
 [agent action audit](builds/2026-10-17-recovery/agent-action-log-error-redaction.json);
 [Gateway audit fallback](builds/2026-10-17-recovery/gateway-audit-error-log-redaction.json);
-[Gateway internal errors](builds/2026-10-17-recovery/gateway-internal-error-redaction.json)).
+[Gateway internal errors](builds/2026-10-17-recovery/gateway-internal-error-redaction.json);
+[core health probes](builds/2026-10-17-recovery/core-health-error-redaction.json)).
 
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
