@@ -13,6 +13,7 @@ import uuid
 
 from services.common.logging import get_logger
 from services.common.worker_environment import (
+    EVENT_HANDLER_WORKER_KEYS,
     SCHEDULED_WORKER_KEYS,
     worker_subprocess_environment,
 )
@@ -93,6 +94,8 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
             allowed_worker_keys = (
                 ("scheduler", *SCHEDULED_WORKER_KEYS)
                 if name == "scheduler"
+                else ("event_bus", *EVENT_HANDLER_WORKER_KEYS)
+                if name == "events"
                 else (worker_key,) if worker_key is not None else ()
             )
             process = subprocess.Popen(

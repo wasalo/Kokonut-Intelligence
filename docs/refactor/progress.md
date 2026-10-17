@@ -10,7 +10,9 @@ The Kernel supervisor's scheduler child allowlist is now derived from the exact
 scheduled-module mapping, covering every registered worker. The expanded
 scheduler/EventBus boundary suite passes 224 tests. The separate notification
 worker now also receives the dedicated notification-enqueue identity required
-by its source-mapped alert handlers. Ruff, Python compilation,
+by its source-mapped alert handlers. The EventBus process receives the exact
+set of dedicated identities used by its mapped handlers and filters each child
+to its own identity. Ruff, Python compilation,
 dependency-group alignment, provider-boundary, and diff checks pass. The checks
 use synthetic environment values and mocked subprocesses only; no database,
 provider, candidate, legacy stack, or real credential was accessed. Live worker

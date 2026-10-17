@@ -11,24 +11,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 from services.common.logging import get_logger
+from services.common.worker_environment import EVENT_HANDLER_WORKERS as _HANDLER_WORKER_KEYS
 from services.common.worker_environment import worker_subprocess_environment
 from services.security.execution_allowlist import validate_event_handler
 
 logger = get_logger("events.bus")
-
-
-_HANDLER_WORKER_KEYS = {
-    # Worker credentials are passed only to exact source-controlled handlers.
-    ("services.ingestion.anomaly_detector", "handle_sensor_reading"): (
-        "sensor_anomaly",
-    ),
-    ("services.cache.events", "handle_metric_computed"): ("cache_invalidation",),
-    ("services.cache.events", "handle_crisp_scored"): ("cache_invalidation",),
-    ("services.cache.events", "handle_sensor_reading"): ("cache_invalidation",),
-    ("services.cache.events", "handle_harvest_recorded"): ("cache_invalidation",),
-    ("services.events.handlers", "handle_stale_data"): ("notification_enqueue",),
-    ("services.events.handlers", "handle_alert_notification"): ("notification_enqueue",),
-}
 
 
 def _handler_child_environment(module_path, function_name, environ=None):

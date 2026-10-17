@@ -41,6 +41,20 @@ _SCHEDULED_MODULE_WORKERS = {
 # Keep the Kernel supervisor allowlist aligned with the scheduler dispatch map.
 SCHEDULED_WORKER_KEYS = tuple(dict.fromkeys(_SCHEDULED_MODULE_WORKERS.values()))
 
+_EVENT_HANDLER_WORKERS = {
+    ("services.ingestion.anomaly_detector", "handle_sensor_reading"): ("sensor_anomaly",),
+    ("services.cache.events", "handle_metric_computed"): ("cache_invalidation",),
+    ("services.cache.events", "handle_crisp_scored"): ("cache_invalidation",),
+    ("services.cache.events", "handle_sensor_reading"): ("cache_invalidation",),
+    ("services.cache.events", "handle_harvest_recorded"): ("cache_invalidation",),
+    ("services.events.handlers", "handle_stale_data"): ("notification_enqueue",),
+    ("services.events.handlers", "handle_alert_notification"): ("notification_enqueue",),
+}
+EVENT_HANDLER_WORKERS = _EVENT_HANDLER_WORKERS
+EVENT_HANDLER_WORKER_KEYS = tuple(
+    dict.fromkeys(worker for worker_keys in EVENT_HANDLER_WORKERS.values() for worker in worker_keys)
+)
+
 _GLOBAL_PROVIDER_SECRETS = frozenset({
     "GEE_SERVICE_ACCOUNT_KEY",
     "COPERNICUS_EMAIL",
