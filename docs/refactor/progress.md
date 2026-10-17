@@ -1,5 +1,13 @@
 # Kokonut Kernel implementation progress
 
+### Anomaly notification error containment — 17 October 2026
+
+SMTP, Directus, and owned-connection actuator failure logs now retain only the
+exception class. Critical alerts still force human approval for actuation even
+if the persisted rule requests none. Three new mocked regressions pass within
+the 72-test anomaly/IoT suite with Ruff; no delivery service or database was
+contacted ([evidence](builds/2026-10-17-recovery/anomaly-notification-error-redaction.json)).
+
 ### HTTP sensor error containment — 17 October 2026
 
 Credential lookup and reading processing failures now log only exception

@@ -284,6 +284,13 @@ and cleanup. The direct ClickHouse fallback is also bounded. Three new
 TestClient regressions pass within a 50-test HTTP/MQTT sensor suite with Ruff;
 no live service was contacted ([evidence](builds/2026-10-17-recovery/http-sensor-error-redaction.json)).
 
+**17 October 2026 anomaly notification error containment (CAP-040 / CAP-047):**
+SMTP, Directus, and actuator failure logs now omit raw exception details while
+preserving existing best-effort delivery and cleanup. Critical-severity
+actuation still requires human approval. Three new mocked checks pass within
+the 72-test anomaly/IoT suite with Ruff; no delivery service or database was
+contacted ([evidence](builds/2026-10-17-recovery/anomaly-notification-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

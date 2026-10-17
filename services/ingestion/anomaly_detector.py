@@ -531,7 +531,7 @@ Kokonut Intelligence Alert System
         return True
 
     except Exception as e:
-        logger.warning("Failed to send email notification: %s", e)
+        logger.warning("Failed to send email notification (%s)", type(e).__name__)
         return False
 
 
@@ -568,7 +568,7 @@ def send_directus_notification(alert_data: dict) -> bool:
         return True
 
     except Exception as e:
-        logger.warning("Failed to send Directus notification: %s", e)
+        logger.warning("Failed to send Directus notification (%s)", type(e).__name__)
         return False
 
 
@@ -636,7 +636,7 @@ def send_actuation_commands(alert_data: dict, db=None) -> None:
     except Exception as e:
         if not owns_db:
             raise
-        logger.warning("Actuation dispatch failed: %s", e)
+        logger.warning("Actuation dispatch failed (%s)", type(e).__name__)
     finally:
         if owns_db and db is not None:
             db.close()

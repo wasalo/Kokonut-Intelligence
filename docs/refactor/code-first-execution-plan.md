@@ -145,6 +145,11 @@ processing failures now omit raw details from logs and preserve bounded,
 retryable 503 responses; direct ClickHouse fallback logs are bounded too. Three
 new TestClient regressions pass within a 50-test HTTP/MQTT suite with Ruff; no
 live service was contacted ([evidence](builds/2026-10-17-recovery/http-sensor-error-redaction.json)).
+**Local anomaly-notification follow-up — 17 October 2026:** SMTP, Directus, and
+actuator failure logs retain only exception classes. Critical severity continues
+to force human approval. Three new mocked checks pass within a 72-test
+anomaly/IoT suite with Ruff; no delivery service or database was contacted
+([evidence](builds/2026-10-17-recovery/anomaly-notification-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
