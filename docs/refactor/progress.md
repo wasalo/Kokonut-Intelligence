@@ -1,5 +1,11 @@
 # Kokonut Kernel implementation progress
 
+### Signed current-weather worker — 17 October 2026
+
+Native scheduled current-weather ingestion now uses a dedicated default-off worker. The scheduler forwards only its exact `weather` database URL, worker credential, and OpenWeatherMap API key; shared PostgreSQL settings are stripped from the worker environment. The worker resolves coordinates and stores one location-scoped observation under signed `weather_observation/ingest` context. Migration 427 commits the canonical observation, sanitized success/failure audit, ClickHouse outbox intent, and idempotency receipt atomically through a bounded function. Conflicting outbox identities fail closed, while an exact pre-existing projection intent can be reused safely.
+
+The 178 focused worker/scheduler/environment/inventory tests, Ruff, Python compilation, and regenerated inventories pass. A disposable PostgreSQL 16 run passes nine migration, forced-RLS, retry, scope, audit, context-cleanup, and privilege checks. No candidate or legacy database, provider, real credential, or persisted schedule was accessed. The candidate remains at migration 403; migration 427 and the feature remain unapplied/off. Schedule-owner reconciliation, credential/grant provisioning, live provider parity, application-wide RLS, and recovery acceptance remain open ([migration](../../schemas/postgres/427_signed_weather_observation_worker.sql); [tests](../../tests/test_weather_worker.py); [disposable runner](../../scripts/check-weather-observation-worker-disposable.py); [evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json); [operation map](worker-operation-map.json)).
+
 ### RPC wallet projection/status atomicity — 16 October 2026
 
 The wallet RPC indexer previously updated chain status outside the connection

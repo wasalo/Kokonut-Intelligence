@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 25,
-    "source_files": 85,
-    "execution_sites": 307,
-    "static_literal_sites": 265,
+    "operation_roots": 26,
+    "source_files": 86,
+    "execution_sites": 309,
+    "static_literal_sites": 267,
     "composed_or_variable_sites": 42
   },
   "execution_sites": [
@@ -843,6 +843,7 @@
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
@@ -882,6 +883,7 @@
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
@@ -921,6 +923,7 @@
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
@@ -944,6 +947,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
@@ -966,6 +970,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
@@ -990,6 +995,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
@@ -1014,6 +1020,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
@@ -1038,6 +1045,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
@@ -1062,6 +1070,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
@@ -1086,6 +1095,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
       ]
     },
@@ -3173,6 +3183,7 @@
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics"
       ]
     },
@@ -3205,6 +3216,7 @@
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics"
       ]
     },
@@ -3236,6 +3248,7 @@
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics"
       ]
     },
@@ -3262,7 +3275,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker"
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -3287,7 +3301,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker"
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -3314,7 +3329,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker"
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -3339,7 +3355,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker"
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -3364,7 +3381,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker"
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -3392,7 +3410,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker"
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -3417,7 +3436,8 @@
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
-        "scheduled_module:services.ingestion.weather_forecast_worker"
+        "scheduled_module:services.ingestion.weather_forecast_worker",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -4907,9 +4927,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:87:8",
+      "id": "services/ingestion/weather.py:92:8",
       "source": "services/ingestion/weather.py",
-      "line": 87,
+      "line": 92,
       "column": 8,
       "scope": "insert_weather",
       "method": "execute",
@@ -4920,13 +4940,14 @@
       ],
       "static_sql_sha256": "97464cd9dbdd678338c2d8180871d0bde56b15b5e8c93a6af5ee9db1e8339e8a",
       "operation_refs": [
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
-      "id": "services/ingestion/weather.py:188:12",
+      "id": "services/ingestion/weather.py:202:12",
       "source": "services/ingestion/weather.py",
-      "line": 188,
+      "line": 202,
       "column": 12,
       "scope": "run",
       "method": "execute",
@@ -4937,13 +4958,14 @@
       ],
       "static_sql_sha256": "3b7adcf5ec40077b7f03cf2d547211c636f2344f64b37f9f2eca4dfba69c4a65",
       "operation_refs": [
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
-      "id": "services/ingestion/weather.py:193:12",
+      "id": "services/ingestion/weather.py:207:12",
       "source": "services/ingestion/weather.py",
-      "line": 193,
+      "line": 207,
       "column": 12,
       "scope": "run",
       "method": "execute",
@@ -4954,7 +4976,8 @@
       ],
       "static_sql_sha256": "4a64829b03c449f44b6c2bca0d964d1e89ec7907594766977dd8b5745c3ad19c",
       "operation_refs": [
-        "scheduled_module:services.ingestion.weather"
+        "scheduled_module:services.ingestion.weather",
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {
@@ -5142,6 +5165,40 @@
       "static_sql_sha256": "2d3efec0513f3f9a86311b7c0d9a6301dd3e3794c9f3f96ceb9785c1ef194a17",
       "operation_refs": [
         "scheduled_module:services.ingestion.weather_forecast_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_worker.py:68:12",
+      "source": "services/ingestion/weather_worker.py",
+      "line": 68,
+      "column": 12,
+      "scope": "_load_location",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.weather_observation_location"
+      ],
+      "static_sql_sha256": "695c3780efbacf592cfae490c707fc9ed37f9c7d4ee89b1d8fee26f96536ed63",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/weather_worker.py:113:12",
+      "source": "services/ingestion/weather_worker.py",
+      "line": 113,
+      "column": 12,
+      "scope": "_store_observation",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.store_weather_observation"
+      ],
+      "static_sql_sha256": "d8f5474a747b78179f658aba7684104503dcafd93e80ba5b486df15869b2eb71",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.weather_worker"
       ]
     },
     {

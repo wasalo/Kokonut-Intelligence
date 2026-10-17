@@ -1,13 +1,13 @@
 # Code-first refactor execution plan
 
-**Updated:** 16 October 2026
+**Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Previous pushed functional batch:** Gnosis cursor separation and RPC wallet atomicity are in commits `caa3426` and `6d76eb9`. At the functional push, Security run #104 was in progress and CI run #380 was pending. Earlier pushed batches include Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`), the EAS cursor rebaseline (`272fcde`), and market-data recovery (`46d3ef3`).
 **Previous functional batch:** Migration 424 separates the Gnosis Moloch cursor from wallet RPC while preserving the legacy status row and requiring operator review before advancing an inherited cursor. The RPC wallet indexer commits activity, status, and ClickHouse outbox intent together, with per-wallet savepoints and error status on partial failure. The 184-test Gnosis cursor suite and 133-test RPC recovery/contract/outbox/scheduler suite pass with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Historical receipt backfill, Gnosis deep-reorg recovery, RPC transaction-history coverage, confirmation depth, and provider/runtime parity remain open; no live provider, candidate, legacy database, or schedule was accessed.
 
 **Previous pushed functional batch:** Commit `61088543` routes native NOI snapshot reconciliation through its dedicated default-off worker, exact secret mapping, and migration 425's signed `noi_snapshot/reconcile` function. Its source/scheduler/inventory suite passed 193 tests and seven isolated PostgreSQL checks passed.
 
-**Current code-first batch:** Scheduled weather forecasts now use a dedicated default-off `services.ingestion.weather_forecast_worker`. The scheduler forwards only its named DSN/credential pair and strips shared PostgreSQL settings. Migration 426 adds signed location lookup, atomic forecast/audit/outbox storage, exact column privileges, and function-owner-only policies that pass with forced RLS in the disposable fixture. The focused forecast, scheduler, worker-boundary, and operation-map suite passes 203 checks; nine disposable PostgreSQL 16 checks pass; Ruff and generated inventories are clean. The 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. The checklist is 431 checked / 21 open (452 total). The candidate remains through migration 403; migration 426 is not rolled out, credentials/grants are unprovisioned, the feature stays off, and no provider or persisted schedule was accessed. Existing persisted forecast tasks remain on the legacy shared-identity module until schedule owners reconcile them. Broader RLS and live provider/schedule acceptance remain open ([evidence](builds/2026-10-16-recovery/weather-forecast-worker-disposable.json)).
+**Current code-first batch — 17 October 2026:** Scheduled current-weather ingestion now uses the dedicated default-off `services.ingestion.weather_worker`. The scheduler forwards only its named weather DSN, credential, and provider API key; shared PostgreSQL settings are stripped. Migration 427 adds signed location lookup and atomic observation/audit/ClickHouse-outbox/idempotency-receipt storage with exact table/column privileges and function-owner policies that pass under forced RLS. The focused worker, scheduler, environment, and inventory suite passes 178 tests; nine disposable PostgreSQL 16 checks pass; Ruff, Python compilation, and refreshed generated inventories are clean. The checklist is 432 checked / 21 open (453 total). The 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. The candidate remains through migration 403; migration 427 is not rolled out, credentials/grants are unprovisioned, the feature stays off, and no provider or persisted schedule was accessed. Legacy persisted weather tasks remain on the shared-identity entrypoint until schedule owners reconcile them. Broader RLS and live provider/schedule acceptance remain open ([evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json)).
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -72,7 +72,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **431 checked and 21 open items (452 total)**,
+- The execution checklist has **432 checked and 21 open items (453 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -404,12 +404,12 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-  [worker operation map](worker-operation-map.md) inventories all 18 scheduled
-  modules and seven event-handler pairs, with a test guarding allowlist parity.
+   [worker operation map](worker-operation-map.md) inventories all 19 scheduled
+   modules and seven event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain
-   open. The source-only effect index now records 35 unique direct effect sites
-  (39 operation/site memberships) across 25 worker roots. The scheduled carbon
+    open. The source-only effect index now records 36 unique direct effect sites
+   (40 operation/site memberships) across 26 worker roots. The scheduled carbon
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
@@ -780,6 +780,8 @@ legacy database, provider, schedule, or MAN-CAP acceptance was touched.
 Evidence: [migration check](builds/2026-10-16-recovery/weather-forecast-worker-disposable.json),
 [worker operation map](worker-operation-map.json), and
 [updated static inventories](worker-boundary-preflight.json).
+
+**Signed current-weather worker — 17 October 2026:** native scheduled current-weather ingestion now routes through `services.ingestion.weather_worker` with an exact `weather` worker identity, default-off feature flag, and environment filtering for its named DSN, credential, and OpenWeatherMap key. The legacy `services.ingestion.weather` module remains allowlisted only for existing persisted tasks pending schedule-owner reconciliation. Migration 427 provides signed `weather_observation/ingest` coordinate lookup and atomic bounded storage for the observation, sanitized ingestion audit, ClickHouse outbox intent, and provider-payload receipt. It rejects cross-location rows, conflicting outbox reuse, and missing context; forced-RLS disposable PostgreSQL verifies the no-direct-table-access boundary. The focused suite passes 178 tests and nine disposable PostgreSQL 16 checks; Ruff, compilation, and generated inventories pass. No candidate or legacy database, provider, real credential, or schedule was accessed. Migration 427 is not candidate-deployed, worker grants are not provisioned, and the feature stays off. Existing task rows, provider parity, and live recovery remain open ([worker](../../services/ingestion/weather_worker.py); [migration](../../schemas/postgres/427_signed_weather_observation_worker.sql); [runner](../../scripts/check-weather-observation-worker-disposable.py); [evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json)).
 
 **Acceptance:** deterministic isolated checks pass without external provider
 credentials and preserve rollback evidence. Actual schedule inventory and

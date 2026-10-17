@@ -69,6 +69,7 @@ def test_event_handlers_contain_known_handlers():
 def test_scheduled_modules_contain_known_modules():
     """ALLOWED_SCHEDULED_MODULES contains expected ingestion modules."""
     assert "services.ingestion.weather" in ALLOWED_SCHEDULED_MODULES
+    assert "services.ingestion.weather_worker" in ALLOWED_SCHEDULED_MODULES
     assert "services.metrics" in ALLOWED_SCHEDULED_MODULES
     assert "services.events" in ALLOWED_SCHEDULED_MODULES
 

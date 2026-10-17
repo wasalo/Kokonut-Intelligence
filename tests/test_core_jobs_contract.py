@@ -74,6 +74,24 @@ def test_weather_dispatch_requires_a_location_before_subprocess():
     run.assert_not_called()
 
 
+def test_weather_dispatch_uses_signed_worker_and_exact_environment_allowlist():
+    spec = JOBS["weather"]
+    completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="ok", stderr="")
+    with patch("services.core.jobs.worker_subprocess_environment", return_value={"PATH": "/bin"}) as env, \
+            patch("services.core.jobs.subprocess.run", return_value=completed) as run:
+        assert run_job("weather", location_id=_LOCATION_ID)["status"] == "success"
+
+    run.assert_called_once()
+    assert run.call_args.args[0] == [
+        sys.executable, "-m", "services.ingestion.weather_worker",
+        "--location-id", _LOCATION_ID,
+    ]
+    env.assert_called_once_with(
+        allowed_worker_keys=("weather",), isolated_database_credentials=True
+    )
+    assert spec.module == "services.ingestion.weather_worker"
+
+
 def test_credit_adjustment_dispatch_requires_one_location_before_subprocess():
     with patch("services.core.jobs.subprocess.run") as run:
         with pytest.raises(ValueError, match="requires a location"):

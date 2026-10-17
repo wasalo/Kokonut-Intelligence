@@ -103,6 +103,41 @@ def test_scheduled_weather_forecast_worker_receives_only_its_exact_secret_pair()
         "KOKONUT_WEATHER_FORECAST_WORKER_CREDENTIAL": "forecast-secret",
     }
 
+
+def test_scheduled_current_weather_worker_receives_only_its_exact_secrets():
+    source = {
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-worker-secret",
+        "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY": "weather-provider-secret",
+        "KOKONUT_WEATHER_FORECAST_DATABASE_URL": "postgresql://forecast-worker",
+        "KOKONUT_WEATHER_FORECAST_WORKER_CREDENTIAL": "forecast-secret",
+        "KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY": "forecast-provider-secret",
+        "PG_HOST": "database",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+    }
+    module = "services.ingestion.weather_worker"
+    worker_key = scheduled_module_worker_key(module)
+
+    assert worker_key == "weather"
+    assert worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-worker-secret",
+        "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY": "weather-provider-secret",
+    }
+
+    forecast_environment = worker_subprocess_environment(
+        allowed_worker_keys=("weather_forecast",),
+        isolated_database_credentials=True,
+        environ=source,
+    )
+    assert "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY" not in forecast_environment
+    assert "KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY" in forecast_environment
+
 @pytest.mark.parametrize("keys", ["scheduler", b"scheduler", ("bad-key",), (None,), ("ß",)])
 def test_worker_environment_rejects_invalid_allowlists(keys):
     with pytest.raises(ValueError, match="worker keys"):

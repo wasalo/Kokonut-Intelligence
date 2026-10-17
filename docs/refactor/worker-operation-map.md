@@ -1,6 +1,6 @@
 # Kernel worker operation map
 
-**Reviewed:** 16 October 2026
+**Reviewed:** 17 October 2026
 
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
@@ -8,12 +8,14 @@ Python adapter are implemented. Source integration now exists for the sensor
 anomaly handler, all four registered cache invalidation handlers, and the two
 global notification enqueue handlers. Signed cache invalidation and isolated
 notification enqueue remain opt-in. Migrations 418–419 and the runtime-role
-bootstrap now enforce the mobile/worker function ACL boundary in disposable
-PostgreSQL. Production credentials and candidate rollout remain open. See the
+bootstrap enforce the mobile/worker ACL boundary. Default-off signed workers now
+cover NOI snapshot, current weather, and five-day forecasts through migrations
+425–427, with current-weather forced-RLS replay and outbox-collision acceptance
+in a disposable PostgreSQL 16 fixture. Production credentials and candidate rollout remain open. See the
 [worker context contract](worker-tenant-context-contract.md).
 
 The machine-readable [operation inventory](worker-operation-map.json) covers
-the exact 16 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
+the exact 19 modules in `ALLOWED_SCHEDULED_MODULES` and all seven pairs in
 `ALLOWED_EVENT_HANDLERS`. A regression test compares those sets with the code
 allowlists and checks that each entry has source evidence, a scope description,
 data effects, and an idempotency/retry note.
@@ -39,7 +41,7 @@ application-wide RLS or proof for other workers.
   The `data_stale` and `threshold_breached` handlers can opt into a distinct
   notification-enqueue login and bounded function. That path also remains off
   by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned, and migrations 405–422 have not
+  credential or location grant is provisioned, and migrations 405–427 have not
   been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
@@ -58,9 +60,8 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  18 scheduled modules and seven allowlisted handler pairs. It covers 85
-  distinct local source files across 25 operation roots and 632
-  operation/import-edge memberships,
+  19 scheduled modules and seven allowlisted handler pairs. It covers 86
+  distinct local source files across 26 operation roots,
   with no unresolved local modules and the EventBus's one dynamic handler-import
   site. That site is dispatched through `validate_event_handler` and the exact
   allowlist. Package `__main__.py` entrypoints are included.
@@ -80,16 +81,16 @@ application-wide RLS or proof for other workers.
   resolves callbacks passed to the shared `services.common.cli.run(main)`
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
-  command/request protocol rather than a local function call. Across 25
-  operation roots and 85 source files, entry functions reach 506 function
-  memberships through 714 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  command/request protocol rather than a local function call. Across 26
+  operation roots and 86 source files, entry functions reach 526 function
+  memberships through 736 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
-- The direct [SQL execution inventory](worker-sql-inventory.json) finds 307
-  Python `.execute` sites in those 85 files. It fingerprints 265 literal
+- The direct [SQL execution inventory](worker-sql-inventory.json) finds 309
+  Python `.execute` sites in those 86 files. It fingerprints 267 literal
   statements and flags 42 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
@@ -97,8 +98,8 @@ application-wide RLS or proof for other workers.
   to check it. These counts identify review targets and do not establish a
   complete read/write set or a least-privilege grant list.
 - A generated [SQL-to-function reachability report](worker-sql-reachability.json)
-  joins those 307 sites to the operation graph without including SQL text or
-  values. It links 235 unique sites across 289 operation/site memberships;
+  joins those 309 sites to the operation graph without including SQL text or
+  values. It links 237 unique sites across 295 operation/site memberships;
   72 sites have no current static function match, and each belongs to a
   function absent from all current worker-root graphs. That status does not
   prove the code is dead: external or unmodeled dynamic callers may still
@@ -107,10 +108,10 @@ application-wide RLS or proof for other workers.
   to check the report.
 - A static-only [worker boundary preflight](worker-boundary-preflight.json)
   combines the allowlists, import closure, function graph, and SQL join. It
-  confirms all 25 operation roots and local imports, reports that the scheduler
+  confirms all 26 operation roots and local imports, reports that the scheduler
   and EventBus dispatchers do not establish signed tenant context, and keeps
-  RLS blocked. The anomaly, optional cache, NOI snapshot, and weather forecast
-  integrations establish context within exact worker paths. It
+  RLS blocked. The anomaly, optional cache, NOI snapshot, current-weather, and
+  weather-forecast integrations establish context within exact worker paths. It
   explicitly leaves live grants, migration state, active schedules, and owner
   mappings `not_assessed`; it never connects to PostgreSQL. Use
   `python3 scripts/worker_boundary_preflight.py --check docs/refactor/worker-boundary-preflight.json`
@@ -118,9 +119,9 @@ application-wide RLS or proof for other workers.
 - A generated [worker effect inventory](worker-effect-inventory.json) scans
   functions in the current reachability graph for high-confidence direct
   process, filesystem, HTTP, email, and EVM call patterns. The current pass
-  finds 35 unique candidate sites across 39 operation/site memberships: HTTP
-  (12 unique / 15 memberships), email delivery (6), process (1), EVM RPC (3),
-  EVM client setup (4), filesystem (8), and dynamic import (1), across 25 operation roots. These are review candidates,
+  finds 36 unique candidate sites across 40 operation/site memberships: HTTP
+  (13 unique / 17 memberships), email delivery (6), process (1), EVM RPC (3),
+  EVM client setup (4), filesystem (8), and dynamic import (1), across 26 operation roots. These are review candidates,
   not confirmed runtime effects. Other worker roots may still conservatively
   include mutually exclusive CLI branches. The credit-adjustment schedule now
   uses a dedicated read-only entrypoint; the interactive issuance/retirement

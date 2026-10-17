@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "caa3426e9fd8b732f0fc0b016cda7b8e3a0b533a",
+  "baseline_commit": "5d3206f070f0d040ada4a28951d2b8e6d591107e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1817,7 +1817,10 @@
       "schemas/postgres/421_eas_recipient_cursors.sql",
       "schemas/postgres/422_eas_cursor_rebaseline.sql",
       "schemas/postgres/423_gnosis_event_log_receipts.sql",
-      "schemas/postgres/424_gnosis_indexer_cursor_namespace.sql"
+      "schemas/postgres/424_gnosis_indexer_cursor_namespace.sql",
+      "schemas/postgres/425_signed_noi_snapshot_worker.sql",
+      "schemas/postgres/426_signed_weather_forecast_worker.sql",
+      "schemas/postgres/427_signed_weather_observation_worker.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2494,7 +2497,10 @@
         "KOKONUT_FEATURE_NOTIFICATION_DELIVERY",
         "KOKONUT_FEATURE_REPORTS",
         "KOKONUT_FEATURE_SCHEDULER",
-        "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION"
+        "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION",
+        "KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER",
+        "KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER",
+        "KOKONUT_FEATURE_SIGNED_WEATHER_WORKER"
       ],
       "modules": [
         "services/core/__init__.py",
@@ -3097,6 +3103,7 @@
         "INGESTION_JITTER",
         "INGESTION_MAX_RETRIES",
         "KOKONUT_SENSOR_TIMESTAMP_MODE",
+        "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY",
         "ML_MODEL_DIR",
         "MQTT_BROKER",
         "MQTT_BROKER_HOST",
@@ -3171,6 +3178,8 @@
         "services/ingestion/subgraph_indexer.py",
         "services/ingestion/weather.py",
         "services/ingestion/weather_forecast.py",
+        "services/ingestion/weather_forecast_worker.py",
+        "services/ingestion/weather_worker.py",
         "services/ingestion/yahoo_finance.py"
       ],
       "test_references": [
@@ -3307,6 +3316,8 @@
         "tests/test_weather_forecast.py",
         "tests/test_weather_forecast_atomicity.py",
         "tests/test_weather_forecast_cli_scope.py",
+        "tests/test_weather_forecast_worker.py",
+        "tests/test_weather_worker.py",
         "tests/test_work_selection.py",
         "tests/test_worker_operation_map.py"
       ]
@@ -3430,12 +3441,15 @@
         "services/metrics/calculators/value_flowed.py",
         "services/metrics/calculators/wallet_retention.py",
         "services/metrics/cli.py",
-        "services/metrics/engine.py"
+        "services/metrics/engine.py",
+        "services/metrics/noi_snapshot_worker.py"
       ],
       "test_references": [
         "tests/test_farm_activity_metrics.py",
         "tests/test_flow_metrics.py",
         "tests/test_metrics.py",
+        "tests/test_metrics_noi_snapshot_scope.py",
+        "tests/test_noi_snapshot_worker.py",
         "tests/test_worker_operation_map.py"
       ]
     },
@@ -4228,6 +4242,7 @@
     "tests/test_measurement_schedule.py",
     "tests/test_meta_learning.py",
     "tests/test_metrics.py",
+    "tests/test_metrics_noi_snapshot_scope.py",
     "tests/test_mica_classification.py",
     "tests/test_migration.py",
     "tests/test_ml_anomaly.py",
@@ -4247,6 +4262,7 @@
     "tests/test_mobile_tenant_operator_preflight.py",
     "tests/test_mobile_vault.py",
     "tests/test_network_trust.py",
+    "tests/test_noi_snapshot_worker.py",
     "tests/test_notification_outbox.py",
     "tests/test_nutrient_budget.py",
     "tests/test_objective_performance.py",
@@ -4435,6 +4451,8 @@
     "tests/test_weather_forecast.py",
     "tests/test_weather_forecast_atomicity.py",
     "tests/test_weather_forecast_cli_scope.py",
+    "tests/test_weather_forecast_worker.py",
+    "tests/test_weather_worker.py",
     "tests/test_work_selection.py",
     "tests/test_worker_boundary_preflight.py",
     "tests/test_worker_database.py",

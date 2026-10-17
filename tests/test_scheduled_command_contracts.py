@@ -26,6 +26,7 @@ def test_every_scheduled_module_has_a_command_contract():
     ("module", "arguments"),
     [
         ("services.ingestion.weather", ["--location-id", str(uuid4())]),
+        ("services.ingestion.weather_worker", ["--location-id", str(uuid4())]),
         ("services.ingestion.weather_forecast", ["--location-id", str(uuid4())]),
         ("services.ingestion.weather_forecast_worker", ["--location-id", str(uuid4())]),
         ("services.ingestion.market_data", ["--source", "world_bank"]),
@@ -81,6 +82,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ),
         ("services.analytics.carbon_credit_adjustment_check", []),
         ("services.ingestion.weather", []),
+        ("services.ingestion.weather_worker", []),
         ("services.ingestion.weather_forecast", []),
         ("services.ingestion.weather_forecast", ["--all-locations"]),
         ("services.ingestion.eas_indexer", []),
@@ -131,6 +133,7 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.export.dataset_refresh", []),
         ("services.export.dataset_refresh", ["--all", "--dataset-id", str(uuid4())]),
         ("services.ingestion.weather", ["--all-locations"]),
+        ("services.ingestion.weather_worker", ["--all-locations"]),
         ("services.ingestion.anomaly_detector", ["--all-locations"]),
     ],
 )

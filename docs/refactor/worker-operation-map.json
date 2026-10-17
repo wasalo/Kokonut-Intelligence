@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "reviewed": "2026-10-16",
+  "reviewed": "2026-10-17",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The optional NOI snapshot and weather-forecast modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425 and 426 add default-off signed location-scoped NOI snapshot reconciliation and weather-forecast ingestion; other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, and weather-forecast modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
   "scheduled_modules": [
     {
       "module": "services.ingestion.weather",
-      "scope": "The scheduled contract requires one explicit --location-id and rejects the explicit --all-locations mode. Manual CLI calls must select one location or explicitly choose --all-locations; an omitted selection only prints help. The all-location query remains a code-level aggregate operation, not tenant authorization.",
+      "scope": "Legacy entrypoint retained for persisted task compatibility until schedule owners reconcile existing rows. New native JobSpecs use services.ingestion.weather_worker. Manual CLI calls must select one location or explicitly choose --all-locations; an omitted selection only prints help. The all-location query remains a code-level aggregate operation, not tenant authorization.",
       "reads": [
         "public.location"
       ],
@@ -23,12 +23,39 @@
       "external_effects": [
         "OpenWeatherMap HTTP requests"
       ],
-      "idempotency": "weather_observation insert has no explicit conflict clause; ClickHouse projection is keyed by payload hash. A replay may create a second PostgreSQL observation.",
-      "retry_boundary": "Scheduler retry can repeat provider reads and PostgreSQL inserts; no source watermark is recorded by this entrypoint.",
+      "idempotency": "Legacy weather_observation insert has no explicit conflict clause; ClickHouse projection is keyed by payload hash. A replay may create a second PostgreSQL observation.",
+      "retry_boundary": "Legacy persisted-task retries may repeat provider reads and PostgreSQL inserts; no source watermark is recorded by this entrypoint. Reconcile legacy tasks before using this shared-identity path.",
       "sources": [
         "services/ingestion/weather.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.weather_worker",
+      "worker_key": "weather",
+      "scope": "Default-off native worker requires one explicit --location-id, receives only the exact worker DSN, worker credential, and OpenWeatherMap provider key, and establishes a signed weather_observation/ingest grant for the selected location before each database operation. Migration 427 exposes signed coordinate lookup and one bounded atomic observation/audit/outbox/receipt function; the worker has no direct application-table access.",
+      "reads": [
+        "public.location"
+      ],
+      "writes": [
+        "public.weather_observation",
+        "public.ingestion_log",
+        "public.clickhouse_outbox",
+        "kokonut_security.weather_observation_worker_receipt"
+      ],
+      "external_effects": [
+        "OpenWeatherMap current-weather HTTP requests"
+      ],
+      "idempotency": "A transaction-scoped advisory lock serializes identical location/provider responses. The private receipt key is (location_id, provider_payload_hash); duplicate scheduler delivery returns the existing observation without repeating audit or projection effects. Observation, success audit, ClickHouse outbox intent, and receipt commit atomically.",
+      "retry_boundary": "A retry repeats provider read and signed coordinate lookup. Provider/parse failures store a sanitized failure audit with no observation/outbox. Migration 427, exact worker DSN/credential/provider key, and its signed grant are not deployed; feature remains off. Existing persisted tasks remain mapped to the legacy module until schedule owners reconcile them.",
+      "sources": [
+        "services/ingestion/weather_worker.py",
+        "services/ingestion/weather.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "schemas/postgres/427_signed_weather_observation_worker.sql"
       ]
     },
     {

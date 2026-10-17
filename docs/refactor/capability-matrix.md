@@ -2374,15 +2374,16 @@ not change MAN-CAP status ([adapter](../services/ingestion/sensor_anomaly_worker
 [runner](../scripts/check-sensor-anomaly-worker-delivery-disposable.py);
 [evidence](builds/2026-10-16-recovery/sensor-anomaly-worker-delivery-disposable.json)).
 
-### CAP-040/047 worker SQL inventory reconciliation — 16 October 2026
+### CAP-040/047 worker SQL inventory reconciliation — 17 October 2026
 
-The current static inventories cover 25 operation roots, 85 source files, and
-307 SQL execution sites. The call graph links 235 unique sites across 289
+The current static inventories cover 26 operation roots, 86 source files, and
+309 SQL execution sites. The call graph links 237 unique sites across 295
 operation/site memberships and leaves 72 without a static function match.
-Source-pattern review now covers the 42 composed/variable SQL sites, including
-the signed-context cleanup, anomaly worker query wrappers, and fixed NOI
-location-filter fragment with bound values. The inventory refresh itself only
-changed static reports; it did not alter database ACLs or RLS. Migration 426's
+Source-pattern review covers all 42 composed/variable SQL sites, including the
+signed-context cleanup, anomaly worker query wrappers, and fixed NOI
+location-filter fragment with bound values. The weather and forecast worker
+roots add only literal SQL. The inventory refresh itself only changed static
+reports; it did not alter database ACLs or RLS. Migrations 426 and 427's
 function-owner grants and policies are documented below. No worker credential
 or candidate rollout was added, and no MAN-CAP status changed ([source map](worker-operation-map.md);
 [SQL inventory](worker-sql-inventory.json);
@@ -2413,6 +2414,10 @@ remain open ([worker](../services/ingestion/weather_forecast_worker.py);
 [migration](../schemas/postgres/426_signed_weather_forecast_worker.sql);
 [runner](../scripts/check-weather-forecast-worker-disposable.py);
 [evidence](builds/2026-10-16-recovery/weather-forecast-worker-disposable.json)).
+
+### CAP-040/047 signed current-weather worker — 17 October 2026
+
+Native scheduled current-weather ingestion now uses a dedicated default-off worker with exact `weather` DSN, credential, and OpenWeatherMap key routing; shared PostgreSQL settings are stripped. Migration 427 adds signed location lookup and bounded atomic persistence for the observation, sanitized audit, ClickHouse outbox intent, and idempotency receipt. Forced-RLS disposable PostgreSQL checks cover migration replay, exact legacy outbox-intent reuse, conflicting outbox denial with rollback, scope mismatch, failure auditing, transaction cleanup, and direct-table/function ACLs. The 178 focused tests, nine disposable checks, Ruff, compilation, and regenerated inventories pass. The candidate remains at migration 403; migration 427 and grants are not deployed, the feature is off, and no provider, persisted schedule, candidate/legacy database, or real credential was used. Legacy task rows remain on the old entrypoint pending owner reconciliation. CAP-040 and CAP-047 remain unaccepted; live-provider parity, schedule state, application-wide RLS, and recovery acceptance remain open ([worker](../services/ingestion/weather_worker.py); [migration](../schemas/postgres/427_signed_weather_observation_worker.sql); [runner](../scripts/check-weather-observation-worker-disposable.py); [evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json)).
 
 ### CAP-040/047 isolated global notification enqueue — 16 October 2026
 

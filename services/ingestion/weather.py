@@ -27,6 +27,11 @@ from .config import OPENWEATHERMAP_API_KEY
 logger = get_logger("ingestion.weather")
 
 API_BASE = "https://api.openweathermap.org/data/2.5/weather"
+WEATHER_CLICKHOUSE_COLUMNS = [
+    "timestamp", "location_id", "source", "temperature_c",
+    "precipitation_mm", "humidity_pct", "wind_speed_kmh",
+    "solar_radiation_wm2", "cloud_cover_pct", "metadata",
+]
 
 
 
@@ -108,8 +113,8 @@ def insert_weather(db, record: dict, source_raw: dict = None) -> str:
         return str(cur.fetchone()[0])
 
 
-def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
-    """Queue canonical weather rows; direct writes are demo-only when conn is absent."""
+def build_weather_clickhouse_projection(records: list[dict]) -> dict:
+    """Build the canonical ClickHouse rows for current weather observations."""
     rows = []
     for rec in records:
         meta = rec.get("metadata", {})
@@ -119,8 +124,12 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
         obs_date = rec.get("observation_date", "")
         obs_time = rec.get("observation_time") or "00:00:00"
         try:
-            ts = datetime.fromisoformat(f"{obs_date}T{obs_time}+00:00")
-        except Exception:
+            ts = datetime.fromisoformat(f"{obs_date}T{obs_time}")
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            else:
+                ts = ts.astimezone(timezone.utc)
+        except (TypeError, ValueError):
             ts = datetime.now(timezone.utc)
 
         rows.append([
@@ -136,28 +145,33 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
             {str(k): str(v) for k, v in meta.items()},
         ])
 
+    return {
+        "columns": list(WEATHER_CLICKHOUSE_COLUMNS),
+        "rows": rows,
+        "payload_hash": hash_payload(records) if rows else "",
+    }
+
+
+def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
+    """Queue canonical weather rows; direct writes are demo-only when conn is absent."""
+    projection = build_weather_clickhouse_projection(records)
+    rows = projection["rows"]
     if not rows:
         return
 
     try:
         if conn is not None:
-            payload_hash = hash_payload(records)
+            payload_hash = projection["payload_hash"]
             enqueue(conn, event_key=f"weather:weather_events:{payload_hash}",
                     source_table="weather_observation", source_id=payload_hash,
                     target_table="weather_events",
-                    columns=["timestamp", "location_id", "source", "temperature_c",
-                             "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                             "solar_radiation_wm2", "cloud_cover_pct", "metadata"],
+                    columns=projection["columns"],
                     rows=rows, payload_hash=payload_hash)
             return
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         insert_clickhouse_rows(
             "weather_events",
-            [
-                "timestamp", "location_id", "source", "temperature_c",
-                "precipitation_mm", "humidity_pct", "wind_speed_kmh",
-                "solar_radiation_wm2", "cloud_cover_pct", "metadata",
-            ],
+            projection["columns"],
             rows,
         )
     except Exception as e:

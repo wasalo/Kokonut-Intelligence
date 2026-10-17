@@ -26,6 +26,8 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     assert jobs["noi_snapshots"]["worker_key"] == "noi_snapshot"
     assert jobs["weather"]["required_inputs"] == ["location_id"]
     assert jobs["weather"]["status"] == "required_runtime_inputs_validated"
+    assert jobs["weather"]["module"] == "services.ingestion.weather_worker"
+    assert jobs["weather"]["worker_key"] == "weather"
     assert jobs["weather_forecast"]["module"] == "services.ingestion.weather_forecast_worker"
     assert jobs["weather_forecast"]["worker_key"] == "weather_forecast"
     assert jobs["weather_forecast"]["required_inputs"] == ["location_id"]

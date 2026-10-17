@@ -36,6 +36,9 @@ class ScheduledCommandRejected(ValueError):
 
 _OPTIONS: dict[str, dict[str, str | None]] = {
     "services.ingestion.weather": {"--location-id": "uuid"},
+    # New native plans use the dedicated signed worker. The shared-identity
+    # module remains available only for previously persisted tasks.
+    "services.ingestion.weather_worker": {"--location-id": "uuid"},
     # Legacy persisted rows stay operable until schedule owners reconcile them.
     "services.ingestion.weather_forecast_worker": {"--location-id": "uuid"},
     "services.ingestion.weather_forecast": {"--location-id": "uuid"},
@@ -189,8 +192,14 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
                 "scheduled sensor ingestion requires one driver instance and one location"
             )
 
-    if module_path == "services.ingestion.weather" and "--location-id" not in options:
+    if module_path in {
+        "services.ingestion.weather",
+        "services.ingestion.weather_worker",
+    } and "--location-id" not in options:
         raise _reject("weather ingestion requires one explicit location")
+
+    if module_path == "services.ingestion.weather_worker" and options != {"--location-id"}:
+        raise _reject("signed current-weather ingestion accepts one location only")
 
     if module_path == "services.ingestion.eas_indexer" and options != {"--chain"}:
         raise _reject("scheduled EAS indexing requires one explicit chain")

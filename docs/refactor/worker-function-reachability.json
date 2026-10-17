@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_function_reachability.py",
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
-    "operation_roots": 25,
-    "source_files": 85,
+    "operation_roots": 26,
+    "source_files": 86,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 506,
-    "direct_call_edges": 714,
+    "function_memberships": 526,
+    "direct_call_edges": 736,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -211,7 +211,7 @@
           "qualname": "worker_subprocess_environment",
           "class_scope": null,
           "source": "services/common/worker_environment.py",
-          "line": 43
+          "line": 44
         },
         {
           "key": "services.core.features:is_enabled",
@@ -219,7 +219,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -1536,7 +1536,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         },
         {
           "key": "services.core.features:require_feature",
@@ -1544,7 +1544,7 @@
           "qualname": "require_feature",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 170
+          "line": 176
         },
         {
           "key": "services.export.dataset_refresh:get_pg",
@@ -1590,7 +1590,7 @@
           "caller": "services.core.features:require_feature",
           "callee": "services.core.features:is_enabled",
           "source": "services/core/features.py",
-          "line": 172
+          "line": 178
         },
         {
           "caller": "services.export.dataset_refresh:get_pg",
@@ -6025,7 +6025,7 @@
         {
           "function": "services.ingestion.weather:main",
           "source": "services/ingestion/weather.py",
-          "line": 284
+          "line": 298
         }
       ],
       "reachable_functions": [
@@ -6110,12 +6110,20 @@
           "line": 39
         },
         {
+          "key": "services.ingestion.weather:build_weather_clickhouse_projection",
+          "module": "services.ingestion.weather",
+          "qualname": "build_weather_clickhouse_projection",
+          "class_scope": null,
+          "source": "services/ingestion/weather.py",
+          "line": 116
+        },
+        {
           "key": "services.ingestion.weather:fetch_weather",
           "module": "services.ingestion.weather",
           "qualname": "fetch_weather",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 34
+          "line": 39
         },
         {
           "key": "services.ingestion.weather:insert_weather",
@@ -6123,7 +6131,7 @@
           "qualname": "insert_weather",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 84
+          "line": 89
         },
         {
           "key": "services.ingestion.weather:insert_weather_clickhouse",
@@ -6131,7 +6139,7 @@
           "qualname": "insert_weather_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 111
+          "line": 155
         },
         {
           "key": "services.ingestion.weather:main",
@@ -6139,7 +6147,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 262
+          "line": 276
         },
         {
           "key": "services.ingestion.weather:parse_weather",
@@ -6147,7 +6155,7 @@
           "qualname": "parse_weather",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 50
+          "line": 55
         },
         {
           "key": "services.ingestion.weather:run",
@@ -6155,7 +6163,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/weather.py",
-          "line": 169
+          "line": 183
         }
       ],
       "direct_call_edges": [
@@ -6196,76 +6204,82 @@
           "line": 155
         },
         {
-          "caller": "services.ingestion.weather:insert_weather_clickhouse",
+          "caller": "services.ingestion.weather:build_weather_clickhouse_projection",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather.py",
-          "line": 144
+          "line": 151
         },
         {
           "caller": "services.ingestion.weather:insert_weather_clickhouse",
           "callee": "services.ingestion.base:insert_clickhouse_rows",
           "source": "services/ingestion/weather.py",
-          "line": 154
+          "line": 172
         },
         {
           "caller": "services.ingestion.weather:insert_weather_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/weather.py",
-          "line": 145
+          "line": 165
+        },
+        {
+          "caller": "services.ingestion.weather:insert_weather_clickhouse",
+          "callee": "services.ingestion.weather:build_weather_clickhouse_projection",
+          "source": "services/ingestion/weather.py",
+          "line": 157
         },
         {
           "caller": "services.ingestion.weather:main",
           "callee": "services.ingestion.weather:run",
           "source": "services/ingestion/weather.py",
-          "line": 278
+          "line": 292
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/weather.py",
-          "line": 185
+          "line": 199
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/weather.py",
-          "line": 225
+          "line": 239
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather.py",
-          "line": 218
+          "line": 232
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/weather.py",
-          "line": 236
+          "line": 250
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:fetch_weather",
           "source": "services/ingestion/weather.py",
-          "line": 211
+          "line": 225
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:insert_weather",
           "source": "services/ingestion/weather.py",
-          "line": 215
+          "line": 229
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:insert_weather_clickhouse",
           "source": "services/ingestion/weather.py",
-          "line": 251
+          "line": 265
         },
         {
           "caller": "services.ingestion.weather:run",
           "callee": "services.ingestion.weather:parse_weather",
           "source": "services/ingestion/weather.py",
-          "line": 214
+          "line": 228
         }
       ],
       "callback_edges": [],
@@ -6686,7 +6700,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         },
         {
           "key": "services.ingestion.base:hash_payload",
@@ -6881,6 +6895,325 @@
           "callee": "services.ingestion.weather_forecast_worker:ingest",
           "source": "services/ingestion/weather_forecast_worker.py",
           "line": 173
+        }
+      ],
+      "callback_edges": [],
+      "dynamic_dispatch_edges": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.weather_worker",
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/clickhouse_outbox.py",
+        "services/ingestion/config.py",
+        "services/ingestion/weather.py",
+        "services/ingestion/weather_worker.py"
+      ],
+      "entry_functions": [
+        {
+          "function": "services.common.cli:run",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 206
+        },
+        {
+          "function": "services.ingestion.weather_worker:main",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 206
+        }
+      ],
+      "reachable_functions": [
+        {
+          "key": "services.common.cli:print_json",
+          "module": "services.common.cli",
+          "qualname": "print_json",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 73
+        },
+        {
+          "key": "services.common.cli:run",
+          "module": "services.common.cli",
+          "qualname": "run",
+          "class_scope": null,
+          "source": "services/common/cli.py",
+          "line": 78
+        },
+        {
+          "key": "services.common.tenant_context:_normalize_uuid",
+          "module": "services.common.tenant_context",
+          "qualname": "_normalize_uuid",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 97
+        },
+        {
+          "key": "services.common.tenant_context:clear_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "clear_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 104
+        },
+        {
+          "key": "services.common.tenant_context:set_worker_tenant_context",
+          "module": "services.common.tenant_context",
+          "qualname": "set_worker_tenant_context",
+          "class_scope": null,
+          "source": "services/common/tenant_context.py",
+          "line": 122
+        },
+        {
+          "key": "services.common.worker_database:_worker_key",
+          "module": "services.common.worker_database",
+          "qualname": "_worker_key",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 30
+        },
+        {
+          "key": "services.common.worker_database:get_worker_credential",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_credential",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 36
+        },
+        {
+          "key": "services.common.worker_database:get_worker_db",
+          "module": "services.common.worker_database",
+          "qualname": "get_worker_db",
+          "class_scope": null,
+          "source": "services/common/worker_database.py",
+          "line": 66
+        },
+        {
+          "key": "services.core.features:is_enabled",
+          "module": "services.core.features",
+          "qualname": "is_enabled",
+          "class_scope": null,
+          "source": "services/core/features.py",
+          "line": 153
+        },
+        {
+          "key": "services.ingestion.base:hash_payload",
+          "module": "services.ingestion.base",
+          "qualname": "hash_payload",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 121
+        },
+        {
+          "key": "services.ingestion.weather:build_weather_clickhouse_projection",
+          "module": "services.ingestion.weather",
+          "qualname": "build_weather_clickhouse_projection",
+          "class_scope": null,
+          "source": "services/ingestion/weather.py",
+          "line": 116
+        },
+        {
+          "key": "services.ingestion.weather:parse_weather",
+          "module": "services.ingestion.weather",
+          "qualname": "parse_weather",
+          "class_scope": null,
+          "source": "services/ingestion/weather.py",
+          "line": 55
+        },
+        {
+          "key": "services.ingestion.weather_worker:_fetch_weather",
+          "module": "services.ingestion.weather_worker",
+          "qualname": "_fetch_weather",
+          "class_scope": null,
+          "source": "services/ingestion/weather_worker.py",
+          "line": 31
+        },
+        {
+          "key": "services.ingestion.weather_worker:_load_location",
+          "module": "services.ingestion.weather_worker",
+          "qualname": "_load_location",
+          "class_scope": null,
+          "source": "services/ingestion/weather_worker.py",
+          "line": 63
+        },
+        {
+          "key": "services.ingestion.weather_worker:_open_scoped_connection",
+          "module": "services.ingestion.weather_worker",
+          "qualname": "_open_scoped_connection",
+          "class_scope": null,
+          "source": "services/ingestion/weather_worker.py",
+          "line": 47
+        },
+        {
+          "key": "services.ingestion.weather_worker:_provider_api_key",
+          "module": "services.ingestion.weather_worker",
+          "qualname": "_provider_api_key",
+          "class_scope": null,
+          "source": "services/ingestion/weather_worker.py",
+          "line": 24
+        },
+        {
+          "key": "services.ingestion.weather_worker:_store_observation",
+          "module": "services.ingestion.weather_worker",
+          "qualname": "_store_observation",
+          "class_scope": null,
+          "source": "services/ingestion/weather_worker.py",
+          "line": 85
+        },
+        {
+          "key": "services.ingestion.weather_worker:ingest",
+          "module": "services.ingestion.weather_worker",
+          "qualname": "ingest",
+          "class_scope": null,
+          "source": "services/ingestion/weather_worker.py",
+          "line": 144
+        },
+        {
+          "key": "services.ingestion.weather_worker:main",
+          "module": "services.ingestion.weather_worker",
+          "qualname": "main",
+          "class_scope": null,
+          "source": "services/ingestion/weather_worker.py",
+          "line": 184
+        }
+      ],
+      "direct_call_edges": [
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:_normalize_uuid",
+          "source": "services/common/tenant_context.py",
+          "line": 152
+        },
+        {
+          "caller": "services.common.tenant_context:set_worker_tenant_context",
+          "callee": "services.common.tenant_context:clear_tenant_context",
+          "source": "services/common/tenant_context.py",
+          "line": 143
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_credential",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 47
+        },
+        {
+          "caller": "services.common.worker_database:get_worker_db",
+          "callee": "services.common.worker_database:_worker_key",
+          "source": "services/common/worker_database.py",
+          "line": 85
+        },
+        {
+          "caller": "services.ingestion.weather:build_weather_clickhouse_projection",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/weather.py",
+          "line": 151
+        },
+        {
+          "caller": "services.ingestion.weather_worker:_load_location",
+          "callee": "services.ingestion.weather_worker:_open_scoped_connection",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 65
+        },
+        {
+          "caller": "services.ingestion.weather_worker:_open_scoped_connection",
+          "callee": "services.common.tenant_context:set_worker_tenant_context",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 50
+        },
+        {
+          "caller": "services.ingestion.weather_worker:_open_scoped_connection",
+          "callee": "services.common.worker_database:get_worker_db",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 48
+        },
+        {
+          "caller": "services.ingestion.weather_worker:_store_observation",
+          "callee": "services.ingestion.weather_worker:_open_scoped_connection",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 110
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.common.worker_database:get_worker_credential",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 148
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 179
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.weather:build_weather_clickhouse_projection",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 155
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.weather:parse_weather",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 154
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.weather_worker:_fetch_weather",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 153
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.weather_worker:_load_location",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 149
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.weather_worker:_provider_api_key",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 147
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.weather_worker:_store_observation",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 160
+        },
+        {
+          "caller": "services.ingestion.weather_worker:ingest",
+          "callee": "services.ingestion.weather_worker:_store_observation",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 173
+        },
+        {
+          "caller": "services.ingestion.weather_worker:main",
+          "callee": "services.common.cli:print_json",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 196
+        },
+        {
+          "caller": "services.ingestion.weather_worker:main",
+          "callee": "services.core.features:is_enabled",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 192
+        },
+        {
+          "caller": "services.ingestion.weather_worker:main",
+          "callee": "services.ingestion.weather_worker:ingest",
+          "source": "services/ingestion/weather_worker.py",
+          "line": 195
         }
       ],
       "callback_edges": [],
@@ -7649,7 +7982,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         },
         {
           "key": "services.metrics.noi_snapshot_worker:main",
@@ -7877,7 +8210,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         }
       ],
       "direct_call_edges": [
@@ -8119,7 +8452,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         }
       ],
       "direct_call_edges": [
@@ -8361,7 +8694,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         }
       ],
       "direct_call_edges": [
@@ -8603,7 +8936,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         }
       ],
       "direct_call_edges": [
@@ -8755,7 +9088,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",
@@ -8931,7 +9264,7 @@
           "qualname": "is_enabled",
           "class_scope": null,
           "source": "services/core/features.py",
-          "line": 147
+          "line": 153
         },
         {
           "key": "services.core.providers:ProviderSettings.from_environment",

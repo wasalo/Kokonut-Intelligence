@@ -40,7 +40,7 @@ class JobSpec:
 JOBS = MappingProxyType(
     {
         "weather": JobSpec(
-            "services.ingestion.weather",
+            "services.ingestion.weather_worker",
             (),
             300,
             2,

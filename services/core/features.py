@@ -141,6 +141,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a worker-specific credential, signed location grant, and bounded functions for weather forecast ingestion",
     },
+    "signed_weather_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_WEATHER_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a worker-specific provider key, database credential, signed location grant, and bounded functions for current-weather ingestion",
+    },
 }
 
 
