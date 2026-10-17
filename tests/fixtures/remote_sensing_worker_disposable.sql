@@ -9,7 +9,7 @@ CREATE TABLE public.farm (
 CREATE TABLE public.plot (
     id UUID PRIMARY KEY,
     farm_id UUID NOT NULL REFERENCES public.farm(id),
-    geometry geometry(Polygon, 4326)
+    boundary geometry(Polygon, 4326)
 );
 CREATE TABLE public.remote_sensing_job (
     id UUID PRIMARY KEY,

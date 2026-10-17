@@ -102,7 +102,7 @@ def _seed(docker: str, container: str) -> None:
     docker_sql(docker, container, f"""
         INSERT INTO public.farm (id, location_id, name)
         VALUES ('{FARM_ID}', '{LOCATION_A}', 'Synthetic farm');
-        INSERT INTO public.plot (id, farm_id, geometry)
+        INSERT INTO public.plot (id, farm_id, boundary)
         VALUES ('{PLOT_ID}', '{FARM_ID}',
             public.ST_GeomFromText('POLYGON((-70 18,-69.99 18,-69.99 18.01,-70 18.01,-70 18))', 4326));
         INSERT INTO public.remote_sensing_job (id, location_id, plot_id, provider, bbox, metadata)

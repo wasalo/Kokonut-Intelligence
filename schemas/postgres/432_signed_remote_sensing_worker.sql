@@ -61,7 +61,7 @@ GRANT UPDATE (
     status, last_run_at, last_run_status, next_run_at, observations_fetched,
     attempt_count, lease_owner, lease_expires_at, last_error_class, last_error, updated_at
 ) ON public.remote_sensing_job TO kokonut_remote_sensing_owner;
-GRANT SELECT (id, farm_id, geometry) ON public.plot TO kokonut_remote_sensing_owner;
+GRANT SELECT (id, farm_id, boundary) ON public.plot TO kokonut_remote_sensing_owner;
 GRANT SELECT (id, location_id) ON public.farm TO kokonut_remote_sensing_owner;
 GRANT SELECT ON public.remote_sensing_observation TO kokonut_remote_sensing_owner;
 GRANT INSERT (
@@ -174,15 +174,15 @@ BEGIN
                public.ST_YMax(public.ST_Extent(claimed.bbox))::DOUBLE PRECISION AS north
           INTO bounds;
     ELSE
-        SELECT public.ST_XMin(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS west,
-               public.ST_YMin(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS south,
-               public.ST_XMax(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS east,
-               public.ST_YMax(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS north
+        SELECT public.ST_XMin(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS west,
+               public.ST_YMin(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS south,
+               public.ST_XMax(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS east,
+               public.ST_YMax(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS north
           INTO bounds
           FROM public.plot AS plot
           JOIN public.farm AS farm ON farm.id = plot.farm_id
          WHERE farm.location_id = worker_scope.location_id
-           AND plot.geometry IS NOT NULL
+           AND plot.boundary IS NOT NULL
            AND (claimed.plot_id IS NULL OR plot.id = claimed.plot_id);
     END IF;
 

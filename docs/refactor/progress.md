@@ -1,5 +1,37 @@
 # Kokonut Kernel implementation progress
 
+### Candidate schema rollout through migration 432 — 17 October 2026
+
+The local Kernel candidate was checkpointed with encrypted backup
+`backups/kernel-candidate-pre-404-432-20261017T135940Z` (SHA-256
+`865dabfd11d83b6e28d3162c4a52c09df27a4bca5381378423599b5dac4a4a9c`) and the
+backup was restore-rehearsed in an isolated, network-disabled PostgreSQL
+container. The ordered schema-only migration runner then applied migrations
+404–432; the candidate now has 423 schema migrations through 432 and zero
+pending. No seed files were applied. Candidate health returned HTTP 200; its
+database and Metabase are healthy and the proxy is running. The legacy stack
+was untouched.
+
+Disposable migration 429 and 432 checks exposed that their function grants and
+location fallback referenced `plot.geometry`, while the canonical schema uses
+`plot.boundary`. The migrations and their fixtures now use the canonical
+column. Candidate-only `kokonut_runtime` and `kokonut_worker_login` roles were
+created as locked `NOLOGIN` placeholders because the ordered migrations revoke
+grants from those role names; neither has a password or memberships. The
+dedicated worker logins, credentials, location grants, provider calls, and
+schedules remain disabled. The candidate application image was not rebuilt or
+recreated, so this rollout verifies schema state rather than the new app image.
+
+Focused migration, climate, remote-sensing, scheduler, provider-record, and
+worker-contract tests pass (110 before and 101 after the final boundary fix).
+The climate and remote-sensing disposable PostgreSQL 16/PostGIS checks pass;
+Ruff and validation of all 423 schema sources pass. A clean ordered replay in a separate internal-network-only recovery Compose
+project applied all 423 schemas with zero failures; the temporary project and
+volume were removed. The replay required the two explicit `NOLOGIN` role
+placeholders noted above. This does not verify Raspberry Pi
+hardware, live providers, persisted schedule parity, or production recovery
+([rollout evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json)).
+
 ### Scheduled sensor input confinement — 17 October 2026
 
 The built-in scheduled `sensor_csv` driver now reads only beneath a configured
@@ -53,8 +85,8 @@ lookup, conflict-key read, and required price/audit insert columns; forced-RLS
 disposable PostgreSQL 16 acceptance passes migration replay, login and function ACLs,
 duplicate suppression, invalid-payload rejection, and atomic rollback. The 199
 focused worker/market/scheduler tests, Ruff, compilation, and regenerated worker
-inventories pass. The candidate remains through migration 403; migration 430,
-the feature, and its credential are not deployed or enabled. The database-only
+inventories pass. Migrations 404–432 were subsequently applied through the candidate's ordered
+schema-only rollout. The worker feature and its credential remain disabled. The database-only
 restore prerequisite also creates the bounded owner and disabled login before
 restoring migration-430 function ACLs. No live World Bank
 provider or persisted schedule was accessed. This closes an implementation
@@ -82,8 +114,8 @@ shares one transaction, and provider failures return a nonzero result. The 25
 focused climate tests, Ruff, compilation, and four disposable PostgreSQL 16
 replay/duplicate/upsert/plot-isolation checks pass. This is source and synthetic
 database evidence only; no real provider, candidate, legacy database, or
-schedule was used. The candidate remains through migration 403, and migrations
-428–429 are not deployed. The scheduled path now uses the default-off signed
+schedule was used. The later candidate rollout applied migrations 428–429; the
+scheduled path remains a default-off signed
 climate worker; credential/grant provisioning, live provider parity, schedule
 ownership and acceptance remain open ([migration](../../schemas/postgres/428_climate_summary_idempotency.sql);
 [tests](../../tests/test_climate_data.py);
@@ -104,8 +136,8 @@ direct climate-table privileges, and the bounded functions pass forced-RLS
 PostGIS acceptance for nine migration, scope, source-contract, retry, failure,
 and privilege checks. The 156-test climate/worker/scheduler suite, Ruff, and
 Python compilation pass. No real GEE key, provider, schedule, candidate, or
-legacy database was used. Migration 429 is not candidate-deployed; the feature
-is off, and credentials/location grants and live provider parity remain open
+legacy database was used. Migration 429 is applied on the candidate; the
+feature is off, and credentials/location grants and live provider parity remain open
 ([worker](../../services/ingestion/climate_worker.py);
 [migration](../../schemas/postgres/429_signed_climate_worker.sql);
 [focused tests](../../tests/test_climate_worker.py);
@@ -117,7 +149,7 @@ is off, and credentials/location grants and live provider parity remain open
 
 Native scheduled current-weather ingestion now uses a dedicated default-off worker. The scheduler forwards only its exact `weather` database URL, worker credential, and OpenWeatherMap API key; shared PostgreSQL settings are stripped from the worker environment. The worker resolves coordinates and stores one location-scoped observation under signed `weather_observation/ingest` context. Migration 427 commits the canonical observation, sanitized success/failure audit, ClickHouse outbox intent, and idempotency receipt atomically through a bounded function. Conflicting outbox identities fail closed, while an exact pre-existing projection intent can be reused safely.
 
-The 178 focused worker/scheduler/environment/inventory tests, Ruff, Python compilation, and regenerated inventories pass. A disposable PostgreSQL 16 run passes nine migration, forced-RLS, retry, scope, audit, context-cleanup, and privilege checks. No candidate or legacy database, provider, real credential, or persisted schedule was accessed. The candidate remains at migration 403; migration 427 and the feature remain unapplied/off. Schedule-owner reconciliation, credential/grant provisioning, live provider parity, application-wide RLS, and recovery acceptance remain open ([migration](../../schemas/postgres/427_signed_weather_observation_worker.sql); [tests](../../tests/test_weather_worker.py); [disposable runner](../../scripts/check-weather-observation-worker-disposable.py); [evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json); [operation map](worker-operation-map.json)).
+The 178 focused worker/scheduler/environment/inventory tests, Ruff, Python compilation, and regenerated inventories pass. A disposable PostgreSQL 16 run passes nine migration, forced-RLS, retry, scope, audit, context-cleanup, and privilege checks. No candidate or legacy database, provider, real credential, or persisted schedule was accessed during this source acceptance. Migration 427 is now applied on the candidate; the feature remains off. Schedule-owner reconciliation, credential/grant provisioning, live provider parity, application-wide RLS, and recovery acceptance remain open ([migration](../../schemas/postgres/427_signed_weather_observation_worker.sql); [tests](../../tests/test_weather_worker.py); [disposable runner](../../scripts/check-weather-observation-worker-disposable.py); [evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json); [operation map](worker-operation-map.json)).
 
 ### RPC wallet projection/status atomicity — 16 October 2026
 
@@ -234,7 +266,7 @@ independent cursor advancement, and transaction rollback coupling. Ruff and
 Python compilation pass. The candidate,
 legacy database, live provider, and external schedules were not touched.
 Earlier-time late arrivals and concurrent offset-page shifts remain
-provider/runtime reconciliation risks; migrations 421–422 are not candidate-deployed and
+provider/runtime reconciliation risks; migrations 421–422 are applied on the candidate, and
 MAN-CAP-040/047 remain unaccepted ([migration](../../schemas/postgres/421_eas_recipient_cursors.sql);
 [rebaseline](../../schemas/postgres/422_eas_cursor_rebaseline.sql);
 [unit tests](../../tests/test_eas_indexer_recovery.py);
@@ -260,8 +292,9 @@ fresh, no-port PostgreSQL 16 container applied migration 420 twice, accepted an
 object snapshot, and rejected an array; the disposable container was stopped
 and removed. The repeatable isolated check is
 [`check-iri-public-projection-disposable.py`](../../scripts/check-iri-public-projection-disposable.py).
-Candidate/legacy databases, services, and existing IRI rows were not changed.
-Migration 420 is not candidate-deployed. Non-location IRI types,
+Candidate/legacy databases, services, and existing IRI rows were not changed
+during source acceptance. Migration 420 is applied on the candidate by the later
+schema-only rollout. Non-location IRI types,
 RDF graph/SPARQL and storage parity, live runtime authorization, and named
 MAN-CAP-021 acceptance remain open ([contract](../iri-system.md#native-gateway-public-location-resolution);
 [evidence](builds/2026-10-16-recovery/public-iri-projection.json)).

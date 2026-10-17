@@ -34,11 +34,11 @@ CREATE TABLE public.farm (
 CREATE TABLE public.plot (
     id UUID PRIMARY KEY,
     farm_id UUID NOT NULL REFERENCES public.farm(id),
-    geometry geometry(Polygon, 4326)
+    boundary geometry(Polygon, 4326)
 );
 INSERT INTO public.farm (id, location_id)
 VALUES ('a0000000-0000-0000-0000-000000000901', 'a0000000-0000-0000-0000-000000000001');
-INSERT INTO public.plot (id, farm_id, geometry)
+INSERT INTO public.plot (id, farm_id, boundary)
 VALUES (
     'a0000000-0000-0000-0000-000000000902',
     'a0000000-0000-0000-0000-000000000901',

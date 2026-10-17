@@ -42,7 +42,7 @@ GRANT EXECUTE ON FUNCTION kokonut_security.current_worker_scope(TEXT, TEXT)
 GRANT SELECT (id, status, center, latitude, longitude) ON public.location
     TO kokonut_climate_owner;
 GRANT SELECT (id, location_id) ON public.farm TO kokonut_climate_owner;
-GRANT SELECT (farm_id, geometry) ON public.plot TO kokonut_climate_owner;
+GRANT SELECT (farm_id, boundary) ON public.plot TO kokonut_climate_owner;
 
 GRANT SELECT (
     id, location_id, plot_id, bio1_mean_annual_temp, bio4_temp_seasonality,
@@ -205,15 +205,15 @@ BEGIN
         RETURN;
     END IF;
 
-    SELECT public.ST_XMin(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS west,
-           public.ST_YMin(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS south,
-           public.ST_XMax(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS east,
-           public.ST_YMax(public.ST_Extent(plot.geometry))::DOUBLE PRECISION AS north
+    SELECT public.ST_XMin(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS west,
+           public.ST_YMin(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS south,
+           public.ST_XMax(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS east,
+           public.ST_YMax(public.ST_Extent(plot.boundary))::DOUBLE PRECISION AS north
       INTO bounds
       FROM public.plot AS plot
       JOIN public.farm AS farm ON farm.id = plot.farm_id
      WHERE farm.location_id = worker_scope.location_id
-       AND plot.geometry IS NOT NULL;
+       AND plot.boundary IS NOT NULL;
 
     latitude := location_latitude;
     longitude := location_longitude;

@@ -1,0 +1,198 @@
+{
+  "result": "passed",
+  "checked_at_utc": "2026-10-17T14:21:23Z",
+  "source_revision": "cd70fa92a734cd58b70cd0b7726066c9c8f6d22a",
+  "source_changes_pending_commit": [
+    "schemas/postgres/429_signed_climate_worker.sql",
+    "schemas/postgres/432_signed_remote_sensing_worker.sql",
+    "tests/fixtures/climate_worker_disposable.sql",
+    "tests/fixtures/remote_sensing_worker_disposable.sql",
+    "scripts/check-remote-sensing-worker-disposable.py"
+  ],
+  "scope": "Apply the pending candidate schema migrations 404\u2013432 using the ordered checksummed migration runner after an encrypted checkpoint and isolated template0 restore rehearsal.",
+  "checkpoint": {
+    "directory": "backups/kernel-candidate-pre-404-432-20261017T135940Z",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "database_image": "sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
+    "archive_sha256": "865dabfd11d83b6e28d3162c4a52c09df27a4bca5381378423599b5dac4a4a9c",
+    "archive_bytes": 5912539,
+    "restore_rehearsed": true,
+    "restore_target": "kokonut-kernel-restore-432-20261017",
+    "restore_network": "none",
+    "comparison": "schema ledger fingerprint/count, extension set, public relation count, and representative table row counts matched before rollout"
+  },
+  "candidate_rollout": {
+    "compose_project": "kokonut-kernel-candidate",
+    "source_container": "kokonut-kernel-candidate-database-1",
+    "before": {
+      "applied_schema_migrations": 394,
+      "pending_schema_migrations": 29,
+      "latest_schema": "schema:403_kgp_governance_target_policy_projection.sql"
+    },
+    "after": {
+      "applied_schema_migrations": 423,
+      "pending_schema_migrations": 0,
+      "latest_schema": "schema:432_signed_remote_sensing_worker.sql"
+    },
+    "runner": "services.migration migrate --schemas-only with explicit candidate Compose project and file",
+    "seed_migrations_applied": false,
+    "migrations": [
+      {
+        "id": "schema:404_gateway_farm_activity_operations.sql",
+        "sha256": "d51c3c0579ff276dba98d632dd79fcbc2b6b03f8951d5b11b0149e12e9f43123"
+      },
+      {
+        "id": "schema:405_signed_worker_tenant_context.sql",
+        "sha256": "23a82d1e2fb41c6304f90f0d1963413d663d175bbd01e7429578a99426bc7739"
+      },
+      {
+        "id": "schema:406_sensor_anomaly_location_lineage.sql",
+        "sha256": "d748720bd12eb33cfc0205377d2e5df701574a4096e7651581da21e089460bba"
+      },
+      {
+        "id": "schema:407_sensor_anomaly_effect_functions.sql",
+        "sha256": "b628b9d053754f2d61663d990c24e223ead7cd5cb83b8353d5dfcdac55b93dd2"
+      },
+      {
+        "id": "schema:408_sensor_alert_event_function.sql",
+        "sha256": "ac5f552bcac8cdae36c1cc9dddd10fe4f1062e7987be3087aba78ec5f0b505e4"
+      },
+      {
+        "id": "schema:409_sensor_alert_notification_intent.sql",
+        "sha256": "00b7b28a05e8566c6124d0e7de22113a7da6345ab74e797da04fc6b77c9cfe52"
+      },
+      {
+        "id": "schema:410_sensor_alert_actuation_intent.sql",
+        "sha256": "4f746cab9c8a72e67f06496730e7c31c29a769ef5aa16e24ac8e403ebc651b78"
+      },
+      {
+        "id": "schema:411_sensor_alert_draft_claim_intent.sql",
+        "sha256": "8de9e4c6c2272dfe36b58392d16249e02278b827b2d399a9f20e66055e434c1f"
+      },
+      {
+        "id": "schema:412_sensor_anomaly_worker_reads.sql",
+        "sha256": "ee542e8e35b05c2e30aec90ea30110a42c255674b60fab9c2c62bf4a1b07f992"
+      },
+      {
+        "id": "schema:413_sensor_anomaly_alert_write.sql",
+        "sha256": "23d49c8a3093541f09f41cabd8f336ee75ac97f215a80bd067a9d7b3cfe9f196"
+      },
+      {
+        "id": "schema:414_sensor_anomaly_worker_delivery.sql",
+        "sha256": "e322316c3f1507828f12cff89b6b5e259a18a1f1e2d7fce6a6fde9a64f409b1b"
+      },
+      {
+        "id": "schema:415_signed_cache_invalidation_worker.sql",
+        "sha256": "1d98e8898fc226ab2735528ccd21800e449114382c7e6f0ced373e2c52d2865a"
+      },
+      {
+        "id": "schema:416_sensor_harvest_cache_invalidation.sql",
+        "sha256": "de8644d8b5cfc7c13cfcb16f4ec3815b622208da19cfdb3db23c06063c52031a"
+      },
+      {
+        "id": "schema:417_isolated_notification_enqueue.sql",
+        "sha256": "9e79b3fef71ef90747e487c09451c79e410c89cf80dcd2d0a5024fba44eaa482"
+      },
+      {
+        "id": "schema:418_mobile_credential_function_acl.sql",
+        "sha256": "a75000cf870e116c16a6741d78a37d46ddfb41f55307dfc75acfe981cf00029d"
+      },
+      {
+        "id": "schema:419_private_worker_context_functions.sql",
+        "sha256": "3a8bfda1dd6a2ad06806d5c36a3ba4cb901cea20ccf96c800cf58d11d207a2e6"
+      },
+      {
+        "id": "schema:420_iri_public_projection_snapshot.sql",
+        "sha256": "a84fc2f1da4ec6457fef3d95222c61b6696b73b322cfadc57634ea3ff178730c"
+      },
+      {
+        "id": "schema:421_eas_recipient_cursors.sql",
+        "sha256": "797f52ae5a1edda4ab88779e273aa4350c254a6db7cd029b9a64eb4fc4b73355"
+      },
+      {
+        "id": "schema:422_eas_cursor_rebaseline.sql",
+        "sha256": "ccb5ea50eba80213127c8f5e404a2c1a9492b4cdcf05a6a472df714823b07f62"
+      },
+      {
+        "id": "schema:423_gnosis_event_log_receipts.sql",
+        "sha256": "559c9d1ebc9d7ff87911dd4b47b0b6e58f25cee8aa6a644a9f74fdb26d31b0e2"
+      },
+      {
+        "id": "schema:424_gnosis_indexer_cursor_namespace.sql",
+        "sha256": "57ed404a48f6f09bb16a2c2c5e280a5caec2fb9bfb7ddef9c8612dd9ad19504e"
+      },
+      {
+        "id": "schema:425_signed_noi_snapshot_worker.sql",
+        "sha256": "28243293cb789f31072ee5c9b4784bcd94c70d7d12fea86d55d67aa8e0634051"
+      },
+      {
+        "id": "schema:426_signed_weather_forecast_worker.sql",
+        "sha256": "445641ca3f0a6409bf69dda6e0b1c13138f843f3b47665dccce0877d2e9f5da5"
+      },
+      {
+        "id": "schema:427_signed_weather_observation_worker.sql",
+        "sha256": "aa5e0703fe0df46fec1d184e21d2ff341271bdbafddbbc30bf0477be6166faa4"
+      },
+      {
+        "id": "schema:428_climate_summary_idempotency.sql",
+        "sha256": "1f9dd8b6f8b1db450f16b4431ccb16d0bdec6891b8ad5514cd7544753e21a1c5"
+      },
+      {
+        "id": "schema:429_signed_climate_worker.sql",
+        "sha256": "6b3399eedec5d9699f06e175cf2ec29c3a609f3ec7b908901d1059f3cd554c13"
+      },
+      {
+        "id": "schema:430_isolated_market_data_worker.sql",
+        "sha256": "c9dd79995de617dd1f733984beedd57eaf35de2af1ef0b440ca9440723876df8"
+      },
+      {
+        "id": "schema:431_signed_sensor_driver_worker.sql",
+        "sha256": "11c7d138f1e45cf85a6708e9ef314f1fb149c22cbf1c5eadd0aae0d575fb7d10"
+      },
+      {
+        "id": "schema:432_signed_remote_sensing_worker.sql",
+        "sha256": "bef91cd8c0310b7ec4ae49a6894be175d19260e5b6b4f09075cf9490af03c5cc"
+      }
+    ],
+    "candidate_app_recreated": false,
+    "candidate_app_health": "healthy; GET /health returned HTTP 200",
+    "database_health": "healthy",
+    "metabase_health": "healthy",
+    "proxy_state": "running",
+    "roles": {
+      "kokonut_runtime": "candidate-only NOLOGIN role, no password or membership; required by migration 427 revocation statements",
+      "kokonut_worker_login": "candidate-only NOLOGIN role, no password or membership; required by migration 431/432 revocation statements",
+      "dedicated_sensor_and_remote_sensing_logins": "not enabled; no passwords or signed location grants provisioned"
+    },
+    "features": "scheduled workers remain default-off; no provider or schedule was activated",
+    "legacy_stack_touched": false
+  },
+  "source_corrections": [
+    "Migrations 429 and 432 now use canonical public.plot.boundary (the repository schema has boundary and center, not geometry); disposable fixtures were aligned to the canonical schema.",
+    "The migration 427 and 431 first attempts rolled back transactionally on absent optional role names; NOLOGIN/no-membership candidate roles were then established and ordered application completed."
+  ],
+  "tests": {
+    "pytest": "110 passed in the final focused migration/climate/remote-sensing/scheduler/provider-record/worker-contract run",
+    "climate_disposable": "passed: signed lookup, canonical plot boundary/fallback, forced RLS, upserts, failure audit, rollback, direct ACL denial",
+    "remote_sensing_disposable": "passed: migration 432 replay, signed location scope, boundary/fallback, atomic attempt/audit/outbox, duplicate, rollback, forced RLS, direct ACL denial, context cleanup",
+    "ruff": "passed for changed Python runner",
+    "migration_source_validation": "423 schema migration sources validated",
+    "clean_schema_bootstrap": {
+      "status": "passed",
+      "schema_sources_applied": 423,
+      "failed": 0,
+      "role_prerequisites": [
+        "kokonut_runtime (NOLOGIN)",
+        "kokonut_worker_login (NOLOGIN)"
+      ],
+      "network": "internal-only recovery Compose network; no published ports or egress",
+      "temporary_project_and_volume_removed": true
+    }
+  },
+  "limitations": [
+    "The candidate app image was not rebuilt or recreated.",
+    "The native features remain disabled and have no real credentials or location grants.",
+    "The checkpoint is a same-disk local encrypted database backup; it excludes PostgreSQL roles/grants, other databases, media, and provider state.",
+    "Physical Raspberry Pi behavior and live provider/schedule parity remain untested."
+  ]
+}

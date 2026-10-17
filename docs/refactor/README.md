@@ -2,15 +2,20 @@
 
 Phase 0 inventory, captured 9 October 2026.
 
-**Current status (16 October):** the repository has 415 numbered PostgreSQL
-migration sources through migration 424; the local candidate remains at
-migration 403. Migrations 420–424 still require their separate candidate gates.
-Security #103 passed and CI #379 is in progress on pushed PR #68 head `b024ef5`.
-The ARM64 planner selects an isolated profile for minimal, edge, and standard,
-and current-source QEMU replay through migration 402 has passed. Physical Pi
-acceptance remains open. Require passing hosted CI and Security for the PR head
-that includes any later acceptance evidence. See
-[the phase ledger](progress.md) and
+**Current status (17 October):** the local Kernel candidate has 423 numbered
+schema migrations applied through migration 432, with zero pending schema
+migrations. Migrations 404–432 were applied through the ordered checksummed
+runner after a fresh encrypted checkpoint and successful isolated restore
+rehearsal; the rollout was schema-only and applied no seeds. The candidate app
+image was not rebuilt, scheduled workers remain disabled, and no worker
+credentials, location grants, providers, or schedules were enabled. The local
+source changes correcting migrations 429 and 432 to use canonical
+`plot.boundary` are not yet committed or pushed. PR #68's latest pushed head is
+`cd70fa92`; hosted checks for the new local batch remain outstanding. The ARM64
+planner selects an isolated profile for minimal, edge, and standard, and
+current-source QEMU replay through migration 402 has passed. Physical Pi
+acceptance remains open. See [rollout evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json),
+[the phase ledger](progress.md), and
 [capability progress](capability-matrix.md).
 The baseline sections below preserve historical observations, not current
 phase-completion claims.
