@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "f28a63c05f183ec21a7b57030ee9b9cfd6ed8116",
+  "baseline_commit": "b952ee1dc52a7425327cb2cf6d41d75317e2da80",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1822,7 +1822,8 @@
       "schemas/postgres/426_signed_weather_forecast_worker.sql",
       "schemas/postgres/427_signed_weather_observation_worker.sql",
       "schemas/postgres/428_climate_summary_idempotency.sql",
-      "schemas/postgres/429_signed_climate_worker.sql"
+      "schemas/postgres/429_signed_climate_worker.sql",
+      "schemas/postgres/430_isolated_market_data_worker.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2496,6 +2497,7 @@
         "KOKONUT_FEATURE_CRISP",
         "KOKONUT_FEATURE_EVENT_BUS",
         "KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP",
+        "KOKONUT_FEATURE_ISOLATED_MARKET_DATA_WORKER",
         "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE",
         "KOKONUT_FEATURE_NOTIFICATION_DELIVERY",
         "KOKONUT_FEATURE_REPORTS",
@@ -3164,6 +3166,7 @@
         "services/ingestion/http_sensor_receiver.py",
         "services/ingestion/kml_import.py",
         "services/ingestion/market_data.py",
+        "services/ingestion/market_data_worker.py",
         "services/ingestion/ml_anomaly_detector.py",
         "services/ingestion/mock_sensors.py",
         "services/ingestion/mqtt_actuator.py",
@@ -3240,6 +3243,7 @@
         "tests/test_management_workflow.py",
         "tests/test_market_data.py",
         "tests/test_market_data_recovery.py",
+        "tests/test_market_data_worker.py",
         "tests/test_marketplace_integration.py",
         "tests/test_metrics.py",
         "tests/test_ml_anomaly.py",
@@ -3470,6 +3474,8 @@
         "KOKONUT_DB_ADMIN_USER",
         "KOKONUT_DIRECTUS_RUNTIME_PASSWORD",
         "KOKONUT_DIRECTUS_RUNTIME_USER",
+        "KOKONUT_MARKET_DATA_PASSWORD",
+        "KOKONUT_MARKET_DATA_USER",
         "KOKONUT_METABASE_ROLE_DEDICATED_INSTANCE",
         "KOKONUT_NOTIFICATION_ENQUEUE_PASSWORD",
         "KOKONUT_NOTIFICATION_ENQUEUE_USER",
@@ -4247,6 +4253,7 @@
     "tests/test_management_workflow.py",
     "tests/test_market_data.py",
     "tests/test_market_data_recovery.py",
+    "tests/test_market_data_worker.py",
     "tests/test_marketplace.py",
     "tests/test_marketplace_integration.py",
     "tests/test_measurement_schedule.py",

@@ -224,3 +224,24 @@ migration 400 applied and retains its age-encrypted pre-400 checkpoint, but the
 checkpoint itself has not been restore-rehearsed. Candidate runtime credentials
 remain unprovisioned and application-table RLS remains disabled. See the
 [migration 400 record](builds/2026-10-14-recovery/candidate-migration-400-restore-owner-repair.json).
+
+## Isolated global market-data login — migration 430
+
+Migration 430 creates `kokonut_market_data_login` as `NOLOGIN` and grants it no
+direct table access. The runtime-role bootstrap provisions it only when the
+optional `KOKONUT_MARKET_DATA_PASSWORD` is supplied through the encrypted
+environment; `docker-compose.kernel-runtime-role.yml` passes that password
+only to the one-shot bootstrap. The login receives execute on the single
+bounded World Bank batch/audit function, while the function owner has only the
+crop lookup, natural-key conflict read, and required price/audit insert
+columns. This feed is global reference data and does not receive tenant scope.
+The database-only restore prerequisite creates both role names as disabled
+non-inheriting roles before restoring the migration-430 function owner and ACL.
+
+Native scheduled market-data ingestion remains off until migration 430, the
+dedicated password, its worker-only DSN, and the feature flag are provisioned.
+Disposable PostgreSQL 16 acceptance passed migration replay, forced-RLS
+writes, duplicate suppression, malformed-batch rollback, and direct-access
+denial. The local candidate remains at migration 403, and no live provider or
+schedule was exercised ([migration](../../schemas/postgres/430_isolated_market_data_worker.sql);
+[runner](builds/2026-10-17-recovery/market-data-worker-disposable.json)).

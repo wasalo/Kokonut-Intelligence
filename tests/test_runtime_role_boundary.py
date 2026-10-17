@@ -137,6 +137,69 @@ def test_notification_enqueue_provisioning_requires_a_paired_secret_and_distinct
         )
 
 
+def test_market_data_login_requires_its_paired_secret_and_distinct_function_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="market-data user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            market_data_user="kokonut_market_data_login",
+        )
+    with pytest.raises(ValueError, match="differ from the market-data function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            market_data_user="kokonut_market_data_owner",
+            market_data_password="m" * 32,
+        )
+
+
+def test_market_data_function_is_private_and_owned_by_its_bounded_role():
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/430_isolated_market_data_worker.sql"
+    ).read_text()
+
+    assert runtime_role._MARKET_DATA_FUNCTION in runtime_role._PRIVATE_RUNTIME_FUNCTIONS
+    assert (runtime_role._MARKET_DATA_FUNCTION, "kokonut_market_data_owner") in (
+        runtime_role._SECURITY_DEFINER_OWNERS
+    )
+    assert "session_user <> 'kokonut_market_data_login'" in migration
+    assert "REVOKE ALL ON FUNCTION" in migration
+    assert "FROM PUBLIC" in migration
+    assert "TO kokonut_market_data_login" in migration
+    assert "REVOKE ALL (%s) ON TABLE public.%I FROM %I" in migration
+    assert "market-data login must connect only to its configured database" in (
+        Path(__file__).resolve().parents[1]
+        / "services/migration/runtime_role.py"
+    ).read_text()
+
+
+def test_market_data_dedicated_secret_reaches_only_the_runtime_role_bootstrap():
+    root = Path(__file__).resolve().parents[1]
+    bootstrap = (root / "docker-compose.kernel-runtime-role.yml").read_text()
+    app_profiles = "\n".join(
+        (root / name).read_text()
+        for name in (
+            "docker-compose.kernel-portability.yml",
+            "docker-compose.kernel-standard.yml",
+        )
+    )
+
+    assert "KOKONUT_MARKET_DATA_PASSWORD: ${KOKONUT_MARKET_DATA_PASSWORD:-}" in bootstrap
+    assert "KOKONUT_MARKET_DATA_DATABASE_URL" in app_profiles
+    assert "KOKONUT_FEATURE_ISOLATED_MARKET_DATA_WORKER" in app_profiles
+    assert "KOKONUT_MARKET_DATA_PASSWORD" not in app_profiles
+
+
 def test_runtime_api_key_access_is_read_only_and_column_scoped():
     assert runtime_role._API_KEY_COLUMNS == (
         "id",

@@ -89,19 +89,27 @@ def test_database_restore_recreates_role_prerequisites_and_validates_function_ow
     prerequisites = RESTORE_ROLE_PREREQUISITES.read_text().lower()
     migration = OPERATOR_AUTH_SCHEMA_USAGE_MIGRATION.read_text().lower()
     assert "create role %i nologin noinherit nosuperuser nocreatedb" in prerequisites
-    for role in (
+    legacy_roles = (
         "kokonut_mobile_credential_owner",
         "kokonut_mobile_context_owner",
         "kokonut_operator_context_owner",
         "kokonut_operator_auth_owner",
         "kokonut_gateway_context_owner",
         "kokonut_mobile_device_revoke_owner",
-    ):
+    )
+    for role in legacy_roles:
         assert role in prerequisites
         assert role in migration
     assert "alter function kokonut_security.authenticate_operator_session(text)" in migration
     assert "owner to kokonut_operator_auth_owner" in migration
     assert "grant select on table kokonut_security.mobile_context_hmac_key" in migration
+
+    market_data_migration = (
+        ROOT / "schemas/postgres/430_isolated_market_data_worker.sql"
+    ).read_text().lower()
+    for role in ("kokonut_market_data_owner", "kokonut_market_data_login"):
+        assert role in prerequisites
+        assert role in market_data_migration
 
     provisioner = (ROOT / "services/migration/runtime_role.py").read_text()
     assert "_SECURITY_DEFINER_OWNERS" in provisioner

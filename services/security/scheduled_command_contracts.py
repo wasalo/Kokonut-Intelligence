@@ -48,6 +48,11 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--month": "month",
         "--year": "year",
     },
+    "services.ingestion.market_data_worker": {
+        "--commodity": "commodity",
+        "--month": "month",
+        "--year": "year",
+    },
     "services.ingestion.eas_indexer": {"--chain": "eas_chain"},
     "services.ingestion.rpc_indexer": {
         "--chain": "rpc_chain",
@@ -148,8 +153,10 @@ def _validate_value(kind: str, value: str) -> None:
         if not re.fullmatch(r"0x[a-fA-F0-9]{40}", value):
             raise _reject("wallet must be a 20-byte hexadecimal address")
     elif kind == "commodity":
-        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,63}", value):
-            raise _reject("commodity code has an invalid format")
+        if value.upper() not in {
+            "COFFEE", "COCOA", "PALM_OIL", "RICE", "MAIZE", "SUGAR", "TEA", "BANANA"
+        }:
+            raise _reject("commodity code is not supported")
     elif kind == "metric_key":
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", value):
             raise _reject("metric key has an invalid format")
@@ -162,7 +169,7 @@ def _validate_value(kind: str, value: str) -> None:
         number = int(value)
         limits = {
             "month": (1, 12),
-            "year": (1900, 2200),
+            "year": (1960, 2030),
             "block": (0, 2**63 - 1),
             "batch_size": (1, 1000),
             "small_batch_size": (1, 10),
@@ -217,12 +224,19 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     } and options != {"--location-id"}:
         raise _reject("weather forecast ingestion requires one explicit location")
 
-    if module_path == "services.ingestion.market_data":
+    if module_path in {
+        "services.ingestion.market_data",
+        "services.ingestion.market_data_worker",
+    }:
         has_month = "--month" in options
         has_year = "--year" in options
         if has_month != has_year:
             raise _reject("market-data month and year must be supplied together")
-        if has_month and values.get("--source", "world_bank") != "world_bank":
+        if (
+            module_path == "services.ingestion.market_data"
+            and has_month
+            and values.get("--source", "world_bank") != "world_bank"
+        ):
             raise _reject("month and year filtering is only valid for world_bank")
 
     elif module_path == "services.ingestion.gnosis_indexer":

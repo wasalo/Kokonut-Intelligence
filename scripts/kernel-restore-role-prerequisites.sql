@@ -13,7 +13,9 @@ BEGIN
         'kokonut_operator_context_owner',
         'kokonut_operator_auth_owner',
         'kokonut_gateway_context_owner',
-        'kokonut_mobile_device_revoke_owner'
+        'kokonut_mobile_device_revoke_owner',
+        'kokonut_market_data_owner',
+        'kokonut_market_data_login'
     ] LOOP
         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
             EXECUTE format(
@@ -27,7 +29,7 @@ BEGIN
                AND (rolcanlogin OR rolsuper OR rolcreatedb OR rolcreaterole
                     OR rolreplication OR rolbypassrls OR rolinherit)
         ) THEN
-            RAISE EXCEPTION 'security function owner % has unsafe role attributes', role_name;
+            RAISE EXCEPTION 'security role % has unsafe role attributes', role_name;
         END IF;
 
         IF EXISTS (
@@ -37,7 +39,7 @@ BEGIN
               JOIN pg_roles AS member_role ON member_role.oid = membership.member
              WHERE granted_role.rolname = role_name OR member_role.rolname = role_name
         ) THEN
-            RAISE EXCEPTION 'security function owner % has role membership', role_name;
+            RAISE EXCEPTION 'security role % has role membership', role_name;
         END IF;
     END LOOP;
 END;

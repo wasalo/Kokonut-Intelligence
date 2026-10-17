@@ -1,5 +1,29 @@
 # Kokonut Kernel implementation progress
 
+### Isolated global market-data scheduler — 17 October 2026
+
+The new native Market Data JobSpec now routes through a dedicated, default-off
+World Bank worker; the existing manual CLI, seed path, and legacy persisted-task
+entrypoint remain available. Migration 430 provisions a non-login principal
+until the runtime-role bootstrap receives its dedicated secret, revokes prior
+target-table and column grants from application/worker logins, and exposes one
+bounded SECURITY DEFINER batch/audit function. Its owner has only the crop
+lookup, conflict-key read, and required price/audit insert columns; forced-RLS
+disposable PostgreSQL 16 acceptance passes migration replay, login and function ACLs,
+duplicate suppression, invalid-payload rejection, and atomic rollback. The 199
+focused worker/market/scheduler tests, Ruff, compilation, and regenerated worker
+inventories pass. The candidate remains through migration 403; migration 430,
+the feature, and its credential are not deployed or enabled. The database-only
+restore prerequisite also creates the bounded owner and disabled login before
+restoring migration-430 function ACLs. No live World Bank
+provider or persisted schedule was accessed. This closes an implementation
+boundary only; provider parity, schedule ownership, live recovery, and CAP-040/
+CAP-047 acceptance remain open ([worker](../../services/ingestion/market_data_worker.py);
+[migration](../../schemas/postgres/430_isolated_market_data_worker.sql);
+[runner](../../scripts/check-market-data-worker-disposable.py);
+[evidence](builds/2026-10-17-recovery/market-data-worker-disposable.json);
+[operation map](worker-operation-map.json)).
+
 ### Climate provider schema and retry contract — 17 October 2026
 
 The climate source path queried a nonexistent location `centroid` and four

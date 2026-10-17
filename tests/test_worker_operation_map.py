@@ -149,6 +149,8 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     projections = scheduled["services.ingestion.clickhouse_outbox"]
     legacy_weather_forecasts = scheduled["services.ingestion.weather_forecast"]
     weather_forecasts = scheduled["services.ingestion.weather_forecast_worker"]
+    legacy_market_data = scheduled["services.ingestion.market_data"]
+    market_data = scheduled["services.ingestion.market_data_worker"]
 
     assert "public.noi_snapshot" not in metrics["writes"]
     assert "public.v_crop_cycle_noi" not in metrics["reads"]
@@ -194,6 +196,14 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "signed weather_forecast/ingest grant" in weather_forecasts["scope"]
     assert "default-off" in weather_forecasts["scope"]
     assert "feature remains off" in weather_forecasts["retry_boundary"]
+    assert legacy_market_data["reads"] == ["public.crop"]
+    assert "persisted tasks" in legacy_market_data["scope"]
+    assert market_data["worker_key"] == "market_data"
+    assert market_data["reads"] == ["public.crop"]
+    assert market_data["writes"] == ["public.price_observation", "public.ingestion_log"]
+    assert "default-off" in market_data["scope"]
+    assert "bounded batch function" in market_data["scope"]
+    assert "feature remains off" in market_data["retry_boundary"]
 
 
 def test_scheduled_credit_check_reachability_excludes_interactive_chain_effects():

@@ -153,6 +153,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated GEE key path, database credential, signed location grant, and bounded functions for climate ingestion",
     },
+    "isolated_market_data_worker": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_MARKET_DATA_WORKER", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded function for global World Bank price ingestion",
+    },
 }
 
 

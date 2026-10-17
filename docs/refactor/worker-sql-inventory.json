@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 27,
-    "source_files": 87,
-    "execution_sites": 308,
-    "static_literal_sites": 265,
+    "operation_roots": 28,
+    "source_files": 88,
+    "execution_sites": 309,
+    "static_literal_sites": 266,
     "composed_or_variable_sites": 43
   },
   "execution_sites": [
@@ -838,6 +838,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
@@ -879,6 +880,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
@@ -920,6 +922,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
@@ -1084,9 +1087,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:109:12",
+      "id": "services/common/worker_database.py:110:12",
       "source": "services/common/worker_database.py",
-      "line": 109,
+      "line": 110,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1104,6 +1107,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -3188,6 +3192,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
@@ -3222,6 +3227,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
@@ -3255,6 +3261,7 @@
         "scheduled_module:services.ingestion.eas_indexer",
         "scheduled_module:services.ingestion.gnosis_indexer",
         "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
@@ -4306,9 +4313,9 @@
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:350:8",
+      "id": "services/ingestion/market_data.py:412:8",
       "source": "services/ingestion/market_data.py",
-      "line": 350,
+      "line": 412,
       "column": 8,
       "scope": "insert_price",
       "method": "execute",
@@ -4319,13 +4326,14 @@
       ],
       "static_sql_sha256": "3c4d993737b38fad0ef6458742a0ee7b62cbee74bee1c7733f019ada5351a383",
       "operation_refs": [
-        "scheduled_module:services.ingestion.market_data"
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker"
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:375:8",
+      "id": "services/ingestion/market_data.py:437:8",
       "source": "services/ingestion/market_data.py",
-      "line": 375,
+      "line": 437,
       "column": 8,
       "scope": "insert_price",
       "method": "execute",
@@ -4336,13 +4344,14 @@
       ],
       "static_sql_sha256": "7a920c0e995e515a8c13cfe9885be4e55120ddbae591b56e42e4bdc5ba41c0a2",
       "operation_refs": [
-        "scheduled_module:services.ingestion.market_data"
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker"
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:396:12",
+      "id": "services/ingestion/market_data.py:458:12",
       "source": "services/ingestion/market_data.py",
-      "line": 396,
+      "line": 458,
       "column": 12,
       "scope": "run_seed_data",
       "method": "execute",
@@ -4353,13 +4362,14 @@
       ],
       "static_sql_sha256": "d9e45ee8de4b56e0f234b1053554eb821f5c5118ca8b12d480c6e40b8ad3f410",
       "operation_refs": [
-        "scheduled_module:services.ingestion.market_data"
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker"
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:493:12",
+      "id": "services/ingestion/market_data.py:548:12",
       "source": "services/ingestion/market_data.py",
-      "line": 493,
+      "line": 548,
       "column": 12,
       "scope": "run_world_bank",
       "method": "execute",
@@ -4370,7 +4380,23 @@
       ],
       "static_sql_sha256": "d9e45ee8de4b56e0f234b1053554eb821f5c5118ca8b12d480c6e40b8ad3f410",
       "operation_refs": [
-        "scheduled_module:services.ingestion.market_data"
+        "scheduled_module:services.ingestion.market_data",
+        "scheduled_module:services.ingestion.market_data_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/market_data_worker.py:55:12",
+      "source": "services/ingestion/market_data_worker.py",
+      "line": 55,
+      "column": 12,
+      "scope": "ingest",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "0141548fc651e00427699d3751822e7c5cc1c58f35fc355f084d571d23243962",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.market_data_worker"
       ]
     },
     {

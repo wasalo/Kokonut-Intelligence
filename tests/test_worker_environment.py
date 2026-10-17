@@ -138,6 +138,28 @@ def test_scheduled_current_weather_worker_receives_only_its_exact_secrets():
     assert "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY" not in forecast_environment
     assert "KOKONUT_WEATHER_FORECAST_OPENWEATHERMAP_API_KEY" in forecast_environment
 
+
+def test_scheduled_market_data_worker_receives_only_its_named_database_url():
+    source = {
+        "KOKONUT_MARKET_DATA_DATABASE_URL": "postgresql://market-data-worker",
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
+        "PG_HOST": "database",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "POSTGRES_PASSWORD": "database-admin-secret",
+    }
+    module = "services.ingestion.market_data_worker"
+    worker_key = scheduled_module_worker_key(module)
+
+    assert worker_key == "market_data"
+    assert worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_MARKET_DATA_DATABASE_URL": "postgresql://market-data-worker",
+    }
+
 @pytest.mark.parametrize("keys", ["scheduler", b"scheduler", ("bad-key",), (None,), ("ß",)])
 def test_worker_environment_rejects_invalid_allowlists(keys):
     with pytest.raises(ValueError, match="worker keys"):

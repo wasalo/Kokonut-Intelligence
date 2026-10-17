@@ -32,6 +32,9 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     assert jobs["weather_forecast"]["worker_key"] == "weather_forecast"
     assert jobs["weather_forecast"]["required_inputs"] == ["location_id"]
     assert jobs["weather_forecast"]["status"] == "required_runtime_inputs_validated"
+    assert jobs["market_data"]["module"] == "services.ingestion.market_data_worker"
+    assert jobs["market_data"]["worker_key"] == "market_data"
+    assert jobs["market_data"]["status"] == "default_arguments_accepted"
     assert jobs["climate"]["required_inputs"] == ["location_id"]
     assert jobs["climate"]["status"] == "required_runtime_inputs_validated"
     assert jobs["climate"]["reason"] == "schema accepts the modeled input; each scheduled instance must provide it"

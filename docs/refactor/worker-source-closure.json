@@ -2179,6 +2179,195 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.market_data_worker",
+      "root_modules": [
+        "services.ingestion.market_data_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.adapters.clickhouse",
+        "services.core.features",
+        "services.core.providers",
+        "services.ingestion.base",
+        "services.ingestion.config",
+        "services.ingestion.market_data",
+        "services.ingestion.market_data_worker"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/base.py",
+        "services/ingestion/config.py",
+        "services/ingestion/market_data.py",
+        "services/ingestion/market_data_worker.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 23,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 7,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 9,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 180,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 20,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 22,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 23,
+          "target": "services.ingestion.config",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 57,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 64,
+          "target": "services.core.adapters.clickhouse",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/config.py",
+          "line": 9,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 26,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 28,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 29,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 9,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 10,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 11,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 12,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/market_data_worker.py",
+          "line": 13,
+          "target": "services.ingestion.market_data",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.remote_sensing_fetcher",
       "root_modules": [
         "services.ingestion.remote_sensing_fetcher"

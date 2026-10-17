@@ -67,7 +67,7 @@ JOBS = MappingProxyType(
             required_inputs=("location_id", "driver_instance_id"),
         ),
         "market_data": JobSpec(
-            "services.ingestion.market_data", ("--source", "world_bank"), 600, 2, 600, "Market data ingestion"
+            "services.ingestion.market_data_worker", (), 600, 2, 600, "Market data ingestion"
         ),
         "eas": JobSpec(
             "services.ingestion.eas_indexer",

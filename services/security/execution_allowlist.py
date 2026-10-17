@@ -27,6 +27,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.weather_forecast",
         "services.ingestion.weather_forecast_worker",
         "services.ingestion.market_data",
+        "services.ingestion.market_data_worker",
         "services.ingestion.eas_indexer",
         "services.ingestion.rpc_indexer",
         "services.ingestion.sensor_ingester",

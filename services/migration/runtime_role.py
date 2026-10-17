@@ -46,6 +46,9 @@ _FARM_ACTIVITY_EVENT_OWNER = "kokonut_farm_activity_event_owner"
 _NOTIFICATION_ENQUEUE_FUNCTION = (
     "kokonut_security.enqueue_notification_intents(uuid,text,uuid,jsonb)"
 )
+_MARKET_DATA_FUNCTION = (
+    "kokonut_security.store_world_bank_market_data(jsonb,text,text,integer)"
+)
 _SECURITY_DEFINER_OWNERS = (
     (
         "kokonut_security.resolve_mobile_device_token(text)",
@@ -84,6 +87,7 @@ _SECURITY_DEFINER_OWNERS = (
     (_WORKER_CONTEXT_FUNCTION, "kokonut_worker_context_owner"),
     (_WORKER_SCOPE_FUNCTION, "kokonut_worker_context_owner"),
     (_NOTIFICATION_ENQUEUE_FUNCTION, "kokonut_notification_enqueue_owner"),
+    (_MARKET_DATA_FUNCTION, "kokonut_market_data_owner"),
     ("public.guard_farm_activity_operator_event_insert()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_gateway_farm_activity_create()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_farm_activity_gateway_operation()", _FARM_ACTIVITY_EVENT_OWNER),
@@ -97,6 +101,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _WORKER_CONTEXT_FUNCTION,
     _WORKER_SCOPE_FUNCTION,
     _NOTIFICATION_ENQUEUE_FUNCTION,
+    _MARKET_DATA_FUNCTION,
 )
 _MOBILE_DEVICE_READ_COLUMNS = (
     "id",
@@ -698,6 +703,8 @@ def provision_runtime_role(
     operator_auth_password: str,
     notification_enqueue_user: str | None = None,
     notification_enqueue_password: str | None = None,
+    market_data_user: str | None = None,
+    market_data_password: str | None = None,
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
@@ -708,24 +715,39 @@ def provision_runtime_role(
     the three bounded functions from migration 395. This is scoped to a
     dedicated Kernel PostgreSQL instance. When configured, the optional
     notification-enqueue login receives only its bounded intent function.
+    When configured, the market-data login receives only the bounded global
+    World Bank batch function.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
     auth_ident = _role_identifier(operator_auth_user, "operator_auth_user")
     if (notification_enqueue_user is None) != (notification_enqueue_password is None):
         raise ValueError("notification enqueue user and password must be provided together")
+    if (market_data_user is None) != (market_data_password is None):
+        raise ValueError("market-data user and password must be provided together")
     enqueue_ident = (
         _role_identifier(notification_enqueue_user, "notification_enqueue_user")
         if notification_enqueue_user is not None
         else None
     )
+    market_data_ident = (
+        _role_identifier(market_data_user, "market_data_user")
+        if market_data_user is not None
+        else None
+    )
     role_names = [admin_user, runtime_user, operator_auth_user]
     if notification_enqueue_user is not None:
         role_names.append(notification_enqueue_user)
+    if market_data_user is not None:
+        role_names.append(market_data_user)
     if "kokonut_notification_enqueue_owner" in role_names:
         raise ValueError("application logins must differ from the notification function owner")
+    if "kokonut_market_data_owner" in role_names:
+        raise ValueError("application logins must differ from the market-data function owner")
     if len(set(role_names)) != len(role_names):
-        raise ValueError("admin, runtime, operator-auth, and notification-enqueue roles must be distinct")
+        raise ValueError(
+            "admin, runtime, operator-auth, notification-enqueue, and market-data roles must be distinct"
+        )
     if not admin_password:
         raise ValueError("admin password must be provided")
     credential_pairs = [
@@ -734,17 +756,22 @@ def provision_runtime_role(
     ]
     if notification_enqueue_password is not None:
         credential_pairs.append(("notification_enqueue_password", notification_enqueue_password))
+    if market_data_password is not None:
+        credential_pairs.append(("market_data_password", market_data_password))
     for label, secret in credential_pairs:
         if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
             raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
     passwords = [admin_password, runtime_password, operator_auth_password]
     if notification_enqueue_password is not None:
         passwords.append(notification_enqueue_password)
+    if market_data_password is not None:
+        passwords.append(market_data_password)
     if len(set(passwords)) != len(passwords):
         raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
         raise ValueError("database name is required")
 
+    market_data_database_access: dict[str, bool] = {}
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute(
@@ -798,6 +825,13 @@ def provision_runtime_role(
             if cur.fetchone()[0] is None:
                 raise RuntimeError(
                     "migration 417 notification enqueue function must be applied before "
+                    "provisioning its dedicated login"
+                )
+        if market_data_user is not None:
+            cur.execute("SELECT to_regprocedure(%s)", (_MARKET_DATA_FUNCTION,))
+            if cur.fetchone()[0] is None:
+                raise RuntimeError(
+                    "migration 430 market-data function must be applied before "
                     "provisioning its dedicated login"
                 )
 
@@ -862,6 +896,49 @@ def provision_runtime_role(
                     sql.SQL(_NOTIFICATION_ENQUEUE_FUNCTION), enqueue_ident
                 )
             )
+        if market_data_user is not None:
+            assert market_data_ident is not None and market_data_password is not None
+            _ensure_login_role(
+                cur,
+                name=market_data_user,
+                identifier=market_data_ident,
+                password=market_data_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=market_data_user,
+                identifier=market_data_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), market_data_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), market_data_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(market_data_ident)
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    market_data_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    market_data_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
+                )
+            )
         cur.execute(
             sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident)
         )
@@ -890,6 +967,8 @@ def provision_runtime_role(
         protected_login_idents = [runtime_ident, auth_ident]
         if enqueue_ident is not None:
             protected_login_idents.append(enqueue_ident)
+        if market_data_ident is not None:
+            protected_login_idents.append(market_data_ident)
         for name in database_names:
             database_ident = sql.Identifier(name)
             cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
@@ -964,6 +1043,34 @@ def provision_runtime_role(
             cur.execute(
                 sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
                     sql.SQL(_NOTIFICATION_ENQUEUE_FUNCTION), enqueue_ident
+                )
+            )
+        if market_data_ident is not None:
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), market_data_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), market_data_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    market_data_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    market_data_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
                 )
             )
 
@@ -1161,6 +1268,91 @@ def provision_runtime_role(
             if cur.fetchone()[0]:
                 raise RuntimeError("runtime role can execute notification-enqueue function")
 
+        if market_data_user is not None:
+            cur.execute(
+                "SELECT has_function_privilege(%s, %s, 'EXECUTE'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
+                (market_data_user, _MARKET_DATA_FUNCTION, market_data_user, market_data_user),
+            )
+            if cur.fetchone() != (True, True, False):
+                raise RuntimeError(
+                    "market-data login is missing its bounded function grant or has unsafe schema access"
+                )
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_class AS relation
+                         JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND (
+                            has_table_privilege(%s, relation.oid, 'SELECT')
+                            OR has_table_privilege(%s, relation.oid, 'INSERT')
+                            OR has_table_privilege(%s, relation.oid, 'UPDATE')
+                            OR has_table_privilege(%s, relation.oid, 'DELETE')
+                            OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+                            OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+                            OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+                            OR EXISTS (
+                                SELECT 1
+                                  FROM pg_attribute AS attribute
+                                 WHERE attribute.attrelid = relation.oid
+                                   AND attribute.attnum > 0 AND NOT attribute.attisdropped
+                                   AND (
+                                     has_column_privilege(%s, relation.oid, attribute.attname, 'SELECT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'INSERT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'UPDATE')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'REFERENCES')
+                                   )
+                            )
+                          )
+                   )""",
+                (market_data_user,) * 11,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("market-data login retains direct table or column privileges")
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_class AS sequence
+                         JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND sequence.relkind = 'S'
+                          AND (
+                            has_sequence_privilege(%s, sequence.oid, 'USAGE')
+                            OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
+                            OR has_sequence_privilege(%s, sequence.oid, 'UPDATE')
+                          )
+                   )""",
+                (market_data_user,) * 3,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("market-data login retains direct sequence privileges")
+            cur.execute(
+                """SELECT procedure.oid::regprocedure::text
+                     FROM pg_proc AS procedure
+                     JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+                    WHERE namespace.nspname IN ('public', 'kokonut_security')
+                      AND procedure.prosecdef
+                      AND procedure.oid <> to_regprocedure(%s)
+                      AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
+                    LIMIT 1""",
+                (_MARKET_DATA_FUNCTION, market_data_user),
+            )
+            other_security_definer = cur.fetchone()
+            if other_security_definer is not None:
+                raise RuntimeError(
+                    "market-data login can execute another SECURITY DEFINER function: "
+                    f"{other_security_definer[0]}"
+                )
+            cur.execute(
+                "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
+                (runtime_user, _MARKET_DATA_FUNCTION),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("runtime role can execute market-data worker function")
+
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
@@ -1223,6 +1415,17 @@ def provision_runtime_role(
             (operator_auth_user,),
         )
         auth_database_access = {name: allowed for name, allowed in cur.fetchall()}
+        if market_data_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (market_data_user,),
+            )
+            market_data_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in market_data_database_access.items()):
+                raise RuntimeError("market-data login must connect only to its configured database")
 
     return {
         "status": "provisioned",
@@ -1230,9 +1433,11 @@ def provision_runtime_role(
         "runtime_user": runtime_user,
         "operator_auth_user": operator_auth_user,
         "notification_enqueue_user": notification_enqueue_user,
+        "market_data_user": market_data_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
+        "market_data_connect_grants": market_data_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
         "runtime_table_privilege_scope": "existing_public_tables_only",
         "runtime_future_object_privileges": [],
@@ -1256,6 +1461,7 @@ def provision_runtime_role(
         "runtime_owns_relations": False,
         "operator_auth_owns_relations": False,
         "notification_enqueue_owns_relations": False,
+        "market_data_owns_relations": False,
     }
 
 
@@ -1273,6 +1479,10 @@ def main() -> int:
     notification_enqueue_password = os.environ.get(
         "KOKONUT_NOTIFICATION_ENQUEUE_PASSWORD", ""
     )
+    market_data_user = os.environ.get(
+        "KOKONUT_MARKET_DATA_USER", "kokonut_market_data_login"
+    )
+    market_data_password = os.environ.get("KOKONUT_MARKET_DATA_PASSWORD", "")
     if not admin_password or not runtime_password or not operator_auth_password:
         raise SystemExit(
             "admin, runtime, and operator-auth credentials must be provided through the environment"
@@ -1302,6 +1512,8 @@ def main() -> int:
             notification_enqueue_password=(
                 notification_enqueue_password if notification_enqueue_password else None
             ),
+            market_data_user=market_data_user if market_data_password else None,
+            market_data_password=market_data_password if market_data_password else None,
         )
     finally:
         conn.close()

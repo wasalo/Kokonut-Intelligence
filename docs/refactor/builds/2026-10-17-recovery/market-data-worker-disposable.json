@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "database": "temporary PostgreSQL 16 container",
+  "candidate_or_legacy_database_touched": false,
+  "checks": [
+    "migration 430 applies on the minimal schema and replays idempotently",
+    "dedicated login is non-login until secret provisioning and has no table or column grants",
+    "dedicated function succeeds under forced RLS and suppresses duplicate natural keys",
+    "login cannot read source tables directly; runtime, worker-execution, and non-worker sessions cannot call the function",
+    "unsupported rows, dates, extra fields, and mixed batches fail closed",
+    "invalid mixed batch leaves price and audit state unchanged"
+  ]
+}
