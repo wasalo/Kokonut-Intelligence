@@ -214,6 +214,10 @@ omit raw payload/database details while preserving partial-import behavior;
 four new regressions pass within a 22-test spatial-import/security suite with
 Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/spatial-import-error-redaction.json)).
+The legacy KML/Shapefile adapters also bound parser, feature, and source-read
+errors without returning source coordinates or contributor names; three new
+synthetic regressions and two existing compatibility checks pass with Ruff and
+compilation ([evidence](builds/2026-10-17-recovery/legacy-geo-import-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

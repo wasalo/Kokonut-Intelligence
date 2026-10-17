@@ -349,6 +349,13 @@ One mocked regression passes within 52 attestation/EAS tests with Ruff and
 compilation; no provider or database was contacted
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
 
+**17 October 2026 legacy KML/Shapefile error containment (CAP-040 / CAP-047):**
+parser, per-feature, and file-read failures omit raw coordinate, source-name,
+and driver details while preserving successful-record counts. Three new
+synthetic regressions and two compatibility checks pass with Ruff and
+compilation; no live Fiona reader or database was used
+([evidence](builds/2026-10-17-recovery/legacy-geo-import-error-redaction.json)).
+
 **17 October 2026 spatial-import error containment (CAP-040 / CAP-047):**
 GeoJSON/KML per-feature/audit failures and malformed XML omit raw source,
 coordinate, and database details from responses, persisted audit messages, and

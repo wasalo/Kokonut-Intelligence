@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "c5d6ad1fdebc742a4e5c6ea869a72e66f96e3644",
+  "baseline_commit": "d0163a9089673be785b61edf82a848fbd147f3ba",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3263,6 +3263,7 @@
         "tests/test_ingestion_retry.py",
         "tests/test_iot_sensor_push.py",
         "tests/test_learning_plans.py",
+        "tests/test_legacy_geo_import_error_redaction.py",
         "tests/test_linked_data.py",
         "tests/test_management_workflow.py",
         "tests/test_market_data.py",
@@ -4301,6 +4302,7 @@
     "tests/test_land_stewardship_trust.py",
     "tests/test_landscape_conservation.py",
     "tests/test_learning_plans.py",
+    "tests/test_legacy_geo_import_error_redaction.py",
     "tests/test_linked_data.py",
     "tests/test_llm_chat.py",
     "tests/test_management_workflow.py",

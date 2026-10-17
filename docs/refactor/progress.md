@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Legacy KML/Shapefile error containment — 17 October 2026
+
+Legacy KML and Shapefile parsing now reports bounded class-only failures
+without echoing source coordinates, placemark names, file/provider details, or
+raw parser exceptions. Three new synthetic regressions and two existing
+compatibility checks pass with Ruff and compilation; no live Fiona reader or
+database was used
+([evidence](builds/2026-10-17-recovery/legacy-geo-import-error-redaction.json)).
+
 ### Spatial import error containment — 17 October 2026
 
 GeoJSON/KML feature failures and malformed KML results no longer expose raw

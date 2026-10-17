@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
-from typing import Any
 
 from services.common.logging import get_logger
 
@@ -24,33 +22,45 @@ def import_shapefile(filepath: str, target_table: str = "location",
     records_imported = 0
     errors = []
 
-    with fiona.open(filepath) as src:
-        for i, feature in enumerate(src):
-            try:
-                geom = feature.get("geometry")
-                props = feature.get("properties", {})
+    try:
+        with fiona.open(filepath) as src:
+            for i, feature in enumerate(src):
+                try:
+                    geom = feature.get("geometry")
+                    props = feature.get("properties", {})
 
-                if not geom:
-                    errors.append(f"Feature {i}: no geometry")
-                    continue
+                    if not geom:
+                        errors.append(f"Feature {i}: no geometry")
+                        continue
 
-                geom_type = geom.get("type", "")
-                coords = geom.get("coordinates")
+                    geom_type = geom.get("type", "")
+                    coords = geom.get("coordinates")
 
-                if geom_type == "Point" and coords:
-                    lat, lon = coords[1], coords[0]
-                elif geom_type == "Polygon" and coords:
-                    lat = sum(c[1] for c in coords[0]) / len(coords[0])
-                    lon = sum(c[0] for c in coords[0]) / len(coords[0])
-                else:
-                    errors.append(f"Feature {i}: unsupported geometry type {geom_type}")
-                    continue
+                    if geom_type == "Point" and coords:
+                        _lat, _lon = coords[1], coords[0]
+                    elif geom_type == "Polygon" and coords:
+                        _lat = sum(c[1] for c in coords[0]) / len(coords[0])
+                        _lon = sum(c[0] for c in coords[0]) / len(coords[0])
+                    else:
+                        errors.append(f"Feature {i}: unsupported geometry type")
+                        continue
 
-                name = props.get("name") or props.get("NAME") or props.get("Name") or f"Imported {i}"
+                    _name = props.get("name") or props.get("NAME") or props.get("Name") or f"Imported {i}"
 
-                records_imported += 1
-            except Exception as e:
-                errors.append(f"Feature {i}: {str(e)}")
+                    records_imported += 1
+                except Exception as exc:
+                    errors.append(f"Feature {i}: import failed ({type(exc).__name__})")
+                    logger.warning("Failed to import shapefile feature %d (%s)", i, type(exc).__name__)
+    except Exception as exc:
+        errors.append(f"Shapefile read failed ({type(exc).__name__})")
+        logger.warning("Failed to read shapefile (%s)", type(exc).__name__)
+        status = "partial" if records_imported else "error"
+        return {
+            "status": status,
+            "records_imported": records_imported,
+            "errors": errors,
+            "format": "shapefile",
+        }
 
     return {
         "status": "success",
