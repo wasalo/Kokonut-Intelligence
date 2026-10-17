@@ -1,5 +1,29 @@
 # Kokonut Kernel implementation progress
 
+### Gnosis Moloch cursor namespace separation — 16 October 2026
+
+The Moloch event indexer and general wallet RPC indexer both used the
+`(gnosis, rpc)` status row. Migration 424 now seeds a dedicated
+`(gnosis, gnosis_moloch)` cursor from the last observed shared block boundary,
+marks it paused with provenance, and leaves the legacy wallet RPC row intact.
+The indexer reads and writes only the dedicated cursor. It refuses to advance
+an inherited, unreviewed cursor without an explicit `--from-block`; the first
+successfully committed range records that checkpoint review transactionally.
+The 184-test focused
+Gnosis/outbox/command/migration suite, Ruff, and compilation pass. A
+network-disabled disposable PostgreSQL 16 check confirms the migration copies
+the cursor, preserves both rows, and does not overwrite an existing dedicated
+cursor on replay. No candidate/legacy database, provider, or schedule was
+accessed. This prevents future cursor races but cannot establish the true
+historical Gnosis boundary or backfill old event receipts. Legacy receipt
+reconciliation and removed-log/deep reorg recovery remain open, so the Gnosis
+schedule remains disabled and MAN-CAP-023/047 remain unaccepted
+([migration](../../schemas/postgres/424_gnosis_indexer_cursor_namespace.sql);
+[tests](../../tests/test_gnosis_indexer_recovery.py);
+[disposable runner](../../scripts/check-gnosis-indexer-cursor-disposable.py);
+[evidence](builds/2026-10-16-recovery/gnosis-indexer-cursor-disposable.json);
+[worker map](worker-operation-map.json)).
+
 ### Gnosis indexer range/checkpoint recovery — 16 October 2026
 
 The Moloch event indexer previously swallowed a failed block range, wrote its
@@ -18,11 +42,11 @@ The focused Gnosis recovery, outbox producer, scheduled-command, and migration
 suite passes 165 tests; Ruff and compilation pass. A disposable PostgreSQL 16
 runner verifies migration 423 apply/replay, new receipt insertion, duplicate
 suppression, fail-closed block-hash mismatch, and transaction rollback. No live
-provider, candidate/legacy database, or schedule was accessed. Migration 423 is
-not applied to the candidate. Historical event projections are not backfilled,
-removed-log rollback/deep reorg recovery is not automatic, and the existing
-`rpc` indexer type may share a cursor with the general RPC indexer. Those gates
-remain open, so the Gnosis schedule stays disabled and MAN-CAP-023/047 remain
+provider, candidate/legacy database, or schedule was accessed. Migrations
+423–424 are not applied to the candidate. Historical event projections are not
+backfilled and removed-log rollback/deep reorg recovery is not automatic.
+Migration 424 below separates the status cursor used by the two indexers. The
+Gnosis schedule stays disabled and MAN-CAP-023/047 remain
 unaccepted ([migration](../../schemas/postgres/423_gnosis_event_log_receipts.sql);
 [tests](../../tests/test_gnosis_indexer_recovery.py);
 [disposable runner](../../scripts/check-gnosis-event-receipts-disposable.py);

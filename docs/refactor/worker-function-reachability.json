@@ -3577,7 +3577,7 @@
         {
           "function": "services.ingestion.gnosis_indexer:run",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 758
+          "line": 795
         }
       ],
       "reachable_functions": [
@@ -3659,7 +3659,7 @@
           "qualname": "_normalize_hash",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 72
+          "line": 73
         },
         {
           "key": "services.ingestion.gnosis_indexer:_validate_ch_value",
@@ -3667,7 +3667,7 @@
           "qualname": "_validate_ch_value",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 136
+          "line": 137
         },
         {
           "key": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
@@ -3675,7 +3675,7 @@
           "qualname": "claim_gnosis_event_log",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 86
+          "line": 87
         },
         {
           "key": "services.ingestion.gnosis_indexer:event_to_action_type",
@@ -3683,7 +3683,7 @@
           "qualname": "event_to_action_type",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 381
+          "line": 382
         },
         {
           "key": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
@@ -3691,7 +3691,7 @@
           "qualname": "fetch_block_timestamp",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 171
+          "line": 172
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_location_from_wallet",
@@ -3699,7 +3699,7 @@
           "qualname": "get_location_from_wallet",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 396
+          "line": 397
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_moloch_contract",
@@ -3707,7 +3707,7 @@
           "qualname": "get_moloch_contract",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 157
+          "line": 158
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_treasury_contract",
@@ -3715,7 +3715,7 @@
           "qualname": "get_treasury_contract",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 164
+          "line": 165
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_wallet_id",
@@ -3723,7 +3723,7 @@
           "qualname": "get_wallet_id",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 177
+          "line": 178
         },
         {
           "key": "services.ingestion.gnosis_indexer:get_web3",
@@ -3731,7 +3731,7 @@
           "qualname": "get_web3",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 152
+          "line": 153
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
@@ -3739,7 +3739,7 @@
           "qualname": "insert_activity_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 483
+          "line": 484
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
@@ -3747,7 +3747,7 @@
           "qualname": "insert_dlego_clickhouse",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 439
+          "line": 440
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_dlego_usage",
@@ -3755,7 +3755,7 @@
           "qualname": "insert_dlego_usage",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 407
+          "line": 408
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_governance_event",
@@ -3763,7 +3763,7 @@
           "qualname": "insert_governance_event",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 188
+          "line": 189
         },
         {
           "key": "services.ingestion.gnosis_indexer:insert_treasury_event",
@@ -3771,7 +3771,7 @@
           "qualname": "insert_treasury_event",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 220
+          "line": 221
         },
         {
           "key": "services.ingestion.gnosis_indexer:load_abi",
@@ -3779,7 +3779,7 @@
           "qualname": "load_abi",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 143
+          "line": 144
         },
         {
           "key": "services.ingestion.gnosis_indexer:run",
@@ -3787,7 +3787,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 543
+          "line": 544
         }
       ],
       "direct_call_edges": [
@@ -3813,133 +3813,121 @@
           "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
           "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 92
+          "line": 93
         },
         {
           "caller": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
           "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 93
+          "line": 94
         },
         {
           "caller": "services.ingestion.gnosis_indexer:get_moloch_contract",
           "callee": "services.ingestion.gnosis_indexer:load_abi",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 159
+          "line": 160
         },
         {
           "caller": "services.ingestion.gnosis_indexer:get_treasury_contract",
           "callee": "services.ingestion.gnosis_indexer:load_abi",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 166
+          "line": 167
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 515
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
-          "callee": "services.ingestion.base:post_clickhouse_rows",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 522
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
-          "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/gnosis_indexer.py",
           "line": 516
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
-          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "callee": "services.ingestion.base:post_clickhouse_rows",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 497
+          "line": 523
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.clickhouse_outbox:enqueue",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 517
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 501
+          "line": 498
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 505
+          "line": 502
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
+          "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 506
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 466
+          "line": 467
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.base:post_clickhouse_rows",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 473
+          "line": 474
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.clickhouse_outbox:enqueue",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 467
+          "line": 468
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 449
+          "line": 450
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 453
+          "line": 454
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "callee": "services.ingestion.gnosis_indexer:_validate_ch_value",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 457
+          "line": 458
         },
         {
           "caller": "services.ingestion.gnosis_indexer:insert_treasury_event",
           "callee": "services.ingestion.base:now_utc",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 236
+          "line": 237
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.base:batch_ranges",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 593
+          "line": 620
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 547
+          "line": 554
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 574
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.base:update_indexer_status",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 711
-        },
-        {
-          "caller": "services.ingestion.gnosis_indexer:run",
-          "callee": "services.ingestion.base:update_indexer_status",
-          "source": "services/ingestion/gnosis_indexer.py",
-          "line": 719
+          "line": 596
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
@@ -3949,111 +3937,123 @@
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.base:update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 751
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
+          "callee": "services.ingestion.base:update_indexer_status",
+          "source": "services/ingestion/gnosis_indexer.py",
+          "line": 770
+        },
+        {
+          "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:_normalize_hash",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 618
+          "line": 645
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:claim_gnosis_event_log",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 615
+          "line": 642
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:event_to_action_type",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 699
+          "line": 726
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:fetch_block_timestamp",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 630
+          "line": 657
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 644
+          "line": 671
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:get_location_from_wallet",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 691
+          "line": 718
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:get_moloch_contract",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 588
+          "line": 615
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:get_treasury_contract",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 589
+          "line": 616
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:get_wallet_id",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 672
+          "line": 699
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:get_web3",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 545
+          "line": 553
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 639
+          "line": 666
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_activity_clickhouse",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 686
+          "line": 713
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 661
+          "line": 688
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_dlego_clickhouse",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 708
+          "line": 735
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 660
+          "line": 687
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_dlego_usage",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 707
+          "line": 734
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_governance_event",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 685
+          "line": 712
         },
         {
           "caller": "services.ingestion.gnosis_indexer:run",
           "callee": "services.ingestion.gnosis_indexer:insert_treasury_event",
           "source": "services/ingestion/gnosis_indexer.py",
-          "line": 638
+          "line": 665
         }
       ],
       "callback_edges": [],

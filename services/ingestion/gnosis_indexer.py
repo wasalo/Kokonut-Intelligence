@@ -48,6 +48,7 @@ _STR_LOOSE_RE = re.compile(r'^[a-zA-Z0-9_\-\.:/ ]+$')
 
 # Block range per request (Gnosis produces ~5s blocks)
 BLOCK_BATCH = 500
+INDEXER_TYPE = "gnosis_moloch"
 
 # Moloch v2 event topic hashes (keccak256 of event signature)
 EVENT_TOPICS = {
@@ -542,21 +543,39 @@ DECODE_MAP = {
 
 def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
     """Main ingestion entry point."""
+    if from_block is not None and from_block < 0:
+        raise ValueError("--from-block must be non-negative")
+    if to_block is not None and to_block < 0:
+        raise ValueError("--to-block must be non-negative")
+    if from_block is not None and to_block is not None and to_block < from_block:
+        raise ValueError("--to-block must be greater than or equal to --from-block")
+
     w3 = get_web3()
-    latest_block = to_block if to_block is not None else w3.eth.block_number
     db = get_db()
 
     chain = KOKONUT_DAO_CHAIN
     try:
         with db.cursor() as cur:
             cur.execute(
-                "SELECT last_synced_block FROM chain_indexer_status "
+                "SELECT last_synced_block, metadata FROM chain_indexer_status "
                 "WHERE chain = %s AND indexer_type = %s",
-                (chain, "rpc"),
+                (chain, INDEXER_TYPE),
             )
             row = cur.fetchone()
         last_synced = row[0] if row else None
+        cursor_metadata = (row[1] or {}) if row else {}
+        cursor_review_required = (
+            cursor_metadata.get("cursor_origin") == "legacy_shared_rpc"
+            and not cursor_metadata.get("cursor_reviewed", False)
+        )
 
+        if cursor_review_required and from_block is None:
+            raise RuntimeError(
+                "Gnosis Moloch cursor was inherited from shared wallet RPC state; "
+                "review the canonical checkpoint and pass --from-block explicitly"
+            )
+
+        latest_block = to_block if to_block is not None else w3.eth.block_number
         if from_block is not None:
             start_block = from_block
         elif last_synced is not None:
@@ -568,11 +587,19 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
 
         end_block = latest_block
         last_committed_block = (
-            last_synced if last_synced is not None else start_block - 1
+            start_block - 1
+            if from_block is not None
+            else last_synced if last_synced is not None else start_block - 1
         )
+        review_metadata = {"cursor_reviewed": True} if cursor_review_required else None
         if start_block > end_block:
             update_indexer_status(
-                chain, "rpc", last_committed_block, "healthy", db=db
+                chain,
+                INDEXER_TYPE,
+                last_committed_block,
+                "healthy",
+                metadata=review_metadata,
+                db=db,
             )
             db.commit()
             logger.info("Already synced to block %d", end_block)
@@ -709,7 +736,12 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
 
                 checkpoint = max(last_committed_block, batch_end)
                 update_indexer_status(
-                    chain, "rpc", checkpoint, "syncing", db=db
+                    chain,
+                    INDEXER_TYPE,
+                    checkpoint,
+                    "syncing",
+                    metadata=review_metadata,
+                    db=db,
                 )
                 db.commit()
                 last_committed_block = checkpoint
@@ -718,7 +750,7 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 try:
                     update_indexer_status(
                         chain,
-                        "rpc",
+                        INDEXER_TYPE,
                         last_committed_block,
                         "error",
                         str(exc),
@@ -736,7 +768,12 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
 
         final_checkpoint = max(last_committed_block, end_block)
         update_indexer_status(
-            chain, "rpc", final_checkpoint, "healthy", db=db
+            chain,
+            INDEXER_TYPE,
+            final_checkpoint,
+            "healthy",
+            metadata=review_metadata,
+            db=db,
         )
         db.commit()
     finally:

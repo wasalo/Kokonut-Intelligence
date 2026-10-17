@@ -67,12 +67,19 @@ Migration 423 adds transaction-hash/log-index receipts for newly processed
 events, skips identical replay, and fails closed on a reused identity with
 changed block hash, number, or event type. The 165-test Gnosis/outbox/command/
 migration suite, Ruff, compilation, and disposable PostgreSQL 16 apply/replay,
-duplicate, mismatch, and rollback checks pass. The migration is not candidate-
-deployed. Legacy events are not backfilled; removed-log/deep reorg rollback and
-the existing potentially shared `rpc` cursor remain unresolved. No provider or
-schedule was exercised ([migration](../../schemas/postgres/423_gnosis_event_log_receipts.sql);
+duplicate, mismatch, and rollback checks pass. Migration 424 moves the Moloch
+indexer to its own `gnosis_moloch` cursor, seeded from the last shared boundary
+as paused with provenance while preserving `(gnosis, rpc)` for wallet activity.
+The indexer requires an explicit `--from-block` to accept this inherited cursor
+and records review in the first successful transaction. A network-disabled
+disposable PostgreSQL 16 check confirms migration apply/replay and that neither
+cursor is overwritten. Legacy events are not
+backfilled; removed-log/deep reorg rollback remains unresolved. No provider or
+schedule was exercised ([receipt migration](../../schemas/postgres/423_gnosis_event_log_receipts.sql);
+[cursor migration](../../schemas/postgres/424_gnosis_indexer_cursor_namespace.sql);
 [tests](../../tests/test_gnosis_indexer_recovery.py);
-[disposable evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json)).
+[receipt evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json);
+[cursor evidence](builds/2026-10-16-recovery/gnosis-indexer-cursor-disposable.json)).
 
 **16 October 2026 forecast projection atomicity (CAP-040 / CAP-047):** the
 weather-forecast producer now rolls back a whole location batch to a PostgreSQL

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "4531a03782060ddfe4a973a851b209fc5a9aabe2",
+  "baseline_commit": "b024ef5a9badf556b9490bf6374bf57c26ebe992",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1816,7 +1816,8 @@
       "schemas/postgres/420_iri_public_projection_snapshot.sql",
       "schemas/postgres/421_eas_recipient_cursors.sql",
       "schemas/postgres/422_eas_cursor_rebaseline.sql",
-      "schemas/postgres/423_gnosis_event_log_receipts.sql"
+      "schemas/postgres/423_gnosis_event_log_receipts.sql",
+      "schemas/postgres/424_gnosis_indexer_cursor_namespace.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

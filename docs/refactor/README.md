@@ -2,13 +2,14 @@
 
 Phase 0 inventory, captured 9 October 2026.
 
-**Current status (15 October):** the local candidate is recorded at migration 400
-with 391 numbered migration sources; the previous 24-hour recovery, current
-PR-head CI, and production cutover gates remain separate. The ARM64 planner now
-selects an isolated profile for minimal, edge, and standard, and current-schema
-QEMU replay through migration 400 has passed. Physical Pi acceptance remains
-open. Require passing hosted CI and Security for the PR head that includes this
-acceptance evidence. See
+**Current status (16 October):** the repository has 415 numbered PostgreSQL
+migration sources through migration 424; the local candidate remains at
+migration 403. Migrations 420–424 still require their separate candidate gates.
+Security #103 passed and CI #379 is in progress on pushed PR #68 head `b024ef5`.
+The ARM64 planner selects an isolated profile for minimal, edge, and standard,
+and current-source QEMU replay through migration 402 has passed. Physical Pi
+acceptance remains open. Require passing hosted CI and Security for the PR head
+that includes any later acceptance evidence. See
 [the phase ledger](progress.md) and
 [capability progress](capability-matrix.md).
 The baseline sections below preserve historical observations, not current

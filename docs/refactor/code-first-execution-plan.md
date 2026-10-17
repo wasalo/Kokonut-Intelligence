@@ -2,10 +2,10 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed batch:** EAS cursor rebaseline (`272fcde`) and market-data recovery (`46d3ef3`), followed by execution-plan status corrections. Latest observed CI #378 is pending and Security #102 is queued on pushed head `9251db8`.
-**Current pushed batch:** Commit `46d3ef3` contains the EAS cursor rebaseline and market-data failure/atomicity work. For EAS, migration 422 resets inherited recipient cursors to zero, UID conflicts make the recovery scan idempotent, and revisiting the saved timestamp second catches same-second peers; 188 focused tests and disposable PostgreSQL 16 evidence pass. For market data, World Bank failures and unusable payloads fail before PostgreSQL opens, explicit seed rows use a separate source key, and price rows plus accurate ingestion audit commit atomically; 16 focused mocked checks pass with Ruff and compilation. No live provider, candidate, legacy database, or schedule was accessed. At push time the checklist was 424 checked / 21 open (445 total); the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–422 have not been rolled out. Live provider parity/correction policy, earlier-time EAS pagination/late-arrival reconciliation, and production acceptance remain open.
+**Latest pushed batch:** Gnosis checkpoint/replay recovery (`4531a03`, `b024ef5`) is at remote head `b024ef5a9badf556b9490bf6374bf57c26ebe992`. Security run #103 passed; CI run #379 is in progress on that head. The branch also contains the EAS cursor rebaseline (`272fcde`) and market-data recovery (`46d3ef3`).
+**Current pushed batch:** Commits `4531a03` and `b024ef5` make Gnosis Moloch block-range writes atomic and add replay receipts. The current local migration 424 gives its indexer a dedicated `gnosis_moloch` cursor. The 165-test focused suite passes with Ruff and compilation; disposable PostgreSQL 16 receipt checks and network-disabled cursor migration/replay checks pass. Security #103 passed and CI #379 is in progress at pushed head `b024ef5`. The checklist is now 427 checked / 21 open (448 total); the matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–424 have not been rolled out. Legacy event receipts are not backfilled, removed-log/deep reorg handling remains open, and no provider, candidate, legacy database, or schedule was accessed.
 
-**Current local batch:** Gnosis Moloch indexing commits each successful block range with its event projections, outbox intents, and status checkpoint. Failures roll back, persist an error at the last committed boundary, and stop instead of marking the requested end healthy. Migration 423 adds transaction-hash/log-index receipts: identical new events are skipped before projection, and reused identities with changed block data fail closed. The Gnosis/outbox/command/migration suite passes 165 tests; Ruff, compilation, and disposable PostgreSQL 16 migration apply/replay, duplicate, mismatch, and rollback checks pass. No provider, candidate, legacy database, or schedule was accessed. The current working checklist is 426 checked / 21 open (447 total); the `rpc` cursor namespace may still be shared with the general RPC indexer, legacy receipts are not backfilled, and removed-log/deep reorg recovery remains open.
+**Current local batch:** Migration 424 separates the Gnosis Moloch status cursor from the general wallet RPC cursor. The indexer reads/writes only `gnosis_moloch`; migration copies the last shared boundary into a paused row with provenance and leaves `(gnosis, rpc)` intact. An inherited, unreviewed cursor now requires an explicit `--from-block`, and the first successfully committed range records that review. The 184-test focused suite passes with Ruff and compilation. A network-disabled disposable PostgreSQL 16 run confirms migration apply/replay, source-row preservation, and no overwrite of an existing dedicated cursor. The checklist is 427 checked / 21 open (448 total). Historical Gnosis receipt backfill and removed-log/deep reorg recovery remain open; no candidate, provider, or schedule was accessed.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -27,12 +27,17 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
 - The Gnosis indexer now commits each block range with its event projections,
   outbox intents, and status checkpoint. Migration 423 adds new-event receipts:
   identical log identities are skipped and changed canonical block data fails
-  closed. The 165-test Gnosis/outbox/command/migration set, Ruff, compilation,
-  and disposable PostgreSQL 16 migration/replay/duplicate/mismatch/rollback
-  checks pass. No provider was contacted. Legacy receipt backfill, removed-log
-  reorg cleanup, and shared cursor ownership remain open
+  closed. Migration 424 isolates the `gnosis_moloch` status cursor and preserves
+  the shared legacy boundary in a paused row with provenance. The code requires
+  an explicit operator `--from-block` before accepting that inherited boundary.
+  The 184-test
+  Gnosis/outbox/command/migration set, Ruff, compilation, and disposable
+  PostgreSQL 16 migration/replay/duplicate/mismatch/rollback checks pass. No
+  provider was contacted. Legacy receipt backfill and removed-log/deep reorg
+  cleanup remain open
   ([checkpoint](builds/2026-10-16-recovery/gnosis-indexer-checkpoint-atomicity.json);
-  [receipt evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json)).
+  [receipt evidence](builds/2026-10-16-recovery/gnosis-event-receipts-disposable.json);
+  [cursor evidence](builds/2026-10-16-recovery/gnosis-indexer-cursor-disposable.json)).
 - The market-data importer now propagates World Bank failures instead of
   treating bundled samples as provider success. Live and explicit-seed source
   keys are separate; provider payload validation happens before the database
@@ -65,7 +70,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **426 checked and 21 open items (447 total)**,
+- The execution checklist has **427 checked and 21 open items (448 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,

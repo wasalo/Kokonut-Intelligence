@@ -27,8 +27,13 @@ class _Cursor:
 
 
 class _Connection:
-    def __init__(self, last_synced):
-        self.cursor_instance = _Cursor((last_synced,) if last_synced is not None else None)
+    def __init__(self, last_synced, metadata=None):
+        row = (
+            (last_synced, metadata or {})
+            if last_synced is not None
+            else None
+        )
+        self.cursor_instance = _Cursor(row)
         self.commits = 0
         self.rollbacks = 0
         self.closed = False
@@ -72,12 +77,16 @@ class _ReceiptConnection:
 
 
 class _Eth:
-    block_number = 20
-
     def __init__(self, failures=None, logs=None):
         self.failures = failures or {}
         self.logs = logs or []
         self.calls = []
+        self.block_number_reads = 0
+
+    @property
+    def block_number(self):
+        self.block_number_reads += 1
+        return 20
 
     def get_logs(self, query):
         self.calls.append(query)
@@ -185,7 +194,73 @@ def test_gnosis_commits_each_range_with_its_checkpoint_in_same_connection(monkey
     assert connection.closed
     assert [call[0][2] for call in status_calls] == [15, 20, 20]
     assert [call[0][3] for call in status_calls] == ["syncing", "syncing", "healthy"]
+    assert all(call[0][1] == gnosis_indexer.INDEXER_TYPE for call in status_calls)
+    assert connection.cursor_instance.statements[0][1] == (
+        gnosis_indexer.KOKONUT_DAO_CHAIN,
+        gnosis_indexer.INDEXER_TYPE,
+    )
     assert all(call[1]["db"] is connection for call in status_calls)
+
+
+def test_gnosis_requires_explicit_checkpoint_for_inherited_shared_cursor(monkeypatch):
+    connection = _Connection(
+        last_synced=9,
+        metadata={"cursor_origin": "legacy_shared_rpc"},
+    )
+    web3 = _Web3(_Eth())
+    status_calls = []
+    _run_with(monkeypatch, connection, web3, status_calls, [(10, 20)])
+
+    with pytest.raises(RuntimeError, match="pass --from-block explicitly"):
+        gnosis_indexer.run()
+
+    assert web3.eth.calls == []
+    assert web3.eth.block_number_reads == 0
+    assert status_calls == []
+    assert connection.closed
+
+
+def test_gnosis_explicit_checkpoint_reviews_inherited_cursor_after_success(monkeypatch):
+    connection = _Connection(
+        last_synced=9,
+        metadata={"cursor_origin": "legacy_shared_rpc"},
+    )
+    web3 = _Web3(_Eth())
+    status_calls = []
+    _run_with(monkeypatch, connection, web3, status_calls, [(10, 20)])
+
+    gnosis_indexer.run(from_block=10, to_block=20)
+
+    assert [call[0][2] for call in status_calls] == [20, 20]
+    assert all(call[1]["metadata"] == {"cursor_reviewed": True} for call in status_calls)
+    assert connection.commits == 2
+    assert connection.closed
+
+
+@pytest.mark.parametrize(
+    ("from_block", "to_block", "message"),
+    [
+        (-1, None, "--from-block must be non-negative"),
+        (None, -1, "--to-block must be non-negative"),
+        (11, 10, "--to-block must be greater than or equal to --from-block"),
+    ],
+)
+def test_gnosis_rejects_invalid_block_window_before_provider_or_database(
+    monkeypatch, from_block, to_block, message
+):
+    monkeypatch.setattr(
+        gnosis_indexer,
+        "get_web3",
+        lambda: pytest.fail("invalid range must be rejected before provider setup"),
+    )
+    monkeypatch.setattr(
+        gnosis_indexer,
+        "get_db",
+        lambda: pytest.fail("invalid range must be rejected before database setup"),
+    )
+
+    with pytest.raises(ValueError, match=message):
+        gnosis_indexer.run(from_block=from_block, to_block=to_block)
 
 
 def test_gnosis_run_skips_previously_claimed_log_before_projecting(monkeypatch):
@@ -226,6 +301,7 @@ def test_gnosis_failed_range_rolls_back_and_preserves_last_checkpoint(monkeypatc
     assert connection.closed
     assert [call[0][2] for call in status_calls] == [15, 15]
     assert [call[0][3] for call in status_calls] == ["syncing", "error"]
+    assert all(call[0][1] == gnosis_indexer.INDEXER_TYPE for call in status_calls)
     assert "provider failed" in status_calls[-1][0][4]
     assert all(call[1]["db"] is connection for call in status_calls)
 
@@ -245,4 +321,5 @@ def test_gnosis_outbox_failure_propagates_without_advancing_failed_range(monkeyp
     assert connection.closed
     assert [call[0][2] for call in status_calls] == [9]
     assert [call[0][3] for call in status_calls] == ["error"]
+    assert all(call[0][1] == gnosis_indexer.INDEXER_TYPE for call in status_calls)
 
