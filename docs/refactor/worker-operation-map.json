@@ -64,10 +64,10 @@
         "public.ingestion_log"
       ],
       "external_effects": [
-        "World Bank Pink Sheet HTTP download; optional built-in seed dataset"
+        "World Bank Pink Sheet HTTP download; explicit local reference seed mode"
       ],
-      "idempotency": "price_observation uses ON CONFLICT (source, commodity_code, market_name, price_date) DO NOTHING.",
-      "retry_boundary": "The natural key suppresses duplicate period rows; provider freshness and historical correction behavior are separate review questions.",
+      "idempotency": "Live World Bank observations use source=world_bank_pink_sheet; explicit reference samples use source=world_bank_pink_sheet_seed. Both use ON CONFLICT (source, commodity_code, market_name, price_date) DO NOTHING; historical corrections remain a separate policy question.",
+      "retry_boundary": "Provider download, unusable/empty response, insert, and audit failures raise to the scheduler. Provider parsing completes before PostgreSQL opens, and each price batch plus its ingestion_log record commits atomically. The local seed source is never an implicit provider fallback.",
       "sources": [
         "services/ingestion/market_data.py",
         "services/ingestion/base.py"

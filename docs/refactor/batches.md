@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (16 October 2026):** 423 checklist items complete and 21
-open (444 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (16 October 2026):** 424 checklist items complete and 21
+open (445 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -300,6 +300,7 @@ index and event evidence.
   operation's cadence/input gaps, idempotency, overlap, and recovery policy;
   transfer jobs one at a time with output parity and rollback evidence. The
   source inventory does not prove Prefect activation or native scheduler state.
+  - [x] Make market-data provider failure explicit and each write batch atomic: World Bank download/empty-payload errors now fail before PostgreSQL opens, explicit seeds use a distinct source key, and the price rows plus accurate ingestion audit commit together. Sixteen focused mocked checks, Ruff, and compilation pass. No provider, database, or schedule was accessed; provider parity and historical correction policy remain open ([evidence](builds/2026-10-16-recovery/market-data-provider-atomicity.json); [operation map](worker-operation-map.json)).
   - [x] Support the existing ClickHouse projection `projections` JobSpec as an optional bounded operation: allow only `--run-once` with a validated `--limit` from 1 to 1000, and reject manual list/replay/disposal/reconcile actions. The 116-test focused worker/scheduler suite and generated inventory checks pass. No task, ClickHouse provider, database, or schedule was activated; worker identity and tenant context remain open ([evidence](builds/2026-10-15-recovery/projection-job-contract.json); [command contract](../worker-job-contract-inventory.json)).
   - [x] Give the carbon-credit `credit_adjustment` JobSpec a dedicated read-only command module and remove the interactive management CLI from scheduler allowlisting. The shared connection helper can now mark transactions read-only; tests verify that mode is requested and invalid UUIDs fail before database access. Static reachability follows the shared `run(main)` callback and no longer includes credit issuance/retirement or chain-sync methods. The command, scheduler, worker inventory, and database helper slice passed 183 focused tests, Ruff, compilation, generated inventory checks, and a disposable PostgreSQL probe that rejects writes with SQLSTATE `25006` and leaves zero rows; no candidate/legacy database, provider, or schedule was accessed ([evidence](builds/2026-10-16-recovery/worker-credit-check-isolation.json); [map](worker-operation-map.json); [schedule ownership](schedule-ownership-inventory.md)).
   - [x] Require exactly one location for the read-only carbon-credit adjustment check at the CLI, shared dispatcher, disabled schedule planner, and database-driven command contract. Missing scope now fails before database connection or subprocess creation; the command remains read-only and each planned task remains disabled. Ninety-three focused checks passed at that slice; the then-current inventory showed 10 default-argument jobs and four required-location jobs. Remote sensing had joined the location-required set by that point; the inventory then reported nine no-input jobs and five required-location jobs. The current inventory reports eight no-input jobs and seven jobs requiring validated inputs, including the sensor location/driver-instance pair ([evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json); [contract inventory](worker-job-contract-inventory.json); [operation map](worker-operation-map.json)).
@@ -773,7 +774,7 @@ reporting views.
   `kokonut_tenant_preflight` login in read-only mode, and rejects public DML,
   relation ownership, and database/schema object creation before inventory
   SQL runs. Runtime privilege reporting now checks the configured application
-  role instead of accidentally inspecting the preflight login. Fifteen focused
+  role instead of accidentally inspecting the preflight login. Sixteen focused
   source checks, Ruff, CLI-help, and capability-matrix validation pass. A
   PostgreSQL 16 fixture with a synthetic RLS-enabled `location` verifies the
   dedicated role is read-only, has no memberships, owns no relation, has no

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "32fe5b61dd286ca63c2d68d6dd1159a8fff06d68",
+  "baseline_commit": "272fcde87f19fe6d69dc60ecfaa53aa0ee6f4293",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3219,6 +3219,7 @@
         "tests/test_linked_data.py",
         "tests/test_management_workflow.py",
         "tests/test_market_data.py",
+        "tests/test_market_data_recovery.py",
         "tests/test_marketplace_integration.py",
         "tests/test_metrics.py",
         "tests/test_ml_anomaly.py",
@@ -4216,6 +4217,7 @@
     "tests/test_llm_chat.py",
     "tests/test_management_workflow.py",
     "tests/test_market_data.py",
+    "tests/test_market_data_recovery.py",
     "tests/test_marketplace.py",
     "tests/test_marketplace_integration.py",
     "tests/test_measurement_schedule.py",

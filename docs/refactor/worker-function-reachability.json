@@ -6,8 +6,8 @@
     "operation_roots": 23,
     "source_files": 83,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 473,
-    "direct_call_edges": 674,
+    "function_memberships": 475,
+    "direct_call_edges": 678,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -4047,7 +4047,7 @@
         {
           "function": "services.ingestion.market_data:run",
           "source": "services/ingestion/market_data.py",
-          "line": 536
+          "line": 572
         }
       ],
       "reachable_functions": [
@@ -4068,12 +4068,28 @@
           "line": 50
         },
         {
+          "key": "services.ingestion.base:hash_payload",
+          "module": "services.ingestion.base",
+          "qualname": "hash_payload",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 121
+        },
+        {
+          "key": "services.ingestion.base:log_ingestion",
+          "module": "services.ingestion.base",
+          "qualname": "log_ingestion",
+          "class_scope": null,
+          "source": "services/ingestion/base.py",
+          "line": 130
+        },
+        {
           "key": "services.ingestion.market_data:download_pink_sheet",
           "module": "services.ingestion.market_data",
           "qualname": "download_pink_sheet",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 182
+          "line": 180
         },
         {
           "key": "services.ingestion.market_data:find_crop_id",
@@ -4081,7 +4097,7 @@
           "qualname": "find_crop_id",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 168
+          "line": 166
         },
         {
           "key": "services.ingestion.market_data:insert_price",
@@ -4089,7 +4105,7 @@
           "qualname": "insert_price",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 348
+          "line": 347
         },
         {
           "key": "services.ingestion.market_data:normalize_name",
@@ -4097,7 +4113,7 @@
           "qualname": "normalize_name",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 163
+          "line": 161
         },
         {
           "key": "services.ingestion.market_data:parse_pink_sheet",
@@ -4105,7 +4121,7 @@
           "qualname": "parse_pink_sheet",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 202
+          "line": 200
         },
         {
           "key": "services.ingestion.market_data:run",
@@ -4113,7 +4129,7 @@
           "qualname": "run",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 513
+          "line": 549
         },
         {
           "key": "services.ingestion.market_data:run_seed_data",
@@ -4121,7 +4137,7 @@
           "qualname": "run_seed_data",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 387
+          "line": 386
         },
         {
           "key": "services.ingestion.market_data:run_world_bank",
@@ -4129,7 +4145,7 @@
           "qualname": "run_world_bank",
           "class_scope": null,
           "source": "services/ingestion/market_data.py",
-          "line": 442
+          "line": 461
         }
       ],
       "direct_call_edges": [
@@ -4140,82 +4156,106 @@
           "line": 59
         },
         {
-          "caller": "services.ingestion.market_data:find_crop_id",
-          "callee": "services.ingestion.market_data:normalize_name",
-          "source": "services/ingestion/market_data.py",
-          "line": 172
+          "caller": "services.ingestion.base:log_ingestion",
+          "callee": "services.ingestion.base:get_db",
+          "source": "services/ingestion/base.py",
+          "line": 155
         },
         {
           "caller": "services.ingestion.market_data:find_crop_id",
           "callee": "services.ingestion.market_data:normalize_name",
           "source": "services/ingestion/market_data.py",
-          "line": 175
+          "line": 170
+        },
+        {
+          "caller": "services.ingestion.market_data:find_crop_id",
+          "callee": "services.ingestion.market_data:normalize_name",
+          "source": "services/ingestion/market_data.py",
+          "line": 173
         },
         {
           "caller": "services.ingestion.market_data:run",
           "callee": "services.ingestion.market_data:run_seed_data",
           "source": "services/ingestion/market_data.py",
-          "line": 516
+          "line": 552
         },
         {
           "caller": "services.ingestion.market_data:run",
           "callee": "services.ingestion.market_data:run_world_bank",
           "source": "services/ingestion/market_data.py",
-          "line": 518
+          "line": 554
         },
         {
           "caller": "services.ingestion.market_data:run_seed_data",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/market_data.py",
-          "line": 389
+          "line": 392
+        },
+        {
+          "caller": "services.ingestion.market_data:run_seed_data",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/market_data.py",
+          "line": 448
+        },
+        {
+          "caller": "services.ingestion.market_data:run_seed_data",
+          "callee": "services.ingestion.base:log_ingestion",
+          "source": "services/ingestion/market_data.py",
+          "line": 441
         },
         {
           "caller": "services.ingestion.market_data:run_seed_data",
           "callee": "services.ingestion.market_data:find_crop_id",
           "source": "services/ingestion/market_data.py",
-          "line": 409
+          "line": 407
         },
         {
           "caller": "services.ingestion.market_data:run_seed_data",
           "callee": "services.ingestion.market_data:insert_price",
           "source": "services/ingestion/market_data.py",
-          "line": 425
+          "line": 423
         },
         {
           "caller": "services.ingestion.market_data:run_world_bank",
           "callee": "services.ingestion.base:get_db",
           "source": "services/ingestion/market_data.py",
-          "line": 444
+          "line": 490
+        },
+        {
+          "caller": "services.ingestion.market_data:run_world_bank",
+          "callee": "services.ingestion.base:hash_payload",
+          "source": "services/ingestion/market_data.py",
+          "line": 535
+        },
+        {
+          "caller": "services.ingestion.market_data:run_world_bank",
+          "callee": "services.ingestion.base:log_ingestion",
+          "source": "services/ingestion/market_data.py",
+          "line": 528
         },
         {
           "caller": "services.ingestion.market_data:run_world_bank",
           "callee": "services.ingestion.market_data:download_pink_sheet",
           "source": "services/ingestion/market_data.py",
-          "line": 452
+          "line": 472
         },
         {
           "caller": "services.ingestion.market_data:run_world_bank",
           "callee": "services.ingestion.market_data:find_crop_id",
           "source": "services/ingestion/market_data.py",
-          "line": 474
+          "line": 510
         },
         {
           "caller": "services.ingestion.market_data:run_world_bank",
           "callee": "services.ingestion.market_data:insert_price",
           "source": "services/ingestion/market_data.py",
-          "line": 499
+          "line": 526
         },
         {
           "caller": "services.ingestion.market_data:run_world_bank",
           "callee": "services.ingestion.market_data:parse_pink_sheet",
           "source": "services/ingestion/market_data.py",
-          "line": 459
-        },
-        {
-          "caller": "services.ingestion.market_data:run_world_bank",
-          "callee": "services.ingestion.market_data:run_seed_data",
-          "source": "services/ingestion/market_data.py",
-          "line": 456
+          "line": 479
         }
       ],
       "callback_edges": [],

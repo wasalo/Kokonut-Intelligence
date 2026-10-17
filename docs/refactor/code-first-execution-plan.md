@@ -3,7 +3,7 @@
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed head:** `32fe5b61dd286ca63c2d68d6dd1159a8fff06d68` on PR #68; Security #99 passed and CI #375 was in progress at latest check.
-**Current local batch:** Migration 422 rebaselines inherited EAS recipient cursors to zero because the old chain-wide watermark could skip slower-wallet attestations. A UID-idempotent history scan can then recover missing rows; migration 421 remains immutable. The scanner also revisits the saved timestamp second so newly indexed same-second attestations are recovered. The focused EAS/producer/scheduler/migration suite passes 188 tests; the disposable PostgreSQL 16 runner verifies migration 421 backfill, migration 422 replay/reset, independent advancement, and transaction rollback coupling. No live provider, candidate, legacy database, or schedule was touched. The checklist is 423 checked / 21 open (444 total); the 66-row capability matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–422 have not been rolled out, and earlier-time pagination/late-arrival reconciliation, live-provider acceptance, and production acceptance remain open.
+**Current local batch:** Market-data provider failures now propagate instead of silently inserting bundled samples. Provider/empty-response validation happens before PostgreSQL opens; explicit reference seeds use a separate source key; price writes and ingestion audit share one transaction, with the audit reporting actual inserts. Sixteen focused mocked tests pass with Ruff and compilation. No provider, database, or schedule was accessed. The immediately preceding local commit `272fcde` rebaselines unsafe inherited EAS cursors and has 188 focused tests plus disposable PostgreSQL 16 evidence; it remains unpushed with this batch. The checklist is 424 checked / 21 open (445 total); the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–422 have not been rolled out. Live provider parity, correction policy, earlier-time EAS pagination/late-arrival reconciliation, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -21,6 +21,14 @@ Nine producer helpers now have paired failure and connection-free fallback
 regressions; 158 focused tests pass across outbox, weather, remote-sensing, and
 attestation contracts. This does not close live provider/PostgreSQL recovery
 acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
+
+- The market-data importer now propagates World Bank failures instead of
+  treating bundled samples as provider success. Live and explicit-seed source
+  keys are separate; provider payload validation happens before the database
+  opens; and prices plus accurate `ingestion_log` counts commit atomically.
+  Sixteen focused mocked tests, Ruff, and compilation pass. No provider or
+  database was accessed; historical correction behavior and live parity remain
+  open ([evidence](builds/2026-10-16-recovery/market-data-provider-atomicity.json)).
 
 - ClickHouse outbox failures now use capped exponential retry delays (60 seconds
   through one hour), including client-setup failures; the retry schedule is
@@ -46,7 +54,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **423 checked and 21 open items (444 total)**,
+- The execution checklist has **424 checked and 21 open items (445 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -136,7 +144,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
 - A local KGP indexer change reconnects with a five-second timeout for each
   scan cycle, preserving lease ownership/reclaim semantics while containing
   rollback and failure-recording errors on a broken database connection.
-  Fifteen focused KGP/guild tests pass. The current disposable check replays
+  Sixteen focused KGP/guild tests pass. The current disposable check replays
   all 393 ordered PostgreSQL schema sources in separate transactions and
   records checksums. The real indexer processes synthetic `GuildCreated`,
   `DomainCreated`, and `TaskCreated` logs, confirms each projection links to its

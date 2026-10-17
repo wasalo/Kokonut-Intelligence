@@ -4209,9 +4209,9 @@
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:351:8",
+      "id": "services/ingestion/market_data.py:350:8",
       "source": "services/ingestion/market_data.py",
-      "line": 351,
+      "line": 350,
       "column": 8,
       "scope": "insert_price",
       "method": "execute",
@@ -4226,9 +4226,9 @@
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:376:8",
+      "id": "services/ingestion/market_data.py:375:8",
       "source": "services/ingestion/market_data.py",
-      "line": 376,
+      "line": 375,
       "column": 8,
       "scope": "insert_price",
       "method": "execute",
@@ -4243,9 +4243,9 @@
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:393:12",
+      "id": "services/ingestion/market_data.py:396:12",
       "source": "services/ingestion/market_data.py",
-      "line": 393,
+      "line": 396,
       "column": 12,
       "scope": "run_seed_data",
       "method": "execute",
@@ -4260,9 +4260,9 @@
       ]
     },
     {
-      "id": "services/ingestion/market_data.py:448:12",
+      "id": "services/ingestion/market_data.py:493:12",
       "source": "services/ingestion/market_data.py",
-      "line": 448,
+      "line": 493,
       "column": 12,
       "scope": "run_world_bank",
       "method": "execute",

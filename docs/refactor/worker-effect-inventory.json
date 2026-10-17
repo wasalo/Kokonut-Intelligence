@@ -325,7 +325,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/market_data.py",
-          "line": 191,
+          "line": 189,
           "function": "services.ingestion.market_data:download_pink_sheet",
           "category": "http",
           "call": "services.common.http.http.get"

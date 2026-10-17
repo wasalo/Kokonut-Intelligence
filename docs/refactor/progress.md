@@ -1,5 +1,25 @@
 # Kokonut Kernel implementation progress
 
+### Market-data provider failure and transaction boundaries — 16 October 2026
+
+World Bank Pink Sheet download failures no longer fall back silently to the
+bundled reference dataset. Empty or unmatched provider responses now fail
+before PostgreSQL opens, and the dependency error for `openpyxl` is explicit.
+Live observations and explicit seed samples use separate source keys. Each
+price batch and its `ingestion_log` entry now commit atomically; the audit
+records actual inserted rows when duplicate natural keys are ignored. A failed
+insert or audit write rolls the full batch back.
+
+Sixteen focused market-data checks pass, including no-database provider
+failures, live/seed separation, exact insert counts, and rollback behavior;
+Ruff and compilation pass. All provider and database boundaries were mocked.
+No live provider, schedule, candidate, or legacy database was touched.
+Historical price corrections, provider parity, configured owner/cadence, and
+runtime recovery remain open, so MAN-CAP-040/047 remain unaccepted
+([tests](../../tests/test_market_data_recovery.py);
+[evidence](builds/2026-10-16-recovery/market-data-provider-atomicity.json);
+[operation map](worker-operation-map.json)).
+
 ### EAS recipient cursor recovery — 16 October 2026
 
 EAS ingestion previously reused a chain-wide maximum timestamp across separate
@@ -7069,7 +7089,7 @@ severity always requires approval. Exact retries return the existing intent
 without changing approval, delivery, response, or lifecycle state. The worker
 role receives function EXECUTE only and no direct `actuation_log` access.
 
-Fifteen focused PostgreSQL 16 checks pass in a loopback-only disposable
+Sixteen focused PostgreSQL 16 checks pass in a loopback-only disposable
 container. They cover migration apply/replay, missing and wrong scope, source
 and alert mismatches, canonical rule-derived command/topic/payload, critical
 approval override, configured warning approval, warning auto-pending behavior,
