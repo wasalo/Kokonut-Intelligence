@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "Canonical ClickHouse outbox enqueue and delivery failures",
+  "behavior": {
+    "enqueue_failures": "The outbox preserves OutboxEnqueueError type and transactional behavior while suppressing the underlying database exception text.",
+    "delivery_failures": "ClickHouse transport exception details are replaced with a bounded message containing only the exception class before durable last_error storage.",
+    "logs": "Delivery logs contain the event key and exception class, not provider exception text. Client setup failures were already class-only and remain unchanged."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_clickhouse_outbox.py tests/test_ingestion_outbox_producers.py tests/test_rpc_indexer_recovery.py tests/test_gnosis_indexer_recovery.py tests/test_eas_indexer_recovery.py tests/test_remote_sensing_scheduler_contract.py -q",
+    "result": "101 passed",
+    "coverage": [
+      "enqueue database failure is fixed-message and suppresses raw exception context",
+      "projection conflict remains a distinct typed error",
+      "transport failure durable state and logs omit secret-bearing provider detail",
+      "retry timing, partial batch completion, transaction ownership, rollback, and upstream producer failure contracts"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "database_or_provider_access": "none"
+  },
+  "limitations": [
+    "No ClickHouse endpoint or PostgreSQL database was contacted.",
+    "This does not close real ClickHouse recovery, delivery parity, or production alert routing."
+  ]
+}

@@ -3,12 +3,11 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch — 17 October 2026:** Commit
-`5bb7457df3a6109379a920dccce6d3fd6e73e260` adds freshness-alert containment,
-refreshed worker/runtime inventories, EAS timestamp/replay/offset guards,
-Gnosis provider error containment, and corrections for the two stale CI #408
-test contracts. Security #133 passed; CI #409 is in progress. The full affected
-climate-worker and oracle-infrastructure modules pass 43 tests locally; hosted
-confirmation is required ([CI #408 evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
+`541d3eb0d424d214fd5814af8fa936678569ce60` adds sanitized provider-failure
+reporting across remote sensing and both EAS indexers, plus regression evidence
+and refreshed worker/runtime inventories. Security #134 passed and CI #410 is in progress. The previous pushed batch `5bb7457d` corrected the two stale
+CI #408 contracts; affected climate-worker/oracle modules pass 43 tests locally
+([CI #408 evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
 CI #406 exposed stale generated line references in the report-generator
 helper-scope inventory; the artifact was regenerated and its exact local check
 passes. Earlier the ARM64 acceptance commit
@@ -87,7 +86,7 @@ failed on two stale test contracts in pushed commit `4f5be68d`; both fixes are
 in the next local batch. Historical receipt reconciliation, removed-log/deep-reorg
 recovery, and live provider acceptance remain open
 ([evidence](builds/2026-10-17-recovery/gnosis-error-sanitization.json)).
-**Local remote-sensing error-containment follow-up — 17 October 2026:** signed
+**Pushed remote-sensing error-containment follow-up — 17 October 2026:** signed
 and legacy remote-sensing job paths now normalize provider errors before
 attempt/job persistence and scheduler output; provider adapter logs retain only
 exception classes. Legacy ClickHouse outbox failures keep their type and
@@ -96,7 +95,8 @@ worker/scheduler/automation
 checks pass with Ruff, and no provider or database was contacted. Source parity
 and MAN-CAP acceptance remain open
 ([evidence](builds/2026-10-17-recovery/remote-sensing-error-sanitization.json)).
-**Local EAS error-containment follow-up — 17 October 2026:** legacy and
+This slice is in commit `541d3eb0`.
+**Pushed EAS error-containment follow-up — 17 October 2026:** legacy and
 isolated EAS indexing now remove raw provider details from chain status,
 ingestion audit, logs, and scheduler errors. Outbox failure keeps its typed
 exception and rollback semantics with a fixed message; isolated persistence
@@ -104,6 +104,16 @@ wrappers suppress raw database exception context. The 184-test EAS/provider/
 scheduler/operation-map suite and Ruff pass. No provider or database was
 contacted; live endpoint recovery and pagination remain open
 ([evidence](builds/2026-10-17-recovery/eas-error-sanitization.json)).
+This slice is in commit `541d3eb0`.
+**Current local ClickHouse outbox error-containment follow-up — 17 October
+2026:** the shared outbox now suppresses database exception causes on enqueue
+failure and persists/logs only fixed delivery summaries and exception classes.
+The focused outbox/producer suite passes 101 tests with Ruff. No database or
+ClickHouse endpoint was contacted; runtime delivery acceptance remains open
+([evidence](builds/2026-10-17-recovery/clickhouse-outbox-error-sanitization.json)).
+The legacy subgraph caller also sanitizes provider/status/audit/log errors and
+preserves typed outbox rollback; three focused mocked tests pass with Ruff
+([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
 **Code-first follow-up — 17 October 2026:** the legacy freshness-alert
 sender now closes webhook responses on success and failure, retains only an
 HTTP status or exception class for webhook/SMTP failures, and preserves the last

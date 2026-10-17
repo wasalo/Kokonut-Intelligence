@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "5bb7457df3a6109379a920dccce6d3fd6e73e260",
+  "baseline_commit": "541d3eb0d424d214fd5814af8fa936678569ce60",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3331,6 +3331,7 @@
         "tests/test_strategy_map.py",
         "tests/test_strategy_monitoring.py",
         "tests/test_strategy_portfolio_execution.py",
+        "tests/test_subgraph_indexer_recovery.py",
         "tests/test_swot.py",
         "tests/test_swot_enhanced.py",
         "tests/test_technology_roadmap.py",
@@ -4461,6 +4462,7 @@
     "tests/test_strategy_review.py",
     "tests/test_strategy_risk_evidence.py",
     "tests/test_strategy_variance.py",
+    "tests/test_subgraph_indexer_recovery.py",
     "tests/test_swot.py",
     "tests/test_swot_enhanced.py",
     "tests/test_systems_thinking.py",

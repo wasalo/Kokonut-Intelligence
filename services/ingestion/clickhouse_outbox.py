@@ -80,8 +80,8 @@ def enqueue(
         return str(row[0])
     except OutboxEnqueueError:
         raise
-    except Exception as exc:
-        raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from exc
+    except Exception:
+        raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from None
 
 
 def _recover_expired(conn) -> None:
@@ -207,8 +207,12 @@ def deliver_batch(conn, worker_id: str, limit: int = 100) -> dict[str, int]:
                                             "insert_deduplication_token": token})
                 inserted = True
             except Exception as exc:
-                logger.warning("ClickHouse outbox delivery failed for %s: %s", row["event_key"], exc)
-                error = str(exc)
+                logger.warning(
+                    "ClickHouse outbox delivery failed for %s (%s)",
+                    row["event_key"],
+                    type(exc).__name__,
+                )
+                error = f"ClickHouse delivery failed ({type(exc).__name__})"
             # Database failure is not a transport failure. Let it propagate;
             # durable leases recover unfinished rows after expiry.
             ok = _finish(conn, str(row["id"]), worker_id, str(row["lease_token"]),

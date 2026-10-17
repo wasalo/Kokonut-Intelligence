@@ -2550,7 +2550,7 @@
         {
           "function": "services.ingestion.clickhouse_outbox:main",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 352
+          "line": 356
         }
       ],
       "reachable_functions": [
@@ -2568,7 +2568,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 333
+          "line": 337
         }
       ],
       "direct_call_edges": [
@@ -2576,7 +2576,7 @@
           "caller": "services.ingestion.clickhouse_outbox:main",
           "callee": "services.common.cli:run",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 348
+          "line": 352
         }
       ],
       "callback_edges": [],

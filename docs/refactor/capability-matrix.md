@@ -81,6 +81,17 @@ Ruff pass without live provider or database access. Live pagination, recovery,
 and MAN-CAP acceptance remain open
 ([evidence](builds/2026-10-17-recovery/eas-error-sanitization.json)).
 
+**17 October 2026 ClickHouse outbox error containment (CAP-040 / CAP-047):**
+enqueue errors remain typed and transactional while hiding raw database causes;
+delivery failures now persist a bounded class-only summary and logs omit
+provider response/exception text. The 101-test outbox and producer suite plus
+Ruff pass without database or ClickHouse access. Live delivery recovery and
+MAN-CAP acceptance remain open
+([evidence](builds/2026-10-17-recovery/clickhouse-outbox-error-sanitization.json)).
+The legacy subgraph caller also redacts provider failures from durable status,
+audit, and logs; its three mocked failure-path checks and Ruff pass without
+external access ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
+
 **16 October 2026 RPC wallet transaction integrity (CAP-040 / CAP-047):**
 wallet activity, chain status, and ClickHouse outbox intent now share one
 transaction, with per-wallet savepoints and explicit partial-failure status.

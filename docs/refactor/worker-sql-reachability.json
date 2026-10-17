@@ -4629,9 +4629,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:230:8",
+      "id": "services/ingestion/clickhouse_outbox.py:234:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 230,
+      "line": 234,
       "scope": "reconcile_pending",
       "method": "execute",
       "expression_kind": "literal",
@@ -4658,9 +4658,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:251:12",
+      "id": "services/ingestion/clickhouse_outbox.py:255:12",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 251,
+      "line": 255,
       "scope": "_operator_transition",
       "method": "execute",
       "expression_kind": "literal",
@@ -4690,9 +4690,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:298:8",
+      "id": "services/ingestion/clickhouse_outbox.py:302:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 298,
+      "line": 302,
       "scope": "list_dead_letters",
       "method": "execute",
       "expression_kind": "literal",

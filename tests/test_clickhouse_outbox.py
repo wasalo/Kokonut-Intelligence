@@ -91,11 +91,11 @@ def test_enqueue_failure_has_a_distinct_transactional_error(failure):
     conn = MagicMock()
     cursor = conn.cursor.return_value.__enter__.return_value
     if failure == "database":
-        cursor.execute.side_effect = RuntimeError("database unavailable")
+        cursor.execute.side_effect = RuntimeError("database failed with token enqueue-secret")
     else:
         cursor.fetchone.return_value = None
 
-    with pytest.raises(OutboxEnqueueError):
+    with pytest.raises(OutboxEnqueueError) as error:
         enqueue(
             conn,
             event_key="event:1",
@@ -107,6 +107,15 @@ def test_enqueue_failure_has_a_distinct_transactional_error(failure):
             payload_hash="a" * 64,
         )
 
+    expected = (
+        "Could not enqueue the canonical ClickHouse projection"
+        if failure == "database"
+        else "Outbox event key conflicts with an existing projection"
+    )
+    assert str(error.value) == expected
+    if failure == "database":
+        assert error.value.__suppress_context__ is True
+        assert "enqueue-secret" not in str(error.value)
     conn.commit.assert_not_called()
 
 
@@ -200,14 +209,17 @@ def test_setup_outcome_database_failure_propagates_without_retrying_finish(monke
     assert finishes == ["one"]
 
 
-def test_partial_batch_keeps_independent_insert_and_outcome_results(monkeypatch):
+def test_partial_batch_sanitizes_delivery_errors_and_keeps_independent_outcomes(monkeypatch):
     _enable_clickhouse(monkeypatch)
     rows = [_row("success"), _row("failure")]
     client = MagicMock()
-    client.raw_insert.side_effect = [None, ConnectionError("connection lost")]
+    secret = "clickhouse-provider-secret"
+    client.raw_insert.side_effect = [None, ConnectionError(f"https://ch.example/?token={secret}")]
     finished = []
+    logger = MagicMock()
     monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: rows)
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: client)
+    monkeypatch.setattr(clickhouse_outbox.logger, "warning", logger.warning)
     monkeypatch.setattr(
         clickhouse_outbox,
         "_finish",
@@ -220,7 +232,9 @@ def test_partial_batch_keeps_independent_insert_and_outcome_results(monkeypatch)
 
     assert result == {"claimed": 2, "delivered": 1, "failed": 1}
     assert [outcome[:2] for outcome in finished] == [("success", True), ("failure", False)]
-    assert finished[1][2] == "connection lost"
+    assert finished[1][2] == "ClickHouse delivery failed (ConnectionError)"
+    assert secret not in str(finished[1])
+    assert secret not in str(logger.warning.call_args)
     assert finished[1][3] == 60
     assert client.raw_insert.call_count == 2
     client.close.assert_called_once()

@@ -13,7 +13,6 @@ Usage:
 
 import argparse
 import json
-import sys
 import time
 from datetime import datetime, timezone
 
@@ -22,7 +21,6 @@ from services.common.http import http
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry, update_indexer_status
 from .clickhouse_outbox import OutboxEnqueueError, enqueue
-from .config import CH_HOST, CH_PASSWORD, CH_PORT, CH_USER, EAS_GRAPHQL_URL
 
 logger = get_logger("ingestion.subgraph")
 
@@ -97,9 +95,7 @@ def insert_attestation(db, att: dict, schema_map: dict) -> str:
     """Insert attestation record into PostgreSQL."""
     schema_id = schema_map.get(att["schema"]["id"])
     attestation_uid = att["id"]
-    block_ts = datetime.fromtimestamp(
-        int(att["blockTimestamp"]), tz=timezone.utc
-    ).isoformat()
+    datetime.fromtimestamp(int(att["blockTimestamp"]), tz=timezone.utc)
 
     with db.cursor() as cur:
         cur.execute(
@@ -164,7 +160,7 @@ def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
     except Exception as e:
         if conn is not None:
             raise
-        logger.warning("ClickHouse insert failed: %s", e)
+        logger.warning("ClickHouse insert failed (%s)", type(e).__name__)
 
 
 def insert_schema(db, sch: dict) -> str:
@@ -269,9 +265,10 @@ def run(protocol: str = None):
         except OutboxEnqueueError:
             db.rollback()
             db.close()
-            raise
+            raise OutboxEnqueueError("ClickHouse outbox enqueue failed") from None
         except Exception as e:
-            update_indexer_status("ethereum", "subgraph", last_block, "error", str(e))
+            safe_error = f"Subgraph indexing failed ({type(e).__name__})"
+            update_indexer_status("ethereum", "subgraph", last_block, "error", safe_error)
             log_ingestion(
                 source_system="subgraph",
                 source_table=f"{proto}_data",
@@ -281,9 +278,9 @@ def run(protocol: str = None):
                 operation="batch_insert",
                 payload_hash="",
                 status="failed",
-                error_message=str(e),
+                error_message=safe_error,
             )
-            logger.error("  ✗ Error: %s", e)
+            logger.error("  ✗ Subgraph indexing failed (%s)", type(e).__name__)
 
     db.commit()
     db.close()

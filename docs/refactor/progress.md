@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### ClickHouse outbox error containment — 17 October 2026
+
+The canonical outbox now hides database exception text behind its fixed typed
+enqueue failure and stores/logs only the ClickHouse exception class for failed
+delivery. Transaction ownership, rollback, retry timing, and per-row outcomes
+remain unchanged. The 101-test outbox/producer recovery suite and Ruff pass;
+no database or provider was contacted. Real delivery recovery remains open
+([evidence](builds/2026-10-17-recovery/clickhouse-outbox-error-sanitization.json)).
+
+The legacy subgraph indexer now redacts provider/DB exceptions before status,
+audit, and log reporting, and preserves typed outbox rollback with a fixed
+message. Its three focused mocked failure-boundary tests pass with Ruff; no
+endpoint or database was contacted
+([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
+
 ### Remote-sensing provider error containment — 17 October 2026
 
 The signed worker and legacy remote-sensing job runner now replace provider
@@ -12,6 +27,7 @@ The 74-test mocked remote-sensing worker/scheduler/automation suite passes with
 Ruff; no provider or database was contacted. Live source parity, credential
 provisioning, active schedule reconciliation, and MAN-CAP acceptance remain
 open ([evidence](builds/2026-10-17-recovery/remote-sensing-error-sanitization.json)).
+This slice was pushed to PR #68 in commit `541d3eb0`.
 
 ### EAS provider error containment — 17 October 2026
 
@@ -23,6 +39,7 @@ errors suppress the underlying database exception text. The 184-test
 EAS/provider/scheduled-command/operation-map suite and Ruff pass. No provider
 or database was contacted. Live provider pagination and recovery remain open
 ([evidence](builds/2026-10-17-recovery/eas-error-sanitization.json)).
+This slice was pushed to PR #68 in commit `541d3eb0`.
 
 ### Gnosis provider error containment — 17 October 2026
 
