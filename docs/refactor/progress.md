@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Forecast failure containment — 17 October 2026
+
+Forecast batch errors no longer expose scenario names or raw exception text;
+best-effort dashboard projection errors are class-only, and any opened database
+connection closes after failure. Two mocked regressions pass within the
+ten-test forecast suite with Ruff and compilation; no database or BI consumer
+was used
+([evidence](builds/2026-10-17-recovery/forecast-error-redaction.json)).
+
 ### Spatial cross-validation error containment — 17 October 2026
 
 Spatial block and leave-one-out fold failures now return a bounded operation

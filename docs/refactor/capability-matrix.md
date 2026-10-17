@@ -404,6 +404,13 @@ existing cross-validator checks pass with Ruff and compilation; no database or
 model-fitting provider was used
 ([evidence](builds/2026-10-17-recovery/spatial-cv-error-redaction.json)).
 
+**17 October 2026 forecast error containment (CAP-002 / CAP-047):** batch
+scenario failures and best-effort dashboard-write failures omit raw exception
+details; dashboard projection connections close on both successful and failed
+writes. Two mocked regressions pass within the ten-test forecast suite with
+Ruff and compilation; no database or BI consumer was used
+([evidence](builds/2026-10-17-recovery/forecast-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

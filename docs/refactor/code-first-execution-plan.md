@@ -240,6 +240,11 @@ prediction failures while retaining aggregate fold behavior; two new mocked
 regressions and six existing cross-validator checks pass with Ruff and
 compilation
 ([evidence](builds/2026-10-17-recovery/spatial-cv-error-redaction.json)).
+Forecast batch and dashboard-projection failures are now class-only, the
+scenario name is omitted from failure output, and the dashboard connection
+closes on failed writes; two mocked regressions pass within the forecast suite
+with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/forecast-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

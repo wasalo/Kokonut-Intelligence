@@ -5,35 +5,48 @@ Main orchestrator that reads scenario assumptions, pulls historical
 data, calculates forecasts, and writes results to the database.
 """
 
-import json
 import hashlib
+import json
 import uuid
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
+from services.common.logging import get_logger
+
 from ..ingestion.base import get_db
-from .config import CALCULATION_VERSION, CONFIDENCE_LEVEL, AUTO_CALIBRATION_ENABLED
+from .config import AUTO_CALIBRATION_ENABLED, CALCULATION_VERSION, CONFIDENCE_LEVEL
+from .cost_forecast import allocate_shared_costs, get_historical_costs, project_costs
+from .ecology import (
+    estimate_biodiversity_value,
+    estimate_carbon_sequestration,
+    get_ecological_baseline,
+    project_ecological_score,
+)
 from .models import (
-    PriceAssumptions, YieldAssumptions, CostAssumptions,
-    GrowthAssumptions, ScenarioAssumptions,
+    CostAssumptions,
+    GrowthAssumptions,
+    PriceAssumptions,
+    ScenarioAssumptions,
+    YieldAssumptions,
 )
 from .pricing import get_historical_avg_prices, project_prices
-from .yield_forecast import (
-    get_crop_areas_for_location, project_yields, calculate_total_yield,
-    get_historical_loss_rate, apply_loss_adjustment,
-    get_bed_areas_for_location, project_yields_per_sqm,
-)
-from .cost_forecast import get_historical_costs, project_costs, allocate_shared_costs
-from .ecology import (
-    get_ecological_baseline, project_ecological_score,
-    estimate_carbon_sequestration, estimate_biodiversity_value,
-)
 from .risk import (
-    calculate_risk_factor, risk_adjust_noi, risk_adjust_revenue,
     calculate_confidence_interval,
+    calculate_risk_factor,
+    risk_adjust_noi,
+    risk_adjust_revenue,
+)
+from .yield_forecast import (
+    apply_loss_adjustment,
+    calculate_total_yield,
+    get_bed_areas_for_location,
+    get_crop_areas_for_location,
+    get_historical_loss_rate,
+    project_yields,
+    project_yields_per_sqm,
 )
 
 # Thresholds for data staleness warnings (days)
@@ -44,6 +57,8 @@ _STALE_THRESHOLDS = {
     "harvest_event": 365,
     "sensor_reading": 30,
 }
+
+logger = get_logger("forecast.engine")
 
 
 def _check_data_freshness(location_id: str) -> List[str]:
@@ -295,7 +310,6 @@ def run_forecast(scenario_id: str) -> Dict[str, Any]:
     public_goods = total_revenue * 0.10
 
     # Build outputs
-    now = datetime.now(timezone.utc)
     period_start = scenario.get("assumptions", {}).get("period", "").split(" to ")[0] if scenario.get("assumptions", {}).get("period") else "2026-04-01"
     period_end = scenario.get("assumptions", {}).get("period", "").split(" to ")[1] if scenario.get("assumptions", {}).get("period") and " to " in scenario.get("assumptions", {}).get("period", "") else "2027-03-31"
 
@@ -644,6 +658,7 @@ def _write_dashboard_dataset(
     outputs: List[Dict[str, Any]], scenario_type: str,
 ) -> None:
     """Write forecast summary to dashboard_dataset for BI integration."""
+    db = None
     try:
         summary = {}
         for out in outputs:
@@ -678,9 +693,19 @@ def _write_dashboard_dataset(
                 }),
             ))
         db.commit()
-        db.close()
-    except Exception as e:
-        print(f"[Forecast] Warning: Failed to write dashboard_dataset: {e}")
+    except Exception as exc:
+        logger.warning(
+            "Forecast dashboard dataset write failed (%s)", type(exc).__name__
+        )
+    finally:
+        if db is not None:
+            try:
+                db.close()
+            except Exception as exc:
+                logger.warning(
+                    "Forecast dashboard dataset connection close failed (%s)",
+                    type(exc).__name__,
+                )
 
 
 def run_all_scenarios(location_id: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -705,8 +730,15 @@ def run_all_scenarios(location_id: Optional[str] = None) -> List[Dict[str, Any]]
             result = run_forecast(str(sc["id"]))
             results.append(result)
             print(f"  ✓ {sc['name']}: NOI=${result['total_noi']:,.2f}, Margin={result['operating_margin_pct']:.1f}%")
-        except Exception as e:
-            print(f"  ✗ {sc['name']}: {e}")
-            results.append({"scenario_id": str(sc["id"]), "error": str(e)})
+        except Exception as exc:
+            logger.warning(
+                "Forecast scenario %s failed (%s)",
+                sc["id"],
+                type(exc).__name__,
+            )
+            results.append({
+                "scenario_id": str(sc["id"]),
+                "error": f"forecast scenario failed ({type(exc).__name__})",
+            })
 
     return results
