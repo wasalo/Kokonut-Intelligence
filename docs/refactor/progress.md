@@ -2,10 +2,11 @@
 
 ### Durable worker history output containment — 17 October 2026
 
-Scheduler run history and event dead-letter listings now show that error
-details exist without printing historical persisted diagnostic text. Record
-identity, event/failure state, and connection cleanup remain. Two mocked CLI
-checks pass with Ruff and compilation; no database or worker was accessed
+Scheduler run history, event dead-letter listings, and the MQTT delivery
+recovery list now show that error details exist without printing historical
+persisted diagnostic text. Record identity, event/delivery state, attempt
+counts, and connection cleanup remain. Three mocked CLI checks pass with Ruff
+and compilation; no database or worker was accessed
 ([evidence](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json)).
 
 ### Ingestion status output containment — 17 October 2026

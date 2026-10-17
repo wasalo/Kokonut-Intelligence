@@ -543,11 +543,11 @@ does not close TLS, authenticated transport, tenant-scope, or MAN-CAP-064
 acceptance ([evidence](builds/2026-10-17-recovery/grpc-health-error-redaction.json)).
 
 **17 October 2026 durable worker history output containment (CAP-047):**
-scheduler-run and event dead-letter listings now retain failure state and
-record identity while redacting persisted raw errors from earlier attempts.
-Two mocked CLI checks pass with Ruff and compilation; no database or worker
-was accessed. This source-level display change does not substitute for live
-worker retry or dead-letter acceptance
+scheduler-run, event dead-letter, and MQTT delivery listings now retain their
+failure state and record identity while redacting persisted raw errors from
+earlier attempts. Three mocked CLI checks pass with Ruff and compilation; no
+database or worker was accessed. This source-level display change does not
+substitute for live worker retry or dead-letter acceptance
 ([evidence](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json)).
 
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
