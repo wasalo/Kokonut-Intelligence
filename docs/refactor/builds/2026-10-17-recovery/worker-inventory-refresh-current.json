@@ -1,7 +1,7 @@
 {
   "format": 1,
   "date": "2026-10-17",
-  "scope": "Regenerated static worker and runtime SQL inventories after EAS provider extraction/timestamp validation and freshness-alert delivery/state changes; source analysis only",
+  "scope": "Regenerated static worker and runtime SQL inventories after EAS provider, timestamp-range, and replay changes plus freshness-alert delivery/state changes; source analysis only",
   "result": "passed",
   "focused_tests": 50,
   "test_files": [

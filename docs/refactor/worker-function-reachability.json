@@ -6,8 +6,8 @@
     "operation_roots": 31,
     "source_files": 92,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 624,
-    "direct_call_edges": 850,
+    "function_memberships": 625,
+    "direct_call_edges": 852,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -4011,12 +4011,12 @@
         {
           "function": "services.common.cli:run",
           "source": "services/ingestion/eas_worker.py",
-          "line": 248
+          "line": 274
         },
         {
           "function": "services.ingestion.eas_worker:main",
           "source": "services/ingestion/eas_worker.py",
-          "line": 248
+          "line": 274
         }
       ],
       "reachable_functions": [
@@ -4074,12 +4074,20 @@
           "qualname": "_fetch_wallet_pages",
           "class_scope": null,
           "source": "services/ingestion/eas_worker.py",
-          "line": 34
+          "line": 40
         },
         {
           "key": "services.ingestion.eas_worker:_hash_payload",
           "module": "services.ingestion.eas_worker",
           "qualname": "_hash_payload",
+          "class_scope": null,
+          "source": "services/ingestion/eas_worker.py",
+          "line": 36
+        },
+        {
+          "key": "services.ingestion.eas_worker:_validated_replay_lookback",
+          "module": "services.ingestion.eas_worker",
+          "qualname": "_validated_replay_lookback",
           "class_scope": null,
           "source": "services/ingestion/eas_worker.py",
           "line": 30
@@ -4090,7 +4098,7 @@
           "qualname": "ingest",
           "class_scope": null,
           "source": "services/ingestion/eas_worker.py",
-          "line": 144
+          "line": 154
         },
         {
           "key": "services.ingestion.eas_worker:main",
@@ -4098,7 +4106,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/eas_worker.py",
-          "line": 238
+          "line": 256
         }
       ],
       "direct_call_edges": [
@@ -4112,49 +4120,61 @@
           "caller": "services.ingestion.eas_worker:_fetch_wallet_pages",
           "callee": "services.ingestion.eas_provider:execute_eas_query",
           "source": "services/ingestion/eas_worker.py",
-          "line": 49
+          "line": 58
         },
         {
           "caller": "services.ingestion.eas_worker:_fetch_wallet_pages",
           "callee": "services.ingestion.eas_worker:_hash_payload",
           "source": "services/ingestion/eas_worker.py",
-          "line": 101
+          "line": 111
+        },
+        {
+          "caller": "services.ingestion.eas_worker:_fetch_wallet_pages",
+          "callee": "services.ingestion.eas_worker:_validated_replay_lookback",
+          "source": "services/ingestion/eas_worker.py",
+          "line": 51
         },
         {
           "caller": "services.ingestion.eas_worker:ingest",
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/ingestion/eas_worker.py",
-          "line": 150
+          "line": 161
         },
         {
           "caller": "services.ingestion.eas_worker:ingest",
           "callee": "services.ingestion.eas_worker:_fetch_wallet_pages",
           "source": "services/ingestion/eas_worker.py",
-          "line": 184
+          "line": 195
         },
         {
           "caller": "services.ingestion.eas_worker:ingest",
           "callee": "services.ingestion.eas_worker:_hash_payload",
           "source": "services/ingestion/eas_worker.py",
-          "line": 201
+          "line": 213
+        },
+        {
+          "caller": "services.ingestion.eas_worker:ingest",
+          "callee": "services.ingestion.eas_worker:_validated_replay_lookback",
+          "source": "services/ingestion/eas_worker.py",
+          "line": 158
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/eas_worker.py",
-          "line": 244
+          "line": 270
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/eas_worker.py",
-          "line": 242
+          "line": 268
         },
         {
           "caller": "services.ingestion.eas_worker:main",
           "callee": "services.ingestion.eas_worker:ingest",
           "source": "services/ingestion/eas_worker.py",
-          "line": 244
+          "line": 270
         }
       ],
       "callback_edges": [],

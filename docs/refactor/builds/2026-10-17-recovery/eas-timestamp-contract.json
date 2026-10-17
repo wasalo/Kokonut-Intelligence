@@ -6,11 +6,11 @@
     "services/ingestion/eas_worker.py",
     "tests/test_eas_worker.py"
   ],
-  "focused_tests": 6,
+  "focused_tests": 7,
   "result": "passed",
   "checks": [
     "Reject missing and null attestation timestamps before page persistence",
-    "Reject boolean, negative, fractional, and malformed string timestamps",
+    "Reject boolean, negative, fractional, malformed, and out-of-range timestamps",
     "Do not advance the recipient cursor after any invalid timestamp"
   ],
   "combined_suite": {
@@ -19,7 +19,7 @@
       "tests/test_eas_provider.py",
       "tests/test_eas_indexer_recovery.py"
     ],
-    "tests": 28,
+    "tests": 34,
     "result": "passed"
   },
   "additional_checks": {

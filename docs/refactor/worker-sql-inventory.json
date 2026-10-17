@@ -4160,9 +4160,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:108:20",
+      "id": "services/ingestion/eas_worker.py:118:20",
       "source": "services/ingestion/eas_worker.py",
-      "line": 108,
+      "line": 118,
       "column": 20,
       "scope": "_fetch_wallet_pages",
       "method": "execute",
@@ -4175,9 +4175,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:130:12",
+      "id": "services/ingestion/eas_worker.py:140:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 130,
+      "line": 140,
       "column": 12,
       "scope": "_fetch_wallet_pages",
       "method": "execute",
@@ -4190,9 +4190,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:157:12",
+      "id": "services/ingestion/eas_worker.py:168:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 157,
+      "line": 168,
       "column": 12,
       "scope": "ingest",
       "method": "execute",
@@ -4205,9 +4205,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:165:12",
+      "id": "services/ingestion/eas_worker.py:176:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 165,
+      "line": 176,
       "column": 12,
       "scope": "ingest",
       "method": "execute",
@@ -4222,9 +4222,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:174:16",
+      "id": "services/ingestion/eas_worker.py:185:16",
       "source": "services/ingestion/eas_worker.py",
-      "line": 174,
+      "line": 185,
       "column": 16,
       "scope": "ingest",
       "method": "execute",
@@ -4237,9 +4237,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:203:12",
+      "id": "services/ingestion/eas_worker.py:221:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 203,
+      "line": 221,
       "column": 12,
       "scope": "ingest",
       "method": "execute",
@@ -4252,9 +4252,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_worker.py:228:20",
+      "id": "services/ingestion/eas_worker.py:246:20",
       "source": "services/ingestion/eas_worker.py",
-      "line": 228,
+      "line": 246,
       "column": 20,
       "scope": "ingest",
       "method": "execute",

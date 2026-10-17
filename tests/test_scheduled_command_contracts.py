@@ -105,6 +105,10 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.eas_indexer", ["--chain", "ethereum"]),
         ("services.ingestion.eas_indexer", ["--chain", "celo", "--chain", "base"]),
         ("services.ingestion.eas_worker", ["--chain", "celo", "--chain", "base"]),
+        (
+            "services.ingestion.eas_worker",
+            ["--chain", "celo", "--replay-lookback-seconds", "3600"],
+        ),
         ("services.ingestion.rpc_indexer", []),
         ("services.ingestion.rpc_indexer", ["--wallet", "0x" + "a" * 40]),
         ("services.ingestion.rpc_indexer", ["--chain", "polygon"]),

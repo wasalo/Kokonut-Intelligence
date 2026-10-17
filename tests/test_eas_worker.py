@@ -54,6 +54,7 @@ def test_worker_help_imports_without_shared_database_environment():
 
     assert result.returncode == 0, result.stderr
     assert "--chain" in result.stdout
+    assert "--replay-lookback-seconds" in result.stdout
 
 
 class _Cursor:
@@ -132,6 +133,31 @@ def test_worker_requires_an_explicit_chain_before_database_access(monkeypatch):
         pytest.raises(SystemExit),
     ):
         eas_worker.main()
+    get_db.assert_not_called()
+
+
+def test_worker_rejects_negative_replay_lookback_before_database_access(monkeypatch):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["eas_worker", "--chain", "celo", "--replay-lookback-seconds", "-1"],
+    )
+    with (
+        patch.object(eas_worker, "is_enabled", return_value=True),
+        patch.object(eas_worker, "get_worker_db") as get_db,
+        pytest.raises(SystemExit),
+    ):
+        eas_worker.main()
+    get_db.assert_not_called()
+
+
+@pytest.mark.parametrize("lookback", [-1, True, 1.5])
+def test_ingest_rejects_invalid_replay_lookback_before_database_access(monkeypatch, lookback):
+    with (
+        patch.object(eas_worker, "get_worker_db") as get_db,
+        pytest.raises(ValueError, match="non-negative integer"),
+    ):
+        eas_worker.ingest("celo", replay_lookback_seconds=lookback)
     get_db.assert_not_called()
 
 
@@ -220,6 +246,38 @@ def test_wallet_scan_stops_after_inclusive_cursor_boundary():
     assert connection.commits == 2
 
 
+def test_wallet_scan_can_replay_before_cursor_without_regressing_it():
+    connection = _Connection()
+    page = [
+        _attestation(uid=1, timestamp=200),
+        _attestation(uid=2, timestamp=150),
+        _attestation(uid=3, timestamp=99),
+    ]
+    with patch.object(eas_worker, "query_eas", return_value={"attestations": page}) as query:
+        inserted, cursor_time = eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=200,
+            replay_lookback_seconds=100,
+            sleep=lambda _seconds: None,
+        )
+
+    assert (inserted, cursor_time) == (1, 200)
+    query.assert_called_once_with(
+        "celo",
+        eas_worker.ATTESTATIONS_BY_RECIPIENT,
+        {"recipient": RECIPIENT, "after": 0},
+    )
+    page_write = next(params for statement, params in connection.statements if "store_eas_indexer_page" in statement)
+    persisted = json.loads(page_write[2])
+    assert [row["attestation"]["time"] for row in persisted] == ["200", "150"]
+    cursor_write = next(params for statement, params in connection.statements if "advance_eas_indexer_cursor" in statement)
+    assert cursor_write[2] == 200
+    assert connection.commits == 2
+
+
 def test_unordered_provider_page_fails_before_cursor_advance():
     connection = _Connection()
     page = [_attestation(uid=1, timestamp=199), _attestation(uid=2, timestamp=200)]
@@ -241,7 +299,7 @@ def test_unordered_provider_page_fails_before_cursor_advance():
     assert connection.commits == 0
 
 
-@pytest.mark.parametrize("timestamp", [None, True, -1, "not-a-time", 100.5])
+@pytest.mark.parametrize("timestamp", [None, True, -1, "not-a-time", 100.5, 253402300800])
 def test_invalid_attestation_timestamp_fails_before_persistence(timestamp):
     connection = _Connection()
     attestation = _attestation(timestamp=200)

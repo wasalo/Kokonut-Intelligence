@@ -24,7 +24,7 @@ tests pass with Ruff, compilation, and diff checks; all provider calls were
 mocked and no database was used. Destination ownership and live delivery remain
 open. A failed measurement also leaves the last known alert state intact, so a
 later fresh measurement can still emit the expected recovery event. Checklist
-count is 451 complete / 20 open (471 total); no MAN-CAP
+count is 452 complete / 20 open (472 total); no MAN-CAP
 acceptance changed
 ([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
 [state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
@@ -55,14 +55,30 @@ capability status and MAN-CAP acceptance are unchanged
 ### EAS attestation timestamp validation — 17 October 2026
 
 The isolated EAS worker now rejects missing, null, boolean, negative,
-fractional, or malformed attestation timestamps before persisting a provider
+fractional, malformed, or out-of-range attestation timestamps before persisting a provider
 page or advancing a recipient cursor. This prevents an invalid timestamp from
 being coerced to zero and silently discarded as older than the saved cursor.
-Six focused malformed-timestamp cases pass; the combined EAS provider/worker/
-cursor suite passes 28 tests with Ruff and compilation. All provider responses
+Seven focused malformed-timestamp cases pass; the combined EAS provider/worker/
+cursor suite passes 34 tests with Ruff and compilation. All provider responses
 were mocked; no EAS endpoint or database was contacted. Concurrent offset-page
 movement, earlier-than-cursor arrivals, and live provider acceptance remain
 open ([evidence](builds/2026-10-17-recovery/eas-timestamp-contract.json)).
+
+### Explicit EAS cursor replay — 17 October 2026
+
+The isolated EAS worker accepts an optional `--replay-lookback-seconds` for
+operator-selected recovery of provider records indexed late below the saved
+recipient cursor. Replayed pages use the existing idempotent database function,
+and the saved cursor never regresses. The zero-second default preserves normal
+scheduled behavior; negative, boolean, and fractional direct-call values fail
+before database access, and the CLI rejects negative input before connecting.
+Five focused replay/argument checks pass within the combined 34-test EAS suite,
+with Ruff and compilation. The 130-test scheduled-command contract suite also
+confirms scheduler invocations still accept only the explicit chain and reject
+the manual replay option. No provider or database was contacted. This only
+recovers records within the explicitly selected interval; arrivals outside it,
+offset-page stability, and live acceptance remain open
+([evidence](builds/2026-10-17-recovery/eas-explicit-replay-lookback.json)).
 
 ### EAS GraphQL error handling — 17 October 2026
 
