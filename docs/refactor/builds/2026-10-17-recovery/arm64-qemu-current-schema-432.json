@@ -57,11 +57,58 @@
     "protected_route": "not verified",
     "verification_note": "The acceptance harness stopped after Compose started the app because its image-inspection step passed the container manifest-list digest to docker image inspect instead of using the local image reference. The image was subsequently inspected by tag and its no-network ARM64 CLI help passed; no HTTP request was made before cleanup."
   },
+  "runtime_recheck": {
+    "checked_at_utc": "2026-10-17T15:44:05Z",
+    "source_revision": "5946216f94bba4fa98bc9296b4675e8b2a0f5bed",
+    "app_image_reference": "kokonut-kernel-qemu-20261017-432-app:latest",
+    "app_image_id": "sha256:b9ac11cb93598c560e0472dc5ca5e1590ae3c1d4bd123b4d9243b6b5f532ca5c",
+    "app_image_code_built_from_revision": "4805e62129a561856a4eff496e0a34d2e4a4bae2",
+    "compose_network_internal": true,
+    "app_healthcheck": "healthy",
+    "http_requests_from_inside_app_container": [
+      {
+        "method": "GET",
+        "path": "/health",
+        "status": 200,
+        "body": {
+          "status": "ok",
+          "audit_capture": "ok",
+          "service": "gateway",
+          "version": "0.1.0"
+        }
+      },
+      {
+        "method": "GET",
+        "path": "/operator/api/farm-activity-records?location_id=00000000-0000-4000-8000-000000000001",
+        "status": 401,
+        "body": {
+          "error": "Unauthorized",
+          "reason": "credentials_required"
+        }
+      }
+    ],
+    "host_loopback_probe": {
+      "configured_binding": "127.0.0.1:18118 -> 8099/tcp",
+      "curl_result": "failed to connect while the Compose network was internal",
+      "docker_host_config_binding_present": true,
+      "published_host_ingress_verified": false
+    },
+    "provider_calls_made": false,
+    "seeds_or_farm_data_loaded": false,
+    "cleanup": {
+      "compose_down_exit_code": 0,
+      "containers_removed": true,
+      "network_removed": true,
+      "volumes_removed": true,
+      "removal_verified_by_docker_inventory": true
+    }
+  },
   "resource_limits": "No explicit memory or CPU limits were applied in this run.",
-  "result": "Current schema replay through 432 and current-source ARM64 app image/CLI checks passed. ARM64 HTTP health and protected-route acceptance remain open.",
+  "result": "Current schema replay through 432, current-source ARM64 app health, in-container HTTP health (200), and anonymous protected-route denial (401) passed. Host-published loopback ingress, resource-bounded QEMU acceptance, and physical Raspberry Pi behavior remain open.",
   "limitations": [
     "This is QEMU evidence, not physical Raspberry Pi performance, thermal, storage, power-loss, network, or device behavior.",
     "The Compose bridge was not marked internal; no provider calls were made, but network egress was not explicitly disabled for migration replay.",
+    "The runtime recheck used an internal Compose network. Host-side curl could not reach the app at 127.0.0.1:18118; only in-container HTTP responses are accepted as passing here.",
     "No explicit resource limits were used in this current-schema run; earlier ARM64 acceptance separately records bounded QEMU limits.",
     "No seeds or farm data were applied. Candidate and legacy databases and services were not selected."
   ]

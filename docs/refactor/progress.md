@@ -52,14 +52,16 @@ hardware, live providers, persisted schedule parity, or production recovery
 
 A fresh QEMU project applied all 423 current schemas through migration 432 with
 zero failures and a zero-pending plan. The current-source ARM64 Gateway image
-built successfully, and its CLI help passed with networking disabled. The app
-container started after schema readiness. The acceptance harness then stopped
-before HTTP health/protected-route checks because its image-inspection step used
-the manifest-list digest instead of the local image tag; the image and CLI were
-verified independently afterward. The temporary project and volume were
-removed. This run used no explicit CPU/memory limits and did not test physical
-Pi behavior; current-schema ARM64 HTTP acceptance remains open
-([evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
+built successfully, and its CLI help passed with networking disabled. The
+first harness stopped before HTTP checks because it inspected the manifest-list
+digest instead of the local image tag. A fresh internal-network recheck applied
+all 423 schemas, started the app, and observed healthy Docker health. HTTP from
+inside the app returned `/health` 200 and anonymous farm-activity read 401
+`credentials_required`. Host-side curl could not reach the configured
+`127.0.0.1:18118` binding while the network was internal; published ingress
+remains open. The temporary project, network, and volumes were removed and
+verified absent. This run used no explicit CPU/memory limits and did not test
+physical Pi behavior ([evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
 
 ### Scheduled sensor input confinement — 17 October 2026
 

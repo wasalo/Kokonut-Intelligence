@@ -50,12 +50,14 @@ the app healthy. The disposable app used 1 GiB/two CPUs and PostgreSQL used
 **Current-source schema replay (17 October 2026):** a fresh QEMU project applied
 all 423 schemas through migration 432 with zero failures and zero pending. It
 built the current-source ARM64 app and passed Gateway CLI help with networking
-disabled. The app container started after schema readiness, but HTTP health and
-protected-route checks were not made: the evidence harness stopped while
-inspecting the manifest-list digest instead of the local image tag. The
-temporary project and volume were removed; the app image remains local. This
-run used no explicit CPU/memory limits, so it extends schema and image evidence
-only, not the bounded resource check or physical Pi acceptance
+disabled. A fresh internal-network QEMU recheck then applied all 423 schemas,
+started the ARM64 app, and observed a healthy Compose status. HTTP requests from
+inside the app container returned `/health` 200 and 401 `credentials_required`
+for the anonymous farm-activity route. Host-side curl could not reach the
+configured `127.0.0.1:18118` mapping while the network was internal, so host
+ingress remains unverified. The temporary project, network, and volumes were
+removed and verified absent. This run used no explicit CPU/memory limits, so it
+does not close the bounded resource check or certify physical Pi behavior
 ([evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
 
 On 10 October 2026 registry metadata was inspected for the candidate's exact
