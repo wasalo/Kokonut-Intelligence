@@ -11,8 +11,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 from services.common.logging import get_logger
-from services.common.worker_environment import EVENT_HANDLER_WORKERS as _HANDLER_WORKER_KEYS
-from services.common.worker_environment import worker_subprocess_environment
+from services.common.worker_environment import (
+    event_handler_worker_policy,
+    worker_subprocess_environment,
+)
 from services.security.execution_allowlist import validate_event_handler
 
 logger = get_logger("events.bus")
@@ -25,10 +27,14 @@ def _handler_child_environment(module_path, function_name, environ=None):
     selected from this source-controlled mapping rather than event metadata or
     registration fields.
     """
-    allowed_worker_keys = _HANDLER_WORKER_KEYS.get((module_path, function_name), ())
+    allowed_worker_keys, isolated = event_handler_worker_policy(
+        module_path,
+        function_name,
+        environ=environ,
+    )
     return worker_subprocess_environment(
         allowed_worker_keys=allowed_worker_keys,
-        isolated_database_credentials=bool(allowed_worker_keys),
+        isolated_database_credentials=isolated,
         environ=environ,
     )
 

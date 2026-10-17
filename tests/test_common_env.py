@@ -5,6 +5,7 @@ import subprocess
 import pytest
 
 from services.common import env
+from services.common.worker_environment import ISOLATED_WORKER_KEY_ENV
 
 
 def _reset_loader(monkeypatch, tmp_path):
@@ -12,6 +13,7 @@ def _reset_loader(monkeypatch, tmp_path):
     monkeypatch.setattr(env, "_LOADED", False)
     monkeypatch.delenv("KOKONUT_ALLOW_PLAINTEXT_ENV", raising=False)
     monkeypatch.delenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", raising=False)
+    monkeypatch.delenv(ISOLATED_WORKER_KEY_ENV, raising=False)
     monkeypatch.delenv("KOKONUT_ENV", raising=False)
     monkeypatch.delenv("FALLBACK_SECRET", raising=False)
     monkeypatch.delenv("LOADED_SECRET", raising=False)
@@ -154,4 +156,38 @@ def test_production_rejects_placeholder_credentials(monkeypatch, tmp_path):
 
     with pytest.raises(env.SecretLoadError, match="placeholder"):
         env.load_dotenv()
+    assert env._LOADED is False
+
+
+def test_isolated_worker_skips_shared_dotenv_and_production_validation(monkeypatch, tmp_path):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv("KOKONUT_ENV", "production")
+    monkeypatch.setenv("KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT", "true")
+    monkeypatch.setenv(ISOLATED_WORKER_KEY_ENV, "weather")
+    monkeypatch.setenv("PG_PASSWORD", "must-be-removed")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://shared")
+    monkeypatch.setenv("POSTGRES_PASSWORD", "shared-admin-password")
+    (tmp_path / ".env.sops").write_text("encrypted")
+    monkeypatch.setattr(
+        env,
+        "_sops_decrypt",
+        lambda *_args: pytest.fail("isolated worker must not decrypt shared secrets"),
+    )
+
+    env.load_dotenv()
+
+    assert "PG_PASSWORD" not in env.os.environ
+    assert "DATABASE_URL" not in env.os.environ
+    assert "POSTGRES_PASSWORD" not in env.os.environ
+    assert env._LOADED is True
+
+
+@pytest.mark.parametrize("marker", ["", "Weather", "bad-key", "a" * 42])
+def test_invalid_isolated_worker_marker_fails_closed(monkeypatch, tmp_path, marker):
+    _reset_loader(monkeypatch, tmp_path)
+    monkeypatch.setenv(ISOLATED_WORKER_KEY_ENV, marker)
+
+    with pytest.raises(env.SecretLoadError, match="lowercase worker identifier"):
+        env.load_dotenv()
+
     assert env._LOADED is False

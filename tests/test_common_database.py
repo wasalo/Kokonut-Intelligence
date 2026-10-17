@@ -2,8 +2,11 @@
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from services.common.cli import get_connection as cli_get_connection
 from services.common.database import DatabaseConnection, _to_psycopg2_sql
+from services.common.worker_environment import ISOLATED_WORKER_KEY_ENV
 
 
 def test_named_parameter_translation_preserves_postgres_casts():
@@ -62,3 +65,14 @@ def test_cli_connection_helper_forwards_readonly_setting_lazily():
         assert cli_get_connection(readonly=True) is expected
 
     get_connection.assert_called_once_with(connect_timeout=None, readonly=True)
+
+
+def test_shared_database_factory_fails_before_connect_for_isolated_worker(monkeypatch):
+    from services.common import database
+
+    monkeypatch.setenv(ISOLATED_WORKER_KEY_ENV, "weather")
+    with patch.object(database.psycopg2, "connect") as connect:
+        with pytest.raises(RuntimeError, match="unavailable to isolated worker"):
+            database.get_db()
+
+    connect.assert_not_called()

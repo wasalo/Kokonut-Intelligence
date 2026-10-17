@@ -6,7 +6,7 @@ import json
 from inspect import getsourcefile
 from pathlib import Path
 
-from services.events.bus import _HANDLER_WORKER_KEYS
+from services.common.worker_environment import EVENT_HANDLER_WORKERS as _HANDLER_WORKER_KEYS
 from services.metrics.calculators import CALCULATORS
 from services.security.execution_allowlist import (
     ALLOWED_EVENT_HANDLERS,

@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Isolated-worker import boundary — 17 October 2026
+
+Scheduled workers imported legacy ingestion helpers before reaching their CLI
+feature gates. With shared PostgreSQL settings correctly filtered, production
+imports therefore failed before `--help` or the disabled-feature response. The
+worker environment now marks exact isolated child identities, skips shared
+dotenv loading and shared-DB secret validation, clears shared PostgreSQL
+values defensively, and rejects shared connection attempts before psycopg2 is
+called. Cache and notification EventBus handlers use isolated credentials only
+when their feature flag is enabled; the default-off legacy branch retains its
+shared database environment. The focused worker, common-environment,
+EventBus, operation-map and scheduler suite passes 130 tests. All eight
+scheduled worker `--help` subprocess checks, Ruff, compilation and diff checks
+pass. Only synthetic credential strings were used; no database or provider was
+accessed. Recounting the checklist gives 445 complete / 20 open (465 total), with no
+capability status changes ([evidence](builds/2026-10-17-recovery/isolated-worker-import-boundary.json)).
+
 ### Dedicated EventBus handler environment isolation — 17 October 2026
 
 Exact source-mapped EventBus handlers now receive only their dedicated worker

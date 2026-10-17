@@ -29,6 +29,16 @@ remain open ([migration](../../schemas/postgres/433_isolated_eas_indexer.sql);
 [worker](../../services/ingestion/eas_worker.py);
 [provider contract](../../services/ingestion/eas_provider.py);
 [disposable evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json)).
+**Current code-first follow-up — 17 October 2026:** scheduled worker import
+paths now remain usable with shared PostgreSQL settings stripped. An internal
+worker marker prevents shared dotenv decryption and shared production DB
+validation during import, while the canonical shared database factory fails
+before connecting from isolated children. EventBus cache/notification handlers
+retain the legacy path while their isolated features are disabled. The
+focused worker/import/EventBus/scheduler suite passes 130 tests, all eight
+scheduled worker `--help` checks pass, and Ruff, compilation, and diff checks
+are clean. No candidate migration, database, provider, schedule, or real
+credential was used ([evidence](builds/2026-10-17-recovery/isolated-worker-import-boundary.json)).
 The prior source-inventory batch refreshed the worker source closure, function
 graph, SQL reachability and execution inventory, worker effects, and whole-
 service SQL inventory; the graph covers 30 operation roots and 90 source files,

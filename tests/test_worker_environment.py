@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from services.common.worker_environment import (
+    ISOLATED_WORKER_KEY_ENV,
     scheduled_module_worker_key,
     worker_subprocess_environment,
 )
@@ -72,6 +73,7 @@ def test_scheduled_noi_worker_receives_only_its_exact_secret_pair():
     ) == {
         "KOKONUT_NOI_SNAPSHOT_DATABASE_URL": "postgresql://noi-worker",
         "KOKONUT_NOI_SNAPSHOT_WORKER_CREDENTIAL": "noi-secret",
+        ISOLATED_WORKER_KEY_ENV: "noi_snapshot",
     }
     assert scheduled_module_worker_key("services.metrics") is None
     assert scheduled_module_worker_key("services.metrics.noi_snapshot_worker.extra") is None
@@ -101,6 +103,7 @@ def test_scheduled_weather_forecast_worker_receives_only_its_exact_secret_pair()
     ) == {
         "KOKONUT_WEATHER_FORECAST_DATABASE_URL": "postgresql://forecast-worker",
         "KOKONUT_WEATHER_FORECAST_WORKER_CREDENTIAL": "forecast-secret",
+        ISOLATED_WORKER_KEY_ENV: "weather_forecast",
     }
 
 
@@ -128,6 +131,7 @@ def test_scheduled_current_weather_worker_receives_only_its_exact_secrets():
         "KOKONUT_WEATHER_DATABASE_URL": "postgresql://weather-worker",
         "KOKONUT_WEATHER_WORKER_CREDENTIAL": "weather-worker-secret",
         "KOKONUT_WEATHER_OPENWEATHERMAP_API_KEY": "weather-provider-secret",
+        ISOLATED_WORKER_KEY_ENV: "weather",
     }
 
     forecast_environment = worker_subprocess_environment(
@@ -158,6 +162,7 @@ def test_scheduled_market_data_worker_receives_only_its_named_database_url():
         environ=source,
     ) == {
         "KOKONUT_MARKET_DATA_DATABASE_URL": "postgresql://market-data-worker",
+        ISOLATED_WORKER_KEY_ENV: "market_data",
     }
 
 
@@ -180,6 +185,7 @@ def test_scheduled_eas_worker_receives_only_its_named_database_url():
         environ=source,
     ) == {
         "KOKONUT_EAS_INDEXER_DATABASE_URL": "postgresql://eas-indexer-worker",
+        ISOLATED_WORKER_KEY_ENV: "eas_indexer",
     }
 
 
@@ -204,6 +210,7 @@ def test_scheduled_sensor_worker_receives_only_its_named_credentials():
     ) == {
         "KOKONUT_SENSOR_INGESTION_DATABASE_URL": "postgresql://sensor-worker",
         "KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL": "sensor-worker-secret",
+        ISOLATED_WORKER_KEY_ENV: "sensor_ingestion",
     }
 
 
@@ -235,12 +242,86 @@ def test_scheduled_remote_sensing_worker_receives_only_its_identity_and_provider
         "KOKONUT_REMOTE_SENSING_GEE_SERVICE_ACCOUNT_KEY": "/run/secrets/gee.json",
         "KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_ID": "synthetic-client",
         "KOKONUT_REMOTE_SENSING_COPERNICUS_CLIENT_SECRET": "synthetic-secret",
+        ISOLATED_WORKER_KEY_ENV: "remote_sensing",
     }
+
+
+def test_isolated_worker_marker_is_generated_and_source_marker_never_passes_through():
+    source = {
+        ISOLATED_WORKER_KEY_ENV: "attacker-supplied",
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://worker",
+        "PG_PASSWORD": "shared-secret",
+    }
+
+    assert worker_subprocess_environment(
+        allowed_worker_keys=("weather",),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_WEATHER_DATABASE_URL": "postgresql://worker",
+        ISOLATED_WORKER_KEY_ENV: "weather",
+    }
+
+
+@pytest.mark.parametrize("keys", [(), ("weather", "sensor_ingestion")])
+def test_isolated_worker_requires_exactly_one_identity(keys):
+    with pytest.raises(ValueError, match="exactly one"):
+        worker_subprocess_environment(
+            allowed_worker_keys=keys,
+            isolated_database_credentials=True,
+            environ={},
+        )
 
 @pytest.mark.parametrize("keys", ["scheduler", b"scheduler", ("bad-key",), (None,), ("ß",)])
 def test_worker_environment_rejects_invalid_allowlists(keys):
     with pytest.raises(ValueError, match="worker keys"):
         worker_subprocess_environment(allowed_worker_keys=keys, environ={})
+
+
+@pytest.mark.parametrize(
+    "module",
+    [
+        "services.metrics.noi_snapshot_worker",
+        "services.ingestion.weather_worker",
+        "services.ingestion.weather_forecast_worker",
+        "services.ingestion.climate_worker",
+        "services.ingestion.market_data_worker",
+        "services.ingestion.eas_worker",
+        "services.ingestion.sensor_worker",
+        "services.ingestion.remote_sensing_worker",
+    ],
+)
+def test_scheduled_worker_help_imports_without_shared_database_credentials(module):
+    import os
+    import subprocess
+    import sys
+
+    worker_key = scheduled_module_worker_key(module)
+    assert worker_key is not None
+    source = {
+        "PATH": os.environ.get("PATH", ""),
+        "PYTHONPATH": str(ROOT),
+        "KOKONUT_ENV": "production",
+        f"KOKONUT_{worker_key.upper()}_DATABASE_URL": "postgresql://synthetic-worker",
+        f"KOKONUT_{worker_key.upper()}_WORKER_CREDENTIAL": "synthetic-worker-credential-not-used",
+    }
+    child_env = worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    )
+
+    result = subprocess.run(
+        [sys.executable, "-m", module, "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=child_env,
+        timeout=20,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "usage:" in result.stdout.lower()
 
 
 def test_every_service_subprocess_uses_the_shared_environment_policy():

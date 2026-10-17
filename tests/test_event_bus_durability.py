@@ -97,6 +97,7 @@ def test_handler_child_environment_allows_only_exact_anomaly_worker_identity():
     assert env == {
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+        "KOKONUT_ISOLATED_WORKER_KEY": "sensor_anomaly",
     }
 
 
@@ -120,11 +121,15 @@ def test_cache_handlers_receive_only_their_exact_worker_identity():
         "handle_harvest_recorded",
     ):
         env = _handler_child_environment(
-            "services.cache.events", function_name, source
+            "services.cache.events",
+            function_name,
+            {**source, "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION": "true"},
         )
         assert env == {
             "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
             "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "cache-secret",
+            "KOKONUT_ISOLATED_WORKER_KEY": "cache_invalidation",
+            "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION": "true",
         }
 
 
@@ -139,12 +144,47 @@ def test_notification_handlers_receive_only_their_enqueue_identity():
             "KOKONUT_EVENT_BUS_DATABASE_URL": "postgresql://events",
             "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL": "event-secret",
             "DATABASE_URL": "application-config",
+            "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE": "true",
         },
     )
 
     assert env == {
         "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+        "KOKONUT_ISOLATED_WORKER_KEY": "notification_enqueue",
+        "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE": "true",
     }
+
+
+def test_feature_off_notification_handler_keeps_shared_database_and_strips_worker_secrets():
+    env = _handler_child_environment(
+        "services.events.handlers",
+        "handle_alert_notification",
+        {
+            "DATABASE_URL": "application-config",
+            "PG_PASSWORD": "shared-secret",
+            "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+            "KOKONUT_NOTIFICATION_ENQUEUE_WORKER_CREDENTIAL": "worker-secret",
+        },
+    )
+
+    assert env == {
+        "DATABASE_URL": "application-config",
+        "PG_PASSWORD": "shared-secret",
+    }
+
+
+def test_feature_off_cache_handler_keeps_shared_database_and_strips_worker_secrets():
+    env = _handler_child_environment(
+        "services.cache.events",
+        "handle_metric_computed",
+        {
+            "PG_PASSWORD": "shared-secret",
+            "KOKONUT_CACHE_INVALIDATION_DATABASE_URL": "postgresql://cache-worker",
+            "KOKONUT_CACHE_INVALIDATION_WORKER_CREDENTIAL": "worker-secret",
+        },
+    )
+
+    assert env == {"PG_PASSWORD": "shared-secret"}
 
 
 def test_unmapped_event_handler_receives_no_worker_identity():
@@ -196,6 +236,7 @@ def test_handler_success_uses_filtered_environment_and_stdin_request():
     assert kwargs["env"] == {
         "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
         "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
+        "KOKONUT_ISOLATED_WORKER_KEY": "sensor_anomaly",
     }
     assert "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL" not in kwargs["env"]
     assert kwargs["stdin"] == subprocess.PIPE

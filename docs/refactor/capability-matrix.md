@@ -122,6 +122,19 @@ live runtime acceptance remain open ([worker](../../services/ingestion/eas_worke
 [disposable runner](../../scripts/check-eas-indexer-worker-disposable.py);
 [evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json)).
 
+**17 October 2026 isolated-worker import boundary (CAP-040 / CAP-047):** all
+eight allowlisted scheduled workers now import their CLI help path with shared
+PostgreSQL credentials removed. The internal child marker bypasses shared
+dotenv loading and production shared-DB validation; the canonical shared
+connection factory rejects use before connecting. EventBus handlers preserve
+the shared-identity compatibility path while their isolated feature flag is
+off, and receive the dedicated identity only when enabled. The focused suite
+passes 130 checks with Ruff and compilation; subprocesses use synthetic
+credentials and do not contact a database or provider. This is import and
+credential-boundary evidence only; worker authorization, configured grants,
+provider parity, and named MAN-CAP acceptance remain open
+([evidence](builds/2026-10-17-recovery/isolated-worker-import-boundary.json)).
+
 **16 October 2026 market-data provider recovery (CAP-040 / CAP-047):** World
 Bank download and unusable-response errors now fail before PostgreSQL opens;
 reference seed rows have a separate source key, and price rows plus their

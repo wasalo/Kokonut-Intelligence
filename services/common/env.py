@@ -7,7 +7,12 @@ import re
 import subprocess
 from pathlib import Path
 
-from services.common.worker_environment import worker_subprocess_environment
+from services.common.worker_environment import (
+    _SHARED_DATABASE_ENV,
+    ISOLATED_WORKER_KEY_ENV,
+    isolated_worker_key,
+    worker_subprocess_environment,
+)
 
 _LOADED = False
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -128,6 +133,18 @@ def _validate_production_environment() -> None:
 
 def load_dotenv() -> None:
     global _LOADED
+    try:
+        worker_key = isolated_worker_key()
+    except ValueError as exc:
+        raise SecretLoadError(str(exc)) from exc
+    if worker_key is not None:
+        # The dispatcher should already have removed these values. Clear them
+        # defensively so an isolated child cannot import a shared identity.
+        for name in _SHARED_DATABASE_ENV:
+            os.environ.pop(name, None)
+        os.environ[ISOLATED_WORKER_KEY_ENV] = worker_key
+        _LOADED = True
+        return
     if _LOADED:
         return
 

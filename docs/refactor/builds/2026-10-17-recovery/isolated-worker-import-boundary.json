@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-17",
+  "scope": "isolated scheduled-worker imports and EventBus credential selection",
+  "pytest": {
+    "command": "python3 -m pytest tests/test_worker_environment.py tests/test_common_env.py tests/test_common_database.py tests/test_event_bus_durability.py tests/test_worker_operation_map.py tests/test_core_jobs_contract.py tests/test_scheduler_durability.py -q",
+    "passed": 130,
+    "failed": 0
+  },
+  "scheduled_worker_help": {
+    "modules": [
+      "services.metrics.noi_snapshot_worker",
+      "services.ingestion.weather_worker",
+      "services.ingestion.weather_forecast_worker",
+      "services.ingestion.climate_worker",
+      "services.ingestion.market_data_worker",
+      "services.ingestion.eas_worker",
+      "services.ingestion.sensor_worker",
+      "services.ingestion.remote_sensing_worker"
+    ],
+    "passed": 8,
+    "shared_postgres_environment": "removed",
+    "database_connections": 0,
+    "provider_requests": 0
+  },
+  "ruff": "passed",
+  "compileall": "passed",
+  "diff_check": "passed",
+  "limitations": [
+    "No candidate or legacy database was accessed.",
+    "No real worker credential, provider, or persisted schedule was used.",
+    "No migration was added or applied; this does not establish live worker authorization or provider parity."
+  ]
+}

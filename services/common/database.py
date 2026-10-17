@@ -14,6 +14,7 @@ Provides two connection factories:
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any, Iterator, Optional
 
@@ -21,6 +22,7 @@ import psycopg2
 import psycopg2.extras
 
 from .db import PG_DB, PG_HOST, PG_PASSWORD, PG_PORT, PG_USER
+from .worker_environment import ISOLATED_WORKER_KEY_ENV
 
 _NAMED_PARAMETER = re.compile(r"(?<!:):([A-Za-z_][A-Za-z0-9_]*)")
 
@@ -38,6 +40,10 @@ def get_db(*, connect_timeout: int | None = None):
     delegate here to ensure a consistent default database name and
     connection parameters.
     """
+    if os.environ.get(ISOLATED_WORKER_KEY_ENV):
+        raise RuntimeError(
+            "shared database access is unavailable to isolated worker processes"
+        )
     options = {}
     if connect_timeout is not None:
         if isinstance(connect_timeout, bool) or not isinstance(connect_timeout, int) or connect_timeout <= 0:
