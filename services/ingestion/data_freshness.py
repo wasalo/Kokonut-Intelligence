@@ -311,6 +311,11 @@ def _safe_delivery_error(exc: Exception) -> str:
     return type(exc).__name__
 
 
+def _safe_evaluation_error(exc: Exception) -> str:
+    """Summarize freshness read/evaluation failures without exception details."""
+    return f"freshness evaluation failed ({type(exc).__name__})"
+
+
 def _send_alert(
     source_system: str,
     status: str,
@@ -420,8 +425,13 @@ def check_freshness(conn, source: Optional[str] = None) -> Dict[str, Any]:
                 rollback_cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
                 rollback_cur.close()
                 status = "error"
-                metadata = {"error": str(exc)}
-                logger.error("Freshness query failed for %s/%s: %s", source_system, location_id, exc)
+                metadata = {"error": _safe_evaluation_error(exc)}
+                logger.error(
+                    "Freshness evaluation failed for %s/%s (%s)",
+                    source_system,
+                    location_id,
+                    type(exc).__name__,
+                )
 
             alert_sent = False
             alert_channel = None

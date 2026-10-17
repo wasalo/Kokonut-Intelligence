@@ -130,6 +130,11 @@ The GEE climate adapter now also redacts initialization and MODIS/SMAP/
 Sentinel-1/ERA5 failures from logs and returned results. Six new mocked tests
 pass inside a 44-test climate suite with Ruff; no provider or database was
 contacted ([evidence](builds/2026-10-17-recovery/gee-climate-error-redaction.json)).
+**Local freshness follow-up — 17 October 2026:** failed measurements now store
+bounded evaluation summaries and log only the exception class. Savepoint rollback
+and preservation of the previous stale/critical state remain unchanged. The
+33-test mocked freshness suite passes with Ruff and no database or destination
+was contacted ([evidence](builds/2026-10-17-recovery/freshness-query-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

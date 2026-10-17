@@ -3853,9 +3853,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:408:12",
+      "id": "services/ingestion/data_freshness.py:413:12",
       "source": "services/ingestion/data_freshness.py",
-      "line": 408,
+      "line": 413,
       "column": 12,
       "scope": "check_freshness",
       "method": "execute",
@@ -3868,9 +3868,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:420:16",
+      "id": "services/ingestion/data_freshness.py:425:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 420,
+      "line": 425,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -3883,9 +3883,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:492:20",
+      "id": "services/ingestion/data_freshness.py:502:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 492,
+      "line": 502,
       "column": 20,
       "scope": "check_freshness",
       "method": "execute",
@@ -3900,9 +3900,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:498:16",
+      "id": "services/ingestion/data_freshness.py:508:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 498,
+      "line": 508,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -3917,9 +3917,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:504:16",
+      "id": "services/ingestion/data_freshness.py:514:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 504,
+      "line": 514,
       "column": 16,
       "scope": "check_freshness",
       "method": "execute",
@@ -3932,9 +3932,9 @@
       ]
     },
     {
-      "id": "services/ingestion/data_freshness.py:547:4",
+      "id": "services/ingestion/data_freshness.py:557:4",
       "source": "services/ingestion/data_freshness.py",
-      "line": 547,
+      "line": 557,
       "column": 4,
       "scope": "get_freshness_summary",
       "method": "execute",

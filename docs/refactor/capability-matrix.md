@@ -707,6 +707,11 @@ destination or database was used. Production delivery, destination ownership,
 retention, and MAN-CAP-047 acceptance remain open
 ([delivery evidence](builds/2026-10-17-recovery/freshness-alert-error-containment.json);
 [state evidence](builds/2026-10-17-recovery/freshness-alert-state-recovery.json)).
+Failed freshness measurements now also store a bounded evaluation summary and
+log only the exception class; savepoint rollback and preservation of prior
+alert state remain intact. The 33-test mocked suite passes with a synthetic
+secret-bearing database error
+([query evidence](builds/2026-10-17-recovery/freshness-query-error-redaction.json)).
 
 **17 October 2026 worker inventory refresh (CAP-047):** after the EAS provider
 extraction and freshness-alert helper changes, the current static inventories

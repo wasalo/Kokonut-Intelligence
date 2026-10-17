@@ -193,13 +193,13 @@
         "services/ingestion/data_freshness.py:249:4",
         "services/ingestion/data_freshness.py:258:8",
         "services/ingestion/data_freshness.py:280:4",
-        "services/ingestion/data_freshness.py:408:12",
-        "services/ingestion/data_freshness.py:420:16",
-        "services/ingestion/data_freshness.py:492:20",
-        "services/ingestion/data_freshness.py:498:16",
-        "services/ingestion/data_freshness.py:504:16",
-        "services/ingestion/data_freshness.py:547:4",
+        "services/ingestion/data_freshness.py:413:12",
+        "services/ingestion/data_freshness.py:425:16",
+        "services/ingestion/data_freshness.py:502:20",
+        "services/ingestion/data_freshness.py:508:16",
+        "services/ingestion/data_freshness.py:514:16",
         "services/ingestion/data_freshness.py:54:8",
+        "services/ingestion/data_freshness.py:557:4",
         "services/ingestion/data_freshness.py:59:8",
         "services/ingestion/data_freshness.py:73:4"
       ]
@@ -5141,9 +5141,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:408:12",
+      "id": "services/ingestion/data_freshness.py:413:12",
       "source": "services/ingestion/data_freshness.py",
-      "line": 408,
+      "line": 413,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5160,9 +5160,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:420:16",
+      "id": "services/ingestion/data_freshness.py:425:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 420,
+      "line": 425,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5179,9 +5179,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:492:20",
+      "id": "services/ingestion/data_freshness.py:502:20",
       "source": "services/ingestion/data_freshness.py",
-      "line": 492,
+      "line": 502,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -5200,9 +5200,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:498:16",
+      "id": "services/ingestion/data_freshness.py:508:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 498,
+      "line": 508,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "literal",
@@ -5221,9 +5221,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:504:16",
+      "id": "services/ingestion/data_freshness.py:514:16",
       "source": "services/ingestion/data_freshness.py",
-      "line": 504,
+      "line": 514,
       "scope": "check_freshness",
       "method": "execute",
       "expression_kind": "fstring",
@@ -5240,9 +5240,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/data_freshness.py:547:4",
+      "id": "services/ingestion/data_freshness.py:557:4",
       "source": "services/ingestion/data_freshness.py",
-      "line": 547,
+      "line": 557,
       "scope": "get_freshness_summary",
       "method": "execute",
       "expression_kind": "literal",

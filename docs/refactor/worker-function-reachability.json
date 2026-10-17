@@ -6,8 +6,8 @@
     "operation_roots": 31,
     "source_files": 92,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 629,
-    "direct_call_edges": 858,
+    "function_memberships": 630,
+    "direct_call_edges": 859,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -3466,27 +3466,27 @@
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/data_freshness.py",
-          "line": 566
+          "line": 576
         },
         {
           "function": "services.common.cli:print_json",
           "source": "services/ingestion/data_freshness.py",
-          "line": 569
+          "line": 579
         },
         {
           "function": "services.ingestion.base:get_db",
           "source": "services/ingestion/data_freshness.py",
-          "line": 562
+          "line": 572
         },
         {
           "function": "services.ingestion.data_freshness:check_freshness",
           "source": "services/ingestion/data_freshness.py",
-          "line": 565
+          "line": 575
         },
         {
           "function": "services.ingestion.data_freshness:get_freshness_summary",
           "source": "services/ingestion/data_freshness.py",
-          "line": 568
+          "line": 578
         }
       ],
       "reachable_functions": [
@@ -3595,12 +3595,20 @@
           "line": 305
         },
         {
+          "key": "services.ingestion.data_freshness:_safe_evaluation_error",
+          "module": "services.ingestion.data_freshness",
+          "qualname": "_safe_evaluation_error",
+          "class_scope": null,
+          "source": "services/ingestion/data_freshness.py",
+          "line": 314
+        },
+        {
           "key": "services.ingestion.data_freshness:_send_alert",
           "module": "services.ingestion.data_freshness",
           "qualname": "_send_alert",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 314
+          "line": 319
         },
         {
           "key": "services.ingestion.data_freshness:_validate_thresholds",
@@ -3616,7 +3624,7 @@
           "qualname": "check_freshness",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 386
+          "line": 391
         },
         {
           "key": "services.ingestion.data_freshness:get_freshness_summary",
@@ -3624,7 +3632,7 @@
           "qualname": "get_freshness_summary",
           "class_scope": null,
           "source": "services/ingestion/data_freshness.py",
-          "line": 544
+          "line": 554
         }
       ],
       "direct_call_edges": [
@@ -3638,85 +3646,91 @@
           "caller": "services.ingestion.data_freshness:_send_alert",
           "callee": "services.ingestion.data_freshness:_safe_delivery_error",
           "source": "services/ingestion/data_freshness.py",
-          "line": 350
+          "line": 355
         },
         {
           "caller": "services.ingestion.data_freshness:_send_alert",
           "callee": "services.ingestion.data_freshness:_safe_delivery_error",
           "source": "services/ingestion/data_freshness.py",
-          "line": 359
+          "line": 364
         },
         {
           "caller": "services.ingestion.data_freshness:_send_alert",
           "callee": "services.ingestion.data_freshness:_safe_delivery_error",
           "source": "services/ingestion/data_freshness.py",
-          "line": 376
+          "line": 381
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_alert_event",
           "source": "services/ingestion/data_freshness.py",
-          "line": 448
+          "line": 458
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_alert_state",
           "source": "services/ingestion/data_freshness.py",
-          "line": 441
+          "line": 451
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_determine_status",
           "source": "services/ingestion/data_freshness.py",
-          "line": 417
+          "line": 422
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_insert_check_result",
           "source": "services/ingestion/data_freshness.py",
-          "line": 429
+          "line": 439
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_location_ids",
           "source": "services/ingestion/data_freshness.py",
-          "line": 400
+          "line": 405
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_persist_alert_event",
           "source": "services/ingestion/data_freshness.py",
-          "line": 460
+          "line": 470
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_persist_delivery_attempt",
           "source": "services/ingestion/data_freshness.py",
-          "line": 483
+          "line": 493
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_query_freshness_configs",
           "source": "services/ingestion/data_freshness.py",
-          "line": 392
+          "line": 397
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_query_latest_data_at",
           "source": "services/ingestion/data_freshness.py",
-          "line": 412
+          "line": 417
+        },
+        {
+          "caller": "services.ingestion.data_freshness:check_freshness",
+          "callee": "services.ingestion.data_freshness:_safe_evaluation_error",
+          "source": "services/ingestion/data_freshness.py",
+          "line": 428
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_send_alert",
           "source": "services/ingestion/data_freshness.py",
-          "line": 473
+          "line": 483
         },
         {
           "caller": "services.ingestion.data_freshness:check_freshness",
           "callee": "services.ingestion.data_freshness:_validate_thresholds",
           "source": "services/ingestion/data_freshness.py",
-          "line": 411
+          "line": 416
         }
       ],
       "callback_edges": [],

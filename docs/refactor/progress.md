@@ -1,5 +1,13 @@
 # Kokonut Kernel implementation progress
 
+### Freshness query error containment — 17 October 2026
+
+Failed freshness measurements now store a bounded summary in result metadata
+and log only the exception class. The existing savepoint rollback and stale
+alert-state preservation remain intact. The 33-test mocked freshness suite
+passes with Ruff; no database or alert destination was contacted
+([evidence](builds/2026-10-17-recovery/freshness-query-error-redaction.json)).
+
 ### GEE climate error containment — 17 October 2026
 
 Credentialed/default Earth Engine initialization and MODIS, SMAP, Sentinel-1,

@@ -146,17 +146,24 @@ def test_failed_freshness_read_preserves_prior_alert_state(monkeypatch) -> None:
     monkeypatch.setattr(
         "services.ingestion.data_freshness._query_freshness_configs", lambda _conn, _source=None: [config]
     )
+    logger = MagicMock()
     monkeypatch.setattr(
         "services.ingestion.data_freshness._query_latest_data_at",
-        lambda *_args: (_ for _ in ()).throw(RuntimeError("temporary database failure")),
+        lambda *_args: (_ for _ in ()).throw(
+            RuntimeError("database URL contained token=freshness-secret")
+        ),
     )
     monkeypatch.setattr("services.ingestion.data_freshness._insert_check_result", lambda *_args: "check-id")
     monkeypatch.setattr("services.ingestion.data_freshness._alert_state", lambda *_args: prior_state)
+    monkeypatch.setattr("services.ingestion.data_freshness.logger", logger)
 
     result = check_freshness(connection)
 
     assert result["error"] == 1
     assert result["results"][0]["status"] == "error"
+    assert result["results"][0]["error"] == "freshness evaluation failed (RuntimeError)"
+    assert "freshness-secret" not in str(result)
+    assert "freshness-secret" not in str(logger.error.call_args)
     assert prior_state["current_status"] == "stale"
     assert not any("UPDATE data_freshness_alert_state SET current_status" in sql for sql in connection.statements)
     assert "ROLLBACK TO SAVEPOINT freshness_scope" in connection.statements

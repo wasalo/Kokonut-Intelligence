@@ -1780,7 +1780,7 @@
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 338,
+          "line": 343,
           "target": "services.common.http",
           "kind": "from"
         }
