@@ -302,6 +302,14 @@ and owned connections still close. Two mocked regressions pass with Ruff; no
 database was contacted
 ([evidence](builds/2026-10-17-recovery/ingestion-base-error-redaction.json)).
 
+**17 October 2026 commodity price error containment (CAP-040 / CAP-047):**
+Yahoo Finance provider and audit failures now log only exception classes;
+Oracle synchronization failures use a bounded error result and log without raw
+provider text. Three new mocked redaction regressions pass within the 74-test
+price, Oracle, shared-ingestion, market-data, and outbox suite with Ruff and
+compilation. No provider or database was contacted. Live price parity and chain behavior remain open
+([evidence](builds/2026-10-17-recovery/price-provider-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Commodity price provider error containment — 17 October 2026
+
+Yahoo Finance fetch/audit and Oracle price-sync failures now omit raw exception
+details from logs and returned results. Three new mocked redaction regressions
+pass within the 74-test price, Oracle infrastructure, shared-ingestion,
+market-data, and outbox suite with Ruff and compilation.
+No provider or database was contacted; live price parity and chain behavior
+remain unverified ([evidence](builds/2026-10-17-recovery/price-provider-error-redaction.json)).
+
 ### Shared ingestion fallback error containment — 17 October 2026
 
 The shared ingestion audit and indexer-status helpers now report only

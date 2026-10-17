@@ -10,12 +10,11 @@ Usage:
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import timezone
+from typing import Any, Dict, Optional
 
 from ..common.logging import get_logger
-from .base import log_ingestion, hash_payload
+from .base import hash_payload, log_ingestion
 from .oracle_aggregator import PriceReading
 
 logger = get_logger("ingestion.yahoo_finance")
@@ -79,7 +78,7 @@ def fetch_yahoo_price(commodity: str) -> Optional[PriceReading]:
             },
         )
     except Exception as e:
-        logger.error("Yahoo Finance fetch failed for %s: %s", commodity, e)
+        logger.error("Yahoo Finance fetch failed for %s (%s)", commodity, type(e).__name__)
         return None
 
 
@@ -120,7 +119,7 @@ def run() -> Dict[str, Any]:
             success += 1
         except Exception as e:
             errors += 1
-            logger.error("Failed to log ingestion for %s: %s", commodity, e)
+            logger.error("Failed to log ingestion for %s (%s)", commodity, type(e).__name__)
 
     logger.info("Yahoo Finance ingestion complete: %d success, %d errors", success, errors)
     return {"status": "success", "prices_fetched": success, "errors": errors}

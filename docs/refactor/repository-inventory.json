@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "1820faae86ae0a42236eafe5686d399f146d8349",
+  "baseline_commit": "3f41dff5c8a38c47a2cacb1fd91599e8fa342db5",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3277,6 +3277,7 @@
         "tests/test_planning_budget.py",
         "tests/test_predictive_bpm.py",
         "tests/test_price_attestation.py",
+        "tests/test_price_provider_error_redaction.py",
         "tests/test_process_control.py",
         "tests/test_process_costing.py",
         "tests/test_process_escalation.py",
@@ -4362,6 +4363,7 @@
     "tests/test_preferences_rankings.py",
     "tests/test_prescription.py",
     "tests/test_price_attestation.py",
+    "tests/test_price_provider_error_redaction.py",
     "tests/test_prm_metrics.py",
     "tests/test_process_architecture.py",
     "tests/test_process_control.py",

@@ -158,6 +158,12 @@ contacted ([evidence](builds/2026-10-17-recovery/mqtt-actuator-error-redaction.j
 audit and indexer-status write failures now log only exception classes.
 Caller-owned errors still propagate; owned connections close. Two mocked checks
 pass with Ruff ([evidence](builds/2026-10-17-recovery/ingestion-base-error-redaction.json)).
+**Current local price-provider follow-up — 17 October 2026:** Yahoo Finance
+fetch/audit failures and Oracle sync failures omit raw exception text from logs
+and returned results. Three new mocked redaction regressions pass within the
+74-test price, Oracle, shared-ingestion, market-data, and outbox suite with Ruff
+and compilation; no provider or database was contacted
+([evidence](builds/2026-10-17-recovery/price-provider-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
