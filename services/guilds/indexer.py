@@ -13,6 +13,7 @@ from typing import Any
 from eth_abi import decode as abi_decode
 from web3 import Web3
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
 from ..ingestion.base import get_db
 from ..ingestion.config import GNOSIS_RPC_URL
@@ -453,33 +454,53 @@ class KGPIndexer:
                 if self.db is not None:
                     try:
                         self.db.rollback()
-                    except Exception:
-                        logger.warning("KGP worker rollback failed during shutdown", exc_info=True)
+                    except Exception as exc:
+                        logger.warning(
+                            "KGP worker rollback failed during shutdown (%s)",
+                            safe_exception_class(exc),
+                        )
                     try:
                         self._release_worker_lease(worker_id)
-                    except Exception:
-                        logger.warning("KGP worker lease release failed during shutdown", exc_info=True)
+                    except Exception as exc:
+                        logger.warning(
+                            "KGP worker lease release failed during shutdown (%s)",
+                            safe_exception_class(exc),
+                        )
                 raise
             except Exception as exc:
-                logger.exception("KGP scan failed for %s", self.deployment_id)
+                safe_error = f"KGP scan failed ({safe_exception_class(exc)})"
+                logger.error(
+                    "KGP scan failed for %s (%s)",
+                    self.deployment_id,
+                    safe_exception_class(exc),
+                )
                 if self.db is not None:
                     try:
                         self.db.rollback()
-                    except Exception:
-                        logger.warning("KGP worker rollback failed after scan error", exc_info=True)
+                    except Exception as rollback_exc:
+                        logger.warning(
+                            "KGP worker rollback failed after scan error (%s)",
+                            safe_exception_class(rollback_exc),
+                        )
                     try:
-                        self._record_scan_failure(worker_id, str(exc))
-                    except Exception:
+                        self._record_scan_failure(worker_id, safe_error)
+                    except Exception as persist_exc:
                         # During a database outage the durable cursor may not
                         # be writable; its lease expires and the next cycle
                         # reconnects before attempting the scan again.
-                        logger.warning("KGP scan failure could not be persisted", exc_info=True)
+                        logger.warning(
+                            "KGP scan failure could not be persisted (%s)",
+                            safe_exception_class(persist_exc),
+                        )
             finally:
                 if self.db is not None:
                     try:
                         self.db.close()
-                    except Exception:
-                        logger.warning("KGP worker connection close failed", exc_info=True)
+                    except Exception as exc:
+                        logger.warning(
+                            "KGP worker connection close failed (%s)",
+                            safe_exception_class(exc),
+                        )
                     self.db = None
             time.sleep(poll_interval)
 

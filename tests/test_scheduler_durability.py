@@ -82,11 +82,47 @@ class SchedulerDurabilityTests(TestCase):
         engine = object.__new__(SchedulerEngine)
         engine._complete_task = Mock()
 
-        with patch("services.scheduler.engine.subprocess.run", side_effect=OSError("spawn failed")):
+        with patch(
+            "services.scheduler.engine.subprocess.run",
+            side_effect=OSError("synthetic spawn diagnostic marker"),
+        ):
             result = engine._execute_task("run", "task", "events", "services.events", ["--process"], 30, None)
 
         self.assertFalse(result)
         self.assertEqual(engine._complete_task.call_args.args[2], "failed")
+        self.assertEqual(
+            engine._complete_task.call_args.args[4],
+            "Scheduled task execution failed (OSError)",
+        )
+        self.assertTrue(engine._complete_task.call_args.kwargs["retry_immediately"])
+
+    def test_execute_failure_redacts_child_stdout_and_stderr(self):
+        engine = object.__new__(SchedulerEngine)
+        engine._complete_task = Mock()
+        failed = Mock(
+            returncode=9,
+            stdout="synthetic stdout diagnostic marker",
+            stderr="synthetic stderr diagnostic marker",
+        )
+
+        with (
+            patch(
+                "services.scheduler.engine.worker_subprocess_environment",
+                return_value={"PATH": "/synthetic/bin"},
+            ),
+            patch("services.scheduler.engine.subprocess.run", return_value=failed),
+        ):
+            result = engine._execute_task(
+                "run", "task", "events", "services.events", ["--process"], 30, None
+            )
+
+        self.assertFalse(result)
+        self.assertEqual(engine._complete_task.call_args.args[2], "failed")
+        self.assertEqual(
+            engine._complete_task.call_args.kwargs["error"],
+            "Scheduled command failed (exit code 9)",
+        )
+        self.assertNotIn("synthetic", repr(engine._complete_task.call_args))
 
     def test_execute_rejects_unregistered_module_before_spawn(self):
         engine = object.__new__(SchedulerEngine)

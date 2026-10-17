@@ -34,7 +34,9 @@ def test_run_forever_reconnects_with_a_new_bounded_connection_after_failure():
     first_connection = MagicMock()
     first_connection.rollback.side_effect = OSError("connection is closed")
     second_connection = MagicMock()
-    indexer._claim_worker_lease = MagicMock(side_effect=[OSError("database unavailable"), None])
+    indexer._claim_worker_lease = MagicMock(
+        side_effect=[OSError("synthetic database diagnostic marker"), None]
+    )
     indexer._record_scan_failure = MagicMock(side_effect=OSError("database unavailable"))
     indexer.scan_once = MagicMock(return_value=0)
     indexer._heartbeat_worker_lease = MagicMock()
@@ -45,7 +47,7 @@ def test_run_forever_reconnects_with_a_new_bounded_connection_after_failure():
             side_effect=[first_connection, second_connection],
         ) as connect_database,
         patch("services.guilds.indexer.time.sleep", side_effect=[None, KeyboardInterrupt]),
-        patch("services.guilds.indexer.logger.exception"),
+        patch("services.guilds.indexer.logger.error") as error_log,
         patch("services.guilds.indexer.logger.warning"),
     ):
         with pytest.raises(KeyboardInterrupt):
@@ -53,7 +55,12 @@ def test_run_forever_reconnects_with_a_new_bounded_connection_after_failure():
 
     assert connect_database.call_args_list == [call(connect_timeout=5), call(connect_timeout=5)]
     assert indexer._claim_worker_lease.call_count == 2
-    indexer._record_scan_failure.assert_called_once_with("kgp-test-worker", "database unavailable")
+    indexer._record_scan_failure.assert_called_once_with(
+        "kgp-test-worker", "KGP scan failed (OSError)"
+    )
+    error_log.assert_called_once_with(
+        "KGP scan failed for %s (%s)", "deployment-1", "OSError"
+    )
     indexer.scan_once.assert_called_once_with("kgp-test-worker")
     indexer._heartbeat_worker_lease.assert_called_once_with("kgp-test-worker")
     first_connection.close.assert_called_once()

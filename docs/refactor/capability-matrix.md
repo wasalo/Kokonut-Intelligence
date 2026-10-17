@@ -26,6 +26,21 @@ Ruff, compilation, and the local full-history Gitleaks scan pass using mocked
 failures only. This does not establish live provider health or data parity
 ([evidence](builds/2026-10-17-recovery/driver-error-redaction.json)).
 
+**17 October 2026 scheduler failure-output containment (CAP-047):** task-run
+failures no longer persist child stdout/stderr or raw process-launch exception
+text; exit codes, failed status, normal retry policy, immediate launch retry,
+and lease checks remain. Twelve mocked scheduler durability/worker tests pass
+with Ruff and compilation. This does not replace live worker outage and
+long-duration recovery acceptance
+([evidence](builds/2026-10-17-recovery/scheduler-failure-output-redaction.json)).
+
+**17 October 2026 KGP worker error containment (CAP-042 / CAP-047):** KGP
+cursor failure records and worker rollback/lease/reconnect/close logs omit raw
+RPC and database exception details. Four mocked durability tests pass with
+Ruff and compilation; lease recovery remains covered and unchanged. No live
+chain or database recovery, reorganization acceptance, or MAN-CAP-042 closure
+is claimed ([evidence](builds/2026-10-17-recovery/kgp-worker-error-redaction.json)).
+
 **17 October 2026 projection failure containment (CAP-021 / CAP-047):** failed
 synchronized graph rebuilds persist a class-only error after rolling back
 partial projection writes, while continuing to raise the original exception to

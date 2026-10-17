@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### KGP worker failure containment — 17 October 2026
+
+KGP scan errors now store a fixed label and exception class in the durable
+cursor, and worker rollback, lease, persistence, and close logs omit exception
+details and tracebacks. Reconnect and cursor retry state remain intact. Four
+mocked durability tests pass with Ruff and compilation; no RPC endpoint or
+database was accessed ([evidence](builds/2026-10-17-recovery/kgp-worker-error-redaction.json)).
+
+### Scheduler failure-output containment — 17 October 2026
+
+Nonzero scheduled child processes now persist their exit code without storing
+captured stdout or stderr; unexpected launch/execution errors store only the
+exception class. Existing retry and lease behavior is preserved. Twelve
+scheduler durability/worker tests pass with Ruff and compilation using mocked
+process and connection boundaries; no provider or database was used
+([evidence](builds/2026-10-17-recovery/scheduler-failure-output-redaction.json)).
+
 ### Graph projection failure persistence — 17 October 2026
 
 Synchronized graph rebuilds now persist a fixed operation and exception-class

@@ -12,6 +12,7 @@ import time
 import uuid
 from datetime import datetime, timedelta, timezone
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.common.worker_environment import (
     scheduled_module_worker_key,
@@ -260,7 +261,7 @@ class SchedulerEngine:
                     run_id,
                     "failed",
                     duration_ms,
-                    error=(result.stderr or result.stdout)[-2000:],
+                    error=f"Scheduled command failed (exit code {result.returncode})",
                 )
                 return False
 
@@ -286,7 +287,14 @@ class SchedulerEngine:
 
         except Exception as exc:
             duration_ms = int((time.monotonic() - start_time) * 1000)
-            self._complete_task(task_id, run_id, "failed", duration_ms, str(exc), retry_immediately=True)
+            self._complete_task(
+                task_id,
+                run_id,
+                "failed",
+                duration_ms,
+                f"Scheduled task execution failed ({safe_exception_class(exc)})",
+                retry_immediately=True,
+            )
             return False
 
     def _complete_task(
