@@ -654,7 +654,10 @@ owner-confirmed Kokonut Network organization; weather, credit, climate, and
 remote sensing use the same selector. The 126-test scheduler/Prefect slice passes. At
 that checkpoint, the static JobSpec inventory recorded nine no-input jobs,
 five jobs with validated required location inputs, and one source-less sensor
-job; later anomaly and sensor-scope slices changed the current totals to eight no-input jobs and seven validated-input jobs, including the sensor location/driver-instance pair.
+job; later anomaly and sensor-scope slices changed that checkpoint's totals to
+eight no-input jobs and seven validated-input jobs. EAS/RPC chain scoping now
+makes the current catalog six no-input jobs and ten validated-input jobs,
+including the sensor location/driver-instance pair.
 No persisted task was read or
 changed. Existing task rows need reconciliation before activation, and the
 shared worker role still has no signed tenant context ([JobSpec inventory](worker-job-contract-inventory.json);

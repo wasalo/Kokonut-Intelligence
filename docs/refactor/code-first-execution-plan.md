@@ -387,7 +387,9 @@ before protected reads and writes, and make direct database access fail closed.
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
-  covers 16 shared JobSpecs: eight no-input defaults pass, while anomaly,
+  covers 16 shared JobSpecs: the current inventory has six no-input defaults
+  and ten validated-input jobs, while EAS/RPC now require explicit supported
+  chains. The earlier eight-no-input comparison recorded that anomaly,
   climate, weather, weather forecast, metrics, credit adjustment, and remote sensing require a
   schema-validated location per scheduled task; scheduled sensor ingestion now requires one location-bound registered driver
   instance; no active source instance or schedule has been configured.

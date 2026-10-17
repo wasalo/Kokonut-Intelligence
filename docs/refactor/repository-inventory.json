@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "0260f92f97fbf1dce2a55a0242f97e589e791135",
+  "baseline_commit": "316a4b7a1ac3beb8c5a6f1fbb715f7f7fe0a04af",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3250,6 +3250,7 @@
         "tests/test_responsibility_assignment.py",
         "tests/test_revenue_model.py",
         "tests/test_revenue_multiplier.py",
+        "tests/test_rpc_indexer_contract.py",
         "tests/test_runtime_import_regressions.py",
         "tests/test_sandop.py",
         "tests/test_sensor_driver_schedule.py",
@@ -3723,6 +3724,7 @@
       ],
       "test_references": [
         "tests/test_phase3_4.py",
+        "tests/test_rpc_indexer_contract.py",
         "tests/test_scheduled_command_contracts.py",
         "tests/test_security_allowlist.py",
         "tests/test_security_audit.py",
@@ -4312,6 +4314,7 @@
     "tests/test_responsibility_assignment.py",
     "tests/test_revenue_model.py",
     "tests/test_revenue_multiplier.py",
+    "tests/test_rpc_indexer_contract.py",
     "tests/test_runtime_import_regressions.py",
     "tests/test_runtime_role_boundary.py",
     "tests/test_runtime_sql_inventory.py",

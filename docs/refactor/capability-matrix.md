@@ -829,9 +829,10 @@ The scheduler contract rejects missing scope before process creation, and the
 CLI rejects it before opening a database connection. Ninety-three focused
 command/contract checks pass; the then-current JobSpec inventory distinguished
 nine no-input jobs, five required-location jobs, and one source-less sensor job.
-Later anomaly and sensor-scope slices move the current inventory to eight
-no-input jobs and seven jobs with validated required inputs, including the
-sensor location/driver-instance pair.
+Anomaly and sensor-scope slices later changed that inventory to eight no-input
+jobs and seven validated-input jobs. The current catalog has six no-input jobs
+and ten validated-input jobs after EAS/RPC chain scoping; the sensor
+location/driver-instance pair remains required.
 This remains a source contract: workers inherit the shared runtime identity
 without signed tenant context, RLS remains blocked, and no MAN-CAP status or
 acceptance count changes ([evidence](builds/2026-10-16-recovery/worker-credit-adjustment-location-scope.json);

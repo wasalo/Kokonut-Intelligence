@@ -205,8 +205,9 @@ application-wide RLS or proof for other workers.
   legacy seed remains excluded from normal Kernel bootstrap.
 - The generated [JobSpec/contract inventory](worker-job-contract-inventory.json)
   compares all 16 shared job templates with the Kernel module allowlist and
-  command validation. Eight no-input defaults pass and eight jobs require
-  validated runtime inputs. Scheduled sensor ingestion requires one
+  command validation. Six no-input defaults pass and ten jobs require
+  validated runtime inputs; EAS and RPC each require one supported chain.
+  Scheduled sensor ingestion requires one
   `--location-id` and one `--driver-instance-id`; the registry accepts only an
   enabled sensor instance assigned to that exact location, and the loaded
   driver must explicitly opt into scheduled pull. The built-in CSV driver is
