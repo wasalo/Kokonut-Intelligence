@@ -4,9 +4,9 @@
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
     "operation_roots": 23,
-    "sql_execution_sites": 300,
-    "statically_reachable_site_memberships": 274,
-    "unique_sites_with_static_operation_path": 228,
+    "sql_execution_sites": 304,
+    "statically_reachable_site_memberships": 278,
+    "unique_sites_with_static_operation_path": 232,
     "sites_without_static_function_match": 72,
     "unmatched_functions_absent_from_all_worker_graphs": 72,
     "sites_reached_by_multiple_operations": 13
@@ -275,11 +275,15 @@
       "kind": "scheduled_module",
       "name": "services.ingestion.rpc_indexer",
       "operation_ref": "scheduled_module:services.ingestion.rpc_indexer",
-      "statically_reachable_sql_site_count": 5,
+      "statically_reachable_sql_site_count": 9,
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:207:12",
         "services/ingestion/clickhouse_outbox.py:53:12",
         "services/ingestion/rpc_indexer.py:132:8",
+        "services/ingestion/rpc_indexer.py:242:16",
+        "services/ingestion/rpc_indexer.py:271:20",
+        "services/ingestion/rpc_indexer.py:281:20",
+        "services/ingestion/rpc_indexer.py:282:20",
         "services/ingestion/rpc_indexer.py:71:12",
         "services/ingestion/rpc_indexer.py:76:12"
       ]
@@ -5996,6 +6000,82 @@
       "candidate_relations": [
         "wallet_activity_event"
       ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:242:16",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 242,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:271:20",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 271,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:281:20",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 281,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:282:20",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 282,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
       "import_closure_operations": [
         "scheduled_module:services.ingestion.rpc_indexer"
       ],

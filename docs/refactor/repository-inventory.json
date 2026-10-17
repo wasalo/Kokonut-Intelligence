@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "b024ef5a9badf556b9490bf6374bf57c26ebe992",
+  "baseline_commit": "caa3426e9fd8b732f0fc0b016cda7b8e3a0b533a",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3258,6 +3258,7 @@
         "tests/test_revenue_model.py",
         "tests/test_revenue_multiplier.py",
         "tests/test_rpc_indexer_contract.py",
+        "tests/test_rpc_indexer_recovery.py",
         "tests/test_runtime_import_regressions.py",
         "tests/test_sandop.py",
         "tests/test_sensor_driver_schedule.py",
@@ -4325,6 +4326,7 @@
     "tests/test_revenue_model.py",
     "tests/test_revenue_multiplier.py",
     "tests/test_rpc_indexer_contract.py",
+    "tests/test_rpc_indexer_recovery.py",
     "tests/test_runtime_import_regressions.py",
     "tests/test_runtime_role_boundary.py",
     "tests/test_runtime_sql_inventory.py",

@@ -16,6 +16,15 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
+**16 October 2026 RPC wallet transaction integrity (CAP-040 / CAP-047):**
+wallet activity, chain status, and ClickHouse outbox intent now share one
+transaction, with per-wallet savepoints and explicit partial-failure status.
+Focused mocked recovery/contract/outbox/scheduler checks pass 133 tests. This
+does not prove transaction-history coverage, confirmation depth, reorg recovery,
+provider parity, or live runtime behavior; related MAN-CAP checks remain
+unaccepted ([evidence](builds/2026-10-16-recovery/rpc-indexer-atomicity.json);
+[operation map](worker-operation-map.json)).
+
 **16 October 2026 explicit EAS/RPC scheduler chain scope (CAP-047):** native
 EAS and RPC job dispatch and disabled schedule planning now require exactly one
 supported chain. Optional Prefect adapters preserve all three EAS chains in

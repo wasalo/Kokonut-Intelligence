@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### RPC wallet projection/status atomicity — 16 October 2026
+
+The wallet RPC indexer previously updated chain status outside the connection
+that writes wallet activity and its ClickHouse projection. It now runs the
+wallet rows, chain status, and outbox intent in one transaction, with a
+savepoint per wallet so one provider/insert failure does not poison other
+wallets. A partial chain failure is recorded as `error`; a status/outbox/commit
+failure rolls back the run and attempts to persist the error status on the same
+connection. The focused recovery, contract, outbox, and scheduler suite passes
+133 tests with external boundaries mocked; Ruff and compilation pass. No RPC
+provider or database was contacted. This closes a transaction-integrity gap,
+not historical transaction ingestion, confirmation depth, reorg handling,
+provider parity, or runtime recovery ([tests](../../tests/test_rpc_indexer_recovery.py);
+[evidence](builds/2026-10-16-recovery/rpc-indexer-atomicity.json);
+[operation map](worker-operation-map.json)).
+
 ### Gnosis Moloch cursor namespace separation — 16 October 2026
 
 The Moloch event indexer and general wallet RPC indexer both used the

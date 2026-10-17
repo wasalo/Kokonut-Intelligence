@@ -7,7 +7,7 @@
     "source_files": 83,
     "operations_without_resolved_entry_functions": 0,
     "function_memberships": 476,
-    "direct_call_edges": 682,
+    "direct_call_edges": 683,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -4893,7 +4893,7 @@
         {
           "function": "services.ingestion.rpc_indexer:run",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 294
+          "line": 333
         }
       ],
       "reachable_functions": [
@@ -5113,55 +5113,61 @@
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.base:now_utc",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 246
+          "line": 252
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 267
+          "line": 291
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 271
+          "line": 295
+        },
+        {
+          "caller": "services.ingestion.rpc_indexer:run",
+          "callee": "services.ingestion.base:update_indexer_status",
+          "source": "services/ingestion/rpc_indexer.py",
+          "line": 312
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:fetch_balance",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 242
+          "line": 248
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:fetch_latest_block",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 241
+          "line": 247
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:get_wallets",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 224
+          "line": 225
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:get_web3",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 238
+          "line": 244
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:insert_activity",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 263
+          "line": 269
         },
         {
           "caller": "services.ingestion.rpc_indexer:run",
           "callee": "services.ingestion.rpc_indexer:insert_activity_clickhouse",
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 276
+          "line": 305
         }
       ],
       "callback_edges": [],

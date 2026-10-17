@@ -220,6 +220,7 @@ def insert_activity_clickhouse(records: list[dict], conn=None) -> None:
 def run(chain: str = None, wallet_address: str = None):
     """Main ingestion entry point."""
     db = get_db()
+    attempted_chains = set()
     try:
         wallets = get_wallets(db, chain)
 
@@ -232,8 +233,13 @@ def run(chain: str = None, wallet_address: str = None):
 
         logger.info("Indexing %d wallets...", len(wallets))
         all_records = []
+        observed_blocks = {}
+        failed_chains = {}
 
         for wallet_id, address, w_chain, role, label in wallets:
+            attempted_chains.add(w_chain)
+            with db.cursor() as cur:
+                cur.execute("SAVEPOINT rpc_wallet_activity")
             try:
                 w3 = get_web3(w_chain)
                 checksum = Web3.to_checksum_address(address)
@@ -261,22 +267,55 @@ def run(chain: str = None, wallet_address: str = None):
                 }
 
                 pg_id = insert_activity(db, record)
+                with db.cursor() as cur:
+                    cur.execute("RELEASE SAVEPOINT rpc_wallet_activity")
                 if pg_id:
                     all_records.append(record)
-
-                update_indexer_status(w_chain, "rpc", current_block, "healthy")
+                observed_blocks[w_chain] = max(
+                    current_block, observed_blocks.get(w_chain, current_block)
+                )
                 logger.info("  ✓ %s: block %d, balance %.4f ETH", label or address[:10], current_block, balance_eth)
 
             except Exception as e:
-                update_indexer_status(w_chain, "rpc", None, "error", str(e))
+                with db.cursor() as cur:
+                    cur.execute("ROLLBACK TO SAVEPOINT rpc_wallet_activity")
+                    cur.execute("RELEASE SAVEPOINT rpc_wallet_activity")
+                failed_chains[w_chain] = str(e)
                 logger.error("  ✗ %s: %s", label or address[:10], e)
+
+        # Keep each chain's status in the same transaction as its wallet rows
+        # and any ClickHouse outbox intent. A partial chain failure is never
+        # reported as healthy.
+        for w_chain in sorted(attempted_chains):
+            if w_chain in failed_chains:
+                update_indexer_status(
+                    w_chain, "rpc", None, "error", failed_chains[w_chain], db=db
+                )
+            else:
+                update_indexer_status(
+                    w_chain,
+                    "rpc",
+                    observed_blocks.get(w_chain),
+                    "healthy",
+                    db=db,
+                )
 
         # Commit PostgreSQL records and their ClickHouse outbox entry atomically.
         if all_records:
             insert_activity_clickhouse(all_records, db)
         db.commit()
-    except Exception:
+    except Exception as exc:
         db.rollback()
+        if attempted_chains:
+            try:
+                for w_chain in sorted(attempted_chains):
+                    update_indexer_status(
+                        w_chain, "rpc", None, "error", str(exc), db=db
+                    )
+                db.commit()
+            except Exception:
+                db.rollback()
+                logger.exception("Could not persist RPC indexer failure status")
         raise
     finally:
         db.close()

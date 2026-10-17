@@ -5,8 +5,8 @@
   "summary": {
     "operation_roots": 23,
     "source_files": 83,
-    "execution_sites": 300,
-    "static_literal_sites": 259,
+    "execution_sites": 304,
+    "static_literal_sites": 263,
     "composed_or_variable_sites": 41
   },
   "execution_sites": [
@@ -4637,6 +4637,66 @@
         "wallet_activity_event"
       ],
       "static_sql_sha256": "15309cabf845a56b5170a28396bd3d9695d7e429737a01284950c07dc2e4ff40",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:242:16",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 242,
+      "column": 16,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SAVEPOINT",
+      "candidate_relations": [],
+      "static_sql_sha256": "1a3a7f978101a921008c07390f5b2132c51f409566391d5294153b1237a426b7",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:271:20",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 271,
+      "column": 20,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "e1944ddc122a2d9ba0ea4a230d3a4ea3cc3a95cec7dbcf7959fcf82bb4d31a50",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:281:20",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 281,
+      "column": 20,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "ROLLBACK",
+      "candidate_relations": [],
+      "static_sql_sha256": "54b1aa9379a08de000c7cc0326be3de2442198e885fb187935ea6ef4ad45362f",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:282:20",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 282,
+      "column": 20,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "RELEASE",
+      "candidate_relations": [],
+      "static_sql_sha256": "e1944ddc122a2d9ba0ea4a230d3a4ea3cc3a95cec7dbcf7959fcf82bb4d31a50",
       "operation_refs": [
         "scheduled_module:services.ingestion.rpc_indexer"
       ]

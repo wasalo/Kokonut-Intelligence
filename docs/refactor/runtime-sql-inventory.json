@@ -4,17 +4,17 @@
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
     "source_files": 816,
-    "execution_sites": 3909,
+    "execution_sites": 3913,
     "worker_operation_roots": 23,
-    "sites_with_worker_operation_refs": 300,
+    "sites_with_worker_operation_refs": 304,
     "sites_without_worker_operation_refs": 3609,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
       "INSERT": 677,
-      "RELEASE": 6,
-      "ROLLBACK": 5,
-      "SAVEPOINT": 4,
+      "RELEASE": 8,
+      "ROLLBACK": 6,
+      "SAVEPOINT": 5,
       "SELECT": 2490,
       "SET": 68,
       "UNKNOWN": 145,
@@ -24,7 +24,7 @@
     "statement_groups": {
       "read_candidate": 2490,
       "schema_change": 1,
-      "transaction_or_session": 83,
+      "transaction_or_session": 87,
       "unknown_requires_manual_review": 145,
       "with_requires_manual_review": 24,
       "write_candidate": 1166
@@ -33,10 +33,10 @@
       "composed": 5,
       "composed_or_variable": 216,
       "fstring": 271,
-      "literal": 3417
+      "literal": 3421
     },
     "relation_candidates": 1043,
-    "sites_without_relation_candidates": 401,
+    "sites_without_relation_candidates": 405,
     "service_packages": 67
   },
   "service_packages": {
@@ -452,18 +452,18 @@
     },
     "ingestion": {
       "source_files": 56,
-      "execution_sites": 206,
+      "execution_sites": 210,
       "statement_groups": {
         "read_candidate": 108,
-        "transaction_or_session": 15,
+        "transaction_or_session": 19,
         "unknown_requires_manual_review": 2,
         "with_requires_manual_review": 3,
         "write_candidate": 78
       },
       "candidate_relation_names": 60,
-      "sites_without_relation_candidates": 24,
+      "sites_without_relation_candidates": 28,
       "non_literal_sites": 17,
-      "sites_with_worker_operation_refs": 132
+      "sites_with_worker_operation_refs": 136
     },
     "innovation": {
       "source_files": 6,
@@ -4772,6 +4772,10 @@
     {"id": "services/ingestion/rpc_indexer.py:71:12","source": "services/ingestion/rpc_indexer.py","line": 71,"column": 12,"scope": "get_wallets","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["wallet_profile"],"static_sql_sha256": "95570c4e95d6f722ddeb05731437cea353427fafdd2d0b062924d195ccbf9add","operation_refs": ["scheduled_module:services.ingestion.rpc_indexer"],"statement_group": "read_candidate"},
     {"id": "services/ingestion/rpc_indexer.py:76:12","source": "services/ingestion/rpc_indexer.py","line": 76,"column": 12,"scope": "get_wallets","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["wallet_profile"],"static_sql_sha256": "22f08b895846aa169a8f8a18844fad13cdacced629b09ca092aaa262a2eddbe4","operation_refs": ["scheduled_module:services.ingestion.rpc_indexer"],"statement_group": "read_candidate"},
     {"id": "services/ingestion/rpc_indexer.py:132:8","source": "services/ingestion/rpc_indexer.py","line": 132,"column": 8,"scope": "insert_activity","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["wallet_activity_event"],"static_sql_sha256": "15309cabf845a56b5170a28396bd3d9695d7e429737a01284950c07dc2e4ff40","operation_refs": ["scheduled_module:services.ingestion.rpc_indexer"],"statement_group": "write_candidate"},
+    {"id": "services/ingestion/rpc_indexer.py:242:16","source": "services/ingestion/rpc_indexer.py","line": 242,"column": 16,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "SAVEPOINT","candidate_relations": [],"static_sql_sha256": "1a3a7f978101a921008c07390f5b2132c51f409566391d5294153b1237a426b7","operation_refs": ["scheduled_module:services.ingestion.rpc_indexer"],"statement_group": "transaction_or_session"},
+    {"id": "services/ingestion/rpc_indexer.py:271:20","source": "services/ingestion/rpc_indexer.py","line": 271,"column": 20,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "RELEASE","candidate_relations": [],"static_sql_sha256": "e1944ddc122a2d9ba0ea4a230d3a4ea3cc3a95cec7dbcf7959fcf82bb4d31a50","operation_refs": ["scheduled_module:services.ingestion.rpc_indexer"],"statement_group": "transaction_or_session"},
+    {"id": "services/ingestion/rpc_indexer.py:281:20","source": "services/ingestion/rpc_indexer.py","line": 281,"column": 20,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "ROLLBACK","candidate_relations": [],"static_sql_sha256": "54b1aa9379a08de000c7cc0326be3de2442198e885fb187935ea6ef4ad45362f","operation_refs": ["scheduled_module:services.ingestion.rpc_indexer"],"statement_group": "transaction_or_session"},
+    {"id": "services/ingestion/rpc_indexer.py:282:20","source": "services/ingestion/rpc_indexer.py","line": 282,"column": 20,"scope": "run","method": "execute","expression_kind": "literal","statement_kind": "RELEASE","candidate_relations": [],"static_sql_sha256": "e1944ddc122a2d9ba0ea4a230d3a4ea3cc3a95cec7dbcf7959fcf82bb4d31a50","operation_refs": ["scheduled_module:services.ingestion.rpc_indexer"],"statement_group": "transaction_or_session"},
     {"id": "services/ingestion/sensor_anomaly_worker.py:83:8","source": "services/ingestion/sensor_anomaly_worker.py","line": 83,"column": 8,"scope": "_one","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": ["event_handler:services.ingestion.anomaly_detector.handle_sensor_reading","scheduled_module:services.ingestion.anomaly_detector"],"statement_group": "unknown_requires_manual_review"},
     {"id": "services/ingestion/sensor_anomaly_worker.py:89:8","source": "services/ingestion/sensor_anomaly_worker.py","line": 89,"column": 8,"scope": "_many","method": "execute","expression_kind": "composed_or_variable","statement_kind": "UNKNOWN","candidate_relations": [],"static_sql_sha256": null,"operation_refs": ["event_handler:services.ingestion.anomaly_detector.handle_sensor_reading","scheduled_module:services.ingestion.anomaly_detector"],"statement_group": "unknown_requires_manual_review"},
     {"id": "services/ingestion/sensor_ingester.py:129:12","source": "services/ingestion/sensor_ingester.py","line": 129,"column": 12,"scope": "get_sensor_type_ranges","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["sensor_type"],"static_sql_sha256": "48c4590433d8676cae2db0140178d3f64d3495ae1cf02d407b363678227e9512","operation_refs": ["scheduled_module:services.ingestion.sensor_ingester"],"statement_group": "read_candidate"},
