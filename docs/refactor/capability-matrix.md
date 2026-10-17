@@ -557,6 +557,8 @@ pass, with fake connections only. Gateway audit database-write and local
 journal failures now also log only exception classes, retaining the journal
 fallback; both mocked regressions pass within nine Gateway audit checks with
 Ruff, compilation, and targeted Gitleaks. No database or journal was accessed.
+Gateway internal-error logs also omit exception messages and tracebacks while
+retaining the generic HTTP 500 response; 34 route-policy/auth checks pass.
 This source-level display change does not
 substitute for live worker retry or dead-letter acceptance
 ([worker history](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json);
@@ -564,7 +566,8 @@ substitute for live worker retry or dead-letter acceptance
 [Impact Office](builds/2026-10-17-recovery/impact-office-history-error-redaction.json);
 [sandbox](builds/2026-10-17-recovery/sandbox-history-error-redaction.json);
 [agent action audit](builds/2026-10-17-recovery/agent-action-log-error-redaction.json);
-[Gateway audit fallback](builds/2026-10-17-recovery/gateway-audit-error-log-redaction.json)).
+[Gateway audit fallback](builds/2026-10-17-recovery/gateway-audit-error-log-redaction.json);
+[Gateway internal errors](builds/2026-10-17-recovery/gateway-internal-error-redaction.json)).
 
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending

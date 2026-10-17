@@ -19,6 +19,11 @@ two mocked failure branches pass within nine Gateway audit checks with Ruff,
 compilation, and targeted Gitleaks. No database, filesystem journal, or live
 request was accessed
 ([evidence](builds/2026-10-17-recovery/gateway-audit-error-log-redaction.json)).
+The Gateway's shared internal-error handler now logs only its fixed message and
+exception class while retaining the generic HTTP 500 response. Its regression
+passes within 34 route-policy/auth checks with Ruff and compilation; no live
+request or database was accessed
+([evidence](builds/2026-10-17-recovery/gateway-internal-error-redaction.json)).
 
 ### Durable worker history output containment — 17 October 2026
 

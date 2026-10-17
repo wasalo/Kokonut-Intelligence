@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 try:
@@ -102,7 +103,7 @@ def get_route_policy(method: str, path: str) -> dict:
 
 
 def _internal_error(exc: Exception, message: str = "Gateway request failed"):
-    logger.exception(message, exc_info=exc)
+    logger.error("%s (%s)", message, safe_exception_class(exc))
     return JSONResponse(status_code=500, content={"error": message})
 
 
