@@ -68,6 +68,19 @@ ingress check, but not non-loopback/public ingress, CPU/memory limits, or
 physical Pi behavior ([ingress evidence](builds/2026-10-17-recovery/arm64-loopback-ingress.json);
 [ARM64 schema evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
 
+**Resource-limited current-schema follow-up (17 October 2026):** a new isolated
+project rebuilt the ARM64 app from source commit `4d946f6b`, applied all 423
+ordered schemas through migration 432 with zero failures or pending migrations,
+and started the app with a 1 GiB memory limit and two CPUs. PostgreSQL remained
+native amd64 for bounded replay time and used a separate 1.5 GiB/two-CPU limit.
+The app reached healthy status; `/health` returned 200 and an anonymous
+farm-activity request returned 401 `credentials_required`. It was not OOM-killed.
+A single Docker stats sample was 312.3 MiB app memory and 91.53 MiB database
+memory; this is not a sustained workload benchmark. The disposable project,
+volumes, and image tag were removed, and the candidate remained healthy. This
+adds constrained QEMU application evidence, not physical Pi or ARM64 database
+acceptance ([evidence](builds/2026-10-17-recovery/arm64-resource-limited-current-schema.json)).
+
 On 10 October 2026 registry metadata was inspected for the candidate's exact
 database reference:
 

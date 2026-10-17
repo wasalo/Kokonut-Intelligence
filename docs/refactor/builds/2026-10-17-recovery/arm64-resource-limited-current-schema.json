@@ -1,0 +1,61 @@
+{
+  "date": "2026-10-17",
+  "purpose": "Bounded ARM64/QEMU resource and current-schema smoke; software evidence only, not physical Raspberry Pi acceptance.",
+  "source_commit": "4d946f6b0f0bf26af0544d3aff7de55847492415",
+  "compose_project": "kokonut-kernel-arm64-resource-20261017",
+  "isolation": {
+    "fresh_database_volume": true,
+    "seeds_applied": false,
+    "farm_data_loaded": false,
+    "candidate_database_modified": false,
+    "legacy_stack_selected": false
+  },
+  "platforms": {
+    "app": "linux/arm64 under Docker Desktop/QEMU on an amd64 macOS host",
+    "database": "linux/amd64 PostGIS 16-3.4; database architecture was held native to keep migration replay bounded"
+  },
+  "images": {
+    "app_image_id": "sha256:f9aaaead98b586185346e2153318282be09d0585c65b2ecc402dc81c1f2a7e3f",
+    "app_platform": "linux/arm64"
+  },
+  "resource_limits": {
+    "app": {"memory_bytes": 1073741824, "cpu_count": 2},
+    "database": {"memory_bytes": 1610612736, "cpu_count": 2}
+  },
+  "schema_replay": {
+    "ordered_schema_sources": 423,
+    "last_migration": 432,
+    "failures": 0,
+    "pending_after_replay": 0,
+    "optional_role_bootstrap": "Applied the repository's idempotent bootstrap-optional-roles.sql to this disposable database before resuming at migration 427."
+  },
+  "runtime": {
+    "container_health": "healthy",
+    "oom_killed": false,
+    "health_route_status": 200,
+    "anonymous_protected_route": "/operator/api/farm-activity-records?location_id=00000000-0000-4000-8000-000000000001",
+    "anonymous_protected_route_status": 401,
+    "anonymous_protected_route_code": "credentials_required"
+  },
+  "single_docker_stats_sample": {
+    "app_memory_mib": 312.3,
+    "app_memory_limit_mib": 1024,
+    "app_cpu_percent": 15.05,
+    "database_memory_mib": 91.53,
+    "database_memory_limit_mib": 1536,
+    "database_cpu_percent": 1.2,
+    "note": "One observation only; not a sustained workload benchmark or sizing guarantee."
+  },
+  "cleanup": {
+    "temporary_containers_network_volumes_removed": true,
+    "temporary_image_tag_removed": true,
+    "temporary_files_removed": true,
+    "candidate_stack_healthy_afterward": true
+  },
+  "limitations": [
+    "No physical Raspberry Pi was available; QEMU does not measure device-specific performance, thermals, storage, power-loss, or peripheral behavior.",
+    "The PostgreSQL container was amd64, so this run is not an ARM64 database runtime test.",
+    "A single Docker stats sample does not establish sustained resource requirements or a profile-wide resource budget.",
+    "This was not a 24-hour recovery, provider outage, replica failover, or scale-concurrency test."
+  ]
+}

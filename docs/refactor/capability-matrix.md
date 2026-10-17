@@ -419,6 +419,15 @@ healthy under a 1 GiB/two-CPU limit. The disposable volume was removed. This
 does not accept MAN-CAP-047 or physical Pi behavior
 ([evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
 
+**17 October 2026 constrained ARM64 app run (CAP-047):** the current-source
+ARM64 app ran under QEMU with a 1 GiB/two-CPU cap against a fresh database
+limited to 1.5 GiB/two CPUs. All 423 ordered schema sources replayed through
+migration 432 with zero pending; health returned 200 and an anonymous protected
+read returned 401. A single Docker stats sample is retained as an observation,
+not a capacity benchmark. The database was amd64, and no Pi hardware, sustained
+load, or 24-hour recovery was tested. This updates implementation evidence only;
+MAN-CAP-047 remains unaccepted ([evidence](builds/2026-10-17-recovery/arm64-resource-limited-current-schema.json)).
+
 **15 October 2026 fake-provider route contract (CAP-001 / CAP-047 / CAP-053):**
 six no-network tests cover OIDC login state handoff, callback rejection,
 opaque session/CSRF cookie issuance, scope response, CSRF-gated logout, and
