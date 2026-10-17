@@ -542,6 +542,14 @@ compilation pass with a mocked RPC failure; no endpoint was contacted. This
 does not close TLS, authenticated transport, tenant-scope, or MAN-CAP-064
 acceptance ([evidence](builds/2026-10-17-recovery/grpc-health-error-redaction.json)).
 
+**17 October 2026 durable worker history output containment (CAP-047):**
+scheduler-run and event dead-letter listings now retain failure state and
+record identity while redacting persisted raw errors from earlier attempts.
+Two mocked CLI checks pass with Ruff and compilation; no database or worker
+was accessed. This source-level display change does not substitute for live
+worker retry or dead-letter acceptance
+([evidence](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

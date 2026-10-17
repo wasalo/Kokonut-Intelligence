@@ -208,7 +208,7 @@ def cmd_list_dead_letter(args):
                 print(f"  [{created}] {etype} (failures: {fcount}, {disposition})")
                 print(f"    ID: {eid}")
                 if error:
-                    print(f"    Error: {error[:100]}")
+                    print("    Error: [details redacted]")
                 print()
             return 0
     finally:

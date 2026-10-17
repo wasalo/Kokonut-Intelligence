@@ -170,7 +170,7 @@ def cmd_list_runs(args):
                 dur_str = f"{duration}ms" if duration else "n/a"
                 print(f"  [{started}] {name}: {status} ({dur_str})")
                 if error:
-                    print(f"    Error: {error[:120]}")
+                    print("    Error: [details redacted]")
             return 0
     finally:
         conn.close()
