@@ -40,14 +40,14 @@ def _get_gee_client(*, worker_credentials: bool = False):
             ee.Initialize(credentials)
             return ee
         except Exception as e:
-            logger.error("GEE init failed: %s", e)
+            logger.error("GEE init failed (%s)", type(e).__name__)
             return None
 
     try:
         ee.Initialize()
         return ee
     except Exception as e:
-        logger.error("GEE default init failed: %s", e)
+        logger.error("GEE default init failed (%s)", type(e).__name__)
         return None
 
 
@@ -213,8 +213,8 @@ def fetch_modis_lst(
     except Exception as e:
         if conn is not None:
             conn.rollback()
-        logger.error("MODIS LST fetch failed: %s", e)
-        return {"status": "error", "message": str(e)}
+        logger.error("MODIS LST fetch failed (%s)", type(e).__name__)
+        return {"status": "error", "message": f"MODIS LST fetch failed ({type(e).__name__})"}
 
 
 def fetch_smap_moisture(
@@ -291,8 +291,8 @@ def fetch_smap_moisture(
     except Exception as e:
         if conn is not None:
             conn.rollback()
-        logger.error("SMAP fetch failed: %s", e)
-        return {"status": "error", "message": str(e)}
+        logger.error("SMAP fetch failed (%s)", type(e).__name__)
+        return {"status": "error", "message": f"SMAP fetch failed ({type(e).__name__})"}
 
 
 def fetch_sentinel1_sar(
@@ -372,8 +372,8 @@ def fetch_sentinel1_sar(
     except Exception as e:
         if conn is not None:
             conn.rollback()
-        logger.error("Sentinel-1 SAR fetch failed: %s", e)
-        return {"status": "error", "message": str(e)}
+        logger.error("Sentinel-1 SAR fetch failed (%s)", type(e).__name__)
+        return {"status": "error", "message": f"Sentinel-1 SAR fetch failed ({type(e).__name__})"}
 
 
 def fetch_era5_land(
@@ -492,8 +492,8 @@ def fetch_era5_land(
     except Exception as e:
         if conn is not None:
             conn.rollback()
-        logger.error("ERA5 Land fetch failed: %s", e)
-        return {"status": "error", "message": str(e)}
+        logger.error("ERA5 Land fetch failed (%s)", type(e).__name__)
+        return {"status": "error", "message": f"ERA5 Land fetch failed ({type(e).__name__})"}
 
 
 def fetch_all_climate(conn, location_id: str, bbox: Dict[str, float]) -> Dict[str, Any]:

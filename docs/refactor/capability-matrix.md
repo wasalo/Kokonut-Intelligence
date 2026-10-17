@@ -261,6 +261,14 @@ omit raw exception details. Four new mocked regressions pass within the
 ClickHouse endpoint was contacted; live recovery and MAN-CAP-040/047 remain
 open ([evidence](builds/2026-10-17-recovery/weather-legacy-error-redaction.json)).
 
+**17 October 2026 GEE climate error containment (CAP-040 / CAP-047):**
+credentialed/default initialization and MODIS, SMAP, Sentinel-1, and ERA5
+failures now expose only bounded summaries; failed fetches retain transaction
+rollback. Six new mocked regressions pass within the 44-test climate suite with
+Ruff. No Earth Engine endpoint or database was accessed; live source and
+MAN-CAP-040/047 acceptance remain open
+([evidence](builds/2026-10-17-recovery/gee-climate-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

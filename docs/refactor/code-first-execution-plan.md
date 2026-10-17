@@ -126,6 +126,10 @@ forecast runners now store bounded failure summaries and omit provider details
 from direct ClickHouse fallback logs. Four new mocked regressions pass within a
 26-test weather scope/atomicity suite with Ruff; no endpoint or database was
 contacted ([evidence](builds/2026-10-17-recovery/weather-legacy-error-redaction.json)).
+The GEE climate adapter now also redacts initialization and MODIS/SMAP/
+Sentinel-1/ERA5 failures from logs and returned results. Six new mocked tests
+pass inside a 44-test climate suite with Ruff; no provider or database was
+contacted ([evidence](builds/2026-10-17-recovery/gee-climate-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "f432b933e95c763f30adec131eb660ee4921a1f4",
+  "baseline_commit": "c4e91f9fe460f2989dc8065a5129d062f12bd614",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -3236,6 +3236,7 @@
         "tests/test_env_scanning.py",
         "tests/test_field_validation.py",
         "tests/test_flow_metrics.py",
+        "tests/test_gee_climate_error_redaction.py",
         "tests/test_gis_import.py",
         "tests/test_gnosis_indexer_recovery.py",
         "tests/test_governance_framework.py",
@@ -4228,6 +4229,7 @@
     "tests/test_gateway_public_locations.py",
     "tests/test_gateway_public_metrics.py",
     "tests/test_gateway_route_policy_inventory.py",
+    "tests/test_gee_climate_error_redaction.py",
     "tests/test_geostatistics.py",
     "tests/test_gis_import.py",
     "tests/test_gnh_alignment.py",

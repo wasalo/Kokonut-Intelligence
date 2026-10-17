@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### GEE climate error containment — 17 October 2026
+
+Credentialed/default Earth Engine initialization and MODIS, SMAP, Sentinel-1,
+and ERA5 failures now expose only bounded summaries in logs and returned
+results. Six new mocked regressions pass within the 44-test climate data,
+worker, and scope suite with Ruff; rollback behavior is preserved. No provider
+or database was contacted; live provider and schedule acceptance remain open
+([evidence](builds/2026-10-17-recovery/gee-climate-error-redaction.json)).
+
 ### Legacy weather error containment — 17 October 2026
 
 Legacy current-weather and forecast runners now persist only exception-class
