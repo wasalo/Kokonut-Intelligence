@@ -186,9 +186,12 @@ Migrations 418–419 revoke those public grants and restore execution only to
 that require them. The disposable role acceptance now invokes the real
 `provision_runtime_role` path and verifies that the notification login can
 execute only its enqueue function. Nineteen isolated PostgreSQL checks and 49
-focused tests pass. No encrypted worker credential was provisioned; the
-feature remains disabled and migrations 405–419 remain unapplied to the
-candidate.
+focused tests pass. No encrypted worker credential was provisioned. Later
+candidate rollout evidence records 423 schemas through migration 432 before
+applying migration 433, so migrations 405–419 are present in the candidate
+schema baseline. The notification feature remains disabled until its encrypted
+credentials are provisioned and activation is separately reviewed
+([candidate rollout](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
 
 The first location-lineage source change is in
 `services/ingestion/anomaly_detector.py`. Migration 405 adds private worker

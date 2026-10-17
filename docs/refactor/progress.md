@@ -1,5 +1,15 @@
 # Kokonut Kernel implementation progress
 
+### Notification worker candidate migration status — 17 October 2026
+
+The notification enqueue checklist separated credential provisioning from
+candidate migration rollout. Candidate evidence records 423 migrations through
+432 before migration 433 was applied, so migrations 417–419 were already
+present on that candidate. This closes the stale rollout checklist gate only;
+the isolated notification feature remains off until its encrypted password and
+DSN are provisioned and activation is reviewed. No MAN-CAP status changed
+([rollout evidence](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
+
 ### Durable worker history output containment — 17 October 2026
 
 Scheduler run history, event dead-letter listings, MQTT delivery recovery, and
@@ -1157,10 +1167,13 @@ remain available only to the worker execution role. Nineteen database checks,
 checks pass ([runner](../../scripts/check-operator-session-role-disposable.py);
 [evidence](builds/2026-10-16-recovery/runtime-notification-enqueue-role-disposable.json)).
 No SOPS secret was created, no provider was contacted, and candidate/legacy
-databases were not accessed. Candidate migrations 405–419 remain unapplied;
-the feature stays disabled until credentials and a reviewed rollout are
-available. Checklist count is now 418 complete / 20 open. No MAN-CAP status
-changes.
+databases were not accessed during this disposable acceptance. Subsequent
+candidate rollout evidence records 423 schemas through migration 432 before
+applying migration 433, so migrations 405–419 are present on the candidate.
+The notification feature remains disabled until its encrypted credentials are
+provisioned and activation is separately reviewed. The checklist count in this
+historical update was 418 complete / 20 open; no MAN-CAP status changed
+([candidate rollout](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
 
 ### Isolated global notification enqueue — 16 October 2026
 
