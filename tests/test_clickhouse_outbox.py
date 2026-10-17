@@ -9,15 +9,52 @@ from services.ingestion import clickhouse_outbox
 from services.ingestion.clickhouse_outbox import OutboxEnqueueError, deliver_batch, enqueue
 
 
-def _row(row_id: str) -> dict:
+def _row(row_id: str, attempt_count: int = 1) -> dict:
     return {
         "id": row_id,
+        "attempt_count": attempt_count,
         "lease_token": f"lease-{row_id}",
         "event_key": f"event:{row_id}",
         "target_table": "sensor_readings",
         "columns": ["sensor_id", "value"],
         "rows": [["sensor-1", 24.5]],
     }
+
+
+@pytest.mark.parametrize(
+    ("attempt_count", "expected_seconds"),
+    [(1, 60), (2, 120), (3, 240), (6, 1920), (7, 3600), (8, 3600), (0, 60)],
+)
+def test_retry_delay_grows_exponentially_and_caps(attempt_count, expected_seconds):
+    assert clickhouse_outbox._retry_delay_seconds(attempt_count) == expected_seconds
+
+
+@pytest.mark.parametrize("attempt_count", [True, 1.5, "2"])
+def test_retry_delay_rejects_non_integer_attempt_count(attempt_count):
+    with pytest.raises(ValueError, match="integer"):
+        clickhouse_outbox._retry_delay_seconds(attempt_count)
+
+
+def test_finish_uses_the_computed_delay_and_commits_outcome():
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.rowcount = 1
+
+    assert clickhouse_outbox._finish(
+        conn,
+        "outbox-id",
+        "worker-1",
+        "lease-token",
+        success=False,
+        error="offline",
+        retry_delay_seconds=480,
+    )
+
+    statement, params = cursor.execute.call_args.args
+    assert "(%s * INTERVAL '1 second')" in statement
+    assert "INTERVAL '1 minute'" not in statement
+    assert params[3] == 480
+    conn.commit.assert_called_once()
 
 
 def _enable_clickhouse(monkeypatch, enabled: bool = True) -> None:
@@ -99,15 +136,15 @@ def test_disabled_clickhouse_does_not_claim_or_open_client(monkeypatch):
 
 def test_client_setup_failure_records_a_failed_outcome_for_each_claim(monkeypatch):
     _enable_clickhouse(monkeypatch)
-    rows = [_row("one"), _row("two")]
+    rows = [_row("one"), _row("two", attempt_count=3)]
     finished = []
     monkeypatch.setattr(clickhouse_outbox, "claim_batch", lambda *_args: rows)
     monkeypatch.setattr(clickhouse_outbox, "get_clickhouse", lambda: (_ for _ in ()).throw(OSError("offline")))
     monkeypatch.setattr(
         clickhouse_outbox,
         "_finish",
-        lambda _conn, row_id, worker, token, *, success, error: finished.append(
-            (row_id, worker, token, success, error)
+        lambda _conn, row_id, worker, token, *, success, error, retry_delay_seconds: finished.append(
+            (row_id, worker, token, success, error, retry_delay_seconds)
         ) or True,
     )
 
@@ -115,8 +152,8 @@ def test_client_setup_failure_records_a_failed_outcome_for_each_claim(monkeypatc
 
     assert result == {"claimed": 2, "delivered": 0, "failed": 2}
     assert finished == [
-        ("one", "worker-setup", "lease-one", False, "client setup failed: OSError"),
-        ("two", "worker-setup", "lease-two", False, "client setup failed: OSError"),
+        ("one", "worker-setup", "lease-one", False, "client setup failed: OSError", 60),
+        ("two", "worker-setup", "lease-two", False, "client setup failed: OSError", 240),
     ]
 
 
@@ -129,15 +166,15 @@ def test_missing_client_after_enabled_provider_records_setup_failure(monkeypatch
     monkeypatch.setattr(
         clickhouse_outbox,
         "_finish",
-        lambda _conn, row_id, _worker, _token, *, success, error: finished.append(
-            (row_id, success, error)
+        lambda _conn, row_id, _worker, _token, *, success, error, retry_delay_seconds: finished.append(
+            (row_id, success, error, retry_delay_seconds)
         ) or True,
     )
 
     result = deliver_batch(object(), "worker-no-client")
 
     assert result == {"claimed": 1, "delivered": 0, "failed": 1}
-    assert finished == [("one", False, "client setup failed: RuntimeError")]
+    assert finished == [("one", False, "client setup failed: RuntimeError", 60)]
 
 
 def test_setup_outcome_database_failure_propagates_without_retrying_finish(monkeypatch):
@@ -174,8 +211,8 @@ def test_partial_batch_keeps_independent_insert_and_outcome_results(monkeypatch)
     monkeypatch.setattr(
         clickhouse_outbox,
         "_finish",
-        lambda _conn, row_id, _worker, _token, *, success, error: finished.append(
-            (row_id, success, error)
+        lambda _conn, row_id, _worker, _token, *, success, error, retry_delay_seconds: finished.append(
+            (row_id, success, error, retry_delay_seconds)
         ) or True,
     )
 
@@ -184,6 +221,7 @@ def test_partial_batch_keeps_independent_insert_and_outcome_results(monkeypatch)
     assert result == {"claimed": 2, "delivered": 1, "failed": 1}
     assert [outcome[:2] for outcome in finished] == [("success", True), ("failure", False)]
     assert finished[1][2] == "connection lost"
+    assert finished[1][3] == 60
     assert client.raw_insert.call_count == 2
     client.close.assert_called_once()
 

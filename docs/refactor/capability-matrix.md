@@ -35,6 +35,15 @@ available. Focused producer, outbox, weather, remote-sensing, and attestation
 checks pass 158 tests; live PostgreSQL/provider behavior and MAN-CAP acceptance
 remain open ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
 
+**16 October 2026 ClickHouse outbox retry resilience (CAP-040 / CAP-047):**
+failed projection deliveries now use capped exponential backoff from 60 seconds
+to one hour, including client-setup failures. The existing lease fence,
+idempotency token, and eight-attempt dead-letter threshold are preserved.
+Fifty-seven focused outbox, failure-injection, and producer checks pass using
+mocked boundaries. This is source-level resilience evidence; live outage and
+MAN-CAP acceptance remain open
+([evidence](builds/2026-10-16-recovery/clickhouse-outbox-backoff.json)).
+
 **16 October 2026 scheduled anomaly scope (CAP-040 / CAP-047):** hourly
 scheduled anomaly scans and baseline checks now require one explicit location;
 the Prefect adapter fans out over active Kokonut Network locations. Scoped

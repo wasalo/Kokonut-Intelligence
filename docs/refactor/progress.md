@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### ClickHouse outbox bounded retry backoff — 16 October 2026
+
+Outbox delivery failures now schedule capped exponential retries: 60 seconds
+after the first attempt, then 2, 4, 8, 16, and 32 minutes, capped at one hour.
+The same schedule applies when ClickHouse client setup fails. Successful
+delivery timing, lease fencing, the eight-attempt dead-letter threshold, and
+the stable insert-deduplication token are unchanged. Fifty-seven focused
+outbox/failure-injection/producer tests pass; Ruff, compilation, and whitespace
+checks pass. Tests use mocks only; no database, ClickHouse service, candidate,
+legacy deployment, or provider was contacted. This adds source-level retry
+resilience, not live outage acceptance or a MAN-CAP acceptance
+([evidence](builds/2026-10-16-recovery/clickhouse-outbox-backoff.json);
+[implementation](../../services/ingestion/clickhouse_outbox.py)).
+
 ### Canonical ingestion outbox failure atomicity — 16 October 2026
 
 PostgreSQL-backed producers for weather, remote sensing (manual, GEE, and

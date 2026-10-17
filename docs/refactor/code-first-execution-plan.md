@@ -22,6 +22,14 @@ regressions; 158 focused tests pass across outbox, weather, remote-sensing, and
 attestation contracts. This does not close live provider/PostgreSQL recovery
 acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
 
+- ClickHouse outbox failures now use capped exponential retry delays (60 seconds
+  through one hour), including client-setup failures; the retry schedule is
+  derived from the persisted attempt count and retains the existing eight-try
+  dead-letter bound and stable insertion token. Fifty-seven focused outbox,
+  failure-injection, and producer tests pass with mocked boundaries. Live
+  PostgreSQL/ClickHouse outage acceptance remains open
+  ([evidence](builds/2026-10-16-recovery/clickhouse-outbox-backoff.json)).
+
 - The manual remote-sensing CSV path now requires a canonical location UUID or
   explicit `--all-locations`. Single-location SQL reads plots only within the
   selected location; every row must match plot/farm lineage, and accepted-row
@@ -638,6 +646,14 @@ ClickHouse outbox's disabled-provider, client-setup, partial-batch, completion,
 fencing, and cleanup behavior. They mock both database and provider boundaries;
 real lease recovery and process-level outage behavior remain open
 ([evidence](builds/2026-10-14-recovery/clickhouse-outbox-failure-injection.json)).
+
+**Outbox retry backoff (16 October 2026):** failed delivery outcomes now use a
+60-second exponential base, doubling by persisted attempt number and capping at
+one hour. ClickHouse setup failures use the same schedule; the existing
+eight-attempt dead-letter bound, lease fence, and idempotent insert token are
+unchanged. Fifty-seven focused outbox, failure-injection, and producer tests
+pass. The checks use mocks and source contracts only; no database or ClickHouse
+service was contacted ([evidence](builds/2026-10-16-recovery/clickhouse-outbox-backoff.json)).
 
 **Provider-aware recovery (14 October 2026):** encrypted Compose checkpoints now
 declare their PostgreSQL and ClickHouse contents. PostgreSQL-only backup and
