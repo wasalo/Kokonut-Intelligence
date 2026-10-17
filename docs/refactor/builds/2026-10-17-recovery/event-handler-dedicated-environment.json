@@ -4,7 +4,8 @@
   "implementation": [
     "Exact source-mapped EventBus handlers now receive their named worker DSN and credential without inheriting shared PostgreSQL connection settings or global geospatial provider credentials.",
     "Unmapped legacy handlers retain their existing environment until they receive a dedicated worker identity.",
-    "The Kernel supervisor derives its scheduler child allowlist from the canonical scheduled-module worker map, including climate, market-data, sensor-ingestion, and remote-sensing workers."
+    "The Kernel supervisor derives its scheduler child allowlist from the canonical scheduled-module worker map, including climate, market-data, sensor-ingestion, and remote-sensing workers.",
+    "The separate notification worker receives only the notification-enqueue identity needed by its mapped alert handlers."
   ],
   "checks": {
     "command": "python3 -m pytest tests/test_kernel_runtime_supervisor.py tests/test_worker_environment.py tests/test_event_bus_durability.py tests/test_worker_database.py tests/test_worker_operation_map.py tests/test_scheduler_durability.py tests/test_scheduled_command_contracts.py -q",

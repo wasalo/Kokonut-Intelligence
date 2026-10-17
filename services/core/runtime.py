@@ -88,6 +88,7 @@ def run(port: int = 8099, with_workers: bool = False, shutdown_seconds: float = 
             worker_key = {
                 "scheduler": "scheduler",
                 "events": "event_bus",
+                "notifications": "notification_enqueue",
             }.get(name)
             allowed_worker_keys = (
                 ("scheduler", *SCHEDULED_WORKER_KEYS)

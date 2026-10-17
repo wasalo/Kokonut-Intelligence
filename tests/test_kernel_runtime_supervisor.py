@@ -114,9 +114,9 @@ def test_supervisor_scopes_each_worker_key_to_its_process(monkeypatch):
     assert runtime.run(with_workers=True) == 0
 
     scheduler_allowlist = ("scheduler", *SCHEDULED_WORKER_KEYS)
-    assert allowlists == [(), scheduler_allowlist, ("event_bus",), ()]
+    assert allowlists == [(), scheduler_allowlist, ("event_bus",), ("notification_enqueue",)]
     assert [call[1]["env"]["VISIBLE_WORKER_KEYS"] for call in spawned] == [
-        "", ",".join(scheduler_allowlist), "event_bus", ""
+        "", ",".join(scheduler_allowlist), "event_bus", "notification_enqueue"
     ]
 
 

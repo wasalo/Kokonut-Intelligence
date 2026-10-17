@@ -38,7 +38,9 @@ from those child environments. Unmapped legacy handlers retain their current
 environment pending dedicated identities. The Kernel supervisor's scheduler
 child allowlist is derived from the same module-to-worker map, including the
 climate, market-data, sensor-ingestion, and remote-sensing workers. The expanded
-scheduler/EventBus boundary suite passes 224 tests; Ruff, compilation,
+scheduler/EventBus boundary suite passes 224 tests. The separate notification
+worker receives the notification-enqueue identity needed by its mapped alert
+handlers. Ruff, compilation,
 dependency-group and provider-boundary checks pass. No database, provider,
 candidate, legacy stack, or real credential was accessed. This does not close
 live worker credential provisioning or broader runtime recovery ([evidence](builds/2026-10-17-recovery/event-handler-dedicated-environment.json)).
