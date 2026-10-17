@@ -44,7 +44,7 @@ def validate_row(row: dict) -> list:
         errors.append("missing observation_date")
     source = row.get("source", "manual")
     if source not in VALID_SOURCES:
-        errors.append(f"invalid source: {source}")
+        errors.append("invalid source")
     return errors
 
 
@@ -300,9 +300,9 @@ def run(file_path: str, location_id: str = None, *, all_locations: bool = False)
                     operation="insert",
                     payload_hash=hash_payload(row),
                     status="failed",
-                    error_message=str(e),
+                    error_message=f"row processing failed ({type(e).__name__})",
                 )
-                logger.error("  ✗ Row %d: %s", i + 1, e)
+                logger.error("  ✗ Row %d processing failed (%s)", i + 1, type(e).__name__)
 
         db.commit()
         logger.info("Done: %d success, %d errors", success, errors)

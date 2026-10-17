@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Geospatial import error containment — 17 October 2026
+
+GIS and remote-sensing CSV import failures now avoid exposing coordinates,
+unrecognized source values, or raw exception text in logs/audit messages.
+Existing row rollback and cleanup remain intact. Five new mocked regressions
+pass within a 67-test GIS/remote-sensing/outbox suite with Ruff and compilation;
+only temporary CSVs and fake connections were used
+([evidence](builds/2026-10-17-recovery/geospatial-import-error-redaction.json)).
+
 ### ClickHouse fallback error containment — 17 October 2026
 
 The demo-only EAS, Gnosis, and remote-sensing ClickHouse projection fallbacks

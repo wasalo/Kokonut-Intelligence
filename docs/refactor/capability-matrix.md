@@ -334,6 +334,14 @@ Four new mocked regressions pass within 63 outbox/indexer/worker tests with
 Ruff and compilation. No database, ClickHouse service, or provider was used
 ([evidence](builds/2026-10-17-recovery/clickhouse-fallback-error-redaction.json)).
 
+**17 October 2026 geospatial import error containment (CAP-040 / CAP-047):**
+GIS and remote-sensing CSV paths no longer echo invalid coordinates, unknown
+source input, or raw row/database exceptions into logs or audit messages. Row
+rollback remains intact. Five new mocked regressions pass within 67
+GIS/remote-sensing/outbox tests with Ruff and compilation; only temporary
+files and fake connections were used
+([evidence](builds/2026-10-17-recovery/geospatial-import-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-17",
+  "scope": "Legacy GIS boundary and remote-sensing CSV failure reporting",
+  "behavior": {
+    "gis_coordinates": "Invalid CSV latitude/longitude values are not echoed to logs.",
+    "gis_database_errors": "Direct boundary-update and batch failures log only exception classes; batch audit messages use a fixed summary plus the class.",
+    "remote_sensing_csv": "Invalid source identifiers and row-processing failures no longer expose raw input or exception text in warning/audit output; row rollback is retained."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_geospatial_import_error_redaction.py tests/test_gis_import.py tests/test_remote_sensing_csv_location_scope.py tests/test_remote_sensing_worker.py tests/test_ingestion_outbox_producers.py -q",
+    "result": "67 passed",
+    "new_regressions": 5,
+    "coverage": [
+      "sensitive invalid coordinates are absent from GIS warnings",
+      "GIS direct-update failure logs only the exception class",
+      "GIS row exception is redacted from logs and audit",
+      "invalid remote-sensing source is not echoed",
+      "remote-sensing row exception is redacted from logs and audit with rollback and cleanup preserved"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; temporary CSVs and mocked connections"
+  },
+  "limitations": [
+    "No live GIS database, remote-sensing provider, or ClickHouse service was contacted.",
+    "This does not establish populated-data lineage or live provider parity."
+  ]
+}

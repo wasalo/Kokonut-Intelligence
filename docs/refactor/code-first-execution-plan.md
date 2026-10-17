@@ -181,6 +181,10 @@ Demo-only EAS, Gnosis, and remote-sensing ClickHouse fallbacks now log only
 exception classes, while connection-backed outbox errors still propagate.
 Four new mocked regressions pass within 63 outbox/indexer/worker tests with
 Ruff and compilation ([evidence](builds/2026-10-17-recovery/clickhouse-fallback-error-redaction.json)).
+GIS and remote-sensing CSV ingestion also redacts invalid spatial/source input
+and raw row/database exception details while preserving rollback; five new
+mocked regressions pass within 67 GIS/remote-sensing/outbox tests with Ruff and
+compilation ([evidence](builds/2026-10-17-recovery/geospatial-import-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

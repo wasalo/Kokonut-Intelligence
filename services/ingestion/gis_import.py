@@ -19,12 +19,10 @@ Usage:
 import argparse
 import csv
 import json
-import re
 import sys
-from datetime import datetime, timezone
 
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
+from .base import get_db, hash_payload, log_ingestion
 
 logger = get_logger("ingestion.gis_import")
 
@@ -125,7 +123,7 @@ def parse_csv_boundaries(filepath: str) -> list:
                         "properties": dict(row),
                     })
                 except (ValueError, TypeError):
-                    logger.warning("  Skipping row %d: invalid lat/lon: %s, %s", i + 1, lat, lon)
+                    logger.warning("  Skipping row %d: invalid latitude/longitude", i + 1)
                 continue
 
             logger.warning("  Skipping row %d: no geometry, lat/lon, or WKT found", i + 1)
@@ -243,7 +241,7 @@ def import_record(db, record_id: str, target: str, wkt: str, lat: float = None, 
                 )
         return cur.rowcount > 0
     except Exception as e:
-        logger.error("  Failed to update %s %s: %s", target, record_id, e)
+        logger.error("  Failed to update %s %s (%s)", target, record_id, type(e).__name__)
         return False
 
 
@@ -348,7 +346,7 @@ def run(file_path: str, target: str = "location"):
 
         except Exception as e:
             errors += 1
-            logger.error("  ✗ Row %d (%s): %s", i + 1, slug, e)
+            logger.error("  ✗ Row %d (%s) failed (%s)", i + 1, slug, type(e).__name__)
             log_ingestion(
                 source_system="gis_import",
                 source_table=f"{target}_geojson",
@@ -358,7 +356,7 @@ def run(file_path: str, target: str = "location"):
                 operation="update",
                 payload_hash=hash_payload(rec),
                 status="failed",
-                error_message=str(e),
+                error_message=f"boundary import failed ({type(e).__name__})",
             )
 
     db.commit()
