@@ -16,15 +16,18 @@ owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual
 acceptance rows.
 
-**16 October 2026 explicit EAS scheduler chain scope (CAP-047):** native EAS
-job dispatch and disabled schedule planning now require exactly one supported
-chain. The optional Prefect flow preserves all three configured chains in
-Celo-first order, while the direct interactive indexer retains its existing
-multi-chain mode. The focused dispatcher, command-contract, and flow suites pass
-142 tests with subprocesses mocked. No chain endpoint, database, persisted
+**16 October 2026 explicit EAS/RPC scheduler chain scope (CAP-047):** native
+EAS and RPC job dispatch and disabled schedule planning now require exactly one
+supported chain. Optional Prefect adapters preserve all three EAS chains in
+Celo-first order and all seven RPC CLI-supported networks as separate runs;
+direct interactive indexers retain their multi-chain behavior. The RPC
+indexer also closes its database connection on empty-chain and lookup-error
+paths. The focused dispatcher, command-contract, RPC cleanup, and flow suites
+pass 156 tests with subprocesses mocked. No chain endpoint, database, persisted
 schedule, or Prefect deployment was used. This is a source-level scheduler
 contract; MAN-CAP-018 and MAN-CAP-047 remain unaccepted
-([evidence](builds/2026-10-16-recovery/eas-chain-scoped-job-contract.json)).
+([EAS evidence](builds/2026-10-16-recovery/eas-chain-scoped-job-contract.json);
+[RPC evidence](builds/2026-10-16-recovery/rpc-chain-scoped-job-contract.json)).
 
 **16 October 2026 forecast projection atomicity (CAP-040 / CAP-047):** the
 weather-forecast producer now rolls back a whole location batch to a PostgreSQL

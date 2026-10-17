@@ -6,7 +6,14 @@ from unittest.mock import patch
 
 import pytest
 
-from services.core.jobs import JOBS, JobFailed, run_job, run_job_for_eas_chains
+from services.core.jobs import (
+    JOBS,
+    JobFailed,
+    run_job,
+    run_job_for_eas_chains,
+    run_job_for_indexing_chains,
+    run_job_for_rpc_chains,
+)
 
 _LOCATION_ID = "a9aa6466-0754-4b7c-b20c-155a81134eaa"
 
@@ -107,6 +114,22 @@ def test_eas_dispatch_rejects_unsupported_chain_before_subprocess():
     run.assert_not_called()
 
 
+def test_rpc_dispatch_requires_one_explicit_chain_before_subprocess():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="RPC indexing refresh requires a chain"):
+            run_job("rpc")
+
+    run.assert_not_called()
+
+
+def test_rpc_dispatch_rejects_unsupported_chain_before_subprocess():
+    with patch("services.core.jobs.subprocess.run") as run:
+        with pytest.raises(ValueError, match="RPC chain is not supported"):
+            run_job("rpc", chain="polygon")
+
+    run.assert_not_called()
+
+
 def test_eas_multi_chain_adapter_runs_celo_first_with_explicit_scope():
     from unittest.mock import call
 
@@ -135,7 +158,21 @@ def test_eas_multi_chain_adapter_runs_celo_first_with_explicit_scope():
 
 def test_eas_chain_adapter_rejects_unrelated_job():
     with pytest.raises(ValueError, match="not chain-scoped"):
-        run_job_for_eas_chains("weather")
+        run_job_for_indexing_chains("weather")
+
+
+def test_rpc_multi_chain_adapter_preserves_all_configured_networks():
+    from unittest.mock import call
+
+    chains = ("ethereum", "optimism", "base", "arbitrum", "celo", "celo-alfajores", "gnosis")
+    results = [{"status": "success", "output": chain} for chain in chains]
+    with patch("services.core.jobs.run_job", side_effect=results) as run:
+        result = run_job_for_rpc_chains()
+
+    assert run.call_args_list == [call("rpc", chain=chain) for chain in chains]
+    assert result["status"] == "success"
+    assert result["chains_processed"] == len(chains)
+    assert [item["chain"] for item in result["results"]] == list(chains)
 
 
 def test_nonzero_job_exit_retains_return_code_and_bounded_output():

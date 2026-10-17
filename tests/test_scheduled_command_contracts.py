@@ -32,7 +32,9 @@ def test_every_scheduled_module_has_a_command_contract():
         ("services.ingestion.eas_indexer", ["--chain", "celo"]),
         ("services.ingestion.eas_indexer", ["--chain", "optimism"]),
         ("services.ingestion.eas_indexer", ["--chain", "base"]),
-        ("services.ingestion.rpc_indexer", ["--wallet", "0x" + "a" * 40]),
+        ("services.ingestion.rpc_indexer", ["--chain", "celo"]),
+        ("services.ingestion.rpc_indexer", ["--chain", "ethereum", "--wallet", "0x" + "a" * 40]),
+        ("services.ingestion.rpc_indexer", ["--chain", "celo-alfajores"]),
         ("services.ingestion.gnosis_indexer", ["--from-block", "1", "--to-block", "2"]),
         (
             "services.ingestion.sensor_ingester",
@@ -83,6 +85,9 @@ def test_supported_operations_accept_valid_argv(module, arguments):
         ("services.ingestion.eas_indexer", []),
         ("services.ingestion.eas_indexer", ["--chain", "ethereum"]),
         ("services.ingestion.eas_indexer", ["--chain", "celo", "--chain", "base"]),
+        ("services.ingestion.rpc_indexer", []),
+        ("services.ingestion.rpc_indexer", ["--wallet", "0x" + "a" * 40]),
+        ("services.ingestion.rpc_indexer", ["--chain", "polygon"]),
         ("services.ingestion.anomaly_detector", []),
         ("services.ingestion.anomaly_detector", ["--baseline-check"]),
         ("services.ingestion.climate_data", ["--all"]),
@@ -187,6 +192,25 @@ def test_eas_job_and_schedule_plan_require_one_explicit_supported_chain():
 
     with pytest.raises(ScheduledCommandRejected, match="EAS chain is not supported"):
         build_job_plan("eas", "every-6h", chain="ethereum")
+
+
+def test_rpc_job_and_schedule_plan_require_one_explicit_supported_chain():
+    job = JOBS["rpc"]
+    assert job.required_inputs == ("chain",)
+
+    with pytest.raises(ValueError, match="RPC indexing refresh requires a chain"):
+        run_job("rpc")
+    with pytest.raises(ValueError, match="RPC schedule planning requires one chain"):
+        build_job_plan("rpc", "every-6h")
+
+    plan = build_job_plan("rpc", "every-6h", chain="celo")
+    task = plan["scheduled_task"]
+    assert task["name"] == "kernel-rpc-every-6h-celo"
+    assert task["command_args"] == ["--chain", "celo"]
+    assert task["is_enabled"] is False
+
+    with pytest.raises(ScheduledCommandRejected, match="RPC chain is not supported"):
+        build_job_plan("rpc", "every-6h", chain="polygon")
 
 
 def test_interactive_carbon_credit_cli_is_not_scheduler_allowlisted():

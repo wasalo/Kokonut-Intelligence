@@ -9,6 +9,7 @@ from services.core.jobs import (
     run_job,
     run_job_for_eas_chains,
     run_job_for_kokonut_network_locations,
+    run_job_for_rpc_chains,
 )
 
 
@@ -17,7 +18,9 @@ def _dispatch_catalog_job(job_id):
     if "location_id" in JOBS[job_id].required_inputs:
         return run_job_for_kokonut_network_locations(job_id)
     if job_id == "eas":
-        return run_job_for_eas_chains(job_id)
+        return run_job_for_eas_chains()
+    if job_id == "rpc":
+        return run_job_for_rpc_chains()
     return run_job(job_id)
 
 

@@ -50,7 +50,10 @@ def build_job_plan(
             "chain": "one chain",
         }
         required = " and ".join(labels.get(key, key) for key in missing_inputs)
-        job_label = "EAS" if job_id == "eas" else job_id.replace("_", " ").capitalize()
+        job_label = {
+            "eas": "EAS",
+            "rpc": "RPC",
+        }.get(job_id, job_id.replace("_", " ").capitalize())
         raise ValueError(
             f"{job_label} schedule planning requires {required}"
         )

@@ -101,7 +101,7 @@
     },
     {
       "module": "services.ingestion.rpc_indexer",
-      "scope": "All active tracked wallets unless chain or wallet address selects a narrower source.",
+      "scope": "The direct CLI can process all active tracked wallets unless chain or wallet address selects a narrower source. Kernel scheduled tasks require exactly one supported --chain, with an optional wallet filter; the optional Prefect adapter preserves the seven CLI-supported networks as separate scoped runs.",
       "reads": [
         "public.wallet_profile"
       ],

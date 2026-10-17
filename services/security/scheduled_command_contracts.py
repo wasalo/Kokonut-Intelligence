@@ -19,6 +19,15 @@ from services.security.execution_allowlist import (
 # Celo is Kokonut's primary EAS chain. The remaining supported networks stay
 # available as explicit, separately scoped indexing operations.
 EAS_SCHEDULE_CHAINS = ("celo", "optimism", "base")
+RPC_SCHEDULE_CHAINS = (
+    "ethereum",
+    "optimism",
+    "base",
+    "arbitrum",
+    "celo",
+    "celo-alfajores",
+    "gnosis",
+)
 
 
 class ScheduledCommandRejected(ValueError):
@@ -127,7 +136,7 @@ def _validate_value(kind: str, value: str) -> None:
         if value not in EAS_SCHEDULE_CHAINS:
             raise _reject("EAS chain is not supported")
     elif kind == "rpc_chain":
-        if value not in {"ethereum", "optimism", "base", "arbitrum", "celo", "gnosis"}:
+        if value not in RPC_SCHEDULE_CHAINS:
             raise _reject("RPC chain is not supported")
     elif kind == "wallet":
         if not re.fullmatch(r"0x[a-fA-F0-9]{40}", value):
@@ -183,6 +192,12 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
 
     if module_path == "services.ingestion.eas_indexer" and options != {"--chain"}:
         raise _reject("scheduled EAS indexing requires one explicit chain")
+
+    if module_path == "services.ingestion.rpc_indexer":
+        if "--chain" not in options:
+            raise _reject("scheduled RPC indexing requires one explicit chain")
+        if options - {"--chain", "--wallet"}:
+            raise _reject("scheduled RPC indexing accepts only one chain and an optional wallet")
 
     if module_path == "services.ingestion.weather_forecast" and options != {"--location-id"}:
         raise _reject("weather forecast ingestion requires one explicit location")

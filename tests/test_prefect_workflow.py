@@ -77,6 +77,18 @@ def test_eas_flow_preserves_multi_chain_adapter():
     run.assert_called_once_with()
 
 
+def test_rpc_flow_preserves_multi_chain_adapter():
+    from unittest.mock import patch
+
+    from services.flows.rpc_indexer import rpc_indexing_flow
+
+    expected = {"status": "success", "chains_processed": 7}
+    with patch("services.flows.rpc_indexer.run_job_for_rpc_chains", return_value=expected) as run:
+        assert rpc_indexing_flow.fn() == expected
+
+    run.assert_called_once_with()
+
+
 def test_scheduled_hourly_preserves_anomaly_and_freshness_without_sensor_flow() -> None:
     from unittest.mock import patch
 
@@ -231,7 +243,23 @@ def test_pipeline_dispatch_scopes_eas_to_explicit_chains():
         result = _dispatch_catalog_job("eas")
 
     assert result == {"status": "success"}
-    eas.assert_called_once_with("eas")
+    eas.assert_called_once_with()
+    run_job.assert_not_called()
+
+
+def test_pipeline_dispatch_scopes_rpc_to_explicit_chains():
+    from unittest.mock import patch
+
+    from services.flows.pipelines import _dispatch_catalog_job
+
+    with (
+        patch("services.flows.pipelines.run_job_for_rpc_chains", return_value={"status": "success"}) as rpc,
+        patch("services.flows.pipelines.run_job") as run_job,
+    ):
+        result = _dispatch_catalog_job("rpc")
+
+    assert result == {"status": "success"}
+    rpc.assert_called_once_with()
     run_job.assert_not_called()
 
 

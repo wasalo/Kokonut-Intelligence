@@ -13,6 +13,7 @@ from services.common.worker_environment import worker_subprocess_environment
 from services.security.execution_allowlist import ALLOWED_SCHEDULED_MODULES
 from services.security.scheduled_command_contracts import (
     EAS_SCHEDULE_CHAINS,
+    RPC_SCHEDULE_CHAINS,
     validate_scheduled_command,
 )
 
@@ -74,7 +75,15 @@ JOBS = MappingProxyType(
             "EAS indexing",
             required_inputs=("chain",),
         ),
-        "rpc": JobSpec("services.ingestion.rpc_indexer", (), 300, 3, 120, "RPC indexing"),
+        "rpc": JobSpec(
+            "services.ingestion.rpc_indexer",
+            (),
+            300,
+            3,
+            120,
+            "RPC indexing",
+            required_inputs=("chain",),
+        ),
         "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
         "anomaly": JobSpec(
             "services.ingestion.anomaly_detector",
@@ -175,7 +184,10 @@ def run_job(
             "driver_instance_id": "a driver instance",
             "chain": "a chain",
         }
-        job_label = "EAS indexing" if job_id == "eas" else job_id.replace("_", " ").capitalize()
+        job_label = {
+            "eas": "EAS indexing",
+            "rpc": "RPC indexing",
+        }.get(job_id, job_id.replace("_", " ").capitalize())
         raise ValueError(
             f"{job_label} refresh requires "
             f"{' and '.join(labels.get(key, key) for key in missing_inputs)}"
@@ -213,22 +225,36 @@ def run_job(
     return {"status": "success", "output": result.stdout[-500:]}
 
 
-def run_job_for_eas_chains(job_id: str = "eas") -> dict:
-    """Run supported EAS chains one at a time, with Celo as the primary chain.
+def run_job_for_indexing_chains(job_id: str) -> dict:
+    """Run supported EAS or RPC chains as separately scoped child commands.
 
-    This preserves the optional Prefect adapter's historical multi-chain
-    coverage while ensuring each child command has an explicit chain scope.
-    The native Kernel scheduler plans one chain per disabled task.
+    This preserves the optional Prefect adapters' multi-chain coverage while
+    native Kernel schedules plan one explicit chain per disabled task.
     """
+    chains_by_job = {
+        "eas": EAS_SCHEDULE_CHAINS,
+        "rpc": RPC_SCHEDULE_CHAINS,
+    }
     spec = JOBS[job_id]
-    if spec.required_inputs != ("chain",):
+    chains = chains_by_job.get(job_id)
+    if chains is None or spec.required_inputs != ("chain",):
         raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not chain-scoped")
 
     results = [
         {"chain": chain, **run_job(job_id, chain=chain)}
-        for chain in EAS_SCHEDULE_CHAINS
+        for chain in chains
     ]
     return {"status": "success", "chains_processed": len(results), "results": results}
+
+
+def run_job_for_eas_chains() -> dict:
+    """Run all supported EAS chains, with Celo first."""
+    return run_job_for_indexing_chains("eas")
+
+
+def run_job_for_rpc_chains() -> dict:
+    """Run all supported RPC-indexing chains as separate operations."""
+    return run_job_for_indexing_chains("rpc")
 
 
 def kokonut_network_location_ids() -> list[str]:

@@ -7166,17 +7166,19 @@ contacted; the capability matrix and MAN-CAP statuses are unchanged. The
 checklist now records 411 complete items and 19 open. The batch is pushed in
 commit `30f9966`; Security #89 passed and CI #365 is pending.
 
-### EAS scheduler chain scope — 16 October 2026
+### EAS/RPC scheduler chain scope — 16 October 2026
 
-Native EAS JobSpec dispatch and disabled schedule planning now require exactly
-one supported `--chain`, and reject missing, duplicate, or unsupported chain
-arguments before subprocess launch. The optional Prefect adapter preserves its
-multi-chain coverage by running Celo first, then Optimism and Base as separate
-commands; the direct interactive indexer still supports its existing
-all-configured-chains mode. The focused dispatcher, scheduled-command, and
-Prefect-flow suites pass 142 tests with provider and process boundaries mocked.
-The generated JobSpec inventory is refreshed. No EAS endpoint, database,
-persisted task, or Prefect deployment was contacted or changed. This closes a
-source contract only; cursor/finality, duplicate/reorg recovery, active schedule
-reconciliation, and MAN-CAP-018/047 acceptance remain open
-([evidence](builds/2026-10-16-recovery/eas-chain-scoped-job-contract.json)).
+Native EAS and RPC JobSpec dispatch and disabled schedule planning now require
+exactly one supported `--chain`, and reject missing, duplicate, or unsupported
+chain arguments before subprocess launch. The optional EAS Prefect adapter
+runs Celo, Optimism, and Base separately; the RPC adapter retains all seven
+CLI-supported networks. The direct interactive indexers keep their existing
+all-chain modes. The RPC connection now closes on empty-chain returns and
+rolls back/closes on lookup failure. Focused dispatcher, command-contract,
+RPC cleanup, and Prefect-flow suites pass 156 tests with provider and process
+boundaries mocked. Generated JobSpec inventory, Ruff, compilation, and matrix
+structure checks pass. No chain endpoint, database, persisted task, or Prefect
+deployment was contacted or changed. This closes source contracts only;
+cursor/finality, duplicate/reorg recovery, active schedule reconciliation, and
+MAN-CAP-018/047 acceptance remain open ([EAS evidence](builds/2026-10-16-recovery/eas-chain-scoped-job-contract.json);
+[RPC evidence](builds/2026-10-16-recovery/rpc-chain-scoped-job-contract.json)).
