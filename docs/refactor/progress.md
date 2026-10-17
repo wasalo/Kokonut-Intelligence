@@ -1,5 +1,28 @@
 # Kokonut Kernel implementation progress
 
+### CI #406 report-helper inventory refresh — 17 October 2026
+
+Hosted CI #406 on pushed commit `47dc1527` failed one fast-fail check because
+the generated report-generator helper-scope inventory retained stale line
+references into `services/common/database.py`. I regenerated the inventory and
+the exact `--check` now passes locally; capability-matrix validation also
+passes. No application behavior, database, or provider was changed for this
+repair. The updated inventory is local and awaits the next batched push and a
+fresh hosted CI run ([evidence](builds/2026-10-17-recovery/ci-406-report-helper-inventory-refresh.json)).
+
+### EAS cursor-boundary scan — 17 October 2026
+
+The EAS worker now stops fetching recipient history after a provider page,
+validated as newest-first, crosses below the saved timestamp cursor. It keeps
+the cursor second inclusive so newly indexed same-second attestations are still
+reprocessed. This avoids repeatedly paging all older attestations for recipients
+with an established cursor. Twenty-two focused mocked EAS provider/worker/cursor
+checks pass, along with Ruff, compilation, and diff checks. No EAS endpoint or
+database was contacted. Concurrent offset-page movement and earlier-than-cursor
+arrivals remain open. Checklist count is 448 complete / 20 open (468 total);
+capability status and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
+
 ### EAS GraphQL error handling — 17 October 2026
 
 The database-independent EAS provider adapter now rejects GraphQL errors,

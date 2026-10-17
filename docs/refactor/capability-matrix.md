@@ -116,9 +116,12 @@ and migration replay. Migration 433 is applied on the local candidate after an
 age-encrypted checkpoint was restore-rehearsed; both EAS roles remain `NOLOGIN`,
 and no worker credential, endpoint, or persisted schedule was enabled or used.
 The database-independent adapter now rejects GraphQL errors and malformed or
-partial responses instead of treating them as empty pages; 20 mocked provider,
-worker, and cursor checks pass. Live provider acceptance, offset-pagination
-movement, and earlier-than-cursor arrivals remain open.
+partial responses instead of treating them as empty pages. The worker also
+validates newest-first page ordering and stops after it crosses below the saved
+timestamp cursor, while retaining the inclusive cursor second; 22 mocked
+provider, worker, and cursor checks pass. This bounds repeated history reads but
+does not resolve concurrent offset-pagination movement, earlier-than-cursor
+arrivals, or live provider acceptance.
 Prefect intentionally stays on the legacy entrypoint until feature and
 credential provisioning. Existing task reconciliation, provider parity, and
 live runtime acceptance remain open ([worker](../../services/ingestion/eas_worker.py);

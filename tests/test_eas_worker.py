@@ -194,6 +194,53 @@ def test_provider_failure_does_not_advance_the_cursor_after_prior_page():
     assert connection.commits == 1
 
 
+def test_wallet_scan_stops_after_inclusive_cursor_boundary():
+    connection = _Connection()
+    page = [_attestation(uid=index + 1, timestamp=200) for index in range(99)]
+    page.append(_attestation(uid=100, timestamp=199))
+    with patch.object(eas_worker, "query_eas", return_value={"attestations": page}) as query:
+        inserted, cursor_time = eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=200,
+            sleep=lambda _seconds: None,
+        )
+
+    assert (inserted, cursor_time) == (1, 200)
+    query.assert_called_once_with(
+        "celo",
+        eas_worker.ATTESTATIONS_BY_RECIPIENT,
+        {"recipient": RECIPIENT, "after": 0},
+    )
+    page_write = next(params for statement, params in connection.statements if "store_eas_indexer_page" in statement)
+    persisted = json.loads(page_write[2])
+    assert [row["attestation"]["time"] for row in persisted] == ["200"] * 99
+    assert connection.commits == 2
+
+
+def test_unordered_provider_page_fails_before_cursor_advance():
+    connection = _Connection()
+    page = [_attestation(uid=1, timestamp=199), _attestation(uid=2, timestamp=200)]
+    with (
+        patch.object(eas_worker, "query_eas", return_value={"attestations": page}),
+        pytest.raises(ValueError, match="not ordered newest first"),
+    ):
+        eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=200,
+            sleep=lambda _seconds: None,
+        )
+
+    assert not any("store_eas_indexer_page" in statement for statement, _ in connection.statements)
+    assert not any("advance_eas_indexer_cursor" in statement for statement, _ in connection.statements)
+    assert connection.commits == 0
+
+
 def test_missing_attestations_field_does_not_advance_the_cursor():
     connection = _Connection()
     with (

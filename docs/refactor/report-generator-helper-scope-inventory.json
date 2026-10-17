@@ -342,7 +342,7 @@
         {
           "caller": "services/common/database.py:query",
           "callee": "services/common/database.py:_cursor_for",
-          "line": 72,
+          "line": 78,
           "depth": 2
         }
       ],
@@ -350,7 +350,7 @@
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 71,
+          "line": 77,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -365,7 +365,7 @@
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 74,
+          "line": 80,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -2018,7 +2018,7 @@
         {
           "caller": "services/common/database.py:query",
           "callee": "services/common/database.py:_cursor_for",
-          "line": 72,
+          "line": 78,
           "depth": 3
         }
       ],
@@ -2163,7 +2163,7 @@
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 71,
+          "line": 77,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -2179,7 +2179,7 @@
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 74,
+          "line": 80,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -3259,7 +3259,7 @@
         {
           "caller": "services/common/database.py:query",
           "callee": "services/common/database.py:_cursor_for",
-          "line": 72,
+          "line": 78,
           "depth": 2
         }
       ],
@@ -3267,7 +3267,7 @@
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 71,
+          "line": 77,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -3282,7 +3282,7 @@
         {
           "source_file": "services/common/database.py",
           "callable": "query",
-          "line": 74,
+          "line": 80,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,

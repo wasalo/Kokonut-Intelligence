@@ -3,9 +3,10 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch before this work — 17 October 2026:** Commit
-`f59148b735623e5f768d1c7ff7ad291e0d481c9a` isolated scheduled worker imports
-from shared PostgreSQL configuration. CI status for this revision has not yet
-been checked. Earlier the ARM64 acceptance commit
+`47dc15270dbd8a8c9b781171c028f392db49f892` recorded the candidate migration 433
+rollout. Security #130 passed; CI #406 failed on stale generated line references
+in the report-generator helper-scope inventory. The artifact has been refreshed
+locally, and a fresh hosted run is pending the next batch push. Earlier the ARM64 acceptance commit
 `a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema app
 execution under QEMU with a 1 GiB/two-CPU app and a 1.5 GiB/two-CPU native
 AMD64 database; health returned 200 and an anonymous protected read returned
@@ -33,10 +34,13 @@ acceptance, and MAN-CAP acceptance remain open ([migration](../../schemas/postgr
 [candidate rollout](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
 The provider adapter now fails closed on GraphQL errors, partial responses,
 invalid JSON, and missing data; the worker refuses a response missing its
-attestations field before cursor advancement. Twenty mocked EAS provider,
-worker, and cursor tests plus Ruff and compilation pass. This does not close
-provider page-stability or earlier-than-cursor recovery; no live endpoint was
-queried ([evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json)).
+attestations field before cursor advancement. It now validates newest-first page
+ordering and stops pagination after crossing below the saved timestamp cursor,
+while retaining the inclusive cursor second. Twenty-two mocked EAS
+provider/worker/cursor tests plus Ruff and compilation pass. This does not close
+concurrent offset-page stability or earlier-than-cursor recovery; no live
+endpoint was queried ([error evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json);
+[cursor-scan evidence](builds/2026-10-17-recovery/eas-cursor-boundary-scan.json)).
 **Current code-first follow-up — 17 October 2026:** scheduled worker import
 paths now remain usable with shared PostgreSQL settings stripped. An internal
 worker marker prevents shared dotenv decryption and shared production DB

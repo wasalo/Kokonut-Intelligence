@@ -44,6 +44,7 @@ def _fetch_wallet_pages(
     offset = 0
     max_time = cursor_time
     inserted = 0
+    previous_attestation_time: int | None = None
     while True:
         response = query_eas(
             chain,
@@ -64,6 +65,7 @@ def _fetch_wallet_pages(
             break
 
         page = []
+        reached_cursor = False
         for attestation in attestations:
             if not isinstance(attestation, dict):
                 raise ValueError("EAS provider returned an invalid attestation")
@@ -71,8 +73,20 @@ def _fetch_wallet_pages(
                 attestation_time = int(attestation.get("time", 0))
             except (ValueError, TypeError):
                 raise ValueError("EAS attestation timestamp is invalid") from None
+            if previous_attestation_time is not None and attestation_time > previous_attestation_time:
+                raise ValueError("EAS provider page is not ordered newest first")
+            previous_attestation_time = attestation_time
             if attestation_time < cursor_time:
+                # The provider query is ordered newest first. Once it reaches
+                # records older than the inclusive timestamp cursor, later
+                # pages cannot contribute new records. Re-scan the cursor
+                # second itself on every run to catch same-second arrivals.
+                reached_cursor = True
                 continue
+            if reached_cursor:
+                # The order check above should make this unreachable. Keep the
+                # guard explicit so malformed pages can never add older rows.
+                raise ValueError("EAS provider page is not ordered newest first")
             max_time = max(max_time, attestation_time)
             page.append(
                 {
@@ -97,6 +111,8 @@ def _fetch_wallet_pages(
                 connection.rollback()
                 raise EASWorkerPersistenceError("EAS page could not be persisted atomically") from exc
 
+        if reached_cursor:
+            break
         offset += len(attestations)
         if len(attestations) < 100:
             break

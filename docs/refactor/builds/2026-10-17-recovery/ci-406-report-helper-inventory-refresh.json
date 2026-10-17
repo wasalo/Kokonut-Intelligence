@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "workflow_run": "https://github.com/wasalo/Kokonut-Intelligence/actions/runs/39055347895",
+  "scope": "Regenerated AST-only report-generator helper query source-location inventory; no application behavior, database, or provider access",
+  "failed_check": "Report generator helper-scope inventory",
+  "failure_reason": "The committed inventory recorded line numbers that no longer matched services/common/database.py after source edits.",
+  "repair": "Regenerated docs/refactor/report-generator-helper-scope-inventory.json with scripts/report_generator_helper_scope_inventory.py.",
+  "verification": {
+    "python3 scripts/report_generator_helper_scope_inventory.py --check docs/refactor/report-generator-helper-scope-inventory.json": "passed",
+    "python3 scripts/check-capability-matrix.py": "passed"
+  },
+  "remote_status": "The repair is local and requires the next PR batch to receive a fresh hosted CI run."
+}
