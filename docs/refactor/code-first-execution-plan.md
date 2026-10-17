@@ -282,6 +282,14 @@ failure counts and continuation; variogram fitting omits raw model-library
 diagnostics. Their 11-test suites pass with Ruff and compilation using
 synthetic inputs ([simulation evidence](builds/2026-10-17-recovery/simulation-error-redaction.json);
 [variogram evidence](builds/2026-10-17-recovery/variogram-error-redaction.json)).
+SAFE-proposed attestation failures now persist and return only bounded
+exception-class summaries, preserving per-request failure accounting; five
+focused attestation tests pass without contacting a chain, SAFE service, or
+database ([evidence](builds/2026-10-17-recovery/safe-attestation-error-redaction.json)).
+The EAS CLI now follows the same boundary for top-level command failures and
+best-effort signer status; seven focused attestation tests preserve the
+nonzero-exit behavior without a live key or chain
+([evidence](builds/2026-10-17-recovery/attestation-cli-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

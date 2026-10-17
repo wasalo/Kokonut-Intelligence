@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### EAS CLI failure containment — 17 October 2026
+
+Top-level attestation CLI errors and best-effort signer-status failures now
+report only exception classes; command failures still exit nonzero. Seven
+focused attestation tests pass with Ruff and compilation using fake modules;
+no signer key, provider, chain, or database was contacted
+([evidence](builds/2026-10-17-recovery/attestation-cli-error-redaction.json)).
+
+### SAFE attestation error containment — 17 October 2026
+
+SAFE proposal failures now persist and return a bounded operation/exception-
+class summary instead of provider text. Per-request isolation, failure counts,
+and failed request-state updates remain intact. Five focused attestation tests
+pass with Ruff and compilation; no SAFE service, chain, or database was used
+([evidence](builds/2026-10-17-recovery/safe-attestation-error-redaction.json)).
+
 ### Simulation and variogram error containment — 17 October 2026
 
 Monte Carlo failures and simulator-returned errors now use bounded summaries;

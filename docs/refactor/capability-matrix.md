@@ -472,6 +472,19 @@ exception class. The 11-test variogram suite passes with Ruff and compilation
 on synthetic coordinates and an injected model failure
 ([evidence](builds/2026-10-17-recovery/variogram-error-redaction.json)).
 
+**17 October 2026 SAFE attestation error containment (CAP-018 / CAP-047):**
+failed SAFE proposals persist and return only a bounded exception-class
+summary; per-request failure counts and request-state updates are preserved.
+Five mocked attestation tests pass with Ruff and compilation; no chain, SAFE
+service, or database was used
+([evidence](builds/2026-10-17-recovery/safe-attestation-error-redaction.json)).
+
+**17 October 2026 EAS CLI failure containment (CAP-018 / CAP-047):** top-level
+attestation command errors and best-effort signer status omit raw provider,
+key, and RPC details while preserving nonzero command failure and status
+output. Seven focused attestation tests pass with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/attestation-cli-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes
