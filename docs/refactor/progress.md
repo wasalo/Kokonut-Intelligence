@@ -6,20 +6,28 @@ EAS ingestion previously reused a chain-wide maximum timestamp across separate
 recipient feeds and committed indexer status on an independent connection.
 That could move the watermark ahead of another recipient's older feed or leave
 status ahead of a rolled-back projection. Migration 421 now maintains one
-cursor per chain/recipient and idempotently backfills the legacy watermark for
-existing supported wallets. Each successful recipient's records, ClickHouse
+cursor per chain/recipient. Follow-up migration 422 resets inherited cursor
+values to zero because the old chain-wide watermark can skip older rows for a
+slower recipient. UID uniqueness makes this one-time full-history scan
+idempotent. The worker revisits the saved timestamp second on every scan, so
+late-indexed peers in that second are recovered while UID conflicts suppress
+repeated rows. Each successful recipient's records, ClickHouse
 outbox intents, status, and cursor advancement share the caller transaction;
 same-chain scans serialize, failed pages roll back to a savepoint, and a failed
 outbox enqueue rolls back the complete transaction.
 
 The focused EAS, ingestion-outbox producer, scheduler-contract, Prefect, and
-migration suites pass 186 tests. A repeatable disposable PostgreSQL 16 run
-passes migration replay, legacy backfill, independent cursor advancement, and
-transaction rollback coupling. Ruff and Python compilation pass. The candidate,
+migration suites pass 188 tests, including recovery of an attestation older
+than the legacy maximum and of a new record at the inclusive same-second
+boundary. A repeatable disposable PostgreSQL 16 run passes
+migration 421 watermark backfill, migration 422 zero rebaseline/replay,
+independent cursor advancement, and transaction rollback coupling. Ruff and
+Python compilation pass. The candidate,
 legacy database, live provider, and external schedules were not touched.
-Offset pagination and late-arriving events below a recipient cursor remain
-live-provider reconciliation risks; migration 421 is not candidate-deployed and
+Earlier-time late arrivals and concurrent offset-page shifts remain
+provider/runtime reconciliation risks; migrations 421–422 are not candidate-deployed and
 MAN-CAP-040/047 remain unaccepted ([migration](../../schemas/postgres/421_eas_recipient_cursors.sql);
+[rebaseline](../../schemas/postgres/422_eas_cursor_rebaseline.sql);
 [unit tests](../../tests/test_eas_indexer_recovery.py);
 [disposable evidence](builds/2026-10-16-recovery/eas-recipient-cursor-disposable.json)).
 

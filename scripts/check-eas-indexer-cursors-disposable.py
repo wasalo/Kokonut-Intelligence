@@ -21,7 +21,10 @@ sys.path.insert(0, str(ROOT))
 # repository's developer or production secret file during its imports.
 os.environ["KOKONUT_ENV_SECRETS_LOADED_BY_SCRIPT"] = "true"
 
-MIGRATION = ROOT / "schemas/postgres/421_eas_recipient_cursors.sql"
+MIGRATIONS = [
+    ROOT / "schemas/postgres/421_eas_recipient_cursors.sql",
+    ROOT / "schemas/postgres/422_eas_cursor_rebaseline.sql",
+]
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-16-recovery/eas-recipient-cursor-disposable.json"
 LEGACY_CURSOR = "a0000000-0000-0000-0000-000000000001"
 SECOND_CURSOR = "a0000000-0000-0000-0000-000000000002"
@@ -121,9 +124,9 @@ def main() -> int:
             ) VALUES ('celo', 'eas', 'legacy', '{{"last_attestation_time": 200}}');
             """,
         )
-        migration_sql = MIGRATION.read_text(encoding="utf-8")
-        docker_sql(docker, container, migration_sql)
-        docker_sql(docker, container, migration_sql)
+        migration_sqls = [path.read_text(encoding="utf-8") for path in MIGRATIONS]
+        docker_sql(docker, container, migration_sqls[0])
+        docker_sql(docker, container, migration_sqls[0])
         checks.append("migration 421 applies and replays idempotently")
 
         port_lines = run([docker, "port", container, "5432/tcp"]).strip().splitlines()
@@ -146,7 +149,18 @@ def main() -> int:
         ]
         if backfilled != expected:
             raise AssertionError(f"legacy cursor backfill was unexpected: {backfilled}")
-        checks.append("legacy chain watermark backfills existing supported wallets only")
+        checks.append("migration 421 backfills the legacy chain watermark for supported wallets")
+
+        docker_sql(docker, container, migration_sqls[1])
+        docker_sql(docker, container, migration_sqls[1])
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM eas_indexer_cursor WHERE last_attestation_time <> 0"
+            )
+            nonzero_cursors = cursor.fetchone()[0]
+        if nonzero_cursors:
+            raise AssertionError("migration 422 retained an unsafe inherited cursor")
+        checks.append("migration 422 replays and resets inherited cursors for full recipient-history recovery")
 
         from services.ingestion.base import update_indexer_status
         from services.ingestion.eas_indexer import (
@@ -206,8 +220,13 @@ def main() -> int:
             json.dumps(
                 {
                     "database_image": image,
-                    "migration": MIGRATION.name,
-                    "migration_sha256": hashlib.sha256(migration_sql.encode("utf-8")).hexdigest(),
+                    "migrations": [
+                        {
+                            "name": path.name,
+                            "sha256": hashlib.sha256(sql.encode("utf-8")).hexdigest(),
+                        }
+                        for path, sql in zip(MIGRATIONS, migration_sqls, strict=True)
+                    ],
                     "checks": checks,
                     "status": "passed",
                     "candidate_or_legacy_database_touched": False,

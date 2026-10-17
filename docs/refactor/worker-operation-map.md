@@ -39,7 +39,7 @@ application-wide RLS or proof for other workers.
   The `data_stale` and `threshold_breached` handlers can opt into a distinct
   notification-enqueue login and bounded function. That path also remains off
   by default, with no shared-DSN fallback when enabled. No actual worker
-  credential or location grant is provisioned, and migrations 405–421 have not
+  credential or location grant is provisioned, and migrations 405–422 have not
   been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted

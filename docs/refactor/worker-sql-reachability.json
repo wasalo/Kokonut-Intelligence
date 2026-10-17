@@ -212,9 +212,9 @@
         "services/ingestion/eas_indexer.py:258:12",
         "services/ingestion/eas_indexer.py:278:16",
         "services/ingestion/eas_indexer.py:291:20",
-        "services/ingestion/eas_indexer.py:329:24",
-        "services/ingestion/eas_indexer.py:338:24",
-        "services/ingestion/eas_indexer.py:339:24"
+        "services/ingestion/eas_indexer.py:334:24",
+        "services/ingestion/eas_indexer.py:343:24",
+        "services/ingestion/eas_indexer.py:344:24"
       ]
     },
     {
@@ -5167,9 +5167,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_indexer.py:329:24",
+      "id": "services/ingestion/eas_indexer.py:334:24",
       "source": "services/ingestion/eas_indexer.py",
-      "line": 329,
+      "line": 334,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -5186,9 +5186,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_indexer.py:338:24",
+      "id": "services/ingestion/eas_indexer.py:343:24",
       "source": "services/ingestion/eas_indexer.py",
-      "line": 338,
+      "line": 343,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -5205,9 +5205,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_indexer.py:339:24",
+      "id": "services/ingestion/eas_indexer.py:344:24",
       "source": "services/ingestion/eas_indexer.py",
-      "line": 339,
+      "line": 344,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",

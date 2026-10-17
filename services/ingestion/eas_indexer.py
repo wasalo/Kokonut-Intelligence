@@ -304,7 +304,12 @@ def run(chain: str = None):
 
                         for att in attestations:
                             att_time = int(att.get("time", 0))
-                            if att_time <= recipient_cursor:
+                            # Revisit the cursor's second on every run. Multiple
+                            # attestations in one block share a timestamp, and a
+                            # provider may index a peer after an earlier page.
+                            # UID conflict suppression makes this boundary scan
+                            # idempotent while catching newly visible peers.
+                            if att_time < recipient_cursor:
                                 continue
 
                             if insert_attestation(db, att, c):

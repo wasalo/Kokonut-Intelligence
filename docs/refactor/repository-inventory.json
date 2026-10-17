@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "74d919842b983cff0688e0fdd4dc6eebd952ac78",
+  "baseline_commit": "32fe5b61dd286ca63c2d68d6dd1159a8fff06d68",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1814,7 +1814,8 @@
       "schemas/postgres/418_mobile_credential_function_acl.sql",
       "schemas/postgres/419_private_worker_context_functions.sql",
       "schemas/postgres/420_iri_public_projection_snapshot.sql",
-      "schemas/postgres/421_eas_recipient_cursors.sql"
+      "schemas/postgres/421_eas_recipient_cursors.sql",
+      "schemas/postgres/422_eas_cursor_rebaseline.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

@@ -93,8 +93,8 @@
       "external_effects": [
         "EAS GraphQL/API requests"
       ],
-      "idempotency": "attestation_record uses attestation_uid conflict suppression; ClickHouse projection has an attestation UID key. Migration 421 stores a timestamp cursor per chain and tracked recipient; each successful recipient's records, projection intents, and cursor advance commit together.",
-      "retry_boundary": "A provider failure rolls back only that recipient, leaves its cursor unchanged, commits successful recipients, and returns a retryable command failure. An outbox failure rolls back all current transaction state. Offset pagination and late-arriving events at or below a recipient cursor still need live-provider reconciliation.",
+      "idempotency": "attestation_record uses attestation_uid conflict suppression; ClickHouse projection has an attestation UID key. Migration 421 stores a timestamp cursor per chain and tracked recipient; migration 422 resets inherited cursors to zero for a one-time full-history recovery. Each successful recipient's records, projection intents, and cursor advance commit together.",
+      "retry_boundary": "A provider failure rolls back only that recipient, leaves its cursor unchanged, commits successful recipients, and returns a retryable command failure. The scan intentionally revisits the saved timestamp second; UID conflict suppression makes repeats idempotent. An outbox failure rolls back all current transaction state. Earlier-timestamp late arrivals and concurrent offset-page shifts still need provider/runtime reconciliation.",
       "sources": [
         "services/ingestion/eas_indexer.py",
         "services/ingestion/base.py",

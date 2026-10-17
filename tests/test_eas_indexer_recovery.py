@@ -81,6 +81,80 @@ def test_recipient_cursors_advance_independently_in_same_transaction():
     connection.close.assert_called_once_with()
 
 
+def test_zero_rebaseline_recovers_attestation_behind_legacy_chain_watermark():
+    connection = _connection_with_wallets([("slower-wallet", "0x222", "celo")])
+    inserted = []
+    advanced = []
+
+    with (
+        patch("services.ingestion.eas_indexer.get_db", return_value=connection),
+        patch("services.ingestion.eas_indexer.get_last_attestation_time", return_value=0),
+        patch(
+            "services.ingestion.eas_indexer.get_chain_attestation_watermark",
+            return_value=200,
+        ),
+        patch(
+            "services.ingestion.eas_indexer.query_eas",
+            return_value={"attestations": [_attestation("older-than-legacy-max", 150)]},
+        ),
+        patch(
+            "services.ingestion.eas_indexer.insert_attestation",
+            side_effect=lambda _db, attestation, _chain: inserted.append(attestation["id"])
+            or "record-id",
+        ),
+        patch("services.ingestion.eas_indexer.insert_clickhouse"),
+        patch(
+            "services.ingestion.eas_indexer.advance_attestation_cursor",
+            side_effect=lambda _db, chain, wallet_id, timestamp: advanced.append(
+                (chain, wallet_id, timestamp)
+            ),
+        ),
+        patch("services.ingestion.base.get_db", side_effect=AssertionError("opened a second connection")),
+    ):
+        eas_indexer.run(chain="celo")
+
+    assert inserted == ["older-than-legacy-max"]
+    assert advanced == [("celo", "slower-wallet", 150)]
+    connection.commit.assert_called_once_with()
+
+
+def test_inclusive_timestamp_boundary_recovers_new_same_second_attestation():
+    connection = _connection_with_wallets([("wallet-1", "0x111", "celo")])
+    inserted = []
+    advanced = []
+
+    with (
+        patch("services.ingestion.eas_indexer.get_db", return_value=connection),
+        patch("services.ingestion.eas_indexer.get_last_attestation_time", return_value=150),
+        patch(
+            "services.ingestion.eas_indexer.get_chain_attestation_watermark",
+            return_value=150,
+        ),
+        patch(
+            "services.ingestion.eas_indexer.query_eas",
+            return_value={"attestations": [_attestation("same-second-peer", 150)]},
+        ),
+        patch(
+            "services.ingestion.eas_indexer.insert_attestation",
+            side_effect=lambda _db, attestation, _chain: inserted.append(attestation["id"])
+            or "record-id",
+        ),
+        patch("services.ingestion.eas_indexer.insert_clickhouse"),
+        patch(
+            "services.ingestion.eas_indexer.advance_attestation_cursor",
+            side_effect=lambda _db, chain, wallet_id, timestamp: advanced.append(
+                (chain, wallet_id, timestamp)
+            ),
+        ),
+        patch("services.ingestion.base.get_db", side_effect=AssertionError("opened a second connection")),
+    ):
+        eas_indexer.run(chain="celo")
+
+    assert inserted == ["same-second-peer"]
+    assert advanced == [("celo", "wallet-1", 150)]
+    connection.commit.assert_called_once_with()
+
+
 def test_failed_wallet_rolls_back_its_rows_and_keeps_prior_watermark():
     connection = _connection_with_wallets(
         [

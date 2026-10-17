@@ -3323,7 +3323,7 @@
         {
           "function": "services.ingestion.eas_indexer:run",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 386
+          "line": 391
         }
       ],
       "reachable_functions": [
@@ -3501,31 +3501,31 @@
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.base:hash_payload",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 361
+          "line": 366
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.base:log_ingestion",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 354
+          "line": 359
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.base:update_indexer_status",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 346
+          "line": 351
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:advance_attestation_cursor",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 325
+          "line": 330
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:get_chain_attestation_watermark",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 344
+          "line": 349
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
@@ -3537,13 +3537,13 @@
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:insert_attestation",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 310
+          "line": 315
         },
         {
           "caller": "services.ingestion.eas_indexer:run",
           "callee": "services.ingestion.eas_indexer:insert_clickhouse",
           "source": "services/ingestion/eas_indexer.py",
-          "line": 314
+          "line": 319
         },
         {
           "caller": "services.ingestion.eas_indexer:run",

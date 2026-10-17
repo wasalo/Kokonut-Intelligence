@@ -2,8 +2,8 @@
 
 **Updated:** 16 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Previous pushed base:** `74d9198` on PR #68 (`feat/mobile-offline-acceptance`).
-**EAS recipient cursor batch:** EAS ingestion now uses migration 421's independent timestamp cursor per chain/recipient. Existing supported recipients backfill from the legacy watermark, new recipients start at zero, successful records/outbox intents/cursor updates commit together, and a recipient failure rolls back to its savepoint while returning a retryable partial failure. The focused EAS/producer/scheduler/migration suite passes 186 tests; the disposable PostgreSQL 16 runner verifies replay, backfill, independent advancement, and rollback coupling. Generated worker inventories were refreshed. No live EAS provider, candidate, legacy database, or schedule was touched. The checklist is 421 checked / 21 open (442 total); the 66-row capability matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–421 have not been rolled out, and pagination/late-arrival reconciliation, live-provider acceptance, and production acceptance remain open.
+**Latest pushed head:** `32fe5b61dd286ca63c2d68d6dd1159a8fff06d68` on PR #68; Security #99 passed and CI #375 was in progress at latest check.
+**Current local batch:** Migration 422 rebaselines inherited EAS recipient cursors to zero because the old chain-wide watermark could skip slower-wallet attestations. A UID-idempotent history scan can then recover missing rows; migration 421 remains immutable. The scanner also revisits the saved timestamp second so newly indexed same-second attestations are recovered. The focused EAS/producer/scheduler/migration suite passes 188 tests; the disposable PostgreSQL 16 runner verifies migration 421 backfill, migration 422 replay/reset, independent advancement, and transaction rollback coupling. No live provider, candidate, legacy database, or schedule was touched. The checklist is 423 checked / 21 open (444 total); the 66-row capability matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Candidate remains through migration 403; migrations 420–422 have not been rolled out, and earlier-time pagination/late-arrival reconciliation, live-provider acceptance, and production acceptance remain open.
 
 This plan orders the remaining work so repository changes and reproducible
 software checks happen before decisions that require production owners, live
@@ -46,7 +46,7 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **421 checked and 21 open items (442 total)**,
+- The execution checklist has **423 checked and 21 open items (444 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
