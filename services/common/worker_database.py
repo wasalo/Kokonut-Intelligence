@@ -18,6 +18,7 @@ _WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
 _WORKER_LOGINS = {
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "market_data": "kokonut_market_data_login",
+    "sensor_ingestion": "kokonut_sensor_ingestion_login",
 }
 _DEFAULT_WORKER_LOGIN = "kokonut_worker_login"
 _WORKER_CREDENTIAL_MIN_BYTES = 32

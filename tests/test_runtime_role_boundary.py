@@ -200,6 +200,65 @@ def test_market_data_dedicated_secret_reaches_only_the_runtime_role_bootstrap():
     assert "KOKONUT_MARKET_DATA_PASSWORD" not in app_profiles
 
 
+def test_sensor_ingestion_login_requires_its_paired_secret_and_distinct_function_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="sensor-ingestion user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            sensor_ingestion_user="kokonut_sensor_ingestion_login",
+        )
+    with pytest.raises(ValueError, match="differ from the sensor-ingestion function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            sensor_ingestion_user="kokonut_sensor_ingestion_owner",
+            sensor_ingestion_password="s" * 32,
+        )
+
+
+def test_sensor_ingestion_functions_are_private_and_owned_by_the_bounded_role():
+    root = Path(__file__).resolve().parents[1]
+    migration = (root / "schemas/postgres/431_signed_sensor_driver_worker.sql").read_text()
+    runtime_source = (root / "services/migration/runtime_role.py").read_text()
+
+    assert set(runtime_role._SENSOR_INGESTION_FUNCTIONS) <= set(runtime_role._PRIVATE_RUNTIME_FUNCTIONS)
+    assert all(
+        (function, "kokonut_sensor_ingestion_owner") in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._SENSOR_INGESTION_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_sensor_ingestion_login'" in migration
+    assert "GRANT kokonut_worker_execution TO kokonut_sensor_ingestion_login" in migration
+    assert "REVOKE ALL (%s) ON TABLE public.%I FROM %I" in migration
+    assert "sensor-ingestion login must connect only to its configured database" in runtime_source
+
+
+def test_sensor_ingestion_password_is_bootstrap_only_and_worker_secrets_are_routed_explicitly():
+    root = Path(__file__).resolve().parents[1]
+    bootstrap = (root / "docker-compose.kernel-runtime-role.yml").read_text()
+    app_profiles = "\n".join(
+        (root / name).read_text()
+        for name in (
+            "docker-compose.kernel-portability.yml",
+            "docker-compose.kernel-standard.yml",
+        )
+    )
+
+    assert "KOKONUT_SENSOR_INGESTION_PASSWORD" in bootstrap
+    assert "KOKONUT_SENSOR_INGESTION_DATABASE_URL" in app_profiles
+    assert "KOKONUT_SENSOR_INGESTION_WORKER_CREDENTIAL" in app_profiles
+    assert "KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER" in app_profiles
+    assert "KOKONUT_SENSOR_INGESTION_PASSWORD" not in app_profiles
+
+
 def test_runtime_api_key_access_is_read_only_and_column_scoped():
     assert runtime_role._API_KEY_COLUMNS == (
         "id",

@@ -31,6 +31,7 @@ ALLOWED_SCHEDULED_MODULES = frozenset(
         "services.ingestion.eas_indexer",
         "services.ingestion.rpc_indexer",
         "services.ingestion.sensor_ingester",
+        "services.ingestion.sensor_worker",
         "services.ingestion.gnosis_indexer",
         "services.ingestion.anomaly_detector",
         "services.metrics",

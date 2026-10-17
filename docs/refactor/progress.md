@@ -7461,3 +7461,26 @@ deployed, the worker credential/grant are not provisioned, the feature remains
 off, and RLS is still deferred. The capability matrix's 66 status rows and
 MAN-CAP acceptance classifications do not change. The checklist now records
 430 complete and 21 open items (451 total).
+
+### Signed scheduled sensor-driver worker — 17 October 2026
+
+Scheduled CSV sensor pulls now use a dedicated `sensor_ingestion` worker
+identity with exact DSN/credential routing, a default-off feature gate, and no
+fallback to shared PostgreSQL credentials. Migration 431 exposes signed
+location-scoped driver and sensor-catalog reads, bounded atomic reading/event/
+audit/ClickHouse-outbox writes, duplicate suppression, and a location-bound
+driver status audit. Five disposable PostgreSQL 16 checks pass with forced RLS,
+including migration replay, cross-location denial, conflicting timestamp
+rollback, and worker/runtime privilege boundaries. The 200 focused
+sensor-worker/scheduler/runtime-role checks pass with Ruff, Python compilation,
+and capability-matrix validation. The PostGIS test runner now waits for TCP
+readiness so migrations do not race its initialization restart. Candidate and
+legacy databases, sensor files, providers, credentials, and schedules were not
+used; migration 431 and its login/grant are not deployed, the feature remains
+off, and existing persisted tasks stay on the legacy entrypoint pending owner
+reconciliation. Live sensor-source parity, application-wide RLS, and
+MAN-CAP-040/047 acceptance remain open. The checklist now records 436 complete
+and 21 open items (457 total); capability status rows and MAN-CAP classifications
+are unchanged ([migration](../../schemas/postgres/431_signed_sensor_driver_worker.sql);
+[worker](../../services/ingestion/sensor_worker.py);
+[disposable evidence](builds/2026-10-17-recovery/signed-sensor-ingestion-worker-disposable.json)).

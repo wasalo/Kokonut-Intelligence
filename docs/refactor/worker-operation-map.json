@@ -3,8 +3,8 @@
   "reviewed": "2026-10-17",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, and market-data modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, and sensor-ingestion modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -206,7 +206,7 @@
     },
     {
       "module": "services.ingestion.sensor_ingester",
-      "scope": "Manual capture modes retain their explicit location-bound inputs. Scheduled mode requires one canonical --location-id and one --driver-instance-id; the registry query accepts only an enabled sensor driver instance assigned to that exact location. Before any import, stored driver name/type/module/class must match the immutable source-controlled scheduled-driver map. The scheduler imports only that static target; database values cannot select Python code. Scheduled drivers must implement fetch_scheduled. The built-in sensor_csv fetch is bounded to 100 sources/10,000 records and reads only beneath KOKONUT_SENSOR_CSV_ROOT (container path /var/lib/kokonut/sensor-inputs); Compose mounts the operator-selected KOKONUT_SENSOR_CSV_HOST_DIR read-only. Parent traversal, outside-root paths, symlinked components, and non-regular files are rejected with no-follow descriptor opens. New scheduled plug-ins require a code-reviewed allowlist entry. MQTT remains event-driven. The location UUID is still only query scope and does not authenticate the scheduler or establish tenant authorization/RLS.",
+      "scope": "Manual capture modes retain their explicit location-bound inputs. This legacy entrypoint remains available for previously persisted tasks and uses the shared runtime identity. New native JobSpecs route to services.ingestion.sensor_worker, which establishes signed sensor_driver/ingest scope and invokes migration 431 bounded functions. Before any driver import, stored driver name/type/module/class must match the immutable source-controlled scheduled-driver map. The built-in sensor_csv path is bounded to 100 sources/10,000 records and a 64 MiB file; it reads only beneath KOKONUT_SENSOR_CSV_ROOT (container path /var/lib/kokonut/sensor-inputs), and Compose mounts the operator-selected KOKONUT_SENSOR_CSV_HOST_DIR read-only. Parent traversal, outside-root paths, symlinked components, and non-regular files are rejected with no-follow descriptor opens. MQTT remains event-driven.",
       "reads": [
         "public.driver_instance",
         "public.driver_registry",
@@ -242,6 +242,50 @@
         "docker-compose.kernel-portability.yml",
         "docker-compose.kernel-standard.yml",
         "docs/refactor/sensor-driver-scheduled-contract.md"
+      ]
+    },
+    {
+      "module": "services.ingestion.sensor_worker",
+      "worker_key": "sensor_ingestion",
+      "scope": "Default-off native scheduled sensor worker requires one explicit --location-id and --driver-instance-id. It receives only its dedicated database login, credential, and read-only CSV mount; each database operation establishes a signed sensor_driver/ingest grant for that location. Migration 431 returns only a code-allowlisted sensor_csv instance, a location-scoped sensor catalog, and bounded status/batch operations. The shared-runtime sensor CLI remains supported for manual use; previously persisted legacy tasks remain allowlisted pending schedule-owner reconciliation.",
+      "reads": [
+        "public.driver_instance",
+        "public.driver_registry",
+        "public.sensor_device",
+        "public.sensor_type",
+        "public.sensor_reading"
+      ],
+      "writes": [
+        "public.driver_instance status",
+        "public.driver_instance_log",
+        "public.sensor_reading",
+        "public.platform_event",
+        "public.ingestion_log",
+        "public.clickhouse_outbox"
+      ],
+      "external_effects": [
+        "Filesystem read only beneath the configured sensor_csv root; Compose input mount is read-only and path components are opened with O_NOFOLLOW"
+      ],
+      "idempotency": "One bounded batch function writes canonical readings, ingestion audit, new-reading events, and ClickHouse outbox projections atomically. Sensor timestamp uniqueness suppresses exact duplicates and rejects conflicting values; exact duplicate retries do not emit another event or projection.",
+      "retry_boundary": "A retry repeats filesystem reads and signed location checks. A batch failure rolls back accepted readings, audit, events, and outbox together; driver status is updated in a separate signed transaction. The feature remains off until migration 431 is deployed, the runtime-role bootstrap provisions the dedicated login, and an exact worker credential/location grant and DSN are supplied. No existing persisted task is rewritten.",
+      "sources": [
+        "services/ingestion/sensor_worker.py",
+        "services/ingestion/sensor_ingester.py",
+        "services/ingestion/drivers/sensor_csv.py",
+        "services/drivers/registry.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/jobs.py",
+        "services/migration/runtime_role.py",
+        "schemas/postgres/431_signed_sensor_driver_worker.sql",
+        "tests/fixtures/sensor_ingestion_worker_disposable.sql",
+        "scripts/check-sensor-ingestion-worker-disposable.py",
+        ".env.example",
+        "docker-compose.kernel-runtime-role.yml",
+        "docker-compose.kernel-portability.yml",
+        "docker-compose.kernel-standard.yml",
+        "docker-compose.worker.yml"
       ]
     },
     {
@@ -1111,7 +1155,7 @@
   "known_open_items": [
     "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, and market-data integrations remain default-off and require credential provisioning and candidate rollout after disposable SQL acceptance. The scheduled sensor pull still needs its own isolated worker identity, signed bounded database functions,.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, market-data, and sensor-ingestion integrations remain default-off and require credential provisioning and candidate rollout after disposable SQL acceptance.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]
 }

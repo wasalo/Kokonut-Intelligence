@@ -65,6 +65,10 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--driver-instance-id": "uuid",
         "--location-id": "uuid",
     },
+    "services.ingestion.sensor_worker": {
+        "--driver-instance-id": "uuid",
+        "--location-id": "uuid",
+    },
     "services.ingestion.gnosis_indexer": {
         "--from-block": "block",
         "--to-block": "block",
@@ -195,6 +199,11 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
     options = set(values)
 
     if module_path == "services.ingestion.sensor_ingester":
+        if options != {"--driver-instance-id", "--location-id"}:
+            raise _reject(
+                "scheduled sensor ingestion requires one driver instance and one location"
+            )
+    if module_path == "services.ingestion.sensor_worker":
         if options != {"--driver-instance-id", "--location-id"}:
             raise _reject(
                 "scheduled sensor ingestion requires one driver instance and one location"

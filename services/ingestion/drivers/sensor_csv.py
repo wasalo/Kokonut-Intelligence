@@ -9,6 +9,7 @@ from pathlib import Path
 from services.drivers.base import BaseDriver
 
 MAX_SENSOR_CSV_RECORDS = 10_000
+MAX_SENSOR_CSV_BYTES = 67_108_864
 SCHEDULED_SENSOR_CSV_ROOT_ENV = "KOKONUT_SENSOR_CSV_ROOT"
 
 
@@ -91,8 +92,11 @@ class Driver(BaseDriver):
                 os.O_RDONLY | nofollow,
                 dir_fd=current_fd,
             )
-            if not stat.S_ISREG(os.fstat(file_fd).st_mode):
+            file_stat = os.fstat(file_fd)
+            if not stat.S_ISREG(file_stat.st_mode):
                 raise ValueError("scheduled sensor CSV source must be a regular file")
+            if file_stat.st_size > MAX_SENSOR_CSV_BYTES:
+                raise ValueError("scheduled sensor CSV source exceeds the 64 MiB limit")
             with os.fdopen(file_fd, "r", newline="", encoding="utf-8") as stream:
                 file_fd = None
                 return self.fetch_stream(stream)

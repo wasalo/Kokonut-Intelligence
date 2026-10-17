@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "b952ee1dc52a7425327cb2cf6d41d75317e2da80",
+  "baseline_commit": "804284ecb07140d3590c9e7451300be5be59137e",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1823,7 +1823,8 @@
       "schemas/postgres/427_signed_weather_observation_worker.sql",
       "schemas/postgres/428_climate_summary_idempotency.sql",
       "schemas/postgres/429_signed_climate_worker.sql",
-      "schemas/postgres/430_isolated_market_data_worker.sql"
+      "schemas/postgres/430_isolated_market_data_worker.sql",
+      "schemas/postgres/431_signed_sensor_driver_worker.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2505,6 +2506,7 @@
         "KOKONUT_FEATURE_SIGNED_CACHE_INVALIDATION",
         "KOKONUT_FEATURE_SIGNED_CLIMATE_WORKER",
         "KOKONUT_FEATURE_SIGNED_NOI_SNAPSHOT_WORKER",
+        "KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER",
         "KOKONUT_FEATURE_SIGNED_WEATHER_FORECAST_WORKER",
         "KOKONUT_FEATURE_SIGNED_WEATHER_WORKER"
       ],
@@ -3183,6 +3185,7 @@
         "services/ingestion/sensor_anomaly_worker.py",
         "services/ingestion/sensor_ingester.py",
         "services/ingestion/sensor_projection.py",
+        "services/ingestion/sensor_worker.py",
         "services/ingestion/shapefile_import.py",
         "services/ingestion/status.py",
         "services/ingestion/subgraph_indexer.py",
@@ -3285,6 +3288,7 @@
         "tests/test_sensor_driver_schedule.py",
         "tests/test_sensor_ingester.py",
         "tests/test_sensor_ingester_cli_contract.py",
+        "tests/test_sensor_ingestion_worker.py",
         "tests/test_sequential_evidence.py",
         "tests/test_sequential_integration.py",
         "tests/test_smoke.py",
@@ -3483,6 +3487,8 @@
         "KOKONUT_OPERATOR_AUTH_USER",
         "KOKONUT_RUNTIME_PASSWORD",
         "KOKONUT_RUNTIME_USER",
+        "KOKONUT_SENSOR_INGESTION_PASSWORD",
+        "KOKONUT_SENSOR_INGESTION_USER",
         "MB_DB_DBNAME",
         "MB_DB_PASS",
         "MB_DB_USER",
@@ -4383,6 +4389,7 @@
     "tests/test_sensor_driver_schedule.py",
     "tests/test_sensor_ingester.py",
     "tests/test_sensor_ingester_cli_contract.py",
+    "tests/test_sensor_ingestion_worker.py",
     "tests/test_sequential_evidence.py",
     "tests/test_sequential_integration.py",
     "tests/test_service_catalog.py",

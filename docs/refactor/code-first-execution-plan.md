@@ -11,7 +11,24 @@
 
 **Current code-first batch — 17 October 2026:** The native Market Data JobSpec now routes through a default-off isolated World Bank worker, while the manual CLI, seed path, and legacy persisted-task entrypoint remain available. Migration 430 adds a dedicated login boundary and bounded price/audit function; runtime-role provisioning keeps the login disabled until its distinct encrypted password is supplied. The 199 focused worker/market/scheduler tests, Ruff, compilation, generated inventories, and six disposable PostgreSQL 16 forced-RLS checks pass. No live provider, candidate or legacy database, or persisted schedule was accessed. The checklist remains 435 checked / 21 open; the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. The candidate remains through migration 403; migration 430 and worker credentials are not deployed, and the feature remains off. Provider parity, schedule ownership, and CAP-040/047 acceptance remain open ([migration](../../schemas/postgres/430_isolated_market_data_worker.sql); [evidence](builds/2026-10-17-recovery/market-data-worker-disposable.json)).
 
-**Current local code-first follow-on — 17 October 2026:** Scheduled sensor pulls compare persisted registry values with an immutable source-controlled name/type/module/class mapping before importing; the built-in `sensor_csv` scheduled reader additionally confines paths beneath a configured root, rejects traversal and symlinks, and uses `O_NOFOLLOW` descriptor opens. Compose mounts that root read-only and lets operators select the host input directory. Manual driver operations remain unchanged. The focused sensor schedule/CLI/command-contract/worker-map suite passes 179 tests; Ruff, compilation, generated inventories, three Compose profile config checks, and the capability-matrix check pass. Tests use synthetic temporary files; no configured input, database, driver instance, provider, or schedule was accessed. Signed worker identity, bounded SQL, tenant authorization/RLS, and live source parity remain open ([allowlist evidence](builds/2026-10-17-recovery/scheduled-sensor-driver-code-allowlist.json); [contract](sensor-driver-scheduled-contract.md); [path evidence](builds/2026-10-17-recovery/scheduled-sensor-csv-path-confinement.json)).
+**Previous local code-first follow-on — 17 October 2026:** Scheduled sensor pulls compare persisted registry values with an immutable source-controlled name/type/module/class mapping before importing; the built-in `sensor_csv` scheduled reader additionally confines paths beneath a configured root, rejects traversal and symlinks, and uses `O_NOFOLLOW` descriptor opens. Compose mounts that root read-only and lets operators select the host input directory. Manual driver operations remain unchanged. The focused sensor schedule/CLI/command-contract/worker-map suite passes 179 tests; Ruff, compilation, generated inventories, three Compose profile config checks, and the capability-matrix check pass. Tests use synthetic temporary files; no configured input, database, driver instance, provider, or schedule was accessed ([allowlist evidence](builds/2026-10-17-recovery/scheduled-sensor-driver-code-allowlist.json); [contract](sensor-driver-scheduled-contract.md); [path evidence](builds/2026-10-17-recovery/scheduled-sensor-csv-path-confinement.json)).
+
+**Current local code-first follow-on — 17 October 2026:** Scheduled CSV sensor
+ingestion now runs through a dedicated default-off `sensor_ingestion` worker
+with exact DSN/credential routing and no shared PostgreSQL fallback. Migration
+431 adds signed driver/catalog lookup, bounded atomic reading/event/audit/
+ClickHouse-outbox writes, duplicate suppression, and location-bound status
+auditing. The 200 focused sensor-worker/scheduler/runtime-role checks, Ruff,
+compilation, generated worker inventories, capability-matrix validation, and
+five disposable PostgreSQL 16 forced-RLS checks pass. The runner now waits for
+PostGIS's final TCP listener before applying migrations. The candidate remains
+at migration 403; migration 431, the login/grant, and the feature are not
+deployed or enabled, and persisted tasks remain on the legacy entrypoint until
+schedule owners reconcile them. No real sensor input/provider, credentials,
+candidate or legacy database, or schedule was used. The checklist is now 436
+complete and 21 open (457 total); MAN-CAP-040/047 remain open ([worker](../../services/ingestion/sensor_worker.py);
+[migration](../../schemas/postgres/431_signed_sensor_driver_worker.sql);
+[evidence](builds/2026-10-17-recovery/signed-sensor-ingestion-worker-disposable.json)).
 
 **Previous code-first batch — 17 October 2026:** Scheduled climate refresh uses the default-off signed `services.ingestion.climate_worker`; the manual CLI remains intact. Migration 429 provides signed location/bbox lookup and source-specific bounded writes for WorldClim, ERA5-Land, MODIS, SMAP, and Sentinel-1 summaries, with same-transaction ingestion audits and no direct climate-table grants. The 156-test climate/worker/scheduler suite, Ruff, compilation, generated worker inventories, and nine disposable PostgreSQL 16 forced-RLS checks pass. No real provider/key, candidate or legacy database, or schedule was accessed. Migrations 428–429 are not deployed. Worker credentials/location grants, live provider parity, provider ownership, and rollout remain open ([migration](../../schemas/postgres/429_signed_climate_worker.sql); [evidence](builds/2026-10-17-recovery/climate-worker-disposable.json)).
 
@@ -418,7 +435,7 @@ before protected reads and writes, and make direct database access fail closed.
    columns, and reject unscoped paths before mutation. Allowlisted cache event
    handlers now require a valid location UUID before invalidating entries,
    preventing malformed events from triggering a global cache flush. The
-   [worker operation map](worker-operation-map.md) inventories all 19 scheduled
+   [worker operation map](worker-operation-map.md) inventories all 22 scheduled
    modules and seven event-handler pairs, with a test guarding allowlist parity.
    It records source-visible effects and known replay boundaries; transitive
    service/provider calls and existing persisted schedule reconciliation remain

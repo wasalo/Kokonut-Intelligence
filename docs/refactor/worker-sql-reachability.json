@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_reachability.py",
   "scope": "Direct SQL execution sites joined to the statically resolved worker function graph. A missing graph edge does not prove code is unreachable; dynamic dispatch, callbacks, import-time work, and methods on unknown instances may reach a site. This is not a complete effect map, ACL, authorization policy, or least-privilege grant list.",
   "summary": {
-    "operation_roots": 28,
-    "sql_execution_sites": 309,
-    "statically_reachable_site_memberships": 299,
-    "unique_sites_with_static_operation_path": 236,
+    "operation_roots": 29,
+    "sql_execution_sites": 313,
+    "statically_reachable_site_memberships": 307,
+    "unique_sites_with_static_operation_path": 240,
     "sites_without_static_function_match": 73,
     "unmatched_functions_absent_from_all_worker_graphs": 73,
     "sites_reached_by_multiple_operations": 13
@@ -173,7 +173,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/ingestion/climate_worker.py:51:12",
         "services/ingestion/climate_worker.py:90:12"
       ]
@@ -266,7 +266,7 @@
       "operation_ref": "scheduled_module:services.ingestion.market_data_worker",
       "statically_reachable_sql_site_count": 2,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/ingestion/market_data_worker.py:55:12"
       ]
     },
@@ -332,6 +332,22 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_worker",
+      "operation_ref": "scheduled_module:services.ingestion.sensor_worker",
+      "statically_reachable_sql_site_count": 8,
+      "statically_reachable_sql_site_ids": [
+        "services/common/tenant_context.py:110:8",
+        "services/common/tenant_context.py:160:8",
+        "services/common/tenant_context.py:161:8",
+        "services/common/worker_database.py:111:12",
+        "services/ingestion/sensor_worker.py:240:12",
+        "services/ingestion/sensor_worker.py:271:12",
+        "services/ingestion/sensor_worker.py:48:12",
+        "services/ingestion/sensor_worker.py:85:12"
+      ]
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.weather",
       "operation_ref": "scheduled_module:services.ingestion.weather",
       "statically_reachable_sql_site_count": 5,
@@ -369,7 +385,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/ingestion/weather_forecast_worker.py:44:12",
         "services/ingestion/weather_forecast_worker.py:85:12"
       ]
@@ -383,7 +399,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/ingestion/weather_worker.py:113:12",
         "services/ingestion/weather_worker.py:68:12"
       ]
@@ -434,7 +450,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/metrics/noi_snapshot_worker.py:29:12"
       ]
     },
@@ -449,7 +465,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12"
+        "services/common/worker_database.py:111:12"
       ]
     },
     {
@@ -463,7 +479,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12"
+        "services/common/worker_database.py:111:12"
       ]
     },
     {
@@ -477,7 +493,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12"
+        "services/common/worker_database.py:111:12"
       ]
     },
     {
@@ -491,7 +507,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12"
+        "services/common/worker_database.py:111:12"
       ]
     },
     {
@@ -500,7 +516,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_alert_notification",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/events/notification_outbox.py:179:12",
         "services/events/notification_outbox.py:194:12",
         "services/events/notification_outbox.py:214:16",
@@ -513,7 +529,7 @@
       "operation_ref": "event_handler:services.events.handlers.handle_stale_data",
       "statically_reachable_sql_site_count": 5,
       "statically_reachable_sql_site_ids": [
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/events/notification_outbox.py:179:12",
         "services/events/notification_outbox.py:194:12",
         "services/events/notification_outbox.py:214:16",
@@ -529,7 +545,7 @@
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
         "services/common/tenant_context.py:161:8",
-        "services/common/worker_database.py:110:12",
+        "services/common/worker_database.py:111:12",
         "services/ingestion/sensor_anomaly_worker.py:83:8",
         "services/ingestion/sensor_anomaly_worker.py:89:8"
       ]
@@ -1500,6 +1516,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
@@ -1544,6 +1561,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
@@ -1588,6 +1606,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
@@ -1617,6 +1636,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1628,6 +1648,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1653,6 +1674,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1664,6 +1686,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1691,6 +1714,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1702,6 +1726,7 @@
         "event_handler:services.cache.events.handle_sensor_reading",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1729,6 +1754,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1757,6 +1783,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1785,6 +1812,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1795,9 +1823,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/common/worker_database.py:110:12",
+      "id": "services/common/worker_database.py:111:12",
       "source": "services/common/worker_database.py",
-      "line": 110,
+      "line": 111,
       "scope": "get_worker_db",
       "method": "execute",
       "expression_kind": "literal",
@@ -1814,6 +1842,7 @@
         "scheduled_module:services.ingestion.anomaly_detector",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.market_data_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -1828,6 +1857,7 @@
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.climate_worker",
         "scheduled_module:services.ingestion.market_data_worker",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
         "scheduled_module:services.metrics.noi_snapshot_worker"
@@ -2173,7 +2203,8 @@
         "driver_registry"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -2192,7 +2223,8 @@
         "driver_registry"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -2211,7 +2243,8 @@
         "driver_registry"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -2230,7 +2263,8 @@
         "driver_registry"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -2250,7 +2284,8 @@
         "driver_registry"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -2270,7 +2305,8 @@
         "driver_registry"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
@@ -2291,7 +2327,8 @@
         "driver_registry"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -2310,7 +2347,8 @@
         "driver_instance"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [],
       "static_link_status": "no_static_function_match",
@@ -2329,7 +2367,8 @@
         "driver_instance_log"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
@@ -2350,7 +2389,8 @@
         "driver_instance"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
@@ -2371,7 +2411,8 @@
         "driver_instance"
       ],
       "import_closure_operations": [
-        "scheduled_module:services.ingestion.sensor_ingester"
+        "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
@@ -4308,6 +4349,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
@@ -4354,6 +4396,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
@@ -4394,6 +4437,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.rpc_indexer",
         "scheduled_module:services.ingestion.sensor_ingester",
+        "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
         "scheduled_module:services.ingestion.weather_forecast",
         "scheduled_module:services.ingestion.weather_forecast_worker",
@@ -6442,6 +6486,88 @@
       ],
       "statically_reachable_operations": [
         "scheduled_module:services.ingestion.sensor_ingester"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_worker.py:48:12",
+      "source": "services/ingestion/sensor_worker.py",
+      "line": 48,
+      "scope": "_resolve_instance",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.resolve_sensor_driver_instance"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_worker.py:85:12",
+      "source": "services/ingestion/sensor_worker.py",
+      "line": 85,
+      "scope": "_load_catalog",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.read_sensor_driver_catalog"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_worker.py:240:12",
+      "source": "services/ingestion/sensor_worker.py",
+      "line": 240,
+      "scope": "_store_batch",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.store_sensor_driver_batch"
+      ],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "static_link_status": "linked",
+      "function_in_any_worker_graph": true,
+      "review_status": "linked_to_operation"
+    },
+    {
+      "id": "services/ingestion/sensor_worker.py:271:12",
+      "source": "services/ingestion/sensor_worker.py",
+      "line": 271,
+      "scope": "_update_status",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "import_closure_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
+      ],
+      "statically_reachable_operations": [
+        "scheduled_module:services.ingestion.sensor_worker"
       ],
       "static_link_status": "linked",
       "function_in_any_worker_graph": true,

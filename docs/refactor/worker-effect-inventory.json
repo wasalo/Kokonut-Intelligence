@@ -4,9 +4,9 @@
   "reviewed": "2026-10-16",
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
-    "operation_roots": 27,
+    "operation_roots": 29,
     "candidate_effect_sites": 36,
-    "operation_site_memberships": 40,
+    "operation_site_memberships": 42,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 6,
@@ -17,12 +17,12 @@
       "process": 1
     },
     "operation_memberships_by_category": {
-      "dynamic_import": 1,
+      "dynamic_import": 2,
       "email_delivery": 6,
       "evm_client_setup": 4,
       "evm_rpc": 3,
       "filesystem": 8,
-      "http": 17,
+      "http": 18,
       "process": 1
     }
   },
@@ -343,6 +343,22 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.market_data_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/ingestion/market_data.py",
+          "line": 189,
+          "function": "services.ingestion.market_data:download_pink_sheet",
+          "category": "http",
+          "call": "services.common.http.http.get"
+        }
+      ],
+      "category_counts": {
+        "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.remote_sensing_fetcher",
       "candidate_effect_sites": [
         {
@@ -408,8 +424,8 @@
       "candidate_effect_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 111,
-          "function": "services.drivers.registry:DriverRegistry.load",
+          "line": 290,
+          "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"
         },
@@ -432,6 +448,22 @@
         "dynamic_import": 1,
         "filesystem": 1,
         "http": 1
+      }
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_worker",
+      "candidate_effect_sites": [
+        {
+          "source": "services/drivers/registry.py",
+          "line": 290,
+          "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
+          "category": "dynamic_import",
+          "call": "importlib.import_module"
+        }
+      ],
+      "category_counts": {
+        "dynamic_import": 1
       }
     },
     {

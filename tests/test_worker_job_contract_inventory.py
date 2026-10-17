@@ -44,6 +44,8 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     assert jobs["metrics"]["status"] == "required_runtime_inputs_validated"
     assert jobs["sensors"]["required_inputs"] == ["location_id", "driver_instance_id"]
     assert jobs["sensors"]["status"] == "required_runtime_inputs_validated"
+    assert jobs["sensors"]["module"] == "services.ingestion.sensor_worker"
+    assert jobs["sensors"]["worker_key"] == "sensor_ingestion"
     assert jobs["sensors"]["reason"] == "schema accepts the modeled input; each scheduled instance must provide it"
     assert jobs["anomaly"]["required_inputs"] == ["location_id"]
     assert jobs["anomaly"]["status"] == "required_runtime_inputs_validated"

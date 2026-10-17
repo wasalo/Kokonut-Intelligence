@@ -2399,16 +2399,17 @@ not change MAN-CAP status ([adapter](../services/ingestion/sensor_anomaly_worker
 
 ### CAP-040/047 worker SQL inventory reconciliation — 17 October 2026
 
-The current static inventories cover 26 operation roots, 86 source files, and
-309 SQL execution sites. The call graph links 237 unique sites across 295
-operation/site memberships and leaves 72 without a static function match.
-Source-pattern review covers all 42 composed/variable SQL sites, including the
-signed-context cleanup, anomaly worker query wrappers, and fixed NOI
-location-filter fragment with bound values. The weather and forecast worker
-roots add only literal SQL. The inventory refresh itself only changed static
-reports; it did not alter database ACLs or RLS. Migrations 426 and 427's
-function-owner grants and policies are documented below. No worker credential
-or candidate rollout was added, and no MAN-CAP status changed ([source map](worker-operation-map.md);
+The current static inventories cover 29 operation roots, 89 source files, and
+313 SQL execution sites. The call graph links 240 unique sites across 307
+operation/site memberships and leaves 73 without a static function match.
+Source-pattern review covers all 43 composed/variable SQL sites, including the
+signed-context cleanup, anomaly worker query wrappers, the fixed NOI
+location-filter fragment, and the new bounded sensor worker calls. The weather,
+forecast, and sensor worker roots add only literal SQL. The inventory refresh
+itself only changed static reports; it did not alter database ACLs or RLS.
+Migrations 426, 427, and 429–431's function-owner grants and policies are
+documented below. No worker credential was provisioned or candidate rollout
+performed, and no MAN-CAP status changed ([source map](worker-operation-map.md);
 [SQL inventory](worker-sql-inventory.json);
 [reachability](worker-sql-reachability.json);
 [refresh evidence](builds/2026-10-16-recovery/runtime-sql-inventory-refresh-latest.json)).
@@ -2441,6 +2442,28 @@ remain open ([worker](../services/ingestion/weather_forecast_worker.py);
 ### CAP-040/047 signed current-weather worker — 17 October 2026
 
 Native scheduled current-weather ingestion now uses a dedicated default-off worker with exact `weather` DSN, credential, and OpenWeatherMap key routing; shared PostgreSQL settings are stripped. Migration 427 adds signed location lookup and bounded atomic persistence for the observation, sanitized audit, ClickHouse outbox intent, and idempotency receipt. Forced-RLS disposable PostgreSQL checks cover migration replay, exact legacy outbox-intent reuse, conflicting outbox denial with rollback, scope mismatch, failure auditing, transaction cleanup, and direct-table/function ACLs. The 178 focused tests, nine disposable checks, Ruff, compilation, and regenerated inventories pass. The candidate remains at migration 403; migration 427 and grants are not deployed, the feature is off, and no provider, persisted schedule, candidate/legacy database, or real credential was used. Legacy task rows remain on the old entrypoint pending owner reconciliation. CAP-040 and CAP-047 remain unaccepted; live-provider parity, schedule state, application-wide RLS, and recovery acceptance remain open ([worker](../services/ingestion/weather_worker.py); [migration](../schemas/postgres/427_signed_weather_observation_worker.sql); [runner](../scripts/check-weather-observation-worker-disposable.py); [evidence](builds/2026-10-17-recovery/weather-observation-worker-disposable.json)).
+
+### CAP-040/047 signed sensor-driver worker — 17 October 2026
+
+Scheduled CSV sensor ingestion now has a dedicated default-off worker, exact
+database/credential routing, and no shared-identity fallback. Migration 431
+adds signed location-scoped driver and sensor-catalog reads, bounded atomic
+reading/event/audit/ClickHouse-outbox persistence, idempotent duplicate
+handling, and a location-bound driver status audit. Five disposable PostgreSQL
+16 checks pass under forced RLS, including migration replay, cross-location
+denial, duplicate suppression, atomic conflict rollback, and worker/runtime
+privilege boundaries. The 200 focused sensor-worker, scheduler, job-contract,
+and runtime-role tests pass with Ruff, Python compilation, and capability
+matrix validation. The candidate remains at migration 403; migration 431,
+worker login/grant, and the feature are not deployed or enabled. No real sensor
+file, provider, schedule, credential, candidate database, or legacy database
+was used. Existing persisted sensor tasks remain on the legacy entrypoint
+pending owner reconciliation; live input/provider parity, application-wide
+RLS, Raspberry Pi hardware acceptance, and MAN-CAP-040/047 remain open
+([worker](../services/ingestion/sensor_worker.py);
+[migration](../schemas/postgres/431_signed_sensor_driver_worker.sql);
+[runner](../scripts/check-sensor-ingestion-worker-disposable.py);
+[evidence](builds/2026-10-17-recovery/signed-sensor-ingestion-worker-disposable.json)).
 
 ### CAP-040/047 isolated global notification enqueue — 16 October 2026
 

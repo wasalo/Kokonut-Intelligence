@@ -58,7 +58,7 @@ JOBS = MappingProxyType(
             required_inputs=("location_id",),
         ),
         "sensors": JobSpec(
-            "services.ingestion.sensor_ingester",
+            "services.ingestion.sensor_worker",
             (),
             120,
             3,

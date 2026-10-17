@@ -49,6 +49,12 @@ _NOTIFICATION_ENQUEUE_FUNCTION = (
 _MARKET_DATA_FUNCTION = (
     "kokonut_security.store_world_bank_market_data(jsonb,text,text,integer)"
 )
+_SENSOR_INGESTION_FUNCTIONS = (
+    "kokonut_security.resolve_sensor_driver_instance(uuid,uuid)",
+    "kokonut_security.read_sensor_driver_catalog(uuid)",
+    "kokonut_security.store_sensor_driver_batch(uuid,uuid,jsonb)",
+    "kokonut_security.update_sensor_driver_status(uuid,uuid,text,integer,integer,integer,text)",
+)
 _SECURITY_DEFINER_OWNERS = (
     (
         "kokonut_security.resolve_mobile_device_token(text)",
@@ -88,6 +94,10 @@ _SECURITY_DEFINER_OWNERS = (
     (_WORKER_SCOPE_FUNCTION, "kokonut_worker_context_owner"),
     (_NOTIFICATION_ENQUEUE_FUNCTION, "kokonut_notification_enqueue_owner"),
     (_MARKET_DATA_FUNCTION, "kokonut_market_data_owner"),
+    *(
+        (function, "kokonut_sensor_ingestion_owner")
+        for function in _SENSOR_INGESTION_FUNCTIONS
+    ),
     ("public.guard_farm_activity_operator_event_insert()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_gateway_farm_activity_create()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_farm_activity_gateway_operation()", _FARM_ACTIVITY_EVENT_OWNER),
@@ -102,6 +112,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _WORKER_SCOPE_FUNCTION,
     _NOTIFICATION_ENQUEUE_FUNCTION,
     _MARKET_DATA_FUNCTION,
+    *_SENSOR_INGESTION_FUNCTIONS,
 )
 _MOBILE_DEVICE_READ_COLUMNS = (
     "id",
@@ -705,6 +716,8 @@ def provision_runtime_role(
     notification_enqueue_password: str | None = None,
     market_data_user: str | None = None,
     market_data_password: str | None = None,
+    sensor_ingestion_user: str | None = None,
+    sensor_ingestion_password: str | None = None,
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
@@ -716,7 +729,9 @@ def provision_runtime_role(
     dedicated Kernel PostgreSQL instance. When configured, the optional
     notification-enqueue login receives only its bounded intent function.
     When configured, the market-data login receives only the bounded global
-    World Bank batch function.
+    World Bank batch function. When configured, the sensor-ingestion login can
+    switch to the worker execution role only to call the signed, bounded sensor
+    driver functions from migration 431.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
@@ -725,6 +740,8 @@ def provision_runtime_role(
         raise ValueError("notification enqueue user and password must be provided together")
     if (market_data_user is None) != (market_data_password is None):
         raise ValueError("market-data user and password must be provided together")
+    if (sensor_ingestion_user is None) != (sensor_ingestion_password is None):
+        raise ValueError("sensor-ingestion user and password must be provided together")
     enqueue_ident = (
         _role_identifier(notification_enqueue_user, "notification_enqueue_user")
         if notification_enqueue_user is not None
@@ -735,18 +752,27 @@ def provision_runtime_role(
         if market_data_user is not None
         else None
     )
+    sensor_ingestion_ident = (
+        _role_identifier(sensor_ingestion_user, "sensor_ingestion_user")
+        if sensor_ingestion_user is not None
+        else None
+    )
     role_names = [admin_user, runtime_user, operator_auth_user]
     if notification_enqueue_user is not None:
         role_names.append(notification_enqueue_user)
     if market_data_user is not None:
         role_names.append(market_data_user)
+    if sensor_ingestion_user is not None:
+        role_names.append(sensor_ingestion_user)
     if "kokonut_notification_enqueue_owner" in role_names:
         raise ValueError("application logins must differ from the notification function owner")
     if "kokonut_market_data_owner" in role_names:
         raise ValueError("application logins must differ from the market-data function owner")
+    if "kokonut_sensor_ingestion_owner" in role_names:
+        raise ValueError("application logins must differ from the sensor-ingestion function owner")
     if len(set(role_names)) != len(role_names):
         raise ValueError(
-            "admin, runtime, operator-auth, notification-enqueue, and market-data roles must be distinct"
+            "admin, runtime, operator-auth, notification-enqueue, market-data, and sensor-ingestion roles must be distinct"
         )
     if not admin_password:
         raise ValueError("admin password must be provided")
@@ -758,6 +784,8 @@ def provision_runtime_role(
         credential_pairs.append(("notification_enqueue_password", notification_enqueue_password))
     if market_data_password is not None:
         credential_pairs.append(("market_data_password", market_data_password))
+    if sensor_ingestion_password is not None:
+        credential_pairs.append(("sensor_ingestion_password", sensor_ingestion_password))
     for label, secret in credential_pairs:
         if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
             raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
@@ -766,12 +794,15 @@ def provision_runtime_role(
         passwords.append(notification_enqueue_password)
     if market_data_password is not None:
         passwords.append(market_data_password)
+    if sensor_ingestion_password is not None:
+        passwords.append(sensor_ingestion_password)
     if len(set(passwords)) != len(passwords):
         raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
         raise ValueError("database name is required")
 
     market_data_database_access: dict[str, bool] = {}
+    sensor_ingestion_database_access: dict[str, bool] = {}
     conn.autocommit = True
     with conn.cursor() as cur:
         cur.execute(
@@ -833,6 +864,21 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "migration 430 market-data function must be applied before "
                     "provisioning its dedicated login"
+                )
+        if sensor_ingestion_user is not None:
+            cur.execute(
+                "SELECT " + ", ".join("to_regprocedure(%s)" for _ in _SENSOR_INGESTION_FUNCTIONS),
+                _SENSOR_INGESTION_FUNCTIONS,
+            )
+            if any(procedure is None for procedure in cur.fetchone()):
+                raise RuntimeError(
+                    "migration 431 sensor-ingestion functions must be applied before "
+                    "provisioning the dedicated login"
+                )
+            cur.execute("SELECT 1 FROM pg_roles WHERE rolname = 'kokonut_worker_execution'")
+            if cur.fetchone() is None:
+                raise RuntimeError(
+                    "migration 405 worker execution role must exist before sensor-login provisioning"
                 )
 
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
@@ -939,6 +985,49 @@ def provision_runtime_role(
                     sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
                 )
             )
+        if sensor_ingestion_user is not None:
+            assert sensor_ingestion_ident is not None and sensor_ingestion_password is not None
+            _ensure_login_role(
+                cur,
+                name=sensor_ingestion_user,
+                identifier=sensor_ingestion_ident,
+                password=sensor_ingestion_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=sensor_ingestion_user,
+                identifier=sensor_ingestion_ident,
+            )
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), sensor_ingestion_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), sensor_ingestion_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(sensor_ingestion_ident)
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    sensor_ingestion_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    sensor_ingestion_ident
+                )
+            )
+            cur.execute(
+                sql.SQL(
+                    "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
+                ).format(sensor_ingestion_ident)
+            )
         cur.execute(
             sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident)
         )
@@ -969,6 +1058,8 @@ def provision_runtime_role(
             protected_login_idents.append(enqueue_ident)
         if market_data_ident is not None:
             protected_login_idents.append(market_data_ident)
+        if sensor_ingestion_ident is not None:
+            protected_login_idents.append(sensor_ingestion_ident)
         for name in database_names:
             database_ident = sql.Identifier(name)
             cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
@@ -1073,6 +1164,34 @@ def provision_runtime_role(
                     sql.SQL(_MARKET_DATA_FUNCTION), market_data_ident
                 )
             )
+        if sensor_ingestion_ident is not None:
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), sensor_ingestion_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), sensor_ingestion_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(
+                    sensor_ingestion_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    sensor_ingestion_ident
+                )
+            )
+            cur.execute(
+                sql.SQL(
+                    "GRANT kokonut_worker_execution TO {} WITH INHERIT FALSE, SET TRUE"
+                ).format(sensor_ingestion_ident)
+            )
 
         cur.execute("REVOKE ALL ON TABLE public.operator_session FROM PUBLIC")
         cur.execute(
@@ -1113,6 +1232,86 @@ def provision_runtime_role(
         _verify_role_attributes(cur, operator_auth_user)
         if notification_enqueue_user is not None:
             _verify_role_attributes(cur, notification_enqueue_user)
+        if sensor_ingestion_user is not None:
+            cur.execute(
+                """SELECT role.rolcanlogin, role.rolsuper, role.rolcreatedb,
+                          role.rolcreaterole, role.rolreplication, role.rolbypassrls,
+                          role.rolinherit, has_schema_privilege(role.oid, 'public', 'CREATE'),
+                          count(membership.roleid),
+                          bool_and(granted.rolname = 'kokonut_worker_execution'
+                                   AND NOT membership.admin_option
+                                   AND NOT membership.inherit_option
+                                   AND membership.set_option)
+                     FROM pg_roles AS role
+                     LEFT JOIN pg_auth_members AS membership ON membership.member = role.oid
+                     LEFT JOIN pg_roles AS granted ON granted.oid = membership.roleid
+                    WHERE role.rolname = %s
+                    GROUP BY role.oid""",
+                (sensor_ingestion_user,),
+            )
+            sensor_login_state = cur.fetchone()
+            if sensor_login_state != (True, False, False, False, False, False, False, False, 1, True):
+                raise RuntimeError(
+                    "sensor-ingestion login must have only a non-inheriting SET membership in kokonut_worker_execution"
+                )
+            cur.execute(
+                "SELECT EXISTS (SELECT 1 FROM pg_class WHERE relowner = "
+                "(SELECT oid FROM pg_roles WHERE rolname = %s))",
+                (sensor_ingestion_user,),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("sensor-ingestion login must not own database relations")
+            cur.execute(
+                "SELECT pg_has_role(%s, 'kokonut_worker_execution', 'SET'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
+                (sensor_ingestion_user, sensor_ingestion_user, sensor_ingestion_user),
+            )
+            if cur.fetchone() != (True, True, False):
+                raise RuntimeError(
+                    "sensor-ingestion login is missing its restricted worker-role boundary"
+                )
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_class AS relation
+                         JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND (has_table_privilege(%s, relation.oid, 'SELECT')
+                            OR has_table_privilege(%s, relation.oid, 'INSERT')
+                            OR has_table_privilege(%s, relation.oid, 'UPDATE')
+                            OR has_table_privilege(%s, relation.oid, 'DELETE')
+                            OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+                            OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+                            OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+                            OR EXISTS (
+                                SELECT 1 FROM pg_attribute AS attribute
+                                 WHERE attribute.attrelid = relation.oid
+                                   AND attribute.attnum > 0 AND NOT attribute.attisdropped
+                                   AND (has_column_privilege(%s, relation.oid, attribute.attname, 'SELECT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'INSERT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'UPDATE')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'REFERENCES'))
+                            ))
+                   )""",
+                (sensor_ingestion_user,) * 11,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("sensor-ingestion login retains direct relation access")
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1 FROM pg_class AS sequence
+                       JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
+                        WHERE namespace.nspname = 'public' AND sequence.relkind = 'S'
+                          AND (has_sequence_privilege(%s, sequence.oid, 'USAGE')
+                            OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
+                            OR has_sequence_privilege(%s, sequence.oid, 'UPDATE'))
+                   )""",
+                (sensor_ingestion_user,) * 3,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("sensor-ingestion login retains direct sequence privileges")
         checked_login_names = [runtime_user, operator_auth_user]
         if notification_enqueue_user is not None:
             checked_login_names.append(notification_enqueue_user)
@@ -1388,7 +1587,7 @@ def provision_runtime_role(
                 raise RuntimeError(
                     "notification-enqueue login has unsafe security schema privileges"
                 )
-        for function in _PRIVATE_RUNTIME_FUNCTIONS:
+        for function in (*_PRIVATE_RUNTIME_FUNCTIONS, *_SENSOR_INGESTION_FUNCTIONS):
             _verify_no_public_function_execute(cur, function)
         _verify_security_definer_owners(cur)
         if farm_activity_event_owner_ready:
@@ -1426,6 +1625,17 @@ def provision_runtime_role(
             market_data_database_access = {name: allowed for name, allowed in cur.fetchall()}
             if any(allowed != (name == database) for name, allowed in market_data_database_access.items()):
                 raise RuntimeError("market-data login must connect only to its configured database")
+        if sensor_ingestion_user is not None:
+            cur.execute(
+                """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
+                     FROM pg_database
+                    WHERE datallowconn OR datname = 'template1'
+                    ORDER BY datname""",
+                (sensor_ingestion_user,),
+            )
+            sensor_ingestion_database_access = {name: allowed for name, allowed in cur.fetchall()}
+            if any(allowed != (name == database) for name, allowed in sensor_ingestion_database_access.items()):
+                raise RuntimeError("sensor-ingestion login must connect only to its configured database")
 
     return {
         "status": "provisioned",
@@ -1434,10 +1644,12 @@ def provision_runtime_role(
         "operator_auth_user": operator_auth_user,
         "notification_enqueue_user": notification_enqueue_user,
         "market_data_user": market_data_user,
+        "sensor_ingestion_user": sensor_ingestion_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
         "market_data_connect_grants": market_data_database_access,
+        "sensor_ingestion_connect_grants": sensor_ingestion_database_access,
         "runtime_table_privileges": ["SELECT", "INSERT", "UPDATE", "DELETE"],
         "runtime_table_privilege_scope": "existing_public_tables_only",
         "runtime_future_object_privileges": [],
@@ -1462,6 +1674,7 @@ def provision_runtime_role(
         "operator_auth_owns_relations": False,
         "notification_enqueue_owns_relations": False,
         "market_data_owns_relations": False,
+        "sensor_ingestion_owns_relations": False,
     }
 
 
@@ -1483,6 +1696,10 @@ def main() -> int:
         "KOKONUT_MARKET_DATA_USER", "kokonut_market_data_login"
     )
     market_data_password = os.environ.get("KOKONUT_MARKET_DATA_PASSWORD", "")
+    sensor_ingestion_user = os.environ.get(
+        "KOKONUT_SENSOR_INGESTION_USER", "kokonut_sensor_ingestion_login"
+    )
+    sensor_ingestion_password = os.environ.get("KOKONUT_SENSOR_INGESTION_PASSWORD", "")
     if not admin_password or not runtime_password or not operator_auth_password:
         raise SystemExit(
             "admin, runtime, and operator-auth credentials must be provided through the environment"
@@ -1514,6 +1731,12 @@ def main() -> int:
             ),
             market_data_user=market_data_user if market_data_password else None,
             market_data_password=market_data_password if market_data_password else None,
+            sensor_ingestion_user=(
+                sensor_ingestion_user if sensor_ingestion_password else None
+            ),
+            sensor_ingestion_password=(
+                sensor_ingestion_password if sensor_ingestion_password else None
+            ),
         )
     finally:
         conn.close()

@@ -45,6 +45,10 @@ def test_every_scheduled_module_has_a_command_contract():
             "services.ingestion.sensor_ingester",
             ["--location-id", str(uuid4()), "--driver-instance-id", str(uuid4())],
         ),
+        (
+            "services.ingestion.sensor_worker",
+            ["--location-id", str(uuid4()), "--driver-instance-id", str(uuid4())],
+        ),
         ("services.ingestion.anomaly_detector", ["--location-id", str(uuid4())]),
         ("services.ingestion.anomaly_detector", ["--baseline-check", "--location-id", str(uuid4())]),
         ("services.metrics", ["--compute", "--all", "--location-id", str(uuid4())]),
@@ -77,10 +81,15 @@ def test_supported_operations_accept_valid_argv(module, arguments):
     [
         ("os", ["--help"]),
         ("services.ingestion.sensor_ingester", []),
+        ("services.ingestion.sensor_worker", []),
         ("services.ingestion.sensor_ingester", ["--file", "/tmp/readings.csv"]),
         ("services.ingestion.sensor_ingester", ["--location-id", str(uuid4())]),
         (
             "services.ingestion.sensor_ingester",
+            ["--location-id", str(uuid4()), "--driver-instance-id", "invalid"],
+        ),
+        (
+            "services.ingestion.sensor_worker",
             ["--location-id", str(uuid4()), "--driver-instance-id", "invalid"],
         ),
         ("services.analytics.carbon_credit_adjustment_check", []),
@@ -534,8 +543,12 @@ def test_noi_snapshot_job_requires_location_before_dispatch():
 def test_sensor_job_dispatch_passes_only_registered_instance_and_location():
     location_id = str(uuid4())
     driver_instance_id = str(uuid4())
+    environment = {"KOKONUT_SENSOR_INGESTION_DATABASE_URL": "postgresql://sensor-worker"}
     completed = MagicMock(returncode=0, stdout='{"records_written": 1}')
-    with patch("services.core.jobs.subprocess.run", return_value=completed) as run:
+    with (
+        patch("services.core.jobs.subprocess.run", return_value=completed) as run,
+        patch("services.core.jobs.worker_subprocess_environment", return_value=environment) as child_environment,
+    ):
         result = run_job(
             "sensors",
             location_id=location_id,
@@ -546,9 +559,14 @@ def test_sensor_job_dispatch_passes_only_registered_instance_and_location():
     assert run.call_args.args[0] == [
         sys.executable,
         "-m",
-        "services.ingestion.sensor_ingester",
+        "services.ingestion.sensor_worker",
         "--location-id",
         location_id,
         "--driver-instance-id",
         driver_instance_id,
     ]
+    assert run.call_args.kwargs["env"] is environment
+    child_environment.assert_called_once_with(
+        allowed_worker_keys=("sensor_ingestion",),
+        isolated_database_credentials=True,
+    )

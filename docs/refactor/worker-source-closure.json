@@ -3081,6 +3081,216 @@
     },
     {
       "kind": "scheduled_module",
+      "name": "services.ingestion.sensor_worker",
+      "root_modules": [
+        "services.ingestion.sensor_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.http",
+        "services.common.logging",
+        "services.common.tenant_context",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.adapters.clickhouse",
+        "services.core.features",
+        "services.core.providers",
+        "services.drivers.registry",
+        "services.ingestion.base",
+        "services.ingestion.config",
+        "services.ingestion.field_validation",
+        "services.ingestion.sensor_worker"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/http.py",
+        "services/common/logging.py",
+        "services/common/tenant_context.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/adapters/clickhouse.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/drivers/registry.py",
+        "services/ingestion/base.py",
+        "services/ingestion/config.py",
+        "services/ingestion/field_validation.py",
+        "services/ingestion/sensor_worker.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 23,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 7,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 9,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 180,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/adapters/clickhouse.py",
+          "line": 14,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 13,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 41,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 20,
+          "target": "services.common.http",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 22,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 23,
+          "target": "services.ingestion.config",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 57,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/base.py",
+          "line": 64,
+          "target": "services.core.adapters.clickhouse",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/config.py",
+          "line": 9,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 11,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 12,
+          "target": "services.common.tenant_context",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 13,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 14,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 15,
+          "target": "services.drivers.registry",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 16,
+          "target": "services.ingestion.base",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/sensor_worker.py",
+          "line": 17,
+          "target": "services.ingestion.field_validation",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": [
+        {
+          "source": "services/drivers/registry.py",
+          "line": 126,
+          "kind": "dynamic module expression"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 290,
+          "kind": "dynamic module expression"
+        }
+      ]
+    },
+    {
+      "kind": "scheduled_module",
       "name": "services.ingestion.weather",
       "root_modules": [
         "services.ingestion.weather"
