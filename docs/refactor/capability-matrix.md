@@ -453,6 +453,13 @@ details. Three new mocked regressions pass with the three export reliability
 checks, Ruff, and compilation
 ([evidence](builds/2026-10-17-recovery/export-error-redaction.json)).
 
+**17 October 2026 capital-accounting report error containment (CAP-049 / CAP-047):**
+the composite advisory report now records only a stable section label and
+exception class for capacity, diversion, capture-risk, and deferred-credit
+failures. Successful section output remains intact; focused mocked section
+failures and the existing accounting suite pass with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/capital-accounting-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

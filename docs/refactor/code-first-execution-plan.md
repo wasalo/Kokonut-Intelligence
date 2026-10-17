@@ -273,6 +273,10 @@ The governed file exporter also returns only bounded failure classes, removes
 partial files, and keeps audit-write/cleanup warnings free of database error
 text; three mocked regressions pass with the export reliability checks
 ([evidence](builds/2026-10-17-recovery/export-error-redaction.json)).
+The four best-effort capital-accounting lenses also return bounded failure
+summaries without dropping successful sections; focused failure injection and
+the existing accounting suite pass with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/capital-accounting-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

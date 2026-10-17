@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Capital-accounting error containment — 17 October 2026
+
+Capacity, diversion, capture-risk, and deferred-credit section failures now
+return stable section labels and exception classes instead of raw diagnostics.
+Successful section output remains intact. Focused mocked failures and the
+existing accounting tests pass with Ruff and compilation; no database or
+provider was used
+([evidence](builds/2026-10-17-recovery/capital-accounting-error-redaction.json)).
+
 ### Governed export error containment — 17 October 2026
 
 Export generation now raises a bounded exception-class error, attempts failure

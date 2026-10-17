@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "3dee3e2e6c568ec73e3e47070becae2f9f599f05",
+  "baseline_commit": "2f83d2262c6743d988779301a0e2eb80ddb7d3be",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2419,7 +2419,8 @@
         "services/capital/diversion.py"
       ],
       "test_references": [
-        "tests/test_capital_accounting.py"
+        "tests/test_capital_accounting.py",
+        "tests/test_capital_accounting_error_redaction.py"
       ]
     },
     "certificates": {
@@ -4119,6 +4120,7 @@
     "tests/test_capacity_aware_planning.py",
     "tests/test_capacity_signals.py",
     "tests/test_capital_accounting.py",
+    "tests/test_capital_accounting_error_redaction.py",
     "tests/test_capital_efficiency.py",
     "tests/test_carbon_credit_adjustment_check_cli.py",
     "tests/test_carbon_credits.py",
