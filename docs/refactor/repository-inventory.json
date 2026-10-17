@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "e50ae1e24f8790783434666e0560b4e388ed0fad",
+  "baseline_commit": "e9cfa2eb426f747d8bbdafc1ab74107004ca504f",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2803,6 +2803,7 @@
         "tests/test_report_generator_cli.py",
         "tests/test_report_generator_readonly.py",
         "tests/test_report_governance.py",
+        "tests/test_report_state_error_redaction.py",
         "tests/test_smoke.py",
         "tests/test_spatial_export.py",
         "tests/test_spatial_import.py",
@@ -3847,6 +3848,7 @@
       ],
       "test_references": [
         "tests/test_good_offense.py",
+        "tests/test_report_state_error_redaction.py",
         "tests/test_strategic_reserve.py"
       ]
     },
@@ -4423,6 +4425,7 @@
     "tests/test_report_generator_query_scope_inventory.py",
     "tests/test_report_generator_readonly.py",
     "tests/test_report_governance.py",
+    "tests/test_report_state_error_redaction.py",
     "tests/test_reporting_cadence_error_redaction.py",
     "tests/test_reporting_reader.py",
     "tests/test_responsibility_assignment.py",

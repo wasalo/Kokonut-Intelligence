@@ -30,6 +30,14 @@ from .wellbeing import (
 )
 
 
+def _report_error_summary(operation: str, exc: Exception) -> str:
+    """Return a bounded report failure without exposing source or database data."""
+    name = type(exc).__name__
+    if not name.isascii() or not name.isidentifier() or len(name) > 64:
+        name = "Exception"
+    return f"{operation} failed ({name})"
+
+
 def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
     """Compose per-location reports across one, many, or all locations."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -71,7 +79,9 @@ def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
             try:
                 entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
             except Exception as exc:  # noqa: BLE001 - keep composite resilient
-                entry["sections"][section] = {"error": f"{type(exc).__name__}: {exc}"}
+                entry["sections"][section] = {
+                    "error": _report_error_summary("report section", exc)
+                }
         composed.append(entry)
     return locations, composed
 
@@ -244,13 +254,13 @@ def generate_state_of_kokonut_graphs(
                 }
             )
         except Exception as exc:  # isolate a failing graph, mirror state_of_kokonut
-            print(f"  ⚠ graph {desc.name} failed: {exc}")
+            print(f"  ⚠ graph generation failed ({type(exc).__name__})")
             graphs.append(
                 {
                     "name": desc.name,
                     "layout": desc.layout,
                     "title": desc.title,
-                    "error": str(exc),
+                    "error": _report_error_summary("graph generation", exc),
                 }
             )
 
@@ -304,13 +314,17 @@ def generate_comprehensive_status(
             try:
                 entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
             except Exception as exc:  # noqa: BLE001 - keep composite resilient
-                entry["sections"][section] = {"error": f"{type(exc).__name__}: {exc}"}
+                entry["sections"][section] = {
+                    "error": _report_error_summary("report section", exc)
+                }
         try:
             entry["sections"]["capital_accounting"] = generate_capital_accounting(
                 conn, loc_id, period_start, period_end
             )
         except Exception as exc:  # noqa: BLE001 - keep composite resilient
-            entry["sections"]["capital_accounting"] = {"error": f"{type(exc).__name__}: {exc}"}
+            entry["sections"]["capital_accounting"] = {
+                "error": _report_error_summary("capital accounting", exc)
+            }
         extended.append(entry)
 
     # Network-wide rollup from composed financial/environmental summaries.
@@ -402,7 +416,7 @@ def generate_strategic_reserve(conn, location_id: str = None, period_start: str 
         try:
             seed = srh.seed_vault_health(conn, loc_id)
         except Exception as exc:  # noqa: BLE001 - isolate per-location failure
-            seed = {"error": f"{type(exc).__name__}: {exc}"}
+            seed = {"error": _report_error_summary("seed-vault health", exc)}
         per_location.append(
             {
                 "location_id": loc_id,

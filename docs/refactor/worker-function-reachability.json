@@ -259,7 +259,7 @@
           "qualname": "EventBus._complete",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 264
+          "line": 271
         },
         {
           "key": "services.events.bus:EventBus._get_conn",
@@ -291,7 +291,7 @@
           "qualname": "EventBus._retry_or_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 277
+          "line": 284
         },
         {
           "key": "services.events.bus:EventBus.cleanup_old_events",
@@ -299,7 +299,7 @@
           "qualname": "EventBus.cleanup_old_events",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 360
+          "line": 367
         },
         {
           "key": "services.events.bus:EventBus.close",
@@ -315,7 +315,7 @@
           "qualname": "EventBus.dispose_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 335
+          "line": 342
         },
         {
           "key": "services.events.bus:EventBus.get_stats",
@@ -323,7 +323,7 @@
           "qualname": "EventBus.get_stats",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 353
+          "line": 360
         },
         {
           "key": "services.events.bus:EventBus.process_pending",
@@ -339,7 +339,7 @@
           "qualname": "EventBus.replay_dead_letter",
           "class_scope": "EventBus",
           "source": "services/events/bus.py",
-          "line": 302
+          "line": 309
         },
         {
           "key": "services.events.bus:_handler_child_environment",
@@ -753,7 +753,7 @@
           "caller": "services.events.bus:EventBus._complete",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 265
+          "line": 272
         },
         {
           "caller": "services.events.bus:EventBus._get_conn",
@@ -795,31 +795,31 @@
           "caller": "services.events.bus:EventBus._retry_or_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 278
+          "line": 285
         },
         {
           "caller": "services.events.bus:EventBus.cleanup_old_events",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 366
+          "line": 373
         },
         {
           "caller": "services.events.bus:EventBus.cleanup_old_events",
           "callee": "services.events.retention:require_event_retention_cleanup",
           "source": "services/events/bus.py",
-          "line": 365
+          "line": 372
         },
         {
           "caller": "services.events.bus:EventBus.dispose_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 342
+          "line": 349
         },
         {
           "caller": "services.events.bus:EventBus.get_stats",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 354
+          "line": 361
         },
         {
           "caller": "services.events.bus:EventBus.process_pending",
@@ -849,7 +849,7 @@
           "caller": "services.events.bus:EventBus.replay_dead_letter",
           "callee": "services.events.bus:EventBus._get_conn",
           "source": "services/events/bus.py",
-          "line": 305
+          "line": 312
         },
         {
           "caller": "services.events.bus:_handler_child_environment",

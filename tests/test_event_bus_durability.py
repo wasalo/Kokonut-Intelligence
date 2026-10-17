@@ -257,7 +257,11 @@ def test_handler_error_result_is_bounded():
     bus = EventBus(conn=MagicMock())
     process = MagicMock()
     process.communicate.return_value = (
-        json.dumps({"succeeded": False, "error": "RuntimeError: handler failed"}),
+        json.dumps({
+            "succeeded": False,
+            "error": "handler execution failed",
+            "error_class": "RuntimeError",
+        }),
         "",
     )
     process.returncode = 0
@@ -265,7 +269,24 @@ def test_handler_error_result_is_bounded():
     with patch("services.events.bus.subprocess.Popen", return_value=process):
         status, error = bus._invoke_handler("module", "function", "kind", {}, 5)
 
-    assert (status, error) == ("error", "RuntimeError: handler failed")
+    assert (status, error) == ("error", "Handler failed (RuntimeError)")
+
+
+def test_handler_error_result_does_not_trust_child_error_text():
+    secret = "database URL password=secret-row-data"
+    bus = EventBus(conn=MagicMock())
+    process = MagicMock()
+    process.communicate.return_value = (
+        json.dumps({"succeeded": False, "error": secret}),
+        "",
+    )
+    process.returncode = 0
+
+    with patch("services.events.bus.subprocess.Popen", return_value=process):
+        status, error = bus._invoke_handler("module", "function", "kind", {}, 5)
+
+    assert (status, error) == ("error", "Handler failed")
+    assert secret not in error
 
 
 def test_handler_timeout_kills_and_reaps_child():

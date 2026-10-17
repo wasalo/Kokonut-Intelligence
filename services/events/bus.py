@@ -258,8 +258,15 @@ class EventBus:
             return "error", "Handler process returned an invalid result"
         if result.get("succeeded") is True:
             return "success", None
-        error = result.get("error")
-        return "error", str(error or "Handler failed")[:500]
+        error_class = result.get("error_class")
+        if (
+            isinstance(error_class, str)
+            and error_class.isascii()
+            and error_class.isidentifier()
+            and len(error_class) <= 64
+        ):
+            return "error", f"Handler failed ({error_class})"
+        return "error", "Handler failed"
 
     def _complete(self, event_id, worker_id):
         conn = self._get_conn()

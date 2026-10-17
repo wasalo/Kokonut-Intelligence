@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Composite report error containment — 17 October 2026
+
+State, graph, comprehensive-status, and strategic-reserve report sections now
+return bounded exception-class summaries instead of raw exception details.
+Partial report generation remains intact. Four mocked regressions pass with
+Ruff and compilation; no database was used
+([evidence](builds/2026-10-17-recovery/report-state-error-redaction.json)).
+
+### EventBus child error containment — 17 October 2026
+
+Worker handler exceptions and malformed requests no longer return raw
+exception text through the JSON child protocol. The parent ignores arbitrary
+child error strings and persists only a validated class summary or fixed
+fallback; retry and dead-letter behavior remain unchanged. The focused runner
+and durability suite passes 34 tests with Ruff and compilation; no worker
+process or database was started
+([evidence](builds/2026-10-17-recovery/event-handler-error-redaction.json)).
+
 ### Forecast failure containment — 17 October 2026
 
 Forecast batch errors no longer expose scenario names or raw exception text;

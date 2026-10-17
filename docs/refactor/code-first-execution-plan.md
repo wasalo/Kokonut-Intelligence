@@ -245,6 +245,15 @@ scenario name is omitted from failure output, and the dashboard connection
 closes on failed writes; two mocked regressions pass within the forecast suite
 with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/forecast-error-redaction.json)).
+The EventBus child protocol now redacts handler and malformed-request details;
+the parent accepts only a validated exception-class field or a fixed fallback
+before persisting a delivery error. Its 34-test runner/durability suite passes
+with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/event-handler-error-redaction.json)).
+Composite state, graph, comprehensive-status, and strategic-reserve report
+failures now use bounded summaries while retaining per-section continuation;
+four mocked report regressions pass with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/report-state-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

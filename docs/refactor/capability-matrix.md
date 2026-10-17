@@ -411,6 +411,19 @@ writes. Two mocked regressions pass within the ten-test forecast suite with
 Ruff and compilation; no database or BI consumer was used
 ([evidence](builds/2026-10-17-recovery/forecast-error-redaction.json)).
 
+**17 October 2026 EventBus handler error containment (CAP-047):** the isolated
+handler protocol returns bounded execution failures, and the parent rejects
+arbitrary child error text before durable delivery persistence. The focused
+runner/durability suite passes 34 tests with Ruff and compilation; no worker
+process or database was started
+([evidence](builds/2026-10-17-recovery/event-handler-error-redaction.json)).
+
+**17 October 2026 composite report failure containment (CAP-047):** state,
+graph, comprehensive-status, and strategic-reserve section failures omit raw
+exception text while preserving partial report generation. Four mocked
+regressions pass with Ruff and compilation; no database was used
+([evidence](builds/2026-10-17-recovery/report-state-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

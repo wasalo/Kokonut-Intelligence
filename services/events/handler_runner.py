@@ -12,6 +12,13 @@ from typing import Any
 from services.events.bus import resolve_handler
 
 
+def _safe_exception_class(exc: BaseException) -> str:
+    name = type(exc).__name__
+    if name.isascii() and name.isidentifier() and len(name) <= 64:
+        return name
+    return "Exception"
+
+
 def _redirect_kokonut_logs_from_protocol_stdout(protocol_stdout):
     """Keep configured service log handlers from writing into the JSON protocol."""
     root = logging.getLogger("kokonut")
@@ -25,12 +32,16 @@ def _redirect_kokonut_logs_from_protocol_stdout(protocol_stdout):
 
 def execute_request(request: Any) -> dict[str, Any]:
     """Invoke a validated event handler and return a small JSON result."""
+    if not isinstance(request, dict):
+        return {"succeeded": False, "error": "handler request must be an object"}
+    required = ("module_path", "function_name", "event_type", "payload")
+    if any(name not in request for name in required):
+        return {
+            "succeeded": False,
+            "error": "handler request is missing required fields",
+        }
+
     try:
-        if not isinstance(request, dict):
-            raise ValueError("handler request must be an object")
-        required = ("module_path", "function_name", "event_type", "payload")
-        if any(name not in request for name in required):
-            raise ValueError("handler request is missing required fields")
         module_path = request["module_path"]
         function_name = request["function_name"]
         event_type = request["event_type"]
@@ -52,7 +63,11 @@ def execute_request(request: Any) -> dict[str, Any]:
                     log_handler.setStream(protocol_stdout)
         return {"succeeded": True}
     except BaseException as exc:  # The parent needs all handler failures as data.
-        return {"succeeded": False, "error": f"{type(exc).__name__}: {exc}"}
+        return {
+            "succeeded": False,
+            "error": "handler execution failed",
+            "error_class": _safe_exception_class(exc),
+        }
 
 
 def main() -> int:
@@ -60,7 +75,11 @@ def main() -> int:
         request = json.loads(sys.stdin.read())
         result = execute_request(request)
     except BaseException as exc:  # Keep the process protocol intact on bad input.
-        result = {"succeeded": False, "error": f"{type(exc).__name__}: {exc}"}
+        result = {
+            "succeeded": False,
+            "error": "invalid handler request",
+            "error_class": _safe_exception_class(exc),
+        }
     sys.stdout.write(json.dumps(result))
     sys.stdout.flush()
     return 0

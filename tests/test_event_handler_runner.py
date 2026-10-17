@@ -50,9 +50,11 @@ def test_runner_invokes_legacy_two_argument_handler(monkeypatch):
     assert calls == [("kind", {})]
 
 
-def test_runner_serializes_handler_failure_without_traceback(monkeypatch):
+def test_runner_redacts_handler_failure_details(monkeypatch):
+    secret = "database password=private-token and row payload"
+
     def handler(*_args, **_kwargs):
-        raise RuntimeError("synthetic failure")
+        raise RuntimeError(secret)
 
     monkeypatch.setattr(handler_runner, "resolve_handler", lambda *_: handler)
 
@@ -65,7 +67,12 @@ def test_runner_serializes_handler_failure_without_traceback(monkeypatch):
         }
     )
 
-    assert result == {"succeeded": False, "error": "RuntimeError: synthetic failure"}
+    assert result == {
+        "succeeded": False,
+        "error": "handler execution failed",
+        "error_class": "RuntimeError",
+    }
+    assert secret not in repr(result)
 
 
 def test_runner_keeps_configured_service_logs_off_json_protocol(monkeypatch):
@@ -109,5 +116,26 @@ def test_runner_main_emits_only_json_result(monkeypatch):
     assert handler_runner.main() == 0
     assert json.loads(output.getvalue()) == {
         "succeeded": False,
-        "error": "ValueError: handler request is missing required fields",
+        "error": "handler request is missing required fields",
     }
+
+
+def test_runner_main_redacts_malformed_request_details(monkeypatch):
+    secret = "credential=private-token"
+    monkeypatch.setattr(
+        handler_runner.sys,
+        "stdin",
+        io.StringIO('{"payload":"' + secret + '",'),
+    )
+    output = io.StringIO()
+    monkeypatch.setattr(handler_runner.sys, "stdout", output)
+
+    assert handler_runner.main() == 0
+    result = json.loads(output.getvalue())
+
+    assert result == {
+        "succeeded": False,
+        "error": "invalid handler request",
+        "error_class": "JSONDecodeError",
+    }
+    assert secret not in repr(result)
