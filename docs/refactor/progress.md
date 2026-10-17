@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### EAS signer failure containment — 17 October 2026
+
+Pending price/data attestation failures now store and return a bounded error
+summary containing only the exception class, and logs omit raw provider text.
+The failed status and signing-attempt increment remain intact. One new mocked
+regression passes within 52 attestation/EAS tests with Ruff and compilation;
+the fake connection and EAS client were the only dependencies used
+([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
+
 ### Geospatial import error containment — 17 October 2026
 
 GIS and remote-sensing CSV import failures now avoid exposing coordinates,

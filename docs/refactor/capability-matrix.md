@@ -342,6 +342,13 @@ GIS/remote-sensing/outbox tests with Ruff and compilation; only temporary
 files and fake connections were used
 ([evidence](builds/2026-10-17-recovery/geospatial-import-error-redaction.json)).
 
+**17 October 2026 EAS signer failure containment (CAP-018 / CAP-047):** failed
+attestation requests retain failed status and attempt increments, while their
+persisted/returned error summaries and logs omit raw EAS exception details.
+One mocked regression passes within 52 attestation/EAS tests with Ruff and
+compilation; no provider or database was contacted
+([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps
