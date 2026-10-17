@@ -220,12 +220,15 @@ def trigger_auto_generation(conn, cadence_id: str) -> Dict[str, Any]:
         cur.close()
         return {
             "status": "success" if success else "failed",
-            "output": result.stdout[-500:] if result.stdout else "",
-            "error": result.stderr[-500:] if result.stderr and not success else None,
+            "output": "",
+            "output_available": bool(result.stdout),
+            "exit_code": result.returncode,
+            "error": None if success else f"report generator failed (exit code {result.returncode})",
         }
-    except Exception as e:
+    except Exception as exc:
+        logger.warning("Report generation failed for cadence %s (%s)", cadence_id, type(exc).__name__)
         cur.close()
-        return {"status": "error", "message": str(e)}
+        return {"status": "error", "message": f"report generation failed ({type(exc).__name__})"}
 
 
 def get_cadence_summary(conn, location_id: str) -> Dict[str, Any]:

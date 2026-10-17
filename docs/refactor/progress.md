@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Process-simulation failure containment — 17 October 2026
+
+Failed process-simulation calculations now return a bounded exception-class
+summary rather than raw exception text. The existing rollback, failed response,
+and cancelled database state remain unchanged. One mocked regression passes
+with Ruff and compilation; no database was used
+([evidence](builds/2026-10-17-recovery/process-simulation-error-redaction.json)).
+
+### Reporting-cadence output containment — 17 October 2026
+
+Report-generation stdout/stderr are no longer returned to API callers. Failed
+commands retain status, exit code, and a bounded summary; completion errors
+return/log only the exception class, and successful completion still advances
+the cadence. Three new mocked regressions pass within a 34-test cadence/source
+suite with Ruff and compilation; no subprocess or database was used
+([evidence](builds/2026-10-17-recovery/reporting-cadence-output-redaction.json)).
+
 ### Legacy KML/Shapefile error containment — 17 October 2026
 
 Legacy KML and Shapefile parsing now reports bounded class-only failures

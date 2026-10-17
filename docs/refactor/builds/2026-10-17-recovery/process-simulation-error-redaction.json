@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-17",
+  "scope": "Process simulation calculation failure response",
+  "behavior": {
+    "failure_response": "Raw calculation exception text is replaced by a bounded exception-class summary.",
+    "lifecycle": "Failed simulations retain the existing cancelled database state, rollback, and failed API status."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_process_simulation_error_redaction.py -q",
+    "result": "1 passed",
+    "coverage": [
+      "database-like exception details are absent from returned failure",
+      "rollback occurs and simulation is marked cancelled",
+      "existing failed status and simulation ID are preserved"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; mocked connection and calculation"
+  },
+  "limitations": [
+    "No live process simulation or PostgreSQL instance was used."
+  ]
+}

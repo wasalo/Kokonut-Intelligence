@@ -279,14 +279,18 @@ def run_simulation(
             **sim_results,
         }
 
-    except Exception as e:
+    except Exception as exc:
         conn.rollback()
         cur.execute(
             "UPDATE process_simulation SET status = 'cancelled' WHERE id = %s::uuid",
             (simulation_id,),
         )
         conn.commit()
-        return {"simulation_id": simulation_id, "status": "failed", "error": str(e)}
+        return {
+            "simulation_id": simulation_id,
+            "status": "failed",
+            "error": f"simulation failed ({type(exc).__name__})",
+        }
 
 
 def list_simulations(

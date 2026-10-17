@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "d0163a9089673be785b61edf82a848fbd147f3ba",
+  "baseline_commit": "104fae55a57864d416738d3478bf7f609453c502",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2301,9 +2301,11 @@
         "tests/test_process_mining.py",
         "tests/test_process_model_sync.py",
         "tests/test_process_simulation.py",
+        "tests/test_process_simulation_error_redaction.py",
         "tests/test_publics.py",
         "tests/test_regional_readiness.py",
         "tests/test_remaining_gaps.py",
+        "tests/test_reporting_cadence_error_redaction.py",
         "tests/test_reporting_reader.py",
         "tests/test_revenue_model.py",
         "tests/test_sample_plot_generator.py",
@@ -4393,6 +4395,7 @@
     "tests/test_process_mining.py",
     "tests/test_process_model_sync.py",
     "tests/test_process_simulation.py",
+    "tests/test_process_simulation_error_redaction.py",
     "tests/test_program_portfolio.py",
     "tests/test_public_api_sdk.py",
     "tests/test_publics.py",
@@ -4415,6 +4418,7 @@
     "tests/test_report_generator_query_scope_inventory.py",
     "tests/test_report_generator_readonly.py",
     "tests/test_report_governance.py",
+    "tests/test_reporting_cadence_error_redaction.py",
     "tests/test_reporting_reader.py",
     "tests/test_responsibility_assignment.py",
     "tests/test_revenue_model.py",

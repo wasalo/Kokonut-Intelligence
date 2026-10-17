@@ -218,6 +218,15 @@ The legacy KML/Shapefile adapters also bound parser, feature, and source-read
 errors without returning source coordinates or contributor names; three new
 synthetic regressions and two existing compatibility checks pass with Ruff and
 compilation ([evidence](builds/2026-10-17-recovery/legacy-geo-import-error-redaction.json)).
+Reporting cadence no longer returns report-generator stdout/stderr; failed
+commands keep the exit code and safe status summary, and completion remains
+success-only. Three mocked regressions pass within 34 cadence/source tests with
+Ruff and compilation
+([evidence](builds/2026-10-17-recovery/reporting-cadence-output-redaction.json)).
+Process simulation now returns only an exception-class summary on calculation
+failure while retaining rollback and cancelled lifecycle state; one mocked
+regression passes with Ruff and compilation
+([evidence](builds/2026-10-17-recovery/process-simulation-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).

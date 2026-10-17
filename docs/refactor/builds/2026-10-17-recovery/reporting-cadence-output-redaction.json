@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "scope": "Reporting-cadence subprocess output and failure reporting",
+  "behavior": {
+    "stdout_stderr": "Report generator stdout/stderr are no longer returned to callers; only a boolean output-availability indicator is exposed.",
+    "nonzero_exit": "A failed command retains failed status and numeric exit code with a bounded error summary; cadence completion is not recorded.",
+    "exception": "Subprocess and completion errors return/log only the exception class, and the cursor is closed."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_reporting_cadence_error_redaction.py tests/test_gap_closures.py -q",
+    "result": "34 passed",
+    "new_regressions": 3,
+    "coverage": [
+      "secret-bearing stdout/stderr are absent from failed command results",
+      "successful report output is not returned and completion still occurs",
+      "subprocess exception details are absent from result/log and cursor cleanup remains"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connection and mocked subprocess"
+  },
+  "limitations": [
+    "No report generator subprocess or database was started.",
+    "This does not verify that a real report artifact was generated, delivered, or stored."
+  ]
+}

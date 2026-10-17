@@ -349,6 +349,19 @@ One mocked regression passes within 52 attestation/EAS tests with Ruff and
 compilation; no provider or database was contacted
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
 
+**17 October 2026 reporting-cadence output containment (CAP-007 / CAP-047):**
+automated report stdout/stderr are no longer returned, and subprocess failures
+retain only exit status/code or exception class while preserving cadence
+completion boundaries. Three mocked regressions pass within a 34-test
+cadence/source suite with Ruff and compilation; no process or database was
+started ([evidence](builds/2026-10-17-recovery/reporting-cadence-output-redaction.json)).
+
+**17 October 2026 process-simulation failure containment (CAP-011 / CAP-047):**
+calculation failures now return only a bounded exception-class summary, while
+rollback and the existing cancelled record state remain intact. One mocked
+regression passes with Ruff and compilation; no database was used
+([evidence](builds/2026-10-17-recovery/process-simulation-error-redaction.json)).
+
 **17 October 2026 legacy KML/Shapefile error containment (CAP-040 / CAP-047):**
 parser, per-feature, and file-read failures omit raw coordinate, source-name,
 and driver details while preserving successful-record counts. Three new
@@ -1386,7 +1399,7 @@ acceptance remain open.
 | CAP-008 | Trend analysis & geostatistics | services/trends/; services/geostatistics/ | MAN-CAP-008: Forecast, variogram and spatial validation outputs match tolerance-defined fixtures | tests/test_geostatistics.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-009 | Systems thinking | services/systems/ | MAN-CAP-009: Causal-loop, leverage and stock-flow model outputs preserve linked evidence | tests/test_stock_flow_mental.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-010 | OODA loop & adaptive decisions | services/orientation/; services/decision/ | MAN-CAP-010: Observe/orient/decide outputs remain advisory until approved action | tests/test_ooda_cycles.py; tests/test_decision_policy.py | B — baseline code retained; Kernel capability path and parity unassessed. |
-| CAP-011 | Process intelligence | services/analytics/ | MAN-CAP-011: Variants, cycle times, conformance and SLA estimates match fixture | tests/test_process_mining.py; tests/test_predictive_bpm.py | B — baseline code retained; Kernel capability path and parity unassessed. |
+| CAP-011 | Process intelligence | services/analytics/ | MAN-CAP-011: Variants, cycle times, conformance and SLA estimates match fixture | tests/test_process_mining.py; tests/test_predictive_bpm.py | B — baseline code retained; Kernel capability path and parity unassessed. Process-simulation failure responses now redact raw calculation exception details; this does not establish output parity. |
 | CAP-012 | Process architecture & costing | services/analytics/process_architecture.py | MAN-CAP-012: Process maps, interfaces and cost totals preserve ownership and lineage | tests/test_process_architecture.py; tests/test_process_costing.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-013 | Impact accountability | services/analytics/; services/registry/ | MAN-CAP-013: Evidence maturity, impact claims, participation and CIDS public export enforce consent | tests/test_ebf_gates.py; tests/test_cids_export.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-014 | CRISP risk scoring | services/crisp/ | MAN-CAP-014: Five dimensions, configured weights and composite rating match baseline | tests/test_crisp_scoring.py | D — published-assessment GET and additive `/api/v1/crisp/{location_id}` alias are source-defined; five-dimension scoring/weight parity pending. [Contract](public-summary-contracts.md) |
