@@ -2893,13 +2893,13 @@
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 12,
+          "line": 13,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 26,
+          "line": 41,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3064,7 +3064,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 111,
+          "line": 126,
+          "kind": "dynamic module expression"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 290,
           "kind": "dynamic module expression"
         },
         {

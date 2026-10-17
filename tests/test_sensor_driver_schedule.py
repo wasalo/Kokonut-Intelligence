@@ -57,6 +57,100 @@ def test_registry_loads_only_enabled_sensor_instance_at_exact_location():
     assert parameters == (instance_id, location_id)
 
 
+@pytest.mark.parametrize(
+    "registered_target",
+    [
+        ("os", "system", "sensor"),
+        ("services.ingestion.drivers.sensor_csv", "Unknown", "sensor"),
+        ("services.ingestion.drivers.sensor_csv", "Driver", "weather"),
+    ],
+)
+def test_registry_rejects_database_selected_module_or_class(
+    registered_target, monkeypatch
+):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (
+        str(uuid4()),
+        "north-sensors",
+        "sensor_csv",
+        *registered_target,
+        {"file_path": "/data/readings.csv"},
+        str(uuid4()),
+    )
+    import_module = MagicMock(side_effect=AssertionError("untrusted import attempted"))
+    monkeypatch.setattr("services.drivers.registry.importlib.import_module", import_module)
+
+    with pytest.raises(ValueError, match="code allowlist"):
+        DriverRegistry(conn=connection).get_schedulable_instance(
+            str(uuid4()), str(uuid4())
+        )
+
+    import_module.assert_not_called()
+
+
+def test_registry_rejects_unreviewed_sensor_driver_before_import(monkeypatch):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (
+        str(uuid4()),
+        "custom-sensors",
+        "custom_sensor_plugin",
+        "tests.malicious_plugin",
+        "Driver",
+        "sensor",
+        {"file_path": "/data/readings.csv"},
+        str(uuid4()),
+    )
+    import_module = MagicMock(side_effect=AssertionError("untrusted import attempted"))
+    monkeypatch.setattr("services.drivers.registry.importlib.import_module", import_module)
+
+    with pytest.raises(ValueError, match="not allowlisted"):
+        DriverRegistry(conn=connection).get_schedulable_instance(
+            str(uuid4()), str(uuid4())
+        )
+
+    import_module.assert_not_called()
+
+
+def test_schedulable_driver_import_uses_only_static_code_target(monkeypatch):
+    from services.drivers.registry import SCHEDULED_SENSOR_DRIVER_TARGETS
+
+    instance = {
+        "driver_name": "sensor_csv",
+        "module_path": "services.ingestion.drivers.sensor_csv",
+        "class_name": "Driver",
+        "driver_type": "sensor",
+    }
+    target = SCHEDULED_SENSOR_DRIVER_TARGETS["sensor_csv"]
+    module = MagicMock()
+    module.Driver = SensorCsvDriver
+    import_module = MagicMock(return_value=module)
+    monkeypatch.setattr("services.drivers.registry.importlib.import_module", import_module)
+
+    loaded = DriverRegistry.load_schedulable_sensor_driver(instance)
+
+    assert loaded is SensorCsvDriver
+    import_module.assert_called_once_with(target[0])
+
+
+def test_schedulable_driver_loader_rejects_forged_instance_before_import(monkeypatch):
+    import_module = MagicMock(side_effect=AssertionError("untrusted import attempted"))
+    monkeypatch.setattr("services.drivers.registry.importlib.import_module", import_module)
+
+    with pytest.raises(ValueError, match="not code-allowlisted"):
+        DriverRegistry.load_schedulable_sensor_driver(
+            {
+                "driver_name": "sensor_csv",
+                "module_path": "tests.malicious_plugin",
+                "class_name": "Driver",
+                "driver_type": "sensor",
+            }
+        )
+
+    import_module.assert_not_called()
+
+
 def test_insert_reading_reports_exact_duplicate_without_claiming_new_event():
     connection = MagicMock()
     cursor = connection.cursor.return_value.__enter__.return_value
@@ -135,10 +229,13 @@ def scheduled_sensor_runtime(monkeypatch):
         "instance_id": instance_id,
         "instance_name": "synthetic",
         "driver_name": "sensor_csv",
+        "module_path": "services.ingestion.drivers.sensor_csv",
+        "class_name": "Driver",
+        "driver_type": "sensor",
         "config": {"file_path": "/not-read-by-test.csv"},
         "location_id": location_id,
     }
-    registry.load.return_value = lambda **_kwargs: driver
+    registry.load_schedulable_sensor_driver.return_value = lambda **_kwargs: driver
     sensor = (sensor_id, "Probe", "soil-probe-1", "soil-type", "soil_moisture", location_id, None, "active", "csv")
     validation = MagicMock(status="valid", errors=[], warnings=[], dedupe_key="dedupe")
     bus = MagicMock()
@@ -194,6 +291,8 @@ def test_scheduled_pull_commits_reading_projection_audit_and_event_together(
     runtime["connection"].close.assert_called_once()
     runtime["bus"].publish.assert_called_once()
     assert runtime["bus"].publish.call_args.kwargs["commit"] is False
+    runtime["registry"].load.assert_not_called()
+    runtime["registry"].load_schedulable_sensor_driver.assert_called_once()
     runtime["registry"].update_instance_status.assert_called_once()
     assert runtime["registry"].update_instance_status.call_args.args[:2] == (
         runtime["instance_id"],

@@ -1404,9 +1404,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:47:16",
+      "id": "services/drivers/registry.py:62:16",
       "source": "services/drivers/registry.py",
-      "line": 47,
+      "line": 62,
       "column": 16,
       "scope": "DriverRegistry.register",
       "method": "execute",
@@ -1422,9 +1422,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:92:16",
+      "id": "services/drivers/registry.py:107:16",
       "source": "services/drivers/registry.py",
-      "line": 92,
+      "line": 107,
       "column": 16,
       "scope": "DriverRegistry.load",
       "method": "execute",
@@ -1439,9 +1439,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:126:20",
+      "id": "services/drivers/registry.py:141:20",
       "source": "services/drivers/registry.py",
-      "line": 126,
+      "line": 141,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -1456,9 +1456,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:137:20",
+      "id": "services/drivers/registry.py:152:20",
       "source": "services/drivers/registry.py",
-      "line": 137,
+      "line": 152,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -1473,9 +1473,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:179:16",
+      "id": "services/drivers/registry.py:194:16",
       "source": "services/drivers/registry.py",
-      "line": 179,
+      "line": 194,
       "column": 16,
       "scope": "DriverRegistry.list_instances",
       "method": "execute",
@@ -1491,9 +1491,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:218:12",
+      "id": "services/drivers/registry.py:233:12",
       "source": "services/drivers/registry.py",
-      "line": 218,
+      "line": 233,
       "column": 12,
       "scope": "DriverRegistry.get_schedulable_instance",
       "method": "execute",
@@ -1509,9 +1509,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:264:16",
+      "id": "services/drivers/registry.py:314:16",
       "source": "services/drivers/registry.py",
-      "line": 264,
+      "line": 314,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -1526,9 +1526,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:273:16",
+      "id": "services/drivers/registry.py:323:16",
       "source": "services/drivers/registry.py",
-      "line": 273,
+      "line": 323,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -1543,9 +1543,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:305:16",
+      "id": "services/drivers/registry.py:355:16",
       "source": "services/drivers/registry.py",
-      "line": 305,
+      "line": 355,
       "column": 16,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -1560,9 +1560,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:317:20",
+      "id": "services/drivers/registry.py:367:20",
       "source": "services/drivers/registry.py",
-      "line": 317,
+      "line": 367,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -1577,9 +1577,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:328:20",
+      "id": "services/drivers/registry.py:378:20",
       "source": "services/drivers/registry.py",
-      "line": 328,
+      "line": 378,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",

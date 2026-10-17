@@ -1,5 +1,25 @@
 # Kokonut Kernel implementation progress
 
+### Scheduled sensor-driver import boundary — 17 October 2026
+
+The scheduled sensor-pull path previously verified the instance's location and
+driver type, then passed the database-stored `module_path` to the general
+dynamic importer. That let persisted registry data select Python code in a
+scheduler child. Scheduled pulls now use an immutable source-controlled target
+map, compare the stored driver name/type/module/class against that map, and
+import only the mapped implementation. The first-party `sensor_csv` pull stays
+available; new scheduled plug-ins require a reviewed code allowlist entry. The
+174 focused sensor schedule, CLI, command-contract, and worker-map tests pass, along with
+Ruff, compilation, and `git diff --check`. No database, driver instance, file,
+provider, persisted schedule, migration, or candidate service was accessed.
+This closes the database-selected import boundary only: signed worker
+identity, bounded database functions, CSV path confinement, runtime source
+parity, and MAN-CAP-040/047 acceptance remain open
+([implementation](../../services/drivers/registry.py);
+[tests](../../tests/test_sensor_driver_schedule.py);
+[evidence](builds/2026-10-17-recovery/scheduled-sensor-driver-code-allowlist.json);
+[operation map](worker-operation-map.json)).
+
 ### Isolated global market-data scheduler — 17 October 2026
 
 The new native Market Data JobSpec now routes through a dedicated, default-off

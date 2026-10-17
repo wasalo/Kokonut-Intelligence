@@ -439,7 +439,7 @@ def run_driver_instance(instance_id: str, location_id: str) -> dict:
         if instance is None:
             raise ValueError("enabled sensor driver instance was not found for this location")
 
-        driver_class = registry.load(instance["driver_name"])
+        driver_class = registry.load_schedulable_sensor_driver(instance)
         driver = driver_class(config=instance["config"])
         if getattr(driver, "name", None) != instance["driver_name"]:
             raise ValueError("sensor driver identity does not match its registry entry")
