@@ -1,5 +1,15 @@
 # Kokonut Kernel implementation progress
 
+### EAS reconciliation error containment — 17 October 2026
+
+On-chain attestation reconciliation now places only a fixed verification label
+and bounded exception class in discrepancy details, rather than forwarding
+provider/RPC exception text. Request IDs, attestation UIDs, issue
+classification, and best-effort processing remain. The 20-test attestation
+suite passes with Ruff and compilation using a fake connection and mocked EAS
+client; no provider or database was accessed
+([evidence](builds/2026-10-17-recovery/attestation-reconciliation-error-redaction.json)).
+
 ### KGP worker failure containment — 17 October 2026
 
 KGP scan errors now store a fixed label and exception class in the durable

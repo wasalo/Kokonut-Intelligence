@@ -517,6 +517,15 @@ key, and RPC details while preserving nonzero command failure and status
 output. Seven focused attestation tests pass with Ruff and compilation
 ([evidence](builds/2026-10-17-recovery/attestation-cli-error-redaction.json)).
 
+**17 October 2026 EAS reconciliation error containment (CAP-018 / CAP-047):**
+provider failures during on-chain verification now produce a fixed discrepancy
+summary with only the exception class; request/UID context and the existing
+issue classification remain. The 20-test focused attestation suite passes
+with Ruff and compilation on fake connections and a mocked EAS client. No
+provider, chain, or database was contacted. This source regression does not
+close MAN-CAP-018 or live attestation validity acceptance
+([evidence](builds/2026-10-17-recovery/attestation-reconciliation-error-redaction.json)).
+
 **17 October 2026 Data Stream anchor failure containment (CAP-022 / CAP-047):**
 batch anchor results omit raw failure text while preserving successful pending
 requests and correct partial-success counts. One new mocked regression passes

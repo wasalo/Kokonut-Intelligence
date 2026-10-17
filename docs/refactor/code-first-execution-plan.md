@@ -2,9 +2,10 @@
 
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed batch — 17 October 2026:** PR #68 is at `e960bbccf568ad42490551862a22b6412b6884e1`; CI #423 is in progress and Security #147 passed. The advisory batch bounds decision-action, Revenue Multiplier, and graph-rebuild exception details while preserving rollback, partial results, failure status, and caller exception propagation. Thirty-five focused tests pass with Ruff and compilation on mocked boundaries. Its predecessor passed Security #146, including the historical Gitleaks fixture correction. The checklist is 486 complete / 20 open. The wider branch retains the reported limitations for provider parity, tenant authorization/RLS, physical Raspberry Pi, release certification, and production cutover.
+**Latest pushed batch — 17 October 2026:** PR #68 is at `008d8b8cf3fb319e971fa332f40d6d9ce388caa4`; CI #424 is pending and Security #148 is in progress. This batch bounds scheduler child-process/spawn errors and KGP cursor/worker errors while preserving retry, lease, and checkpoint behavior. Sixteen focused tests pass with Ruff and compilation on mocked boundaries. The previous head passed Security #147; CI #423 remains in progress. The checklist is 488 complete / 20 open. The wider branch retains the reported limitations for provider parity, tenant authorization/RLS, physical Raspberry Pi, release certification, and production cutover.
 
-**Current local batch — 17 October 2026:** Scheduler child stdout/stderr and raw spawn exceptions are no longer persisted as task errors, and KGP cursor failure state plus worker error logs use bounded summaries. Sixteen focused scheduler/KGP durability tests pass with Ruff and compilation on mocked process/connection boundaries. The current checklist is 488 complete / 20 open; these two implementation slices are local and await the next batch push.
+**Current local batch — 17 October 2026:** EAS on-chain reconciliation discrepancy details now use a fixed verification label and exception class instead of raw RPC/provider text, while preserving IDs and issue classification. The 20-test focused attestation suite passes with Ruff and compilation on fake connections and a mocked EAS client; no provider or database was used. Checklist progress is 489 complete / 20 open; hosted CI and Security remain pending for the latest pushed head.
+
 
 **Pushed EAS worker batch — 17 October 2026:** Native scheduled EAS
 indexing now routes through a default-off isolated worker and dedicated login.

@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "scope": "EAS on-chain attestation reconciliation error details",
+  "behavior": {
+    "discrepancy": "Provider exceptions are represented by a fixed verification label and bounded exception class; raw RPC/provider messages are not included.",
+    "compatibility": "The existing discrepancy issue, request ID, attestation UID, title, verification count, and failure-isolated loop behavior are preserved."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_attestation*.py -q",
+    "result": "20 passed",
+    "coverage": [
+      "synthetic provider diagnostic is absent from the reconciliation discrepancy",
+      "exceptions from both provider lookup and validity calls are redacted",
+      "request and attestation identifiers plus issue classification remain present",
+      "exception class is retained in the bounded detail summary"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "database_or_provider_access": "none; fake connection and mocked EAS client"
+  },
+  "limitations": [
+    "No live EAS provider, RPC endpoint, chain, or database was contacted.",
+    "This does not establish live attestation validity or capability parity."
+  ]
+}
