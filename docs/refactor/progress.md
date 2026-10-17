@@ -19,18 +19,47 @@ column. Candidate-only `kokonut_runtime` and `kokonut_worker_login` roles were
 created as locked `NOLOGIN` placeholders because the ordered migrations revoke
 grants from those role names; neither has a password or memberships. The
 dedicated worker logins, credentials, location grants, provider calls, and
-schedules remain disabled. The candidate application image was not rebuilt or
-recreated, so this rollout verifies schema state rather than the new app image.
+schedules remain disabled. The candidate app was rebuilt from pushed source
+commit `4805e62129a561856a4eff496e0a34d2e4a4bae2`; the prior app image remains
+tagged `kokonut-kernel-candidate-app:rollback-pre-432-app-rebuild-20261017`.
+Health returned HTTP 200. An unknown public location IRI returned 404, and an
+unauthenticated farm-activity request returned 401. The candidate contains no
+eligible public IRI data and has no configured OIDC provider/session, so these
+checks do not establish a positive projection or authenticated operator flow.
+Read-only catalog queries confirmed all four migration 429/432 SECURITY
+DEFINER functions are owned by their dedicated owner roles, executable by
+`kokonut_worker_execution`, and not executable by PUBLIC or `kokonut_runtime`.
+No worker login credentials or signed location grants were provisioned.
 
 Focused migration, climate, remote-sensing, scheduler, provider-record, and
 worker-contract tests pass (110 before and 101 after the final boundary fix).
 The climate and remote-sensing disposable PostgreSQL 16/PostGIS checks pass;
-Ruff and validation of all 423 schema sources pass. A clean ordered replay in a separate internal-network-only recovery Compose
-project applied all 423 schemas with zero failures; the temporary project and
-volume were removed. The replay required the two explicit `NOLOGIN` role
-placeholders noted above. This does not verify Raspberry Pi
+Ruff and validation of all 423 schema sources pass. The original clean ordered
+replay reached migration 427 but exposed a missing prerequisite in the clean
+bootstrap harness: the fresh database had no `kokonut_runtime` role for a
+`REVOKE` statement. `scripts/verify-clean-bootstrap.sh` now creates only the
+missing optional `kokonut_runtime` and `kokonut_worker_login` names as locked
+`NOLOGIN` roles, preserving existing roles. A new isolated replay applied all
+423 schemas through migration 432 with zero failures; the temporary project
+and volume were confirmed removed. GitHub CI #393 caught the original issue;
+Security #117 passed on the previous pushed head. The local fix is ready for a
+new hosted run after push ([clean-bootstrap evidence](builds/2026-10-17-recovery/clean-bootstrap-role-prerequisites.json)).
+This does not verify Raspberry Pi
 hardware, live providers, persisted schedule parity, or production recovery
 ([rollout evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json)).
+
+### Current-schema ARM64/QEMU replay through migration 432 — 17 October 2026
+
+A fresh QEMU project applied all 423 current schemas through migration 432 with
+zero failures and a zero-pending plan. The current-source ARM64 Gateway image
+built successfully, and its CLI help passed with networking disabled. The app
+container started after schema readiness. The acceptance harness then stopped
+before HTTP health/protected-route checks because its image-inspection step used
+the manifest-list digest instead of the local image tag; the image and CLI were
+verified independently afterward. The temporary project and volume were
+removed. This run used no explicit CPU/memory limits and did not test physical
+Pi behavior; current-schema ARM64 HTTP acceptance remains open
+([evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
 
 ### Scheduled sensor input confinement — 17 October 2026
 

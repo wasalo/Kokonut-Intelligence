@@ -47,6 +47,17 @@ the app healthy. The disposable app used 1 GiB/two CPUs and PostgreSQL used
 ([runtime evidence](builds/2026-10-15-recovery/arm64-qemu-current-schema-402.json);
 [startup guard evidence](builds/2026-10-15-recovery/kernel-schema-startup-guard.json)).
 
+**Current-source schema replay (17 October 2026):** a fresh QEMU project applied
+all 423 schemas through migration 432 with zero failures and zero pending. It
+built the current-source ARM64 app and passed Gateway CLI help with networking
+disabled. The app container started after schema readiness, but HTTP health and
+protected-route checks were not made: the evidence harness stopped while
+inspecting the manifest-list digest instead of the local image tag. The
+temporary project and volume were removed; the app image remains local. This
+run used no explicit CPU/memory limits, so it extends schema and image evidence
+only, not the bounded resource check or physical Pi acceptance
+([evidence](builds/2026-10-17-recovery/arm64-qemu-current-schema-432.json)).
+
 On 10 October 2026 registry metadata was inspected for the candidate's exact
 database reference:
 

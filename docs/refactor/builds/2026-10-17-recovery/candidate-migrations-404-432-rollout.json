@@ -1,15 +1,9 @@
 {
   "result": "passed",
   "checked_at_utc": "2026-10-17T14:21:23Z",
-  "source_revision": "cd70fa92a734cd58b70cd0b7726066c9c8f6d22a",
-  "source_changes_pending_commit": [
-    "schemas/postgres/429_signed_climate_worker.sql",
-    "schemas/postgres/432_signed_remote_sensing_worker.sql",
-    "tests/fixtures/climate_worker_disposable.sql",
-    "tests/fixtures/remote_sensing_worker_disposable.sql",
-    "scripts/check-remote-sensing-worker-disposable.py"
-  ],
-  "scope": "Apply the pending candidate schema migrations 404\u2013432 using the ordered checksummed migration runner after an encrypted checkpoint and isolated template0 restore rehearsal.",
+  "source_revision": "4805e62129a561856a4eff496e0a34d2e4a4bae2",
+  "source_changes_pending_commit": [],
+  "scope": "Apply the pending candidate schema migrations 404–432 using the ordered checksummed migration runner after an encrypted checkpoint and isolated template0 restore rehearsal.",
   "checkpoint": {
     "directory": "backups/kernel-candidate-pre-404-432-20261017T135940Z",
     "source_container": "kokonut-kernel-candidate-database-1",
@@ -154,8 +148,8 @@
         "sha256": "bef91cd8c0310b7ec4ae49a6894be175d19260e5b6b4f09075cf9490af03c5cc"
       }
     ],
-    "candidate_app_recreated": false,
-    "candidate_app_health": "healthy; GET /health returned HTTP 200",
+    "candidate_app_recreated": true,
+    "candidate_app_health": "healthy; GET /health returned HTTP 200 after rebuild",
     "database_health": "healthy",
     "metabase_health": "healthy",
     "proxy_state": "running",
@@ -165,7 +159,72 @@
       "dedicated_sensor_and_remote_sensing_logins": "not enabled; no passwords or signed location grants provisioned"
     },
     "features": "scheduled workers remain default-off; no provider or schedule was activated",
-    "legacy_stack_touched": false
+    "legacy_stack_touched": false,
+    "candidate_app": {
+      "image": "kokonut-kernel-candidate-app:latest",
+      "image_id": "sha256:695cd332c6939abfd81f7451d682f1fb5a78163557d00a5258928d85924e7363",
+      "platform": "linux/amd64",
+      "built_from_checkout_revision": "4805e62129a561856a4eff496e0a34d2e4a4bae2",
+      "rollback_tag": "kokonut-kernel-candidate-app:rollback-pre-432-app-rebuild-20261017",
+      "previous_image_id": "sha256:e6c7fa821ced6e3be06adf1654f9f05acbf1a9d94ad20885129b547b6504234a"
+    },
+    "route_acceptance": {
+      "health": {
+        "path": "/health",
+        "http_status": 200
+      },
+      "unknown_public_location_iri": {
+        "path": "/api/iri/resolve?iri=kokonut:location:00000000-0000-4000-8000-000000000001:v1",
+        "http_status": 404,
+        "body": {
+          "error": "IRI not found"
+        },
+        "meaning": "No eligible IRI snapshot exists in the empty candidate; positive public projection and private-snapshot hiding were not exercised here."
+      },
+      "unauthenticated_farm_activity": {
+        "path": "/operator/api/farm-activity-records?location_id=00000000-0000-4000-8000-000000000001",
+        "http_status": 401,
+        "body": {
+          "error": "Unauthorized",
+          "reason": "credentials_required"
+        }
+      }
+    },
+    "signed_worker_function_acl_readonly_verification": {
+      "functions": {
+        "kokonut_security.climate_location(uuid)": {
+          "owner": "kokonut_climate_owner",
+          "security_definer": true,
+          "public_execute": false,
+          "kokonut_worker_execution_execute": true,
+          "kokonut_runtime_execute": false
+        },
+        "kokonut_security.store_climate_summary(uuid,text,jsonb,integer,text)": {
+          "owner": "kokonut_climate_owner",
+          "security_definer": true,
+          "public_execute": false,
+          "kokonut_worker_execution_execute": true,
+          "kokonut_runtime_execute": false
+        },
+        "kokonut_security.claim_remote_sensing_job(uuid)": {
+          "owner": "kokonut_remote_sensing_owner",
+          "security_definer": true,
+          "public_execute": false,
+          "kokonut_worker_execution_execute": true,
+          "kokonut_runtime_execute": false
+        },
+        "kokonut_security.finish_remote_sensing_job(uuid,uuid,text,jsonb,jsonb)": {
+          "owner": "kokonut_remote_sensing_owner",
+          "security_definer": true,
+          "public_execute": false,
+          "kokonut_worker_execution_execute": true,
+          "kokonut_runtime_execute": false
+        }
+      },
+      "role_attributes": "kokonut_runtime, kokonut_worker_login, kokonut_worker_execution, kokonut_climate_owner, kokonut_remote_sensing_owner and kokonut_remote_sensing_login are NOLOGIN, NOSUPERUSER, NOCREATEDB, NOCREATEROLE, NOBYPASSRLS, NOINHERIT.",
+      "remote_sensing_membership": "kokonut_remote_sensing_login has only SET (not INHERIT or ADMIN) membership in kokonut_worker_execution; the role is still NOLOGIN and has no provisioned password.",
+      "location_credentials_or_grants_provisioned": false
+    }
   },
   "source_corrections": [
     "Migrations 429 and 432 now use canonical public.plot.boundary (the repository schema has boundary and center, not geometry); disposable fixtures were aligned to the canonical schema.",
@@ -190,8 +249,10 @@
     }
   },
   "limitations": [
-    "The candidate app image was not rebuilt or recreated.",
     "The native features remain disabled and have no real credentials or location grants.",
+    "The checkpoint is a same-disk local encrypted database backup; it excludes PostgreSQL roles/grants, other databases, media, and provider state.",
+    "Physical Raspberry Pi behavior and live provider/schedule parity remain untested.",
+    "The candidate has no eligible public IRI snapshot, configured OIDC provider/session, provisioned worker login credentials, or signed worker location grants; positive projection, authenticated operator, and live worker acceptance remain open.",
     "The checkpoint is a same-disk local encrypted database backup; it excludes PostgreSQL roles/grants, other databases, media, and provider state.",
     "Physical Raspberry Pi behavior and live provider/schedule parity remain untested."
   ]
