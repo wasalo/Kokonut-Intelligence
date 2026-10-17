@@ -53,6 +53,10 @@ query GetSchemas($creator: String!, $after: Int!) {
 """
 
 
+class EASProviderQueryError(RuntimeError):
+    """The EAS GraphQL endpoint returned an unusable query response."""
+
+
 def execute_eas_query(chain: str, query: str, variables: dict) -> dict:
     """Execute one EAS GraphQL request without importing database helpers."""
     endpoint = EAS_ENDPOINTS.get(chain)
@@ -66,6 +70,19 @@ def execute_eas_query(chain: str, query: str, variables: dict) -> dict:
     )
     try:
         response.raise_for_status()
-        return response.json().get("data", {})
+        try:
+            payload = response.json()
+        except (TypeError, ValueError):
+            raise EASProviderQueryError("EAS provider returned invalid JSON") from None
+        if not isinstance(payload, dict):
+            raise EASProviderQueryError("EAS provider returned an invalid response")
+        if payload.get("errors"):
+            # Do not persist partial GraphQL data: a cursor could otherwise
+            # advance past attestations omitted by a partially failed query.
+            raise EASProviderQueryError("EAS GraphQL query failed")
+        data = payload.get("data")
+        if not isinstance(data, dict):
+            raise EASProviderQueryError("EAS provider response has no data object")
+        return data
     finally:
         response.close()

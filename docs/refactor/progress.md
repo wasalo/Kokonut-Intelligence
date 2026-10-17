@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### EAS GraphQL error handling — 17 October 2026
+
+The database-independent EAS provider adapter now rejects GraphQL errors,
+partial data with errors, invalid JSON, non-object payloads, and missing data
+objects. The worker also rejects a response without an `attestations` field
+before writing a page or advancing the cursor. This prevents an upstream query
+failure from being treated as a successful empty page. Twenty focused EAS
+provider, worker, and cursor tests pass, along with Ruff, compilation, and
+diff checks. All provider responses were mocked; no EAS endpoint or database
+was contacted. Offset-pagination movement, earlier-than-cursor arrivals, and
+live provider acceptance remain open. Checklist count is 447 complete / 20
+open (467 total); capability status and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json)).
+
 ### Candidate rollout: isolated EAS indexer migration 433 — 17 October 2026
 
 Applied only `schema:433_isolated_eas_indexer.sql` to the local candidate with

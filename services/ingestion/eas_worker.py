@@ -55,7 +55,9 @@ def _fetch_wallet_pages(
         )
         if not isinstance(response, dict):
             raise ValueError("EAS provider returned an invalid response")
-        attestations = response.get("attestations", [])
+        if "attestations" not in response:
+            raise ValueError("EAS provider response is missing attestations")
+        attestations = response["attestations"]
         if not isinstance(attestations, list) or len(attestations) > 100:
             raise ValueError("EAS provider returned an invalid page")
         if not attestations:

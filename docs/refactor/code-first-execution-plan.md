@@ -31,6 +31,12 @@ acceptance, and MAN-CAP acceptance remain open ([migration](../../schemas/postgr
 [provider contract](../../services/ingestion/eas_provider.py);
 [disposable evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json);
 [candidate rollout](builds/2026-10-17-recovery/candidate-migration-433-rollout.json)).
+The provider adapter now fails closed on GraphQL errors, partial responses,
+invalid JSON, and missing data; the worker refuses a response missing its
+attestations field before cursor advancement. Twenty mocked EAS provider,
+worker, and cursor tests plus Ruff and compilation pass. This does not close
+provider page-stability or earlier-than-cursor recovery; no live endpoint was
+queried ([evidence](builds/2026-10-17-recovery/eas-provider-graphql-error-contract.json)).
 **Current code-first follow-up — 17 October 2026:** scheduled worker import
 paths now remain usable with shared PostgreSQL settings stripped. An internal
 worker marker prevents shared dotenv decryption and shared production DB

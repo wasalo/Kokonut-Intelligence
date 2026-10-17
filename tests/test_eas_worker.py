@@ -194,6 +194,28 @@ def test_provider_failure_does_not_advance_the_cursor_after_prior_page():
     assert connection.commits == 1
 
 
+def test_missing_attestations_field_does_not_advance_the_cursor():
+    connection = _Connection()
+    with (
+        patch.object(eas_worker, "query_eas", return_value={}),
+        pytest.raises(ValueError, match="missing attestations"),
+    ):
+        eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=100,
+            sleep=lambda _seconds: None,
+        )
+
+    assert not any(
+        "advance_eas_indexer_cursor" in statement
+        for statement, _params in connection.statements
+    )
+    assert connection.commits == 0
+
+
 def test_persistence_failure_aborts_without_cursor_advance():
     connection = _Connection()
     connection.cursor = MagicMock(side_effect=RuntimeError("database error"))

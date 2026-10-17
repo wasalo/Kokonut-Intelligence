@@ -115,10 +115,13 @@ advance, attestation plus outbox atomicity, replay suppression, status audit,
 and migration replay. Migration 433 is applied on the local candidate after an
 age-encrypted checkpoint was restore-rehearsed; both EAS roles remain `NOLOGIN`,
 and no worker credential, endpoint, or persisted schedule was enabled or used.
+The database-independent adapter now rejects GraphQL errors and malformed or
+partial responses instead of treating them as empty pages; 20 mocked provider,
+worker, and cursor checks pass. Live provider acceptance, offset-pagination
+movement, and earlier-than-cursor arrivals remain open.
 Prefect intentionally stays on the legacy entrypoint until feature and
-credential provisioning. Existing task reconciliation, offset-pagination
-movement, earlier-arrival recovery, provider parity, and live runtime
-acceptance remain open ([worker](../../services/ingestion/eas_worker.py);
+credential provisioning. Existing task reconciliation, provider parity, and
+live runtime acceptance remain open ([worker](../../services/ingestion/eas_worker.py);
 [migration](../../schemas/postgres/433_isolated_eas_indexer.sql);
 [disposable runner](../../scripts/check-eas-indexer-worker-disposable.py);
 [evidence](builds/2026-10-17-recovery/eas-indexer-worker-disposable.json)).
