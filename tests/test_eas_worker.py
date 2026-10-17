@@ -242,7 +242,7 @@ def test_repeated_consecutive_full_provider_page_fails_without_advancing_cursor(
             "query_eas",
             side_effect=[{"attestations": repeated_page}, {"attestations": repeated_page}],
         ) as query,
-        pytest.raises(ValueError, match="pagination did not advance"),
+        pytest.raises(ValueError, match="pages overlap"),
     ):
         eas_worker._fetch_wallet_pages(
             connection,
@@ -261,6 +261,58 @@ def test_repeated_consecutive_full_provider_page_fails_without_advancing_cursor(
     ) == 1
     assert not any("advance_eas_indexer_cursor" in statement for statement in statements)
     assert connection.commits == 1
+
+
+@pytest.mark.parametrize("shifted_page_length", [50, 100])
+def test_shifted_offset_page_overlap_fails_before_persisting_or_advancing_cursor(shifted_page_length):
+    connection = _Connection()
+    first_page = [_attestation(uid=index + 1, timestamp=150) for index in range(100)]
+    shifted_page = [_attestation(uid=index + 100, timestamp=150) for index in range(shifted_page_length)]
+    with (
+        patch.object(
+            eas_worker,
+            "query_eas",
+            side_effect=[{"attestations": first_page}, {"attestations": shifted_page}],
+        ) as query,
+        pytest.raises(ValueError, match="pages overlap"),
+    ):
+        eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=100,
+            sleep=lambda _seconds: None,
+        )
+
+    assert query.call_count == 2
+    assert [call.args[2]["after"] for call in query.call_args_list] == [0, 100]
+    page_writes = [statement for statement, _ in connection.statements if "store_eas_indexer_page" in statement]
+    assert len(page_writes) == 1
+    assert all("advance_eas_indexer_cursor" not in statement for statement, _ in connection.statements)
+    assert connection.commits == 1
+
+
+def test_duplicate_attestation_ids_within_full_page_fail_before_persistence():
+    connection = _Connection()
+    page = [_attestation(uid=index + 1, timestamp=150) for index in range(100)]
+    page[-1] = page[0]
+    with (
+        patch.object(eas_worker, "query_eas", return_value={"attestations": page}),
+        pytest.raises(ValueError, match="duplicate attestation IDs"),
+    ):
+        eas_worker._fetch_wallet_pages(
+            connection,
+            chain="celo",
+            wallet_id=WALLET_ID,
+            recipient=RECIPIENT,
+            cursor_time=100,
+            sleep=lambda _seconds: None,
+        )
+
+    assert not any("store_eas_indexer_page" in statement for statement, _ in connection.statements)
+    assert not any("advance_eas_indexer_cursor" in statement for statement, _ in connection.statements)
+    assert connection.commits == 0
 
 
 def test_wallet_scan_stops_after_inclusive_cursor_boundary():

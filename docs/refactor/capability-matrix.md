@@ -130,11 +130,14 @@ idempotent writes and monotonic cursor retention; zero remains the default.
 Six replay/argument/output checks pass, and successful worker results report
 the selected interval. This does not automatically recover late
 arrivals beyond the chosen interval or resolve concurrent offset-page movement.
-The worker also detects a repeated attestation-ID fingerprint on consecutive
-full `skip` pages and stops instead of fetching that page forever; it retains
-only the previous page fingerprint, so guard memory stays bounded. The first
-page remains safely persisted for idempotent retry and the cursor does not
-advance. One focused mocked check passes ([repeated-page evidence](builds/2026-10-17-recovery/eas-repeated-page-guard.json)).
+The worker rejects duplicate attestation IDs within an in-scope page and
+overlap with the previous full `skip` page, including a shorter terminal page.
+It retains only the preceding page's IDs, stops before persisting an
+overlapping page, and leaves the cursor unchanged; earlier page writes remain
+safe for idempotent retry. The 39-test mocked EAS provider/worker/cursor suite
+passes. This catches adjacent overlap but does not establish stable provider
+snapshots or detect gaps without overlap, non-adjacent cycles, or late arrivals
+([evidence](builds/2026-10-17-recovery/eas-offset-overlap-guard.json)).
 The 130-test scheduled-command contract suite confirms automated EAS tasks
 remain limited to a single explicit chain and cannot pass the replay option.
 No live endpoint or database was contacted

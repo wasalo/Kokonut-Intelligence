@@ -54,7 +54,7 @@ def _fetch_wallet_pages(
     scan_floor = max(0, cursor_time - replay_lookback_seconds)
     inserted = 0
     previous_attestation_time: int | None = None
-    previous_full_page_fingerprint: str | None = None
+    previous_full_page_ids: set[str] | None = None
     while True:
         response = query_eas(
             chain,
@@ -118,15 +118,18 @@ def _fetch_wallet_pages(
                 }
             )
 
+        current_page_ids = set(page_attestation_ids)
+        # Offset pagination can repeat or partially overlap a page when the
+        # provider ignores `skip` or its result set shifts mid-scan. Stop
+        # before persisting overlap or advancing the cursor. Retain only the
+        # preceding full page's IDs; already persisted pages are safe to retry
+        # because the bounded writer is idempotent by UID.
+        if len(current_page_ids) != len(page_attestation_ids):
+            raise ValueError("EAS provider page contains duplicate attestation IDs")
+        if previous_full_page_ids is not None and previous_full_page_ids.intersection(current_page_ids):
+            raise ValueError("EAS provider pagination pages overlap")
         if len(attestations) == 100 and not reached_cursor:
-            page_fingerprint = _hash_payload(sorted(page_attestation_ids))
-            # Offset pagination can repeat a page if the provider ignores or
-            # misapplies `skip`. Stop before cursor advancement instead of
-            # retrying the same full page forever. Already persisted pages are
-            # safe to retry because the bounded writer is idempotent by UID.
-            if page_fingerprint == previous_full_page_fingerprint:
-                raise ValueError("EAS provider pagination did not advance")
-            previous_full_page_fingerprint = page_fingerprint
+            previous_full_page_ids = current_page_ids
 
         if page:
             try:

@@ -1,19 +1,21 @@
 # Kokonut Kernel implementation progress
 
-### EAS repeated-page guard — 17 October 2026
+### EAS offset-page overlap guard — 17 October 2026
 
-The isolated EAS worker now detects an attestation-ID fingerprint repeated on
-consecutive full provider pages. It stops instead of following the same
-`skip` response indefinitely while retaining only the prior page fingerprint.
-The already persisted first page remains safe for idempotent retry, and the
-cursor is not advanced. The focused mocked regression passes within the
-36-test EAS provider/worker/cursor suite. The
-130-test scheduled-command contract suite, Ruff, compilation, and refreshed
-worker/runtime inventories pass. No provider or database was contacted. This
-does not resolve concurrent offset movement or earlier-than-cursor arrivals.
-The checklist now records 454 complete and 20 open items (474 total); the
-66-row capability matrix and MAN-CAP classifications are unchanged
-([evidence](builds/2026-10-17-recovery/eas-repeated-page-guard.json)).
+The isolated EAS worker now rejects duplicate attestation IDs within an
+in-scope page and any overlap with the preceding full page, including a shorter
+terminal page. It raises before persisting the overlapping page or advancing
+the recipient cursor, and retains only the previous page's at-most-100 IDs.
+Already committed pages remain safe for idempotent retry. The repeated-page,
+full/partial overlap, and in-page duplicate cases pass in the 39-test mocked
+EAS provider/worker/cursor suite. The 130-test scheduled-command contract
+suite and 50 worker/runtime inventory tests pass; Ruff, compilation, capability
+matrix validation, and generated inventory checks pass. No provider or
+database was contacted. This catches adjacent overlap, not gaps without
+overlap, non-adjacent page cycles, concurrent offset movement generally, or
+earlier-than-cursor arrivals. The checklist remains 454 complete and 20 open
+(474 total); capability statuses and MAN-CAP classifications are unchanged
+([evidence](builds/2026-10-17-recovery/eas-offset-overlap-guard.json)).
 
 ### Worker inventory refresh — 17 October 2026
 

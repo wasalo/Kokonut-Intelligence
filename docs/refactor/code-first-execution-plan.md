@@ -63,6 +63,18 @@ worker/runtime inventory tests pass. Ruff, compilation, capability-matrix
 validation, and all generated inventory checks pass. The branch has three
 local commits ahead of the remote; CI #408 is still running on pushed commit
 `4f5be68d`, and this follow-up awaits the next batch push ([evidence](builds/2026-10-17-recovery/eas-repeated-page-guard.json)).
+**Local EAS offset-stability follow-up — 17 October 2026:** the worker now
+compares each in-scope page with the preceding full page and fails before
+persistence on any shared attestation ID. It also rejects duplicate IDs within
+a page and checks a shorter terminal page. This catches adjacent overlap caused
+by repeated offsets or common front-of-result-set shifts while retaining only
+one page of IDs. The combined EAS, scheduled-command, and worker/runtime
+inventory suites pass 219 tests (39, 130, and 50 respectively), with Ruff,
+compilation, capability-matrix validation, and generated inventory checks
+passing. No provider or database was contacted. Gaps without adjacent overlap,
+non-adjacent cycles, earlier-than-cursor arrivals, and live endpoint behavior
+remain open. Four local commits are ahead of remote; CI #408 remains in
+progress on pushed commit `4f5be68d` ([evidence](builds/2026-10-17-recovery/eas-offset-overlap-guard.json)).
 **Code-first follow-up — 17 October 2026:** the legacy freshness-alert
 sender now closes webhook responses on success and failure, retains only an
 HTTP status or exception class for webhook/SMTP failures, and preserves the last

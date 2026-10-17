@@ -235,13 +235,13 @@
       "statically_reachable_sql_site_count": 8,
       "statically_reachable_sql_site_ids": [
         "services/common/worker_database.py:113:12",
-        "services/ingestion/eas_worker.py:134:20",
-        "services/ingestion/eas_worker.py:156:12",
-        "services/ingestion/eas_worker.py:184:12",
-        "services/ingestion/eas_worker.py:192:12",
-        "services/ingestion/eas_worker.py:201:16",
-        "services/ingestion/eas_worker.py:237:12",
-        "services/ingestion/eas_worker.py:263:20"
+        "services/ingestion/eas_worker.py:137:20",
+        "services/ingestion/eas_worker.py:159:12",
+        "services/ingestion/eas_worker.py:187:12",
+        "services/ingestion/eas_worker.py:195:12",
+        "services/ingestion/eas_worker.py:204:16",
+        "services/ingestion/eas_worker.py:240:12",
+        "services/ingestion/eas_worker.py:266:20"
       ]
     },
     {
@@ -5524,9 +5524,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:134:20",
+      "id": "services/ingestion/eas_worker.py:137:20",
       "source": "services/ingestion/eas_worker.py",
-      "line": 134,
+      "line": 137,
       "scope": "_fetch_wallet_pages",
       "method": "execute",
       "expression_kind": "literal",
@@ -5543,9 +5543,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:156:12",
+      "id": "services/ingestion/eas_worker.py:159:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 156,
+      "line": 159,
       "scope": "_fetch_wallet_pages",
       "method": "execute",
       "expression_kind": "literal",
@@ -5562,9 +5562,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:184:12",
+      "id": "services/ingestion/eas_worker.py:187:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 184,
+      "line": 187,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -5581,9 +5581,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:192:12",
+      "id": "services/ingestion/eas_worker.py:195:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 192,
+      "line": 195,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -5602,9 +5602,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:201:16",
+      "id": "services/ingestion/eas_worker.py:204:16",
       "source": "services/ingestion/eas_worker.py",
-      "line": 201,
+      "line": 204,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -5621,9 +5621,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:237:12",
+      "id": "services/ingestion/eas_worker.py:240:12",
       "source": "services/ingestion/eas_worker.py",
-      "line": 237,
+      "line": 240,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -5640,9 +5640,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/eas_worker.py:263:20",
+      "id": "services/ingestion/eas_worker.py:266:20",
       "source": "services/ingestion/eas_worker.py",
-      "line": 263,
+      "line": 266,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
