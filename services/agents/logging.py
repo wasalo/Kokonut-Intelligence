@@ -6,16 +6,21 @@ Logs agent actions to agent_action_log with high_risk flagging.
 
 import json
 import uuid
-from datetime import datetime, timezone
 from typing import Optional
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.logging import get_logger
 from services.common.database import get_db
+from services.common.errors import safe_exception_class
+from services.common.logging import get_logger
 
 logger = get_logger("services.agents.logging")
+
+
+def _redact_error_message(message: str | None) -> str | None:
+    """Keep failure presence in the audit row without retaining raw diagnostics."""
+    return "[details redacted]" if message else None
 
 
 def _get_high_risk_actions():
@@ -54,13 +59,13 @@ def log_agent_action(
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, NOW())
             """, (
                 log_id, agent_id, task_id, action, collection, record_id,
-                payload_hash, action_result, error_message,
+                payload_hash, action_result, _redact_error_message(error_message),
                 json.dumps(metadata) if metadata else None,
                 is_high_risk, is_high_risk,
             ))
         db.commit()
-    except Exception as e:
-        logger.error("Failed to log agent action: %s", e)
+    except Exception as exc:
+        logger.error("Failed to log agent action (%s)", safe_exception_class(exc))
     finally:
         if db is not None:
             db.close()
@@ -103,7 +108,10 @@ def get_agent_actions(
                 LIMIT %s
             """, params + [limit])
 
-            return [dict(r) for r in cur.fetchall()]
+            rows = [dict(r) for r in cur.fetchall()]
+            for row in rows:
+                row["error_message"] = _redact_error_message(row.get("error_message"))
+            return rows
     finally:
         if db is not None:
             db.close()
