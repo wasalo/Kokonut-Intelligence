@@ -6,7 +6,7 @@ import pytest
 
 from services.core.providers import ProviderSettings
 from services.ingestion import clickhouse_outbox
-from services.ingestion.clickhouse_outbox import deliver_batch, enqueue
+from services.ingestion.clickhouse_outbox import OutboxEnqueueError, deliver_batch, enqueue
 
 
 def _row(row_id: str) -> dict:
@@ -47,6 +47,30 @@ def test_enqueue_is_idempotent_and_stays_in_caller_transaction():
     conn.commit.assert_not_called()
     statement = conn.cursor.return_value.__enter__.return_value.execute.call_args.args[0]
     assert "ON CONFLICT (event_key)" in statement
+
+
+@pytest.mark.parametrize("failure", ["database", "conflicting_projection"])
+def test_enqueue_failure_has_a_distinct_transactional_error(failure):
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    if failure == "database":
+        cursor.execute.side_effect = RuntimeError("database unavailable")
+    else:
+        cursor.fetchone.return_value = None
+
+    with pytest.raises(OutboxEnqueueError):
+        enqueue(
+            conn,
+            event_key="event:1",
+            source_table="sensor_reading",
+            source_id="reading-1",
+            target_table="sensor_readings",
+            columns=["id", "value"],
+            rows=[["reading-1", 12.5]],
+            payload_hash="a" * 64,
+        )
+
+    conn.commit.assert_not_called()
 
 
 @patch("services.ingestion.clickhouse_outbox.get_clickhouse")

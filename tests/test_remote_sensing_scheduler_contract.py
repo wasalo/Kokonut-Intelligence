@@ -227,3 +227,24 @@ def test_job_listing_and_active_job_query_bind_location_scope():
         sql, parameters = cursor.execute.call_args.args
         assert "location_id = %s" in sql
         assert parameters == (LOCATION_ID,)
+
+
+def test_fetch_job_rolls_back_and_propagates_outbox_failure(monkeypatch):
+    from services.ingestion import remote_sensing_fetcher
+    from services.ingestion.clickhouse_outbox import OutboxEnqueueError
+
+    conn = MagicMock()
+    job = {"id": "job-1", "provider": "gee", "location_id": LOCATION_ID}
+    monkeypatch.setattr(remote_sensing_fetcher, "_resolve_bbox_from_job", lambda *_args: None)
+    monkeypatch.setattr(
+        "services.ingestion.gee_remote_sensing.fetch_gee",
+        lambda *_args: (_ for _ in ()).throw(OutboxEnqueueError("outbox unavailable")),
+        raising=False,
+    )
+    with patch.object(remote_sensing_fetcher, "_record_provider_attempt") as record_attempt:
+        with pytest.raises(OutboxEnqueueError, match="outbox unavailable"):
+            remote_sensing_fetcher.fetch_job(conn, job, location_id=LOCATION_ID)
+
+    conn.rollback.assert_called_once_with()
+    conn.commit.assert_not_called()
+    record_attempt.assert_not_called()

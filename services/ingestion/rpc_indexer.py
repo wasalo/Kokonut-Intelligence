@@ -26,6 +26,7 @@ from .base import (
     now_utc,
     update_indexer_status,
 )
+from .clickhouse_outbox import OutboxEnqueueError
 from .config import CHAIN_RPC_MAP
 
 logger = get_logger("ingestion.rpc")
@@ -197,7 +198,11 @@ def insert_activity_clickhouse(records: list[dict], conn=None) -> None:
             ],
             rows,
         )
+    except OutboxEnqueueError:
+        raise
     except Exception as e:
+        if conn is not None:
+            raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from e
         logger.warning("ClickHouse insert failed: %s", e)
 
 
@@ -255,11 +260,15 @@ def run(chain: str = None, wallet_address: str = None):
             logger.error("  ✗ %s: %s", label or address[:10], e)
 
     # Commit PostgreSQL records and their ClickHouse outbox entry atomically.
-    if all_records:
-        insert_activity_clickhouse(all_records, db)
-    db.commit()
-
-    db.close()
+    try:
+        if all_records:
+            insert_activity_clickhouse(all_records, db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
     logger.info("Done: %d wallets indexed", len(all_records))
 
 

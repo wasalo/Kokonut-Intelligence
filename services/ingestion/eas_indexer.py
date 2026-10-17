@@ -19,7 +19,7 @@ from services.common.http import http
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion, post_clickhouse_rows, retry, update_indexer_status
-from .clickhouse_outbox import enqueue
+from .clickhouse_outbox import OutboxEnqueueError, enqueue
 
 logger = get_logger("ingestion.eas")
 
@@ -182,6 +182,8 @@ def insert_clickhouse(chain: str, att: dict, status: str, conn=None) -> None:
             columns, rows,
         )
     except Exception as e:
+        if conn is not None:
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 
@@ -268,6 +270,9 @@ def run(chain: str = None):
                                           metadata={"last_attestation_time": max_attestation_time})
                     logger.info("  ✓ Wallet %s...: indexed", w_addr[:10])
 
+                except OutboxEnqueueError:
+                    db.rollback()
+                    raise
                 except Exception as e:
                     update_indexer_status(c, "eas", status="error", error_message=str(e),
                                           metadata={"last_attestation_time": last_attestation_time})

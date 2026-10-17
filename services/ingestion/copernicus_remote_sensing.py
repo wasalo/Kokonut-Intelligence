@@ -256,6 +256,8 @@ def _insert_ch(record: dict, conn=None) -> None:
             columns, rows,
         )
     except Exception as e:
+        if conn is not None:
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 

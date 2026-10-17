@@ -161,6 +161,8 @@ def insert_weather_clickhouse(records: list[dict], conn=None) -> None:
             rows,
         )
     except Exception as e:
+        if conn is not None:
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 
@@ -244,10 +246,15 @@ def run(location_id: str = None, *, all_locations: bool = False):
             )
             logger.error("  ✗ %s: %s", name, e)
 
-    if records:
-        insert_weather_clickhouse(records, db)
-    db.commit()
-    db.close()
+    try:
+        if records:
+            insert_weather_clickhouse(records, db)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
     logger.info("Done: %d success, %d errors", success, errors)
 

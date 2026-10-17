@@ -24,6 +24,7 @@ from services.common.cli import print_json
 
 from ..common.logging import get_logger
 from .base import get_db
+from .clickhouse_outbox import OutboxEnqueueError
 
 logger = get_logger("ingestion.remote_sensing_fetcher")
 
@@ -320,6 +321,10 @@ def fetch_job(conn, job: Dict[str, Any], *, location_id: str) -> Dict[str, Any]:
                 result = {"status": "error", "message": f"Unknown provider: {selected_provider}", "retryable": False}
             outcome = _classify_provider_result(result)
             error = result.get("message")
+        except OutboxEnqueueError:
+            # Provider source writes and their projection must stay atomic.
+            conn.rollback()
+            raise
         except Exception as exc:
             result = {"status": "error", "message": str(exc), "observations": 0}
             outcome = _classify_provider_result(error=exc)

@@ -34,7 +34,7 @@ from .base import (
     post_clickhouse_rows,
     update_indexer_status,
 )
-from .clickhouse_outbox import enqueue
+from .clickhouse_outbox import OutboxEnqueueError, enqueue
 from .config import (
     GNOSIS_RPC_URL,
     KOKONUT_DAO_CHAIN,
@@ -408,6 +408,8 @@ def insert_dlego_clickhouse(record: dict, conn=None) -> None:
             columns, rows,
         )
     except Exception as e:
+        if conn is not None:
+            raise
         logger.warning("ClickHouse dlego insert failed: %s", e)
 
 
@@ -455,6 +457,8 @@ def insert_activity_clickhouse(record: dict, conn=None) -> None:
             columns, rows,
         )
     except Exception as e:
+        if conn is not None:
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 
@@ -614,6 +618,10 @@ def run(from_block: Optional[int] = None, to_block: Optional[int] = None):
                 insert_dlego_usage(db, dlego_record)
                 insert_dlego_clickhouse(dlego_record, db)
 
+        except OutboxEnqueueError:
+            db.rollback()
+            db.close()
+            raise
         except Exception as e:
             logger.error("  Block range %d-%d failed: %s", batch_start, batch_end, e)
             update_indexer_status(chain, "rpc", batch_start, "error", str(e))

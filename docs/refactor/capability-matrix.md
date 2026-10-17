@@ -25,6 +25,16 @@ fails. Six mocked regressions and existing forecast/scope/shared-producer tests
 pass 36 tests. Live provider/database acceptance and MAN-CAP-040/047 remain open
 ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
 
+**16 October 2026 canonical ingestion projection failure handling (CAP-040 /
+CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
+and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps
+remote-sensing provider recovery from treating a source/projection mismatch as
+a normal provider outage; transaction owners rollback before continuing or
+committing. Connection-free direct ClickHouse maintenance behavior remains
+available. Focused producer, outbox, weather, remote-sensing, and attestation
+checks pass 158 tests; live PostgreSQL/provider behavior and MAN-CAP acceptance
+remain open ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
+
 **16 October 2026 scheduled anomaly scope (CAP-040 / CAP-047):** hourly
 scheduled anomaly scans and baseline checks now require one explicit location;
 the Prefect adapter fans out over active Kokonut Network locations. Scoped

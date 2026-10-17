@@ -351,6 +351,8 @@ def _insert_ch(record: dict, conn=None) -> None:
         # No PostgreSQL transaction means this is an explicit demo/maintenance path.
         post_clickhouse_rows("remote_sensing_events", columns, [values])
     except Exception as e:
+        if conn is not None:
+            raise
         logger.warning("ClickHouse insert failed: %s", e)
 
 

@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Canonical ingestion outbox failure atomicity — 16 October 2026
+
+PostgreSQL-backed producers for weather, remote sensing (manual, GEE, and
+Copernicus), attestations (subgraph and EAS), governance (Gnosis), and RPC
+wallet activity now propagate ClickHouse outbox enqueue failures. The outbox
+uses a distinct `OutboxEnqueueError`, including for payload conflicts, so
+provider handlers cannot absorb a projection failure and later commit the
+source row. Weather/RPC runners and the attestation, governance, and remote
+sensing worker boundaries rollback or propagate the failure; warning-only
+direct ClickHouse behavior remains only for explicitly connection-free demo or
+maintenance calls. Existing sensor and forecast paths retain their own
+transaction handling. Eleven focused suites pass 158 tests; compileall and
+capability-matrix validation pass, and Ruff reports no new findings compared
+with `HEAD`. No database, provider, ClickHouse, candidate, or legacy service was
+contacted. This is source/mocked transaction-control evidence, not live
+provider or PostgreSQL acceptance; MAN-CAP statuses are unchanged
+([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
+
 ### Weather forecast transactional projection — 16 October 2026
 
 Forecast insert errors now propagate to a per-location savepoint boundary;

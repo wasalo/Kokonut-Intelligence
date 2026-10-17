@@ -14,6 +14,14 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
+The current local outbox batch gives canonical ingestion failures a typed
+`OutboxEnqueueError` and rolls back or propagates it through weather, RPC,
+remote-sensing provider dispatch, subgraph/EAS, and Gnosis transaction owners.
+Nine producer helpers now have paired failure and connection-free fallback
+regressions; 158 focused tests pass across outbox, weather, remote-sensing, and
+attestation contracts. This does not close live provider/PostgreSQL recovery
+acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomicity.json)).
+
 - The manual remote-sensing CSV path now requires a canonical location UUID or
   explicit `--all-locations`. Single-location SQL reads plots only within the
   selected location; every row must match plot/farm lineage, and accepted-row

@@ -22,6 +22,10 @@ MAX_ATTEMPTS = 8
 LEASE_SECONDS = 300
 
 
+class OutboxEnqueueError(RuntimeError):
+    """A canonical source write could not be paired with its projection."""
+
+
 def enqueue(
     conn,
     *,
@@ -34,35 +38,40 @@ def enqueue(
     payload_hash: str,
 ) -> str:
     """Insert one idempotent delivery record into the caller's transaction."""
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            INSERT INTO clickhouse_outbox
-                (event_key, source_table, source_id, target_table, columns, rows, payload_hash)
-            VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s)
-            ON CONFLICT (event_key) DO UPDATE SET updated_at = NOW()
-            WHERE clickhouse_outbox.payload_hash = EXCLUDED.payload_hash
-              AND clickhouse_outbox.source_table = EXCLUDED.source_table
-              AND clickhouse_outbox.source_id = EXCLUDED.source_id
-              AND clickhouse_outbox.target_table = EXCLUDED.target_table
-              AND clickhouse_outbox.columns = EXCLUDED.columns
-              AND clickhouse_outbox.rows = EXCLUDED.rows
-            RETURNING id
-            """,
-            (
-                event_key,
-                source_table,
-                source_id,
-                target_table,
-                json.dumps(columns),
-                json.dumps(rows, default=str),
-                payload_hash,
-            ),
-        )
-        row = cur.fetchone()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO clickhouse_outbox
+                    (event_key, source_table, source_id, target_table, columns, rows, payload_hash)
+                VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb, %s)
+                ON CONFLICT (event_key) DO UPDATE SET updated_at = NOW()
+                WHERE clickhouse_outbox.payload_hash = EXCLUDED.payload_hash
+                  AND clickhouse_outbox.source_table = EXCLUDED.source_table
+                  AND clickhouse_outbox.source_id = EXCLUDED.source_id
+                  AND clickhouse_outbox.target_table = EXCLUDED.target_table
+                  AND clickhouse_outbox.columns = EXCLUDED.columns
+                  AND clickhouse_outbox.rows = EXCLUDED.rows
+                RETURNING id
+                """,
+                (
+                    event_key,
+                    source_table,
+                    source_id,
+                    target_table,
+                    json.dumps(columns),
+                    json.dumps(rows, default=str),
+                    payload_hash,
+                ),
+            )
+            row = cur.fetchone()
         if row is None:
-            raise ValueError("Outbox event key conflicts with an existing projection")
+            raise OutboxEnqueueError("Outbox event key conflicts with an existing projection")
         return str(row[0])
+    except OutboxEnqueueError:
+        raise
+    except Exception as exc:
+        raise OutboxEnqueueError("Could not enqueue the canonical ClickHouse projection") from exc
 
 
 def _recover_expired(conn) -> None:
