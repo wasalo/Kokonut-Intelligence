@@ -349,6 +349,14 @@ One mocked regression passes within 52 attestation/EAS tests with Ruff and
 compilation; no provider or database was contacted
 ([evidence](builds/2026-10-17-recovery/attestation-signer-error-redaction.json)).
 
+**17 October 2026 spatial-import error containment (CAP-040 / CAP-047):**
+GeoJSON/KML per-feature/audit failures and malformed XML omit raw source,
+coordinate, and database details from responses, persisted audit messages, and
+logs while retaining partial-import behavior. Four new regressions pass within
+a 22-test spatial-import/security suite with Ruff and compilation; no PostGIS
+database or live file was used
+([evidence](builds/2026-10-17-recovery/spatial-import-error-redaction.json)).
+
 **17 October 2026 remote harvest error containment (CAP-040 / CAP-047):**
 stored URL references omit user-info, query data, and fragments; provider
 failures omit raw exception text in persisted and returned results, while known

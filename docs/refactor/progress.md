@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### Spatial import error containment — 17 October 2026
+
+GeoJSON/KML feature failures and malformed KML results no longer expose raw
+source, coordinate, or database error text in responses, audit rows, or logs.
+Partial-import counters and best-effort audit behavior remain intact. Four new
+regressions pass within a 22-test spatial-import/security suite with Ruff and
+compilation; checks used synthetic payloads and fake cursors only
+([evidence](builds/2026-10-17-recovery/spatial-import-error-redaction.json)).
+
 ### Remote harvest failure containment — 17 October 2026
 
 Remote harvest logs now remove URL user-info, query data, and fragments, while

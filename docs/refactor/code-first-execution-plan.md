@@ -3,13 +3,15 @@
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Latest pushed batch — 17 October 2026:** Commit
-`0e0cda53614895a4a106a194a4e1c3e63598c628` batches four local error-redaction
-commits after `1820faae`, covering shared ingestion, Yahoo Finance/Oracle price
-sync, EAS price attestation, and legacy CSV sensor ingestion. The wider branch
-also contains the earlier remote-sensing, EAS, ClickHouse outbox, subgraph,
-RPC, Baal, weather, GEE climate, freshness, MQTT/HTTP sensor, and
-anomaly/actuator containment work. Security #137 passed and CI #413 is pending;
-CI #412 was still in progress on the previous head at the last check. The
+`c5d6ad1fdebc742a4e5c6ea869a72e66f96e3644` batches seven local error-redaction
+commits after `0e0cda53`, covering ClickHouse fallback, geospatial imports,
+EAS signing, carbon/credit-chain errors, Data Stream anchoring, and remote
+harvesting. Security #138 passed and CI #414 is in progress on this head. The
+unpublished follow-up also contains spatial-import response/audit redaction;
+the 22-test spatial-import/security suite passes with Ruff and compilation.
+The wider branch contains prior remote-sensing, EAS, ClickHouse outbox,
+subgraph, RPC, Baal, weather, GEE climate, freshness, MQTT/HTTP sensor, and
+anomaly/actuator containment work. The
 previous pushed batch `5bb7457d` corrected the two stale
 CI #408 contracts; affected climate-worker/oracle modules pass 43 tests locally
 ([CI #408 evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
@@ -207,6 +209,11 @@ Remote harvest logs now retain a URL source reference without user-info/query/
 fragment data, and provider failures are class-only in persisted/returned
 messages; safe validation guidance remains. Two mocked regressions pass with
 Ruff and compilation ([evidence](builds/2026-10-17-recovery/harvest-manager-error-redaction.json)).
+Spatial GeoJSON/KML feature errors, invalid XML, and audit-write failures also
+omit raw payload/database details while preserving partial-import behavior;
+four new regressions pass within a 22-test spatial-import/security suite with
+Ruff and compilation
+([evidence](builds/2026-10-17-recovery/spatial-import-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
