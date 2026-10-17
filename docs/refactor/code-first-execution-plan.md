@@ -2,29 +2,9 @@
 
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed batch — 17 October 2026:** Commit
-`c5d6ad1fdebc742a4e5c6ea869a72e66f96e3644` batches seven local error-redaction
-commits after `0e0cda53`, covering ClickHouse fallback, geospatial imports,
-EAS signing, carbon/credit-chain errors, Data Stream anchoring, and remote
-harvesting. Security #138 passed and CI #414 is in progress on this head. The
-unpublished follow-up also contains spatial-import response/audit redaction;
-the 22-test spatial-import/security suite passes with Ruff and compilation.
-The wider branch contains prior remote-sensing, EAS, ClickHouse outbox,
-subgraph, RPC, Baal, weather, GEE climate, freshness, MQTT/HTTP sensor, and
-anomaly/actuator containment work. The
-previous pushed batch `5bb7457d` corrected the two stale
-CI #408 contracts; affected climate-worker/oracle modules pass 43 tests locally
-([CI #408 evidence](builds/2026-10-17-recovery/ci-408-regression-fixes.json)).
-CI #406 exposed stale generated line references in the report-generator
-helper-scope inventory; the artifact was regenerated and its exact local check
-passes. Earlier the ARM64 acceptance commit
-`a0f0f14b834ff610a5eba7ef87b672bd89554ce7` records bounded current-schema app
-execution under QEMU with a 1 GiB/two-CPU app and a 1.5 GiB/two-CPU native
-AMD64 database; health returned 200 and an anonymous protected read returned
-401. That single resource sample is not a capacity benchmark or physical
-Raspberry Pi result.
+**Latest pushed batch — 17 October 2026:** PR #68 is at `60a4c5aae8896e366a3036c43b7962f1fd98eaab`; CI #421 is in progress and Security #145 failed on a generic-api-key false positive in the synthetic attestation CLI regression. The current local batch replaces that fixture with a benign marker, narrowly accounts for the historical line, and closes driver-registry/BaseDriver exception-text leaks; the full-history Gitleaks scan and 30 driver tests pass locally. The pushed head checklist was 482 complete / 20 open; this local slice adds one completed implementation item. New hosted checks will run after the batch push. The wider branch retains the reported limitations for provider parity, tenant authorization/RLS, physical Raspberry Pi, release certification, and production cutover.
 
-**Current code-first batch — 17 October 2026:** Native scheduled EAS
+**Pushed EAS worker batch — 17 October 2026:** Native scheduled EAS
 indexing now routes through a default-off isolated worker and dedicated login.
 Migration 433 adds bounded chain lock, recipient, cursor, page/outbox, and status
 functions; the login has no direct table privileges and the protocol data is

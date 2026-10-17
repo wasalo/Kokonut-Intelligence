@@ -10,6 +10,7 @@ import importlib
 from types import MappingProxyType
 from typing import Any
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("drivers.registry")
@@ -91,9 +92,13 @@ class DriverRegistry:
             conn.commit()
             logger.info("Registered driver: %s (id=%s)", driver_name, driver_id)
             return driver_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to register driver: %s", driver_name)
+            logger.error(
+                "Failed to register driver %s (%s)",
+                driver_name,
+                safe_exception_class(exc),
+            )
             raise
 
     def load(self, driver_name: str) -> Any:
@@ -129,7 +134,11 @@ class DriverRegistry:
             logger.info("Loaded driver: %s v%s (%s)", driver_name, version, module_path)
             return driver_class
         except (ImportError, AttributeError) as exc:
-            logger.error("Failed to load driver %s: %s", driver_name, exc)
+            logger.error(
+                "Failed to load driver %s (%s)",
+                driver_name,
+                safe_exception_class(exc),
+            )
             raise
 
     def list_drivers(self, driver_type: str | None = None) -> list[dict]:
@@ -171,8 +180,8 @@ class DriverRegistry:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list drivers")
+        except Exception as exc:
+            logger.error("Failed to list drivers (%s)", safe_exception_class(exc))
             return []
 
     def list_instances(self, driver_name: str | None = None, location_id: str | None = None) -> list[dict]:
@@ -218,8 +227,10 @@ class DriverRegistry:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list driver instances")
+        except Exception as exc:
+            logger.error(
+                "Failed to list driver instances (%s)", safe_exception_class(exc)
+            )
             return []
 
     def get_schedulable_instance(
@@ -334,9 +345,13 @@ class DriverRegistry:
             conn.commit()
             logger.info("Created instance: %s (driver=%s)", instance_name, driver_name)
             return instance_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to create instance: %s", instance_name)
+            logger.error(
+                "Failed to create driver instance %s (%s)",
+                instance_name,
+                safe_exception_class(exc),
+            )
             raise
 
     def update_instance_status(
@@ -389,9 +404,13 @@ class DriverRegistry:
                         (status, error_message, instance_id),
                     )
             conn.commit()
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to update instance status: %s", instance_id)
+            logger.error(
+                "Failed to update driver instance status %s (%s)",
+                instance_id,
+                safe_exception_class(exc),
+            )
 
     def test_driver(self, driver_name: str, config: dict | None = None) -> dict:
         """Test a driver by loading it and running a health check."""
@@ -408,5 +427,8 @@ class DriverRegistry:
             return {
                 "driver_name": driver_name,
                 "healthy": False,
-                "message": f"Failed to load or test driver: {exc}",
+                "message": (
+                    "Failed to load or test driver "
+                    f"({safe_exception_class(exc)})"
+                ),
             }

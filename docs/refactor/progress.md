@@ -1,5 +1,16 @@
 # Kokonut Kernel implementation progress
 
+### Driver failure redaction and historical test-fixture cleanup — 17 October 2026
+
+Driver registry health results and lifecycle/import logs now expose only
+exception classes, and `BaseDriver.run` logs class-only failures while still
+re-raising the original exception. The 30-test driver-registry suite passes
+with Ruff and compilation. This also replaces the current secret-shaped
+attestation test marker; a narrow path-and-line allowlist accounts for its
+historical commit, and the full-history Gitleaks scan now passes locally. All
+checks used mocked failures and connections; no provider or database was used
+([evidence](builds/2026-10-17-recovery/driver-error-redaction.json)).
+
 ### EAS CLI failure containment — 17 October 2026
 
 Top-level attestation CLI errors and best-effort signer-status failures now

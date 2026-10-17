@@ -7,14 +7,14 @@ import pytest
 
 from services.attestation import cli
 
-SECRET = "private-key=secret rpc=https://private.example"
+DIAGNOSTIC = "synthetic provider diagnostic marker"
 
 
 def test_command_failure_reports_only_exception_class(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["attestation", "info", "--chain", "celo"])
 
     def fail(_args):
-        raise RuntimeError(SECRET)
+        raise RuntimeError(DIAGNOSTIC)
 
     monkeypatch.setattr(cli, "_handle_info", fail)
 
@@ -24,7 +24,7 @@ def test_command_failure_reports_only_exception_class(monkeypatch, capsys):
     output = capsys.readouterr()
     assert error.value.code == 1
     assert "Attestation command failed (RuntimeError)" in output.err
-    assert SECRET not in output.out + output.err
+    assert DIAGNOSTIC not in output.out + output.err
 
 
 def test_info_signer_failure_reports_only_exception_class(monkeypatch, capsys):
@@ -42,7 +42,7 @@ def test_info_signer_failure_reports_only_exception_class(monkeypatch, capsys):
 
     class FailingSigner:
         def __init__(self, _chain):
-            raise RuntimeError(SECRET)
+            raise RuntimeError(DIAGNOSTIC)
 
     signer.EASSigner = FailingSigner
     monkeypatch.setitem(sys.modules, "services.attestation.config", config)
@@ -52,5 +52,5 @@ def test_info_signer_failure_reports_only_exception_class(monkeypatch, capsys):
 
     output = capsys.readouterr().out
     assert "Attester: unavailable (RuntimeError)" in output
-    assert SECRET not in output
+    assert DIAGNOSTIC not in output
     assert "synthetic-key-marker" not in output

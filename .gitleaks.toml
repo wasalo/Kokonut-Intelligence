@@ -81,6 +81,14 @@ paths = [
 ]
 
 [[allowlists]]
+description = "Historical synthetic marker in the attestation CLI regression is not a credential."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\s*SECRET = "private-key=secret rpc=https://private\.example"$''']
+paths = ['''^tests/test_attestation_cli_error_redaction\.py$''']
+
+[[allowlists]]
 description = "The capability map uses a process key as a domain identifier, not an API credential."
 targetRules = ["generic-api-key"]
 condition = "AND"

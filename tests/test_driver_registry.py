@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-import os
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Driver Protocol Tests
@@ -72,12 +70,43 @@ class TestBaseDriver:
         assert h1 != h2
 
     def test_now_utc(self):
-        from services.drivers.base import BaseDriver
         from datetime import datetime, timezone
+
+        from services.drivers.base import BaseDriver
 
         now = BaseDriver.now_utc()
         assert isinstance(now, datetime)
         assert now.tzinfo == timezone.utc
+
+    def test_run_logs_exception_class_without_provider_message(self, caplog):
+        import logging
+
+        from services.drivers.base import BaseDriver
+
+        class FailingDriver(BaseDriver):
+            name = "redaction_test"
+
+            def validate_config(self, config):
+                return True
+
+            def discover(self, config):
+                return []
+
+            def fetch(self, source):
+                raise RuntimeError("api_key=driver-secret")
+
+            def transform(self, raw):
+                return []
+
+            def health_check(self, config):
+                return True
+
+        caplog.set_level(logging.ERROR, logger="kokonut.driver.redaction_test")
+        with pytest.raises(RuntimeError, match="api_key=driver-secret"):
+            FailingDriver().run({})
+
+        assert "RuntimeError" in caplog.text
+        assert "driver-secret" not in caplog.text
 
 
 # ---------------------------------------------------------------------------
@@ -198,6 +227,51 @@ class TestDriverRegistry:
         result = registry.test_driver("nonexistent_driver")
         assert result["healthy"] is False
         assert "not found" in result["message"].lower() or "failed" in result["message"].lower()
+
+    def test_test_driver_redacts_exception_message(self, monkeypatch):
+        from services.drivers.registry import DriverRegistry
+
+        registry = DriverRegistry()
+
+        def fail_load(_driver_name):
+            raise RuntimeError("token=driver-secret")
+
+        monkeypatch.setattr(registry, "load", fail_load)
+        result = registry.test_driver("test_driver")
+
+        assert result["healthy"] is False
+        assert "RuntimeError" in result["message"]
+        assert "driver-secret" not in result["message"]
+
+    def test_driver_import_failure_log_redacts_exception_message(
+        self, monkeypatch, caplog
+    ):
+        import logging
+
+        from services.drivers.registry import DriverRegistry
+
+        mock_conn = MagicMock()
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (
+            "private.module",
+            "Driver",
+            "1.0.0",
+            "weather",
+        )
+        mock_conn.cursor.return_value.__enter__ = MagicMock(return_value=mock_cursor)
+        mock_conn.cursor.return_value.__exit__ = MagicMock(return_value=False)
+
+        def fail_import(_module_path):
+            raise ImportError("provider credential=driver-secret")
+
+        monkeypatch.setattr("services.drivers.registry.importlib.import_module", fail_import)
+        caplog.set_level(logging.ERROR, logger="kokonut.drivers.registry")
+        result = DriverRegistry(conn=mock_conn).test_driver("private_driver")
+
+        assert result["healthy"] is False
+        assert "ImportError" in result["message"]
+        assert "driver-secret" not in result["message"]
+        assert "driver-secret" not in caplog.text
 
 
 # ---------------------------------------------------------------------------

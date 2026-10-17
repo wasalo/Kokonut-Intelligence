@@ -18,6 +18,14 @@ acceptance rows.
 
 **17 October 2026 scheduled sensor boundaries (CAP-040 / CAP-047):** scheduled pulls compare persisted driver metadata with an immutable source-controlled allowlist before importing code. The built-in CSV driver's scheduled fetch is additionally confined beneath `/var/lib/kokonut/sensor-inputs` in Compose, mounted read-only from `KOKONUT_SENSOR_CSV_HOST_DIR`; traversal, outside-root paths, symlinked components, and non-regular files are rejected. The manual CSV CLI remains unchanged. The combined focused sensor schedule/CLI/command-contract/worker-map suite passes 179 tests, along with Ruff, compilation, and three Compose profile config checks. Synthetic temporary files were used; no live configured sensor source, database, provider, or schedule was accessed. Signed worker identity, bounded database functions, tenant authorization/RLS, live input parity, and MAN-CAP-040/047 remain open ([contract](sensor-driver-scheduled-contract.md); [implementation](../services/ingestion/drivers/sensor_csv.py); [tests](../tests/test_sensor_driver_schedule.py); [allowlist evidence](builds/2026-10-17-recovery/scheduled-sensor-driver-code-allowlist.json); [path evidence](builds/2026-10-17-recovery/scheduled-sensor-csv-path-confinement.json)).
 
+**17 October 2026 driver failure redaction (CAP-040 / CAP-047):** registry
+health results and import/lifecycle logs, plus `BaseDriver.run` logs, now
+omit raw exception messages while preserving false health status, rollback,
+failure continuation, and exception propagation. Thirty driver-registry tests,
+Ruff, compilation, and the local full-history Gitleaks scan pass using mocked
+failures only. This does not establish live provider health or data parity
+([evidence](builds/2026-10-17-recovery/driver-error-redaction.json)).
+
 **17 October 2026 climate provider persistence contract (CAP-040 / CAP-047):**
 climate location lookup now uses the canonical `location.center` point with the
 stored latitude/longitude fallback. MODIS, SMAP, Sentinel-1, and ERA5-Land now

@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from typing import Any
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 
@@ -73,8 +74,8 @@ class BaseDriver(ABC):
         except Exception as exc:
             duration_ms = int((time.monotonic() - start) * 1000)
             self._logger.error(
-                "Driver %s failed after %dms: %s",
-                self.name, duration_ms, exc,
+                "Driver %s failed after %dms (%s)",
+                self.name, duration_ms, safe_exception_class(exc),
             )
             raise
 
