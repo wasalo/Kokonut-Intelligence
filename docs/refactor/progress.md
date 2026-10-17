@@ -2,12 +2,14 @@
 
 ### Durable worker history output containment — 17 October 2026
 
-Scheduler run history, event dead-letter listings, and the MQTT delivery
-recovery list now show that error details exist without printing historical
-persisted diagnostic text. Record identity, event/delivery state, attempt
-counts, and connection cleanup remain. Three mocked CLI checks pass with Ruff
-and compilation; no database or worker was accessed
-([evidence](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json)).
+Scheduler run history, event dead-letter listings, MQTT delivery recovery, and
+ClickHouse outbox dead-letter listings now show that error details exist
+without printing historical persisted diagnostic text. Record identity,
+event/delivery state, attempt counts, and connection cleanup remain. Four
+focused operator-listing regressions pass within 29 outbox and CLI tests, with
+Ruff and compilation; no database or worker was accessed
+([worker history](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json);
+[ClickHouse outbox](builds/2026-10-17-recovery/clickhouse-outbox-history-error-redaction.json)).
 
 ### Ingestion status output containment — 17 October 2026
 

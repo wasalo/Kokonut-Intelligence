@@ -310,7 +310,11 @@ def list_dead_letters(conn, limit: int = 50) -> list[dict[str, Any]]:
             """,
             (limit,),
         )
-        return [dict(zip([desc[0] for desc in cur.description], row)) for row in cur.fetchall()]
+        results = [dict(zip([desc[0] for desc in cur.description], row)) for row in cur.fetchall()]
+    for result in results:
+        if result.get("last_error") is not None:
+            result["last_error"] = "[details redacted]"
+    return results
 
 
 def command(args):

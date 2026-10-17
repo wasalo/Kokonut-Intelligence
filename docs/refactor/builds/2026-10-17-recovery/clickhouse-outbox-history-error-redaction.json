@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-17",
+  "scope": "Historical ClickHouse outbox dead-letter diagnostics in the operator listing",
+  "behavior": {
+    "dead_letter_listing": "Non-null persisted last_error values are replaced with [details redacted] before the list API returns them.",
+    "preserved_metadata": "Outbox ID, event key, source and target identity, attempt count, and timestamps remain available."
+  },
+  "focused_checks": {
+    "command": ".venv/bin/python -s -m pytest tests/test_worker_error_status_cli_redaction.py tests/test_clickhouse_outbox.py -q",
+    "result": "29 passed",
+    "coverage": [
+      "ClickHouse outbox operator JSON excludes a synthetic historical diagnostic",
+      "dead-letter identity and attempt count remain visible",
+      "database connection and cursor contexts close normally",
+      "existing outbox delivery, retry, replay, and failure-injection tests remain green"
+    ]
+  },
+  "static_checks": {
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed",
+    "gitleaks_changed_files": "passed"
+  },
+  "database_or_provider_access": "none; synthetic row and fake connection only",
+  "limitations": [
+    "No live outbox database or ClickHouse service was contacted.",
+    "This contains operator display of historical diagnostics; it does not replace live delivery recovery acceptance."
+  ]
+}

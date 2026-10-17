@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from services.events import cli as events_cli
-from services.ingestion import mqtt_delivery_cli
+from services.ingestion import clickhouse_outbox, mqtt_delivery_cli
 from services.scheduler import cli as scheduler_cli
 
 DIAGNOSTIC = "synthetic provider diagnostic marker"
@@ -64,6 +64,46 @@ class _ContextConnection:
 
     def execute(self, *_args):
         return _MappingResult(self.rows)
+
+
+class _OutboxCursor:
+    description = [(name,) for name in (
+        "id", "event_key", "source_table", "source_id", "target_table",
+        "attempt_count", "last_error", "created_at", "updated_at",
+    )]
+
+    def __init__(self):
+        self.closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        self.closed = True
+
+    def execute(self, *_args):
+        pass
+
+    def fetchall(self):
+        return [(
+            "outbox-1", "sensor:1", "sensor_reading", "reading-1", "sensor_readings",
+            3, DIAGNOSTIC, "created", "updated",
+        )]
+
+
+class _OutboxConnection:
+    def __init__(self):
+        self.cursor_instance = _OutboxCursor()
+        self.closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        self.closed = True
+
+    def cursor(self):
+        return self.cursor_instance
 
 
 @pytest.mark.parametrize(
@@ -128,4 +168,21 @@ def test_mqtt_delivery_list_redacts_persisted_error(monkeypatch, capsys):
     assert '"status": "dead_letter"' in output
     assert '"attempt_count": 3' in output
     assert '"last_error": "[details redacted]"' in output
+    assert connection.closed
+
+
+def test_clickhouse_outbox_list_redacts_persisted_error(monkeypatch, capsys):
+    connection = _OutboxConnection()
+    monkeypatch.setattr(clickhouse_outbox, "get_connection", lambda: connection)
+    monkeypatch.setattr(sys, "argv", ["clickhouse_outbox", "--list-dead-letter"])
+
+    clickhouse_outbox.main()
+
+    output = capsys.readouterr().out
+    assert DIAGNOSTIC not in output
+    assert '"id": "outbox-1"' in output
+    assert '"event_key": "sensor:1"' in output
+    assert '"attempt_count": 3' in output
+    assert '"last_error": "[details redacted]"' in output
+    assert connection.cursor_instance.closed
     assert connection.closed
