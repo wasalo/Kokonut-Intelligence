@@ -1,5 +1,14 @@
 # Kokonut Kernel implementation progress
 
+### HTTP sensor error containment — 17 October 2026
+
+Credential lookup and reading processing failures now log only exception
+classes and retain fixed retryable 503 responses; the direct ClickHouse
+fallback also redacts details. Three new TestClient regressions pass within a
+50-test HTTP/MQTT sensor suite with Ruff, including rollback and connection
+cleanup. No live service was contacted
+([evidence](builds/2026-10-17-recovery/http-sensor-error-redaction.json)).
+
 ### MQTT sensor error containment — 17 October 2026
 
 MQTT callback and direct ClickHouse fallback logs now omit raw exception

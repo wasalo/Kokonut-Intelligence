@@ -277,6 +277,13 @@ suite with Ruff. No broker, database, or ClickHouse service was contacted;
 live delivery and MAN-CAP-040/047 remain open
 ([evidence](builds/2026-10-17-recovery/mqtt-subscriber-error-redaction.json)).
 
+**17 October 2026 HTTP sensor error containment (CAP-040 / CAP-047):** device
+credential and reading-processing errors now keep request/database details out
+of logs and HTTP responses while retaining retryable 503 behavior, rollback,
+and cleanup. The direct ClickHouse fallback is also bounded. Three new
+TestClient regressions pass within a 50-test HTTP/MQTT sensor suite with Ruff;
+no live service was contacted ([evidence](builds/2026-10-17-recovery/http-sensor-error-redaction.json)).
+
 **16 October 2026 canonical ingestion projection failure handling (CAP-040 /
 CAP-047):** PostgreSQL-backed weather, remote-sensing, attestation, governance,
 and RPC producers now propagate outbox failures. `OutboxEnqueueError` keeps

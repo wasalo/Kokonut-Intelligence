@@ -140,6 +140,11 @@ now report exception classes only. QoS 1 failures still remain unacknowledged
 for broker retry and propagate a bounded error. Three new mocked checks pass
 within the 74-test MQTT/producer suite with Ruff and no live service access
 ([evidence](builds/2026-10-17-recovery/mqtt-subscriber-error-redaction.json)).
+**Local HTTP sensor follow-up — 17 October 2026:** device lookup and reading
+processing failures now omit raw details from logs and preserve bounded,
+retryable 503 responses; direct ClickHouse fallback logs are bounded too. Three
+new TestClient regressions pass within a 50-test HTTP/MQTT suite with Ruff; no
+live service was contacted ([evidence](builds/2026-10-17-recovery/http-sensor-error-redaction.json)).
 The legacy subgraph caller also sanitizes provider/status/audit/log errors and
 preserves typed outbox rollback; three focused mocked tests pass with Ruff
 ([evidence](builds/2026-10-17-recovery/subgraph-indexer-error-sanitization.json)).
