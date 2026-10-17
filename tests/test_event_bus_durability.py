@@ -127,15 +127,34 @@ def test_cache_handlers_receive_only_their_exact_worker_identity():
         }
 
 
-def test_unmapped_event_handler_receives_no_worker_identity():
+def test_notification_handlers_receive_only_their_enqueue_identity():
     env = _handler_child_environment(
         "services.events.handlers",
         "handle_alert_notification",
         {
+            "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
             "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
             "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
             "KOKONUT_EVENT_BUS_DATABASE_URL": "postgresql://events",
             "KOKONUT_EVENT_BUS_WORKER_CREDENTIAL": "event-secret",
+            "DATABASE_URL": "application-config",
+        },
+    )
+
+    assert env == {
+        "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+        "DATABASE_URL": "application-config",
+    }
+
+
+def test_unmapped_event_handler_receives_no_worker_identity():
+    env = _handler_child_environment(
+        "services.events.handlers",
+        "handle_unregistered_handler",
+        {
+            "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": "postgresql://notification-enqueue",
+            "KOKONUT_SENSOR_ANOMALY_DATABASE_URL": "postgresql://worker",
+            "KOKONUT_SENSOR_ANOMALY_WORKER_CREDENTIAL": "worker-secret",
             "DATABASE_URL": "application-config",
         },
     )

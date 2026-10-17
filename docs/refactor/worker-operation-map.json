@@ -3,8 +3,8 @@
   "reviewed": "2026-10-16",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; other scheduled jobs and handlers still use the shared runtime database identity.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. Other scheduled jobs and handlers still use the shared runtime database identity.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -266,12 +266,12 @@
       "module": "services.events.handlers",
       "function": "handle_stale_data",
       "event_type": "data_stale",
-      "scope": "Global freshness notification identity; persist payload-supplied location_id as optional, non-authoritative outbox lineage when present. Missing location remains NULL; this value does not establish tenant authorization or signed worker context.",
+      "scope": "Global notification outbox operation. When KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE is enabled, a separate login calls the migration-417 bounded function; exact source event type and optional payload location lineage are rechecked in SQL. The value remains optional, non-authoritative notification lineage and grants no tenant access. The default-off compatibility path retains the shared runtime connection.",
       "reads": ["public.notification_outbox"],
       "writes": ["public.notification_outbox"],
-      "idempotency": "Stable source-event/channel/destination outbox key; remote delivery remains at-least-once unless the receiver honors the idempotency key.",
-      "retry_boundary": "Event retry repeats durable enqueue, which conflicts on the stable event/channel/destination identity; provider sending and operator replay happen in the separate outbox worker.",
-      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql", "docs/refactor/event-handler-concurrency.md"]
+      "idempotency": "The bounded function validates and inserts by stable source-event/channel/destination identity, returns zero on exact replay, fills only missing location lineage, and rejects changed payload/type/location content. Remote delivery remains at-least-once unless the receiver honors its idempotency key.",
+      "retry_boundary": "Event retry repeats durable enqueue through the stable notification identity; the dedicated function cannot send messages or mutate delivery leases, attempts, or dead-letter state. Provider sending and operator replay remain separate outbox-worker operations.",
+      "sources": ["docker-compose.kernel-portability.yml", "docker-compose.kernel-standard.yml", "docs/refactor/event-handler-concurrency.md", "schemas/postgres/375_notification_outbox.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql", "schemas/postgres/417_isolated_notification_enqueue.sql", "scripts/check-notification-enqueue-worker-disposable.py", "services/common/worker_database.py", "services/common/worker_environment.py", "services/events/handlers.py", "services/events/notification_outbox.py", "services/migration/runtime_role.py", "tests/fixtures/notification_enqueue_worker_disposable.sql"]
     },
     {
       "module": "services.cache.events",
@@ -321,18 +321,18 @@
       "module": "services.events.handlers",
       "function": "handle_alert_notification",
       "event_type": "threshold_breached",
-      "scope": "Global notification outbox identity; persist payload-supplied location_id as optional, non-authoritative outbox lineage when present. Missing location remains NULL; this value does not establish tenant authorization or signed worker context.",
+      "scope": "Global notification outbox operation. When KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE is enabled, a separate login calls the migration-417 bounded function; exact source event type and optional payload location lineage are rechecked in SQL. The value remains optional, non-authoritative notification lineage and grants no tenant access. The default-off compatibility path retains the shared runtime connection.",
       "reads": ["public.notification_outbox"],
       "writes": ["public.notification_outbox"],
-      "idempotency": "Stable source-event/channel/destination outbox key; remote delivery remains at-least-once unless the receiver honors the idempotency key.",
-      "retry_boundary": "Event retry repeats durable enqueue, which conflicts on the stable event/channel/destination identity; provider sending and operator replay happen in the separate outbox worker.",
-      "sources": ["services/events/handlers.py", "services/events/notification_outbox.py", "schemas/postgres/375_notification_outbox.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql", "docs/refactor/event-handler-concurrency.md"]
+      "idempotency": "The bounded function validates and inserts by stable source-event/channel/destination identity, returns zero on exact replay, fills only missing location lineage, and rejects changed payload/type/location content. Remote delivery remains at-least-once unless the receiver honors its idempotency key.",
+      "retry_boundary": "Event retry repeats durable enqueue through the stable notification identity; the dedicated function cannot send messages or mutate delivery leases, attempts, or dead-letter state. Provider sending and operator replay remain separate outbox-worker operations.",
+      "sources": ["docker-compose.kernel-portability.yml", "docker-compose.kernel-standard.yml", "docs/refactor/event-handler-concurrency.md", "schemas/postgres/375_notification_outbox.sql", "schemas/postgres/406_sensor_anomaly_location_lineage.sql", "schemas/postgres/417_isolated_notification_enqueue.sql", "scripts/check-notification-enqueue-worker-disposable.py", "services/common/worker_database.py", "services/common/worker_environment.py", "services/events/handlers.py", "services/events/notification_outbox.py", "services/migration/runtime_role.py", "tests/fixtures/notification_enqueue_worker_disposable.sql"]
     }
   ],
   "known_open_items": [
     "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; anomaly and opt-in cache handler integrations are source-integrated and accepted only in disposable checks.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; anomaly, opt-in cache handler, and notification-enqueue integrations remain default-off and require credential provisioning and candidate rollout after disposable SQL acceptance.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]
 }

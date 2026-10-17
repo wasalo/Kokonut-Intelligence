@@ -5,8 +5,9 @@
 **Status:** entrypoint inventory, scheduler argument contracts, static
 local-import closure, signed worker identity primitive, and transaction-bound
 Python adapter are implemented. Source integration now exists for the sensor
-anomaly handler and all four registered cache invalidation handlers; signed
-cache invalidation remains opt-in. Runtime grants, worker credentials, and
+anomaly handler, all four registered cache invalidation handlers, and the two
+global notification enqueue handlers. Signed cache invalidation and isolated
+notification enqueue remain opt-in. Runtime grants, worker credentials, and
 candidate rollout remain open. See the
 [worker context contract](worker-tenant-context-contract.md).
 
@@ -32,8 +33,11 @@ application-wide RLS or proof for other workers.
   runtime PostgreSQL identity. The anomaly handler and all four registered
   cache invalidators have exact source-controlled worker credential routing
   and dedicated connection paths; the cache path remains disabled by default.
-  No actual worker credential or location grant is provisioned, and migrations
-  405–416 have not been rolled out to the candidate.
+  The `data_stale` and `threshold_breached` handlers can opt into a distinct
+  notification-enqueue login and bounded function. That path also remains off
+  by default, with no shared-DSN fallback when enabled. No actual worker
+  credential or location grant is provisioned, and migrations 405–417 have not
+  been rolled out to the candidate.
 - Module-specific command schemas validate persisted `command_args` before
   schedule activation, `run-now`, generated plans, scheduler-allowlisted
   code-owned job runs, and subprocess creation.
@@ -157,6 +161,15 @@ application-wide RLS or proof for other workers.
   establish least-privilege grants or tenant context. The freshness operation
   also maps all seven fixed source-table identifiers to required reads, with a
   regression test tying that list to the code map.
+- Migration 417 gives the two global notification handlers a bounded enqueue
+  function. It verifies the dedicated login, source event ID/type, optional
+  location lineage, supported channels and destination, payload size, and
+  stable idempotency key before inserting. The login has no direct table or
+  sequence privileges; runtime-role provisioning grants only the bounded
+  function and rejects other executable `SECURITY DEFINER` functions.
+  Notification sending, retry, and dead-letter mutations remain a separate
+  worker boundary. Migration application and credential provisioning are
+  still deployment gates.
 - Scheduled metric computation uses `--compute --all` or a single
   `--metric` with one required `--location-id`. The scheduler rejects the
   service CLI's `--all-locations` mode. The optional Prefect adapter preserves
@@ -236,12 +249,15 @@ Before worker RLS or runtime-grant reduction:
    providers and file/network effects.
 3. Extend relation-specific effects and signed context to remaining operations
    using the [worker tenant-context contract](worker-tenant-context-contract.md).
-   Keep queue, notification-delivery, and actuator-transmission identities
-   separate; the anomaly effect contract is implemented and disposable-accepted.
+   Keep queue, notification-enqueue, notification-delivery, and
+   actuator-transmission identities separate; anomaly and isolated notification
+   enqueue now have bounded source paths, while live credentials and candidate
+   rollout remain open.
 4. Provision worker credentials and exact grants for remaining operations.
    Child environment filtering is implemented, with exact routing for the
-   anomaly and cache handlers; do not infer a single location for cross-location
-   work.
+   anomaly and cache handlers; the two global notification handlers have a
+   separate exact login route. Do not infer a single location for
+   cross-location work.
 5. Re-run the reviewed worker operations under the final role in disposable
    PostgreSQL, then repeat lease/retry/effect tests. Candidate rollout and RLS
    remain separate gates.

@@ -122,8 +122,14 @@ credential provisioning remains required before activation.
 
 The shared application subprocess boundary removes worker-specific database
 URLs and credentials before exec, except for explicit handler-to-worker
-allowlist entries. The EventBus now forwards the sensor-anomaly DSN and
-credential only to `services.ingestion.anomaly_detector.handle_sensor_reading`.
+allowlist entries. The EventBus forwards the sensor-anomaly DSN and credential
+only to `services.ingestion.anomaly_detector.handle_sensor_reading`. Migration
+417 adds a separate optional notification-enqueue DSN only to
+`services.events.handlers.handle_stale_data` and
+`handle_alert_notification`; this global outbox operation does not establish
+tenant context and cannot send notifications or mutate delivery leases,
+attempts, or dead letters. The feature defaults off, and enabling it without
+the dedicated login and DSN fails closed without a shared-DSN fallback.
 The request travels on stdin, not command-line arguments, and a small JSON
 result channel prevents handler stdout from corrupting status reporting. The
 runner validates the allowlisted module/function, preserves legacy handler
@@ -146,6 +152,32 @@ eight checks on disposable PostgreSQL, including an EventBus child crash after
 commit followed by attempt-two recovery without duplicate effects. Real
 deployment credential, login, location grant, and candidate rollout remain
 open.
+
+## Global notification enqueue
+
+`data_stale` and `threshold_breached` event handlers do not query farm records,
+so signed tenant scope would be an invented authorization context. Migration
+417 instead supplies a separate `kokonut_notification_enqueue_login` and a
+bounded `kokonut_security.enqueue_notification_intents` function. The login is
+created `NOLOGIN`; the runtime-role bootstrap may provision its password only
+when the operator supplies a distinct secret. It receives no direct table or
+sequence privileges; the bootstrap grants only this function and rejects any
+other executable `SECURITY DEFINER` function.
+
+The function rechecks source event existence and exact event type, matches the
+optional outbox location to the source payload, and accepts at most three
+distinct `webhook`, `directus`, or `email` intents for destination `primary`.
+Payloads must be JSON objects no larger than 16 KiB. An exact replay returns
+zero new rows; changed payload, event type, or location fails instead of
+overwriting the existing intent. Sending, lease management, attempt history,
+and dead-letter operations stay with the separate notification delivery
+worker.
+
+The adapter is opt-in through
+`KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE=true` and the encrypted
+`KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL`. Keep it off until migration 417
+and its distinct login are provisioned. It does not fall back to shared
+`PG_*` settings when enabled.
 
 The first location-lineage source change is in
 `services/ingestion/anomaly_detector.py`. Migration 405 adds private worker

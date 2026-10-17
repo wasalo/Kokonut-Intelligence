@@ -15,7 +15,10 @@ from typing import Mapping
 import psycopg2
 
 _WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
-_WORKER_LOGIN = "kokonut_worker_login"
+_WORKER_LOGINS = {
+    "notification_enqueue": "kokonut_notification_enqueue_login",
+}
+_DEFAULT_WORKER_LOGIN = "kokonut_worker_login"
 _WORKER_CREDENTIAL_MIN_BYTES = 32
 _WORKER_CREDENTIAL_MAX_BYTES = 4096
 
@@ -69,9 +72,11 @@ def get_worker_db(
     """Connect using ``KOKONUT_<WORKER>_DATABASE_URL`` and verify the login.
 
     For example, ``get_worker_db("sensor_anomaly")`` reads only
-    ``KOKONUT_SENSOR_ANOMALY_DATABASE_URL``. It never consults ``PG_USER``,
-    ``PG_PASSWORD``, ``POSTGRES_PASSWORD``, or the shared application's
-    connection factory. The DSN value is not included in errors or logs.
+    ``KOKONUT_SENSOR_ANOMALY_DATABASE_URL`` and verifies the shared tenant
+    worker login. ``notification_enqueue`` verifies its separate login.
+    Neither path consults ``PG_USER``, ``PG_PASSWORD``, ``POSTGRES_PASSWORD``,
+    or the shared application's connection factory. The DSN value is not
+    included in errors or logs.
 
     The returned psycopg2 connection remains in a non-autocommit transaction
     so signed tenant context and bounded worker operations can share one
@@ -83,6 +88,7 @@ def get_worker_db(
 
     source = os.environ if environ is None else environ
     env_name = f"KOKONUT_{worker_key.upper()}_DATABASE_URL"
+    expected_login = _WORKER_LOGINS.get(worker_key, _DEFAULT_WORKER_LOGIN)
     dsn = source.get(env_name, "")
     if not isinstance(dsn, str) or not dsn.strip():
         raise WorkerDatabaseConfigurationError(
@@ -102,9 +108,9 @@ def get_worker_db(
         with connection.cursor() as cursor:
             cursor.execute("SELECT current_user")
             row = cursor.fetchone()
-        if row is None or row[0] != _WORKER_LOGIN:
+        if row is None or row[0] != expected_login:
             raise WorkerDatabaseConfigurationError(
-                f"worker database login must be {_WORKER_LOGIN}"
+                f"worker database login must be {expected_login}"
             )
     except Exception:
         connection.close()

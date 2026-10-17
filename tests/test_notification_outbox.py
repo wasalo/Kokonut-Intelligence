@@ -1,3 +1,4 @@
+import json
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -89,6 +90,90 @@ def test_notification_intent_persists_optional_location_lineage():
     statement, parameters = cursor.execute.call_args.args
     assert "payload, location_id)" in statement
     assert parameters[-1] == location_id.lower()
+
+
+def test_isolated_notification_intent_calls_bounded_function_and_preserves_transaction():
+    conn = MagicMock()
+    cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (2,)
+    event_id = "a0000000-0000-0000-0000-000000000002"
+    location_id = "A0000000-0000-0000-0000-000000000001"
+    messages = [
+        ("webhook", "primary", {"message": "Synthetic alert"}),
+        ("directus", "primary", {"message": "Synthetic alert"}),
+    ]
+    with patch.object(notification_outbox, "_notification_payloads", return_value=messages):
+        inserted = notification_outbox.enqueue_event_notification_isolated(
+            conn,
+            event_id=event_id,
+            event_type="threshold_breached",
+            payload={"message": "Synthetic alert"},
+            location_id=location_id,
+        )
+
+    assert inserted == 2
+    statement, parameters = cursor.execute.call_args.args
+    assert "kokonut_security.enqueue_notification_intents" in statement
+    assert parameters[:3] == (event_id, "threshold_breached", location_id.lower())
+    request = json.loads(parameters[3])
+    assert request == [
+        {"channel": channel, "destination_key": "primary", "payload": message}
+        for channel, _, message in messages
+    ]
+    conn.commit.assert_not_called()
+    conn.rollback.assert_not_called()
+
+
+def test_isolated_notification_intent_rejects_invalid_function_result():
+    conn = MagicMock()
+    conn.cursor.return_value.__enter__.return_value.fetchone.return_value = (None,)
+    with patch.object(
+        notification_outbox,
+        "_notification_payloads",
+        return_value=[("webhook", "primary", {"message": "Synthetic alert"})],
+    ):
+        with pytest.raises(notification_outbox.NotificationOutboxError, match="invalid result"):
+            notification_outbox.enqueue_event_notification_isolated(
+                conn,
+                event_id="a0000000-0000-0000-0000-000000000002",
+                event_type="threshold_breached",
+                payload={"message": "Synthetic alert"},
+            )
+
+
+def test_alert_handler_uses_exact_isolated_login_when_feature_is_enabled(monkeypatch):
+    conn = MagicMock()
+    worker_db = MagicMock(return_value=conn)
+    isolated_enqueue = MagicMock(return_value=1)
+    common_connection = MagicMock()
+    monkeypatch.setattr(
+        "services.common.worker_database.get_worker_db", worker_db, raising=False
+    )
+    monkeypatch.setattr(
+        "services.core.features.is_enabled", lambda name: name == "isolated_notification_enqueue"
+    )
+    monkeypatch.setattr(
+        notification_outbox, "enqueue_event_notification_isolated", isolated_enqueue
+    )
+    monkeypatch.setattr(
+        "services.common.database.get_connection", common_connection
+    )
+    monkeypatch.setattr(notification_outbox, "_notification_payloads", lambda *_a, **_k: [
+        ("webhook", "primary", {"message": "Synthetic alert"})
+    ])
+
+    handlers.handle_alert_notification(
+        "threshold_breached",
+        {"message": "Synthetic alert"},
+        event_id="a0000000-0000-0000-0000-000000000002",
+    )
+
+    worker_db.assert_called_once_with("notification_enqueue")
+    isolated_enqueue.assert_called_once()
+    conn.commit.assert_called_once_with()
+    conn.rollback.assert_not_called()
+    conn.close.assert_called_once_with()
+    common_connection.assert_not_called()
 
 
 def test_alert_handler_forwards_payload_location_to_outbox(monkeypatch):

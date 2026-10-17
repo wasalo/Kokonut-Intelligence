@@ -67,6 +67,8 @@ def test_worker_map_states_shared_identity_and_open_authorization_boundaries():
 def test_signed_worker_routing_is_limited_to_integrated_handler_pairs():
     assert _HANDLER_WORKER_KEYS == {
         ("services.ingestion.anomaly_detector", "handle_sensor_reading"): ("sensor_anomaly",),
+        ("services.events.handlers", "handle_stale_data"): ("notification_enqueue",),
+        ("services.events.handlers", "handle_alert_notification"): ("notification_enqueue",),
         ("services.cache.events", "handle_metric_computed"): ("cache_invalidation",),
         ("services.cache.events", "handle_crisp_scored"): ("cache_invalidation",),
         ("services.cache.events", "handle_sensor_reading"): ("cache_invalidation",),

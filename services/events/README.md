@@ -54,9 +54,15 @@ controls notification delivery and defaults to the event-bus feature setting,
 preserving existing deployments while allowing delivery to be disabled or run
 independently. Each CLI worker mode checks its own feature before opening a
 database connection; combined `--worker` runs whichever loops are enabled.
-This separates process responsibility, not database or provider credentials:
-event handlers still use the shared runtime database identity and read
-destination configuration to decide which intents to enqueue. The outbox
+By default, event handlers still use the shared runtime database identity to
+enqueue intents. An opt-in path for `data_stale` and `threshold_breached` uses
+a separate notification-enqueue login and a bounded source-event-validated
+database function. Migration 417 grants that login no direct table access;
+runtime-role provisioning also removes sequence access, grants only the bounded
+function, and rejects other executable `SECURITY DEFINER` functions. The
+function cannot send notifications or alter delivery attempts. Enable it
+only after the migration and distinct login/DSN are provisioned; missing
+credentials fail closed without a shared-DSN fallback. The outbox
 uses stable `(source event, channel, destination)` identities and a bounded
 retry budget, expiring leases, and operator-audited replay/disposal. Delivery is
 at-least-once: an external send can succeed just before a worker loses its lease
@@ -67,6 +73,15 @@ time and are not stored in the outbox. Directus enqueueing requires both the
 Directus feature to be enabled and `DIRECTUS_ADMIN_TOKEN`; webhook enqueueing
 requires `ALERT_WEBHOOK_URL`. An unconfigured channel is skipped, matching the
 legacy optional-provider behavior.
+
+Set `KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE=true` and provide
+`KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL` only after the runtime-role
+bootstrap provisions the distinct `KOKONUT_NOTIFICATION_ENQUEUE_USER` and
+encrypted password. The EventBus forwards this DSN only to its two registered
+notification handlers. Migration 417 validates event ID/type and any supplied
+location lineage, accepts only webhook, Directus, or email payloads for the
+`primary` destination, bounds each payload to 16 KiB, and makes retries
+idempotent. Notification sending and operator disposition remain separate.
 
 When a `data_stale` or `threshold_breached` event payload includes a valid
 `location_id`, its handler records that value in `notification_outbox` as

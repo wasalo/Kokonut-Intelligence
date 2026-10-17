@@ -26,6 +26,8 @@ _HANDLER_WORKER_KEYS = {
     ("services.cache.events", "handle_crisp_scored"): ("cache_invalidation",),
     ("services.cache.events", "handle_sensor_reading"): ("cache_invalidation",),
     ("services.cache.events", "handle_harvest_recorded"): ("cache_invalidation",),
+    ("services.events.handlers", "handle_stale_data"): ("notification_enqueue",),
+    ("services.events.handlers", "handle_alert_notification"): ("notification_enqueue",),
 }
 
 

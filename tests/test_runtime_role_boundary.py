@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from services.migration import runtime_role
 
 
@@ -39,6 +41,68 @@ def test_runtime_provisioner_rebuilds_operator_function_acl_after_restore():
     assert "_PRIVATE_RUNTIME_FUNCTIONS" in source
     assert "aclexplode" in source
     assert "acl_entry.grantee = 0" in source
+
+
+def test_notification_enqueue_login_is_removed_from_both_sides_of_role_memberships():
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.result_rows = []
+
+        def execute(self, statement, parameters=None):
+            statement_text = str(statement)
+            self.calls.append((statement_text, parameters))
+            if "WHERE member.rolname = %s" in statement_text:
+                self.result_rows = [("kokonut_worker_execution",)]
+            elif "WHERE granted.rolname = %s" in statement_text:
+                self.result_rows = [("unexpected_consumer",)]
+            else:
+                self.result_rows = []
+
+        def fetchall(self):
+            return self.result_rows
+
+    cursor = Cursor()
+    login = runtime_role.sql.Identifier("kokonut_notification_enqueue_login")
+
+    runtime_role._remove_role_memberships(
+        cursor,
+        role_name="kokonut_notification_enqueue_login",
+        identifier=login,
+    )
+
+    statements = [statement for statement, _ in cursor.calls]
+    assert len(statements) == 4
+    assert "REVOKE" in statements[1]
+    assert "kokonut_worker_execution" in statements[1]
+    assert "REVOKE" in statements[3]
+    assert "kokonut_notification_enqueue_login" in statements[3]
+    assert "unexpected_consumer" in statements[3]
+
+
+def test_notification_enqueue_provisioning_requires_a_paired_secret_and_distinct_owner():
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+    with pytest.raises(ValueError, match="provided together"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            notification_enqueue_user="kokonut_notification_enqueue_login",
+        )
+    with pytest.raises(ValueError, match="differ from the notification function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            notification_enqueue_user="kokonut_notification_enqueue_owner",
+            notification_enqueue_password="n" * 32,
+        )
 
 
 def test_runtime_api_key_access_is_read_only_and_column_scoped():

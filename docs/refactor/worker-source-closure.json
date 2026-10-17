@@ -304,13 +304,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 66,
+          "line": 68,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 367,
+          "line": 369,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -526,19 +526,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 336,
+          "line": 406,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 343,
+          "line": 413,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 344,
+          "line": 414,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -547,7 +547,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 49,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -772,13 +772,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 66,
+          "line": 68,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 367,
+          "line": 369,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -802,19 +802,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 336,
+          "line": 406,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 343,
+          "line": 413,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 344,
+          "line": 414,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -961,7 +961,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 49,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -1105,7 +1105,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 135,
+          "line": 165,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -1242,43 +1242,43 @@
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 24,
+          "line": 25,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 26,
+          "line": 27,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 27,
+          "line": 28,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 221,
+          "line": 222,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 240,
+          "line": 241,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 259,
+          "line": 260,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
         {
           "source": "services/ingestion/climate_data.py",
-          "line": 278,
+          "line": 279,
           "target": "services.ingestion.gee_climate",
           "kind": "from"
         },
@@ -1598,7 +1598,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 135,
+          "line": 165,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -1777,7 +1777,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 135,
+          "line": 165,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -2087,7 +2087,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 135,
+          "line": 165,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -2159,13 +2159,19 @@
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 312,
+          "line": 27,
+          "target": "services.ingestion.clickhouse_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/remote_sensing_fetcher.py",
+          "line": 313,
           "target": "services.ingestion.gee_remote_sensing",
           "kind": "from"
         },
         {
           "source": "services/ingestion/remote_sensing_fetcher.py",
-          "line": 316,
+          "line": 317,
           "target": "services.ingestion.copernicus_remote_sensing",
           "kind": "from"
         }
@@ -2314,7 +2320,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 135,
+          "line": 165,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -2339,12 +2345,18 @@
         {
           "source": "services/ingestion/rpc_indexer.py",
           "line": 29,
+          "target": "services.ingestion.clickhouse_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/rpc_indexer.py",
+          "line": 30,
           "target": "services.ingestion.config",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 175,
+          "line": 176,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         }
@@ -2473,13 +2485,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 66,
+          "line": 68,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 367,
+          "line": 369,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -2533,7 +2545,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 135,
+          "line": 165,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -2608,7 +2620,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 49,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -2754,7 +2766,7 @@
         },
         {
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 135,
+          "line": 165,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -2960,13 +2972,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 66,
+          "line": 68,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 367,
+          "line": 369,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -3209,7 +3221,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 49,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]
@@ -3774,7 +3786,9 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
+        "services.core.features",
         "services.core.providers",
         "services.events.handlers",
         "services.events.notification_outbox"
@@ -3785,7 +3799,9 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/events/handlers.py",
         "services/events/notification_outbox.py"
@@ -3822,6 +3838,12 @@
           "kind": "from"
         },
         {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
           "source": "services/events/handlers.py",
           "line": 9,
           "target": "services.common.logging",
@@ -3836,7 +3858,19 @@
         {
           "source": "services/events/handlers.py",
           "line": 17,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 18,
           "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 31,
+          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
@@ -3859,19 +3893,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 336,
+          "line": 406,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 343,
+          "line": 413,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 344,
+          "line": 414,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -3891,7 +3925,9 @@
         "services.common.env",
         "services.common.http",
         "services.common.logging",
+        "services.common.worker_database",
         "services.common.worker_environment",
+        "services.core.features",
         "services.core.providers",
         "services.events.handlers",
         "services.events.notification_outbox"
@@ -3902,7 +3938,9 @@
         "services/common/env.py",
         "services/common/http.py",
         "services/common/logging.py",
+        "services/common/worker_database.py",
         "services/common/worker_environment.py",
+        "services/core/features.py",
         "services/core/providers.py",
         "services/events/handlers.py",
         "services/events/notification_outbox.py"
@@ -3939,6 +3977,12 @@
           "kind": "from"
         },
         {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
           "source": "services/events/handlers.py",
           "line": 9,
           "target": "services.common.logging",
@@ -3953,7 +3997,19 @@
         {
           "source": "services/events/handlers.py",
           "line": 17,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 18,
           "target": "services.events.notification_outbox",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/handlers.py",
+          "line": 31,
+          "target": "services.common.worker_database",
           "kind": "from"
         },
         {
@@ -3976,19 +4032,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 336,
+          "line": 406,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 343,
+          "line": 413,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 344,
+          "line": 414,
           "target": "services.core.providers",
           "kind": "from"
         }
@@ -4131,13 +4187,13 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 66,
+          "line": 68,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 367,
+          "line": 369,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -4161,19 +4217,19 @@
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 336,
+          "line": 406,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 343,
+          "line": 413,
           "target": "services.common.http",
           "kind": "from"
         },
         {
           "source": "services/events/notification_outbox.py",
-          "line": 344,
+          "line": 414,
           "target": "services.core.providers",
           "kind": "from"
         },
@@ -4320,7 +4376,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 49,
+          "line": 51,
           "kind": "dynamic module expression"
         }
       ]

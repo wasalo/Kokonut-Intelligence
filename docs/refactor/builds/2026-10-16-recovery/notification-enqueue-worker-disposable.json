@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-16",
+  "scope": "isolated EventBus notification enqueue operation",
+  "database": "disposable PostgreSQL 16 container with --network none",
+  "migration_sha256": "9e79b3fef71ef90747e487c09451c79e410c89cf80dcd2d0a5024fba44eaa482",
+  "result": "passed",
+  "checks": [
+    {
+      "result": "passed",
+      "description": "migration 417 applies, promotes only through explicit provisioning, and replays"
+    },
+    {
+      "result": "passed",
+      "description": "valid source-matched notification intents enqueue once and replay idempotently under forced RLS"
+    },
+    {
+      "result": "passed",
+      "description": "source event existence/type and optional location lineage are enforced"
+    },
+    {
+      "result": "passed",
+      "description": "channel, exact JSON shape, payload size, and duplicate-destination allowlists are enforced"
+    },
+    {
+      "result": "passed",
+      "description": "same event/channel with changed payload is rejected rather than overwritten"
+    },
+    {
+      "result": "passed",
+      "description": "dedicated login has function-only access; direct table access and shared SET ROLE are denied"
+    },
+    {
+      "result": "passed",
+      "description": "location lineage remains optional and both source/outbox tables retain FORCE RLS"
+    }
+  ],
+  "candidate_or_legacy_database_access": false,
+  "network": "disabled for the disposable database container",
+  "secret_values_printed": false
+}

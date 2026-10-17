@@ -5,8 +5,8 @@
   "summary": {
     "operation_roots": 22,
     "source_files": 81,
-    "execution_sites": 268,
-    "static_literal_sites": 228,
+    "execution_sites": 269,
+    "static_literal_sites": 229,
     "composed_or_variable_sites": 40
   },
   "execution_sites": [
@@ -1045,9 +1045,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:103:12",
+      "id": "services/common/worker_database.py:109:12",
       "source": "services/common/worker_database.py",
-      "line": 103,
+      "line": 109,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1060,6 +1060,8 @@
         "event_handler:services.cache.events.handle_harvest_recorded",
         "event_handler:services.cache.events.handle_metric_computed",
         "event_handler:services.cache.events.handle_sensor_reading",
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
         "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
         "scheduled_module:services.ingestion.anomaly_detector"
       ]
@@ -1355,9 +1357,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:91:16",
+      "id": "services/events/bus.py:93:16",
       "source": "services/events/bus.py",
-      "line": 91,
+      "line": 93,
       "column": 16,
       "scope": "EventBus.publish",
       "method": "execute",
@@ -1376,9 +1378,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:110:12",
+      "id": "services/events/bus.py:112:12",
       "source": "services/events/bus.py",
-      "line": 110,
+      "line": 112,
       "column": 12,
       "scope": "EventBus._claim",
       "method": "execute",
@@ -1399,9 +1401,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:160:12",
+      "id": "services/events/bus.py:162:12",
       "source": "services/events/bus.py",
-      "line": 160,
+      "line": 162,
       "column": 12,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1421,9 +1423,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:179:16",
+      "id": "services/events/bus.py:181:16",
       "source": "services/events/bus.py",
-      "line": 179,
+      "line": 181,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1442,9 +1444,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:191:16",
+      "id": "services/events/bus.py:193:16",
       "source": "services/events/bus.py",
-      "line": 191,
+      "line": 193,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1464,9 +1466,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:207:16",
+      "id": "services/events/bus.py:209:16",
       "source": "services/events/bus.py",
-      "line": 207,
+      "line": 209,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1485,9 +1487,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:212:16",
+      "id": "services/events/bus.py:214:16",
       "source": "services/events/bus.py",
-      "line": 212,
+      "line": 214,
       "column": 16,
       "scope": "EventBus._process_event",
       "method": "execute",
@@ -1506,9 +1508,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:271:12",
+      "id": "services/events/bus.py:273:12",
       "source": "services/events/bus.py",
-      "line": 271,
+      "line": 273,
       "column": 12,
       "scope": "EventBus._complete",
       "method": "execute",
@@ -1527,9 +1529,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:286:12",
+      "id": "services/events/bus.py:288:12",
       "source": "services/events/bus.py",
-      "line": 286,
+      "line": 288,
       "column": 12,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1548,9 +1550,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:295:16",
+      "id": "services/events/bus.py:297:16",
       "source": "services/events/bus.py",
-      "line": 295,
+      "line": 297,
       "column": 16,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
@@ -1571,9 +1573,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:311:12",
+      "id": "services/events/bus.py:313:12",
       "source": "services/events/bus.py",
-      "line": 311,
+      "line": 313,
       "column": 12,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
@@ -1596,9 +1598,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:348:12",
+      "id": "services/events/bus.py:350:12",
       "source": "services/events/bus.py",
-      "line": 348,
+      "line": 350,
       "column": 12,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
@@ -1617,9 +1619,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:360:12",
+      "id": "services/events/bus.py:362:12",
       "source": "services/events/bus.py",
-      "line": 360,
+      "line": 362,
       "column": 12,
       "scope": "EventBus.get_stats",
       "method": "execute",
@@ -1638,9 +1640,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:373:16",
+      "id": "services/events/bus.py:375:16",
       "source": "services/events/bus.py",
-      "line": 373,
+      "line": 375,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1657,9 +1659,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:376:16",
+      "id": "services/events/bus.py:378:16",
       "source": "services/events/bus.py",
-      "line": 376,
+      "line": 378,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1678,9 +1680,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:417:16",
+      "id": "services/events/bus.py:419:16",
       "source": "services/events/bus.py",
-      "line": 417,
+      "line": 419,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1703,9 +1705,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:446:16",
+      "id": "services/events/bus.py:448:16",
       "source": "services/events/bus.py",
-      "line": 446,
+      "line": 448,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1724,9 +1726,9 @@
       ]
     },
     {
-      "id": "services/events/bus.py:454:16",
+      "id": "services/events/bus.py:456:16",
       "source": "services/events/bus.py",
-      "line": 454,
+      "line": 456,
       "column": 16,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
@@ -1984,9 +1986,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:189:12",
+      "id": "services/events/notification_outbox.py:179:12",
       "source": "services/events/notification_outbox.py",
-      "line": 189,
+      "line": 179,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2005,9 +2007,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:204:12",
+      "id": "services/events/notification_outbox.py:194:12",
       "source": "services/events/notification_outbox.py",
-      "line": 204,
+      "line": 194,
       "column": 12,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2026,9 +2028,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:224:16",
+      "id": "services/events/notification_outbox.py:214:16",
       "source": "services/events/notification_outbox.py",
-      "line": 224,
+      "line": 214,
       "column": 16,
       "scope": "enqueue_event_notification",
       "method": "execute",
@@ -2047,9 +2049,28 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:245:8",
+      "id": "services/events/notification_outbox.py:259:8",
       "source": "services/events/notification_outbox.py",
-      "line": 245,
+      "line": 259,
+      "column": 8,
+      "scope": "enqueue_event_notification_isolated",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "bb164067f8f33e29518f690efaa116f32e285bbf16bff3742fdc9d42db202194",
+      "operation_refs": [
+        "event_handler:services.events.handlers.handle_alert_notification",
+        "event_handler:services.events.handlers.handle_stale_data",
+        "event_handler:services.ingestion.anomaly_detector.handle_sensor_reading",
+        "scheduled_module:services.events",
+        "scheduled_module:services.ingestion.anomaly_detector"
+      ]
+    },
+    {
+      "id": "services/events/notification_outbox.py:315:8",
+      "source": "services/events/notification_outbox.py",
+      "line": 315,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -2069,9 +2090,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:256:8",
+      "id": "services/events/notification_outbox.py:326:8",
       "source": "services/events/notification_outbox.py",
-      "line": 256,
+      "line": 326,
       "column": 8,
       "scope": "_recover_expired_leases",
       "method": "execute",
@@ -2090,9 +2111,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:293:8",
+      "id": "services/events/notification_outbox.py:363:8",
       "source": "services/events/notification_outbox.py",
-      "line": 293,
+      "line": 363,
       "column": 8,
       "scope": "claim_batch",
       "method": "execute",
@@ -2113,9 +2134,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:321:12",
+      "id": "services/events/notification_outbox.py:391:12",
       "source": "services/events/notification_outbox.py",
-      "line": 321,
+      "line": 391,
       "column": 12,
       "scope": "claim_batch",
       "method": "execute",
@@ -2134,9 +2155,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:406:8",
+      "id": "services/events/notification_outbox.py:476:8",
       "source": "services/events/notification_outbox.py",
-      "line": 406,
+      "line": 476,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -2155,9 +2176,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:430:8",
+      "id": "services/events/notification_outbox.py:500:8",
       "source": "services/events/notification_outbox.py",
-      "line": 430,
+      "line": 500,
       "column": 8,
       "scope": "_finish_attempt",
       "method": "execute",
@@ -2176,9 +2197,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:492:8",
+      "id": "services/events/notification_outbox.py:562:8",
       "source": "services/events/notification_outbox.py",
-      "line": 492,
+      "line": 562,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2197,9 +2218,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:494:8",
+      "id": "services/events/notification_outbox.py:564:8",
       "source": "services/events/notification_outbox.py",
-      "line": 494,
+      "line": 564,
       "column": 8,
       "scope": "get_stats",
       "method": "execute",
@@ -2219,9 +2240,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:535:8",
+      "id": "services/events/notification_outbox.py:605:8",
       "source": "services/events/notification_outbox.py",
-      "line": 535,
+      "line": 605,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -2240,9 +2261,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:565:8",
+      "id": "services/events/notification_outbox.py:635:8",
       "source": "services/events/notification_outbox.py",
-      "line": 565,
+      "line": 635,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2261,9 +2282,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:576:8",
+      "id": "services/events/notification_outbox.py:646:8",
       "source": "services/events/notification_outbox.py",
-      "line": 576,
+      "line": 646,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2282,9 +2303,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:588:8",
+      "id": "services/events/notification_outbox.py:658:8",
       "source": "services/events/notification_outbox.py",
-      "line": 588,
+      "line": 658,
       "column": 8,
       "scope": "replay_dead_letter",
       "method": "execute",
@@ -2303,9 +2324,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:616:8",
+      "id": "services/events/notification_outbox.py:686:8",
       "source": "services/events/notification_outbox.py",
-      "line": 616,
+      "line": 686,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2324,9 +2345,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:627:8",
+      "id": "services/events/notification_outbox.py:697:8",
       "source": "services/events/notification_outbox.py",
-      "line": 627,
+      "line": 697,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -2345,9 +2366,9 @@
       ]
     },
     {
-      "id": "services/events/notification_outbox.py:636:8",
+      "id": "services/events/notification_outbox.py:706:8",
       "source": "services/events/notification_outbox.py",
-      "line": 636,
+      "line": 706,
       "column": 8,
       "scope": "dispose_dead_letter",
       "method": "execute",
@@ -3000,10 +3021,10 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:38:8",
+      "id": "services/ingestion/clickhouse_outbox.py:53:12",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 38,
-      "column": 8,
+      "line": 53,
+      "column": 12,
       "scope": "enqueue",
       "method": "execute",
       "expression_kind": "literal",
@@ -3024,9 +3045,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:70:8",
+      "id": "services/ingestion/clickhouse_outbox.py:89:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 70,
+      "line": 89,
       "column": 8,
       "scope": "_recover_expired",
       "method": "execute",
@@ -3047,9 +3068,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:88:8",
+      "id": "services/ingestion/clickhouse_outbox.py:107:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 88,
+      "line": 107,
       "column": 8,
       "scope": "claim_batch",
       "method": "execute",
@@ -3072,9 +3093,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:112:8",
+      "id": "services/ingestion/clickhouse_outbox.py:140:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 112,
+      "line": 140,
       "column": 8,
       "scope": "_finish",
       "method": "execute",
@@ -3083,7 +3104,7 @@
       "candidate_relations": [
         "clickhouse_outbox"
       ],
-      "static_sql_sha256": "84587898747db18b356ea1b216b98a26387d408c03975a6de7728198a50c6930",
+      "static_sql_sha256": "b6cc4f45ea378286819c58bf2fee5788f5d2a9e4d624c82822602655f033feb8",
       "operation_refs": [
         "scheduled_module:services.ingestion.clickhouse_outbox",
         "scheduled_module:services.ingestion.eas_indexer",
@@ -3095,9 +3116,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:198:8",
+      "id": "services/ingestion/clickhouse_outbox.py:230:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 198,
+      "line": 230,
       "column": 8,
       "scope": "reconcile_pending",
       "method": "execute",
@@ -3118,9 +3139,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:219:12",
+      "id": "services/ingestion/clickhouse_outbox.py:251:12",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 219,
+      "line": 251,
       "column": 12,
       "scope": "_operator_transition",
       "method": "execute",
@@ -3144,9 +3165,9 @@
       ]
     },
     {
-      "id": "services/ingestion/clickhouse_outbox.py:266:8",
+      "id": "services/ingestion/clickhouse_outbox.py:298:8",
       "source": "services/ingestion/clickhouse_outbox.py",
-      "line": 266,
+      "line": 298,
       "column": 8,
       "scope": "list_dead_letters",
       "method": "execute",
@@ -3167,9 +3188,9 @@
       ]
     },
     {
-      "id": "services/ingestion/climate_data.py:35:4",
+      "id": "services/ingestion/climate_data.py:36:4",
       "source": "services/ingestion/climate_data.py",
-      "line": 35,
+      "line": 36,
       "column": 4,
       "scope": "_query_location_bbox",
       "method": "execute",
@@ -3185,9 +3206,9 @@
       ]
     },
     {
-      "id": "services/ingestion/climate_data.py:63:4",
+      "id": "services/ingestion/climate_data.py:64:4",
       "source": "services/ingestion/climate_data.py",
-      "line": 63,
+      "line": 64,
       "column": 4,
       "scope": "_query_location_centroid",
       "method": "execute",
@@ -3202,9 +3223,9 @@
       ]
     },
     {
-      "id": "services/ingestion/climate_data.py:99:4",
+      "id": "services/ingestion/climate_data.py:100:4",
       "source": "services/ingestion/climate_data.py",
-      "line": 99,
+      "line": 100,
       "column": 4,
       "scope": "fetch_worldclim",
       "method": "execute",
@@ -3621,9 +3642,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_indexer.py:191:8",
+      "id": "services/ingestion/eas_indexer.py:193:8",
       "source": "services/ingestion/eas_indexer.py",
-      "line": 191,
+      "line": 193,
       "column": 8,
       "scope": "get_last_attestation_time",
       "method": "execute",
@@ -3638,9 +3659,9 @@
       ]
     },
     {
-      "id": "services/ingestion/eas_indexer.py:211:12",
+      "id": "services/ingestion/eas_indexer.py:213:12",
       "source": "services/ingestion/eas_indexer.py",
-      "line": 211,
+      "line": 213,
       "column": 12,
       "scope": "run",
       "method": "execute",
@@ -3842,9 +3863,9 @@
       ]
     },
     {
-      "id": "services/ingestion/gnosis_indexer.py:585:20",
+      "id": "services/ingestion/gnosis_indexer.py:589:20",
       "source": "services/ingestion/gnosis_indexer.py",
-      "line": 585,
+      "line": 589,
       "column": 20,
       "scope": "run",
       "method": "execute",
@@ -4033,9 +4054,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:86:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:87:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 86,
+      "line": 87,
       "column": 4,
       "scope": "_query_active_jobs",
       "method": "execute",
@@ -4050,9 +4071,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:105:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:106:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 105,
+      "line": 106,
       "column": 8,
       "scope": "_claim_due_jobs",
       "method": "execute",
@@ -4069,9 +4090,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:143:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:144:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 143,
+      "line": 144,
       "column": 4,
       "scope": "_query_job",
       "method": "execute",
@@ -4086,9 +4107,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:197:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:198:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 197,
+      "line": 198,
       "column": 4,
       "scope": "_update_job_status",
       "method": "execute",
@@ -4103,9 +4124,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:216:8",
+      "id": "services/ingestion/remote_sensing_fetcher.py:217:8",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 216,
+      "line": 217,
       "column": 8,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -4120,9 +4141,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:232:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:233:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 232,
+      "line": 233,
       "column": 4,
       "scope": "_resolve_bbox_from_job",
       "method": "execute",
@@ -4138,9 +4159,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:260:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:261:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 260,
+      "line": 261,
       "column": 4,
       "scope": "_record_provider_attempt",
       "method": "execute",
@@ -4155,9 +4176,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:414:4",
+      "id": "services/ingestion/remote_sensing_fetcher.py:419:4",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 414,
+      "line": 419,
       "column": 4,
       "scope": "list_jobs",
       "method": "execute",
@@ -4173,9 +4194,9 @@
       ]
     },
     {
-      "id": "services/ingestion/remote_sensing_fetcher.py:477:12",
+      "id": "services/ingestion/remote_sensing_fetcher.py:482:12",
       "source": "services/ingestion/remote_sensing_fetcher.py",
-      "line": 477,
+      "line": 482,
       "column": 12,
       "scope": "main",
       "method": "execute",
@@ -4190,9 +4211,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:59:12",
+      "id": "services/ingestion/rpc_indexer.py:60:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 59,
+      "line": 60,
       "column": 12,
       "scope": "get_wallets",
       "method": "execute",
@@ -4207,9 +4228,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:64:12",
+      "id": "services/ingestion/rpc_indexer.py:65:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 64,
+      "line": 65,
       "column": 12,
       "scope": "get_wallets",
       "method": "execute",
@@ -4224,9 +4245,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:120:8",
+      "id": "services/ingestion/rpc_indexer.py:121:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 120,
+      "line": 121,
       "column": 8,
       "scope": "insert_activity",
       "method": "execute",
@@ -4433,9 +4454,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:186:12",
+      "id": "services/ingestion/weather.py:188:12",
       "source": "services/ingestion/weather.py",
-      "line": 186,
+      "line": 188,
       "column": 12,
       "scope": "run",
       "method": "execute",
@@ -4450,9 +4471,9 @@
       ]
     },
     {
-      "id": "services/ingestion/weather.py:191:12",
+      "id": "services/ingestion/weather.py:193:12",
       "source": "services/ingestion/weather.py",
-      "line": 191,
+      "line": 193,
       "column": 12,
       "scope": "run",
       "method": "execute",

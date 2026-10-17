@@ -33,6 +33,9 @@ _MOBILE_DEVICE_REVOKE_FUNCTION = (
     "kokonut_security.revoke_mobile_device(uuid,text,text,text,uuid,text)"
 )
 _FARM_ACTIVITY_EVENT_OWNER = "kokonut_farm_activity_event_owner"
+_NOTIFICATION_ENQUEUE_FUNCTION = (
+    "kokonut_security.enqueue_notification_intents(uuid,text,uuid,jsonb)"
+)
 _SECURITY_DEFINER_OWNERS = (
     (
         "kokonut_security.resolve_mobile_device_token(text)",
@@ -68,6 +71,7 @@ _SECURITY_DEFINER_OWNERS = (
         "kokonut_gateway_context_owner",
     ),
     (_MOBILE_DEVICE_REVOKE_FUNCTION, "kokonut_mobile_device_revoke_owner"),
+    (_NOTIFICATION_ENQUEUE_FUNCTION, "kokonut_notification_enqueue_owner"),
     ("public.guard_farm_activity_operator_event_insert()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_gateway_farm_activity_create()", _FARM_ACTIVITY_EVENT_OWNER),
     ("public.record_farm_activity_gateway_operation()", _FARM_ACTIVITY_EVENT_OWNER),
@@ -77,6 +81,7 @@ _PRIVATE_RUNTIME_FUNCTIONS = (
     _GATEWAY_CONTEXT_FUNCTION,
     _OPERATOR_CONTEXT_FUNCTION,
     _MOBILE_DEVICE_REVOKE_FUNCTION,
+    _NOTIFICATION_ENQUEUE_FUNCTION,
 )
 _MOBILE_DEVICE_READ_COLUMNS = (
     "id",
@@ -198,6 +203,43 @@ def _ensure_login_role(cur, *, name: str, identifier: sql.Identifier, password: 
         cur.execute("SELECT oid FROM pg_roles WHERE rolname = %s", (name,))
         role_oid = cur.fetchone()[0]
     return role_oid
+
+
+def _remove_role_memberships(cur, *, role_name: str, identifier: sql.Identifier) -> None:
+    """Make a dedicated login neither inherit nor lend its privileges."""
+    cur.execute(
+        """
+        SELECT granted.rolname
+          FROM pg_auth_members AS membership
+          JOIN pg_roles AS granted ON granted.oid = membership.roleid
+          JOIN pg_roles AS member ON member.oid = membership.member
+         WHERE member.rolname = %s
+        """,
+        (role_name,),
+    )
+    for (granted_role,) in cur.fetchall():
+        cur.execute(
+            sql.SQL("REVOKE {} FROM {}").format(
+                _role_identifier(granted_role, "granted role"), identifier
+            )
+        )
+
+    cur.execute(
+        """
+        SELECT member.rolname
+          FROM pg_auth_members AS membership
+          JOIN pg_roles AS granted ON granted.oid = membership.roleid
+          JOIN pg_roles AS member ON member.oid = membership.member
+         WHERE granted.rolname = %s
+        """,
+        (role_name,),
+    )
+    for (member_role,) in cur.fetchall():
+        cur.execute(
+            sql.SQL("REVOKE {} FROM {}").format(
+                identifier, _role_identifier(member_role, "member role")
+            )
+        )
 
 
 def _verify_role_attributes(cur, role_name: str) -> None:
@@ -636,6 +678,8 @@ def provision_runtime_role(
     runtime_password: str,
     operator_auth_user: str,
     operator_auth_password: str,
+    notification_enqueue_user: str | None = None,
+    notification_enqueue_password: str | None = None,
 ) -> dict[str, object]:
     """Provision a general runtime role plus a session-only auth principal.
 
@@ -644,23 +688,42 @@ def provision_runtime_role(
     explicit least-privilege grants. New public tables and sequences receive no
     automatic runtime privileges. The dedicated auth role can only execute
     the three bounded functions from migration 395. This is scoped to a
-    dedicated Kernel PostgreSQL instance.
+    dedicated Kernel PostgreSQL instance. When configured, the optional
+    notification-enqueue login receives only its bounded intent function.
     """
     admin_ident = _role_identifier(admin_user, "admin_user")
     runtime_ident = _role_identifier(runtime_user, "runtime_user")
     auth_ident = _role_identifier(operator_auth_user, "operator_auth_user")
-    if len({admin_user, runtime_user, operator_auth_user}) != 3:
-        raise ValueError("admin, runtime, and operator-auth roles must be distinct")
+    if (notification_enqueue_user is None) != (notification_enqueue_password is None):
+        raise ValueError("notification enqueue user and password must be provided together")
+    enqueue_ident = (
+        _role_identifier(notification_enqueue_user, "notification_enqueue_user")
+        if notification_enqueue_user is not None
+        else None
+    )
+    role_names = [admin_user, runtime_user, operator_auth_user]
+    if notification_enqueue_user is not None:
+        role_names.append(notification_enqueue_user)
+    if "kokonut_notification_enqueue_owner" in role_names:
+        raise ValueError("application logins must differ from the notification function owner")
+    if len(set(role_names)) != len(role_names):
+        raise ValueError("admin, runtime, operator-auth, and notification-enqueue roles must be distinct")
     if not admin_password:
         raise ValueError("admin password must be provided")
-    for label, secret in (
+    credential_pairs = [
         ("runtime_password", runtime_password),
         ("operator_auth_password", operator_auth_password),
-    ):
+    ]
+    if notification_enqueue_password is not None:
+        credential_pairs.append(("notification_enqueue_password", notification_enqueue_password))
+    for label, secret in credential_pairs:
         if len(secret) < 24 or _PLACEHOLDER_SECRET.match(secret):
             raise ValueError(f"{label} must be a non-placeholder secret of at least 24 characters")
-    if len({admin_password, runtime_password, operator_auth_password}) != 3:
-        raise ValueError("admin, runtime, and operator-auth passwords must be distinct")
+    passwords = [admin_password, runtime_password, operator_auth_password]
+    if notification_enqueue_password is not None:
+        passwords.append(notification_enqueue_password)
+    if len(set(passwords)) != len(passwords):
+        raise ValueError("admin and dedicated application-role passwords must be distinct")
     if not database or "\x00" in database:
         raise ValueError("database name is required")
 
@@ -695,6 +758,13 @@ def provision_runtime_role(
                 "migrations 394/396 tenant-context and 398 bounded device-revocation "
                 "functions must be applied before role provisioning"
             )
+        if notification_enqueue_user is not None:
+            cur.execute("SELECT to_regprocedure(%s)", (_NOTIFICATION_ENQUEUE_FUNCTION,))
+            if cur.fetchone()[0] is None:
+                raise RuntimeError(
+                    "migration 417 notification enqueue function must be applied before "
+                    "provisioning its dedicated login"
+                )
 
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
             _revoke_public_function_execute(cur, function)
@@ -706,6 +776,32 @@ def provision_runtime_role(
             identifier=auth_ident,
             password=operator_auth_password,
         )
+        if notification_enqueue_user is not None:
+            assert enqueue_ident is not None and notification_enqueue_password is not None
+            _ensure_login_role(
+                cur,
+                name=notification_enqueue_user,
+                identifier=enqueue_ident,
+                password=notification_enqueue_password,
+            )
+            _remove_role_memberships(
+                cur,
+                role_name=notification_enqueue_user,
+                identifier=enqueue_ident,
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    enqueue_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(enqueue_ident)
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_NOTIFICATION_ENQUEUE_FUNCTION), enqueue_ident
+                )
+            )
         cur.execute(
             sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(runtime_ident)
         )
@@ -731,14 +827,21 @@ def provision_runtime_role(
             "SELECT datname FROM pg_database WHERE datallowconn OR datname = 'template1'"
         )
         database_names = [row[0] for row in cur.fetchall()]
+        protected_login_idents = [runtime_ident, auth_ident]
+        if enqueue_ident is not None:
+            protected_login_idents.append(enqueue_ident)
         for name in database_names:
             database_ident = sql.Identifier(name)
             cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM PUBLIC").format(database_ident))
-            cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(database_ident, runtime_ident))
-            cur.execute(sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(database_ident, auth_ident))
+            for login_ident in protected_login_idents:
+                cur.execute(
+                    sql.SQL("REVOKE CONNECT ON DATABASE {} FROM {}").format(
+                        database_ident, login_ident
+                    )
+                )
 
         cur.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
-        for identifier in (runtime_ident, auth_ident):
+        for identifier in protected_login_idents:
             cur.execute(sql.SQL("REVOKE CREATE ON SCHEMA public FROM {}").format(identifier))
             cur.execute(
                 sql.SQL("GRANT CONNECT ON DATABASE {} TO {}").format(
@@ -777,6 +880,32 @@ def provision_runtime_role(
         cur.execute(
             sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM {}").format(auth_ident)
         )
+        if enqueue_ident is not None:
+            for object_kind in ("TABLES", "SEQUENCES"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL {} IN SCHEMA public FROM {}").format(
+                        sql.SQL(object_kind), enqueue_ident
+                    )
+                )
+            for schema in ("public", "kokonut_security"):
+                cur.execute(
+                    sql.SQL("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA {} FROM {}").format(
+                        sql.Identifier(schema), enqueue_ident
+                    )
+                )
+            cur.execute(
+                sql.SQL("GRANT USAGE ON SCHEMA kokonut_security TO {}").format(enqueue_ident)
+            )
+            cur.execute(
+                sql.SQL("REVOKE CREATE ON SCHEMA kokonut_security FROM {}").format(
+                    enqueue_ident
+                )
+            )
+            cur.execute(
+                sql.SQL("GRANT EXECUTE ON FUNCTION {} TO {}").format(
+                    sql.SQL(_NOTIFICATION_ENQUEUE_FUNCTION), enqueue_ident
+                )
+            )
 
         cur.execute("REVOKE ALL ON TABLE public.operator_session FROM PUBLIC")
         cur.execute(
@@ -815,7 +944,12 @@ def provision_runtime_role(
 
         _verify_role_attributes(cur, runtime_user)
         _verify_role_attributes(cur, operator_auth_user)
-        for role_name in (runtime_user, operator_auth_user):
+        if notification_enqueue_user is not None:
+            _verify_role_attributes(cur, notification_enqueue_user)
+        checked_login_names = [runtime_user, operator_auth_user]
+        if notification_enqueue_user is not None:
+            checked_login_names.append(notification_enqueue_user)
+        for role_name in checked_login_names:
             cur.execute(
                 """SELECT datname, has_database_privilege(%s, oid, 'CONNECT')
                      FROM pg_database
@@ -871,6 +1005,102 @@ def provision_runtime_role(
         if cur.fetchone()[0] is not True:
             raise RuntimeError("operator-auth role is missing a bounded session function grant")
 
+        if notification_enqueue_user is not None:
+            cur.execute(
+                """SELECT has_function_privilege(%s, %s, 'EXECUTE'),
+                          has_table_privilege(%s, 'public.platform_event', 'SELECT'),
+                          has_table_privilege(%s, 'public.notification_outbox', 'SELECT'),
+                          has_table_privilege(%s, 'public.notification_outbox', 'INSERT'),
+                          has_table_privilege(%s, 'public.notification_outbox', 'UPDATE'),
+                          has_table_privilege(%s, 'public.notification_outbox', 'DELETE')""",
+                (
+                    notification_enqueue_user, _NOTIFICATION_ENQUEUE_FUNCTION,
+                    notification_enqueue_user, notification_enqueue_user,
+                    notification_enqueue_user, notification_enqueue_user,
+                    notification_enqueue_user,
+                ),
+            )
+            if cur.fetchone() != (True, False, False, False, False, False):
+                raise RuntimeError(
+                    "notification-enqueue role is missing its bounded function grant "
+                    "or has direct source/outbox table access"
+                )
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_class AS relation
+                         JOIN pg_namespace AS namespace ON namespace.oid = relation.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND relation.relkind IN ('r', 'p', 'v', 'm', 'f')
+                          AND (
+                            has_table_privilege(%s, relation.oid, 'SELECT')
+                            OR has_table_privilege(%s, relation.oid, 'INSERT')
+                            OR has_table_privilege(%s, relation.oid, 'UPDATE')
+                            OR has_table_privilege(%s, relation.oid, 'DELETE')
+                            OR has_table_privilege(%s, relation.oid, 'TRUNCATE')
+                            OR has_table_privilege(%s, relation.oid, 'REFERENCES')
+                            OR has_table_privilege(%s, relation.oid, 'TRIGGER')
+                            OR EXISTS (
+                                SELECT 1
+                                  FROM pg_attribute AS attribute
+                                 WHERE attribute.attrelid = relation.oid
+                                   AND attribute.attnum > 0 AND NOT attribute.attisdropped
+                                   AND (
+                                     has_column_privilege(%s, relation.oid, attribute.attname, 'SELECT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'INSERT')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'UPDATE')
+                                     OR has_column_privilege(%s, relation.oid, attribute.attname, 'REFERENCES')
+                                   )
+                            )
+                          )
+                   )""",
+                (notification_enqueue_user,) * 11,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError(
+                    "notification-enqueue role retains direct table or column privileges"
+                )
+            cur.execute(
+                """SELECT EXISTS (
+                       SELECT 1
+                         FROM pg_class AS sequence
+                         JOIN pg_namespace AS namespace ON namespace.oid = sequence.relnamespace
+                        WHERE namespace.nspname = 'public'
+                          AND sequence.relkind = 'S'
+                          AND (
+                            has_sequence_privilege(%s, sequence.oid, 'USAGE')
+                            OR has_sequence_privilege(%s, sequence.oid, 'SELECT')
+                            OR has_sequence_privilege(%s, sequence.oid, 'UPDATE')
+                          )
+                   )""",
+                (notification_enqueue_user,) * 3,
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("notification-enqueue role retains direct sequence privileges")
+            cur.execute(
+                """SELECT procedure.oid::regprocedure::text
+                     FROM pg_proc AS procedure
+                     JOIN pg_namespace AS namespace ON namespace.oid = procedure.pronamespace
+                    WHERE namespace.nspname IN ('public', 'kokonut_security')
+                      AND procedure.prosecdef
+                      AND procedure.oid <> to_regprocedure(%s)
+                      AND has_function_privilege(%s, procedure.oid, 'EXECUTE')
+                    LIMIT 1""",
+                (_NOTIFICATION_ENQUEUE_FUNCTION, notification_enqueue_user),
+            )
+            other_security_definer = cur.fetchone()
+            if other_security_definer is not None:
+                raise RuntimeError(
+                    "notification-enqueue role can execute another SECURITY DEFINER function: "
+                    f"{other_security_definer[0]}"
+                )
+            cur.execute(
+                "SELECT has_function_privilege(%s, %s, 'EXECUTE')",
+                (runtime_user, _NOTIFICATION_ENQUEUE_FUNCTION),
+            )
+            if cur.fetchone()[0]:
+                raise RuntimeError("runtime role can execute notification-enqueue function")
+
         _verify_mobile_credential_boundary(cur, runtime_user)
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
@@ -896,6 +1126,16 @@ def provision_runtime_role(
         )
         if cur.fetchone() != (True, True):
             raise RuntimeError("runtime or operator-auth role is missing usage on kokonut_security")
+        if notification_enqueue_user is not None:
+            cur.execute(
+                "SELECT has_schema_privilege(%s, 'kokonut_security', 'USAGE'), "
+                "has_schema_privilege(%s, 'kokonut_security', 'CREATE')",
+                (notification_enqueue_user, notification_enqueue_user),
+            )
+            if cur.fetchone() != (True, False):
+                raise RuntimeError(
+                    "notification-enqueue login has unsafe security schema privileges"
+                )
         for function in _PRIVATE_RUNTIME_FUNCTIONS:
             _verify_no_public_function_execute(cur, function)
         _verify_security_definer_owners(cur)
@@ -929,6 +1169,7 @@ def provision_runtime_role(
         "database": database,
         "runtime_user": runtime_user,
         "operator_auth_user": operator_auth_user,
+        "notification_enqueue_user": notification_enqueue_user,
         "public_connect_revoked_from": sorted(database_names),
         "runtime_connect_grants": runtime_database_access,
         "operator_auth_connect_grants": auth_database_access,
@@ -954,6 +1195,7 @@ def provision_runtime_role(
         "runtime_mobile_device_revoke_function": "revoke_mobile_device",
         "runtime_owns_relations": False,
         "operator_auth_owns_relations": False,
+        "notification_enqueue_owns_relations": False,
     }
 
 
@@ -965,6 +1207,12 @@ def main() -> int:
     runtime_password = os.environ.get("KOKONUT_RUNTIME_PASSWORD", "")
     operator_auth_user = os.environ.get("KOKONUT_OPERATOR_AUTH_USER", "kokonut_operator_auth")
     operator_auth_password = os.environ.get("KOKONUT_OPERATOR_AUTH_PASSWORD", "")
+    notification_enqueue_user = os.environ.get(
+        "KOKONUT_NOTIFICATION_ENQUEUE_USER", "kokonut_notification_enqueue_login"
+    )
+    notification_enqueue_password = os.environ.get(
+        "KOKONUT_NOTIFICATION_ENQUEUE_PASSWORD", ""
+    )
     if not admin_password or not runtime_password or not operator_auth_password:
         raise SystemExit(
             "admin, runtime, and operator-auth credentials must be provided through the environment"
@@ -988,6 +1236,12 @@ def main() -> int:
             runtime_password=runtime_password,
             operator_auth_user=operator_auth_user,
             operator_auth_password=operator_auth_password,
+            notification_enqueue_user=(
+                notification_enqueue_user if notification_enqueue_password else None
+            ),
+            notification_enqueue_password=(
+                notification_enqueue_password if notification_enqueue_password else None
+            ),
         )
     finally:
         conn.close()

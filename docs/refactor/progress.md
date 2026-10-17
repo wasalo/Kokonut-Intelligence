@@ -1,5 +1,32 @@
 # Kokonut Kernel implementation progress
 
+### Isolated global notification enqueue — 16 October 2026
+
+Added a default-off handler path for `data_stale` and `threshold_breached`
+notifications through migration 417 and a separate `kokonut_notification_enqueue_login`.
+The bounded function checks source event type and optional location lineage,
+allows only the existing webhook/Directus/email channels at the `primary`
+destination, caps JSON payloads at 16 KiB, and preserves stable idempotent
+enqueue behavior. The login has no direct table or sequence privileges; worker
+role setup removes both inherited and delegated memberships, grants only the
+bounded function, and rejects other executable `SECURITY DEFINER` functions.
+EventBus forwards its DSN only to the two notification handlers. The feature
+defaults off and fails closed without that DSN.
+
+Seven network-isolated disposable PostgreSQL 16 checks pass for migration
+replay, source/type/location validation, intent allowlists, malformed payloads,
+conflicts, idempotent retries under forced RLS, direct table-write denial, and
+shared `SET ROLE` denial. The focused migration/event/worker/map/runtime-role
+suite passes 136 tests; Ruff, compilation, worker source/SQL inventory checks,
+and candidate/overlay Compose parsing pass. Evidence:
+[notification-enqueue-worker-disposable.json](builds/2026-10-16-recovery/notification-enqueue-worker-disposable.json).
+No candidate or legacy database was accessed, migration 417 has not been
+applied to either, and no delivery provider was contacted. The feature flag is
+off; secret provisioning, full runtime-role bootstrap integration acceptance,
+and candidate rollout remain open. The SQL runner promoted only its synthetic
+test login directly. Checklist count is now 416 complete / 20 open, and no
+MAN-CAP status changes.
+
 ### ClickHouse outbox bounded retry backoff — 16 October 2026
 
 Outbox delivery failures now schedule capped exponential retries: 60 seconds

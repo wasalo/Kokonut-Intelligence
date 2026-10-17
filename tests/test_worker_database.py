@@ -183,6 +183,50 @@ def test_worker_factory_uses_only_the_named_dsn_and_checks_login(monkeypatch):
     connection.close.assert_not_called()
 
 
+def test_notification_enqueue_factory_requires_its_distinct_login(monkeypatch):
+    connection, cursor = _connection("kokonut_notification_enqueue_login")
+    connect = MagicMock(return_value=connection)
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = "postgresql://kokonut_notification_enqueue_login:secret@database/kokonut_intelligence"
+
+    result = worker_database.get_worker_db(
+        "notification_enqueue",
+        environ={
+            "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL": dsn,
+            "PG_USER": "kokonut_runtime",
+            "PG_PASSWORD": "unused-shared-password",
+        },
+    )
+
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name="kokonut-worker-notification_enqueue",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+    connection.close.assert_not_called()
+
+
+def test_notification_enqueue_factory_rejects_shared_worker_login(monkeypatch):
+    connection, _ = _connection("kokonut_worker_login")
+    monkeypatch.setattr(worker_database.psycopg2, "connect", MagicMock(return_value=connection))
+
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="worker database login must be kokonut_notification_enqueue_login",
+    ):
+        worker_database.get_worker_db(
+            "notification_enqueue",
+            environ={
+                "KOKONUT_NOTIFICATION_ENQUEUE_DATABASE_URL":
+                    "postgresql://kokonut_worker_login:secret@database/kokonut_intelligence"
+            },
+        )
+
+    connection.close.assert_called_once_with()
+
+
 def test_unexpected_database_login_closes_connection_without_exposing_dsn(monkeypatch):
     connection, _ = _connection("kokonut_runtime")
     monkeypatch.setattr(worker_database.psycopg2, "connect", MagicMock(return_value=connection))

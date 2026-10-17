@@ -109,6 +109,14 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "communications",
         "description": "Durable outbox delivery through configured notification providers",
     },
+    "isolated_notification_enqueue": {
+        "enabled": os.getenv(
+            "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE", "false"
+        ).lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded function for event notification enqueue",
+    },
     "event_retention_cleanup": {
         "enabled": os.getenv("KOKONUT_FEATURE_EVENT_RETENTION_CLEANUP", "false").lower() == "true",
         "critical": False,
