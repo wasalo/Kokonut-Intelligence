@@ -308,7 +308,7 @@ ORDER BY migration_id;
             continue
         parts = line.split("|")
         if len(parts) != 4 or not parts[0]:
-            raise MigrationError(f"invalid schema_migration query output: {line!r}")
+            raise MigrationError("invalid schema_migration query output")
         migration_id, name, checksum, status = parts
         if migration_id in applied:
             raise MigrationError(f"duplicate tracked migration ID: {migration_id}")

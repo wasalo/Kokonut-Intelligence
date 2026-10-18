@@ -8534,6 +8534,16 @@ was accessed. Checklist: 523 complete / 19 open; capability classifications
 remain unchanged. Evidence:
 docs/refactor/builds/2026-10-17-recovery/sandbox-module-input-validation.json.
 
+### Migration tracking diagnostic redaction — 17 October 2026
+
+Malformed rows returned by the migration ledger query now produce a fixed
+diagnostic instead of echoing database-returned text into the migration CLI
+log. The full migration module passes 33 tests; Ruff, compilation, and
+diff-check pass. The regression uses a synthetic result and makes no database
+call. Checklist: 524 complete / 19 open; capability classifications remain
+unchanged. Evidence:
+docs/refactor/builds/2026-10-17-recovery/migration-tracking-output-redaction.json.
+
 ### Post-restart candidate availability — 17 October 2026
 
 Read-only Docker inspection confirms the candidate app is healthy and bound to

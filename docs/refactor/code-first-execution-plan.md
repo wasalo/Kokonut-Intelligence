@@ -1294,10 +1294,10 @@ physical acceptance record rather than revising emulation evidence.
 
 Keep related changes in local commits and push reviewable batches, as
 requested. The latest pushed head is `efdd05b5` on PR #68; Security #157 passed
-and CI #433 is in progress. The local unpushed commit adds gRPC, metadata/trend,
-and demo sensor failure-log redaction with focused evidence; keep it local until
-CI #433 concludes, then include it in the next batch push. Continue independent
-code-first work while hosted checks run.
+and CI #433 is in progress. The local unpushed batch now includes retention-policy inventories,
+refreshed worker/runtime SQL counts, SDK export and query parity, sandbox input
+validation, and bounded failure-diagnostic follow-ups. Keep these local until
+the next reviewable batch push; continue independent code-first work meanwhile.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.
 
@@ -1340,8 +1340,10 @@ Python and JavaScript, and specialized list filters preserve required query
 scope plus pagination/metadata options. The sandbox runner now rejects
 non-string, malformed, and unregistered module names without echoing caller
 input, while registered modules remain blocked until a restricted executor is
-configured. Focused tests, Ruff, TypeScript build, capability-matrix validation,
-and diff checks pass; no provider, database, or sandbox module was contacted or
-executed in the latest slices. The checklist is now 523 complete / 19 open;
+configured. Malformed migration-ledger output also produces a fixed
+summary rather than echoing database-returned data. Focused tests, Ruff,
+TypeScript build, capability-matrix validation, and diff checks pass; no
+provider/database was contacted and no sandbox module executed in the latest
+slices. The checklist is now 524 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

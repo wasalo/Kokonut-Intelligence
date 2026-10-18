@@ -43,6 +43,13 @@ is claimed ([evidence](builds/2026-10-17-recovery/kgp-worker-error-redaction.jso
 
 **17 October 2026 migration and MQTT failure-output containment (CAP-040 / CAP-047):** the ordered migration runner no longer copies raw PostgreSQL stdout/stderr or subprocess timeout details into its CLI error; MQTT TLS startup reports only the exception class and continues to fail closed. The migration module passes 32 tests, and the focused MQTT/IoT/outbox suites pass 75 checks with Ruff and compilation. Checks used mocked subprocess and TLS failures; no database, broker, or provider was contacted. Live migration rollback and MQTT certificate/broker acceptance remain open; MAN-CAP-040/047 are not accepted ([migration evidence](builds/2026-10-17-recovery/migration-cli-error-redaction.json); [MQTT evidence](builds/2026-10-17-recovery/mqtt-subscriber-error-redaction.json)).
 
+The migration status parser also replaces malformed database-returned tracking
+rows with a fixed diagnostic, preventing unexpected contents from reaching the
+CLI error log. The migration module passes 33 tests with Ruff and compilation;
+the regression uses a synthetic query result only. No capability acceptance
+status changes
+([evidence](builds/2026-10-17-recovery/migration-tracking-output-redaction.json)).
+
 **17 October 2026 projection failure containment (CAP-021 / CAP-047):** failed
 synchronized graph rebuilds persist a class-only error after rolling back
 partial projection writes, while continuing to raise the original exception to

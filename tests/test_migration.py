@@ -3,10 +3,25 @@
 import shlex
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from services.migration import cli
+
+
+def test_malformed_tracking_query_output_is_not_echoed(monkeypatch):
+    secret_diagnostic = "postgresql://operator:secret@db.internal/kokonut"
+    monkeypatch.setattr(
+        cli,
+        "_psql",
+        lambda *_args, **_kwargs: SimpleNamespace(stdout=f"{secret_diagnostic}\n"),
+    )
+
+    with pytest.raises(cli.MigrationError, match="invalid schema_migration query output") as error:
+        cli._get_applied()
+
+    assert secret_diagnostic not in str(error.value)
 
 
 def _sql_file(path: Path, content: str = "SELECT 1;") -> Path:
