@@ -35,9 +35,25 @@ location-specific `governance_roles:read` grant. The signed-tenant, read-only
 response includes circle review state and counts for roles, assignments,
 authority domains, tensions, and tactical items. It excludes stakeholder
 identities, policy text, tension descriptions, session notes, and requested
-actions. Role/tension/tactical mutations and item-level review are not exposed;
+actions. Role/tactical mutations and item-level review are not exposed;
 the underlying legacy tables do not yet have domain-table RLS, so this route
 does not establish universal tenant isolation.
+
+Governance tension intake is available at `POST
+/operator/api/governance/{location_id}/tensions` with a caller-generated UUID
+`request_id`, title, description, supported tension type, severity, and urgency.
+The same operator may submit its own draft through `POST
+/operator/api/governance/{location_id}/tensions/{tension_id}/submit`. Both routes
+require exact `governance_tension:create` or `governance_tension:submit`
+location grants, OIDC/CSRF, and signed tenant context. Submission only moves a
+report from draft to submitted; the Gateway does not expose triage, verification,
+publication, role assignment, or governance approval actions.
+
+An administrator maps OIDC operators to governance people using explicit UUIDs
+with `python3 -m services.cli operator identity party bind|revoke|list`. This
+mapping is never inferred from email or display name. The provisioning commands
+use the `kokonut_governance_identity_admin` database role; grant that role only
+to an administrative database login, never to the Gateway or Directus runtime.
 
 Stored Celo attestation metadata can be read at
 `GET /operator/api/attestations/{location_id}` with the location-specific

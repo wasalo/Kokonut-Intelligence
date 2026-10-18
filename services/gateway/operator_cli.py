@@ -75,6 +75,68 @@ def disable_identity(args) -> None:
     print_json(row)
 
 
+def bind_governance_party(args) -> None:
+    """Explicitly bind an OIDC operator to an existing human party UUID."""
+    operator_id = _uuid(args.operator_id, "operator-id")
+    party_id = _uuid(args.party_id, "party-id")
+    bound_by = args.bound_by.strip()
+    reason = args.reason.strip()
+    if not bound_by or not reason:
+        raise ValueError("bound-by and reason are required")
+    with get_connection() as conn:
+        conn.execute("SET LOCAL ROLE kokonut_governance_identity_admin")
+        row = conn.execute(
+            """SELECT * FROM kokonut_security.bind_operator_governance_party(
+                       :operator_id, :party_id, :bound_by, :reason
+                   )""",
+            {
+                "operator_id": operator_id,
+                "party_id": party_id,
+                "bound_by": bound_by,
+                "reason": reason,
+            },
+        ).first()
+    if row is None:
+        raise ValueError("governance person binding was not created")
+    print_json(row)
+
+
+def revoke_governance_party_binding(args) -> None:
+    binding_id = _uuid(args.binding_id, "binding-id")
+    revoked_by = args.revoked_by.strip()
+    reason = args.reason.strip()
+    if not revoked_by or not reason:
+        raise ValueError("revoked-by and reason are required")
+    with get_connection() as conn:
+        conn.execute("SET LOCAL ROLE kokonut_governance_identity_admin")
+        row = conn.execute(
+            """SELECT * FROM kokonut_security.revoke_operator_governance_party_binding(
+                       :binding_id, :revoked_by, :reason
+                   )""",
+            {
+                "binding_id": binding_id,
+                "revoked_by": revoked_by,
+                "reason": reason,
+            },
+        ).first()
+    if row is None:
+        raise ValueError("active governance person binding was not found")
+    print_json(row)
+
+
+def list_governance_party_bindings(args) -> None:
+    operator_id = _uuid(args.operator_id, "operator-id") if args.operator_id else None
+    with get_connection() as conn:
+        conn.execute("SET LOCAL ROLE kokonut_governance_identity_admin")
+        rows = conn.execute(
+            """SELECT * FROM kokonut_security.list_operator_governance_party_bindings(
+                       :operator_id
+                   )""",
+            {"operator_id": operator_id},
+        ).all()
+    print_json(rows)
+
+
 def grant_scope(args) -> None:
     if not _SLUG.fullmatch(args.resource) or not _SLUG.fullmatch(args.action):
         raise ValueError("resource and action must be lowercase identifiers without wildcards")
@@ -742,6 +804,25 @@ def main() -> None:
     disable = identity_commands.add_parser("disable")
     disable.add_argument("--operator-id", required=True)
     disable.set_defaults(func=disable_identity)
+
+    party = identity_commands.add_parser(
+        "party", help="Manage an explicit OIDC-operator to human-party binding"
+    )
+    party_commands = party.add_subparsers(dest="party_command", required=True)
+    party_bind = party_commands.add_parser("bind")
+    party_bind.add_argument("--operator-id", required=True)
+    party_bind.add_argument("--party-id", required=True)
+    party_bind.add_argument("--bound-by", required=True)
+    party_bind.add_argument("--reason", required=True)
+    party_bind.set_defaults(func=bind_governance_party)
+    party_revoke = party_commands.add_parser("revoke")
+    party_revoke.add_argument("--binding-id", required=True)
+    party_revoke.add_argument("--revoked-by", required=True)
+    party_revoke.add_argument("--reason", required=True)
+    party_revoke.set_defaults(func=revoke_governance_party_binding)
+    party_list = party_commands.add_parser("list")
+    party_list.add_argument("--operator-id")
+    party_list.set_defaults(func=list_governance_party_bindings)
 
     grant = commands.add_parser("grant", help="Grant one resource/action for one location")
     grant.add_argument("--operator-id", required=True)

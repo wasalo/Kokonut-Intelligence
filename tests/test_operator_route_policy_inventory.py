@@ -21,6 +21,7 @@ _PARAMETER_SAMPLES = {
     "report_id": "33333333-3333-4333-8333-333333333333",
     "collection_id": "44444444-4444-4444-8444-444444444444",
     "activity_id": "55555555-5555-4555-8555-555555555555",
+    "tension_id": "66666666-6666-4666-8666-666666666666",
     "device_id": "collector-1",
 }
 _TRANSITION_ACTIONS = {
@@ -77,6 +78,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("governance_roles", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tensions",
+    ): _expected("governance_tension", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tensions/66666666-6666-4666-8666-666666666666/submit",
+    ): _expected("governance_tension", "submit", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/attestations/11111111-1111-4111-8111-111111111111",

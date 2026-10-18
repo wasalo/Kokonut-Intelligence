@@ -1,5 +1,30 @@
 # Kokonut Kernel implementation progress
 
+### Explicit governance identity and first Gateway tension actions — 18 October 2026
+
+Migration 437 adds an administrator-provisioned, one-to-one OIDC operator to
+active person-party binding. Bindings use explicit UUIDs, preserve revocation
+history, and never match email or display name. The binding ledger is hidden
+from Gateway and Directus runtime roles; only the separate local governance
+identity admin role can call its bind/revoke/list functions. The Gateway now
+accepts exact-scope tension draft creation and reporter-owned submission under
+signed location context. Request IDs make create retries idempotent. These are
+authored lifecycle actions, not governance approval: triage, verification,
+publication, role assignment, and approval routes are not exposed.
+
+Focused Gateway/CLI tests pass with the route-policy inventory; disposable
+PostgreSQL 16 acceptance passes migration, binding constraints, runtime ACLs,
+tenant/action denial, idempotency, event atomicity, submission ownership, and
+direct-lifecycle denial. The refreshed runtime SQL inventory records 842
+service source files and 4,067 execution sites. Ruff, compilation, inventory,
+and capability validation pass. No candidate or legacy database was touched, and
+migration 437 remains unapplied there. Rollback is an app-code revert while
+retaining the additive schema and any binding history. CAP-024 is still
+prepared, not accepted; item-level parity, approval records, populated
+fixtures, and domain-table RLS remain open. Checklist: 642 complete / 19 open
+([action evidence](builds/2026-10-18-recovery/governance-tension-actions.json);
+[database evidence](builds/2026-10-18-recovery/governance-tension-actions-disposable.json)).
+
 ### Governance role authority evaluation — 18 October 2026
 
 The CAP-024 role evaluator now requires an active circle and role, a current
@@ -10,10 +35,10 @@ not to authorize execution when a separate human approval gate is configured.
 Six mocked authority tests, Ruff, compilation, the runtime SQL inventory, and
 capability validation pass without database access. The refreshed inventory
 now includes six Gateway reader modules and 28 SQL sites missing from the
-prior report, for 841 source files and 4,055 execution sites. OIDC operator identities
-do not currently map to governance `party` records, so action routes cannot
-safely attribute a human approver and remain deferred. Checklist: 641 complete
-/ 19 open; matrix: 45 baseline-retained, 7 deployed, 14 prepared
+prior report, for 841 source files and 4,055 execution sites. Operator
+identities did not map to governance `party` records at that point, so action
+routes were deferred until the following implementation slice. Checklist:
+641 complete / 19 open at that historical checkpoint
 ([evidence](builds/2026-10-18-recovery/governance-role-authority-evaluation.json)).
 
 ### Native governance circle summary — 18 October 2026

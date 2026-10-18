@@ -1,0 +1,17 @@
+{
+  "title": "Migration 437 governance operator binding and Gateway tension actions",
+  "status": "passed",
+  "checks": [
+    "migration 437 applied transactionally to the minimal compatible PostgreSQL 16 fixture",
+    "runtime can execute only the bounded create/submit functions and cannot access the binding ledger",
+    "administrator can create and idempotently replay an explicit operator/person UUID binding",
+    "binding rejects non-person parties, disabled operators, and duplicate active person mappings",
+    "signed-scope create stores an attributed location draft and idempotently suppresses duplicate events",
+    "create denies absent/mismatched signed context, exact grant, and active person binding",
+    "only the bound reporter can submit its own location draft; repeated submit is idempotent",
+    "runtime cannot read/write identity bindings or directly verify tension lifecycle state",
+    "revocation is audited and permits a new explicit binding without deleting prior history"
+  ],
+  "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",
+  "elapsed_seconds": 8.72
+}
