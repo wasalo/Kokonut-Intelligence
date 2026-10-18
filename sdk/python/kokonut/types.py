@@ -382,6 +382,25 @@ class ExpenseCategory:
 
 
 @dataclass
+class CapitalSource:
+    """Descriptive record of a funding source and its declared terms."""
+
+    id: str
+    name: str
+    source_type: str
+    description: Optional[str] = None
+    amount: Optional[float] = None
+    currency: Optional[str] = None
+    terms: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    status: Optional[EntityStatus] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    schema_version: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

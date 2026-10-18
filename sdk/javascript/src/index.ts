@@ -52,6 +52,7 @@ export type {
   SalesEvent,
   ExpenseEvent,
   ExpenseCategory,
+  CapitalSource,
   SensorReading,
   WalletProfile,
   AttestationRecord,

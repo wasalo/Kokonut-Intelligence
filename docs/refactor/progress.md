@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### SDK capital-source schema parity — 18 October 2026
+
+Python and TypeScript now expose the canonical `capital_source` record,
+including its entity-status contract, JSON-object metadata, and
+`schema_version` added by migration 017. The offline guard covers 24 models,
+529 canonical columns, 495 scalar types, 27 JSONB shapes, seven PostGIS shapes,
+17 enum fields, and eight discovered CHECK-literal fields. Thirty-five Python
+SDK/guard tests and 29 JavaScript tests pass with the TypeScript build, Ruff,
+compilation, schema guard, capability-matrix validation, and diff check. No
+database or network was contacted; this type describes funding records without
+authorizing financial actions ([evidence](builds/2026-10-18-recovery/sdk-capital-source-parity.json)).
+
 ### SDK expense-category schema parity — 18 October 2026
 
 Python and TypeScript now expose the `expense_category` taxonomy row, including

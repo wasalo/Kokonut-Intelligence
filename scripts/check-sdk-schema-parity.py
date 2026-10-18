@@ -20,6 +20,7 @@ MODEL_TABLES = {
     "SalesEvent": ("003_operations.sql", "sales_event"),
     "ExpenseEvent": ("003_operations.sql", "expense_event"),
     "ExpenseCategory": ("004_finance.sql", "expense_category"),
+    "CapitalSource": ("004_finance.sql", "capital_source"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -61,6 +62,7 @@ JSONB_MODEL_SHAPES = {
     ("ExportLog", "filters"): "json_object",
     ("Organization", "metadata"): "json_object",
     ("OrganizationMember", "metadata"): "json_object",
+    ("CapitalSource", "metadata"): "json_object",
 }
 
 

@@ -93,6 +93,24 @@ def test_expense_category_type_exposes_shared_taxonomy_fields():
     assert category.schema_version == "common-data-schema-v1"
 
 
+def test_capital_source_type_exposes_funding_and_governance_metadata():
+    from kokonut import CapitalSource
+
+    source = CapitalSource(
+        id="source-1",
+        name="DAO Treasury",
+        source_type="dao",
+        amount=125000.5,
+        currency="USD",
+        status="active",
+        metadata={"proposal_id": "42", "purpose": "farm infrastructure"},
+    )
+
+    assert source.amount == 125000.5
+    assert source.status == "active"
+    assert source.metadata["proposal_id"] == "42"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

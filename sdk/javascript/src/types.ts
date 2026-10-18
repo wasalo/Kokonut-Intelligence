@@ -488,6 +488,23 @@ export interface ExpenseCategory {
   schema_version?: string | null;
 }
 
+/** Descriptive record of a funding source and its declared terms. */
+export interface CapitalSource {
+  id: string;
+  name: string;
+  source_type: string;
+  description?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+  terms?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: EntityStatus | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  schema_version?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;
