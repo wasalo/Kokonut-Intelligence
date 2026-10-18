@@ -501,21 +501,27 @@ export interface ReportSnapshot {
   expires_at?: string | null;
 }
 
+export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'parquet';
+
 export interface ExportLog {
   id: string;
   export_type: string;
-  format: 'csv' | 'json' | 'xlsx' | 'pdf' | 'parquet';
-  entity_type?: string;
-  entity_ids?: string[];
-  target_table?: string;
-  filters?: Record<string, any>;
-  file_path?: string;
-  file_size?: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  requested_by: string;
-  error_message?: string;
-  created_at: string;
-  completed_at?: string;
+  user_id?: string | null;
+  target_table?: string | null;
+  filters?: Record<string, unknown> | null;
+  row_count?: number | null;
+  file_size_bytes?: number | null;
+  file_url?: string | null;
+  status?: 'pending' | 'generating' | 'completed' | 'failed' | null;
+  created_at?: string | null;
+  format?: ExportFormat | null;
+  entity_type?: string | null;
+  entity_ids?: string[] | null;
+  file_path?: string | null;
+  file_size?: number | null;
+  requested_by?: string | null;
+  error_message?: string | null;
+  completed_at?: string | null;
 }
 
 export interface ListOptions {

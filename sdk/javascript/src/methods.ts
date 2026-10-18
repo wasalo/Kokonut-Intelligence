@@ -14,6 +14,7 @@ import type {
   AttestationRecord,
   ReportSnapshot,
   ExportLog,
+  ExportFormat,
   NoiSnapshot,
   ListOptions,
 } from './types.js';
@@ -171,7 +172,7 @@ export interface ReportMethods extends GenericMethods {
 
 export interface ExportCreateRequest {
   export_type: string;
-  format?: ExportLog['format'] | null;
+  format?: ExportFormat | null;
   entity_type?: string;
   entity_ids?: string[];
   target_table?: string;
@@ -185,7 +186,7 @@ export interface ExportMethods extends GenericMethods {
   /** Existing JavaScript creation method; use createExport() for Python parity. */
   create(data: {
     export_type: string;
-    format: ExportLog['format'];
+    format: ExportFormat;
     entity_type?: string;
     entity_ids?: string[];
     target_table?: string;

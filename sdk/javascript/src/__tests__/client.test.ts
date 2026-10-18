@@ -3,6 +3,7 @@ import { KokonutClient } from '../client.js';
 import type {
   CropCycle,
   ExpenseEvent,
+  ExportLog,
   FieldNote,
   Farm,
   HarvestEvent,
@@ -299,6 +300,24 @@ describe('KokonutClient', () => {
     expect(wallet.role).toBe('operations');
     expect(wallet.chain_id).toBe(100);
     expect(wallet.metadata).toEqual({ source: 'fixture' });
+  });
+
+  it('types ExportLog columns from the canonical export table', () => {
+    const exportLog: ExportLog = {
+      id: 'export-1',
+      export_type: 'farm_data',
+      user_id: 'user-1',
+      target_table: 'harvest_event',
+      filters: { status: 'published' },
+      row_count: 42,
+      file_size_bytes: 2048,
+      file_url: 'private://exports/export-1.csv',
+      status: 'generating',
+    };
+
+    expect(exportLog.user_id).toBe('user-1');
+    expect(exportLog.row_count).toBe(42);
+    expect(exportLog.status).toBe('generating');
   });
 
   it('types attestation evidence and additive schema fields', () => {

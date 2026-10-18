@@ -8718,3 +8718,14 @@ TypeScript build, and diff checks pass using local fixtures only; no database
 or network was contacted. Checklist: 539 complete / 19 open. Capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-governed-record-schema-parity.json`.
+
+### ExportLog SDK schema parity — 17 October 2026
+
+Aligned the Python and TypeScript `ExportLog` models with the canonical
+`export_log` columns, including user/target references, filters, row and file
+metadata, status, and creation time. The offline source guard now checks 19
+models and 455 base/additive columns in both SDKs. Twenty Python tests, 28
+JavaScript tests, Ruff, the TypeScript build, the schema guard, and diff checks
+pass using fixtures only; no database or network was contacted. Checklist:
+540 complete / 19 open. Capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-export-log-schema-parity.json`.

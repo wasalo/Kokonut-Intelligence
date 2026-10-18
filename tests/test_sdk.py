@@ -312,6 +312,26 @@ def test_report_snapshot_type_exposes_location_freeze_and_public_fields():
     assert report.negative_findings == ["finding-1"]
 
 
+def test_export_log_type_exposes_canonical_export_table_fields():
+    from kokonut.types import ExportLog
+
+    export_log = ExportLog(
+        id="export-1",
+        export_type="farm_data",
+        user_id="user-1",
+        target_table="harvest_event",
+        filters={"status": "published"},
+        row_count=42,
+        file_size_bytes=2048,
+        file_url="private://exports/export-1.csv",
+        status="generating",
+    )
+
+    assert export_log.user_id == "user-1"
+    assert export_log.row_count == 42
+    assert export_log.status == "generating"
+
+
 def test_location_scoped_operational_methods_force_scope_and_preserve_options():
     from kokonut import KokonutClient
     from kokonut.types import ListOptions
