@@ -100,6 +100,11 @@ const dimensions = await client.assessmentDimensions.listByAssessment('assessmen
 const cycles = await client.oodaCycleLogs.listByLocation('location-uuid');
 // These reads are advisory records; they do not choose or execute actions.
 
+// Read stored CRISP assessments and their five dimension records
+const riskAssessments = await client.crispRiskAssessments.listByLocation('location-uuid');
+const climateDetails = await client.crispClimateRisks.listByAssessment('assessment-uuid');
+// These return persisted scores/evidence only; they do not score or verify CRISP.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -288,6 +293,12 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `assessmentSignals` | `assessment_signal` | `listByAssessment` (read-only) |
 | `assessmentDimensions` | `assessment_dimension` | `listByAssessment` (read-only) |
 | `oodaCycleLogs` | `ooda_cycle_log` | `listByLocation` (read-only) |
+| `crispRiskAssessments` | `crisp_risk_assessment` | `listByLocation` (read-only) |
+| `crispCarbonYieldRisks` | `crisp_carbon_yield_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispClimateRisks` | `crisp_climate_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispPolicyRisks` | `crisp_policy_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispFinancialRisks` | `crisp_financial_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `crispImplementationRisks` | `crisp_implementation_risk` | `listByLocation`, `listByAssessment` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensorTypes` | `sensor_type` | — (read-only list/detail) |

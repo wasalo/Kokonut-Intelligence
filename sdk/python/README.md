@@ -105,6 +105,11 @@ dimensions = client.assessment_dimensions.list_by_assessment("assessment-uuid")
 cycles = client.ooda_cycle_logs.list_by_location("location-uuid")
 # These records remain advisory; reading them does not choose or execute actions.
 
+# Read stored CRISP assessments and their five dimension records
+risk_assessments = client.crisp_risk_assessments.list_by_location("location-uuid")
+climate_details = client.crisp_climate_risks.list_by_assessment("assessment-uuid")
+# These return persisted scores/evidence only; they do not score or verify CRISP.
+
 # Read systems-thinking definitions and location results
 loops = client.causal_loops.list()
 links = client.causal_links.list_by_loop("loop-uuid")
@@ -275,6 +280,12 @@ except KokonutError as e:
 | `assessment_signals` | `assessment_signal` | `list_by_assessment` (read-only) |
 | `assessment_dimensions` | `assessment_dimension` | `list_by_assessment` (read-only) |
 | `ooda_cycle_logs` | `ooda_cycle_log` | `list_by_location` (read-only) |
+| `crisp_risk_assessments` | `crisp_risk_assessment` | `list_by_location` (read-only) |
+| `crisp_carbon_yield_risks` | `crisp_carbon_yield_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_climate_risks` | `crisp_climate_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_policy_risks` | `crisp_policy_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_financial_risks` | `crisp_financial_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `crisp_implementation_risks` | `crisp_implementation_risk` | `list_by_location`, `list_by_assessment` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensor_types` | `sensor_type` | — (read-only list/detail) |

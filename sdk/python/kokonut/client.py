@@ -7,6 +7,7 @@ import requests
 
 from .methods import (
     AssessmentChildReadMethods,
+    AssessmentLocationReadMethods,
     AttestationMethods,
     CausalLinkReadMethods,
     CropCycleMethods,
@@ -44,6 +45,12 @@ from .types import (
     CreditAdjustment,
     CreditRetirement,
     CreditTransfer,
+    CrispCarbonYieldRisk,
+    CrispClimateRisk,
+    CrispFinancialRisk,
+    CrispImplementationRisk,
+    CrispPolicyRisk,
+    CrispRiskAssessment,
     Crop,
     DemandForecast,
     DemandTrend,
@@ -276,6 +283,24 @@ class KokonutClient:
         )
         self.ooda_cycle_logs: LocationReadMethods[OodaCycleLog] = LocationReadMethods(
             self, "ooda_cycle_log"
+        )
+        self.crisp_risk_assessments: LocationReadMethods[CrispRiskAssessment] = LocationReadMethods(
+            self, "crisp_risk_assessment"
+        )
+        self.crisp_carbon_yield_risks: AssessmentLocationReadMethods[CrispCarbonYieldRisk] = (
+            AssessmentLocationReadMethods(self, "crisp_carbon_yield_risk")
+        )
+        self.crisp_climate_risks: AssessmentLocationReadMethods[CrispClimateRisk] = (
+            AssessmentLocationReadMethods(self, "crisp_climate_risk")
+        )
+        self.crisp_policy_risks: AssessmentLocationReadMethods[CrispPolicyRisk] = (
+            AssessmentLocationReadMethods(self, "crisp_policy_risk")
+        )
+        self.crisp_financial_risks: AssessmentLocationReadMethods[CrispFinancialRisk] = (
+            AssessmentLocationReadMethods(self, "crisp_financial_risk")
+        )
+        self.crisp_implementation_risks: AssessmentLocationReadMethods[CrispImplementationRisk] = (
+            AssessmentLocationReadMethods(self, "crisp_implementation_risk")
         )
         self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
             self, "demand_forecast"

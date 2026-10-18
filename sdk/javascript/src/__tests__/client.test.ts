@@ -12,6 +12,12 @@ import type {
   AssessmentSignal,
   CausalLink,
   CausalLoop,
+  CrispCarbonYieldRisk,
+  CrispClimateRisk,
+  CrispFinancialRisk,
+  CrispImplementationRisk,
+  CrispPolicyRisk,
+  CrispRiskAssessment,
   CropCycle,
   ExpenseEvent,
   ExportLog,
@@ -315,6 +321,12 @@ describe('KokonutClient', () => {
       [client.structuralAssumptions, 'structural_assumption'],
       [client.situationAssessments, 'situation_assessment'],
       [client.oodaCycleLogs, 'ooda_cycle_log'],
+      [client.crispRiskAssessments, 'crisp_risk_assessment'],
+      [client.crispCarbonYieldRisks, 'crisp_carbon_yield_risk'],
+      [client.crispClimateRisks, 'crisp_climate_risk'],
+      [client.crispPolicyRisks, 'crisp_policy_risk'],
+      [client.crispFinancialRisks, 'crisp_financial_risk'],
+      [client.crispImplementationRisks, 'crisp_implementation_risk'],
       [client.soilSamples, 'soil_sample'],
       [client.soilCarbonMeasurements, 'soil_carbon_measurement'],
       [client.environmentalBaselines, 'environmental_baseline'],
@@ -503,6 +515,99 @@ describe('KokonutClient', () => {
     expect(signal.signal_direction).toBe('positive');
     expect(dimension.trend).toBe('improving');
     expect(cycle.outcome_type).toBe('effective');
+  });
+
+  it('scopes CRISP dimension detail by assessment and keeps reads read-only', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const options = {
+      limit: 12,
+      offset: 24,
+      fields: ['id', 'location_id', 'assessment_id', 'risk_score'],
+      filter: {
+        location_id: { _eq: 'other-location' },
+        assessment_id: { _eq: 'other-assessment' },
+        status: { _eq: 'verified' },
+      },
+    };
+    const groups = [
+      [client.crispCarbonYieldRisks, 'crisp_carbon_yield_risk'],
+      [client.crispClimateRisks, 'crisp_climate_risk'],
+      [client.crispPolicyRisks, 'crisp_policy_risk'],
+      [client.crispFinancialRisks, 'crisp_financial_risk'],
+      [client.crispImplementationRisks, 'crisp_implementation_risk'],
+    ] as const;
+
+    for (const [methods, collection] of groups) {
+      await methods.listByAssessment('assessment-1', options);
+      expect(listItems).toHaveBeenLastCalledWith(collection, {
+        ...options,
+        filter: {
+          location_id: { _eq: 'other-location' },
+          assessment_id: { _eq: 'assessment-1' },
+          status: { _eq: 'verified' },
+        },
+      });
+      expect('create' in methods).toBe(false);
+      expect('update' in methods).toBe(false);
+      expect('delete' in methods).toBe(false);
+    }
+  });
+
+  it('types persisted CRISP assessments and dimension details', () => {
+    const assessment: CrispRiskAssessment = {
+      id: 'assessment-1',
+      location_id: 'location-1',
+      period_start: '2026-01-01',
+      period_end: '2026-01-31',
+      methodology_version: 'v1.0',
+      composite_score: 72.5,
+      rating: 'A',
+      confidence_level: 'moderate',
+      status: 'verified',
+      metadata: { weights: { climate: 0.2 } },
+    };
+    const carbon: CrispCarbonYieldRisk = {
+      id: 'carbon-1',
+      assessment_id: assessment.id,
+      location_id: assessment.location_id,
+      risk_score: 20,
+      carbon_pool_breakdown: { above_ground: 12.5 },
+    };
+    const climate: CrispClimateRisk = {
+      id: 'climate-1',
+      assessment_id: assessment.id,
+      location_id: assessment.location_id,
+      ssp_scenario: 'SSP2',
+      historical_events: [{ type: 'drought' }],
+      risk_score: 35,
+    };
+    const policy: CrispPolicyRisk = {
+      id: 'policy-1',
+      assessment_id: assessment.id,
+      location_id: assessment.location_id,
+      risk_score: 30,
+      policy_indicators: { article_6: 'reviewed' },
+    };
+    const financial: CrispFinancialRisk = {
+      id: 'financial-1',
+      assessment_id: assessment.id,
+      location_id: assessment.location_id,
+      financial_snapshot: { currency: 'USD' },
+      risk_score: 40,
+    };
+    const implementation: CrispImplementationRisk = {
+      id: 'implementation-1',
+      assessment_id: assessment.id,
+      location_id: assessment.location_id,
+      implementation_evidence: { team: 'recorded' },
+    };
+
+    expect(assessment.rating).toBe('A');
+    expect(carbon.carbon_pool_breakdown).toEqual({ above_ground: 12.5 });
+    expect(climate.ssp_scenario).toBe('SSP2');
+    expect(policy.policy_indicators).toEqual({ article_6: 'reviewed' });
+    expect(financial.financial_snapshot).toEqual({ currency: 'USD' });
+    expect(implementation.implementation_evidence).toEqual({ team: 'recorded' });
   });
 
   it('types stored geostatistical outputs and their constrained literals', () => {

@@ -16,6 +16,12 @@ import type {
   AssessmentDimension,
   AssessmentSignal,
   AttestationSchema,
+  CrispCarbonYieldRisk,
+  CrispClimateRisk,
+  CrispFinancialRisk,
+  CrispImplementationRisk,
+  CrispPolicyRisk,
+  CrispRiskAssessment,
   CausalLink,
   CausalLoop,
   BuyerDemandSignal,
@@ -80,6 +86,7 @@ import {
   buildReferenceReadMethods,
   buildCausalLinkReadMethods,
   buildAssessmentChildReadMethods,
+  buildAssessmentLocationReadMethods,
   buildForecastAccuracyReadMethods,
   buildKrigingPointReadMethods,
   buildGeostatRealizationPointReadMethods,
@@ -105,6 +112,7 @@ import type {
   ReferenceReadMethods,
   CausalLinkReadMethods,
   AssessmentChildReadMethods,
+  AssessmentLocationReadMethods,
   ForecastAccuracyReadMethods,
   KrigingPointReadMethods,
   GeostatRealizationPointReadMethods,
@@ -195,6 +203,12 @@ export class KokonutClient {
   assessmentSignals: AssessmentChildReadMethods<AssessmentSignal>;
   assessmentDimensions: AssessmentChildReadMethods<AssessmentDimension>;
   oodaCycleLogs: LocationReadMethods<OodaCycleLog>;
+  crispRiskAssessments: LocationReadMethods<CrispRiskAssessment>;
+  crispCarbonYieldRisks: AssessmentLocationReadMethods<CrispCarbonYieldRisk>;
+  crispClimateRisks: AssessmentLocationReadMethods<CrispClimateRisk>;
+  crispPolicyRisks: AssessmentLocationReadMethods<CrispPolicyRisk>;
+  crispFinancialRisks: AssessmentLocationReadMethods<CrispFinancialRisk>;
+  crispImplementationRisks: AssessmentLocationReadMethods<CrispImplementationRisk>;
   systemVariables: LocationReadMethods<SystemVariable>;
   stockFlowModels: ReferenceReadMethods<StockFlowModel>;
   stockFlowRuns: LocationReadMethods<StockFlowRun>;
@@ -285,6 +299,12 @@ export class KokonutClient {
     this.assessmentSignals = buildAssessmentChildReadMethods<AssessmentSignal>(this, 'assessment_signal');
     this.assessmentDimensions = buildAssessmentChildReadMethods<AssessmentDimension>(this, 'assessment_dimension');
     this.oodaCycleLogs = buildLocationReadMethods<OodaCycleLog>(this, 'ooda_cycle_log');
+    this.crispRiskAssessments = buildLocationReadMethods<CrispRiskAssessment>(this, 'crisp_risk_assessment');
+    this.crispCarbonYieldRisks = buildAssessmentLocationReadMethods<CrispCarbonYieldRisk>(this, 'crisp_carbon_yield_risk');
+    this.crispClimateRisks = buildAssessmentLocationReadMethods<CrispClimateRisk>(this, 'crisp_climate_risk');
+    this.crispPolicyRisks = buildAssessmentLocationReadMethods<CrispPolicyRisk>(this, 'crisp_policy_risk');
+    this.crispFinancialRisks = buildAssessmentLocationReadMethods<CrispFinancialRisk>(this, 'crisp_financial_risk');
+    this.crispImplementationRisks = buildAssessmentLocationReadMethods<CrispImplementationRisk>(this, 'crisp_implementation_risk');
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
     this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');

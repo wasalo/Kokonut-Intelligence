@@ -64,6 +64,15 @@ export type {
   CreditTransfer,
   CreditTransferStatus,
   CreditTransferType,
+  CrispCarbonYieldRisk,
+  CrispClimateRisk,
+  CrispConfidenceLevel,
+  CrispFinancialRisk,
+  CrispImplementationRisk,
+  CrispPolicyRisk,
+  CrispRating,
+  CrispRiskAssessment,
+  CrispSSPScenario,
   JSONObject,
   JSONScalar,
   JSONValue,
@@ -205,6 +214,7 @@ export type {
 
 export type {
   AssessmentChildReadMethods,
+  AssessmentLocationReadMethods,
   GenericMethods,
   LocationReadMethods,
   ReferenceReadMethods,

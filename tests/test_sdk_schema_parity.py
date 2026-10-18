@@ -196,6 +196,14 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ("StructuralAssumption", "status"): (
             "active", "challenged", "validated", "deprecated"
         ),
+        ("CrispRiskAssessment", "status"): (
+            "draft", "submitted", "verified", "published", "rejected"
+        ),
+        ("CrispRiskAssessment", "confidence_level"): (
+            "high", "moderate", "low", "insufficient_evidence"
+        ),
+        ("CrispRiskAssessment", "rating"): ("AAA", "AA", "A", "B", "C", "D"),
+        ("CrispClimateRisk", "ssp_scenario"): ("SSP1", "SSP2", "SSP5"),
         ("SituationAssessment", "assessment_type"): (
             "full", "quick", "deep", "reassessment"
         ),
@@ -451,7 +459,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 111
+    assert checked == 126
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

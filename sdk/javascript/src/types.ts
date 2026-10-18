@@ -56,6 +56,9 @@ export type OodaOutcomeType =
   | 'no_effect'
   | 'counterproductive'
   | 'unknown';
+export type CrispRating = 'AAA' | 'AA' | 'A' | 'B' | 'C' | 'D';
+export type CrispConfidenceLevel = 'high' | 'moderate' | 'low' | 'insufficient_evidence';
+export type CrispSSPScenario = 'SSP1' | 'SSP2' | 'SSP5';
 export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
 export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type MarketScope = 'local' | 'regional' | 'national' | 'international';
@@ -1583,6 +1586,145 @@ export interface OodaCycleLog {
   metadata?: JSONObject | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Persisted CRISP assessment; reading it does not recompute its scores. */
+export interface CrispRiskAssessment {
+  id: string;
+  location_id: string;
+  period_start: string;
+  period_end: string;
+  methodology_version: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  farm_id?: string | null;
+  carbon_yield_score?: number | null;
+  climate_score?: number | null;
+  policy_score?: number | null;
+  financial_score?: number | null;
+  implementation_score?: number | null;
+  composite_score?: number | null;
+  rating?: CrispRating | null;
+  confidence_level?: CrispConfidenceLevel | null;
+  score_computed_at?: string | null;
+  evidence_maturity_level?: number | null;
+  status?: LifecycleStatus | null;
+  reviewer_notes?: string | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Persisted CRISP carbon-yield dimension detail. */
+export interface CrispCarbonYieldRisk {
+  id: string;
+  assessment_id: string;
+  location_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  tree_inventory_snapshot?: JSONObject | null;
+  soil_carbon_snapshot?: JSONObject | null;
+  harvest_snapshot?: JSONObject | null;
+  allometric_source?: string | null;
+  growth_model_reference?: string | null;
+  planting_density_per_ha?: number | null;
+  mortality_rate_pct?: number | null;
+  ndvi_pre_project?: number | null;
+  scenario_minimum?: number | null;
+  scenario_realistic?: number | null;
+  scenario_optimistic?: number | null;
+  ex_ante_estimate?: number | null;
+  yield_unit?: string | null;
+  yield_likelihood?: number | null;
+  risk_score?: number | null;
+  uncertainty_pct?: number | null;
+  carbon_pool_breakdown?: JSONObject | null;
+  evidence_maturity_level?: number | null;
+  metadata?: JSONObject | null;
+}
+
+/** Persisted CRISP climate dimension detail. */
+export interface CrispClimateRisk {
+  id: string;
+  assessment_id: string;
+  location_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  drought_risk_score?: number | null;
+  flood_risk_score?: number | null;
+  heatwave_risk_score?: number | null;
+  fire_risk_score?: number | null;
+  storm_risk_score?: number | null;
+  water_stress_score?: number | null;
+  natural_risk_rating?: number | null;
+  mitigation_factor?: number | null;
+  climate_catastrophe_factor?: number | null;
+  ssp_scenario?: CrispSSPScenario | null;
+  risk_score?: number | null;
+  historical_events?: JSONValue[] | null;
+  climate_projections_source?: string | null;
+  evidence_maturity_level?: number | null;
+  metadata?: JSONObject | null;
+}
+
+/** Persisted CRISP policy and legal dimension detail. */
+export interface CrispPolicyRisk {
+  id: string;
+  assessment_id: string;
+  location_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  national_policy_score?: number | null;
+  article_6_score?: number | null;
+  carbon_rights_score?: number | null;
+  land_tenure_score?: number | null;
+  community_alignment_score?: number | null;
+  certification_risk_score?: number | null;
+  risk_score?: number | null;
+  policy_indicators?: JSONObject | null;
+  evidence_maturity_level?: number | null;
+  metadata?: JSONObject | null;
+}
+
+/** Persisted CRISP financial viability dimension detail. */
+export interface CrispFinancialRisk {
+  id: string;
+  assessment_id: string;
+  location_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  break_even_year?: number | null;
+  revenue_risk_factor?: number | null;
+  cost_risk_factor?: number | null;
+  market_price_risk?: number | null;
+  liquidity_risk?: number | null;
+  vintage_year?: number | null;
+  financial_risk_factor?: number | null;
+  risk_score?: number | null;
+  financial_snapshot?: JSONObject | null;
+  evidence_maturity_level?: number | null;
+  metadata?: JSONObject | null;
+}
+
+/** Persisted CRISP implementation dimension detail. */
+export interface CrispImplementationRisk {
+  id: string;
+  assessment_id: string;
+  location_id: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  track_record_score?: number | null;
+  team_strength_score?: number | null;
+  network_strength_score?: number | null;
+  community_alignment_score?: number | null;
+  transparency_score?: number | null;
+  risk_score?: number | null;
+  implementation_evidence?: JSONObject | null;
+  evidence_maturity_level?: number | null;
+  metadata?: JSONObject | null;
 }
 
 /** Stored forecast-versus-observation measurements; does not compute accuracy. */

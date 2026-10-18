@@ -1846,6 +1846,120 @@ def test_ooda_read_models_preserve_canonical_literals_and_shapes():
     assert cycle.outcome_type == "effective"
 
 
+def test_crisp_assessment_reads_are_location_or_assessment_scoped_and_read_only():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    client.get_item = Mock(return_value={"id": "crisp-1"})
+    options = ListOptions(
+        filter={
+            "location_id": {"_eq": "other-location"},
+            "assessment_id": {"_eq": "other-assessment"},
+            "status": {"_eq": "verified"},
+        },
+        fields=["id", "location_id", "assessment_id", "status"],
+        sort=["-created_at"],
+        limit=12,
+        offset=24,
+    )
+
+    assert client.crisp_risk_assessments.list(options) == []
+    client.list_items.assert_called_with("crisp_risk_assessment", options)
+    assert client.crisp_risk_assessments.get("crisp-1", ["id"]) == {"id": "crisp-1"}
+    client.get_item.assert_called_with("crisp_risk_assessment", "crisp-1", ["id"])
+    assert client.crisp_risk_assessments.list_by_location("location-1", options) == []
+    _, scoped = client.list_items.call_args.args
+    assert scoped.filter == {
+        "location_id": {"_eq": "location-1"},
+        "assessment_id": {"_eq": "other-assessment"},
+        "status": {"_eq": "verified"},
+    }
+
+    details = (
+        (client.crisp_carbon_yield_risks, "crisp_carbon_yield_risk"),
+        (client.crisp_climate_risks, "crisp_climate_risk"),
+        (client.crisp_policy_risks, "crisp_policy_risk"),
+        (client.crisp_financial_risks, "crisp_financial_risk"),
+        (client.crisp_implementation_risks, "crisp_implementation_risk"),
+    )
+    for methods, collection in details:
+        assert methods.list(options) == []
+        client.list_items.assert_called_with(collection, options)
+        assert methods.get("dimension-1", ["id"]) == {"id": "crisp-1"}
+        client.get_item.assert_called_with(collection, "dimension-1", ["id"])
+        assert methods.list_by_location("location-1", options) == []
+        _, location_scope = client.list_items.call_args.args
+        assert location_scope.filter == {
+            "location_id": {"_eq": "location-1"},
+            "assessment_id": {"_eq": "other-assessment"},
+            "status": {"_eq": "verified"},
+        }
+        assert methods.list_by_assessment("assessment-1", options) == []
+        _, assessment_scope = client.list_items.call_args.args
+        assert assessment_scope.filter == {
+            "location_id": {"_eq": "other-location"},
+            "assessment_id": {"_eq": "assessment-1"},
+            "status": {"_eq": "verified"},
+        }
+        for scoped in (location_scope, assessment_scope):
+            assert scoped.fields == options.fields
+            assert scoped.sort == options.sort
+            assert scoped.limit == 12
+            assert scoped.offset == 24
+        assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+    assert not any(
+        hasattr(client.crisp_risk_assessments, name) for name in ("create", "update", "delete")
+    )
+
+
+def test_crisp_read_models_expose_saved_scores_and_dimension_payloads():
+    from kokonut import (
+        CrispCarbonYieldRisk,
+        CrispClimateRisk,
+        CrispFinancialRisk,
+        CrispImplementationRisk,
+        CrispPolicyRisk,
+        CrispRiskAssessment,
+    )
+
+    assessment = CrispRiskAssessment(
+        id="assessment-1", location_id="location-1", period_start="2026-01-01",
+        period_end="2026-01-31", methodology_version="v1.0", composite_score=72.5,
+        rating="A", confidence_level="moderate", status="verified",
+        metadata={"weights": {"climate": 0.2}},
+    )
+    carbon = CrispCarbonYieldRisk(
+        id="carbon-1", assessment_id=assessment.id, location_id=assessment.location_id,
+        risk_score=20.0, carbon_pool_breakdown={"above_ground": 12.5},
+    )
+    climate = CrispClimateRisk(
+        id="climate-1", assessment_id=assessment.id, location_id=assessment.location_id,
+        ssp_scenario="SSP2", historical_events=[{"type": "drought"}], risk_score=35.0,
+    )
+    policy = CrispPolicyRisk(
+        id="policy-1", assessment_id=assessment.id, location_id=assessment.location_id,
+        risk_score=30.0, policy_indicators={"article_6": "reviewed"},
+    )
+    financial = CrispFinancialRisk(
+        id="financial-1", assessment_id=assessment.id, location_id=assessment.location_id,
+        financial_snapshot={"currency": "USD"}, risk_score=40.0,
+    )
+    implementation = CrispImplementationRisk(
+        id="implementation-1", assessment_id=assessment.id,
+        location_id=assessment.location_id, implementation_evidence={"team": "recorded"},
+    )
+
+    assert assessment.rating == "A"
+    assert carbon.carbon_pool_breakdown == {"above_ground": 12.5}
+    assert climate.ssp_scenario == "SSP2"
+    assert policy.policy_indicators == {"article_6": "reviewed"}
+    assert financial.financial_snapshot == {"currency": "USD"}
+    assert implementation.implementation_evidence == {"team": "recorded"}
+
+
 def test_systems_thinking_models_preserve_stored_fields_and_literals():
     from typing import get_args
 

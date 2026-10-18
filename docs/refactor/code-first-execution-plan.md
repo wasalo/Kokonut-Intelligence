@@ -1511,3 +1511,17 @@ nullable columns, JSON shapes, and CHECK-constrained values. MAN-CAP-010 stays
 open until decision and action outputs match the named acceptance fixtures.
 
 Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-ooda-advisory-read-methods.json).
+
+
+### CRISP stored-assessment SDK continuation — 18 October 2026
+
+Expose persisted CRISP assessment summaries and their five dimension detail
+records as typed read-only Python and TypeScript SDK groups. The master is
+location-scoped; each dimension record carries both `location_id` and
+`assessment_id`, so it can be listed by either selector. Preserve the schema's
+numeric/nullability, JSONB, lifecycle/rating/confidence, and climate-scenario
+contracts. Keep shared weight configuration, score calculation, review, and
+publication outside this read-only slice. The named MAN-CAP-014 calculation
+and output-parity gates remain open.
+
+Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-crisp-stored-assessment-reads.json).

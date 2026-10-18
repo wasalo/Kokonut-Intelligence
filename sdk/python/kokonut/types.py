@@ -63,6 +63,9 @@ OodaOutcomeType = Literal[
     "effective", "partially_effective", "ineffective", "no_effect",
     "counterproductive", "unknown",
 ]
+CrispRating = Literal["AAA", "AA", "A", "B", "C", "D"]
+CrispConfidenceLevel = Literal["high", "moderate", "low", "insufficient_evidence"]
+CrispSSPScenario = Literal["SSP1", "SSP2", "SSP5"]
 DemandForecastType = Literal[
     "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
 ]
@@ -1305,6 +1308,157 @@ class OodaCycleLog:
     failure_phase: Optional[OodaFailurePhase] = None
     error_message: Optional[str] = None
     outcome_type: Optional[OodaOutcomeType] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class CrispRiskAssessment:
+    """Persisted CRISP assessment; reading it does not recompute its scores."""
+
+    id: str
+    location_id: str
+    period_start: str
+    period_end: str
+    methodology_version: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    farm_id: Optional[str] = None
+    carbon_yield_score: Optional[float] = None
+    climate_score: Optional[float] = None
+    policy_score: Optional[float] = None
+    financial_score: Optional[float] = None
+    implementation_score: Optional[float] = None
+    composite_score: Optional[float] = None
+    rating: Optional[CrispRating] = None
+    confidence_level: Optional[CrispConfidenceLevel] = None
+    score_computed_at: Optional[str] = None
+    evidence_maturity_level: Optional[int] = None
+    status: Optional[LifecycleStatus] = None
+    reviewer_notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+@dataclass
+class CrispCarbonYieldRisk:
+    """Persisted CRISP carbon-yield dimension detail."""
+
+    id: str
+    assessment_id: str
+    location_id: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    tree_inventory_snapshot: Optional[JSONObject] = None
+    soil_carbon_snapshot: Optional[JSONObject] = None
+    harvest_snapshot: Optional[JSONObject] = None
+    allometric_source: Optional[str] = None
+    growth_model_reference: Optional[str] = None
+    planting_density_per_ha: Optional[float] = None
+    mortality_rate_pct: Optional[float] = None
+    ndvi_pre_project: Optional[float] = None
+    scenario_minimum: Optional[float] = None
+    scenario_realistic: Optional[float] = None
+    scenario_optimistic: Optional[float] = None
+    ex_ante_estimate: Optional[float] = None
+    yield_unit: Optional[str] = None
+    yield_likelihood: Optional[float] = None
+    risk_score: Optional[float] = None
+    uncertainty_pct: Optional[float] = None
+    carbon_pool_breakdown: Optional[JSONObject] = None
+    evidence_maturity_level: Optional[int] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class CrispClimateRisk:
+    """Persisted CRISP climate dimension detail."""
+
+    id: str
+    assessment_id: str
+    location_id: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    drought_risk_score: Optional[float] = None
+    flood_risk_score: Optional[float] = None
+    heatwave_risk_score: Optional[float] = None
+    fire_risk_score: Optional[float] = None
+    storm_risk_score: Optional[float] = None
+    water_stress_score: Optional[float] = None
+    natural_risk_rating: Optional[float] = None
+    mitigation_factor: Optional[float] = None
+    climate_catastrophe_factor: Optional[float] = None
+    ssp_scenario: Optional[CrispSSPScenario] = None
+    risk_score: Optional[float] = None
+    historical_events: Optional[List[JSONValue]] = None
+    climate_projections_source: Optional[str] = None
+    evidence_maturity_level: Optional[int] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class CrispPolicyRisk:
+    """Persisted CRISP policy and legal dimension detail."""
+
+    id: str
+    assessment_id: str
+    location_id: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    national_policy_score: Optional[float] = None
+    article_6_score: Optional[float] = None
+    carbon_rights_score: Optional[float] = None
+    land_tenure_score: Optional[float] = None
+    community_alignment_score: Optional[float] = None
+    certification_risk_score: Optional[float] = None
+    risk_score: Optional[float] = None
+    policy_indicators: Optional[JSONObject] = None
+    evidence_maturity_level: Optional[int] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class CrispFinancialRisk:
+    """Persisted CRISP financial viability dimension detail."""
+
+    id: str
+    assessment_id: str
+    location_id: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    break_even_year: Optional[int] = None
+    revenue_risk_factor: Optional[float] = None
+    cost_risk_factor: Optional[float] = None
+    market_price_risk: Optional[float] = None
+    liquidity_risk: Optional[float] = None
+    vintage_year: Optional[int] = None
+    financial_risk_factor: Optional[float] = None
+    risk_score: Optional[float] = None
+    financial_snapshot: Optional[JSONObject] = None
+    evidence_maturity_level: Optional[int] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class CrispImplementationRisk:
+    """Persisted CRISP implementation dimension detail."""
+
+    id: str
+    assessment_id: str
+    location_id: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    track_record_score: Optional[float] = None
+    team_strength_score: Optional[float] = None
+    network_strength_score: Optional[float] = None
+    community_alignment_score: Optional[float] = None
+    transparency_score: Optional[float] = None
+    risk_score: Optional[float] = None
+    implementation_evidence: Optional[JSONObject] = None
+    evidence_maturity_level: Optional[int] = None
     metadata: Optional[JSONObject] = None
 
 

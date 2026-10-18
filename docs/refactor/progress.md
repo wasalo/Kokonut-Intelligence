@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Stored CRISP assessment SDK reads — 18 October 2026
+
+Python and TypeScript now expose typed read-only reads for location-scoped CRISP
+assessment records and the five persisted carbon-yield, climate, policy,
+financial, and implementation detail tables. Each dimension supports location
+scope and its actual `assessment_id` parent; explicit filters override
+conflicting caller selectors. The SQL parity guard covers nullable fields,
+numeric types, JSON shapes, exact assessment lifecycle/rating/confidence
+literals, and climate SSP values. Shared risk-dimension/weight configuration,
+score calculation, verification, and publication are not part of this slice.
+The focused Python SDK/schema/method suite passes 106 tests and JavaScript
+passes 56 tests; TypeScript build, Ruff, Python compilation, schema and
+capability guards, and diff checks pass offline. No database, provider, or
+network was contacted. CAP-014 remains partially implemented; MAN-CAP-014 is
+open. Checklist: 631 complete / 19 open; capability matrix remains 66 rows,
+54 baseline-retained, 7 deployed, and 5 prepared
+([evidence](builds/2026-10-18-recovery/sdk-crisp-stored-assessment-reads.json)).
+
 ### Persisted OODA advisory SDK reads — 18 October 2026
 
 Python and TypeScript now expose typed, read-only reads for location-scoped
