@@ -32,6 +32,11 @@ an optional field projection when reading an export record and forward it to
 the Directus item read. This does not change server permissions, tenant scope,
 or MAN-CAP status ([evidence](builds/2026-10-18-recovery/sdk-export-field-projection-parity.json)).
 
+**SDK login-response parity note — 18 October 2026:** TypeScript now preserves
+the Directus access/refresh token and expiry fields while retaining its prior
+`token` and `refreshToken` aliases. Synthetic offline checks pass; this does
+not change Gateway sessions or MAN-CAP status ([evidence](builds/2026-10-18-recovery/sdk-login-response-parity.json)).
+
 **SDK export creation signature note — 18 October 2026:** TypeScript accepts the
 existing request object, export type plus options, and the positional field
 order supported by Python. These forms create the same pending export payload;

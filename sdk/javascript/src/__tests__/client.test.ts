@@ -33,7 +33,12 @@ vi.mock('@directus/sdk', () => {
   const mockUpdateItem = vi.fn(() => ({}));
   const mockDeleteItem = vi.fn(() => ({}));
   const mockSetToken = vi.fn(() => Promise.resolve());
-  const mockLogin = vi.fn(() => ({ access_token: 'test-token', refresh_token: 'test-refresh' }));
+  const mockLogin = vi.fn(() => ({
+    access_token: 'test-token',
+    refresh_token: 'test-refresh',
+    expires: 900,
+    expires_at: 1_800_000_000_000,
+  }));
   const mockLogout = vi.fn();
 
   const mockDirectus = {
@@ -83,6 +88,19 @@ describe('KokonutClient', () => {
     expect(client.reports).toBeDefined();
     expect(client.exports).toBeDefined();
     expect(client.noi).toBeDefined();
+  });
+
+  it('returns Directus login fields while preserving normalized token aliases', async () => {
+    const result = await client.login('operator@example.invalid', 'synthetic-password');
+
+    expect(result).toEqual({
+      access_token: 'test-token',
+      refresh_token: 'test-refresh',
+      expires: 900,
+      expires_at: 1_800_000_000_000,
+      token: 'test-token',
+      refreshToken: 'test-refresh',
+    });
   });
 
   it('should have list methods on all groups', () => {

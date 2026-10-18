@@ -9467,3 +9467,14 @@ The full focused Python SDK/schema/method suite passes 80 tests; Vitest passes
 guard does not compare parameter types or runtime behavior. Checklist: 594
 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-method-signature-parity.json`.
+
+### Native SDK login-response parity — 18 October 2026
+
+TypeScript now returns the complete Directus login response alongside its
+existing `token` and `refreshToken` aliases, including access/refresh token and
+expiry fields. Python and TypeScript synthetic-response tests pass in the
+81-test Python SDK/schema/method suite and 35-test JavaScript suite. TypeScript
+build, Ruff, and diff checks pass. No real credentials or HTTP request were
+used, and Gateway operator sessions are unaffected. Checklist: 595 complete /
+19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-login-response-parity.json`.

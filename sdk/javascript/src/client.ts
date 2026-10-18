@@ -9,6 +9,7 @@ import {
   updateItem,
   deleteItem,
 } from '@directus/sdk';
+import type { AuthenticationData } from '@directus/sdk';
 import type {
   ListOptions,
 } from './types.js';
@@ -52,6 +53,11 @@ import type {
 export interface KokonutClientOptions {
   token?: string;
 }
+
+export type KokonutLoginResult = AuthenticationData & {
+  token: string;
+  refreshToken: string;
+};
 
 export class KokonutClient {
   private directus;
@@ -98,13 +104,13 @@ export class KokonutClient {
     this.noi = buildNoiMethods(this);
   }
 
-  async login(email: string, password: string): Promise<{ token: string; refreshToken: string }> {
+  async login(email: string, password: string): Promise<KokonutLoginResult> {
     await this.ready;
     const result = await this.directus.login(email, password);
     const token = result.access_token ?? '';
     const refreshToken = result.refresh_token ?? '';
     await this.directus.setToken(token);
-    return { token, refreshToken };
+    return { ...result, token, refreshToken };
   }
 
   async logout(): Promise<void> {
