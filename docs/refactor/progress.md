@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### SDK species observation schema parity — 18 October 2026
+
+Python and TypeScript now expose biodiversity observations with evidence
+arrays, reviewer lifecycle, trophic level, conservation status, and source
+lineage across migrations 013, 046, 047, 051, and 080. The guard covers 53
+models, 1,133 canonical columns, 1,061 scalar types, eight PostGIS shapes, 62
+JSONB shapes, 20 enum fields, and 36 standalone SQL CHECK literals. The guard
+also now recognizes multiline TypeScript literal unions and has a focused
+regression for that parser contract. Sixty Python SDK/guard tests and 29
+JavaScript tests pass with the TypeScript build, Ruff, compilation, schema
+guard, matrix validation, and diff checks. This type does not verify
+observations or conservation status. No database or network was contacted;
+capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-species-observation-parity.json)).
+
 ### SDK environmental baseline schema parity — 18 October 2026
 
 Python and TypeScript now expose saved environmental reference measurements,

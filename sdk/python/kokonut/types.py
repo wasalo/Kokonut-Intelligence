@@ -58,6 +58,18 @@ ChangePointDetectionMethod = Literal["cusum", "pelt", "binary_segmentation", "wi
 ChangePointDirection = Literal["increase", "decrease", "variance_change"]
 ChangePointStatus = Literal["detected", "confirmed", "dismissed"]
 SeasonalDecompositionMethod = Literal["classical", "stl", "x11"]
+TrophicLevel = Literal[
+    "producer", "primary_consumer", "secondary_consumer", "decomposer", "omnivore"
+]
+ConservationStatus = Literal[
+    "critically_endangered",
+    "endangered",
+    "vulnerable",
+    "near_threatened",
+    "least_concern",
+    "data_deficient",
+    "not_evaluated",
+]
 
 GeoJSONPosition = List[float]
 
@@ -1265,6 +1277,41 @@ class EnvironmentalBaseline:
     source_id: Optional[str] = None
     source_raw: Optional[JSONObject] = None
     schema_version: Optional[str] = None
+
+
+@dataclass
+class SpeciesObservation:
+    """Stored biodiversity observation; this record does not verify species claims."""
+
+    id: str
+    location_id: str
+    observation_date: str
+    plot_id: Optional[str] = None
+    species_name: Optional[str] = None
+    species_common_name: Optional[str] = None
+    species_category: Optional[str] = None
+    taxonomic_family: Optional[str] = None
+    count: Optional[int] = None
+    abundance: Optional[str] = None
+    observer: Optional[str] = None
+    observer_id: Optional[str] = None
+    method: Optional[str] = None
+    habitat_type: Optional[str] = None
+    evidence_urls: Optional[List[str]] = None
+    evidence_hashes: Optional[List[str]] = None
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    schema_version: Optional[str] = None
+    trophic_level: Optional[TrophicLevel] = None
+    population_density_per_m2: Optional[float] = None
+    conservation_status: Optional[ConservationStatus] = None
+    status: Optional[LifecycleStatus] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    evidence_maturity: Optional[int] = None
 
 
 @dataclass

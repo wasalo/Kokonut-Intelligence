@@ -197,6 +197,16 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ("SoilCarbonMeasurement", "status"): (
             "draft", "submitted", "verified", "published", "rejected"
         ),
+        ("SpeciesObservation", "status"): (
+            "draft", "submitted", "verified", "published", "rejected"
+        ),
+        ("SpeciesObservation", "trophic_level"): (
+            "producer", "primary_consumer", "secondary_consumer", "decomposer", "omnivore"
+        ),
+        ("SpeciesObservation", "conservation_status"): (
+            "critically_endangered", "endangered", "vulnerable", "near_threatened",
+            "least_concern", "data_deficient", "not_evaluated"
+        ),
     }
     python_aliases = SCHEMA_GUARD.python_literal_aliases(
         ROOT / "sdk" / "python" / "kokonut" / "types.py"
@@ -249,6 +259,22 @@ def test_sql_type_families_cover_scalars_and_postgis_shapes():
     assert SCHEMA_GUARD.sql_type_family("JSONB") == "jsonb"
     assert SCHEMA_GUARD.sql_type_family("GEOMETRY(POINT, 4326)") == "geojson_point"
     assert SCHEMA_GUARD.sql_type_family("GEOMETRY(POLYGON, 4326)") == "geojson_polygon"
+
+
+def test_typescript_literal_alias_parser_accepts_multiline_unions(tmp_path):
+    typescript = tmp_path / "types.ts"
+    typescript.write_text(
+        "export type Fixture =\n"
+        "  | 'first'\n"
+        "  | 'second';\n"
+        "export type Next = 'third';\n",
+        encoding="utf-8",
+    )
+
+    assert SCHEMA_GUARD.typescript_literal_aliases(typescript) == {
+        "Fixture": ("first", "second"),
+        "Next": ("third",),
+    }
 
 
 def test_sdk_scalar_types_match_sql_families_and_nullable_unions():
@@ -329,7 +355,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 61
+    assert checked == 62
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

@@ -37,6 +37,20 @@ export type ChangePointDetectionMethod = 'cusum' | 'pelt' | 'binary_segmentation
 export type ChangePointDirection = 'increase' | 'decrease' | 'variance_change';
 export type ChangePointStatus = 'detected' | 'confirmed' | 'dismissed';
 export type SeasonalDecompositionMethod = 'classical' | 'stl' | 'x11';
+export type TrophicLevel =
+  | 'producer'
+  | 'primary_consumer'
+  | 'secondary_consumer'
+  | 'decomposer'
+  | 'omnivore';
+export type ConservationStatus =
+  | 'critically_endangered'
+  | 'endangered'
+  | 'vulnerable'
+  | 'near_threatened'
+  | 'least_concern'
+  | 'data_deficient'
+  | 'not_evaluated';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -564,6 +578,39 @@ export interface EnvironmentalBaseline {
   source_id?: string | null;
   source_raw?: JSONObject | null;
   schema_version?: string | null;
+}
+
+/** Stored biodiversity observation; it does not verify species claims. */
+export interface SpeciesObservation {
+  id: string;
+  location_id: string;
+  observation_date: string;
+  plot_id?: string | null;
+  species_name?: string | null;
+  species_common_name?: string | null;
+  species_category?: string | null;
+  taxonomic_family?: string | null;
+  count?: number | null;
+  abundance?: string | null;
+  observer?: string | null;
+  observer_id?: string | null;
+  method?: string | null;
+  habitat_type?: string | null;
+  evidence_urls?: string[] | null;
+  evidence_hashes?: string[] | null;
+  notes?: string | null;
+  created_at?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  schema_version?: string | null;
+  trophic_level?: TrophicLevel | null;
+  population_density_per_m2?: number | null;
+  conservation_status?: ConservationStatus | null;
+  status?: LifecycleStatus | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  evidence_maturity?: number | null;
 }
 
 export interface SensorType {

@@ -53,6 +53,7 @@ MODEL_TABLES = {
     "SoilSample": ("005_environmental.sql", "soil_sample"),
     "SoilCarbonMeasurement": ("005_environmental.sql", "soil_carbon_measurement"),
     "EnvironmentalBaseline": ("005_environmental.sql", "environmental_baseline"),
+    "SpeciesObservation": ("005_environmental.sql", "species_observation"),
     "SensorType": ("011_sensor_registry.sql", "sensor_type"),
     "SensorDevice": ("011_sensor_registry.sql", "sensor_device"),
     "AlertRule": ("011_sensor_registry.sql", "alert_rule"),
@@ -83,6 +84,7 @@ JSONB_MODEL_SHAPES = {
     ("SoilSample", "source_raw"): "json_object",
     ("SoilCarbonMeasurement", "source_raw"): "json_object",
     ("EnvironmentalBaseline", "source_raw"): "json_object",
+    ("SpeciesObservation", "source_raw"): "json_object",
     ("SensorReading", "source_raw"): "json_object",
     ("SensorDevice", "metadata"): "json_object",
     ("AlertRule", "metadata"): "json_object",
@@ -560,9 +562,11 @@ def typescript_literal_aliases(path: Path) -> dict[str, tuple[str, ...]]:
     source = path.read_text(encoding="utf-8")
     aliases = {}
     for declaration in re.finditer(
-        r"export type\s+(\w+)\s*=\s*([^;\n]+);", source
+        r"export type\s+(\w+)\s*=\s*([^;]+);", source, flags=re.DOTALL
     ):
-        parts = [part.strip() for part in declaration.group(2).split("|")]
+        parts = [
+            part.strip() for part in declaration.group(2).split("|") if part.strip()
+        ]
         if parts and all(re.fullmatch(r"(?:'[^']*'|\"[^\"]*\")", part) for part in parts):
             aliases[declaration.group(1)] = tuple(
                 part[1:-1] for part in parts

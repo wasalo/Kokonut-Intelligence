@@ -3497,3 +3497,15 @@ record does not calculate values or establish an authoritative baseline.
 Checklist: 574 complete / 19 open. Capability classifications and MAN-CAP
 acceptance are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-environmental-baseline-parity.json`.
+
+### Species observation SDK model parity — 18 October 2026
+
+Python and TypeScript now represent biodiversity observations with source
+lineage, evidence arrays, lifecycle, trophic level, and conservation status.
+The guard covers 53 models and 1,133 columns, including 1,061 scalar types,
+eight PostGIS shapes, 62 JSONB shapes, 20 enum fields, and 36 standalone SQL
+CHECK literals. Its TypeScript literal parser now handles multiline unions.
+The model does not verify field observations or ecological classifications.
+Checklist: 575 complete / 19 open. Capability classifications and MAN-CAP
+acceptance are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-species-observation-parity.json`.

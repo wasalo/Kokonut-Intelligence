@@ -324,6 +324,25 @@ def test_environmental_baseline_type_preserves_value_evidence_and_lineage():
     assert baseline.source_raw == {"survey": "synthetic"}
 
 
+def test_species_observation_type_preserves_constrained_ecology_and_lifecycle():
+    from kokonut import SpeciesObservation
+
+    observation = SpeciesObservation(
+        id="species-1",
+        location_id="location-1",
+        observation_date="2026-10-18",
+        species_name="Synthetic species",
+        evidence_urls=["https://example.invalid/observation"],
+        trophic_level="producer",
+        conservation_status="least_concern",
+        status="submitted",
+    )
+
+    assert observation.trophic_level == "producer"
+    assert observation.conservation_status == "least_concern"
+    assert observation.status == "submitted"
+
+
 def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
     from kokonut import ForecastScenario
 
