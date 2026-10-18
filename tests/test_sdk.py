@@ -107,6 +107,32 @@ def test_farm_task_model_preserves_sql_constrained_planning_values():
     assert FarmTaskStatus.__args__ == ("pending", "in_progress", "completed", "cancelled")
 
 
+def test_farm_task_relationship_models_preserve_composite_keys_and_source_identity():
+    from kokonut import FarmTaskDependency, FarmTaskFrameworkStep, FarmTaskWeeklyPlan
+
+    dependency = FarmTaskDependency(
+        task_id="task-1",
+        prerequisite_task_id="task-0",
+        source_system="baserow",
+        source_database_id=4,
+        source_table_id=12,
+        source_row_id=71,
+        source_related_table_id=12,
+        source_related_row_id=70,
+    )
+    framework_step = FarmTaskFrameworkStep(
+        task_id="task-1", framework_step_id="step-1", source_system="baserow"
+    )
+    weekly_plan = FarmTaskWeeklyPlan(
+        task_id="task-1", weekly_plan_id="week-1", source_system="baserow"
+    )
+
+    assert (dependency.task_id, dependency.prerequisite_task_id) == ("task-1", "task-0")
+    assert dependency.source_related_row_id == 70
+    assert (framework_step.task_id, framework_step.framework_step_id) == ("task-1", "step-1")
+    assert (weekly_plan.task_id, weekly_plan.weekly_plan_id) == ("task-1", "week-1")
+
+
 def test_organization_member_type_is_descriptive_not_an_access_grant():
     from kokonut import OrganizationMember, OrganizationMembershipType
 

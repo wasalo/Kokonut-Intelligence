@@ -383,6 +383,54 @@ class FarmTask:
 
 
 @dataclass
+class FarmTaskDependency:
+    """Directed task-prerequisite edge, stored without evaluating task readiness."""
+
+    task_id: str
+    prerequisite_task_id: str
+    source_system: Optional[str] = None
+    source_database_id: Optional[int] = None
+    source_table_id: Optional[int] = None
+    source_field_id: Optional[int] = None
+    source_row_id: Optional[int] = None
+    source_related_table_id: Optional[int] = None
+    source_related_row_id: Optional[int] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
+class FarmTaskFrameworkStep:
+    """Task-to-framework-step association record."""
+
+    task_id: str
+    framework_step_id: str
+    source_system: Optional[str] = None
+    source_database_id: Optional[int] = None
+    source_table_id: Optional[int] = None
+    source_field_id: Optional[int] = None
+    source_row_id: Optional[int] = None
+    source_related_table_id: Optional[int] = None
+    source_related_row_id: Optional[int] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
+class FarmTaskWeeklyPlan:
+    """Task-to-weekly-plan association record."""
+
+    task_id: str
+    weekly_plan_id: str
+    source_system: Optional[str] = None
+    source_database_id: Optional[int] = None
+    source_table_id: Optional[int] = None
+    source_field_id: Optional[int] = None
+    source_row_id: Optional[int] = None
+    source_related_table_id: Optional[int] = None
+    source_related_row_id: Optional[int] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class HarvestEvent:
     id: str
     crop_cycle_id: str

@@ -346,6 +346,48 @@ export interface FarmTask {
   updated_by?: string | null;
 }
 
+/** Directed prerequisite edge; this record does not evaluate task readiness. */
+export interface FarmTaskDependency {
+  task_id: string;
+  prerequisite_task_id: string;
+  source_system?: string | null;
+  source_database_id?: number | null;
+  source_table_id?: number | null;
+  source_field_id?: number | null;
+  source_row_id?: number | null;
+  source_related_table_id?: number | null;
+  source_related_row_id?: number | null;
+  created_at?: string | null;
+}
+
+/** Task-to-framework-step association record. */
+export interface FarmTaskFrameworkStep {
+  task_id: string;
+  framework_step_id: string;
+  source_system?: string | null;
+  source_database_id?: number | null;
+  source_table_id?: number | null;
+  source_field_id?: number | null;
+  source_row_id?: number | null;
+  source_related_table_id?: number | null;
+  source_related_row_id?: number | null;
+  created_at?: string | null;
+}
+
+/** Task-to-weekly-plan association record. */
+export interface FarmTaskWeeklyPlan {
+  task_id: string;
+  weekly_plan_id: string;
+  source_system?: string | null;
+  source_database_id?: number | null;
+  source_table_id?: number | null;
+  source_field_id?: number | null;
+  source_row_id?: number | null;
+  source_related_table_id?: number | null;
+  source_related_row_id?: number | null;
+  created_at?: string | null;
+}
+
 export interface SalesEvent {
   id: string;
   location_id: string;

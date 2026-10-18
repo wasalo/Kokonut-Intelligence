@@ -21,6 +21,11 @@ model stored `farm_task` data with SQL-constrained category, priority, and
 status. It does not implement task assignment, scheduling, completion, or
 dependency operations and changes no MAN-CAP classification ([evidence](builds/2026-10-18-recovery/sdk-farm-task-parity.json)).
 
+**Farm-task relationship SDK note — 18 October 2026:** clients now preserve
+dependency, framework-step, and weekly-plan associations with their source
+identity fields. They do not evaluate or execute these workflows; MAN-CAP
+acceptance remains unchanged ([evidence](builds/2026-10-18-recovery/sdk-farm-task-relations-parity.json)).
+
 
 **SDK schema implementation note — 18 October 2026:** Python and TypeScript
 now expose stored `price_observation` records and the SQL-constrained oracle

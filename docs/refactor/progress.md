@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK FarmTask relationship parity — 18 October 2026
+
+Python and TypeScript now expose the three composite-key associations introduced
+by migration 361: task prerequisites, framework-step membership, and weekly-plan
+membership. Each record preserves all nullable external source-identity
+columns. The schema guard covers 65 models, 1,368 canonical columns, 1,279
+scalar types, 10 PostGIS shapes, 76 JSONB shapes, 22 enum fields, and 43
+standalone SQL CHECK literals. Seventy focused Python SDK/schema/method-parity
+tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema
+guard, capability-matrix validation, and diff checks pass. These types do not
+evaluate dependency readiness or execute any workflow. No database, provider,
+or network was contacted; capability classifications and MAN-CAP acceptance
+are unchanged ([evidence](builds/2026-10-18-recovery/sdk-farm-task-relations-parity.json)).
+
 ### SDK FarmTask planning-record parity — 18 October 2026
 
 Python and TypeScript now model the `farm_task` record with location/farm/plot
