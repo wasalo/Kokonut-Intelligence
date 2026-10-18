@@ -50,6 +50,7 @@ export type {
   CropCycle,
   CropCostAllocation,
   MetricDefinition,
+  MetricVersion,
   HarvestEvent,
   SalesEvent,
   ExpenseEvent,

@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK metric-version schema parity — 18 October 2026
+
+Python and TypeScript now expose the `metric_version` history row for a metric
+definition, including formula snapshot, change summary, reason, version, and
+creator/timestamp fields. The offline guard covers 30 models, 625 canonical
+columns, 589 scalar types, 29 JSONB shapes, seven PostGIS shapes, 17 enum
+fields, and eight discovered CHECK-literal fields. Forty-one Python SDK/guard
+tests and 29 JavaScript tests pass with TypeScript build, Ruff, compilation,
+schema guard, capability-matrix validation, and diff check. No database or
+network was contacted. This is a schema type only and does not grant direct
+mutation or verification behavior
+([evidence](builds/2026-10-18-recovery/sdk-metric-version-parity.json)).
+
 ### SDK metric-definition schema parity — 18 October 2026
 
 Python and TypeScript now expose `metric_definition`, including additive

@@ -519,6 +519,20 @@ class MetricDefinition:
 
 
 @dataclass
+class MetricVersion:
+    """Metric definition version history record."""
+
+    id: str
+    metric_id: str
+    version: int
+    formula: Optional[str] = None
+    changes: Optional[str] = None
+    change_reason: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

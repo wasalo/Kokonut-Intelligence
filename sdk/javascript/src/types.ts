@@ -613,6 +613,18 @@ export interface MetricDefinition {
   participatory?: boolean | null;
 }
 
+/** Metric definition version history record. */
+export interface MetricVersion {
+  id: string;
+  metric_id: string;
+  version: number;
+  formula?: string | null;
+  changes?: string | null;
+  change_reason?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

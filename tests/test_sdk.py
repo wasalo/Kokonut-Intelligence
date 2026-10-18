@@ -200,6 +200,23 @@ def test_metric_definition_type_exposes_governance_and_validation_metadata():
     assert definition.participatory is True
 
 
+def test_metric_version_type_preserves_change_reason_and_formula_snapshot():
+    from kokonut import MetricVersion
+
+    version = MetricVersion(
+        id="version-2",
+        metric_id="metric-1",
+        version=2,
+        formula="revenue - costs",
+        changes="Added shared-cost allocation",
+        change_reason="Approved methodology update",
+    )
+
+    assert version.version == 2
+    assert version.formula == "revenue - costs"
+    assert version.change_reason == "Approved methodology update"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

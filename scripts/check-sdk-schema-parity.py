@@ -26,6 +26,7 @@ MODEL_TABLES = {
     "ExcludedValueEvent": ("004_finance.sql", "excluded_value_event"),
     "CropCostAllocation": ("004_finance.sql", "crop_cost_allocation"),
     "MetricDefinition": ("007_modeled_outputs.sql", "metric_definition"),
+    "MetricVersion": ("007_modeled_outputs.sql", "metric_version"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
