@@ -92,3 +92,13 @@ diff checks passed. This documentation update added no repository test suite.
 The existing candidate and legacy containers and volumes remain unchanged.
 Rollback preserves earlier candidate/legacy images
 and data; these separately named build artifacts require no data rollback.
+
+**Current-source code-only smoke (18 October 2026):** the default Kernel app
+target built as `linux/arm64` from source commit `31c6520e`. A network-disabled,
+read-only QEMU container reported `aarch64`, imported the Gateway module and
+Python SDK, found all 18 catalog JobSpecs, constructed a synthetic RPC balance
+snapshot, and verified the six newly exposed location-read groups. The
+temporary image and container were removed; no database, provider, credential,
+or persistent Compose resource was accessed ([evidence](builds/2026-10-18-recovery/arm64-kernel-current-source-smoke.json)).
+This does not replace physical Raspberry Pi, power-loss, resource-budget, or
+long-duration acceptance.

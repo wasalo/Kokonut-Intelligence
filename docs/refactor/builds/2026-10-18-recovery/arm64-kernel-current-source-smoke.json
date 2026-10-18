@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-18",
+  "scope": "Current-source Kernel ARM64 image and network-disabled QEMU import smoke",
+  "source_revision": "31c6520ec3b2d1043f2d444f8dadd44ff785513f",
+  "build": {
+    "command": "docker buildx build --platform linux/arm64 --target kernel --build-arg KOKONUT_CLICKHOUSE=false --load --tag kokonut-kernel-current-arm64:local --file Dockerfile.kernel .",
+    "result": "passed",
+    "platform": "linux/arm64",
+    "image_user": "appuser",
+    "image_id": "sha256:a1d86e1472a87fbc7bd186a8c42454c136c0aee6cc68f25e5b71b7f8511c2215"
+  },
+  "runtime": {
+    "engine": "Docker Buildx desktop-linux with QEMU",
+    "platform_machine": "aarch64",
+    "network": "none",
+    "container_lifetime": "ephemeral --rm",
+    "root_filesystem": "read-only with temporary /tmp",
+    "source_mount": "sdk/python mounted read-only at /sdk",
+    "result": "passed",
+    "checks": {
+      "gateway_module_import": true,
+      "job_catalog_entries": 18,
+      "synthetic_rpc_snapshot_construction": true,
+      "python_sdk_import": true,
+      "location_read_accessor_groups": 6
+    },
+    "database_access": false,
+    "provider_calls": false,
+    "credentials_or_secrets": false,
+    "ports_published": false
+  },
+  "cleanup": {
+    "temporary_image_removed": true,
+    "temporary_runtime_container_removed": true,
+    "compose_stack_or_volumes_modified": false
+  },
+  "limitations": [
+    "QEMU is code-only ARM64 evidence and does not establish compatibility or performance on physical Raspberry Pi hardware.",
+    "Power-loss, thermal, storage, network, 24-hour recovery, and the 4 GB memory profile remain open.",
+    "No database migration replay or live worker/provider operation was performed in this smoke."
+  ]
+}
