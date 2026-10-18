@@ -92,5 +92,39 @@ describe('KokonutClient', () => {
     expect(typeof client.attestations.listByEntity).toBe('function');
     expect(typeof client.reports.listByType).toBe('function');
     expect(typeof client.noi.listByCropCycle).toBe('function');
+    expect(typeof client.exports.createExport).toBe('function');
+  });
+
+  it('preserves Python SDK export inputs through createExport()', async () => {
+    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-1' });
+    const request = {
+      export_type: 'farm_data',
+      target_table: 'harvest_event',
+      entity_type: 'location',
+      entity_ids: ['location-1'],
+      filters: { status: 'published' },
+    };
+
+    await client.exports.createExport(request);
+
+    expect(createItem).toHaveBeenNthCalledWith(1, 'export_log', {
+      ...request,
+      format: null,
+      status: 'pending',
+      requested_by: 'sdk',
+    });
+  });
+
+  it('keeps the existing create() payload behavior', async () => {
+    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
+
+    await client.exports.create({ export_type: 'farm_data', format: 'csv' });
+
+    expect(createItem).toHaveBeenCalledWith('export_log', {
+      export_type: 'farm_data',
+      format: 'csv',
+      status: 'pending',
+      requested_by: 'sdk',
+    });
   });
 });

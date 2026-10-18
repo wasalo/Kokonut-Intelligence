@@ -271,6 +271,7 @@ export interface ExportLog {
   format: 'csv' | 'json' | 'xlsx' | 'pdf' | 'parquet';
   entity_type?: string;
   entity_ids?: string[];
+  target_table?: string;
   filters?: Record<string, any>;
   file_path?: string;
   file_size?: number;

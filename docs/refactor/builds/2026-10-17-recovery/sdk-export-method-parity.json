@@ -1,0 +1,27 @@
+{
+  "format": 1,
+  "date": "2026-10-17",
+  "scope": "Python and JavaScript Directus SDK export creation contract; fake client methods only, no HTTP or provider calls",
+  "files": [
+    "sdk/python/kokonut/methods.py",
+    "sdk/javascript/src/methods.ts",
+    "sdk/javascript/src/types.ts",
+    "tests/test_sdk.py",
+    "sdk/javascript/src/__tests__/client.test.ts"
+  ],
+  "result": "passed",
+  "parity": [
+    "JavaScript exposes createExport() matching Python create_export() and preserves the existing JavaScript create() payload behavior",
+    "The Python-parity method carries export_type, optional format, entity_type, entity_ids, target_table, and filters into the export_log request",
+    "Both SDKs add pending status and sdk request attribution"
+  ],
+  "checks": {
+    "python_sdk_tests": "4 passed",
+    "javascript_sdk_tests": "13 passed",
+    "javascript_typescript_build": "passed"
+  },
+  "limitations": [
+    "All transport is mocked; no Directus instance or network request was used",
+    "This closes one method/type parity gap only; authenticated route, tenant scope, live service, gRPC, and broader SDK parity remain open"
+  ]
+}

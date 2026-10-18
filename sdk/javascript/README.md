@@ -114,7 +114,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `walletProfiles` | `wallet_profile` | `findByAddress` |
 | `attestations` | `attestation_record` | `listPending`, `listByEntity` |
 | `reports` | `report_snapshot` | `listByType` |
-| `exports` | `export_log` | — |
+| `exports` | `export_log` | `createExport` (Python-parity method); existing `create` remains available |
 | `noi` | `noi_snapshot` | `listByCropCycle` |
 
 All groups inherit `GenericMethods`: `list`, `get`, `create`, `createMany`, `update`, `delete`.

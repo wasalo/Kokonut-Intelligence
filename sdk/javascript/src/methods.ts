@@ -139,14 +139,26 @@ export interface ReportMethods extends GenericMethods {
   listByType(reportType: string, options?: ListOptions): Promise<ReportSnapshot[]>;
 }
 
+export interface ExportCreateRequest {
+  export_type: string;
+  format?: ExportLog['format'] | null;
+  entity_type?: string;
+  entity_ids?: string[];
+  target_table?: string;
+  filters?: Record<string, any>;
+}
+
 export interface ExportMethods extends GenericMethods {
   list(options?: ListOptions): Promise<ExportLog[]>;
   get(id: string): Promise<ExportLog>;
+  createExport(data: ExportCreateRequest): Promise<ExportLog>;
+  /** Existing JavaScript creation method; use createExport() for Python parity. */
   create(data: {
     export_type: string;
     format: ExportLog['format'];
     entity_type?: string;
     entity_ids?: string[];
+    target_table?: string;
     filters?: Record<string, any>;
   }): Promise<ExportLog>;
   createMany: never;
@@ -368,22 +380,36 @@ export function buildReportMethods(client: any): ReportMethods {
 }
 
 export function buildExportMethods(client: any): ExportMethods {
+  const createExport = async (params: ExportCreateRequest): Promise<ExportLog> =>
+    client.createItem('export_log', {
+      export_type: params.export_type,
+      format: params.format ?? null,
+      entity_type: params.entity_type ?? null,
+      entity_ids: params.entity_ids ?? null,
+      target_table: params.target_table ?? null,
+      filters: params.filters ?? null,
+      status: 'pending',
+      requested_by: 'sdk',
+    }) as Promise<ExportLog>;
+
+  const create = async (params: {
+    export_type: string;
+    format: ExportLog['format'];
+    entity_type?: string;
+    entity_ids?: string[];
+    target_table?: string;
+    filters?: Record<string, any>;
+  }): Promise<ExportLog> => client.createItem('export_log', {
+    ...params,
+    status: 'pending',
+    requested_by: 'sdk',
+  }) as Promise<ExportLog>;
+
   return {
     list: (options?: ListOptions) => client.listItems('export_log', options) as Promise<ExportLog[]>,
     get: (id: string) => client.getItem('export_log', id) as Promise<ExportLog>,
-    create: async (params: {
-      export_type: string;
-      format: ExportLog['format'];
-      entity_type?: string;
-      entity_ids?: string[];
-      filters?: Record<string, any>;
-    }) => {
-      return client.createItem('export_log', {
-        ...params,
-        status: 'pending',
-        requested_by: 'sdk',
-      }) as Promise<ExportLog>;
-    },
+    createExport,
+    create,
     createMany: undefined as never,
     update: (id: string, data: Record<string, any>) => client.updateItem('export_log', id, data) as Promise<ExportLog>,
     delete: (id: string) => client.deleteItem('export_log', id),

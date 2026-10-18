@@ -52,5 +52,6 @@ export type {
   AttestationMethods,
   ReportMethods,
   ExportMethods,
+  ExportCreateRequest,
   NoiMethods,
 } from './methods.js';
