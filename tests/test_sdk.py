@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 from unittest.mock import Mock
 
+import pytest
+
 # Add sdk/python to path for import
 SDK_PATH = Path(__file__).resolve().parent.parent / "sdk" / "python"
 sys.path.insert(0, str(SDK_PATH))
@@ -1419,6 +1421,89 @@ def test_login_returns_directus_auth_payload_and_stores_access_token_without_net
 
     assert result == response.json.return_value["data"]
     assert client.session.headers["Authorization"] == "Bearer synthetic-access-token"
+
+
+@pytest.mark.parametrize(
+    ("status", "error_type"),
+    [
+        (400, "ValidationError"),
+        (401, "AuthenticationError"),
+        (403, "ForbiddenError"),
+        (404, "NotFoundError"),
+        (422, "KokonutError"),
+    ],
+)
+def test_directus_http_errors_map_status_and_preserve_server_message(status, error_type):
+    from kokonut import KokonutClient
+    from kokonut.client import (
+        AuthenticationError,
+        ForbiddenError,
+        KokonutError,
+        NotFoundError,
+        ValidationError,
+    )
+
+    client = KokonutClient("http://localhost:8055")
+    error_classes = {
+        "AuthenticationError": AuthenticationError,
+        "ForbiddenError": ForbiddenError,
+        "KokonutError": KokonutError,
+        "NotFoundError": NotFoundError,
+        "ValidationError": ValidationError,
+    }
+    response = Mock()
+    response.ok = False
+    response.status_code = status
+    response.text = "fallback response text"
+    response.json.return_value = {"errors": [{"message": "synthetic Directus error"}]}
+    client.session.get = Mock(return_value=response)
+
+    with pytest.raises(error_classes[error_type], match="synthetic Directus error") as raised:
+        client.get_item("location", "missing-location")
+
+    assert raised.value.status_code == status
+    assert raised.value.response is response
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        ["unexpected JSON array"],
+        {"errors": {"message": "unexpected object"}},
+        {"errors": [{"message": None}]},
+        {"errors": []},
+    ],
+)
+def test_directus_http_errors_fall_back_for_malformed_error_envelopes(body):
+    from kokonut import KokonutClient
+    from kokonut.client import NotFoundError
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = False
+    response.status_code = 404
+    response.text = "fallback response text"
+    response.json.return_value = body
+    client.session.get = Mock(return_value=response)
+
+    with pytest.raises(NotFoundError, match="fallback response text"):
+        client.get_item("location", "missing-location")
+
+
+def test_directus_http_errors_fall_back_for_invalid_json():
+    from kokonut import KokonutClient
+    from kokonut.client import NotFoundError
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = False
+    response.status_code = 404
+    response.text = "not json"
+    response.json.side_effect = ValueError("invalid json")
+    client.session.get = Mock(return_value=response)
+
+    with pytest.raises(NotFoundError, match="not json"):
+        client.get_item("location", "missing-location")
 
 
 def test_aggregate_query_serializes_options_and_returns_data_without_network_calls():

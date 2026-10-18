@@ -9516,14 +9516,14 @@ Offline regressions now exercise the shared generic Directus item operations in
 both SDKs: detail reads with field projection, single and bulk creation,
 updates, and deletes. Python checks the exact item endpoints, query/body
 arguments, `data` envelope unwrapping, and its no-value delete result;
-TypeScript checks each operation is routed through the matching pinned SDK
-command. Eighty-four focused Python SDK/schema/method tests and 39 JavaScript
+TypeScript drives each operation through the matching pinned SDK command with
+stubbed `fetch`. Ninety-four focused Python SDK/schema/method tests and 39 JavaScript
 tests pass; TypeScript build, compilation, capability-matrix validation,
 targeted Ruff, and diff checks pass. Python uses mocked requests and TypeScript
 uses the pinned SDK with stubbed fetch; no network, database, provider, or
 credentials were accessed. This request-shape coverage does not establish
 live Directus behavior, authorization, tenant scope, or MAN-CAP acceptance.
-Checklist: 598 complete / 19 open. Evidence:
+Checklist at this checkpoint: 598 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-generic-crud-contract.json`.
 
 ### Native SDK aggregate-query wire parity — 18 October 2026
@@ -9539,3 +9539,15 @@ build, targeted Ruff, compilation, capability-matrix, and diff checks pass.
 This is offline wire-shape parity only; no Directus API, authorization, or
 tenant scope is verified. Checklist: 600 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-aggregate-query-wire-parity.json`.
+
+### Python SDK error-envelope handling — 18 October 2026
+
+The Directus client now maps 400, 401, 403, and 404 responses to the documented
+validation, authentication, forbidden, and not-found exceptions. It preserves
+a valid first `errors[].message` and safely falls back to response text or the
+HTTP status when the body is invalid JSON, a non-object, or has an unexpected
+`errors` shape. Ten focused regressions cover status mapping and fallback
+cases. The combined Python SDK/schema/method suite passes 94 tests; Ruff and
+compilation pass. These synthetic responses do not prove live Directus behavior
+or authorization. Checklist: 601 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-python-error-envelope-parity.json`.

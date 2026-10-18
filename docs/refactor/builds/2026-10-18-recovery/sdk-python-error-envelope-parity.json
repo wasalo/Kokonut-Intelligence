@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python SDK handling of Directus HTTP error responses",
+  "contract": "Known HTTP status codes map to stable SDK exception classes; valid Directus errors preserve the first message, while malformed error envelopes fall back to response text or the HTTP status.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 94 passed",
+    "ruff": "python3 -m ruff check sdk/python/kokonut/client.py tests/test_sdk.py — passed",
+    "compilation": "python3 -m compileall -q sdk/python tests/test_sdk.py — passed",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "Synthetic response objects and local mocks were used; no HTTP request, database, provider, or credential was accessed.",
+    "This verifies Python exception normalization and fallback behavior only; it does not establish live Directus error responses or authorization/tenant isolation.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

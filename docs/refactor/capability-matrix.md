@@ -59,6 +59,12 @@ updates, and deletes. These request-shape checks do not establish live API,
 authorization, tenant scope, or MAN-CAP acceptance
 ([evidence](builds/2026-10-18-recovery/sdk-generic-crud-contract.json)).
 
+**Python SDK error handling note — 18 October 2026:** known Directus HTTP
+statuses map to stable exception classes, and malformed response envelopes
+fall back to response text or the HTTP status. Synthetic checks do not
+establish live API error behavior, authorization, tenant scope, or MAN-CAP
+acceptance ([evidence](builds/2026-10-18-recovery/sdk-python-error-envelope-parity.json)).
+
 **SDK export creation signature note — 18 October 2026:** TypeScript accepts the
 existing request object, export type plus options, and the positional field
 order supported by Python. These forms create the same pending export payload;

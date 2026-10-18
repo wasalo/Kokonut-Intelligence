@@ -59,7 +59,7 @@ class KokonutClient:
         client = KokonutClient("http://localhost:8055", token="...")
         # or
         client = KokonutClient("http://localhost:8055")
-        await client.login("email", "password")
+        client.login("email", "password")
 
         locations = client.locations.list()
         farms = client.farms.list_by_location(location_id)
@@ -193,12 +193,18 @@ class KokonutClient:
         if resp.ok:
             return
         status = resp.status_code
+        message = resp.text or f"HTTP {status}"
         try:
             body = resp.json()
-            errors = body.get("errors", [])
-            message = errors[0].get("message", resp.text) if errors else resp.text
-        except (ValueError, KeyError):
-            message = resp.text or f"HTTP {status}"
+        except ValueError:
+            body = None
+
+        if isinstance(body, dict):
+            errors = body.get("errors")
+            if isinstance(errors, list) and errors and isinstance(errors[0], dict):
+                error_message = errors[0].get("message")
+                if isinstance(error_message, str) and error_message:
+                    message = error_message
 
         if status == 401:
             raise AuthenticationError(message, status, resp)
