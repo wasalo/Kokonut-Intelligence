@@ -1,5 +1,25 @@
 # Kokonut Kernel implementation progress
 
+### Native Baal governance reads — 18 October 2026
+
+The Gateway now exposes global, read-only Baal configuration, a bounded
+newest-first proposal list, an individual proposal, and a requested member
+position. Non-admin API keys and capability tokens require the Gateway's
+global `governance:read` scope; farm-location-only credentials cannot authorize
+the global resource. The configured Directus admin key retains the existing
+Gateway-wide admin bypass. The service checks the configured chain is Gnosis
+(chain ID 100), limits proposal text and output size, omits raw event/provider metadata, and serializes large share/loot/vote quantities as exact decimal strings. Required Baal config reads fail closed instead of returning fabricated zero values.
+This global DAO surface does not assert farm tenant context or add write paths.
+The focused Gateway, auth, capability, governance-adapter, and Gnosis-indexer
+suite passes 98 tests; Ruff, compilation, and diff checks pass with mocked
+clients. No database or RPC provider was contacted, and candidate and legacy
+services were untouched. A router indentation
+defect in the existing Data Stream handler was also corrected after it blocked
+module import. CAP-023 is prepared, not accepted: legacy Moloch separation,
+populated chain parity, live RPC outage behavior, and MAN-CAP-023 remain open.
+Checklist: 639 complete / 19 open; matrix: 46 baseline-retained, 7 deployed,
+13 prepared ([evidence](builds/2026-10-18-recovery/gateway-governance-read.json)).
+
 ### Private Data Stream response cache policy — 18 October 2026
 
 Private Data Stream post/search, attachment metadata, stored-attestation, and

@@ -304,11 +304,11 @@ class BaalReadClient:
         )
 
     def config(self) -> GovernanceConfig:
-        def _safe_u256(fn, default=0) -> int:
+        def _safe_u256(fn) -> int | None:
             try:
                 return int(fn().call())
             except Exception:
-                return default
+                return None
 
         raw: dict[str, Any] = {}
         for label, fn in (

@@ -362,6 +362,8 @@ python3 -m services.capital.cli capacity --location-id UUID
 # Governance framework (Baal on Gnosis)
 python3 -m services.governance.cli framework list
 python3 -m services.governance.cli baal proposals
+# Non-admin Gateway API keys/capabilities need the global `governance:read` scope.
+# See services/gateway/README.md for the protected HTTP routes.
 
 # Tactical and simulation reports
 python3 -m services.export.report_generator --type tactical_layer --location-id UUID

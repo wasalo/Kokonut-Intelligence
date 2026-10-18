@@ -68,6 +68,10 @@ _ROUTE_POLICIES = (
     ("GET", re.compile(r"^/api/v1/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/v1/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
     ("GET", re.compile(r"^/api/v1/analytics/([^/]+)/summary$"), "analytics", "read", True),
+    ("GET", re.compile(r"^/api/v1/governance/baal/config$"), "governance", "read", False),
+    ("GET", re.compile(r"^/api/v1/governance/baal/proposals$"), "governance", "read", False),
+    ("GET", re.compile(r"^/api/v1/governance/baal/proposals/[^/]+$"), "governance", "read", False),
+    ("GET", re.compile(r"^/api/v1/governance/baal/members/[^/]+$"), "governance", "read", False),
     ("GET", re.compile(r"^/api/locations(?:/([^/]+))?$"), "location", "read", True),
     ("GET", re.compile(r"^/api/metrics/([^/]+)$"), "metric", "read", True),
     ("GET", re.compile(r"^/api/crisp/([^/]+)$"), "crisp_risk_assessment", "read", True),
@@ -339,7 +343,7 @@ async def get_public_analytics_summary_v1(location_id: str):
 
 @router.get("/data-stream/posts")
 async def list_data_stream_posts(request: Request):
-        """List or search tenant-scoped Data Stream posts without caching content."""
+    """List or search tenant-scoped Data Stream posts without caching content."""
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -506,3 +510,79 @@ async def service_health():
         return JSONResponse(content=result)
     except Exception as exc:
         return _internal_error(exc)
+
+
+@router.get("/v1/governance/baal/config")
+async def get_baal_governance_config():
+    """Read global Baal configuration under the governance:read credential scope."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_config
+
+    try:
+        result = await run_in_threadpool(read_baal_config)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+@router.get("/v1/governance/baal/proposals")
+async def get_baal_governance_proposals(limit: str = "50"):
+    """Read a bounded newest-first list of global Baal proposals."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_proposals
+
+    try:
+        parsed_limit = int(limit)
+    except (TypeError, ValueError):
+        return _private_response({"error": "limit must be an integer"}, status_code=400)
+    try:
+        result = await run_in_threadpool(read_baal_proposals, parsed_limit)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+@router.get("/v1/governance/baal/proposals/{proposal_id}")
+async def get_baal_governance_proposal(proposal_id: str):
+    """Read one global Baal proposal by decimal proposal identifier."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_proposal
+
+    try:
+        result = await run_in_threadpool(read_baal_proposal, proposal_id)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+@router.get("/v1/governance/baal/members/{wallet}")
+async def get_baal_governance_member(wallet: str):
+    """Read one requested public Baal member position by wallet address."""
+    from starlette.concurrency import run_in_threadpool
+
+    from services.gateway.governance import read_baal_member
+
+    try:
+        result = await run_in_threadpool(read_baal_member, wallet)
+        return _private_response({"data": result})
+    except Exception as exc:
+        return _governance_read_error(exc)
+
+
+def _governance_read_error(exc: Exception):
+    from services.gateway.governance import (
+        GovernanceProposalNotFound,
+        GovernanceReadUnavailable,
+    )
+
+    if isinstance(exc, ValueError):
+        return _private_response({"error": str(exc)}, status_code=400)
+    if isinstance(exc, GovernanceProposalNotFound):
+        return _private_response({"error": "Governance proposal not found"}, status_code=404)
+    if isinstance(exc, GovernanceReadUnavailable):
+        logger.warning("Baal governance read unavailable (%s)", type(exc).__name__)
+        return _private_response({"error": "Governance read unavailable"}, status_code=503)
+    return _internal_error(exc)

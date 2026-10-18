@@ -24,6 +24,8 @@ _PARAMETER_SAMPLES = {
     "post_id": "33333333-3333-4333-8333-333333333333",
     "enrollment_id": "22222222-2222-4222-8222-222222222222",
     "device_id": "collector-1",
+    "proposal_id": "17",
+    "wallet": "0x1111111111111111111111111111111111111111",
 }
 
 # These are the complete `/api` routes owned by the native and Field Collector
@@ -39,6 +41,10 @@ _EXPECTED_ROUTE_POLICIES = {
     ("GET", "/api/v1/metrics/{location_id}"): ("metric", "read", True),
     ("GET", "/api/v1/crisp/{location_id}"): ("crisp_risk_assessment", "read", True),
     ("GET", "/api/v1/analytics/{location_id}/summary"): ("analytics", "read", True),
+    ("GET", "/api/v1/governance/baal/config"): ("governance", "read", False),
+    ("GET", "/api/v1/governance/baal/proposals"): ("governance", "read", False),
+    ("GET", "/api/v1/governance/baal/proposals/{proposal_id}"): ("governance", "read", False),
+    ("GET", "/api/v1/governance/baal/members/{wallet}"): ("governance", "read", False),
     ("GET", "/api/data-stream/posts"): ("data_stream_post", "read", False),
     ("GET", "/api/data-stream/posts/{post_id}/files"): ("data_stream_file", "read", False),
     ("GET", "/api/data-stream/posts/{post_id}/attestation"): (

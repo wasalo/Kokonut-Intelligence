@@ -50,6 +50,24 @@ omits beneficiary, wallet, statement, evidence, request-key, and reviewer-note
 details. Retirement approval, rejection, cancellation, and chain actions are
 not exposed by this read.
 
+Global Baal governance reads are available at:
+
+- `GET /api/v1/governance/baal/config`
+- `GET /api/v1/governance/baal/proposals?limit=50` (limit 1–100)
+- `GET /api/v1/governance/baal/proposals/{proposal_id}`
+- `GET /api/v1/governance/baal/members/{wallet}`
+
+These routes use the Gateway's existing protected authentication. Non-admin
+API keys and capability tokens require the global `governance:read` scope; a
+location-specific scope cannot authorize them. The configured Directus admin
+key retains the existing Gateway-wide admin bypass. These are global DAO reads,
+so no farm tenant context is used. The service checks Gnosis chain ID 100 and
+returns no transaction methods, raw provider payloads, vote-event arrays, or
+proposal content URIs. Proposal text is bounded and should be rendered as
+plain text by clients. Large share, loot, and vote quantities are returned as
+decimal strings to preserve exact values. OIDC location grants do not imply
+global DAO access.
+
 ## Modules
 
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.
@@ -61,6 +79,8 @@ not exposed by this read.
 - `cli` — CLI for the API gateway.
 - `operator_auth` — OIDC operator sessions, scope policies, and protected operator routes.
 - `emergency_response` and `emergency_response_routes` — scoped emergency aggregates.
+- `governance` — bounded, read-only Baal Gateway projections for global DAO state.
+- `governance` — bounded, read-only Baal Gateway projections for global DAO state.
 - `rate_limiter` — Gateway rate limiter — per-caller token bucket rate limiting.
 - `router` — Gateway router — route definitions and backend proxying.
 - `true_cost` and `true_cost_routes` — tenant-scoped aggregate true-cost reads.

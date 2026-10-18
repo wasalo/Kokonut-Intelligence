@@ -132,9 +132,17 @@ class CapabilityManager:
                         continue
                     if cap.get("action") != action:
                         continue
+                    capability_location = cap.get("location_id")
                     # A location-scoped request must be authorized by a
                     # capability scoped to that exact location.
-                    if location_id and cap.get("location_id") != location_id:
+                    if location_id and capability_location != location_id:
+                        continue
+                    # A farm capability cannot authorize a global resource
+                    # merely because that route has no location parameter.
+                    if (
+                        location_id is None
+                        and capability_location not in (None, "*")
+                    ):
                         continue
                     matched_cap = cap
                     break

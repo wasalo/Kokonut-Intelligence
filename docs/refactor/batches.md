@@ -19,9 +19,9 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 638 checklist items complete and 19
-open (657 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 47
-baseline-retained, 7 deployed, and 12 prepared. Named MAN-CAP acceptance remains
+**Current snapshot (18 October 2026):** 639 checklist items complete and 19
+open (658 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 46
+baseline-retained, 7 deployed, and 13 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
 ## Batch 1 — Identify matching release artifacts (Phases 1, 8)
@@ -1327,6 +1327,7 @@ reporting views.
 - [x] Add typed read-only, location-scoped SDK groups for stored market prices, demand trends/signals, production-market matches, buyer segments, and value-flow events in Python and TypeScript. Location wins over conflicting caller filters; no price fetch, buyer commitment, marketplace lifecycle, or financial verification behavior is added. Focused SDK, schema, TypeScript, Ruff, matrix, and diff checks pass offline; CAP-049/056/058 remain unaccepted ([evidence](builds/2026-10-18-recovery/sdk-market-capital-read-methods.json)).
 - [x] Expose stored trend estimates, smoothing results, change points, seasonal decompositions, and dashboard summaries through typed read-only, location-scoped accessors in both SDKs. Required location filters override conflicting caller scope and preserve other query options; no trend calculation or verification behavior is added. Ninety-six focused Python tests and 46 JavaScript tests pass with the TypeScript build, Ruff, compilation, schema guard, capability validation, and diff checks; CAP-008 and MAN-CAP-008 remain unaccepted ([evidence](builds/2026-10-18-recovery/sdk-trend-read-methods.json)).
 - [x] Add typed read-only location-scoped access to stored `infrastructure_asset` inventory in Python and TypeScript. The required location filter overrides conflicting scope, and no condition assessment or certification behavior is added. Focused SDK, build, lint, schema, matrix, and diff checks pass; infrastructure MAN-CAP acceptance remains separate ([evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-read-methods.json)).
+- [x] Add protected read-only Gateway projections for global Baal configuration, bounded proposals, individual proposals, and requested member balances. Non-admin API keys and capability tokens require the global `governance:read` scope; location-bound credentials are denied. The service verifies chain ID 100, bounds proposal output, and omits raw provider/event metadata. Ninety-eight focused Gateway/auth/capability/governance/indexer checks, Ruff, compilation, and diff checks pass with mocked clients; no RPC provider or database was contacted ([evidence](builds/2026-10-18-recovery/gateway-governance-read.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

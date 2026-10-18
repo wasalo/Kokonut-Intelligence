@@ -159,6 +159,11 @@ def _scope_allows(key_meta: dict, resource: str, action: str, location_id: str |
         # scopes (scope_location is None) are not enough.
         if strict and location_id and scope_location is None:
             continue
+        # A location-bound key cannot authorize a route whose resource is
+        # global. Otherwise a farm grant could accidentally cross into DAO-
+        # wide state simply because the route has no location parameter.
+        if scope_location and location_id is None and scope_location != "*":
+            continue
         if scope_location and location_id and scope_location not in ("*", location_id):
             continue
         return scope
