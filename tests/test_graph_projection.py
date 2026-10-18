@@ -1,3 +1,4 @@
+import logging
 import uuid
 from unittest.mock import MagicMock, patch
 
@@ -25,15 +26,19 @@ def test_rebuild_orders_transaction_and_activation():
     assert result["generation_id"] == generation_id
 
 
-def test_rebuild_rolls_back_and_propagates_without_failed_write():
+def test_rebuild_rolls_back_and_propagates_without_failed_write(caplog):
     conn = MagicMock()
     cur = conn.cursor.return_value
     cur.execute.side_effect = RuntimeError("database failed")
-    with pytest.raises(RuntimeError, match="database failed"):
-        kernel.rebuild(conn, "operator")
+    with caplog.at_level(logging.ERROR, logger="kokonut.graph_projection.kernel"):
+        with pytest.raises(RuntimeError, match="database failed"):
+            kernel.rebuild(conn, "operator")
     conn.rollback.assert_called_once_with()
     conn.commit.assert_not_called()
     assert not any("failed" in str(call).lower() for call in cur.execute.call_args_list)
+    assert "database failed" not in caplog.text
+    assert "RuntimeError" in caplog.text
+    assert "Traceback" not in caplog.text
 
 
 def test_public_policy_is_conservative():

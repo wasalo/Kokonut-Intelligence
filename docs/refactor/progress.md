@@ -8450,3 +8450,12 @@ with Ruff, compilation, and diff checks. No database/provider was contacted.
 The checklist is 509 complete / 19 open; capability classifications are
 unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/cache-error-redaction.json`.
+
+Typed graph projection and RDF generation failures now log only bounded
+exception classes, without raw diagnostics or RDF location identifiers. Failed
+rebuilds still roll back and re-raise before a generation is activated. Two
+focused redaction regressions pass within a 157-test graph/RDF/linked-data
+suite with Ruff, compilation, and diff checks using mocks. No database or
+provider was contacted. The checklist is 510 complete / 19 open; capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/graph-rdf-error-redaction.json`.
