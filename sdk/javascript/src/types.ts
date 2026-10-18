@@ -21,6 +21,11 @@ export type AttestationVerdict = 'pending' | 'approved' | 'rejected' | 'needs_in
 export type TimeSeriesForecastModelType = 'arima' | 'exponential_smoothing' | 'prophet' | 'naive' | 'seasonal_naive';
 export type TimeSeriesForecastStatus = 'active' | 'superseded' | 'expired';
 export type VariogramModelType = 'spherical' | 'exponential' | 'gaussian' | 'matern';
+export type KrigingMethod = 'ordinary' | 'simple' | 'indicator';
+export type GeostatSimulationMethod = 'sgs' | 'sis' | 'turning_bands';
+export type SpatialAutocorrelationMetric = 'morans_i' | 'gearys_c' | 'join_count';
+export type SpatialWeightsType = 'queen' | 'rook' | 'distance' | 'knn';
+export type GeostatCVStrategy = 'spatial_block' | 'leave_one_out' | 'k_fold';
 export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
 export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type MarketScope = 'local' | 'regional' | 'national' | 'international';
@@ -1204,6 +1209,115 @@ export interface VariogramModel {
   n_pairs?: number | null;
   r_squared?: number | null;
   fitted_at: string;
+  metadata?: JSONObject | null;
+  created_at: string;
+}
+
+/** Stored kriging run metadata; this record does not interpolate points. */
+export interface KrigingPrediction {
+  id: string;
+  location_id?: string | null;
+  variogram_model_id: string;
+  property_key: string;
+  grid_resolution_m?: number | null;
+  n_points: number;
+  method: KrigingMethod;
+  threshold_value?: number | null;
+  created_at: string;
+  metadata?: JSONObject | null;
+}
+
+/** Stored prediction point; this record does not calculate interpolation. */
+export interface KrigingPoint {
+  id: string;
+  prediction_id: string;
+  point_geometry: GeoJSONPoint;
+  predicted_value: number;
+  prediction_variance?: number | null;
+  prediction_std?: number | null;
+  search_radius_m?: number | null;
+  n_neighbors?: number | null;
+  weight_sum?: number | null;
+}
+
+/** Stored simulation metadata; this record does not generate realizations. */
+export interface GeostatRealization {
+  id: string;
+  location_id?: string | null;
+  variogram_model_id: string;
+  property_key: string;
+  realization_number: number;
+  grid_resolution_m?: number | null;
+  n_points: number;
+  method: GeostatSimulationMethod;
+  seed?: number | null;
+  created_at: string;
+  metadata?: JSONObject | null;
+}
+
+/** Stored simulation point; this record does not generate realizations. */
+export interface GeostatRealizationPoint {
+  id: string;
+  realization_id: string;
+  point_geometry: GeoJSONPoint;
+  simulated_value: number;
+}
+
+/** Stored spatial autocorrelation result; this record does not analyze data. */
+export interface SpatialAutocorrelation {
+  id: string;
+  location_id?: string | null;
+  property_key: string;
+  metric: SpatialAutocorrelationMetric;
+  statistic_value: number;
+  expected_value?: number | null;
+  p_value?: number | null;
+  z_score?: number | null;
+  n_samples: number;
+  spatial_weights_type?: SpatialWeightsType | null;
+  distance_threshold?: number | null;
+  k_neighbors?: number | null;
+  interpretation?: string | null;
+  computed_at: string;
+  metadata?: JSONObject | null;
+  created_at: string;
+}
+
+/** Stored spatial validation metrics; this record does not validate. */
+export interface GeostatCVResult {
+  id: string;
+  location_id?: string | null;
+  property_key: string;
+  variogram_model_id?: string | null;
+  cv_strategy: GeostatCVStrategy;
+  n_folds: number;
+  block_size_m?: number | null;
+  mean_error?: number | null;
+  mean_squared_error?: number | null;
+  root_mean_squared_error?: number | null;
+  mean_absolute_error?: number | null;
+  r_squared?: number | null;
+  fold_results?: JSONObject[] | null;
+  soc_model_id?: string | null;
+  computed_at: string;
+  metadata?: JSONObject | null;
+  created_at: string;
+}
+
+/** Stored sensor spacing recommendation; this record does not optimize design. */
+export interface SensorNetworkDesign {
+  id: string;
+  location_id?: string | null;
+  property_key: string;
+  variogram_model_id?: string | null;
+  optimal_spacing_m?: number | null;
+  coverage_radius_m?: number | null;
+  recommended_n_sensors?: number | null;
+  current_n_sensors?: number | null;
+  coverage_gap_pct?: number | null;
+  confidence_level?: number | null;
+  notes?: string | null;
+  computed_at: string;
   metadata?: JSONObject | null;
   created_at: string;
 }

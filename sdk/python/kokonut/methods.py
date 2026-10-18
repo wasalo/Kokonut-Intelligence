@@ -143,6 +143,50 @@ class ForecastAccuracyReadMethods(Generic[ReadModel]):
         )
 
 
+class KrigingPointReadMethods(Generic[ReadModel]):
+    """Read-only kriging point results scoped to their parent prediction."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
+        self._collection = "kriging_point"
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_prediction(
+        self, prediction_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"prediction_id": {"_eq": prediction_id}}),
+        )
+
+
+class GeostatRealizationPointReadMethods(Generic[ReadModel]):
+    """Read-only simulation points scoped to their parent realization."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
+        self._collection = "geostat_realization_point"
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_realization(
+        self, realization_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"realization_id": {"_eq": realization_id}}),
+        )
+
+
 class LocationMethods(GenericMethods):
     def __init__(self, client: KokonutClient) -> None:
         super().__init__(client, "location")

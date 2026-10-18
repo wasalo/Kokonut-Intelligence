@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Stored geostatistics SDK reads — 18 October 2026
+
+Python and TypeScript now expose schema-aligned read models and read-only
+accessors for stored kriging predictions and points, geostatistical
+realizations and points, spatial-autocorrelation results, cross-validation
+results, and sensor-network designs. Runs with `location_id` use the shared
+location-scoped accessor; point rows are filtered through their actual
+`prediction_id` or `realization_id` parent. The SQL-derived guard checks all
+columns, nullable fields, numeric/string/spatial types, JSON shapes, and exact
+CHECK literals. The clients add no interpolation, simulation, spatial testing,
+cross-validation, network optimization, or mutation. One hundred focused
+Python SDK/schema/method-parity tests and 50 JavaScript tests pass, along with
+the TypeScript build, Ruff, Python compilation, schema and capability guards,
+and diff checks. No database or provider was contacted. MAN-CAP-008 remains unaccepted.
+Checklist: 628 complete / 19 open; capability matrix: 66 rows, 54
+baseline-retained, 7 deployed, 5 prepared
+([evidence](builds/2026-10-18-recovery/sdk-geostat-stored-output-read-methods.json)).
+
 ### Stored variogram SDK reads — 18 October 2026
 
 Python and JavaScript now expose schema-aligned `VariogramModel` read types and

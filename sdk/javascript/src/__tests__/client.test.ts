@@ -13,7 +13,12 @@ import type {
   ExportLog,
   FieldNote,
   Farm,
+  GeostatCVResult,
+  GeostatRealization,
+  GeostatRealizationPoint,
   HarvestEvent,
+  KrigingPoint,
+  KrigingPrediction,
   LaborEvent,
   Location,
   LossEvent,
@@ -24,8 +29,10 @@ import type {
   AttestationRecord,
   SensorAlert,
   SensorDevice,
+  SensorNetworkDesign,
   SensorReading,
   SensorType,
+  SpatialAutocorrelation,
   ReportSnapshot,
   WalletProfile,
 } from '../types.js';
@@ -283,6 +290,11 @@ describe('KokonutClient', () => {
       [client.sensorDevices, 'sensor_device'],
       [client.sensorAlerts, 'sensor_alert'],
       [client.variogramModels, 'variogram_model'],
+      [client.krigingPredictions, 'kriging_prediction'],
+      [client.geostatRealizations, 'geostat_realization'],
+      [client.spatialAutocorrelations, 'spatial_autocorrelation'],
+      [client.geostatCvResults, 'geostat_cv_result'],
+      [client.sensorNetworkDesigns, 'sensor_network_design'],
       [client.soilSamples, 'soil_sample'],
       [client.soilCarbonMeasurements, 'soil_carbon_measurement'],
       [client.environmentalBaselines, 'environmental_baseline'],
@@ -329,6 +341,120 @@ describe('KokonutClient', () => {
       expect('update' in methods).toBe(false);
       expect('delete' in methods).toBe(false);
     }
+  });
+
+  it('scopes geostatistical point reads by their parent record', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'point-1' } as any);
+    const options = {
+      limit: 15,
+      offset: 30,
+      sort: ['id'],
+      fields: ['id', 'point_geometry'],
+      filter: {
+        prediction_id: { _eq: 'other-prediction' },
+        realization_id: { _eq: 'other-realization' },
+        quality: { _eq: 'good' },
+      },
+    };
+
+    await client.krigingPoints.listByPrediction('prediction-1', options);
+    expect(listItems).toHaveBeenLastCalledWith('kriging_point', {
+      ...options,
+      filter: {
+        realization_id: { _eq: 'other-realization' },
+        prediction_id: { _eq: 'prediction-1' },
+        quality: { _eq: 'good' },
+      },
+    });
+    await client.geostatRealizationPoints.listByRealization('realization-1', options);
+    expect(listItems).toHaveBeenLastCalledWith('geostat_realization_point', {
+      ...options,
+      filter: {
+        prediction_id: { _eq: 'other-prediction' },
+        realization_id: { _eq: 'realization-1' },
+        quality: { _eq: 'good' },
+      },
+    });
+    await client.krigingPoints.get('point-1', ['id']);
+    expect(getItem).toHaveBeenLastCalledWith('kriging_point', 'point-1', ['id']);
+    await client.geostatRealizationPoints.get('point-1', ['id']);
+    expect(getItem).toHaveBeenLastCalledWith('geostat_realization_point', 'point-1', ['id']);
+    for (const methods of [client.krigingPoints, client.geostatRealizationPoints]) {
+      expect('create' in methods).toBe(false);
+      expect('update' in methods).toBe(false);
+      expect('delete' in methods).toBe(false);
+      expect('listByLocation' in methods).toBe(false);
+    }
+  });
+
+  it('types stored geostatistical outputs and their constrained literals', () => {
+    const prediction: KrigingPrediction = {
+      id: 'prediction-1',
+      location_id: 'location-1',
+      variogram_model_id: 'variogram-1',
+      property_key: 'soil_carbon',
+      n_points: 3,
+      method: 'ordinary',
+      created_at: '2026-10-18T00:00:00Z',
+    };
+    const point: KrigingPoint = {
+      id: 'point-1',
+      prediction_id: prediction.id,
+      point_geometry: { type: 'Point', coordinates: [-69.9, 18.5] },
+      predicted_value: 14.2,
+    };
+    const realization: GeostatRealization = {
+      id: 'realization-1',
+      location_id: 'location-1',
+      variogram_model_id: 'variogram-1',
+      property_key: 'soil_carbon',
+      realization_number: 1,
+      n_points: 3,
+      method: 'sgs',
+      created_at: '2026-10-18T00:00:00Z',
+    };
+    const realizationPoint: GeostatRealizationPoint = {
+      id: 'realization-point-1',
+      realization_id: realization.id,
+      point_geometry: { type: 'Point', coordinates: [-69.9, 18.5] },
+      simulated_value: 13.8,
+    };
+    const autocorrelation: SpatialAutocorrelation = {
+      id: 'autocorrelation-1',
+      location_id: 'location-1',
+      property_key: 'soil_carbon',
+      metric: 'morans_i',
+      statistic_value: 0.42,
+      n_samples: 30,
+      computed_at: '2026-10-18T00:00:00Z',
+      created_at: '2026-10-18T00:00:00Z',
+      spatial_weights_type: 'knn',
+    };
+    const cvResult: GeostatCVResult = {
+      id: 'cv-1',
+      location_id: 'location-1',
+      property_key: 'soil_carbon',
+      cv_strategy: 'spatial_block',
+      n_folds: 4,
+      fold_results: [{ fold: 1, rmse: 0.8 }],
+      computed_at: '2026-10-18T00:00:00Z',
+      created_at: '2026-10-18T00:00:00Z',
+    };
+    const design: SensorNetworkDesign = {
+      id: 'network-design-1',
+      location_id: 'location-1',
+      property_key: 'soil_carbon',
+      recommended_n_sensors: 12,
+      computed_at: '2026-10-18T00:00:00Z',
+      created_at: '2026-10-18T00:00:00Z',
+    };
+
+    expect(point.point_geometry.coordinates).toEqual([-69.9, 18.5]);
+    expect(realizationPoint.simulated_value).toBe(13.8);
+    expect(autocorrelation.spatial_weights_type).toBe('knn');
+    expect(cvResult.fold_results?.[0]?.rmse).toBe(0.8);
+    expect(design.recommended_n_sensors).toBe(12);
   });
 
   it('provides typed read-only methods for shared reference catalogs', async () => {

@@ -34,6 +34,11 @@ TimeSeriesForecastModelType = Literal[
 ]
 TimeSeriesForecastStatus = Literal["active", "superseded", "expired"]
 VariogramModelType = Literal["spherical", "exponential", "gaussian", "matern"]
+KrigingMethod = Literal["ordinary", "simple", "indicator"]
+GeostatSimulationMethod = Literal["sgs", "sis", "turning_bands"]
+SpatialAutocorrelationMetric = Literal["morans_i", "gearys_c", "join_count"]
+SpatialWeightsType = Literal["queen", "rook", "distance", "knn"]
+GeostatCVStrategy = Literal["spatial_block", "leave_one_out", "k_fold"]
 DemandForecastType = Literal[
     "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
 ]
@@ -894,6 +899,129 @@ class VariogramModel:
     bandwidth: Optional[float] = None
     n_pairs: Optional[int] = None
     r_squared: Optional[float] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class KrigingPrediction:
+    """Stored kriging run metadata; this record does not interpolate points."""
+
+    id: str
+    variogram_model_id: str
+    property_key: str
+    n_points: int
+    method: KrigingMethod
+    created_at: str
+    location_id: Optional[str] = None
+    grid_resolution_m: Optional[float] = None
+    threshold_value: Optional[float] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class KrigingPoint:
+    """Stored prediction point; this record does not calculate interpolation."""
+
+    id: str
+    prediction_id: str
+    point_geometry: GeoJSONPoint
+    predicted_value: float
+    prediction_variance: Optional[float] = None
+    prediction_std: Optional[float] = None
+    search_radius_m: Optional[float] = None
+    n_neighbors: Optional[int] = None
+    weight_sum: Optional[float] = None
+
+
+@dataclass
+class GeostatRealization:
+    """Stored geostatistical simulation metadata; this record does not simulate."""
+
+    id: str
+    variogram_model_id: str
+    property_key: str
+    realization_number: int
+    n_points: int
+    method: GeostatSimulationMethod
+    created_at: str
+    location_id: Optional[str] = None
+    grid_resolution_m: Optional[float] = None
+    seed: Optional[int] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class GeostatRealizationPoint:
+    """Stored simulation point; this record does not generate realizations."""
+
+    id: str
+    realization_id: str
+    point_geometry: GeoJSONPoint
+    simulated_value: float
+
+
+@dataclass
+class SpatialAutocorrelation:
+    """Stored spatial autocorrelation result; this record does not analyze data."""
+
+    id: str
+    property_key: str
+    metric: SpatialAutocorrelationMetric
+    statistic_value: float
+    n_samples: int
+    computed_at: str
+    created_at: str
+    location_id: Optional[str] = None
+    expected_value: Optional[float] = None
+    p_value: Optional[float] = None
+    z_score: Optional[float] = None
+    spatial_weights_type: Optional[SpatialWeightsType] = None
+    distance_threshold: Optional[float] = None
+    k_neighbors: Optional[int] = None
+    interpretation: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class GeostatCVResult:
+    """Stored spatial cross-validation metrics; this record does not validate."""
+
+    id: str
+    property_key: str
+    cv_strategy: GeostatCVStrategy
+    n_folds: int
+    computed_at: str
+    created_at: str
+    location_id: Optional[str] = None
+    variogram_model_id: Optional[str] = None
+    block_size_m: Optional[float] = None
+    mean_error: Optional[float] = None
+    mean_squared_error: Optional[float] = None
+    root_mean_squared_error: Optional[float] = None
+    mean_absolute_error: Optional[float] = None
+    r_squared: Optional[float] = None
+    fold_results: Optional[List[JSONObject]] = None
+    soc_model_id: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class SensorNetworkDesign:
+    """Stored sensor spacing recommendation; this record does not optimize design."""
+
+    id: str
+    property_key: str
+    computed_at: str
+    created_at: str
+    location_id: Optional[str] = None
+    variogram_model_id: Optional[str] = None
+    optimal_spacing_m: Optional[float] = None
+    coverage_radius_m: Optional[float] = None
+    recommended_n_sensors: Optional[int] = None
+    current_n_sensors: Optional[int] = None
+    coverage_gap_pct: Optional[float] = None
+    confidence_level: Optional[float] = None
+    notes: Optional[str] = None
     metadata: Optional[JSONObject] = None
 
 

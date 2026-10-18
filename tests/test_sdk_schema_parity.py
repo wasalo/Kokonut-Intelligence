@@ -178,6 +178,13 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ("VariogramModel", "model_type"): (
             "spherical", "exponential", "gaussian", "matern"
         ),
+        ("KrigingPrediction", "method"): ("ordinary", "simple", "indicator"),
+        ("GeostatRealization", "method"): ("sgs", "sis", "turning_bands"),
+        ("SpatialAutocorrelation", "metric"): ("morans_i", "gearys_c", "join_count"),
+        ("SpatialAutocorrelation", "spatial_weights_type"): (
+            "queen", "rook", "distance", "knn"
+        ),
+        ("GeostatCVResult", "cv_strategy"): ("spatial_block", "leave_one_out", "k_fold"),
         ("DemandForecast", "forecast_type"): (
             "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
         ),
@@ -374,7 +381,7 @@ def test_sdk_spatial_field_shapes_match_canonical_postgis_types():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {sql_type}"
-    assert checked == 10
+    assert checked == 12
 
 
 def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
@@ -399,7 +406,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 87
+    assert checked == 93
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

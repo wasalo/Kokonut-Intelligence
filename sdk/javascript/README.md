@@ -73,6 +73,17 @@ const accuracy = await client.forecastAccuracies.listByForecast('forecast-uuid')
 const variograms = await client.variogramModels.listByLocation('location-uuid');
 // This reads fitted output; it does not fit or validate a variogram.
 
+// Read saved spatial predictions and diagnostics for a location
+const predictions = await client.krigingPredictions.listByLocation('location-uuid');
+const realizations = await client.geostatRealizations.listByLocation('location-uuid');
+const spatialTests = await client.spatialAutocorrelations.listByLocation('location-uuid');
+const cvResults = await client.geostatCvResults.listByLocation('location-uuid');
+const sensorDesigns = await client.sensorNetworkDesigns.listByLocation('location-uuid');
+// Point rows are read through their owning prediction/realization.
+const predictionPoints = await client.krigingPoints.listByPrediction('prediction-uuid');
+const realizationPoints = await client.geostatRealizationPoints.listByRealization('realization-uuid');
+// These reads return stored output only; they do not run spatial analysis.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -241,10 +252,22 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `farmTasks` | `farm_task` | `listByLocation` (read-only) |
 | `forecastAccuracies` | `forecast_accuracy` | `listByForecast` (read-only) |
 | `variogramModels` | `variogram_model` | `listByLocation` (read-only) |
+| `krigingPredictions` | `kriging_prediction` | `listByLocation` (read-only) |
+| `krigingPoints` | `kriging_point` | `listByPrediction` (read-only) |
+| `geostatRealizations` | `geostat_realization` | `listByLocation` (read-only) |
+| `geostatRealizationPoints` | `geostat_realization_point` | `listByRealization` (read-only) |
+| `spatialAutocorrelations` | `spatial_autocorrelation` | `listByLocation` (read-only) |
+| `geostatCvResults` | `geostat_cv_result` | `listByLocation` (read-only) |
+| `sensorNetworkDesigns` | `sensor_network_design` | `listByLocation` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensorTypes` | `sensor_type` | — (read-only list/detail) |
 | `attestationSchemas` | `attestation_schema` | — (read-only list/detail) |
+
+Geostatistics groups expose saved outputs only. `krigingPoints` requires a
+prediction ID, and `geostatRealizationPoints` requires a realization ID,
+because their canonical tables have no location column. Client-side filters do
+not grant access; the configured API must enforce the caller's authorization.
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `createMany`, `update`, `delete`. The credit-ledger, finance, ecological

@@ -45,6 +45,18 @@ export interface ForecastAccuracyReadMethods<T> {
   listByForecast(forecastId: string, options?: ListOptions): Promise<T[]>;
 }
 
+export interface KrigingPointReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByPrediction(predictionId: string, options?: ListOptions): Promise<T[]>;
+}
+
+export interface GeostatRealizationPointReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByRealization(realizationId: string, options?: ListOptions): Promise<T[]>;
+}
+
 function createGenericMethods(client: any, collection: string): GenericMethods {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options),
@@ -92,6 +104,34 @@ export function buildForecastAccuracyReadMethods<T>(
       client.listItems(collection, {
         ...options,
         filter: { ...options?.filter, forecast_id: { _eq: forecastId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildKrigingPointReadMethods<T>(client: any): KrigingPointReadMethods<T> {
+  const collection = 'kriging_point';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByPrediction: (predictionId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, prediction_id: { _eq: predictionId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildGeostatRealizationPointReadMethods<T>(
+  client: any,
+): GeostatRealizationPointReadMethods<T> {
+  const collection = 'geostat_realization_point';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByRealization: (realizationId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, realization_id: { _eq: realizationId } },
       }) as Promise<T[]>,
   };
 }

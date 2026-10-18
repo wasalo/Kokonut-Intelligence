@@ -1470,3 +1470,17 @@ method tests, 46 JavaScript tests, TypeScript build, Ruff, compilation, schema
 guard, and capability validation pass offline. CAP-031 remains at `D`; this
 does not establish budgeting or portfolio workflow parity
 ([evidence](builds/2026-10-18-recovery/sdk-finance-read-methods.json)).
+
+### Geostatistics stored-output SDK continuation — 18 October 2026
+
+Expose persisted kriging, realization, spatial-autocorrelation,
+cross-validation, and sensor-network-design outputs through typed read-only
+Python and TypeScript SDK groups. Location-bearing run records use the shared
+location-filter method. Point rows have no location column, so their convenience
+reads require `prediction_id` or `realization_id`; caller filters cannot
+override those parent selectors. Extend the canonical SQL parity guard to the
+seven geostatistics tables, including PostGIS point output, JSON object arrays,
+nullable values, and exact CHECK literals. Keep MAN-CAP-008 open: this slice
+does not implement or validate geostatistical calculations.
+
+Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-geostat-stored-output-read-methods.json).

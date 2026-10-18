@@ -891,6 +891,99 @@ def test_time_series_forecast_and_accuracy_types_preserve_stored_values():
     assert variogram.partial_sill is None
 
 
+def test_geostatistics_models_preserve_stored_results_and_literals():
+    from typing import get_args
+
+    from kokonut import (
+        GeostatCVResult,
+        GeostatCVStrategy,
+        GeostatRealization,
+        GeostatRealizationPoint,
+        GeostatSimulationMethod,
+        KrigingMethod,
+        KrigingPoint,
+        KrigingPrediction,
+        SensorNetworkDesign,
+        SpatialAutocorrelation,
+        SpatialAutocorrelationMetric,
+        SpatialWeightsType,
+    )
+
+    prediction = KrigingPrediction(
+        id="prediction-1",
+        location_id="location-1",
+        variogram_model_id="variogram-1",
+        property_key="soil_carbon",
+        n_points=3,
+        method="ordinary",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    prediction_point = KrigingPoint(
+        id="kriging-point-1",
+        prediction_id=prediction.id,
+        point_geometry={"type": "Point", "coordinates": [-69.9, 18.5]},
+        predicted_value=14.2,
+    )
+    realization = GeostatRealization(
+        id="realization-1",
+        location_id="location-1",
+        variogram_model_id="variogram-1",
+        property_key="soil_carbon",
+        realization_number=1,
+        n_points=3,
+        method="sgs",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    realization_point = GeostatRealizationPoint(
+        id="realization-point-1",
+        realization_id=realization.id,
+        point_geometry={"type": "Point", "coordinates": [-69.9, 18.5]},
+        simulated_value=13.8,
+    )
+    autocorrelation = SpatialAutocorrelation(
+        id="autocorrelation-1",
+        location_id="location-1",
+        property_key="soil_carbon",
+        metric="morans_i",
+        statistic_value=0.42,
+        n_samples=30,
+        computed_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+        spatial_weights_type="knn",
+    )
+    cv_result = GeostatCVResult(
+        id="cv-1",
+        location_id="location-1",
+        property_key="soil_carbon",
+        cv_strategy="spatial_block",
+        n_folds=4,
+        computed_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+        fold_results=[{"fold": 1, "rmse": 0.8}],
+    )
+    network_design = SensorNetworkDesign(
+        id="network-design-1",
+        location_id="location-1",
+        property_key="soil_carbon",
+        computed_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+        recommended_n_sensors=12,
+    )
+
+    assert prediction.method == "ordinary"
+    assert prediction_point.point_geometry["coordinates"] == [-69.9, 18.5]
+    assert realization.method == "sgs"
+    assert realization_point.simulated_value == 13.8
+    assert autocorrelation.spatial_weights_type == "knn"
+    assert cv_result.fold_results == [{"fold": 1, "rmse": 0.8}]
+    assert network_design.recommended_n_sensors == 12
+    assert get_args(KrigingMethod) == ("ordinary", "simple", "indicator")
+    assert get_args(GeostatSimulationMethod) == ("sgs", "sis", "turning_bands")
+    assert get_args(SpatialAutocorrelationMetric) == ("morans_i", "gearys_c", "join_count")
+    assert get_args(SpatialWeightsType) == ("queen", "rook", "distance", "knn")
+    assert get_args(GeostatCVStrategy) == ("spatial_block", "leave_one_out", "k_fold")
+
+
 def test_demand_forecast_type_keeps_estimate_provenance_and_review_state():
     from kokonut import DemandForecast
 
@@ -1454,6 +1547,11 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.sensor_devices, "sensor_device"),
         (client.sensor_alerts, "sensor_alert"),
         (client.variogram_models, "variogram_model"),
+        (client.kriging_predictions, "kriging_prediction"),
+        (client.geostat_realizations, "geostat_realization"),
+        (client.spatial_autocorrelations, "spatial_autocorrelation"),
+        (client.geostat_cv_results, "geostat_cv_result"),
+        (client.sensor_network_designs, "sensor_network_design"),
         (client.soil_samples, "soil_sample"),
         (client.soil_carbon_measurements, "soil_carbon_measurement"),
         (client.environmental_baselines, "environmental_baseline"),
@@ -1535,6 +1633,55 @@ def test_forecast_accuracy_read_methods_are_scoped_to_parent_forecast_only():
     assert scoped_options.limit == 10
     assert scoped_options.offset == 5
     assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+
+def test_geostat_point_reads_are_scoped_to_their_parent_only():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    client.get_item = Mock(return_value={"id": "point-1"})
+    options = ListOptions(
+        filter={
+            "prediction_id": {"_eq": "other-prediction"},
+            "realization_id": {"_eq": "other-realization"},
+            "quality": {"_eq": "good"},
+        },
+        sort=["id"],
+        fields=["id", "point_geometry"],
+        limit=15,
+        offset=30,
+    )
+
+    assert client.kriging_points.list_by_prediction("prediction-1", options) == []
+    _, prediction_options = client.list_items.call_args.args
+    assert client.list_items.call_args.args[0] == "kriging_point"
+    assert prediction_options.filter == {
+        "realization_id": {"_eq": "other-realization"},
+        "prediction_id": {"_eq": "prediction-1"},
+        "quality": {"_eq": "good"},
+    }
+    assert prediction_options.sort == ["id"]
+    assert prediction_options.fields == ["id", "point_geometry"]
+    assert prediction_options.limit == 15
+    assert prediction_options.offset == 30
+    assert client.geostat_realization_points.list_by_realization("realization-1", options) == []
+    _, realization_options = client.list_items.call_args.args
+    assert client.list_items.call_args.args[0] == "geostat_realization_point"
+    assert realization_options.filter == {
+        "prediction_id": {"_eq": "other-prediction"},
+        "realization_id": {"_eq": "realization-1"},
+        "quality": {"_eq": "good"},
+    }
+    assert realization_options.sort == ["id"]
+    assert realization_options.fields == ["id", "point_geometry"]
+    assert realization_options.limit == 15
+    assert realization_options.offset == 30
+    for methods in (client.kriging_points, client.geostat_realization_points):
+        assert methods.get("point-1", ["id"]) == {"id": "point-1"}
+        assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+        assert not hasattr(methods, "list_by_location")
 
 
 def test_reference_read_methods_are_typed_catalog_reads_only():

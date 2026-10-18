@@ -13,7 +13,9 @@ from .methods import (
     FarmMethods,
     FieldNoteMethods,
     ForecastAccuracyReadMethods,
+    GeostatRealizationPointReadMethods,
     HarvestEventMethods,
+    KrigingPointReadMethods,
     LaborEventMethods,
     LocationMethods,
     LocationReadMethods,
@@ -45,7 +47,12 @@ from .types import (
     ForecastAccuracy,
     ForecastOutput,
     ForecastScenario,
+    GeostatCVResult,
+    GeostatRealization,
+    GeostatRealizationPoint,
     InfrastructureAsset,
+    KrigingPoint,
+    KrigingPrediction,
     ListOptions,
     MarketSizeEstimate,
     MetricValue,
@@ -57,9 +64,11 @@ from .types import (
     SeasonalDecomposition,
     SensorAlert,
     SensorDevice,
+    SensorNetworkDesign,
     SensorType,
     SoilCarbonMeasurement,
     SoilSample,
+    SpatialAutocorrelation,
     SpeciesObservation,
     TimeSeriesForecast,
     TrendDashboardMetric,
@@ -194,6 +203,27 @@ class KokonutClient:
         )
         self.variogram_models: LocationReadMethods[VariogramModel] = LocationReadMethods(
             self, "variogram_model"
+        )
+        self.kriging_predictions: LocationReadMethods[KrigingPrediction] = LocationReadMethods(
+            self, "kriging_prediction"
+        )
+        self.kriging_points: KrigingPointReadMethods[KrigingPoint] = KrigingPointReadMethods(
+            self
+        )
+        self.geostat_realizations: LocationReadMethods[GeostatRealization] = LocationReadMethods(
+            self, "geostat_realization"
+        )
+        self.geostat_realization_points: GeostatRealizationPointReadMethods[
+            GeostatRealizationPoint
+        ] = GeostatRealizationPointReadMethods(self)
+        self.spatial_autocorrelations: LocationReadMethods[SpatialAutocorrelation] = (
+            LocationReadMethods(self, "spatial_autocorrelation")
+        )
+        self.geostat_cv_results: LocationReadMethods[GeostatCVResult] = LocationReadMethods(
+            self, "geostat_cv_result"
+        )
+        self.sensor_network_designs: LocationReadMethods[SensorNetworkDesign] = LocationReadMethods(
+            self, "sensor_network_design"
         )
         self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
             self, "demand_forecast"

@@ -28,11 +28,16 @@ import type {
   DemandForecast,
   FarmTask,
   ForecastAccuracy,
+  GeostatCVResult,
+  GeostatRealization,
+  GeostatRealizationPoint,
   ForecastOutput,
   ForecastScenario,
   Crop,
   EnvironmentalBaseline,
   InfrastructureAsset,
+  KrigingPoint,
+  KrigingPrediction,
   MarketSizeEstimate,
   MetricValue,
   MrvClaim,
@@ -44,6 +49,8 @@ import type {
   SensorType,
   SensorDevice,
   SensorAlert,
+  SensorNetworkDesign,
+  SpatialAutocorrelation,
   SoilCarbonMeasurement,
   SoilSample,
   SpeciesObservation,
@@ -59,6 +66,8 @@ import {
   buildLocationReadMethods,
   buildReferenceReadMethods,
   buildForecastAccuracyReadMethods,
+  buildKrigingPointReadMethods,
+  buildGeostatRealizationPointReadMethods,
   buildLocationMethods,
   buildFarmMethods,
   buildPlotMethods,
@@ -80,6 +89,8 @@ import type {
   LocationReadMethods,
   ReferenceReadMethods,
   ForecastAccuracyReadMethods,
+  KrigingPointReadMethods,
+  GeostatRealizationPointReadMethods,
   LocationMethods,
   FarmMethods,
   PlotMethods,
@@ -154,6 +165,13 @@ export class KokonutClient {
   timeSeriesForecasts: LocationReadMethods<TimeSeriesForecast>;
   forecastAccuracies: ForecastAccuracyReadMethods<ForecastAccuracy>;
   variogramModels: LocationReadMethods<VariogramModel>;
+  krigingPredictions: LocationReadMethods<KrigingPrediction>;
+  krigingPoints: KrigingPointReadMethods<KrigingPoint>;
+  geostatRealizations: LocationReadMethods<GeostatRealization>;
+  geostatRealizationPoints: GeostatRealizationPointReadMethods<GeostatRealizationPoint>;
+  spatialAutocorrelations: LocationReadMethods<SpatialAutocorrelation>;
+  geostatCvResults: LocationReadMethods<GeostatCVResult>;
+  sensorNetworkDesigns: LocationReadMethods<SensorNetworkDesign>;
   demandForecasts: LocationReadMethods<DemandForecast>;
   marketSizeEstimates: LocationReadMethods<MarketSizeEstimate>;
   priceObservations: LocationReadMethods<PriceObservation>;
@@ -217,6 +235,13 @@ export class KokonutClient {
     this.timeSeriesForecasts = buildLocationReadMethods<TimeSeriesForecast>(this, 'time_series_forecast');
     this.forecastAccuracies = buildForecastAccuracyReadMethods<ForecastAccuracy>(this);
     this.variogramModels = buildLocationReadMethods<VariogramModel>(this, 'variogram_model');
+    this.krigingPredictions = buildLocationReadMethods<KrigingPrediction>(this, 'kriging_prediction');
+    this.krigingPoints = buildKrigingPointReadMethods<KrigingPoint>(this);
+    this.geostatRealizations = buildLocationReadMethods<GeostatRealization>(this, 'geostat_realization');
+    this.geostatRealizationPoints = buildGeostatRealizationPointReadMethods<GeostatRealizationPoint>(this);
+    this.spatialAutocorrelations = buildLocationReadMethods<SpatialAutocorrelation>(this, 'spatial_autocorrelation');
+    this.geostatCvResults = buildLocationReadMethods<GeostatCVResult>(this, 'geostat_cv_result');
+    this.sensorNetworkDesigns = buildLocationReadMethods<SensorNetworkDesign>(this, 'sensor_network_design');
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
     this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');

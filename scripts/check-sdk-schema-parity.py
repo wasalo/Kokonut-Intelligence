@@ -42,6 +42,13 @@ MODEL_TABLES = {
     "TimeSeriesForecast": ("131_trend_analysis.sql", "time_series_forecast"),
     "ForecastAccuracy": ("131_trend_analysis.sql", "forecast_accuracy"),
     "VariogramModel": ("133_geostatistics.sql", "variogram_model"),
+    "KrigingPrediction": ("133_geostatistics.sql", "kriging_prediction"),
+    "KrigingPoint": ("133_geostatistics.sql", "kriging_point"),
+    "GeostatRealization": ("133_geostatistics.sql", "geostat_realization"),
+    "GeostatRealizationPoint": ("133_geostatistics.sql", "geostat_realization_point"),
+    "SpatialAutocorrelation": ("133_geostatistics.sql", "spatial_autocorrelation"),
+    "GeostatCVResult": ("133_geostatistics.sql", "geostat_cv_result"),
+    "SensorNetworkDesign": ("133_geostatistics.sql", "sensor_network_design"),
     "DemandForecast": ("069_demand_analysis.sql", "demand_forecast"),
     "MarketSizeEstimate": ("069_demand_analysis.sql", "market_size_estimate"),
     "PriceObservation": ("010_market_data.sql", "price_observation"),
@@ -131,6 +138,12 @@ JSONB_MODEL_SHAPES = {
     ("SensorAlert", "metadata"): "json_object",
     ("SensorAlert", "actuation_response"): "json_object",
     ("VariogramModel", "metadata"): "json_object",
+    ("KrigingPrediction", "metadata"): "json_object",
+    ("GeostatRealization", "metadata"): "json_object",
+    ("SpatialAutocorrelation", "metadata"): "json_object",
+    ("GeostatCVResult", "fold_results"): "json_object_array",
+    ("GeostatCVResult", "metadata"): "json_object",
+    ("SensorNetworkDesign", "metadata"): "json_object",
     ("WalletProfile", "metadata"): "json_object",
     ("AttestationRecord", "claim_data"): "json_object",
     ("ReportSnapshot", "report_data"): "json_object",
@@ -197,8 +210,7 @@ def table_columns(path: Path, table: str) -> set[str]:
             columns.add(name)
     # Include additive column migrations so the guard follows the evolved
     # schema, not just the initial CREATE TABLE declaration.
-    for migration in (ROOT / "schemas" / "postgres").glob("*.sql"):
-        migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+    for migration_source in _postgres_migration_sources(ROOT):
         statements = re.finditer(
             rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             migration_source,
@@ -239,8 +251,7 @@ def table_nullable_columns(path: Path, table: str) -> set[str]:
                 re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", declaration, re.IGNORECASE)
             )
 
-    for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
-        migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+    for migration_source in _postgres_migration_sources(ROOT):
         statements = re.finditer(
             rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             migration_source,
@@ -313,8 +324,7 @@ def table_column_types(path: Path, table: str) -> dict[str, str]:
         if sql_type:
             column_types[column.group(1).lower()] = sql_type
 
-    for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
-        migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+    for migration_source in _postgres_migration_sources(ROOT):
         statements = re.finditer(
             rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             migration_source,
@@ -352,9 +362,7 @@ def table_column_types(path: Path, table: str) -> dict[str, str]:
 
 def postgres_enum_types() -> dict[str, tuple[str, ...]]:
     enum_types: dict[str, tuple[str, ...]] = {}
-    migrations = ROOT / "schemas" / "postgres"
-    for migration in sorted(migrations.glob("*.sql")):
-        source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+    for source in _postgres_migration_sources(ROOT):
         for definition in re.finditer(
             r"CREATE TYPE\s+([a-z_][a-z0-9_]*)\s+AS\s+ENUM\s*\((.*?)\)",
             source,
@@ -430,8 +438,7 @@ def table_enum_columns(path: Path, table: str, enum_types: dict[str, tuple[str, 
         for column, sql_type in table_column_types(path, table).items()
         if sql_type.lower() in enum_types
     }
-    for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
-        source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+    for source in _postgres_migration_sources(ROOT):
         statements = re.finditer(
             rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             source,
