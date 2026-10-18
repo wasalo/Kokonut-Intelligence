@@ -9455,3 +9455,15 @@ were used, with no HTTP, database, provider, or credential access. This aligns
 the client call contract without changing permissions, tenant scope, or
 MAN-CAP acceptance. Checklist: 593 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-export-create-signature-parity.json`.
+
+### Native SDK method-signature guard — 18 October 2026
+
+The Python/TypeScript method inventory now compares required and optional
+argument shapes as well as method names and inherited generic methods. It
+recognizes overloads, which caught the export-creation API mismatch and now
+requires at least one matching TypeScript overload for each Python method.
+The full focused Python SDK/schema/method suite passes 80 tests; Vitest passes
+34 tests; TypeScript build, Ruff, capability matrix, and diff checks pass. The
+guard does not compare parameter types or runtime behavior. Checklist: 594
+complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-method-signature-parity.json`.
