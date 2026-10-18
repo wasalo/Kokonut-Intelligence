@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript value_flow_event SDK schema parity",
+  "model": "ValueFlowEvent",
+  "source_table": "schemas/postgres/004_finance.sql:value_flow_event",
+  "schema_guard": {
+    "models": 26,
+    "canonical_columns": 577,
+    "scalar_types": 542,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 28,
+    "enum_fields": 17,
+    "check_literal_fields": 8
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 37 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The model only describes persisted value-flow data; it does not verify records or submit attestations.",
+    "Checks used local source and synthetic fixtures; no database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

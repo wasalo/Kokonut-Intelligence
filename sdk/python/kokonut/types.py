@@ -433,6 +433,34 @@ class FinancialTransaction:
 
 
 @dataclass
+class ValueFlowEvent:
+    """Descriptive value-flow record; it does not perform verification or attest."""
+
+    id: str
+    flow_date: str
+    flow_type: str
+    amount: float
+    location_id: Optional[str] = None
+    from_entity: Optional[str] = None
+    to_entity: Optional[str] = None
+    currency: Optional[str] = None
+    token: Optional[str] = None
+    chain: Optional[str] = None
+    tx_hash: Optional[str] = None
+    description: Optional[str] = None
+    verified: Optional[bool] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    attestation_uid: Optional[str] = None
+    is_excluded: Optional[bool] = None
+    exclusion_reason: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

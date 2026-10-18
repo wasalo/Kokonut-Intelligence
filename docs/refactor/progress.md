@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### SDK value-flow event schema parity — 18 October 2026
+
+Python and TypeScript now expose the canonical `value_flow_event` record,
+including flow date/type/value, verification and attestation references,
+exclusion state, and on-chain identifiers. The offline guard covers 26 models,
+577 canonical columns, 542 scalar types, 28 JSONB shapes, seven PostGIS shapes,
+17 enum fields, and eight discovered CHECK-literal fields. Thirty-seven Python
+SDK/guard tests and 29 JavaScript tests pass with TypeScript build, Ruff,
+compilation, schema guard, capability-matrix validation, and diff check. No
+database or network was contacted. The SDK type does not perform verification
+or submit attestations ([evidence](builds/2026-10-18-recovery/sdk-value-flow-event-parity.json)).
+
 ### SDK financial-transaction schema parity — 18 October 2026
 
 Python and TypeScript now expose the canonical `financial_transaction` record,

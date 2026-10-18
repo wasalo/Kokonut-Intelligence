@@ -535,6 +535,32 @@ export interface FinancialTransaction {
   created_by?: string | null;
 }
 
+/** Descriptive value-flow record; it does not perform verification or attest. */
+export interface ValueFlowEvent {
+  id: string;
+  flow_date: string;
+  flow_type: string;
+  amount: number;
+  location_id?: string | null;
+  from_entity?: string | null;
+  to_entity?: string | null;
+  currency?: string | null;
+  token?: string | null;
+  chain?: string | null;
+  tx_hash?: string | null;
+  description?: string | null;
+  verified?: boolean | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  attestation_uid?: string | null;
+  is_excluded?: boolean | null;
+  exclusion_reason?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

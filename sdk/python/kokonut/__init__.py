@@ -57,6 +57,7 @@ from .types import (
     SalesEvent,
     SensorReading,
     SensorSeverity,
+    ValueFlowEvent,
     WalletProfile,
 )
 
@@ -102,6 +103,7 @@ __all__ = [
     "FinancialTransaction",
     "SensorReading",
     "WalletProfile",
+    "ValueFlowEvent",
     "AttestationRecord",
     "ReportSnapshot",
     "ExportLog",

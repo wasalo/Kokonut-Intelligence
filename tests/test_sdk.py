@@ -129,6 +129,24 @@ def test_financial_transaction_type_describes_recorded_facts_without_payment_act
     assert transaction.source_raw == {"import": "synthetic"}
 
 
+def test_value_flow_type_exposes_verification_and_attestation_references():
+    from kokonut import ValueFlowEvent
+
+    flow = ValueFlowEvent(
+        id="flow-1",
+        flow_date="2026-10-18",
+        flow_type="public_goods",
+        amount=500.0,
+        location_id="location-1",
+        attestation_uid="0xabc",
+        is_excluded=False,
+    )
+
+    assert flow.attestation_uid == "0xabc"
+    assert flow.verified is None
+    assert flow.is_excluded is False
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

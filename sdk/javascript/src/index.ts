@@ -54,6 +54,7 @@ export type {
   ExpenseCategory,
   CapitalSource,
   FinancialTransaction,
+  ValueFlowEvent,
   SensorReading,
   WalletProfile,
   AttestationRecord,

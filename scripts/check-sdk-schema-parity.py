@@ -22,6 +22,7 @@ MODEL_TABLES = {
     "ExpenseCategory": ("004_finance.sql", "expense_category"),
     "CapitalSource": ("004_finance.sql", "capital_source"),
     "FinancialTransaction": ("004_finance.sql", "financial_transaction"),
+    "ValueFlowEvent": ("004_finance.sql", "value_flow_event"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),

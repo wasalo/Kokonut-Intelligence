@@ -1737,20 +1737,22 @@ public summary slice; live route/auth, tenant scope and broader SDK parity remai
 unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
 The 18 October SDK contract work adds PostGIS geometry, recursive JSONB, enum,
 organization, and organization-membership record types to the Python/TypeScript
-schema guard. It now checks 25 models and 555 canonical columns, including 28
+schema guard. It now checks 26 models and 577 canonical columns, including 28
 JSONB shapes, 7 PostGIS shapes, 17 enum fields, and 8 auto-discovered SQL
 `CHECK`-literal fields. Membership records are descriptive and do not grant
 tenant access. `ExpenseCategory` now exposes the shared finance taxonomy,
 including its additive schema version. `CapitalSource` types funding metadata
 and status but does not authorize financial actions. `FinancialTransaction`
 describes recorded financial facts and does not initiate payments or prove
-verification. This is source-level SDK typing evidence only; it does not close the broader SDK,
+verification. `ValueFlowEvent` carries verification/attestation references
+without performing those actions. This is source-level SDK typing evidence only; it does not close the broader SDK,
 authorization, Directus projection, or tenant-isolation gates
 ([organization evidence](builds/2026-10-18-recovery/sdk-organization-schema-parity.json);
 [membership evidence](builds/2026-10-18-recovery/sdk-organization-member-parity.json);
 [expense-category evidence](builds/2026-10-18-recovery/sdk-expense-category-parity.json);
 [capital-source evidence](builds/2026-10-18-recovery/sdk-capital-source-parity.json);
 [financial-transaction evidence](builds/2026-10-18-recovery/sdk-financial-transaction-parity.json);
+[value-flow evidence](builds/2026-10-18-recovery/sdk-value-flow-event-parity.json);
 [literal evidence](builds/2026-10-18-recovery/sdk-checked-literal-parity.json);
 [auto-discovery evidence](builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json)).
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
@@ -3228,3 +3230,16 @@ JavaScript tests pass with TypeScript build, Ruff, compilation, schema guard,
 matrix validation, and diff checks. This type does not initiate payments or
 establish verification. Checklist: 554 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-financial-transaction-parity.json`.
+
+### SDK value-flow event parity — 18 October 2026
+
+Python and TypeScript now expose the canonical `value_flow_event` row,
+including location, flow details, verification/attestation references,
+exclusion state, and chain transaction identifiers. The guard checks 26 models
+and 577 columns, including 542 scalar types, 28 JSONB shapes, seven PostGIS
+shapes, 17 enum fields, and eight SQL CHECK-literal fields. Thirty-seven Python
+SDK/guard tests and 29 JavaScript tests pass with TypeScript build, Ruff,
+compilation, schema guard, matrix validation, and diff checks. The type does
+not verify records or submit attestations. Checklist: 555 complete / 19 open.
+Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-value-flow-event-parity.json`.
