@@ -7,7 +7,9 @@ Python and TypeScript now provide read-only, location-scoped access to stored
 The location predicate overrides a conflicting caller filter and preserves
 other list options. The SDK does not assess condition or certify infrastructure.
 Focused SDK checks, TypeScript tests/build, Ruff, compilation, schema and
-capability guards, and diff checks pass. MAN-CAP acceptance remains open
+capability guards, and diff checks pass. CI #493 and Security #217 also passed
+on the previous pushed head `5eefa4c2`; this local follow-up is queued for the
+next batch push. MAN-CAP acceptance remains open
 ([evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-read-methods.json)).
 Checklist: 622 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
 7 deployed, 5 prepared.
@@ -40,7 +42,7 @@ Ruff, compilation, schema guard, capability validation, and diff checks pass
 offline with mocked calls. CAP-049/056/058 and MAN-CAP acceptance remain
 unchanged ([evidence](builds/2026-10-18-recovery/sdk-market-capital-read-methods.json)).
 The six-commit SDK batch was pushed as `5eefa4c2`; CI #493 and Security #217
-are running on the new head.
+passed on that head. The newer local SDK follow-up is queued for the next batch push.
 Checklist: 620 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
 7 deployed, 5 prepared.
 
