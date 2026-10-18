@@ -4,8 +4,7 @@
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 **Current checkpoint — 18 October 2026:** PR #68 continues on `feat/mobile-offline-acceptance`; implementation commit `90f665ba` closes Python/TypeScript Directus error normalization parity. Both SDKs map 400/401/403/404 to matching named exceptions; malformed Python envelopes fall back safely, and TypeScript preserves native network failures without an HTTP response. The SDK schema guard covers 70 models, 1,438 columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone SQL CHECK literals. The focused SDK/schema/method suite passes 94 Python tests and 45 JavaScript tests; TypeScript build, targeted Ruff, compilation, capability-matrix validation, and diff checks pass. A current-source ARM64/QEMU refresh applied all 425 schema migrations through 434 and verified ARM64 app/PostGIS, app health, and anonymous-route denial under explicit resource limits. The disposable project was internal-only, had no published host port, and was removed; this does not establish physical Raspberry Pi, power-loss, sustained performance, provider, or MAN-CAP acceptance. A package-wide Ruff scan still reports 39 findings in untouched generated/example files. These offline checks do not establish live API behavior, authorization, tenant scope, domain writes, or provider execution. The matrix remains 54 baseline-retained, 7 deployed, and 5 prepared. Checklist: 605 complete / 19 open. Tenant/RLS, provider parity, physical Raspberry Pi, production recovery, release certification, and cutover remain open.
 
-**Latest batch — 18 October 2026:** CI #482 and Security #206 passed on pushed code head `90f665ba`. Commits `5727d7aa` and `0780c9bd` were grouped and pushed to PR #68; Security #207 passed; CI #483 failed only the migration-owned restore-role inventory check. Commit `89290f09` adds the financial projection owner to the database-only prerequisite list; its focused regression passes 2 tests, Security #208 passed. The latest Directus fixture contract correction was
-pushed as `6c53e0fe`; Security #209 passed and CI #485 is in progress. Migration 434 replaces the Directus-only best-effort financial ClickHouse HTTP writer with an atomic PostgreSQL outbox trigger. Focused Directus-hook tests and build, migration validation, 33 migration tests, Ruff, and disposable PostgreSQL 16 apply/replay/forced-RLS/transaction/ACL checks pass. The candidate and legacy databases were not modified; the feature is not yet rolled out. Financial source updates/deletes, historical backfill, and populated report parity remain open. The current checklist is 605 complete / 19 open ([migration](../../schemas/postgres/434_financial_events_clickhouse_outbox.sql); [disposable evidence](builds/2026-10-18-recovery/financial-events-outbox-disposable.json)).
+**Latest batch — 18 October 2026:** Before this local update, PR #68's last pushed head was the documentation commit `255ed9de`; Security #210 had passed and CI #486 was in progress. This rollout update awaits its own hosted checks after push. The latest code commit remains `90f665ba`; its Python/TypeScript SDK error-normalization parity and the ARM64/QEMU refresh are documented above. Migration 434 replaces the Directus-only best-effort financial ClickHouse HTTP write with an atomic PostgreSQL outbox trigger. Its focused Directus-hook tests/build, 33 migration tests, Ruff, and disposable PostgreSQL 16 apply/replay/forced-RLS/transaction/ACL checks pass. The local candidate migration rollout is now complete: a fresh encrypted checkpoint was restore-rehearsed, the ordered runner applied 434, the schema ledger reports 425 applied with zero pending/failed and six seed entries, and candidate health is good ([rollout evidence](builds/2026-10-18-recovery/candidate-migration-434-rollout.json)). Directus was not running; rebuild its hook before enabling any Directus write profile to prevent duplicate projection. Financial update/delete reconciliation, historical backfill, populated report parity, candidate provider delivery, and named MAN-CAP acceptance remain open. Checklist: 605 complete / 19 open; capability matrix: 54 baseline-retained, 7 deployed, 5 prepared.
 
 **Historical branch checkpoint — 17 October 2026:** PR #68 was at `efdd05b5`; CI #433 was in progress and Security #157 passed. CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 and CI #432 passed on `ebeddb45`. The pushed correction refreshed five worker inventories and removed line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests passed, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The batch also refreshed report source/query/helper inventories that fixed CI #430. Worker-status output containment redacted historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reported only a bounded remote exception class and closed the channel. At that historical checkpoint, the checklist was 517 complete / 19 open; these counts are superseded by [batches.md](batches.md).
 
@@ -1284,9 +1283,9 @@ deployment or semantic acceptance:
   HTTPS certificate when browser acceptance is scheduled (OFU-10/11).
 - **Candidate-only writes:** the five selected reference catalogs (OFU-17) were
   applied to the local candidate after separate approval. The earlier 30-file
-  proposal is superseded; pilot rows remain held. Migrations 392–433 are rolled
-  out to the local candidate; 424 schema entries are applied through migration
-  433, with zero pending or failed entries. No migration 434 or later is
+  proposal is superseded; pilot rows remain held. Migrations 392–434 are rolled
+  out to the local candidate; 425 schema entries are applied through migration
+  434, with zero pending or failed entries. No migration 435 or later is
   applied. Runtime credential provisioning remains tracked under OFU-19. The
   candidate has six recorded seed entries; 115 unselected seed sources remain
   pending.
@@ -1409,13 +1408,13 @@ cross-language contract is documented in the JavaScript README. This remains
 offline behavior and does not establish live authorization or tenant scope
 ([evidence](builds/2026-10-18-recovery/sdk-error-normalization-parity.json)).
 
-The current-source ARM64/QEMU refresh then applied all 424 ordered schema
-migrations through 433, started the app only after schema readiness, and
+The current-source ARM64/QEMU refresh applied all 425 ordered schema
+migrations through 434, started the app only after schema readiness, and
 verified healthy status, HTTP 200 on `/health`, and HTTP 401 on an anonymous
 protected operator route under 1 GiB/1.5 GiB and two-CPU limits. The isolated
 project was removed; this is emulation evidence, not physical Raspberry Pi,
 power-loss, or 24-hour recovery acceptance
-([evidence](builds/2026-10-18-recovery/arm64-qemu-current-schema-433.json)).
+([evidence](builds/2026-10-18-recovery/arm64-qemu-current-schema-434.json)).
 
 
 ### Directus API fixture contract correction — 18 October 2026

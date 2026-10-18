@@ -9646,3 +9646,43 @@ remained healthy. This is emulation evidence only and does not establish
 physical Raspberry Pi, power-loss, 24-hour recovery, or performance acceptance.
 Evidence:
 `docs/refactor/builds/2026-10-18-recovery/arm64-qemu-current-schema-433.json`.
+
+### Candidate migration 434 rollout — 18 October 2026
+
+Migration 434 is applied to the local `kokonut-kernel-candidate` PostgreSQL
+service through the ordered migration runner. Before application, a fresh
+age-encrypted checkpoint was created outside the repository and streamed into
+a network-disabled PostgreSQL 16 restore instance. The restored database
+matched the candidate's 424-row schema ledger fingerprint, extension
+fingerprint, 1,396 public relations, and selected reference-catalog counts.
+The archived encrypted dump is 6,303,569 bytes with SHA-256
+`7dc5210ecc49b4e9529140cd0ce20b827fcb6a3ae6d53f7e93212b189bc6383c`; it is
+retained at the path recorded in the machine evidence.
+
+The first read-only host invocation used PostgreSQL connection variables but
+the runner's default ambient Compose project, so it could not see the candidate
+ledger. Supplying the exact `kokonut-kernel-candidate` project and its two
+manifests fixed target selection. The ordered plan showed only
+`schema:434_financial_events_clickhouse_outbox.sql`; migration 434 then applied
+successfully. The candidate now records 425 applied schema entries, zero
+pending/failed entries, and six applied seed entries. No seed file ran. The
+candidate database, application, and Metabase are healthy; the proxy is
+running. `/health` returned 200. A valid-shaped unauthenticated operator queue
+request returned 404 because OIDC is disabled in this candidate profile, and
+returned no protected data. Directus and ClickHouse were not running, and the
+candidate application was not recreated.
+
+The disposable restore container and volume were removed; the encrypted
+checkpoint remains outside the repository. The legacy stack and its data were
+not touched. The optional Directus hook must still be rebuilt before enabling a
+Directus write profile so the trigger and old HTTP hook cannot create duplicate
+projection events. Historical backfill, update/delete reconciliation,
+ClickHouse delivery, populated report parity, and named MAN-CAP acceptance
+remain open. This host rollout does not claim those gates
+([machine evidence](builds/2026-10-18-recovery/candidate-migration-434-rollout.json)).
+
+Checklist: 605 complete / 19 open. The 66-row capability matrix remains 54
+baseline-retained, 7 deployed, and 5 prepared; named MAN-CAP checks remain
+separate. At the time this rollout entry was prepared, pushed head `255ed9de` had
+Security #210 passed and CI #486 still running. The rollout record is now part
+of a new local batch awaiting hosted checks.
