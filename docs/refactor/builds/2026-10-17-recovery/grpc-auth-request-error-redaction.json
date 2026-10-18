@@ -1,0 +1,20 @@
+{
+  "scope": "gRPC API-key lookup, request-interceptor, and optional-service import failure logging",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_grpc_error_redaction.py tests/test_grpc.py tests/test_grpc_rpc_policy_inventory.py -q",
+    "focused_test_result": "32 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed",
+    "targeted_gitleaks": "passed on all changed source and test files"
+  },
+  "behavior_preserved": [
+    "API-key lookup failures still return the generic authentication-service error",
+    "request-interceptor exceptions still propagate to gRPC handling",
+    "request method and duration remain available in bounded logs",
+    "optional Ecocredit and Data service adapters remain optional when imports fail"
+  ],
+  "redaction": "raw database/provider/import exception text and API-key metadata are not logged; only the bounded exception class is included"
+}

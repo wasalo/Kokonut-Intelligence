@@ -7,7 +7,7 @@ report-source, report-query-scope, and report-helper-scope inventories were
 stale. The three generated JSON artifacts are refreshed and each exact CI
 freshness command now passes locally. No report runtime code or parity
 conclusion changed; the full CI suite did not run after the fast-fail
-failure. The refreshed batch was pushed at `09db43b2dd9f4d63425d94ac07017763433e73f9`; CI #431 then failed eight stale worker-inventory/source-contract checks after 5,851 tests passed. The five generated maps and a line-number-coupled regression were corrected and pushed as `ebeddb45`; Security #156 and CI #432 passed. Security #155 passed on the preceding head
+failure. The refreshed batch was pushed at `09db43b2dd9f4d63425d94ac07017763433e73f9`; CI #431 then failed eight stale worker-inventory/source-contract checks after 5,851 tests passed. The five generated maps and a line-number-coupled regression were corrected and pushed as `ebeddb45`; Security #156 and CI #432 passed. The 11-commit follow-up was pushed as `efdd05b5`; CI #433 is in progress and Security #157 passed. Security #155 passed on the preceding head
 ([evidence](builds/2026-10-17-recovery/ci-430-report-inventory-refresh.json)).
 
 ### Notification worker candidate migration status — 17 October 2026
@@ -8390,7 +8390,7 @@ regression now checks statement kinds by source file. All 30 focused worker
 inventory tests pass, as do Ruff, Python compilation, the five generated-map
 checks, capability-matrix validation, and `git diff --check`. No database,
 worker, provider, or schedule was used. The fix was pushed as `ebeddb45`; CI
-#432 and Security #156 passed on `ebeddb45`. The checklist was 504 complete / 19 open at that checkpoint, and
+#432 and Security #156 passed on `ebeddb45`. The follow-up batch is now pushed as `efdd05b5`; CI #433 is in progress and Security #157 passed. The checklist was 504 complete / 19 open at that earlier checkpoint, and
 capability matrix classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/ci-431-worker-inventory-fix.json`.
 
@@ -8497,3 +8497,35 @@ diff checks, and the regenerated worker-import closure pass. All failures were
 synthetic; no database or model provider was accessed. The checklist is 514
 complete / 19 open; capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/ml-anomaly-model-error-redaction.json`.
+
+### gRPC auth and request error redaction — 17 October 2026
+
+API-key lookup failures, request-interceptor exceptions, and optional service
+import warnings now log bounded exception classes without raw database/provider
+text or API-key metadata. The generic authentication response, gRPC exception
+propagation, and optional adapter behavior remain intact. The focused
+gRPC/auth/policy suite passes 32 tests with Ruff and compilation;
+no database or RPC provider was contacted. The checklist is 515 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json`.
+
+### Metadata and trend error redaction — 17 October 2026
+
+Metadata batch-anchor failures no longer log IRIs or raw exception details;
+trend-analysis failures no longer log metric names or raw errors. Existing
+per-item anchor failure and no-score fallbacks remain unchanged. Two mocked
+regressions pass with Ruff, compilation, and diff checks; no database/provider
+was accessed. The checklist is 516 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/metadata-trend-error-redaction.json`.
+
+
+### Demo mock-sensor failure log redaction — 17 October 2026
+
+Failed synthetic sensor-reading inserts now log only a bounded exception class; sensor names, timestamps, and raw database details are excluded. Existing per-reading continuation and connection cleanup remain intact. The mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. Full-file Ruff still reports pre-existing unused imports and locals in this legacy demo module. No database or provider was used. The checklist is 517 complete / 19 open; capability classifications are unchanged. Evidence: `docs/refactor/builds/2026-10-17-recovery/mock-sensor-error-redaction.json`.
+
+### Post-restart candidate availability — 17 October 2026
+
+Read-only Docker inspection confirms the candidate app is healthy and bound to
+`127.0.0.1:8098`; PostgreSQL and Metabase are healthy and the proxy is running.
+The candidate `/health` endpoint returned HTTP 200 after the host restart. No
+container, database, or service state was changed.

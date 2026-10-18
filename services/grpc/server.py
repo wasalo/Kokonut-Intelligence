@@ -10,6 +10,7 @@ import grpc
 from grpc_health.v1 import health_pb2_grpc
 from grpc_reflection.v1alpha import reflection
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.grpc.auth import APIKeyInterceptor
 from services.grpc.health import HealthServicer
@@ -142,7 +143,9 @@ def _build_server(db_factory, executor):
         ecocredit_pb2_grpc.add_EcocreditServiceServicer_to_server(ecocredit_servicer, server)
         service_names = service_names + ("ecocredit.v1.EcocreditService",)
     except ImportError as e:
-        logger.warning("Ecocredit service not available: %s", e)
+        logger.warning(
+            "Ecocredit service not available (%s)", safe_exception_class(e)
+        )
 
     try:
         from services.grpc.data.v1 import service_pb2_grpc as data_pb2_grpc
@@ -152,7 +155,7 @@ def _build_server(db_factory, executor):
         data_pb2_grpc.add_DataServiceServicer_to_server(data_servicer, server)
         service_names = service_names + ("data.v1.DataService",)
     except ImportError as e:
-        logger.warning("Data service not available: %s", e)
+        logger.warning("Data service not available (%s)", safe_exception_class(e))
 
     reflection.enable_server_reflection(service_names, server)
     return server, service_names

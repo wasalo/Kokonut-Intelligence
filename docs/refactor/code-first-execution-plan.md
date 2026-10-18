@@ -2,7 +2,7 @@
 
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed batch — 17 October 2026:** PR #68 is at `ebeddb45`; CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 and CI #432 passed on `ebeddb45`. The pushed correction refreshes five worker inventories and removes line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests pass, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The pushed batch also contains the refreshed report source/query/helper inventories that fixed CI #430. The pushed worker-status output containment redacts historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reports only a bounded remote exception class and closes the channel; its 29 focused checks pass with Ruff and compilation on mocked boundaries. Local follow-up commits and pending edits now harden security, federation, EventBus, scheduler, stream, cache, graph/RDF, metric-event, raster-metadata, sandbox, and ML retraining failure logging. The current checklist is 514 complete / 19 open. The accumulated local batch requires its own hosted CI and Security runs after push. The wider branch retains the reported limitations for provider parity, tenant authorization/RLS, physical Raspberry Pi, release certification, and production cutover.
+**Latest pushed batch — 17 October 2026:** PR #68 is at `efdd05b5`; CI #433 is in progress and Security #157 passed. CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 and CI #432 passed on `ebeddb45`. The pushed correction refreshes five worker inventories and removes line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests pass, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The pushed batch also contains the refreshed report source/query/helper inventories that fixed CI #430. The pushed worker-status output containment redacts historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reports only a bounded remote exception class and closes the channel; its 29 focused checks pass with Ruff and compilation on mocked boundaries. The pushed follow-up batch hardens security, federation, EventBus, scheduler, stream, cache, graph/RDF, metric-event, raster-metadata, sandbox, and ML retraining failure logging. The current checklist is 517 complete / 19 open. CI #433 is in progress and Security #157 passed; the local gRPC, metadata/trend, and mock-sensor logging slices are pending the next batch push. The wider branch retains the reported limitations for provider parity, tenant authorization/RLS, physical Raspberry Pi, release certification, and production cutover.
 
 **Implementation batch pushed — 17 October 2026:** Impact Office status reads, sandbox run history, and agent action audit records now redact persisted diagnostics while retaining failure presence and run/action identity. Gateway audit database and local-journal failure logs retain only exception classes while preserving fallback behavior; Gateway internal errors log only the exception class and return the generic 500. PostgreSQL, ClickHouse, and Directus health probes also log only exception classes and preserve generic status results. The worker-history changes pass 34 focused checks; agent-audit/safety checks report 11 passed and nine database-dependent skips; Gateway audit has nine passing checks, the route/auth slice has 34, and health/driver-registry checks have 33. Ruff and compilation pass. The schedule ownership guide matches all 17 generated JobSpecs, including the `eas_legacy` compatibility fallback. Candidate migrations 417–419 were already present in the 423-migration pre-433 baseline; the isolated notification feature remains disabled pending its encrypted credential. No database, worker, sandbox execution, schedule, provider, or local journal was accessed in that pushed batch. The checklist at that point was 502 complete / 20 open; named transport, tenant, and live worker acceptance remain open.
 
@@ -360,15 +360,14 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-The latest local security-hardening batch is ten commits ahead of the pushed PR
-head, with the ML model error-redaction follow-on in the working tree. Across
-these slices, raw exception messages, model paths, identifiers, and child output
-are replaced with bounded summaries while rollback, retry, and fallback
-behavior remain intact. Each slice has focused regression evidence in
+The latest security-hardening batch was pushed to the PR branch as `efdd05b5`.
+Across these slices, raw exception messages, model paths, identifiers, and
+child output are replaced with bounded summaries while rollback, retry, and
+fallback behavior remain intact. Each slice has focused regression evidence in
 `docs/refactor/batches.md`; the newest ML/model-security/retraining/import suite
-passes 57 tests and regenerated worker-import closure checks pass. The latest
-pushed head is `ebeddb45`: Security #156 and CI #432 passed. The local batch is
-not covered by those runs and needs fresh hosted checks after the batch push.
+passes 57 tests and regenerated worker-import closure checks pass. CI #433 is in progress and
+Security #157 passed on `efdd05b5`; the preceding `ebeddb45` head
+passed CI #432 and Security #156.
 
 The live candidate ledger now confirms 424 applied schema migration IDs through
 migration 433, six applied seed-ledger entries, and zero pending or failed
@@ -442,7 +441,7 @@ current batch summary and retained evidence above.
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist now has **514 checked and 19 open items (533 total)**,
+- The execution checklist now has **517 checked and 19 open items (536 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -1280,10 +1279,12 @@ deployment or semantic acceptance:
   HTTPS certificate when browser acceptance is scheduled (OFU-10/11).
 - **Candidate-only writes:** the five selected reference catalogs (OFU-17) were
   applied to the local candidate after separate approval. The earlier 30-file
-  proposal is superseded; pilot rows remain held. Migrations 392–403 are rolled
-  out; migrations 404 onward have not been applied. Runtime credential
-  provisioning remains tracked under OFU-19. The candidate has six recorded
-  seed entries; 115 unselected seed sources remain pending.
+  proposal is superseded; pilot rows remain held. Migrations 392–433 are rolled
+  out to the local candidate; 424 schema entries are applied through migration
+  433, with zero pending or failed entries. No migration 434 or later is
+  applied. Runtime credential provisioning remains tracked under OFU-19. The
+  candidate has six recorded seed entries; 115 unselected seed sources remain
+  pending.
 
 There is no active Raspberry Pi request: OFU-12 records the completed code-only
 scope and lack of hardware. If the owner later supplies a Pi, add a separate
@@ -1292,7 +1293,11 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related changes in local commits and push reviewable batches, as
-requested. The latest known pushed head before the current local sensor batch is `bccd7744` on PR #68. CI #389 and Security #113 were running when last observed. Continue independent code-first work while hosted checks run.
+requested. The latest pushed head is `efdd05b5` on PR #68; Security #157 passed
+and CI #433 is in progress. The local unpushed commit adds gRPC, metadata/trend,
+and demo sensor failure-log redaction with focused evidence; keep it local until
+CI #433 concludes, then include it in the next batch push. Continue independent
+code-first work while hosted checks run.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.
 
@@ -1318,3 +1323,10 @@ gated even when its migration and disposable acceptance are complete.
 **Current local sandbox logging slice — 17 October 2026:** environment, run-history, resource-monitor, and isolation database failures now log bounded exception classes only. Creation rollback/re-raise, write fallbacks, and empty/None read results remain unchanged; persisted run diagnostics remain redacted. Eight mocked database-failure regressions pass within a 36-test sandbox suite with Ruff, compilation, and diff checks. Checklist: 513 complete / 19 open; the 66-row capability matrix is unchanged ([evidence](builds/2026-10-17-recovery/sandbox-database-error-redaction.json)).
 
 **Current local ML logging slice — 17 October 2026:** Prophet fit/save/load and scheduled retraining failures now log bounded exception classes only, with no raw error text, model names, sensor identifiers, or local artifact paths. Existing fallback results, independent save attempts, artifact skipping, and descriptor cleanup remain intact. The 57-test ML/model-security/retraining/import suite passes with Ruff, compilation, diff checks, and regenerated worker-import closure validation. No provider or database was accessed. Checklist: 514 complete / 19 open; capability classifications are unchanged ([evidence](builds/2026-10-17-recovery/ml-anomaly-model-error-redaction.json)).
+
+**Current local gRPC logging slice — 17 October 2026:** API-key database failures, request-interceptor exceptions, and optional service-import warnings now log bounded classes while retaining the generic authentication error, original gRPC exception propagation, and optional adapter behavior. The 32-test gRPC/auth/policy suite passes with Ruff and compilation on mocked boundaries. No database or RPC provider was contacted. Checklist: 515 complete / 19 open ([evidence](builds/2026-10-17-recovery/grpc-auth-request-error-redaction.json)).
+
+**Current local metadata/trend logging slice — 17 October 2026:** batch anchoring omits private IRIs and exception details from warnings, while trend analysis omits metric names and raw errors. Anchor failures remain per-item failures and trend failures still return no score. Two mocked regressions pass with Ruff, compilation, and diff checks; no database/provider was accessed. Checklist: 516 complete / 19 open ([evidence](builds/2026-10-17-recovery/metadata-trend-error-redaction.json)).
+
+
+**Current local mock-sensor logging slice — 17 October 2026:** demo sensor-reading insert failures now log a bounded exception class without sensor names, timestamps, or raw database details. Per-reading continuation and final database cleanup remain intact. The focused mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. Full-file Ruff still reports pre-existing unused imports/locals in this legacy demo module. No database/provider was used. Checklist: 517 complete / 19 open ([evidence](builds/2026-10-17-recovery/mock-sensor-error-redaction.json)).

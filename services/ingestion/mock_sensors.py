@@ -30,11 +30,12 @@ import random
 import re
 import sys
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
-from .base import get_db, log_ingestion, hash_payload
-from .config import CH_HOST, CH_PORT, CH_USER, CH_PASSWORD
+from .base import get_db, hash_payload, log_ingestion
+from .config import CH_HOST, CH_PASSWORD, CH_PORT, CH_USER
 
 logger = get_logger("ingestion.mock_sensors")
 
@@ -309,7 +310,10 @@ def generate_data(count: int = 96, inject_anomalies: bool = False):
                     total += 1
 
                 except Exception as e:
-                    logger.error("  ✗ %s @ %s: %s", name, ts, e)
+                    logger.error(
+                        "Mock sensor reading insert failed (%s)",
+                        safe_exception_class(e),
+                    )
 
             logger.info("  ✓ %s: %d readings", name, count)
 

@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 import grpc
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("grpc.auth")
@@ -60,7 +61,7 @@ class APIKeyInterceptor(grpc.ServerInterceptor):
             finally:
                 self._db_factory.release(conn)
         except Exception as e:
-            logger.error("API key lookup failed: %s", e)
+            logger.error("API key lookup failed (%s)", safe_exception_class(e))
             return _abort(grpc.StatusCode.INTERNAL, "Authentication service error")
 
         if not result:
