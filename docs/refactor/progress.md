@@ -9064,3 +9064,18 @@ checks. No database, provider, or network was contacted. These types do not
 calculate market size or rerun trend analysis. Checklist: 566 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-demand-market-analysis-parity.json`.
+
+### Buyer signal and production-market match SDK parity — 18 October 2026
+
+Python and TypeScript now model `buyer_demand_signal` and
+`production_market_match`, including buyer intent, signal/commitment literals,
+period-scoped supply/demand measures, source metadata, and review attribution.
+The schema guard checks the five newly mapped CHECK-literal fields and three
+JSON-object shapes. It covers 42 models and 882 canonical columns, with 824
+scalar types, seven PostGIS shapes, 49 JSONB shapes, 20 enum fields, and 21
+standalone SQL CHECK literal contracts. Fifty-one focused Python SDK/guard
+tests and 29 JavaScript tests pass with TypeScript build, Ruff, compilation,
+schema guard, matrix validation, and diff checks. No database, provider, or
+network was contacted. The models do not establish order fulfillment or
+calculate supply gaps. Checklist: 567 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-buyer-market-match-parity.json`.

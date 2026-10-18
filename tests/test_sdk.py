@@ -397,6 +397,40 @@ def test_market_size_and_demand_trend_types_preserve_scoped_measures():
     assert trend.peak_month == 10
 
 
+def test_buyer_signal_and_market_match_types_keep_intent_separate_from_supply():
+    from kokonut import BuyerDemandSignal, ProductionMarketMatch
+
+    signal = BuyerDemandSignal(
+        id="signal-1",
+        location_id="location-1",
+        signal_type="written_order",
+        signal_date="2026-10-18",
+        currency="USD",
+        recurring=False,
+        status="submitted",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        commitment_level="probable",
+        metadata={"source": "synthetic"},
+    )
+    match = ProductionMarketMatch(
+        id="match-1",
+        location_id="location-1",
+        period_start="2026-11-01",
+        period_end="2026-11-30",
+        status="draft",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        pipeline_demand_tonnes=4.0,
+        supply_demand_gap_tonnes=1.5,
+    )
+
+    assert signal.commitment_level == "probable"
+    assert signal.verified_by is None
+    assert match.pipeline_demand_tonnes == 4.0
+    assert match.supply_demand_gap_tonnes == 1.5
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

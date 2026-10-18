@@ -37,6 +37,14 @@ DemandTrendAnalysisType = Literal[
     "seasonal_pattern", "price_elasticity", "moving_average", "trend_decomposition"
 ]
 DemandTrendStatus = Literal["draft", "submitted", "verified", "published"]
+BuyerSignalType = Literal[
+    "verbal_intent", "written_order", "purchase_order", "forecast_request", "recurring_order"
+]
+BuyerType = Literal[
+    "processor", "direct", "market", "restaurant", "retailer", "export", "cooperative", "other"
+]
+BuyerCommitmentLevel = Literal["firm", "probable", "possible", "exploratory"]
+BuyerSignalStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
 
 GeoJSONPosition = List[float]
 
@@ -777,6 +785,77 @@ class DemandTrend:
     coefficient_of_variation: Optional[float] = None
     model_name: Optional[str] = None
     data_points: Optional[int] = None
+    calculation_version: Optional[str] = None
+    inputs: Optional[JSONObject] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
+class BuyerDemandSignal:
+    """Stored buyer intent/order signal; this record does not confirm fulfillment."""
+
+    id: str
+    location_id: str
+    signal_type: BuyerSignalType
+    signal_date: str
+    currency: str
+    recurring: bool
+    status: BuyerSignalStatus
+    created_at: str
+    updated_at: str
+    partner_id: Optional[str] = None
+    crop_id: Optional[str] = None
+    buyer_name: Optional[str] = None
+    buyer_type: Optional[BuyerType] = None
+    expected_delivery_start: Optional[str] = None
+    expected_delivery_end: Optional[str] = None
+    quantity_requested: Optional[float] = None
+    unit: Optional[str] = None
+    price_offered: Optional[float] = None
+    recurrence_pattern: Optional[str] = None
+    reliability_score: Optional[float] = None
+    commitment_level: Optional[BuyerCommitmentLevel] = None
+    notes: Optional[str] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    schema_version: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    metadata: Optional[JSONObject] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+@dataclass
+class ProductionMarketMatch:
+    """Stored production/demand comparison; does not calculate a supply gap."""
+
+    id: str
+    location_id: str
+    period_start: str
+    period_end: str
+    status: DemandForecastStatus
+    created_at: str
+    updated_at: str
+    crop_id: Optional[str] = None
+    projected_production_tonnes: Optional[float] = None
+    confirmed_supply_tonnes: Optional[float] = None
+    supply_source: Optional[str] = None
+    confirmed_demand_tonnes: Optional[float] = None
+    pipeline_demand_tonnes: Optional[float] = None
+    total_demand_tonnes: Optional[float] = None
+    demand_source: Optional[str] = None
+    supply_demand_gap_tonnes: Optional[float] = None
+    gap_pct: Optional[float] = None
+    demand_coverage_pct: Optional[float] = None
+    unallocated_tonnes: Optional[float] = None
+    unfulfilled_demand_tonnes: Optional[float] = None
+    estimated_revenue_at_fill: Optional[float] = None
+    revenue_gap_usd: Optional[float] = None
     calculation_version: Optional[str] = None
     inputs: Optional[JSONObject] = None
     verified_by: Optional[str] = None

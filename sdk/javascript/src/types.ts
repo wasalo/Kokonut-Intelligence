@@ -24,6 +24,10 @@ export type MarketScope = 'local' | 'regional' | 'national' | 'international';
 export type MarketSizeEstimateStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type DemandTrendAnalysisType = 'seasonal_pattern' | 'price_elasticity' | 'moving_average' | 'trend_decomposition';
 export type DemandTrendStatus = 'draft' | 'submitted' | 'verified' | 'published';
+export type BuyerSignalType = 'verbal_intent' | 'written_order' | 'purchase_order' | 'forecast_request' | 'recurring_order';
+export type BuyerType = 'processor' | 'direct' | 'market' | 'restaurant' | 'retailer' | 'export' | 'cooperative' | 'other';
+export type BuyerCommitmentLevel = 'firm' | 'probable' | 'possible' | 'exploratory';
+export type BuyerSignalStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -846,6 +850,73 @@ export interface DemandTrend {
   coefficient_of_variation?: number | null;
   model_name?: string | null;
   data_points?: number | null;
+  calculation_version?: string | null;
+  inputs?: JSONObject | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  created_by?: string | null;
+}
+
+/** Stored buyer intent/order signal; this record does not confirm fulfillment. */
+export interface BuyerDemandSignal {
+  id: string;
+  location_id: string;
+  signal_type: BuyerSignalType;
+  signal_date: string;
+  currency: string;
+  recurring: boolean;
+  status: BuyerSignalStatus;
+  created_at: string;
+  updated_at: string;
+  partner_id?: string | null;
+  crop_id?: string | null;
+  buyer_name?: string | null;
+  buyer_type?: BuyerType | null;
+  expected_delivery_start?: string | null;
+  expected_delivery_end?: string | null;
+  quantity_requested?: number | null;
+  unit?: string | null;
+  price_offered?: number | null;
+  recurrence_pattern?: string | null;
+  reliability_score?: number | null;
+  commitment_level?: BuyerCommitmentLevel | null;
+  notes?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  rejection_reason?: string | null;
+  schema_version?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  metadata?: JSONObject | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored production/demand comparison; does not calculate a supply gap. */
+export interface ProductionMarketMatch {
+  id: string;
+  location_id: string;
+  period_start: string;
+  period_end: string;
+  status: DemandForecastStatus;
+  created_at: string;
+  updated_at: string;
+  crop_id?: string | null;
+  projected_production_tonnes?: number | null;
+  confirmed_supply_tonnes?: number | null;
+  supply_source?: string | null;
+  confirmed_demand_tonnes?: number | null;
+  pipeline_demand_tonnes?: number | null;
+  total_demand_tonnes?: number | null;
+  demand_source?: string | null;
+  supply_demand_gap_tonnes?: number | null;
+  gap_pct?: number | null;
+  demand_coverage_pct?: number | null;
+  unallocated_tonnes?: number | null;
+  unfulfilled_demand_tonnes?: number | null;
+  estimated_revenue_at_fill?: number | null;
+  revenue_gap_usd?: number | null;
   calculation_version?: string | null;
   inputs?: JSONObject | null;
   verified_by?: string | null;
