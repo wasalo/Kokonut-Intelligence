@@ -431,6 +431,27 @@ def test_buyer_signal_and_market_match_types_keep_intent_separate_from_supply():
     assert match.supply_demand_gap_tonnes == 1.5
 
 
+def test_buyer_segment_type_exposes_stored_criteria_and_measures():
+    from kokonut import BuyerSegment
+
+    segment = BuyerSegment(
+        id="segment-1",
+        location_id="location-1",
+        segment_name="Repeat regional buyers",
+        segment_type="behavior_based",
+        criteria={"minimum_orders": 3},
+        status="draft",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        buyer_count=12,
+        segment_value="high_value",
+    )
+
+    assert segment.criteria["minimum_orders"] == 3
+    assert segment.buyer_count == 12
+    assert segment.segment_value == "high_value"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

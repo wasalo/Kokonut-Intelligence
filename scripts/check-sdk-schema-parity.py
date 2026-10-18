@@ -38,6 +38,7 @@ MODEL_TABLES = {
     "DemandTrend": ("069_demand_analysis.sql", "demand_trend"),
     "BuyerDemandSignal": ("069_demand_analysis.sql", "buyer_demand_signal"),
     "ProductionMarketMatch": ("069_demand_analysis.sql", "production_market_match"),
+    "BuyerSegment": ("069_demand_analysis.sql", "buyer_segment"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -103,6 +104,7 @@ JSONB_MODEL_SHAPES = {
     ("BuyerDemandSignal", "source_raw"): "json_object",
     ("BuyerDemandSignal", "metadata"): "json_object",
     ("ProductionMarketMatch", "inputs"): "json_object",
+    ("BuyerSegment", "criteria"): "json_object",
 }
 
 

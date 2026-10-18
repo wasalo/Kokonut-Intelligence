@@ -9079,3 +9079,17 @@ schema guard, matrix validation, and diff checks. No database, provider, or
 network was contacted. The models do not establish order fulfillment or
 calculate supply gaps. Checklist: 567 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-buyer-market-match-parity.json`.
+
+### Buyer segment SDK schema parity — 18 October 2026
+
+Python and TypeScript now model `buyer_segment`, including criteria, segment
+type/value literals, stored performance measures, assessment periods, and
+review attribution. The guard checks three SQL CHECK contracts and the
+criteria JSON object. It covers 43 models and 906 canonical columns, with 847
+scalar types, seven PostGIS shapes, 50 JSONB shapes, 20 enum fields, and 24
+standalone SQL CHECK literal contracts. Fifty-two focused Python SDK/guard
+tests and 29 JavaScript tests pass with TypeScript build, Ruff, compilation,
+schema guard, matrix validation, and diff checks. No database, provider, or
+network was contacted. The model does not classify buyers or calculate
+segment measures. Checklist: 568 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-buyer-segment-parity.json`.

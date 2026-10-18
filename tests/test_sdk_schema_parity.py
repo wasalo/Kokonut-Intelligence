@@ -171,6 +171,13 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ("ProductionMarketMatch", "status"): (
             "draft", "submitted", "verified", "published"
         ),
+        ("BuyerSegment", "segment_type"): (
+            "value_based", "behavior_based", "need_based", "tier_based"
+        ),
+        ("BuyerSegment", "segment_value"): (
+            "high_value", "medium_value", "low_value", "potential", "at_risk", "churned"
+        ),
+        ("BuyerSegment", "status"): ("draft", "submitted", "verified", "published"),
     }
     python_aliases = SCHEMA_GUARD.python_literal_aliases(
         ROOT / "sdk" / "python" / "kokonut" / "types.py"
@@ -303,7 +310,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 49
+    assert checked == 50
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

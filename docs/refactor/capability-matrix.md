@@ -3414,3 +3414,16 @@ pass. The records do not establish fulfillment or calculate supply gaps;
 capability status and MAN-CAP acceptance remain unchanged. Checklist: 567
 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-buyer-market-match-parity.json`.
+
+### Buyer segment SDK model parity — 18 October 2026
+
+Python and TypeScript now model stored buyer segments with constrained segment
+type/value fields, criteria, performance measures, assessment periods, and
+review attribution. The schema guard checks 43 models and 906 columns,
+including 847 scalar types, seven PostGIS shapes, 50 JSONB shapes, 20 enum
+fields, and 24 standalone SQL CHECK literals. Fifty-two focused Python
+SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation,
+guard, matrix validation, and diff checks pass. The type does not classify
+buyers or calculate measures; capability status and MAN-CAP acceptance remain
+unchanged. Checklist: 568 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-buyer-segment-parity.json`.

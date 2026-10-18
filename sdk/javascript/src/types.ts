@@ -28,6 +28,8 @@ export type BuyerSignalType = 'verbal_intent' | 'written_order' | 'purchase_orde
 export type BuyerType = 'processor' | 'direct' | 'market' | 'restaurant' | 'retailer' | 'export' | 'cooperative' | 'other';
 export type BuyerCommitmentLevel = 'firm' | 'probable' | 'possible' | 'exploratory';
 export type BuyerSignalStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
+export type BuyerSegmentType = 'value_based' | 'behavior_based' | 'need_based' | 'tier_based';
+export type BuyerSegmentValue = 'high_value' | 'medium_value' | 'low_value' | 'potential' | 'at_risk' | 'churned';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -919,6 +921,34 @@ export interface ProductionMarketMatch {
   revenue_gap_usd?: number | null;
   calculation_version?: string | null;
   inputs?: JSONObject | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  created_by?: string | null;
+}
+
+/** Stored buyer segment and measures; this type does not classify buyers. */
+export interface BuyerSegment {
+  id: string;
+  location_id: string;
+  segment_name: string;
+  segment_type: BuyerSegmentType;
+  criteria: JSONObject;
+  status: DemandForecastStatus;
+  created_at: string;
+  updated_at: string;
+  description?: string | null;
+  buyer_count?: number | null;
+  total_revenue_usd?: number | null;
+  avg_order_value?: number | null;
+  avg_payment_days?: number | null;
+  repeat_purchase_rate?: number | null;
+  growth_rate_pct?: number | null;
+  segment_value?: BuyerSegmentValue | null;
+  trend_direction?: string | null;
+  assessment_date?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  notes?: string | null;
   verified_by?: string | null;
   verified_at?: string | null;
   created_by?: string | null;

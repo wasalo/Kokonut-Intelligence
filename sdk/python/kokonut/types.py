@@ -45,6 +45,10 @@ BuyerType = Literal[
 ]
 BuyerCommitmentLevel = Literal["firm", "probable", "possible", "exploratory"]
 BuyerSignalStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
+BuyerSegmentType = Literal["value_based", "behavior_based", "need_based", "tier_based"]
+BuyerSegmentValue = Literal[
+    "high_value", "medium_value", "low_value", "potential", "at_risk", "churned"
+]
 
 GeoJSONPosition = List[float]
 
@@ -858,6 +862,36 @@ class ProductionMarketMatch:
     revenue_gap_usd: Optional[float] = None
     calculation_version: Optional[str] = None
     inputs: Optional[JSONObject] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
+class BuyerSegment:
+    """Stored buyer segment and measures; this type does not classify buyers."""
+
+    id: str
+    location_id: str
+    segment_name: str
+    segment_type: BuyerSegmentType
+    criteria: JSONObject
+    status: DemandForecastStatus
+    created_at: str
+    updated_at: str
+    description: Optional[str] = None
+    buyer_count: Optional[int] = None
+    total_revenue_usd: Optional[float] = None
+    avg_order_value: Optional[float] = None
+    avg_payment_days: Optional[float] = None
+    repeat_purchase_rate: Optional[float] = None
+    growth_rate_pct: Optional[float] = None
+    segment_value: Optional[BuyerSegmentValue] = None
+    trend_direction: Optional[str] = None
+    assessment_date: Optional[str] = None
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
+    notes: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     created_by: Optional[str] = None
