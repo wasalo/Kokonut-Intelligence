@@ -1369,6 +1369,36 @@ def test_export_creation_preserves_target_table_without_network_calls():
     )
 
 
+def test_export_creation_accepts_positional_optional_fields_without_network_calls():
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    client.create_item = Mock(return_value={"id": "export-1"})
+
+    client.exports.create_export(
+        "farm_data",
+        "csv",
+        "location",
+        ["location-1"],
+        "harvest_event",
+        {"status": "published"},
+    )
+
+    client.create_item.assert_called_once_with(
+        "export_log",
+        {
+            "export_type": "farm_data",
+            "format": "csv",
+            "entity_type": "location",
+            "entity_ids": ["location-1"],
+            "target_table": "harvest_event",
+            "filters": {"status": "published"},
+            "status": "pending",
+            "requested_by": "sdk",
+        },
+    )
+
+
 def test_export_create_many_delegates_to_directus_batch_without_network_calls():
     from kokonut import KokonutClient
 

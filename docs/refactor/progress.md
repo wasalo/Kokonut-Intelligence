@@ -9443,3 +9443,15 @@ used. This aligns the client method contract without changing permissions,
 tenant scope, or MAN-CAP acceptance. Checklist: 592 complete / 19 open.
 Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-export-field-projection-parity.json`.
+
+### Native SDK export-creation signature parity — 18 October 2026
+
+TypeScript now accepts the existing request-object call, an export type plus
+options, and the positional argument sequence supported by Python's
+`create_export()`. All three forms produce the same pending `export_log`
+payload. The focused Python SDK/schema/method suite passes 79 tests and Vitest
+passes 34 tests; TypeScript build, Ruff, and diff checks pass. Mock clients
+were used, with no HTTP, database, provider, or credential access. This aligns
+the client call contract without changing permissions, tenant scope, or
+MAN-CAP acceptance. Checklist: 593 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-export-create-signature-parity.json`.

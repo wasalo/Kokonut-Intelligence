@@ -1,0 +1,16 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python/TypeScript export creation call-shape parity",
+  "contract": "TypeScript supports the existing request-object API, an export-type plus options form, and the positional form corresponding to Python create_export(export_type, format, entity_type, entity_ids, target_table, filters). All forms produce the same pending export_log payload.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 79 passed",
+    "javascript": "npm test — 34 passed",
+    "typescript": "npm run build — passed",
+    "ruff": "ruff check tests/test_sdk.py — passed",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "Both SDK clients are mocked; no HTTP request, database, provider, or credential is used.",
+    "This aligns client request shapes and does not change Directus permissions, Gateway authorization, tenant scope, or MAN-CAP acceptance."
+  ]
+}

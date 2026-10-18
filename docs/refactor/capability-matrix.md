@@ -32,6 +32,11 @@ an optional field projection when reading an export record and forward it to
 the Directus item read. This does not change server permissions, tenant scope,
 or MAN-CAP status ([evidence](builds/2026-10-18-recovery/sdk-export-field-projection-parity.json)).
 
+**SDK export creation signature note — 18 October 2026:** TypeScript accepts the
+existing request object, export type plus options, and the positional field
+order supported by Python. These forms create the same pending export payload;
+permissions, tenant scope, and MAN-CAP status are unchanged ([evidence](builds/2026-10-18-recovery/sdk-export-create-signature-parity.json)).
+
 The six-column matrix is checked by `python3 scripts/check-capability-matrix.py`
 and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate

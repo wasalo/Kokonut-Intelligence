@@ -473,6 +473,52 @@ describe('KokonutClient', () => {
     });
   });
 
+  it('supports Python-style export type plus optional request fields', async () => {
+    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
+
+    await client.exports.createExport('farm_data', {
+      entity_type: 'location',
+      entity_ids: ['location-1'],
+      target_table: 'harvest_event',
+      filters: { status: 'published' },
+    });
+
+    expect(createItem).toHaveBeenCalledWith('export_log', {
+      export_type: 'farm_data',
+      format: null,
+      entity_type: 'location',
+      entity_ids: ['location-1'],
+      target_table: 'harvest_event',
+      filters: { status: 'published' },
+      status: 'pending',
+      requested_by: 'sdk',
+    });
+  });
+
+  it('supports the Python export positional parameter contract', async () => {
+    const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-3' });
+
+    await client.exports.createExport(
+      'farm_data',
+      'csv',
+      'location',
+      ['location-1'],
+      'harvest_event',
+      { status: 'published' },
+    );
+
+    expect(createItem).toHaveBeenCalledWith('export_log', {
+      export_type: 'farm_data',
+      format: 'csv',
+      entity_type: 'location',
+      entity_ids: ['location-1'],
+      target_table: 'harvest_event',
+      filters: { status: 'published' },
+      status: 'pending',
+      requested_by: 'sdk',
+    });
+  });
+
   it('forwards export field projections like the Python SDK', async () => {
     const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({
       id: 'export-1',

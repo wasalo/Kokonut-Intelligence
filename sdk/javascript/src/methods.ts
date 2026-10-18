@@ -170,8 +170,7 @@ export interface ReportMethods extends GenericMethods {
   listByType(reportType: string, options?: ListOptions): Promise<ReportSnapshot[]>;
 }
 
-export interface ExportCreateRequest {
-  export_type: string;
+export interface ExportCreateOptions {
   format?: ExportFormat | null;
   entity_type?: string;
   entity_ids?: string[];
@@ -179,10 +178,23 @@ export interface ExportCreateRequest {
   filters?: Record<string, any>;
 }
 
+export interface ExportCreateRequest extends ExportCreateOptions {
+  export_type: string;
+}
+
 export interface ExportMethods extends GenericMethods {
   list(options?: ListOptions): Promise<ExportLog[]>;
   get(id: string, fields?: string[]): Promise<ExportLog>;
   createExport(data: ExportCreateRequest): Promise<ExportLog>;
+  createExport(exportType: string, options?: ExportCreateOptions): Promise<ExportLog>;
+  createExport(
+    exportType: string,
+    format?: ExportFormat | null,
+    entityType?: string,
+    entityIds?: string[],
+    targetTable?: string,
+    filters?: Record<string, any>,
+  ): Promise<ExportLog>;
   /** Existing JavaScript creation method; use createExport() for Python parity. */
   create(data: {
     export_type: string;
@@ -462,8 +474,31 @@ export function buildReportMethods(client: any): ReportMethods {
 }
 
 export function buildExportMethods(client: any): ExportMethods {
-  const createExport = async (params: ExportCreateRequest): Promise<ExportLog> =>
-    client.createItem('export_log', {
+  const createExport = async (
+    requestOrType: ExportCreateRequest | string,
+    optionsOrFormat?: ExportCreateOptions | ExportFormat | null,
+    entityType?: string,
+    entityIds?: string[],
+    targetTable?: string,
+    filters?: Record<string, any>,
+  ): Promise<ExportLog> => {
+    let params: ExportCreateRequest;
+    if (typeof requestOrType === 'string') {
+      const options = typeof optionsOrFormat === 'object' && optionsOrFormat !== null
+        ? optionsOrFormat
+        : {
+            format: optionsOrFormat,
+            entity_type: entityType,
+            entity_ids: entityIds,
+            target_table: targetTable,
+            filters,
+          };
+      params = { ...options, export_type: requestOrType };
+    } else {
+      params = requestOrType;
+    }
+
+    return client.createItem('export_log', {
       export_type: params.export_type,
       format: params.format ?? null,
       entity_type: params.entity_type ?? null,
@@ -473,6 +508,7 @@ export function buildExportMethods(client: any): ExportMethods {
       status: 'pending',
       requested_by: 'sdk',
     }) as Promise<ExportLog>;
+  };
 
   const create = async (params: {
     export_type: string;
