@@ -30,6 +30,7 @@ MODEL_TABLES = {
     "MetricValue": ("007_modeled_outputs.sql", "metric_value"),
     "ForecastScenario": ("007_modeled_outputs.sql", "forecast_scenario"),
     "ForecastOutput": ("007_modeled_outputs.sql", "forecast_output"),
+    "DashboardDataset": ("007_modeled_outputs.sql", "dashboard_dataset"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -82,6 +83,7 @@ JSONB_MODEL_SHAPES = {
     ("ForecastScenario", "cost_assumptions"): "json_object",
     ("ForecastScenario", "growth_assumptions"): "json_object",
     ("ForecastOutput", "inputs"): "json_object",
+    ("DashboardDataset", "metadata"): "json_object",
 }
 
 

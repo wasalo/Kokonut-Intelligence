@@ -3345,3 +3345,16 @@ checks pass. This adds a typed data contract only; it does not generate or
 publish summaries. No capability status or MAN-CAP acceptance changed.
 Checklist: 562 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-ai-summary-parity.json`.
+
+### Dashboard dataset SDK model parity — 18 October 2026
+
+Python and TypeScript now model the stored dashboard dataset definition,
+including query text, location scope, refresh state, lifecycle, and metadata.
+The schema guard checks 35 models and 700 columns, including 654 scalar types,
+seven PostGIS shapes, 37 JSONB shapes, 20 enum fields, and eight standalone
+SQL CHECK literals. Forty-seven focused Python SDK/guard tests, 29 JavaScript
+tests, TypeScript build, Ruff, compilation, guard, matrix validation, and diff
+checks pass. The model does not execute SQL or trigger refresh jobs. No
+capability status or MAN-CAP acceptance changed. Checklist: 563 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-dashboard-dataset-parity.json`.

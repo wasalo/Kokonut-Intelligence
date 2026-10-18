@@ -9005,3 +9005,17 @@ No database, provider, or network was contacted. The SDK type does not generate
 summary content or authorize review transitions. Checklist: 562 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-ai-summary-parity.json`.
+
+### Dashboard dataset SDK schema parity — 18 October 2026
+
+Python and TypeScript now model the stored dashboard dataset definition,
+including its query text, location scope, refresh interval and timestamp,
+lifecycle state, and JSON-object metadata. The schema guard covers 35 models
+and 700 canonical columns, with 654 scalar types, seven PostGIS shapes, 37
+JSONB shapes, 20 enum fields, and eight standalone SQL CHECK literal
+contracts. Forty-seven focused Python SDK/guard tests and 29 JavaScript tests
+pass with TypeScript build, Ruff, compilation, schema guard, matrix validation,
+and diff checks. No database, provider, or network was contacted. The type
+does not execute query text or trigger refresh jobs. Checklist: 563 complete /
+19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-dashboard-dataset-parity.json`.

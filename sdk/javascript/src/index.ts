@@ -47,6 +47,7 @@ export type {
   Organization,
   OrganizationMember,
   Farm,
+  DashboardDataset,
   Plot,
   CropCycle,
   CropCostAllocation,

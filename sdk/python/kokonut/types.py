@@ -599,6 +599,25 @@ class ForecastOutput:
 
 
 @dataclass
+class DashboardDataset:
+    """Stored dashboard dataset definition; query text is not executed here."""
+
+    id: str
+    name: str
+    description: Optional[str] = None
+    dataset_type: Optional[str] = None
+    location_id: Optional[str] = None
+    query_sql: Optional[str] = None
+    refresh_interval_minutes: Optional[int] = None
+    last_refreshed_at: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

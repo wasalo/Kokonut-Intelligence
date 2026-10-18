@@ -289,6 +289,23 @@ def test_ai_summary_type_preserves_lineage_and_review_as_distinct_fields():
     assert summary.reviewed_by is None
 
 
+def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution():
+    from kokonut import DashboardDataset
+
+    dataset = DashboardDataset(
+        id="dataset-1",
+        name="Synthetic farm metrics",
+        query_sql="SELECT 1 AS value",
+        refresh_interval_minutes=60,
+        status="published",
+        metadata={"audience": "community"},
+    )
+
+    assert dataset.query_sql == "SELECT 1 AS value"
+    assert dataset.status == "published"
+    assert dataset.metadata["audience"] == "community"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

@@ -685,6 +685,23 @@ export interface ForecastOutput {
   created_by?: string | null;
 }
 
+/** Stored dashboard dataset definition; query text is not executed here. */
+export interface DashboardDataset {
+  id: string;
+  name: string;
+  description?: string | null;
+  dataset_type?: string | null;
+  location_id?: string | null;
+  query_sql?: string | null;
+  refresh_interval_minutes?: number | null;
+  last_refreshed_at?: string | null;
+  status?: LifecycleStatus | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  updated_by?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;
