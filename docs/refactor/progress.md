@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Native credit-custody summary — 18 October 2026
+
+The OIDC operator API now exposes an aggregate credit-custody summary at
+`/operator/api/credit-custody/{location_id}/summary`. It requires both
+`carbon_credit:read` and `credit_retirement:read` for the same location. Signed
+tenant context is established before read-only queries; reservation state and
+retirement-ledger status totals remain separate. Beneficiary, wallet, statement,
+evidence, request-key, and reviewer fields are excluded, and there is no
+retirement or chain action. The 165-test combined credit/Gateway/auth/audit
+suite passes, including exact policies for all 48 concrete operator
+method/path entries and existing retirement atomicity regressions. Ruff,
+compilation, capability validation, and diff checks pass with synthetic rows;
+no candidate/legacy database, wallet, or chain was accessed. CAP-020 is
+prepared, not accepted: live populated parity, human approval workflow parity,
+domain RLS, and independent confirmation acceptance remain open. Checklist:
+637 complete / 19 open; matrix: 48 baseline-retained, 7 deployed, 11 prepared
+([evidence](builds/2026-10-18-recovery/gateway-credit-custody-summary.json)).
+
 ### Native ecocredit batch reads — 18 October 2026
 
 The OIDC operator API now lists location-scoped ecocredit batch state under

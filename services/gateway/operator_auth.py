@@ -382,6 +382,20 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    credit_custody_match = re.fullmatch(
+        r"/operator/api/credit-custody/([0-9a-fA-F-]{36})/summary", path
+    )
+    if credit_custody_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "carbon_credit",
+            "action": "read",
+            "additional_scopes": [{"resource": "credit_retirement", "action": "read"}],
+            "public": False,
+            "location_id": credit_custody_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     ecocredit_match = re.fullmatch(
         r"/operator/api/ecocredits/([0-9a-fA-F-]{36})/batches", path
     )
@@ -2034,6 +2048,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         return response
 
     from services.gateway.attestation_routes import register_attestation_routes
+    from services.gateway.credit_custody_routes import register_credit_custody_routes
     from services.gateway.ecocredit_routes import register_ecocredit_routes
     from services.gateway.emergency_response_routes import (
         register_emergency_response_routes,
@@ -2044,6 +2059,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
     register_emergency_response_routes(router, provider, run_in_threadpool, psycopg2)
     register_attestation_routes(router, provider, run_in_threadpool, psycopg2)
+    register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_ecocredit_routes(router, provider, run_in_threadpool, psycopg2)
     register_true_cost_routes(router, provider, run_in_threadpool, psycopg2)
     return router

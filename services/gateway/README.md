@@ -42,10 +42,19 @@ aggregated tradable, retired, and escrowed ledger totals, preserves four-decimal
 precision, and omits wallet addresses and account-level balances. It does not
 issue, transfer, retire, or verify credits.
 
+Carbon-credit custody summaries are available at
+`GET /operator/api/credit-custody/{location_id}/summary`. Operators need both
+`carbon_credit:read` and `credit_retirement:read` for the location. The summary
+reports aggregate reservation and retirement status quantities separately and
+omits beneficiary, wallet, statement, evidence, request-key, and reviewer-note
+details. Retirement approval, rejection, cancellation, and chain actions are
+not exposed by this read.
+
 ## Modules
 
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.
 - `attestations` and `attestation_routes` — scoped metadata reads for location EAS proofs.
+- `credit_custody` and `credit_custody_routes` — aggregate carbon-credit and retirement state.
 - `ecocredits` and `ecocredit_routes` — location-scoped batch and aggregate ledger reads.
 - `audit` — Gateway audit — request logging.
 - `auth` — Gateway auth — unified authentication (API key, capability token, session).
