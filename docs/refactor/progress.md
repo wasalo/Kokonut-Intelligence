@@ -8761,3 +8761,14 @@ that contract regresses. The 20-model/473-column guard, 21 Python tests, 29
 JavaScript tests, TypeScript build, Ruff, capability-matrix validation, and
 diff checks pass. Checklist: 543 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-python-nullability-guard.json`.
+
+### SDK scalar SQL type guard — 17 October 2026
+
+Extended the offline guard to compare supported primitive SQL type families
+with Python and TypeScript field types, including added columns and column type
+migrations. It validates 442 scalar types across 20 models; JSONB and PostGIS
+remain explicitly excluded because they require structured shape contracts.
+Four guard regressions, 21 SDK tests, 29 JavaScript tests, the TypeScript
+build, Ruff, capability-matrix validation, and diff checks pass. No database
+or network was contacted. Checklist: 545 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-scalar-type-parity-guard.json`.

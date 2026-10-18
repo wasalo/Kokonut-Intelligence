@@ -1366,8 +1366,10 @@ now have current schema column coverage, including selected additive
 migrations; `ExportLog` now includes its canonical table fields in both SDKs,
 `NoiSnapshot` nullability matches the finance table, and the guard now rejects
 Python/TypeScript fields that omit nullable SQL annotations. `AlertRule`'s
-nullable maximum threshold is corrected. The guard passes across 20 models and
-473 columns. The checklist is now 543
+nullable maximum threshold is corrected. The guard now also checks 442
+primitive SQL types across those 20 models; JSONB and PostGIS shapes remain
+unvalidated. The guard passes across 20 models and 473 columns. The checklist
+is now 545
 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

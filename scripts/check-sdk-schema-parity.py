@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ensure selected Python/TypeScript SDK models expose canonical and additive SQL columns."""
+"""Check selected Python/TypeScript SDK models against canonical SQL columns and types."""
 
 from __future__ import annotations
 
@@ -129,6 +129,131 @@ def table_nullable_columns(path: Path, table: str) -> set[str]:
     return {name for name, nullable in nullability.items() if nullable}
 
 
+def parse_sql_type(declaration: str) -> str | None:
+    match = re.match(
+        r"\s*((?:DOUBLE\s+PRECISION|TIMESTAMP\s+WITH(?:OUT)?\s+TIME\s+ZONE|"
+        r"CHARACTER\s+VARYING|[A-Z][A-Z0-9_]*)(?:\s*\([^)]*\))?(?:\[\])?)",
+        declaration,
+        flags=re.IGNORECASE,
+    )
+    return match.group(1).upper() if match else None
+
+
+def table_column_types(path: Path, table: str) -> dict[str, str]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if match is None:
+        raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
+
+    column_types = {}
+    for line in match.group(1).splitlines():
+        declaration = line.split("--", maxsplit=1)[0].strip().rstrip(",")
+        column = re.match(r"([a-z][a-z0-9_]*)\s+(.+)", declaration, re.IGNORECASE)
+        if column is None or column.group(1).lower() in {
+            "constraint",
+            "primary",
+            "unique",
+            "check",
+            "foreign",
+        }:
+            continue
+        sql_type = parse_sql_type(column.group(2))
+        if sql_type:
+            column_types[column.group(1).lower()] = sql_type
+
+    for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
+        migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            migration_source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            body = statement.group(1)
+            additions = list(
+                re.finditer(
+                    r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    body,
+                    flags=re.IGNORECASE,
+                )
+            )
+            for index, addition in enumerate(additions):
+                end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
+                sql_type = parse_sql_type(body[addition.end() : end])
+                if sql_type:
+                    column_types[addition.group(1).lower()] = sql_type
+
+            for alteration in re.finditer(
+                r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+TYPE\s+(.+?)(?=,\s*ALTER COLUMN|$)",
+                body,
+                flags=re.IGNORECASE,
+            ):
+                sql_type = parse_sql_type(alteration.group(2))
+                if sql_type:
+                    column_types[alteration.group(1).lower()] = sql_type
+
+    return column_types
+
+
+def sql_type_family(sql_type: str) -> str | None:
+    normalized = sql_type.upper()
+    if normalized == "UUID" or normalized in {
+        "TEXT",
+        "DATE",
+        "TIME",
+        "TIMESTAMP",
+        "TIMESTAMPTZ",
+        "TIMESTAMP WITH TIME ZONE",
+        "TIMESTAMP WITHOUT TIME ZONE",
+    } or normalized.startswith(("VARCHAR", "CHARACTER VARYING", "CHAR(")):
+        return "string"
+    if normalized in {"SMALLINT", "INTEGER", "INT", "BIGINT", "SERIAL", "BIGSERIAL"}:
+        return "integer"
+    if normalized.startswith(("NUMERIC", "DECIMAL", "REAL", "DOUBLE PRECISION", "FLOAT")):
+        return "number"
+    if normalized in {"BOOLEAN", "BOOL"}:
+        return "boolean"
+    if normalized in {"TEXT[]", "VARCHAR[]"}:
+        return "string_array"
+    return None
+
+
+def python_type_matches_family(annotation: str, family: str) -> bool:
+    normalized = annotation.strip()
+    if normalized.startswith("Optional[") and normalized.endswith("]"):
+        normalized = normalized[len("Optional[") : -1].strip()
+    normalized = re.sub(r"\s*\|\s*None\b", "", normalized).strip()
+    compatible = {
+        "string": {"str"},
+        "integer": {"int"},
+        "number": {"float", "int", "Decimal"},
+        "boolean": {"bool"},
+        "string_array": {"List[str]", "list[str]"},
+    }
+    return normalized in compatible.get(family, set())
+
+
+def typescript_type_matches_family(field_type: str, family: str) -> bool:
+    normalized = re.sub(r"\s*\|\s*null\b", "", field_type).strip()
+    if family == "string":
+        parts = [part.strip() for part in normalized.split("|")]
+        return bool(parts) and all(
+            part == "string" or re.fullmatch(r"(?:'[^']*'|\"[^\"]*\")", part)
+            for part in parts
+        )
+    expected = {
+        "integer": "number",
+        "number": "number",
+        "boolean": "boolean",
+        "string_array": "string[]",
+    }.get(family)
+    return normalized == expected
+
+
 def python_model_field_types(path: Path) -> dict[str, dict[str, str]]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     return {
@@ -189,10 +314,12 @@ def main() -> int:
     )
     failures = []
     checked_columns = 0
+    checked_scalar_types = 0
 
     for model, (schema_file, table) in MODEL_TABLES.items():
         columns = table_columns(schema_dir / schema_file, table)
         nullable_columns = table_nullable_columns(schema_dir / schema_file, table)
+        column_types = table_column_types(schema_dir / schema_file, table)
         checked_columns += len(columns)
         for language, models in (("Python", python_models), ("TypeScript", typescript_models)):
             fields = models.get(model)
@@ -226,6 +353,24 @@ def main() -> int:
                 f"Python {model} omits Optional from nullable SQL columns: "
                 f"{', '.join(nullable_without_optional)}"
             )
+        for column, sql_type in column_types.items():
+            family = sql_type_family(sql_type)
+            if family is None:
+                continue
+            python_type = python_field_types.get(model, {}).get(column)
+            typescript_type = typescript_field_types.get(model, {}).get(column)
+            if python_type is None or typescript_type is None:
+                continue
+            checked_scalar_types += 1
+            if not python_type_matches_family(python_type, family):
+                failures.append(
+                    f"Python {model}.{column} does not match SQL {sql_type}: {python_type}"
+                )
+            if not typescript_type_matches_family(typescript_type, family):
+                failures.append(
+                    f"TypeScript {model}.{column} does not match SQL {sql_type}: "
+                    f"{typescript_type}"
+                )
 
     if failures:
         print("SDK schema parity failed:")
@@ -235,7 +380,8 @@ def main() -> int:
 
     print(
         f"SDK schema parity passed ({len(MODEL_TABLES)} models, "
-        f"{checked_columns} canonical columns checked per SDK)"
+        f"{checked_columns} canonical columns and {checked_scalar_types} scalar types "
+        "checked per SDK)"
     )
     return 0
 
