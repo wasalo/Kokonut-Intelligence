@@ -37,10 +37,12 @@ the Directus access/refresh token and expiry fields while retaining its prior
 `token` and `refreshToken` aliases. Synthetic offline checks pass; this does
 not change Gateway sessions or MAN-CAP status ([evidence](builds/2026-10-18-recovery/sdk-login-response-parity.json)).
 
-**SDK aggregate-query parity note — 18 October 2026:** TypeScript now exposes the
-generic Directus aggregation command already available in Python and documents
-its query options. This permits data aggregation but does not establish
-authorization, tenant scope, or MAN-CAP acceptance ([evidence](builds/2026-10-18-recovery/sdk-generic-aggregate-parity.json)).
+**SDK aggregate-query parity note — 18 October 2026:** TypeScript exposes the
+generic Directus aggregation command, and Python now uses the same collection
+route and top-level array encoding. Fake-fetch acceptance confirms the pinned
+TypeScript command requests `/items/{collection}` with nested aggregate JSON and
+comma-separated groupBy values. This does not establish authorization, tenant
+scope, or MAN-CAP acceptance ([wire evidence](builds/2026-10-18-recovery/sdk-aggregate-query-wire-parity.json); [client feature](builds/2026-10-18-recovery/sdk-generic-aggregate-parity.json)).
 
 **SDK list-query option parity note — 18 October 2026:** TypeScript now forwards
 additional Directus list-query parameters like Python's generic list helper,

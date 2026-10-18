@@ -9496,8 +9496,9 @@ TypeScript `listItems()` now preserves additional Directus list-query options,
 including caller-defined search, aggregate, and deep parameters, matching
 Python's `list_items(..., **kwargs)` behavior. Standard fields remain
 normalized, and a defined non-zero `limit` plus `offset` continues to take
-precedence over `page`. A transport regression instantiates the pinned Directus
-SDK with a stubbed global `fetch` and confirms query-key serialization,
+precedence over `page`. Python now encodes top-level arrays as comma-separated
+Directus values, matching the pinned SDK. A transport regression instantiates
+that SDK with a stubbed global `fetch` and confirms query-key serialization,
 including JSON encoding for nested `aggregate` and `deep` options, and response
 unwrapping. The focused Python SDK/schema/method suite passes 84 tests; Vitest
 passes 39 tests; TypeScript build and compilation, capability-matrix validation,
@@ -9505,7 +9506,7 @@ targeted Ruff, and diff checks pass. A package-wide Ruff
 scan still reports 39 findings in untouched generated and example files; the
 changed Python test passes targeted Ruff. The fetch is stubbed, so no network
 request was made; no database, provider, or credentials were accessed. Generic query options do not
-provide an authorization or tenant boundary. Checklist: 599 complete / 19
+provide an authorization or tenant boundary. Checklist: 600 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-list-query-parameter-parity.json`.
 
@@ -9523,3 +9524,17 @@ provider, or credentials were used. This request-shape coverage does not establi
 live Directus behavior, authorization, tenant scope, or MAN-CAP acceptance.
 Checklist: 598 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-generic-crud-contract.json`.
+
+### Native SDK aggregate-query wire parity — 18 October 2026
+
+The Python aggregation helper now follows the pinned Directus SDK's observed
+REST route, `/items/{collection}`, and serializes top-level arrays as
+comma-separated query values. Nested filter/aggregate/deep objects remain JSON
+encoded. The Python regression checks the aggregate path and `groupBy` value;
+the pinned SDK's stubbed-fetch regression confirms the same path, nested
+aggregate JSON, and comma-separated `groupBy`. The focused SDK/schema/method
+suite passes 84 Python tests and Vitest passes 39 JavaScript tests; TypeScript
+build, targeted Ruff, compilation, capability-matrix, and diff checks pass.
+This is offline wire-shape parity only; no Directus API, authorization, or
+tenant scope is verified. Checklist: 600 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-aggregate-query-wire-parity.json`.

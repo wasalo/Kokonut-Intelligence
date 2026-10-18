@@ -43,5 +43,17 @@ describe('KokonutClient REST transport boundary', () => {
     expect(query.get('limit')).toBe('25');
     expect(query.get('offset')).toBe('10');
     expect(query.has('page')).toBe(false);
+
+    const grouped = await client.aggregate('harvest_event', {
+      aggregate: { count: '*' },
+      groupBy: ['location_id'],
+    });
+
+    expect(grouped).toEqual([{ id: 'event-1' }]);
+    expect(fetchStub).toHaveBeenCalledTimes(2);
+    const aggregateUrl = new URL(requests[1]!.url);
+    expect(aggregateUrl.pathname).toBe('/items/harvest_event');
+    expect(aggregateUrl.searchParams.get('aggregate')).toBe(JSON.stringify({ count: '*' }));
+    expect(aggregateUrl.searchParams.get('groupBy')).toBe('location_id');
   });
 });

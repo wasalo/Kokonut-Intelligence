@@ -1438,8 +1438,8 @@ def test_aggregate_query_serializes_options_and_returns_data_without_network_cal
 
     assert result == response.json.return_value["data"]
     client.session.get.assert_called_once_with(
-        "http://localhost:8055/items/harvest_event/aggregate",
-        params={"aggregate": '{"count": "*"}', "groupBy": '["location_id"]'},
+        "http://localhost:8055/items/harvest_event",
+        params={"aggregate": '{"count": "*"}', "groupBy": "location_id"},
     )
 
 
@@ -1455,7 +1455,7 @@ def test_list_items_preserves_extra_directus_query_parameters_without_network_ca
 
     client.list_items(
         "harvest_event",
-        ListOptions(limit=25, offset=10),
+        ListOptions(limit=25, offset=10, fields=["id", "location_id"], sort=["-created_at"]),
         search="coconut",
         aggregate={"count": "*"},
         groupBy=["location_id"],
@@ -1466,9 +1466,11 @@ def test_list_items_preserves_extra_directus_query_parameters_without_network_ca
         params={
             "limit": 25,
             "offset": 10,
+            "fields": "id,location_id",
+            "sort": "-created_at",
             "search": "coconut",
             "aggregate": '{"count": "*"}',
-            "groupBy": '["location_id"]',
+            "groupBy": "location_id",
         },
     )
 

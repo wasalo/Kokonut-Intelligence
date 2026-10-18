@@ -90,7 +90,11 @@ harvest = client.harvest_events.create({
 unpaid = client.sales_events.list_unpaid()
 
 # Aggregate query
-count = client.aggregate("harvest_event", aggregate="count", groupBy="location_id")
+counts = client.aggregate(
+    "harvest_event",
+    aggregate={"count": "*"},
+    groupBy=["location_id"],
+)
 ```
 
 ## Authentication

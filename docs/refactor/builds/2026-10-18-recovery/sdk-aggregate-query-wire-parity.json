@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript Directus aggregate request wire parity",
+  "contract": "Both SDKs send aggregation through GET /items/{collection}; nested aggregate objects are JSON query values and top-level groupBy arrays are comma-separated values, matching the pinned Directus SDK request.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 84 passed",
+    "javascript": "npm test -- --run — 39 passed",
+    "typescript": "npm run build — passed",
+    "ruff": "python3 -m ruff check sdk/python/kokonut/client.py tests/test_sdk.py — passed",
+    "compilation": "python3 -m compileall -q sdk/python tests/test_sdk.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "Python uses mocked requests; the pinned Directus SDK uses a stubbed global fetch. No network request, database, provider, or credential was used.",
+    "Wire-shape parity does not establish server response behavior, authorization, or tenant isolation.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

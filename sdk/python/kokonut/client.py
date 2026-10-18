@@ -164,9 +164,9 @@ class KokonutClient:
     # -- Aggregate -------------------------------------------------------------
 
     def aggregate(self, collection: str, **kwargs: Any) -> List[Any]:
-        """Run an aggregate query via Directus /items/:collection/aggregate."""
+        """Run a Directus aggregate query through /items/:collection."""
         resp = self.session.get(
-            f"{self.base_url}/items/{collection}/aggregate",
+            f"{self.base_url}/items/{collection}",
             params=self._serialize_params(kwargs),
         )
         self._handle_error(resp)
@@ -177,11 +177,13 @@ class KokonutClient:
 
     @staticmethod
     def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
-        """Serialize complex params (dicts/lists) to JSON strings for query strings."""
+        """Encode nested objects as JSON and top-level arrays as Directus CSV."""
         out: Dict[str, Any] = {}
         for k, v in params.items():
-            if isinstance(v, (dict, list)):
+            if isinstance(v, dict):
                 out[k] = json.dumps(v)
+            elif isinstance(v, list):
+                out[k] = ",".join(str(item) for item in v)
             else:
                 out[k] = v
         return out
