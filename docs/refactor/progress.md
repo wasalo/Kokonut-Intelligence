@@ -8625,3 +8625,15 @@ TypeScript build, and diff checks pass with local fixtures only; no database
 or network was contacted. Checklist: 531 complete / 19 open. Capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-finance-events-schema-parity.json`.
+
+### SDK location/farm/plot spatial schema parity — 17 October 2026
+
+Python and JavaScript `Location`, `Farm`, and `Plot` models now expose the
+canonical spatial and audit columns, including location coordinates and
+metadata, PostGIS boundary/center values, plot elevation/slope/aspect, and
+creator/updater IDs. TypeScript geometry values are represented as records so
+Directus GeoJSON properties remain extensible. Twelve Python tests, 21
+JavaScript tests, Ruff, TypeScript build, and diff checks pass with local
+fixtures only; no database or network was contacted. Checklist: 532 complete
+/ 19 open. Capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-land-spatial-schema-parity.json`.

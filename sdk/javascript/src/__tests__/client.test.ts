@@ -1,6 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KokonutClient } from '../client.js';
-import type { CropCycle, ExpenseEvent, HarvestEvent, SalesEvent } from '../types.js';
+import type {
+  CropCycle,
+  ExpenseEvent,
+  Farm,
+  HarvestEvent,
+  Location,
+  Plot,
+  SalesEvent,
+} from '../types.js';
 
 // Mock the @directus/sdk
 vi.mock('@directus/sdk', () => {
@@ -122,6 +130,40 @@ describe('KokonutClient', () => {
 
     expect(cycle.actual_yield).toBe(215);
     expect(cycle.location_id).toBe('location-1');
+  });
+
+  it('types location, farm and plot spatial/audit fields from the canonical schema', () => {
+    const location: Location = {
+      id: 'location-1',
+      name: 'Test Location',
+      slug: 'test-location',
+      country: 'DO',
+      center: { type: 'Point', coordinates: [-69.9, 18.5] },
+      metadata: { source: 'fixture' },
+      created_by: 'operator-1',
+    };
+    const farm: Farm = {
+      id: 'farm-1',
+      location_id: location.id,
+      name: 'Test Farm',
+      slug: 'test-farm',
+      boundary: { type: 'Polygon', coordinates: [] },
+      metadata: { source: 'fixture' },
+      updated_by: 'operator-1',
+    };
+    const plot: Plot = {
+      id: 'plot-1',
+      farm_id: farm.id,
+      name: 'North Plot',
+      slug: 'north-plot',
+      center: { type: 'Point', coordinates: [-69.9, 18.5] },
+      elevation_m: 42,
+      metadata: { source: 'fixture' },
+    };
+
+    expect(location.center?.type).toBe('Point');
+    expect(farm.boundary?.type).toBe('Polygon');
+    expect(plot.elevation_m).toBe(42);
   });
 
   it('types harvest evidence and source lineage from the canonical schema', () => {

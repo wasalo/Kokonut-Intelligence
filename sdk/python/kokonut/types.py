@@ -41,6 +41,8 @@ class Location:
     name: str
     slug: str
     description: Optional[str] = None
+    boundary: Optional[Dict[str, Any]] = None
+    center: Optional[Dict[str, Any]] = None
     country: Optional[str] = None
     region: Optional[str] = None
     sub_region: Optional[str] = None
@@ -69,6 +71,8 @@ class Farm:
     name: str
     slug: str
     description: Optional[str] = None
+    boundary: Optional[Dict[str, Any]] = None
+    center: Optional[Dict[str, Any]] = None
     logo_url: Optional[str] = None
     traditional_name: Optional[str] = None
     languages: Optional[List[str]] = None
@@ -96,6 +100,8 @@ class Plot:
     name: str
     slug: Optional[str] = None
     description: Optional[str] = None
+    boundary: Optional[Dict[str, Any]] = None
+    center: Optional[Dict[str, Any]] = None
     area: Optional[float] = None
     area_unit: Optional[str] = None
     soil_type: Optional[str] = None

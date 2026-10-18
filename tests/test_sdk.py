@@ -129,6 +129,41 @@ def test_expense_event_sdk_type_exposes_schema_approval_and_lineage_fields():
     assert event.source_raw == {"batch_id": "import-2"}
 
 
+def test_location_farm_and_plot_types_expose_schema_geometry_and_metadata():
+    from kokonut.types import Farm, Location, Plot
+
+    geometry = {"type": "Point", "coordinates": [-69.9, 18.5]}
+    location = Location(
+        id="location-1",
+        name="Test Location",
+        slug="test-location",
+        center=geometry,
+        country="DO",
+        created_by="operator-1",
+    )
+    farm = Farm(
+        id="farm-1",
+        location_id=location.id,
+        name="Test Farm",
+        slug="test-farm",
+        boundary={"type": "Polygon", "coordinates": []},
+        updated_by="operator-1",
+    )
+    plot = Plot(
+        id="plot-1",
+        farm_id=farm.id,
+        name="North Plot",
+        boundary={"type": "Polygon", "coordinates": []},
+        center=geometry,
+        elevation_m=42,
+        metadata={"source": "fixture"},
+    )
+
+    assert location.center == geometry
+    assert farm.boundary == {"type": "Polygon", "coordinates": []}
+    assert plot.elevation_m == 42
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

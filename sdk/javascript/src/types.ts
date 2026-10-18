@@ -2,18 +2,28 @@ export interface Location {
   id: string;
   name: string;
   slug: string;
-  description?: string;
-  boundary?: Record<string, any>;
-  baseline_revenue?: number;
-  baseline_asset_value?: number;
-  baseline_cash_flow?: number;
-  baseline_cost?: number;
-  baseline_assumptions?: Record<string, any>;
-  baseline_source?: string;
-  baseline_date?: string;
-  status: 'active' | 'inactive' | 'archived';
-  created_at: string;
-  updated_at: string;
+  description?: string | null;
+  boundary?: Record<string, unknown> | null;
+  center?: Record<string, unknown> | null;
+  country?: string | null;
+  region?: string | null;
+  sub_region?: string | null;
+  timezone?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  baseline_revenue?: number | null;
+  baseline_asset_value?: number | null;
+  baseline_cash_flow?: number | null;
+  baseline_cost?: number | null;
+  baseline_assumptions?: Record<string, unknown> | null;
+  baseline_source?: string | null;
+  baseline_date?: string | null;
+  status?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface Farm {
@@ -21,22 +31,27 @@ export interface Farm {
   location_id: string;
   name: string;
   slug: string;
-  description?: string;
-  logo_url?: string;
-  traditional_name?: string;
-  languages?: string[];
-  global_standard_certifications?: string[];
-  economic_sectors?: string[];
-  credits_registries?: string[];
-  data_privacy_status?: string;
-  data_privacy_standard?: string;
-  data_privacy_criteria?: Record<string, any>;
-  farm_type: 'conventional' | 'organic' | 'syntropic' | 'agroforestry' | 'hybrid';
-  total_area: number;
-  area_unit: 'hectares' | 'acres' | 'm2';
-  status: 'active' | 'inactive' | 'archived';
-  created_at: string;
-  updated_at: string;
+  description?: string | null;
+  boundary?: Record<string, unknown> | null;
+  center?: Record<string, unknown> | null;
+  logo_url?: string | null;
+  traditional_name?: string | null;
+  languages?: string[] | null;
+  global_standard_certifications?: string[] | null;
+  economic_sectors?: string[] | null;
+  credits_registries?: string[] | null;
+  data_privacy_status?: string | null;
+  data_privacy_standard?: string | null;
+  data_privacy_criteria?: Record<string, unknown> | null;
+  farm_type?: string | null;
+  total_area?: number | null;
+  area_unit?: string | null;
+  status?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface Plot {
@@ -44,14 +59,22 @@ export interface Plot {
   farm_id: string;
   name: string;
   slug: string;
-  area: number;
-  area_unit: 'hectares' | 'acres' | 'm2';
-  soil_type?: string;
-  water_source?: string;
-  boundary?: Record<string, any>;
-  status: 'active' | 'inactive' | 'archived';
-  created_at: string;
-  updated_at: string;
+  description?: string | null;
+  area?: number | null;
+  area_unit?: string | null;
+  boundary?: Record<string, unknown> | null;
+  center?: Record<string, unknown> | null;
+  soil_type?: string | null;
+  water_source?: string | null;
+  elevation_m?: number | null;
+  slope_pct?: number | null;
+  aspect?: string | null;
+  status?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface CropCycle {
