@@ -39,6 +39,7 @@ from .types import (
     FinancialTransaction,
     ForecastOutput,
     ForecastScenario,
+    InfrastructureAsset,
     ListOptions,
     MarketSizeEstimate,
     MetricValue,
@@ -209,6 +210,9 @@ class KokonutClient:
         )
         self.trend_dashboard_metrics: LocationReadMethods[TrendDashboardMetric] = LocationReadMethods(
             self, "trend_dashboard_metric"
+        )
+        self.infrastructure_assets: LocationReadMethods[InfrastructureAsset] = LocationReadMethods(
+            self, "infrastructure_asset"
         )
 
     # -- Auth ------------------------------------------------------------------

@@ -102,8 +102,9 @@ capability behavior or mark any MAN-CAP check accepted.
 
 **Infrastructure-asset SDK note — 18 October 2026:** clients now represent
 stored equipment inventory and its constrained lifecycle status. Condition
-labels remain free-form as in SQL, and the SDK does not assess asset condition
-or certify infrastructure ([evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-parity.json)).
+labels remain free-form as in SQL. Python and TypeScript now also expose
+location-scoped, read-only access to stored assets; the SDK does not assess
+condition or certify infrastructure ([model evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-parity.json); [read-method evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-read-methods.json)).
 
 **Cash-flow SDK contract note — 18 October 2026:** Python and TypeScript expose
 stored period summaries and input provenance. The SDK does not calculate,

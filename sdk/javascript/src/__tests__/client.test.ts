@@ -303,6 +303,7 @@ describe('KokonutClient', () => {
       [client.changePoints, 'change_point'],
       [client.seasonalDecompositions, 'seasonal_decomposition'],
       [client.trendDashboardMetrics, 'trend_dashboard_metric'],
+      [client.infrastructureAssets, 'infrastructure_asset'],
     ] as const;
     const options = {
       limit: 20,

@@ -27,6 +27,7 @@ import type {
   DemandForecast,
   ForecastOutput,
   ForecastScenario,
+  InfrastructureAsset,
   EnvironmentalBaseline,
   MarketSizeEstimate,
   MetricValue,
@@ -149,6 +150,7 @@ export class KokonutClient {
   changePoints: LocationReadMethods<ChangePoint>;
   seasonalDecompositions: LocationReadMethods<SeasonalDecomposition>;
   trendDashboardMetrics: LocationReadMethods<TrendDashboardMetric>;
+  infrastructureAssets: LocationReadMethods<InfrastructureAsset>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -202,6 +204,7 @@ export class KokonutClient {
     this.changePoints = buildLocationReadMethods<ChangePoint>(this, 'change_point');
     this.seasonalDecompositions = buildLocationReadMethods<SeasonalDecomposition>(this, 'seasonal_decomposition');
     this.trendDashboardMetrics = buildLocationReadMethods<TrendDashboardMetric>(this, 'trend_dashboard_metric');
+    this.infrastructureAssets = buildLocationReadMethods<InfrastructureAsset>(this, 'infrastructure_asset');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {

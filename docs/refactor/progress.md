@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### Infrastructure inventory SDK reads — 18 October 2026
+
+Python and TypeScript now provide read-only, location-scoped access to stored
+`infrastructure_asset` inventory through the existing typed SDK accessor.
+The location predicate overrides a conflicting caller filter and preserves
+other list options. The SDK does not assess condition or certify infrastructure.
+Focused SDK checks, TypeScript tests/build, Ruff, compilation, schema and
+capability guards, and diff checks pass. MAN-CAP acceptance remains open
+([evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-read-methods.json)).
+Checklist: 622 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### Trend-analysis SDK location-scoped reads — 18 October 2026
 
 Python and TypeScript now expose typed, read-only accessors for stored trend

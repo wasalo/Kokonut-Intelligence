@@ -211,6 +211,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `changePoints` | `change_point` | `listByLocation` |
 | `seasonalDecompositions` | `seasonal_decomposition` | `listByLocation` |
 | `trendDashboardMetrics` | `trend_dashboard_metric` | `listByLocation` |
+| `infrastructureAssets` | `infrastructure_asset` | `listByLocation` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `createMany`, `update`, `delete`. The credit-ledger, finance, ecological

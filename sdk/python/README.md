@@ -198,6 +198,7 @@ except KokonutError as e:
 | `change_points` | `change_point` | `list_by_location` |
 | `seasonal_decompositions` | `seasonal_decomposition` | `list_by_location` |
 | `trend_dashboard_metrics` | `trend_dashboard_metric` | `list_by_location` |
+| `infrastructure_assets` | `infrastructure_asset` | `list_by_location` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are
