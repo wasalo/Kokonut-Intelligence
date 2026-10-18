@@ -3520,3 +3520,15 @@ shapes, 20 enum fields, and 36 standalone SQL CHECK literals. It does not
 fetch imagery or calculate indices. Checklist: 576 complete / 19 open.
 Capability classifications and MAN-CAP acceptance are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-remote-sensing-observation-parity.json`.
+
+### MRV claim and verification-review SDK model parity — 18 October 2026
+
+Python and TypeScript now represent MRV claims separately from human review
+records, preserving lifecycle and attestation fields as stored data. The guard
+covers 56 models and 1,209 columns, including 1,133 scalar types, 10 PostGIS
+shapes, 66 JSONB shapes, 21 enum fields, and 36 standalone SQL CHECK literals.
+It also recognizes UUID arrays as string arrays in both SDKs. These models do
+not verify claims, change lifecycle, or submit attestations. Checklist: 577
+complete / 19 open. Capability classifications and MAN-CAP acceptance are
+unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-mrv-claim-review-parity.json`.

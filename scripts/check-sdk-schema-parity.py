@@ -55,6 +55,8 @@ MODEL_TABLES = {
     "EnvironmentalBaseline": ("005_environmental.sql", "environmental_baseline"),
     "SpeciesObservation": ("005_environmental.sql", "species_observation"),
     "RemoteSensingObservation": ("005_environmental.sql", "remote_sensing_observation"),
+    "MrvClaim": ("005_environmental.sql", "mrv_claim"),
+    "VerificationReview": ("005_environmental.sql", "verification_review"),
     "SensorType": ("011_sensor_registry.sql", "sensor_type"),
     "SensorDevice": ("011_sensor_registry.sql", "sensor_device"),
     "AlertRule": ("011_sensor_registry.sql", "alert_rule"),
@@ -88,6 +90,8 @@ JSONB_MODEL_SHAPES = {
     ("SpeciesObservation", "source_raw"): "json_object",
     ("RemoteSensingObservation", "metadata"): "json_object",
     ("RemoteSensingObservation", "source_raw"): "json_object",
+    ("MrvClaim", "claim_data"): "json_object",
+    ("MrvClaim", "source_raw"): "json_object",
     ("SensorReading", "source_raw"): "json_object",
     ("SensorDevice", "metadata"): "json_object",
     ("AlertRule", "metadata"): "json_object",
@@ -425,7 +429,7 @@ def sql_type_family(sql_type: str) -> str | None:
         return "number"
     if normalized in {"BOOLEAN", "BOOL"}:
         return "boolean"
-    if normalized in {"TEXT[]", "VARCHAR[]"}:
+    if normalized in {"TEXT[]", "VARCHAR[]", "UUID[]"}:
         return "string_array"
     spatial_type = re.fullmatch(
         r"(?:GEOMETRY|GEOGRAPHY)\s*\(\s*(POINT|POLYGON)\s*,\s*\d+\s*\)",

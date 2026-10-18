@@ -656,6 +656,51 @@ export interface RemoteSensingObservation {
   band_swir2?: number | null;
 }
 
+/** Stored MRV claim and evidence links; it does not verify or attest the claim. */
+export interface MrvClaim {
+  id: string;
+  location_id: string;
+  claim_type: string;
+  claim_date: string;
+  claim_data: JSONObject;
+  created_at?: string | null;
+  plot_id?: string | null;
+  source_record_ids?: string[] | null;
+  evidence_urls?: string[] | null;
+  evidence_hashes?: string[] | null;
+  status?: LifecycleStatus | null;
+  reviewer_id?: string | null;
+  review_notes?: string | null;
+  reviewed_at?: string | null;
+  attestation_uid?: string | null;
+  attested_at?: string | null;
+  schema_version?: string | null;
+  created_by?: string | null;
+  sensor_device_id?: string | null;
+  sensor_alert_id?: string | null;
+  source_readings?: string[] | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  evidence_maturity?: number | null;
+  external_verifier?: string | null;
+  methodology_ref?: string | null;
+  public_claim?: boolean | null;
+}
+
+/** Stored human verification review; recording it does not transition the claim. */
+export interface VerificationReview {
+  id: string;
+  claim_id: string;
+  reviewer_id: string;
+  review_date: string;
+  result: string;
+  method?: string | null;
+  notes?: string | null;
+  evidence_urls?: string[] | null;
+  created_at?: string | null;
+}
+
 export interface SensorType {
   id: string;
   name: string;

@@ -365,6 +365,36 @@ def test_remote_sensing_type_preserves_nullable_plot_and_spatial_shapes():
     assert observation.band_nir == 0.61
 
 
+def test_mrv_claim_and_verification_review_keep_attestation_and_review_separate():
+    from kokonut import MrvClaim, VerificationReview
+
+    claim = MrvClaim(
+        id="claim-1",
+        location_id="location-1",
+        claim_type="soil_carbon_change",
+        claim_date="2026-10-18",
+        claim_data={"change_pct": 4.2},
+        source_record_ids=["measurement-1"],
+        status="submitted",
+        attestation_uid="0x" + "a" * 64,
+        evidence_maturity=5,
+    )
+    review = VerificationReview(
+        id="review-1",
+        claim_id=claim.id,
+        reviewer_id="reviewer-1",
+        review_date="2026-10-18",
+        result="approved",
+        evidence_urls=["https://example.invalid/review"],
+    )
+
+    assert claim.status == "submitted"
+    assert claim.attestation_uid.startswith("0x")
+    assert claim.source_record_ids == ["measurement-1"]
+    assert review.result == "approved"
+    assert review.claim_id == claim.id
+
+
 def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
     from kokonut import ForecastScenario
 

@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### SDK MRV claim and verification review schema parity — 18 October 2026
+
+Python and TypeScript now expose MRV claims and separate verification-review
+records. Claims retain lifecycle state, JSON claim/evidence data, UUID source
+links, sensor references, evidence maturity, public-claim metadata, and EAS
+attestation references. The schema guard maps PostgreSQL `UUID[]` values to
+SDK string arrays and covers 56 models, 1,209 canonical columns, 1,133 scalar
+types, 10 PostGIS shapes, 66 JSONB shapes, 21 enum fields, and 36 standalone
+SQL CHECK literals. Sixty-two Python SDK/guard tests and 29 JavaScript tests
+pass with TypeScript build, Ruff, compilation, schema guard, matrix validation,
+and diff checks. The records do not verify claims, advance lifecycle, or submit
+attestations. No database or network was contacted; capability classifications
+and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-mrv-claim-review-parity.json)).
+
 ### SDK remote-sensing observation schema parity — 18 October 2026
 
 Python and TypeScript now expose stored satellite/drone observations, including

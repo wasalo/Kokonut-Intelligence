@@ -256,6 +256,7 @@ def test_sql_type_families_cover_scalars_and_postgis_shapes():
     assert SCHEMA_GUARD.sql_type_family("NUMERIC(12, 4)") == "number"
     assert SCHEMA_GUARD.sql_type_family("INTEGER") == "integer"
     assert SCHEMA_GUARD.sql_type_family("TEXT[]") == "string_array"
+    assert SCHEMA_GUARD.sql_type_family("UUID[]") == "string_array"
     assert SCHEMA_GUARD.sql_type_family("JSONB") == "jsonb"
     assert SCHEMA_GUARD.sql_type_family("GEOMETRY(POINT, 4326)") == "geojson_point"
     assert SCHEMA_GUARD.sql_type_family("GEOMETRY(POLYGON, 4326)") == "geojson_polygon"
@@ -355,7 +356,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 64
+    assert checked == 66
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )
@@ -418,4 +419,4 @@ def test_sdk_enum_annotations_match_all_mapped_postgres_enum_constraints():
                 typescript_types[model][column], typescript_enums, values
             ), f"TypeScript {model}.{column} does not match SQL enum {enum_type}"
 
-    assert checked == 20
+    assert checked == 21

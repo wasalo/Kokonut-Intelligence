@@ -1360,6 +1360,55 @@ class RemoteSensingObservation:
 
 
 @dataclass
+class MrvClaim:
+    """Stored MRV claim and evidence links; it does not verify or attest the claim."""
+
+    id: str
+    location_id: str
+    claim_type: str
+    claim_date: str
+    claim_data: JSONObject
+    created_at: Optional[str] = None
+    plot_id: Optional[str] = None
+    source_record_ids: Optional[List[str]] = None
+    evidence_urls: Optional[List[str]] = None
+    evidence_hashes: Optional[List[str]] = None
+    status: Optional[LifecycleStatus] = None
+    reviewer_id: Optional[str] = None
+    review_notes: Optional[str] = None
+    reviewed_at: Optional[str] = None
+    attestation_uid: Optional[str] = None
+    attested_at: Optional[str] = None
+    schema_version: Optional[str] = None
+    created_by: Optional[str] = None
+    sensor_device_id: Optional[str] = None
+    sensor_alert_id: Optional[str] = None
+    source_readings: Optional[List[str]] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    evidence_maturity: Optional[int] = None
+    external_verifier: Optional[str] = None
+    methodology_ref: Optional[str] = None
+    public_claim: Optional[bool] = None
+
+
+@dataclass
+class VerificationReview:
+    """Stored human verification review; recording it does not change claim lifecycle."""
+
+    id: str
+    claim_id: str
+    reviewer_id: str
+    review_date: str
+    result: str
+    method: Optional[str] = None
+    notes: Optional[str] = None
+    evidence_urls: Optional[List[str]] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class SensorType:
     id: str
     name: str
