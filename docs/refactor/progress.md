@@ -1,5 +1,32 @@
 # Kokonut Kernel implementation progress
 
+### Current-source ARM64/QEMU acceptance and CI #483 correction — 18 October 2026
+
+A fresh internal-only QEMU project applied all 425 ordered schema migrations
+through 434 after `scripts/bootstrap-optional-roles.sql` created the required
+NOLOGIN placeholders. The ARM64 app and PostgreSQL/PostGIS both reported
+`aarch64`; the app became healthy, `/health` returned 200, and anonymous
+farm-activity access returned 401 `credentials_required` under 1 GiB/two CPUs
+for the app and 1.5 GiB/two CPUs for PostgreSQL. The network was internal,
+there was no host-published port, and no seeds, farm data, providers, candidate,
+or legacy services were used. The disposable containers, network, volumes, and
+temporary images were removed; the four candidate container IDs and health
+states were unchanged. The initial harness reported a false negative because
+it interpreted Compose's `8099/tcp: null` (unpublished) as a published port
+and compared uptime strings that naturally advanced during the run. The
+captured runtime values satisfy those two assertions; evidence is in
+`builds/2026-10-18-recovery/arm64-qemu-current-schema-434.json`. This is QEMU
+compatibility evidence only, not physical Raspberry Pi, power-loss, or
+long-duration recovery acceptance.
+
+Hosted CI #483 failed `tests/test_kernel_restore_role_prerequisites.py` because
+migration 434 introduced the no-login
+`kokonut_financial_projection_owner` role without listing it in the
+database-only restore prerequisites. The role is now included in
+`scripts/kernel-restore-role-prerequisites.sql`; the focused test file passes
+2 tests. Security #207 passed. The correction is local and will be included in
+the next PR batch; candidate migration 434 remains unapplied.
+
 ### Native financial-events outbox projection — 18 October 2026
 
 Migration 434 now captures `sales_event` and `expense_event` inserts in the
@@ -18,7 +45,9 @@ historical backfill, and populated report parity remain open. Checklist: 604
 complete / 19 open. Evidence:
 `builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.
 The batch was pushed as commit `0780c9bd` together with ARM64 evidence commit
-`5727d7aa`; Security #207 passed and CI #483 is in progress.
+`5727d7aa`; Security #207 passed and CI #483 failed only the restore-role
+inventory regression. The missing migration-owned role was added locally and
+the focused test passes; a pushed rerun is pending.
 
 ### SDK infrastructure-asset inventory parity — 18 October 2026
 

@@ -21,6 +21,7 @@ BEGIN
         'kokonut_eas_indexer_login',
         'kokonut_eas_indexer_owner',
         'kokonut_farm_activity_event_owner',
+        'kokonut_financial_projection_owner',
         'kokonut_gateway_context_owner',
         'kokonut_market_data_login',
         'kokonut_market_data_owner',
