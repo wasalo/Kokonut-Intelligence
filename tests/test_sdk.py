@@ -1455,6 +1455,11 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.production_market_matches, "production_market_match"),
         (client.buyer_segments, "buyer_segment"),
         (client.value_flow_events, "value_flow_event"),
+        (client.trend_estimates, "trend_estimate"),
+        (client.trend_smoothing, "trend_smoothing"),
+        (client.change_points, "change_point"),
+        (client.seasonal_decompositions, "seasonal_decomposition"),
+        (client.trend_dashboard_metrics, "trend_dashboard_metric"),
     ]
     options = ListOptions(
         filter={"location_id": {"_eq": "other"}, "status": {"_eq": "verified"}},

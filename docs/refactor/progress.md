@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### Trend-analysis SDK location-scoped reads — 18 October 2026
+
+Python and TypeScript now expose typed, read-only accessors for stored trend
+estimates, smoothing results, change points, seasonal decompositions, and trend
+dashboard summaries. Every collection has a required `location_id`; the
+explicit location filter overrides a conflicting caller filter and preserves
+the other list options. These accessors return saved outputs and do not run,
+recalculate, or verify trend analyses. Ninety-six focused Python SDK tests and
+46 JavaScript tests pass, together with the TypeScript build, Ruff, Python
+compilation, SDK schema guard, capability validator, and diff checks. CAP-008
+and MAN-CAP-008 remain unaccepted ([evidence](builds/2026-10-18-recovery/sdk-trend-read-methods.json)).
+Checklist: 621 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### Market, demand, and value-flow SDK location-scoped reads — 18 October 2026
 
 Python and TypeScript clients now expose read-only, typed accessors for local

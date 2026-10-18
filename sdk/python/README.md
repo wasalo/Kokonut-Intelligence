@@ -193,6 +193,11 @@ except KokonutError as e:
 | `production_market_matches` | `production_market_match` | `list_by_location` |
 | `buyer_segments` | `buyer_segment` | `list_by_location` |
 | `value_flow_events` | `value_flow_event` | `list_by_location` |
+| `trend_estimates` | `trend_estimate` | `list_by_location` |
+| `trend_smoothing` | `trend_smoothing` | `list_by_location` |
+| `change_points` | `change_point` | `list_by_location` |
+| `seasonal_decompositions` | `seasonal_decomposition` | `list_by_location` |
+| `trend_dashboard_metrics` | `trend_dashboard_metric` | `list_by_location` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are
@@ -201,8 +206,9 @@ MRV, metric, forecast, market, and value-flow groups also expose only these read
 methods. SDK location filters are query conveniences, not authorization
 boundaries; Directus must enforce the caller's grants, especially for buyer and
 commercial records. These methods do not ingest, calculate, verify, attest,
-confirm commitments, or mutate governed lifecycle state. Stored forecast and
-metric outputs are returned without asserting they are current or verified.
+confirm commitments, or mutate governed lifecycle state. Stored forecast,
+metric, and trend outputs are returned without recalculation or an assertion
+that they are current or verified.
 
 ## Examples
 

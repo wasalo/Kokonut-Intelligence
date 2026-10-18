@@ -298,6 +298,11 @@ describe('KokonutClient', () => {
       [client.productionMarketMatches, 'production_market_match'],
       [client.buyerSegments, 'buyer_segment'],
       [client.valueFlowEvents, 'value_flow_event'],
+      [client.trendEstimates, 'trend_estimate'],
+      [client.trendSmoothing, 'trend_smoothing'],
+      [client.changePoints, 'change_point'],
+      [client.seasonalDecompositions, 'seasonal_decomposition'],
+      [client.trendDashboardMetrics, 'trend_dashboard_metric'],
     ] as const;
     const options = {
       limit: 20,

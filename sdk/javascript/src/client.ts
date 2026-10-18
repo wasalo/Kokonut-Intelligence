@@ -15,6 +15,7 @@ import { normalizeDirectusError } from './errors.js';
 import type {
   BuyerDemandSignal,
   BuyerSegment,
+  ChangePoint,
   ListOptions,
   CarbonCredit,
   CreditAdjustment,
@@ -33,10 +34,14 @@ import type {
   PriceObservation,
   ProductionMarketMatch,
   RemoteSensingObservation,
+  SeasonalDecomposition,
   SoilCarbonMeasurement,
   SoilSample,
   SpeciesObservation,
   TimeSeriesForecast,
+  TrendDashboardMetric,
+  TrendEstimate,
+  TrendSmoothing,
   ValueFlowEvent,
   WeatherObservation,
 } from './types.js';
@@ -139,6 +144,11 @@ export class KokonutClient {
   productionMarketMatches: LocationReadMethods<ProductionMarketMatch>;
   buyerSegments: LocationReadMethods<BuyerSegment>;
   valueFlowEvents: LocationReadMethods<ValueFlowEvent>;
+  trendEstimates: LocationReadMethods<TrendEstimate>;
+  trendSmoothing: LocationReadMethods<TrendSmoothing>;
+  changePoints: LocationReadMethods<ChangePoint>;
+  seasonalDecompositions: LocationReadMethods<SeasonalDecomposition>;
+  trendDashboardMetrics: LocationReadMethods<TrendDashboardMetric>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -187,6 +197,11 @@ export class KokonutClient {
     this.productionMarketMatches = buildLocationReadMethods<ProductionMarketMatch>(this, 'production_market_match');
     this.buyerSegments = buildLocationReadMethods<BuyerSegment>(this, 'buyer_segment');
     this.valueFlowEvents = buildLocationReadMethods<ValueFlowEvent>(this, 'value_flow_event');
+    this.trendEstimates = buildLocationReadMethods<TrendEstimate>(this, 'trend_estimate');
+    this.trendSmoothing = buildLocationReadMethods<TrendSmoothing>(this, 'trend_smoothing');
+    this.changePoints = buildLocationReadMethods<ChangePoint>(this, 'change_point');
+    this.seasonalDecompositions = buildLocationReadMethods<SeasonalDecomposition>(this, 'seasonal_decomposition');
+    this.trendDashboardMetrics = buildLocationReadMethods<TrendDashboardMetric>(this, 'trend_dashboard_metric');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {

@@ -29,6 +29,7 @@ from .types import (
     BuyerSegment,
     CarbonCredit,
     CashFlowSnapshot,
+    ChangePoint,
     CreditAdjustment,
     CreditRetirement,
     CreditTransfer,
@@ -45,10 +46,14 @@ from .types import (
     PriceObservation,
     ProductionMarketMatch,
     RemoteSensingObservation,
+    SeasonalDecomposition,
     SoilCarbonMeasurement,
     SoilSample,
     SpeciesObservation,
     TimeSeriesForecast,
+    TrendDashboardMetric,
+    TrendEstimate,
+    TrendSmoothing,
     ValueFlowEvent,
     WeatherObservation,
 )
@@ -189,6 +194,21 @@ class KokonutClient:
         )
         self.value_flow_events: LocationReadMethods[ValueFlowEvent] = LocationReadMethods(
             self, "value_flow_event"
+        )
+        self.trend_estimates: LocationReadMethods[TrendEstimate] = LocationReadMethods(
+            self, "trend_estimate"
+        )
+        self.trend_smoothing: LocationReadMethods[TrendSmoothing] = LocationReadMethods(
+            self, "trend_smoothing"
+        )
+        self.change_points: LocationReadMethods[ChangePoint] = LocationReadMethods(
+            self, "change_point"
+        )
+        self.seasonal_decompositions: LocationReadMethods[SeasonalDecomposition] = LocationReadMethods(
+            self, "seasonal_decomposition"
+        )
+        self.trend_dashboard_metrics: LocationReadMethods[TrendDashboardMetric] = LocationReadMethods(
+            self, "trend_dashboard_metric"
         )
 
     # -- Auth ------------------------------------------------------------------

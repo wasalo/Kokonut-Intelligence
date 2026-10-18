@@ -206,6 +206,11 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `productionMarketMatches` | `production_market_match` | `listByLocation` |
 | `buyerSegments` | `buyer_segment` | `listByLocation` |
 | `valueFlowEvents` | `value_flow_event` | `listByLocation` |
+| `trendEstimates` | `trend_estimate` | `listByLocation` |
+| `trendSmoothing` | `trend_smoothing` | `listByLocation` |
+| `changePoints` | `change_point` | `listByLocation` |
+| `seasonalDecompositions` | `seasonal_decomposition` | `listByLocation` |
+| `trendDashboardMetrics` | `trend_dashboard_metric` | `listByLocation` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `createMany`, `update`, `delete`. The credit-ledger, finance, ecological
@@ -215,8 +220,8 @@ same read-only contract. SDK location filters are query conveniences, not
 authorization boundaries; Directus must enforce the caller's grants, especially
 for buyer and commercial records. These methods do not ingest, calculate,
 verify, attest, confirm commitments, or mutate governed lifecycle state. Stored
-forecast and metric outputs are returned without asserting they are current or
-verified.
+forecast, metric, and trend outputs are returned without recalculation or an
+assertion that they are current or verified.
 
 ## Examples
 
