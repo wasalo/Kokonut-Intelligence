@@ -3419,6 +3419,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.worker_environment",
@@ -3440,6 +3441,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
@@ -3526,12 +3528,18 @@
         {
           "source": "services/drivers/registry.py",
           "line": 13,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 14,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 41,
+          "line": 42,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3696,12 +3704,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 126,
+          "line": 131,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 290,
+          "line": 301,
           "kind": "dynamic module expression"
         },
         {
@@ -3722,6 +3730,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.tenant_context",
@@ -3741,6 +3750,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
@@ -3831,12 +3841,18 @@
         {
           "source": "services/drivers/registry.py",
           "line": 13,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/drivers/registry.py",
+          "line": 14,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 41,
+          "line": 42,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -3923,12 +3939,12 @@
       "dynamic_import_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 126,
+          "line": 131,
           "kind": "dynamic module expression"
         },
         {
           "source": "services/drivers/registry.py",
-          "line": 290,
+          "line": 301,
           "kind": "dynamic module expression"
         }
       ]

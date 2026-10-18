@@ -4,7 +4,7 @@
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
     "operation_roots": 31,
-    "source_files": 92,
+    "source_files": 93,
     "execution_sites": 322,
     "static_literal_sites": 279,
     "composed_or_variable_sites": 43
@@ -1428,9 +1428,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:62:16",
+      "id": "services/drivers/registry.py:63:16",
       "source": "services/drivers/registry.py",
-      "line": 62,
+      "line": 63,
       "column": 16,
       "scope": "DriverRegistry.register",
       "method": "execute",
@@ -1447,9 +1447,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:107:16",
+      "id": "services/drivers/registry.py:112:16",
       "source": "services/drivers/registry.py",
-      "line": 107,
+      "line": 112,
       "column": 16,
       "scope": "DriverRegistry.load",
       "method": "execute",
@@ -1465,9 +1465,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:141:20",
+      "id": "services/drivers/registry.py:150:20",
       "source": "services/drivers/registry.py",
-      "line": 141,
+      "line": 150,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -1483,9 +1483,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:152:20",
+      "id": "services/drivers/registry.py:161:20",
       "source": "services/drivers/registry.py",
-      "line": 152,
+      "line": 161,
       "column": 20,
       "scope": "DriverRegistry.list_drivers",
       "method": "execute",
@@ -1501,9 +1501,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:194:16",
+      "id": "services/drivers/registry.py:203:16",
       "source": "services/drivers/registry.py",
-      "line": 194,
+      "line": 203,
       "column": 16,
       "scope": "DriverRegistry.list_instances",
       "method": "execute",
@@ -1520,9 +1520,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:233:12",
+      "id": "services/drivers/registry.py:244:12",
       "source": "services/drivers/registry.py",
-      "line": 233,
+      "line": 244,
       "column": 12,
       "scope": "DriverRegistry.get_schedulable_instance",
       "method": "execute",
@@ -1539,9 +1539,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:315:16",
+      "id": "services/drivers/registry.py:326:16",
       "source": "services/drivers/registry.py",
-      "line": 315,
+      "line": 326,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -1557,9 +1557,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:324:16",
+      "id": "services/drivers/registry.py:335:16",
       "source": "services/drivers/registry.py",
-      "line": 324,
+      "line": 335,
       "column": 16,
       "scope": "DriverRegistry.create_instance",
       "method": "execute",
@@ -1575,9 +1575,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:356:16",
+      "id": "services/drivers/registry.py:371:16",
       "source": "services/drivers/registry.py",
-      "line": 356,
+      "line": 371,
       "column": 16,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -1593,9 +1593,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:368:20",
+      "id": "services/drivers/registry.py:383:20",
       "source": "services/drivers/registry.py",
-      "line": 368,
+      "line": 383,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",
@@ -1611,9 +1611,9 @@
       ]
     },
     {
-      "id": "services/drivers/registry.py:379:20",
+      "id": "services/drivers/registry.py:394:20",
       "source": "services/drivers/registry.py",
-      "line": 379,
+      "line": 394,
       "column": 20,
       "scope": "DriverRegistry.update_instance_status",
       "method": "execute",

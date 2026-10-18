@@ -15,7 +15,7 @@
     "passed": true
   },
   "source_closure": {
-    "source_file_count": 92,
+    "source_file_count": 93,
     "unresolved_local_module_count": 0,
     "known_allowlisted_dynamic_import_site_count": 3,
     "passed": true
@@ -287,37 +287,37 @@
         "import_closure_operation_count": 1
       },
       {
-        "site": "services/drivers/registry.py:107:16",
+        "site": "services/drivers/registry.py:112:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:141:20",
+        "site": "services/drivers/registry.py:150:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:152:20",
+        "site": "services/drivers/registry.py:161:20",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:194:16",
+        "site": "services/drivers/registry.py:203:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:315:16",
+        "site": "services/drivers/registry.py:326:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:324:16",
+        "site": "services/drivers/registry.py:335:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },
       {
-        "site": "services/drivers/registry.py:62:16",
+        "site": "services/drivers/registry.py:63:16",
         "review_status": "function_not_reached_by_any_static_worker_root",
         "import_closure_operation_count": 2
       },

@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-17",
+  "pull_request": 68,
+  "failed_run": 431,
+  "failed_head": "09db43b2dd9f4d63425d94ac07017763433e73f9",
+  "failed_run_summary": {
+    "pytest_failed": 8,
+    "pytest_passed": 5851,
+    "subtests_passed": 132
+  },
+  "cause": [
+    "Five saved worker source, function, SQL, reachability, and boundary inventories were stale against current source.",
+    "One SQL statement-kind regression asserted source line numbers that had shifted."
+  ],
+  "correction": {
+    "regenerated": [
+      "docs/refactor/worker-boundary-preflight.json",
+      "docs/refactor/worker-function-reachability.json",
+      "docs/refactor/worker-source-closure.json",
+      "docs/refactor/worker-sql-inventory.json",
+      "docs/refactor/worker-sql-reachability.json"
+    ],
+    "regression": "tests/test_worker_sql_inventory.py now verifies statement kinds by source file rather than fixed line offsets."
+  },
+  "local_validation": {
+    "focused_pytest": "30 passed",
+    "generated_inventory_checks": "all five passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "capability_matrix": "passed; 66 rows, 54 baseline-retained, 7 deployed, 5 prepared",
+    "git_diff_check": "passed"
+  },
+  "follow_up": "Local fix awaits grouped push and a passing hosted release CI run.",
+  "scope": "No database, worker, provider, schedule, or candidate/legacy state was accessed."
+}

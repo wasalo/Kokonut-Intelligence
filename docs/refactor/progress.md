@@ -8379,3 +8379,17 @@ service was used. Candidate schema remains through migration 403, migration 432
 is not deployed, and the feature remains disabled. Live provider parity and
 MAN-CAP-040/047 remain open. The checklist remains 437 complete and 21 open
 items; capability rows and MAN-CAP classifications are unchanged.
+
+### CI #431 worker-inventory correction — 17 October 2026
+
+Hosted CI #431 failed eight generated inventory/source-contract checks after
+5,851 tests and 132 subtests passed. Five saved worker reports no longer
+matched the current source tree, and a SQL statement-kind test depended on
+line numbers that had shifted. The five reports are regenerated, and the
+regression now checks statement kinds by source file. All 30 focused worker
+inventory tests pass, as do Ruff, Python compilation, the five generated-map
+checks, capability-matrix validation, and `git diff --check`. No database,
+worker, provider, or schedule was used. The fix awaits a grouped push and
+hosted CI rerun; the checklist remains 503 complete / 19 open, and capability
+matrix classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/ci-431-worker-inventory-fix.json`.

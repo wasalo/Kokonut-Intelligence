@@ -4,10 +4,10 @@
   "scope": "Direct statically resolved Python calls, known services.common.cli.run callbacks, multiprocessing Process(target=local_function) callback edges, and known literal metric-calculator registry dispatches from allowlisted operation entry functions within their local services.* import closures. Instance method calls are included only when local type inference resolves every candidate class. This graph remains incomplete: other dynamic dispatch, callbacks, methods on unknown instances, extension code, and database/provider behavior are not established. It is not an authorization policy or least-privilege grant list.",
   "summary": {
     "operation_roots": 31,
-    "source_files": 92,
+    "source_files": 93,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 631,
-    "direct_call_edges": 861,
+    "function_memberships": 632,
+    "direct_call_edges": 862,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -2570,7 +2570,7 @@
         {
           "function": "services.ingestion.clickhouse_outbox:main",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 356
+          "line": 360
         }
       ],
       "reachable_functions": [
@@ -2588,7 +2588,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 337
+          "line": 341
         }
       ],
       "direct_call_edges": [
@@ -2596,7 +2596,7 @@
           "caller": "services.ingestion.clickhouse_outbox:main",
           "callee": "services.common.cli:run",
           "source": "services/ingestion/clickhouse_outbox.py",
-          "line": 352
+          "line": 356
         }
       ],
       "callback_edges": [],
@@ -6604,6 +6604,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
@@ -6637,6 +6638,14 @@
           "line": 35
         },
         {
+          "key": "services.common.errors:safe_exception_class",
+          "module": "services.common.errors",
+          "qualname": "safe_exception_class",
+          "class_scope": null,
+          "source": "services/common/errors.py",
+          "line": 4
+        },
+        {
           "key": "services.core.adapters.clickhouse:create_client",
           "module": "services.core.adapters.clickhouse",
           "qualname": "create_client",
@@ -6658,7 +6667,7 @@
           "qualname": "DriverRegistry._get_conn",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 39
+          "line": 40
         },
         {
           "key": "services.drivers.registry:DriverRegistry.get_schedulable_instance",
@@ -6666,7 +6675,7 @@
           "qualname": "DriverRegistry.get_schedulable_instance",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 225
+          "line": 236
         },
         {
           "key": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
@@ -6674,7 +6683,7 @@
           "qualname": "DriverRegistry.load_schedulable_sensor_driver",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 278
+          "line": 289
         },
         {
           "key": "services.drivers.registry:DriverRegistry.update_instance_status",
@@ -6682,7 +6691,7 @@
           "qualname": "DriverRegistry.update_instance_status",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 342
+          "line": 357
         },
         {
           "key": "services.ingestion.base:_validate_ch_identifiers",
@@ -6928,19 +6937,25 @@
           "caller": "services.drivers.registry:DriverRegistry._get_conn",
           "callee": "services.common.database:get_db",
           "source": "services/drivers/registry.py",
-          "line": 42
+          "line": 43
         },
         {
           "caller": "services.drivers.registry:DriverRegistry.get_schedulable_instance",
           "callee": "services.drivers.registry:DriverRegistry._get_conn",
           "source": "services/drivers/registry.py",
-          "line": 231
+          "line": 242
+        },
+        {
+          "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
+          "callee": "services.common.errors:safe_exception_class",
+          "source": "services/drivers/registry.py",
+          "line": 412
         },
         {
           "caller": "services.drivers.registry:DriverRegistry.update_instance_status",
           "callee": "services.drivers.registry:DriverRegistry._get_conn",
           "source": "services/drivers/registry.py",
-          "line": 352
+          "line": 367
         },
         {
           "caller": "services.ingestion.base:get_clickhouse",
@@ -7428,6 +7443,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
@@ -7533,7 +7549,7 @@
           "qualname": "DriverRegistry.load_schedulable_sensor_driver",
           "class_scope": "DriverRegistry",
           "source": "services/drivers/registry.py",
-          "line": 278
+          "line": 289
         },
         {
           "key": "services.ingestion.base:hash_payload",

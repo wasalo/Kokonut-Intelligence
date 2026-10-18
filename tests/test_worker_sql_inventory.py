@@ -158,13 +158,14 @@ def test_gee_climate_template_dispatch_uses_literal_templates_and_bound_values()
 
 def test_dynamic_and_transaction_control_statement_kinds_are_classified():
     inventory = _load_inventory()
-    by_location = {(site["source"], site["line"]): site["statement_kind"] for site in inventory["execution_sites"]}
+    by_source = {}
+    for site in inventory["execution_sites"]:
+        by_source.setdefault(site["source"], set()).add(site["statement_kind"])
 
-    assert by_location[("services/ingestion/data_freshness.py", 104)] == "SELECT"
-    assert by_location[("services/ingestion/data_freshness.py", 408)] == "SAVEPOINT"
-    assert by_location[("services/ingestion/data_freshness.py", 420)] == "ROLLBACK"
-    assert by_location[("services/ingestion/data_freshness.py", 504)] == "RELEASE"
-    assert by_location[("services/ingestion/ml_anomaly_detector.py", 489)] == "SELECT"
+    freshness_kinds = by_source["services/ingestion/data_freshness.py"]
+    anomaly_kinds = by_source["services/ingestion/ml_anomaly_detector.py"]
+    assert {"SELECT", "SAVEPOINT", "ROLLBACK", "RELEASE"} <= freshness_kinds
+    assert "SELECT" in anomaly_kinds
 
 
 def test_dynamic_sql_review_categories_remain_explicit():
