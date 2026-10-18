@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### Native EAS attestation metadata reads — 18 October 2026
+
+The OIDC operator API now lists stored Celo attestations for a location subject
+under the `attestation:read` grant. The transaction establishes signed tenant
+context and returns only attestation/schema identifiers, stored lifecycle
+status, Celo transaction references, and timestamps. It excludes claim data,
+evidence hashes/CIDs/URLs, and reviewer notes. The 57-test EAS/Gateway/auth/
+audit suite, Ruff, compilation, capability validation, and diff checks pass
+using synthetic identities and mocked database/audit boundaries. No live Celo
+request was made. CAP-018 is prepared, not accepted: this does not verify
+current on-chain validity; publish/revoke, full proof, domain RLS, populated
+parity, and candidate runtime acceptance remain open. Checklist: 635 complete /
+19 open; matrix: 50 baseline-retained, 7 deployed, 9 prepared
+([evidence](builds/2026-10-18-recovery/gateway-attestation-metadata-read.json)).
+
 ### Native emergency-response Gateway reads — 18 October 2026
 
 The OIDC operator API now exposes a location-scoped emergency-response

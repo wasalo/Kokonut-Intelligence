@@ -408,6 +408,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    attestation_match = re.fullmatch(
+        r"/operator/api/attestations/([0-9a-fA-F-]{36})", path
+    )
+    if attestation_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "attestation",
+            "action": "read",
+            "public": False,
+            "location_id": attestation_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     mobile_enrollment_match = re.fullmatch(
         r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/enrollments(?:/([0-9a-fA-F-]{36}))?",
         path,
@@ -2007,6 +2020,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                                samesite="strict")
         return response
 
+    from services.gateway.attestation_routes import register_attestation_routes
     from services.gateway.emergency_response_routes import (
         register_emergency_response_routes,
     )
@@ -2015,5 +2029,6 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
     register_emergency_response_routes(router, provider, run_in_threadpool, psycopg2)
+    register_attestation_routes(router, provider, run_in_threadpool, psycopg2)
     register_true_cost_routes(router, provider, run_in_threadpool, psycopg2)
     return router

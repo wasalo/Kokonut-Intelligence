@@ -29,9 +29,16 @@ contains counts, recovery/deadline measures, affected-area and financial
 aggregates; it excludes incident descriptions, actions, support notes, lessons,
 and individual incident rows.
 
+Stored Celo attestation metadata can be read at
+`GET /operator/api/attestations/{location_id}` with the location-specific
+`attestation:read` grant. The route excludes claim payloads, evidence references,
+and review notes. It reports persisted database state and does not verify a
+live EAS contract or chain result.
+
 ## Modules
 
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.
+- `attestations` and `attestation_routes` — scoped metadata reads for location EAS proofs.
 - `audit` — Gateway audit — request logging.
 - `auth` — Gateway auth — unified authentication (API key, capability token, session).
 - `cli` — CLI for the API gateway.
