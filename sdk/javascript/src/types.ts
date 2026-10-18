@@ -214,16 +214,16 @@ export interface ExpenseEvent {
 export interface SensorReading {
   id: string;
   sensor_id: string;
-  location_id?: string;
-  plot_id?: string;
-  sensor_type?: string;
+  location_id: string;
+  plot_id?: string | null;
+  sensor_type?: string | null;
   reading_date: string;
-  reading_time?: string;
+  reading_time?: string | null;
   value: number;
   unit: string;
-  quality: 'good' | 'suspect' | 'missing' | 'estimated';
-  metadata?: Record<string, any>;
-  created_at: string;
+  quality?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
 }
 
 export interface SensorType {

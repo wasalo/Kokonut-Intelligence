@@ -8,6 +8,7 @@ import type {
   Location,
   Plot,
   SalesEvent,
+  SensorReading,
 } from '../types.js';
 
 // Mock the @directus/sdk
@@ -164,6 +165,22 @@ describe('KokonutClient', () => {
     expect(location.center?.type).toBe('Point');
     expect(farm.boundary?.type).toBe('Polygon');
     expect(plot.elevation_m).toBe(42);
+  });
+
+  it('requires sensor reading location scope and accepts canonical quality values', () => {
+    const reading: SensorReading = {
+      id: 'reading-1',
+      sensor_id: 'sensor-1',
+      location_id: 'location-1',
+      reading_date: '2026-10-17',
+      value: 8.5,
+      unit: 'percent',
+      quality: 'bad',
+      metadata: { source: 'synthetic-fixture' },
+    };
+
+    expect(reading.location_id).toBe('location-1');
+    expect(reading.quality).toBe('bad');
   });
 
   it('types harvest evidence and source lineage from the canonical schema', () => {

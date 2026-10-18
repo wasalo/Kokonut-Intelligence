@@ -164,6 +164,23 @@ def test_location_farm_and_plot_types_expose_schema_geometry_and_metadata():
     assert plot.elevation_m == 42
 
 
+def test_sensor_reading_sdk_type_exposes_required_location_and_quality():
+    from kokonut.types import SensorReading
+
+    reading = SensorReading(
+        id="reading-1",
+        sensor_id="sensor-1",
+        location_id="location-1",
+        reading_date="2026-10-17",
+        value=8.5,
+        unit="percent",
+        quality="bad",
+    )
+
+    assert reading.location_id == "location-1"
+    assert reading.quality == "bad"
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

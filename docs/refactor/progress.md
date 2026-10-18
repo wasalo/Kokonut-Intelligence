@@ -8637,3 +8637,14 @@ JavaScript tests, Ruff, TypeScript build, and diff checks pass with local
 fixtures only; no database or network was contacted. Checklist: 532 complete
 / 19 open. Capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-land-spatial-schema-parity.json`.
+
+### JavaScript SDK sensor-reading schema parity — 17 October 2026
+
+The TypeScript `SensorReading` model now requires the schema's non-null
+`location_id`, treats nullable columns as optional nullable properties, and
+accepts the canonical database quality values (including `bad`) without a
+stale closed union. Thirteen Python tests, 22 JavaScript tests, Ruff,
+TypeScript build, and diff checks pass using local fixtures only; no database
+or network was contacted. Checklist: 533 complete / 19 open. Capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-sensor-reading-schema-parity.json`.

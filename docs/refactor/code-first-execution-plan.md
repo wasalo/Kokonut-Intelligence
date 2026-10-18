@@ -1355,7 +1355,8 @@ validation, and diff checks pass; no provider/database was contacted and no
 sandbox module executed in the latest slices. Sales and expense event SDK
 types also now expose their canonical payment/evidence/allocation/approval
 and lineage fields. Location, farm, and plot SDK types now also expose their
-canonical spatial, metadata, and audit columns. The checklist is now 532
-complete / 19 open;
+canonical spatial, metadata, and audit columns. The TypeScript
+`SensorReading` now requires location scope and accepts canonical database
+quality values. The checklist is now 533 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.
