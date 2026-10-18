@@ -16,6 +16,7 @@ MODEL_TABLES = {
     "HarvestEvent": ("003_operations.sql", "harvest_event"),
     "SalesEvent": ("003_operations.sql", "sales_event"),
     "ExpenseEvent": ("003_operations.sql", "expense_event"),
+    "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
     "FieldNote": ("003_operations.sql", "field_note"),

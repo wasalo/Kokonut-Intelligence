@@ -8729,3 +8729,14 @@ JavaScript tests, Ruff, the TypeScript build, the schema guard, and diff checks
 pass using fixtures only; no database or network was contacted. Checklist:
 540 complete / 19 open. Capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-export-log-schema-parity.json`.
+
+### NOI snapshot SDK schema parity — 17 October 2026
+
+Added the existing Python/TypeScript `NoiSnapshot` model to the offline source
+guard and aligned nullable TypeScript fields, including `inputs`, with the
+canonical `noi_snapshot` table. The guard now checks 20 models and 473 base/
+additive columns per SDK. Twenty-one Python tests, 29 JavaScript tests, Ruff,
+the TypeScript build, the schema guard, and diff checks pass with fixtures only;
+no database or network was contacted. Checklist: 541 complete / 19 open.
+Capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-noi-snapshot-schema-parity.json`.

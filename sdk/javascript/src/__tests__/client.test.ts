@@ -10,6 +10,7 @@ import type {
   LaborEvent,
   Location,
   LossEvent,
+  NoiSnapshot,
   Plot,
   SalesEvent,
   AlertRule,
@@ -318,6 +319,23 @@ describe('KokonutClient', () => {
     expect(exportLog.user_id).toBe('user-1');
     expect(exportLog.row_count).toBe(42);
     expect(exportLog.status).toBe('generating');
+  });
+
+  it('types nullable NOI snapshot fields from the canonical finance table', () => {
+    const snapshot: NoiSnapshot = {
+      id: 'snapshot-1',
+      crop_cycle_id: 'cycle-1',
+      location_id: 'location-1',
+      period_start: '2026-01-01',
+      period_end: '2026-03-31',
+      gross_revenue: 1200,
+      returns_and_discounts: null,
+      noi: 430,
+      inputs: { sales_event_ids: ['sale-1'] },
+    };
+
+    expect(snapshot.returns_and_discounts).toBeNull();
+    expect(snapshot.inputs).toEqual({ sales_event_ids: ['sale-1'] });
   });
 
   it('types attestation evidence and additive schema fields', () => {

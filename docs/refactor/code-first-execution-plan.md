@@ -1358,13 +1358,14 @@ and lineage fields. Location, farm, and plot SDK types now also expose their
 canonical spatial, metadata, and audit columns. The TypeScript
 `SensorReading` now requires location scope and accepts canonical database
 quality values. Python now also has matching sensor registry/device/alert
-dataclasses. A reusable offline guard checks 455 base and additive column
-names across 19 tables against both SDK model sets and runs in fast-fail CI. First-class
+dataclasses. A reusable offline guard checks 473 base and additive column
+names across 20 tables against both SDK model sets and runs in fast-fail CI. First-class
 loss, labor, and field-note SDK records and location-scoped helpers now match
 the operational tables. WalletProfile, AttestationRecord, and ReportSnapshot
 now have current schema column coverage, including selected additive
-migrations; `ExportLog` now includes its canonical table fields in both SDKs.
-The guard passes across 19 models and 455 columns. The checklist is now 540
+migrations; `ExportLog` now includes its canonical table fields in both SDKs,
+and `NoiSnapshot` nullability matches the finance table. The guard passes
+across 20 models and 473 columns. The checklist is now 541
 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

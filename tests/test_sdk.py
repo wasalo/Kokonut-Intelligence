@@ -332,6 +332,26 @@ def test_export_log_type_exposes_canonical_export_table_fields():
     assert export_log.status == "generating"
 
 
+def test_noi_snapshot_type_exposes_canonical_financial_fields():
+    from kokonut.types import NoiSnapshot
+
+    snapshot = NoiSnapshot(
+        id="snapshot-1",
+        crop_cycle_id="cycle-1",
+        location_id="location-1",
+        period_start="2026-01-01",
+        period_end="2026-03-31",
+        gross_revenue=1200.0,
+        returns_and_discounts=None,
+        noi=430.0,
+        inputs={"sales_event_ids": ["sale-1"]},
+    )
+
+    assert snapshot.gross_revenue == 1200.0
+    assert snapshot.returns_and_discounts is None
+    assert snapshot.inputs == {"sales_event_ids": ["sale-1"]}
+
+
 def test_location_scoped_operational_methods_force_scope_and_preserve_options():
     from kokonut import KokonutClient
     from kokonut.types import ListOptions
