@@ -25,6 +25,7 @@ _PROJECTION_COLUMNS = [
     "event_type", "value", "token", "status", "metadata",
 ]
 _ETH_BALANCE_QUANTUM = Decimal("0.00000001")
+_HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
 
 
 class RPCWorkerPersistenceError(RuntimeError):
@@ -32,7 +33,24 @@ class RPCWorkerPersistenceError(RuntimeError):
 
 
 class RPCWorkerIncompleteError(RuntimeError):
-    """At least one wallet provider request failed during an otherwise durable run."""
+    """Provider input or wallet failures prevent a complete consistent run."""
+
+
+def _block_hash(block: Any) -> str:
+    """Normalize an RPC block hash or reject an incomplete block response."""
+    try:
+        value = block["hash"]
+    except (KeyError, TypeError):
+        raise ValueError("RPC block hash is missing") from None
+    if isinstance(value, (bytes, bytearray)):
+        value = bytes(value).hex()
+    elif isinstance(value, str):
+        value = value.removeprefix("0x")
+    else:
+        raise ValueError("RPC block hash is invalid")
+    if len(value) != 64 or any(character not in _HEX_DIGITS for character in value):
+        raise ValueError("RPC block hash is invalid")
+    return "0x" + value.lower()
 
 
 def _hash_payload(value: Any) -> str:
@@ -182,7 +200,10 @@ def ingest(chain: str) -> dict[str, Any]:
             provider = Web3.HTTPProvider(endpoint, request_kwargs={"timeout": 20})
             web3 = Web3(provider)
             block_number = int(web3.eth.block_number)
-            block_timestamp = int(web3.eth.get_block(block_number)["timestamp"])
+            block = web3.eth.get_block(block_number)
+            block_timestamp = int(block["timestamp"])
+            block_hash = _block_hash(block)
+            pending_snapshots: list[tuple[dict[str, Any], str]] = []
 
             for wallet_id, wallet_address, label in wallets:
                 try:
@@ -200,8 +221,7 @@ def ingest(chain: str) -> dict[str, Any]:
                         block_timestamp=block_timestamp,
                         balance_wei=balance_wei,
                     )
-                    if _record_snapshot(connection, chain, record, payload_hash):
-                        inserted_count += 1
+                    pending_snapshots.append((record, payload_hash))
                     last_block = max(block_number, last_block or block_number)
                 except RPCWorkerPersistenceError:
                     raise
@@ -210,6 +230,15 @@ def ingest(chain: str) -> dict[str, Any]:
                     errors.append(
                         f"{str(wallet_id)[:8]}: RPC request failed ({type(exc).__name__})"
                     )
+
+            final_block_hash = _block_hash(web3.eth.get_block(block_number))
+            if final_block_hash != block_hash:
+                raise RPCWorkerIncompleteError(
+                    "RPC block changed during wallet snapshot run"
+                )
+            for record, payload_hash in pending_snapshots:
+                if _record_snapshot(connection, chain, record, payload_hash):
+                    inserted_count += 1
 
         status = "error" if errors else "healthy"
         safe_error = "; ".join(errors[:3])[:500] if errors else None

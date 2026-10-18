@@ -6,13 +6,13 @@ The isolated and legacy RPC paths now convert integer wei to `NUMERIC(18,8)` wit
 `Decimal` and PostgreSQL-compatible half-up rounding. The JSON passed to the
 bounded migration function retains the balance as an exact number, and the
 payload digest hashes those same numeric JSON bytes. Each non-empty run reads
-one requested block height and timestamp and uses them for every wallet, so
-ordinary chain advancement cannot mix heights within a run. This does not pin
-the block hash or establish consistency across a provider reorganization; that
-recovery remains open. The legacy path also keeps its transaction parser,
+one requested block height and timestamp and uses them for every wallet, then
+rechecks that block's hash before persistence. A changed hash rejects the run
+without wallet snapshots. RPC reads are not pinned to the hash, and recovery
+after a later reorganization remains open. The legacy path also keeps its transaction parser,
 PostgreSQL input, and ClickHouse row values in exact decimal form rather than
 using binary floats. The combined nine-suite worker/legacy boundary set passes
-281 tests; Ruff and Python compilation pass, and generated worker/runtime
+282 tests; Ruff and Python compilation pass, and generated worker/runtime
 inventories were refreshed. Network-disabled PostgreSQL 16 acceptance confirms
 migration 436 stores `0.00000001` exactly under forced RLS.
 No provider, candidate, or legacy database was contacted. This follow-up is

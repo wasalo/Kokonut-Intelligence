@@ -3,7 +3,7 @@
 import hashlib
 import json
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -27,7 +27,10 @@ def _provider():
     web3 = MagicMock()
     web3.eth.block_number = 100
     web3.eth.get_balance.return_value = 1234567890123456789
-    web3.eth.get_block.return_value = {"timestamp": 1_700_000_000}
+    web3.eth.get_block.return_value = {
+        "timestamp": 1_700_000_000,
+        "hash": bytes.fromhex("ab" * 32),
+    }
     return web3
 
 
@@ -158,7 +161,7 @@ def test_isolated_worker_anchors_all_wallets_to_one_block():
     ):
         result = rpc_worker.ingest("celo")
 
-    web3.eth.get_block.assert_called_once_with(100)
+    assert web3.eth.get_block.call_args_list == [call(100), call(100)]
     assert web3.eth.get_balance.call_args_list == [
         ((_ADDRESS,), {"block_identifier": 100}),
         ((second_address,), {"block_identifier": 100}),
@@ -172,6 +175,38 @@ def test_isolated_worker_anchors_all_wallets_to_one_block():
     assert stored_payloads[0]["block_timestamp"] == stored_payloads[1]["block_timestamp"]
     assert result["wallets"] == 2
     assert result["last_block"] == 100
+
+
+def test_block_hash_change_during_run_stores_no_partial_wallet_snapshots():
+    connection, cursor = _connection()
+    web3 = _provider()
+    web3.eth.get_block.side_effect = [
+        {"timestamp": 1_700_000_000, "hash": bytes.fromhex("ab" * 32)},
+        {"timestamp": 1_700_000_001, "hash": bytes.fromhex("cd" * 32)},
+    ]
+    with (
+        patch.object(rpc_worker, "get_worker_db", return_value=connection),
+        patch.object(
+            rpc_worker,
+            "configured_rpc_endpoints",
+            return_value={"celo": "https://rpc.example"},
+        ),
+        patch.object(rpc_worker, "Web3", _web3_class(web3)),
+        pytest.raises(
+            rpc_worker.RPCWorkerIncompleteError,
+            match="RPC block changed during wallet snapshot run",
+        ),
+    ):
+        rpc_worker.ingest("celo")
+
+    statements = [call.args[0] for call in cursor.execute.call_args_list]
+    assert not any("store_rpc_indexer_snapshot" in statement for statement in statements)
+    finish_call = next(
+        call for call in cursor.execute.call_args_list if "finish_rpc_indexer_chain" in call.args[0]
+    )
+    assert finish_call.args[1][1] == "error"
+    assert finish_call.args[1][2] == "RPC worker failed (RPCWorkerIncompleteError)"
+    assert web3.eth.get_balance.call_count == 1
 
 
 def test_block_anchor_failure_stores_no_partial_wallet_snapshots():

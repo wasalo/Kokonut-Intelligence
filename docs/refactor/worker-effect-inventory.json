@@ -5,13 +5,13 @@
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
     "operation_roots": 32,
-    "candidate_effect_sites": 39,
-    "operation_site_memberships": 49,
+    "candidate_effect_sites": 40,
+    "operation_site_memberships": 50,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 6,
       "evm_client_setup": 5,
-      "evm_rpc": 5,
+      "evm_rpc": 6,
       "filesystem": 8,
       "http": 13,
       "process": 1
@@ -20,7 +20,7 @@
       "dynamic_import": 2,
       "email_delivery": 6,
       "evm_client_setup": 5,
-      "evm_rpc": 5,
+      "evm_rpc": 6,
       "filesystem": 8,
       "http": 22,
       "process": 1
@@ -470,29 +470,36 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 182,
+          "line": 200,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 185,
+          "line": 203,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_rpc",
           "call": "web3.eth.get_block"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 191,
+          "line": 212,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_rpc",
           "call": "web3.eth.get_balance"
+        },
+        {
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 234,
+          "function": "services.ingestion.rpc_worker:ingest",
+          "category": "evm_rpc",
+          "call": "web3.eth.get_block"
         }
       ],
       "category_counts": {
         "evm_client_setup": 1,
-        "evm_rpc": 2
+        "evm_rpc": 3
       }
     },
     {

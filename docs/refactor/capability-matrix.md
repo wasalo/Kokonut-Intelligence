@@ -3771,13 +3771,15 @@ reuse, malformed/conflicting snapshot rejection, exact eight-decimal numeric
 storage, and direct-table denial. The legacy CLI now row-locks and checks
 duplicate content instead of using `ON CONFLICT (tx_hash)`, which the base
 schema cannot support because its index is non-unique. The focused
-worker/legacy boundary suite passes 281 tests with Ruff and compilation. Both
+worker/legacy boundary suite passes 282 tests with Ruff and compilation. Both
 balance paths now use decimal half-up rounding; the legacy ClickHouse row
 builder preserves a decimal instead of converting through a binary float. The
 isolated worker hashes the exact numeric JSON sent to PostgreSQL and anchors
 each run to one requested block height and timestamp, preventing ordinary chain
-advancement from mixing heights. It does not pin a block hash or establish
-consistency across a provider reorganization. The candidate remains at
+advancement from mixing heights. Before persistence it re-reads the selected
+block hash and rejects snapshots if the hash changed during the run. RPC reads
+are not pinned to that hash, and recovery after a later reorganization is not
+established. The candidate remains at
 migration 435;
 no worker credential, provider, schedule, or feature was activated. This only
 preserves point-in-time balance snapshots; transaction-history scanning,
@@ -3795,6 +3797,6 @@ physical Raspberry Pi acceptance remains open
 ([ARM64 evidence](builds/2026-10-18-recovery/arm64-rpc-worker-image-smoke.json)).
 Wei-to-ETH conversion now uses decimal half-up rounding in both the isolated
 and manual RPC paths. Exact numeric JSON, payload hash parity, one-block
-snapshot reads, and decimal ClickHouse payload preparation are covered by 281
+snapshot reads, changed-hash rejection, and decimal ClickHouse payload preparation are covered by 282
 focused tests; disposable PostgreSQL confirms exact precision. This changes source correctness evidence only, not capability
 classification or MAN-CAP status.

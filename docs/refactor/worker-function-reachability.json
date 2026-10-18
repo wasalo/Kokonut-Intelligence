@@ -6,8 +6,8 @@
     "operation_roots": 32,
     "source_files": 95,
     "operations_without_resolved_entry_functions": 0,
-    "function_memberships": 656,
-    "direct_call_edges": 895,
+    "function_memberships": 657,
+    "direct_call_edges": 897,
     "callback_edges": 0,
     "dynamic_dispatch_edges": 20
   },
@@ -6709,12 +6709,12 @@
         {
           "function": "services.common.cli:run",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 291
+          "line": 320
         },
         {
           "function": "services.ingestion.rpc_worker:main",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 291
+          "line": 320
         }
       ],
       "reachable_functions": [
@@ -6783,12 +6783,20 @@
           "line": 47
         },
         {
+          "key": "services.ingestion.rpc_worker:_block_hash",
+          "module": "services.ingestion.rpc_worker",
+          "qualname": "_block_hash",
+          "class_scope": null,
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 39
+        },
+        {
           "key": "services.ingestion.rpc_worker:_finish_chain",
           "module": "services.ingestion.rpc_worker",
           "qualname": "_finish_chain",
           "class_scope": null,
           "source": "services/ingestion/rpc_worker.py",
-          "line": 124
+          "line": 142
         },
         {
           "key": "services.ingestion.rpc_worker:_hash_payload",
@@ -6796,7 +6804,7 @@
           "qualname": "_hash_payload",
           "class_scope": null,
           "source": "services/ingestion/rpc_worker.py",
-          "line": 38
+          "line": 56
         },
         {
           "key": "services.ingestion.rpc_worker:_record_snapshot",
@@ -6804,7 +6812,7 @@
           "qualname": "_record_snapshot",
           "class_scope": null,
           "source": "services/ingestion/rpc_worker.py",
-          "line": 98
+          "line": 116
         },
         {
           "key": "services.ingestion.rpc_worker:_snapshot_record",
@@ -6812,7 +6820,7 @@
           "qualname": "_snapshot_record",
           "class_scope": null,
           "source": "services/ingestion/rpc_worker.py",
-          "line": 63
+          "line": 81
         },
         {
           "key": "services.ingestion.rpc_worker:_snapshot_record_json",
@@ -6820,7 +6828,7 @@
           "qualname": "_snapshot_record_json",
           "class_scope": null,
           "source": "services/ingestion/rpc_worker.py",
-          "line": 46
+          "line": 64
         },
         {
           "key": "services.ingestion.rpc_worker:ingest",
@@ -6828,7 +6836,7 @@
           "qualname": "ingest",
           "class_scope": null,
           "source": "services/ingestion/rpc_worker.py",
-          "line": 151
+          "line": 169
         },
         {
           "key": "services.ingestion.rpc_worker:main",
@@ -6836,7 +6844,7 @@
           "qualname": "main",
           "class_scope": null,
           "source": "services/ingestion/rpc_worker.py",
-          "line": 279
+          "line": 308
         }
       ],
       "direct_call_edges": [
@@ -6862,91 +6870,103 @@
           "caller": "services.ingestion.rpc_worker:_hash_payload",
           "callee": "services.ingestion.rpc_worker:_snapshot_record_json",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 40
+          "line": 58
         },
         {
           "caller": "services.ingestion.rpc_worker:_record_snapshot",
           "callee": "services.ingestion.rpc_worker:_snapshot_record_json",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 108
+          "line": 126
         },
         {
           "caller": "services.ingestion.rpc_worker:_snapshot_record",
           "callee": "services.ingestion.rpc_worker:_hash_payload",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 95
+          "line": 113
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.common.worker_database:get_worker_db",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 157
+          "line": 175
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.ingestion.rpc_provider:configured_rpc_endpoints",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 156
+          "line": 174
+        },
+        {
+          "caller": "services.ingestion.rpc_worker:ingest",
+          "callee": "services.ingestion.rpc_worker:_block_hash",
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 205
+        },
+        {
+          "caller": "services.ingestion.rpc_worker:ingest",
+          "callee": "services.ingestion.rpc_worker:_block_hash",
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 234
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.ingestion.rpc_worker:_finish_chain",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 226
+          "line": 255
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.ingestion.rpc_worker:_finish_chain",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 250
+          "line": 279
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.ingestion.rpc_worker:_hash_payload",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 217
+          "line": 246
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.ingestion.rpc_worker:_hash_payload",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 258
+          "line": 287
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.ingestion.rpc_worker:_record_snapshot",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 203
+          "line": 240
         },
         {
           "caller": "services.ingestion.rpc_worker:ingest",
           "callee": "services.ingestion.rpc_worker:_snapshot_record",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 195
+          "line": 216
         },
         {
           "caller": "services.ingestion.rpc_worker:main",
           "callee": "services.common.cli:print_json",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 287
+          "line": 316
         },
         {
           "caller": "services.ingestion.rpc_worker:main",
           "callee": "services.common.worker_environment:isolated_worker_key",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 285
+          "line": 314
         },
         {
           "caller": "services.ingestion.rpc_worker:main",
           "callee": "services.core.features:is_enabled",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 283
+          "line": 312
         },
         {
           "caller": "services.ingestion.rpc_worker:main",
           "callee": "services.ingestion.rpc_worker:ingest",
           "source": "services/ingestion/rpc_worker.py",
-          "line": 287
+          "line": 316
         }
       ],
       "callback_edges": [],
