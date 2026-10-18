@@ -57,6 +57,7 @@ TrendSmoothingType = Literal[
 ChangePointDetectionMethod = Literal["cusum", "pelt", "binary_segmentation", "window_slider"]
 ChangePointDirection = Literal["increase", "decrease", "variance_change"]
 ChangePointStatus = Literal["detected", "confirmed", "dismissed"]
+SeasonalDecompositionMethod = Literal["classical", "stl", "x11"]
 
 GeoJSONPosition = List[float]
 
@@ -972,6 +973,49 @@ class ChangePoint:
     post_std: Optional[float] = None
     classification: Optional[str] = None
     metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class SeasonalDecomposition:
+    """Stored seasonal/trend/residual components; does not run decomposition."""
+
+    id: str
+    metric_key: str
+    location_id: str
+    period: int
+    trend_component: List[JSONValue]
+    seasonal_component: List[JSONValue]
+    residual_component: List[JSONValue]
+    data_points: int
+    computed_at: str
+    created_at: str
+    decomposition_method: SeasonalDecompositionMethod = "classical"
+    seasonal_strength: Optional[float] = None
+    trend_strength: Optional[float] = None
+    residual_variance: Optional[float] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class TrendDashboardMetric:
+    """Stored summary metrics for trend dashboards; does not aggregate data."""
+
+    id: str
+    metric_key: str
+    location_id: str
+    computed_at: str
+    created_at: str
+    current_value: Optional[float] = None
+    trend_slope: Optional[float] = None
+    trend_direction: Optional[str] = None
+    trend_r_squared: Optional[float] = None
+    trend_significance: Optional[str] = None
+    seasonal_strength: Optional[float] = None
+    noise_level: Optional[float] = None
+    change_point_count: int = 0
+    last_change_point_at: Optional[str] = None
+    forecast_next_value: Optional[float] = None
+    forecast_accuracy_mae: Optional[float] = None
 
 
 @dataclass

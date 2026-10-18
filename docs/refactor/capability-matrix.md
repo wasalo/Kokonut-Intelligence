@@ -3440,3 +3440,17 @@ compilation, guard, matrix validation, and diff checks pass. The models do not
 compute the represented analyses; capability status and MAN-CAP acceptance
 remain unchanged. Checklist: 569 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-trend-result-parity.json`.
+
+### Seasonal decomposition and trend dashboard SDK parity — 18 October 2026
+
+Python and TypeScript now model saved seasonal/trend/residual components and
+trend-dashboard summaries. Recursive JSON arrays preserve the component
+values without restricting them to object records. The schema guard checks
+48 models and 988 columns, including 923 scalar types, seven PostGIS shapes,
+56 JSONB shapes, 20 enum fields, and 31 standalone SQL CHECK literals.
+Fifty-four focused Python SDK/guard tests, 29 JavaScript tests, TypeScript
+build, Ruff, compilation, guard, matrix validation, and diff checks pass.
+The types do not calculate decomposition or dashboard aggregates; capability
+status and MAN-CAP acceptance remain unchanged. Checklist: 570 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-seasonal-trend-dashboard-parity.json`.

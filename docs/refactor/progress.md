@@ -9107,3 +9107,17 @@ TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff
 checks. No database, provider, or network was contacted. The SDK types do not
 fit, smooth, or detect trends. Checklist: 569 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-trend-result-parity.json`.
+
+### Seasonal decomposition and trend dashboard SDK parity — 18 October 2026
+
+Python and TypeScript now model stored seasonal/trend/residual components and
+the `trend_dashboard_metric` summary row. Recursive JSON arrays represent the
+component values; the dashboard type preserves its saved measurements and
+change-point summary. The guard covers 48 models and 988 canonical columns,
+with 923 scalar types, seven PostGIS shapes, 56 JSONB shapes, 20 enum fields,
+and 31 standalone SQL CHECK literal contracts. Fifty-four focused Python
+SDK/guard tests and 29 JavaScript tests pass with TypeScript build, Ruff,
+compilation, schema guard, matrix validation, and diff checks. No database,
+provider, or network was contacted. The types do not decompose series or
+aggregate dashboard results. Checklist: 570 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-seasonal-trend-dashboard-parity.json`.

@@ -504,6 +504,36 @@ def test_trend_estimate_smoothing_and_change_point_types_store_results_only():
     assert point.status == "detected"
 
 
+def test_seasonal_decomposition_and_trend_dashboard_preserve_outputs():
+    from kokonut import SeasonalDecomposition, TrendDashboardMetric
+
+    decomposition = SeasonalDecomposition(
+        id="decomposition-1",
+        metric_key="rainfall",
+        location_id="location-1",
+        period=12,
+        trend_component=[1.0, 1.5],
+        seasonal_component=[0.2, -0.1],
+        residual_component=[0.05, -0.02],
+        data_points=24,
+        computed_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    dashboard = TrendDashboardMetric(
+        id="dashboard-1",
+        metric_key="rainfall",
+        location_id="location-1",
+        computed_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+        change_point_count=2,
+        forecast_accuracy_mae=0.3,
+    )
+
+    assert decomposition.decomposition_method == "classical"
+    assert decomposition.trend_component == [1.0, 1.5]
+    assert dashboard.change_point_count == 2
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

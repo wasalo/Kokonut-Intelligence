@@ -36,6 +36,7 @@ export type TrendSmoothingType = 'moving_average' | 'weighted_moving_average' | 
 export type ChangePointDetectionMethod = 'cusum' | 'pelt' | 'binary_segmentation' | 'window_slider';
 export type ChangePointDirection = 'increase' | 'decrease' | 'variance_change';
 export type ChangePointStatus = 'detected' | 'confirmed' | 'dismissed';
+export type SeasonalDecompositionMethod = 'classical' | 'stl' | 'x11';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -1021,6 +1022,45 @@ export interface ChangePoint {
   post_std?: number | null;
   classification?: string | null;
   metadata?: JSONObject | null;
+}
+
+/** Stored seasonal/trend/residual components; does not run decomposition. */
+export interface SeasonalDecomposition {
+  id: string;
+  metric_key: string;
+  location_id: string;
+  period: number;
+  trend_component: JSONValue[];
+  seasonal_component: JSONValue[];
+  residual_component: JSONValue[];
+  data_points: number;
+  computed_at: string;
+  created_at: string;
+  decomposition_method: SeasonalDecompositionMethod;
+  seasonal_strength?: number | null;
+  trend_strength?: number | null;
+  residual_variance?: number | null;
+  metadata?: JSONObject | null;
+}
+
+/** Stored summary metrics for trend dashboards; does not aggregate data. */
+export interface TrendDashboardMetric {
+  id: string;
+  metric_key: string;
+  location_id: string;
+  computed_at: string;
+  created_at: string;
+  current_value?: number | null;
+  trend_slope?: number | null;
+  trend_direction?: string | null;
+  trend_r_squared?: number | null;
+  trend_significance?: string | null;
+  seasonal_strength?: number | null;
+  noise_level?: number | null;
+  change_point_count?: number | null;
+  last_change_point_at?: string | null;
+  forecast_next_value?: number | null;
+  forecast_accuracy_mae?: number | null;
 }
 
 export interface SensorAlert {

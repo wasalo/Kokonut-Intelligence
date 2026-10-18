@@ -42,6 +42,8 @@ MODEL_TABLES = {
     "TrendEstimate": ("131_trend_analysis.sql", "trend_estimate"),
     "TrendSmoothing": ("131_trend_analysis.sql", "trend_smoothing"),
     "ChangePoint": ("131_trend_analysis.sql", "change_point"),
+    "SeasonalDecomposition": ("131_trend_analysis.sql", "seasonal_decomposition"),
+    "TrendDashboardMetric": ("131_trend_analysis.sql", "trend_dashboard_metric"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -110,6 +112,10 @@ JSONB_MODEL_SHAPES = {
     ("BuyerSegment", "criteria"): "json_object",
     ("TrendEstimate", "metadata"): "json_object",
     ("ChangePoint", "metadata"): "json_object",
+    ("SeasonalDecomposition", "trend_component"): "json_value_array",
+    ("SeasonalDecomposition", "seasonal_component"): "json_value_array",
+    ("SeasonalDecomposition", "residual_component"): "json_value_array",
+    ("SeasonalDecomposition", "metadata"): "json_object",
 }
 
 
