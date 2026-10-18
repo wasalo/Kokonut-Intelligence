@@ -17,6 +17,8 @@ The implementation retains create-time projection semantics; updates/deletes,
 historical backfill, and populated report parity remain open. Checklist: 604
 complete / 19 open. Evidence:
 `builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.
+The batch was pushed as commit `0780c9bd` together with ARM64 evidence commit
+`5727d7aa`; Security #207 passed and CI #483 is in progress.
 
 ### SDK infrastructure-asset inventory parity — 18 October 2026
 
