@@ -63,6 +63,26 @@ def test_claim_commits_before_event_processing():
     assert order.index("commit") < order.index("handler")
 
 
+def test_process_pending_redacts_database_exception_and_rolls_back(caplog):
+    conn, _ = _connection()
+    conn.rollback.side_effect = lambda: None
+    bus = EventBus(conn=conn)
+    conn = bus._get_conn()
+    failure = RuntimeError("postgresql://operator:secret@db.internal/kokonut")
+
+    with patch.object(bus, "_claim", side_effect=failure):
+        try:
+            bus.process_pending(worker_id="worker")
+            assert False, "database failure should be re-raised"
+        except RuntimeError as exc:
+            assert str(exc) == "postgresql://operator:secret@db.internal/kokonut"
+
+    assert conn.rollback.call_count == 1
+    assert "postgresql://operator:secret" not in caplog.text
+    assert "RuntimeError" in caplog.text
+    assert "Traceback" not in caplog.text
+
+
 def test_successful_delivery_is_not_invoked_again():
     handler_id = "handler"
     conn, _ = _connection(fetchall=[

@@ -127,7 +127,7 @@ class EventWorkerRecoveryTests(TestCase):
             patch("services.common.database.get_connection", return_value=nullcontext(notification_conn)) as get_conn,
             patch("services.events.notification_outbox.deliver_batch", return_value={"claimed": 0}) as deliver,
             patch("services.events.cli.time.sleep", side_effect=[None, KeyboardInterrupt]),
-            patch("services.events.cli.logger.exception") as log_exception,
+            patch("services.events.cli.logger.error") as log_error,
         ):
             self.assertEqual(cmd_worker(_args()), 0)
 
@@ -144,7 +144,7 @@ class EventWorkerRecoveryTests(TestCase):
         recovered_bus.process_pending.assert_called_once_with(10, "event-worker-test")
         get_conn.assert_called_once_with(connect_timeout=5)
         deliver.assert_called_once_with(notification_conn, "event-worker-test", 10)
-        log_exception.assert_called_once_with("Event worker iteration failed")
+        log_error.assert_called_once_with("Event worker iteration failed (%s)", "OSError")
 
     def test_notification_connection_failure_also_recreates_event_bus(self):
         first_bus = Mock()
@@ -162,7 +162,7 @@ class EventWorkerRecoveryTests(TestCase):
             ) as get_conn,
             patch("services.events.notification_outbox.deliver_batch", return_value={"claimed": 0}) as deliver,
             patch("services.events.cli.time.sleep", side_effect=[None, KeyboardInterrupt]),
-            patch("services.events.cli.logger.exception") as log_exception,
+            patch("services.events.cli.logger.error") as log_error,
         ):
             self.assertEqual(cmd_worker(_args()), 0)
 
@@ -179,7 +179,25 @@ class EventWorkerRecoveryTests(TestCase):
         self.assertEqual(get_conn.call_count, 2)
         self.assertEqual(get_conn.call_args_list, [call(connect_timeout=5), call(connect_timeout=5)])
         deliver.assert_called_once_with(notification_conn, "event-worker-test", 10)
-        log_exception.assert_called_once_with("Event worker iteration failed")
+        log_error.assert_called_once_with("Event worker iteration failed (%s)", "OSError")
+
+    def test_bus_close_failure_logs_only_exception_class(self):
+        bus = Mock()
+        bus.process_pending.return_value = {"processed": 0, "failed": 0}
+        bus.close.side_effect = RuntimeError("postgresql://operator:secret@db.internal/kokonut")
+
+        with (
+            patch("services.events.backend.get_event_store", return_value=bus),
+            patch("services.common.database.get_connection") as get_connection,
+            patch("services.events.cli.time.sleep", side_effect=KeyboardInterrupt),
+            patch("services.events.cli.logger.warning") as log_warning,
+        ):
+            self.assertEqual(cmd_event_worker(_args()), 0)
+
+        get_connection.assert_not_called()
+        log_warning.assert_called_once_with(
+            "Failed to close event worker bus (%s)", "RuntimeError"
+        )
 
     def test_worker_rejects_nonpositive_poll_interval(self):
         args = _args()

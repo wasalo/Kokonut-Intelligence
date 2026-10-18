@@ -24,6 +24,7 @@ import sys
 import time
 
 from services.common.cli import print_json
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("events.cli")
@@ -76,17 +77,21 @@ def _run_worker(args, *, process_events: bool, deliver_notifications: bool):
                         notifications = deliver_batch(conn, args.worker_id, args.batch_size)
             except KeyboardInterrupt:
                 return 0
-            except Exception:
+            except Exception as exc:
                 # A dead connection is discarded with this iteration's bus;
                 # the next poll gets a fresh event and notification connection.
-                logger.exception("Event worker iteration failed")
+                logger.error(
+                    "Event worker iteration failed (%s)", safe_exception_class(exc)
+                )
                 iteration_failed = True
             finally:
                 if bus is not None:
                     try:
                         bus.close()
-                    except Exception:
-                        logger.warning("Failed to close event worker bus", exc_info=True)
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to close event worker bus (%s)", safe_exception_class(exc)
+                        )
 
             if iteration_failed:
                 time.sleep(args.poll_interval)

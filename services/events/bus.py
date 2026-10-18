@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.common.worker_environment import (
     event_handler_worker_policy,
@@ -145,9 +146,9 @@ class EventBus:
                     )
                     stats["failed"] += 1
             return stats
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to process event batch")
+            logger.error("Failed to process event batch (%s)", safe_exception_class(exc))
             raise
 
     def _process_event(self, event_id, event_type, payload, worker_id):

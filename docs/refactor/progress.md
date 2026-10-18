@@ -8413,3 +8413,11 @@ Ruff, compilation, and diff checks. No database or provider was contacted.
 The checklist is 505 complete / 19 open and capability matrix classifications
 are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/federation-error-redaction.json`.
+
+EventBus batch failures, worker iteration failures, and bus-close failures now
+log only bounded exception classes. Database rollback and re-raise behavior,
+fresh-bus reconnect, and durable retry semantics remain intact. Forty focused
+tests plus three subtests pass with Ruff, compilation, and diff checks using
+mocks only; no database or provider was contacted. The checklist is 506
+complete / 19 open, and capability matrix classifications are unchanged.
+Evidence: `docs/refactor/builds/2026-10-17-recovery/event-worker-error-redaction.json`.
