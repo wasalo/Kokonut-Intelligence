@@ -127,4 +127,28 @@ describe('KokonutClient', () => {
       requested_by: 'sdk',
     });
   });
+
+  it('keeps required convenience filters authoritative and forwards list options', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+
+    await client.farms.listByLocation('location-1', {
+      filter: { location_id: 'location-2', status: 'active' },
+      sort: ['name'],
+      fields: ['id'],
+      limit: 25,
+      offset: 50,
+      page: 3,
+      meta: 'total_count',
+    });
+
+    expect(listItems).toHaveBeenCalledWith('farm', {
+      filter: { location_id: 'location-1', status: 'active' },
+      sort: ['name'],
+      fields: ['id'],
+      limit: 25,
+      offset: 50,
+      page: 3,
+      meta: 'total_count',
+    });
+  });
 });

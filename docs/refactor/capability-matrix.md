@@ -1713,6 +1713,12 @@ offline slice now also aligns Python `create_export()` and JavaScript
 JavaScript `create()` method's payload behavior. Four focused Python tests, 13 JavaScript SDK tests,
 and the TypeScript build pass with fake client methods only
 ([evidence](builds/2026-10-17-recovery/sdk-export-method-parity.json)). This
+This slice also aligns specialized list-query filters and option forwarding: the
+required filter wins over a conflicting caller filter, and Python preserves
+offset and meta just as JavaScript does. Five Python SDK tests, 14 Vitest tests,
+Ruff, and the TypeScript build pass with mocked clients
+([evidence](builds/2026-10-17-recovery/sdk-convenience-query-parity.json)).
+These SDK query helpers do not establish authorization or tenant isolation. This
 partial evidence applies to CAP-001, CAP-007, CAP-014 and the adjacent CAP-031
 public summary slice; live route/auth, tenant scope and broader SDK parity remain
 unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
