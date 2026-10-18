@@ -35,10 +35,18 @@ Stored Celo attestation metadata can be read at
 and review notes. It reports persisted database state and does not verify a
 live EAS contract or chain result.
 
+Location ecocredit batches are available at
+`GET /operator/api/ecocredits/{location_id}/batches` with the location-specific
+`ecocredit:read` grant. The read-only response separates batch quantities from
+aggregated tradable, retired, and escrowed ledger totals, preserves four-decimal
+precision, and omits wallet addresses and account-level balances. It does not
+issue, transfer, retire, or verify credits.
+
 ## Modules
 
 - `app` — Gateway application — FastAPI app with auth, routing, rate limiting, and audit.
 - `attestations` and `attestation_routes` — scoped metadata reads for location EAS proofs.
+- `ecocredits` and `ecocredit_routes` — location-scoped batch and aggregate ledger reads.
 - `audit` — Gateway audit — request logging.
 - `auth` — Gateway auth — unified authentication (API key, capability token, session).
 - `cli` — CLI for the API gateway.

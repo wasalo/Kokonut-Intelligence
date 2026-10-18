@@ -51,6 +51,22 @@ _EXPECTED_OPERATOR_POLICIES = {
     ("GET", "/operator/auth/callback"): _expected("operator_auth", "callback", public=True),
     ("GET", "/operator/auth/session"): _expected("operator_auth", "read"),
     ("POST", "/operator/auth/logout"): _expected("operator_auth", "logout"),
+    (
+        "GET",
+        "/operator/api/ecocredits/11111111-1111-4111-8111-111111111111/batches",
+    ): _expected("ecocredit", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/true-cost/11111111-1111-4111-8111-111111111111/summary",
+    ): _expected("true_cost_accounting", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/emergency-response/11111111-1111-4111-8111-111111111111/summary",
+    ): _expected("emergency_response", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/attestations/11111111-1111-4111-8111-111111111111",
+    ): _expected("attestation", "read", scoped=True, location_id=_LOCATION_ID),
     ("GET", "/operator/api/report-review-queue"): _expected("report_snapshot_review", "read", scoped=True),
     (
         "GET",

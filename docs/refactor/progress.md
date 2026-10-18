@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Native ecocredit batch reads — 18 October 2026
+
+The OIDC operator API now lists location-scoped ecocredit batch state under
+`ecocredit:read`. A read-only transaction establishes signed tenant context
+before the query. Batch issuance/retirement/availability fields remain separate
+from aggregate ledger tradable/retired/escrowed totals so reconciliation gaps
+remain visible; wallet addresses and per-account balances are excluded. The
+122-test Gateway/ecocredit/auth/audit suite passes, including exact coverage of
+all 47 concrete registered operator method/path entries and the legacy credit
+balance/batch unit tests. Ruff, compilation, capability validation, and diff
+checks pass with synthetic records only. CAP-019 is
+prepared, not accepted: issuance, retirement, transfer, basket, fee, enrollment,
+bridge parity, supply reconciliation, domain RLS, populated data parity, and
+MAN-CAP-019 remain open. No candidate, legacy database, wallet, or chain was
+accessed. Checklist: 636 complete / 19 open; matrix: 49 baseline-retained, 7
+deployed, 10 prepared ([evidence](builds/2026-10-18-recovery/gateway-ecocredit-batch-read.json)).
+
 ### Native EAS attestation metadata reads — 18 October 2026
 
 The OIDC operator API now lists stored Celo attestations for a location subject
