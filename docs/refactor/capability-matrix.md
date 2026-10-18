@@ -16,6 +16,17 @@ stored attestation schema UIDs, definitions, resolver addresses, version, and
 active state. This does not create schemas or produce attestations, and MAN-CAP
 acceptance remains unchanged ([evidence](builds/2026-10-18-recovery/sdk-attestation-schema-parity.json)).
 
+**SDK query-operator parity note — 18 October 2026:** Python and JavaScript
+specialized collection methods now produce the same explicit Directus `_eq` and
+`_in` filter expressions while preserving caller options. These client-side
+filters are not an authorization boundary; MAN-CAP status is unchanged
+([evidence](builds/2026-10-18-recovery/sdk-filter-operator-parity.json)).
+
+**SDK session parity note — 18 October 2026:** local JavaScript credentials are
+cleared even when the remote logout request fails, matching Python's
+best-effort behavior. This does not affect Gateway session authorization or
+MAN-CAP status ([evidence](builds/2026-10-18-recovery/sdk-session-logout-parity.json)).
+
 The six-column matrix is checked by `python3 scripts/check-capability-matrix.py`
 and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate

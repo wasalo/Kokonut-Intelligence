@@ -9405,3 +9405,29 @@ or network was contacted. This record does not create schemas or submit
 attestations; MAN-CAP acceptance is unchanged. Checklist: 590 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-attestation-schema-parity.json`.
+
+### Native SDK query-filter operator parity — 18 October 2026
+
+The JavaScript SDK now emits explicit `_eq` filter objects for the same
+specialized location, relationship, sensor, wallet, report, and attestation
+queries as Python. Required filters still override conflicting caller values,
+and `_in` filters for active/unpaid/pending records remain intact. The focused
+Python SDK/method suite passes 64 tests, Vitest passes 30 tests, and the
+TypeScript build and targeted Ruff check pass. No HTTP call, database, or
+provider was used. A package-wide Ruff scan continues to report pre-existing
+generated/legacy file violations; no generated files were changed. This does
+not establish authorization or tenant isolation. Checklist counts and
+capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-filter-operator-parity.json`.
+
+### Native SDK local-logout parity — 18 October 2026
+
+The JavaScript SDK now clears its stored token in a `finally` path when the
+remote logout request fails, matching the Python client's offline logout
+behavior. Synthetic failure checks pass in both SDKs within the 77-test full
+focused Python SDK/schema/method suite and 31 JavaScript tests; schema guard,
+TypeScript build, capability matrix, and targeted Ruff pass. No credentials,
+network, database, or API was used. Gateway operator
+sessions are independent from this legacy Directus client contract. Checklist:
+591 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-session-logout-parity.json`.
