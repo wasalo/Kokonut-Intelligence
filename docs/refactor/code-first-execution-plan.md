@@ -1359,7 +1359,7 @@ canonical spatial, metadata, and audit columns. The TypeScript
 `SensorReading` now requires location scope and accepts canonical database
 quality values. Python now also has matching sensor registry/device/alert
 dataclasses. A reusable offline guard checks 256 canonical column names across
-12 tables against both SDK model sets. The checklist is now 535 complete / 19
+12 tables against both SDK model sets and runs in fast-fail CI. The checklist is now 536 complete / 19
 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

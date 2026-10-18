@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (17 October 2026):** 535 checklist items complete and 19
-open (554 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (17 October 2026):** 536 checklist items complete and 19
+open (555 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1240,6 +1240,7 @@ reporting views.
 - [x] Align the JavaScript `SensorReading` type with the canonical sensor table: require `location_id`, represent nullable columns as optional nullable values, and accept database quality values including `bad`. Thirteen Python tests, 22 JavaScript tests, Ruff, TypeScript build, and diff checks pass with local fixtures and no database or network calls ([evidence](builds/2026-10-17-recovery/sdk-sensor-reading-schema-parity.json)).
 - [x] Add Python SDK dataclasses for `SensorType`, `SensorDevice`, `AlertRule`, and `SensorAlert`; align TypeScript nullability with their canonical registry/alert tables and verify both clients with synthetic fixtures. Fourteen Python tests, 23 JavaScript tests, Ruff, TypeScript build, and diff checks pass with no database or network calls ([evidence](builds/2026-10-17-recovery/sdk-sensor-registry-schema-parity.json)).
 - [x] Add an offline source guard for Python/TypeScript model coverage against 12 canonical operational tables. It checks all 256 SQL column names in both SDKs and reports missing model fields; Ruff, Python compilation, and the guard pass ([evidence](builds/2026-10-17-recovery/sdk-schema-parity-guard.json)). The guard does not assert data types, nullability, Directus projection behavior, or authorization.
+- [x] Run the SDK schema-column guard in the fast-fail CI check and list it in the script reference. The CI path now enforces field coverage without adding database services or network calls ([evidence](builds/2026-10-17-recovery/sdk-schema-parity-ci-integration.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

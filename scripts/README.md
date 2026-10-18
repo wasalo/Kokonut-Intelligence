@@ -11,6 +11,7 @@ Operational scripts for the Kokonut Intelligence platform. All shell scripts use
 | `kernel-portability.py` | Print isolated AMD64/ARM64 evaluation build/readiness commands; see docs/refactor/portability-database.md | Manual |
 | `check-provider-boundaries.py` | Reject optional vendor imports outside declared adapters | CI, manual |
 | `check-requirement-groups.py` | Keep candidate groups aligned with legacy dependency constraints | CI, manual |
+| `check-sdk-schema-parity.py` | Verify Python and TypeScript models include canonical columns for selected operational tables | CI, manual |
 | `setup.sh` | First-run bootstrap: prerequisites check, `.env` creation, data directories, infrastructure startup | Manual |
 | `load-secrets.sh` | Decrypt `.env.sops` via SOPS/age and export into current shell. **Must be sourced**, not executed. | Manual |
 | `seed.sh` | Bootstrap locked placeholders for optional worker/runtime role names, wait for the final PostgreSQL TCP listener, then apply PostgreSQL schema migrations + ClickHouse schemas + Directus permissions + curated seeds | Manual, CI |

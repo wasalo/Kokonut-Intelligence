@@ -8671,3 +8671,13 @@ fields, not incorrect types/nullability or runtime projection, tenant, or
 authorization behavior. Checklist: 535 complete / 19 open. Capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-schema-parity-guard.json`.
+
+### SDK schema guard in CI — 17 October 2026
+
+The fast-fail CI script now runs the canonical SDK schema-column guard, and
+the script reference documents its purpose. This makes omitted columns in the
+12 inventoried operational models fail CI; it remains an offline source check
+and does not make claims about type/nullability correctness or runtime
+authorization. The guard passes across 256 column names per SDK; shell syntax
+and diff checks pass. Checklist: 536 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-schema-parity-ci-integration.json`.
