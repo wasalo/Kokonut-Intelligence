@@ -158,3 +158,63 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )
+
+
+def test_sql_enum_inventory_reads_type_definitions_and_column_cast_constraints(tmp_path, monkeypatch):
+    schema_dir = tmp_path / "schemas" / "postgres"
+    schema_dir.mkdir(parents=True)
+    base = schema_dir / "001_fixture.sql"
+    base.write_text(
+        """CREATE TABLE IF NOT EXISTS sdk_enum_fixture (
+    id UUID PRIMARY KEY,
+    status TEXT
+);
+""",
+        encoding="utf-8",
+    )
+    (schema_dir / "015_fixture_constraints.sql").write_text(
+        """DO $$ BEGIN
+    CREATE TYPE fixture_status AS ENUM ('draft', 'published');
+END $$;
+ALTER TABLE sdk_enum_fixture ADD CONSTRAINT fixture_status_check
+    CHECK (status::fixture_status IS NOT NULL);
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(SCHEMA_GUARD, "ROOT", tmp_path)
+
+    enum_types = SCHEMA_GUARD.postgres_enum_types()
+
+    assert enum_types["fixture_status"] == ("draft", "published")
+    assert SCHEMA_GUARD.table_enum_columns(base, "sdk_enum_fixture", enum_types) == {
+        "status": "fixture_status"
+    }
+
+
+def test_sdk_enum_annotations_match_all_mapped_postgres_enum_constraints():
+    python_path = ROOT / "sdk" / "python" / "kokonut" / "types.py"
+    typescript_path = ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    python_types = SCHEMA_GUARD.python_model_field_types(python_path)
+    typescript_types = SCHEMA_GUARD.typescript_model_field_types(typescript_path)
+    python_enums = SCHEMA_GUARD.python_literal_aliases(python_path)
+    typescript_enums = SCHEMA_GUARD.typescript_literal_aliases(typescript_path)
+    sql_enums = SCHEMA_GUARD.postgres_enum_types()
+    checked = 0
+
+    for model, (schema_file, table) in SCHEMA_GUARD.MODEL_TABLES.items():
+        enum_columns = SCHEMA_GUARD.table_enum_columns(
+            ROOT / "schemas" / "postgres" / schema_file,
+            table,
+            sql_enums,
+        )
+        for column, enum_type in enum_columns.items():
+            values = sql_enums[enum_type]
+            checked += 1
+            assert SCHEMA_GUARD.python_type_matches_enum(
+                python_types[model][column], python_enums, values
+            ), f"Python {model}.{column} does not match SQL enum {enum_type}"
+            assert SCHEMA_GUARD.typescript_type_matches_enum(
+                typescript_types[model][column], typescript_enums, values
+            ), f"TypeScript {model}.{column} does not match SQL enum {enum_type}"
+
+    assert checked == 16

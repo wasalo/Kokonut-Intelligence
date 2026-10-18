@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript SDK parity for schema-enforced enum values",
+  "source_of_truth": "PostgreSQL CREATE TYPE AS ENUM definitions and table-column enum cast checks across ordered SQL files",
+  "change": "Added shared literal aliases in both SDKs for the constrained status fields and made the offline schema guard compare mapped annotations to enum values parsed from SQL.",
+  "inventory": {
+    "enum_types": 7,
+    "constrained_model_fields": 16,
+    "types": [
+      "lifecycle_status",
+      "entity_status",
+      "entity_status_extended",
+      "payment_status_type",
+      "sensor_severity",
+      "alert_lifecycle",
+      "export_status"
+    ]
+  },
+  "focused_checks": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q",
+      "result": "29 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --run",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "schema_guard": "passed: 20 models, 473 columns, 442 scalar types, 7 PostGIS types, 24 JSONB shapes, and 16 enum fields checked per SDK",
+    "ruff": "passed",
+    "capability_matrix": "passed: 66 rows; classifications unchanged",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local fixtures and SDK tests only",
+  "limitations": [
+    "Only explicit PostgreSQL enum definitions and cast constraints in mapped models are checked.",
+    "Unconstrained string fields, runtime payloads, and Directus projections are not validated.",
+    "No capability or MAN-CAP acceptance classification changed."
+  ]
+}

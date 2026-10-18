@@ -25,6 +25,19 @@ client payload types accurately JSON-shaped, but it does not add database
 constraints or runtime payload validation
 ([evidence](builds/2026-10-18-recovery/sdk-jsonb-shape-parity.json)).
 
+### SDK PostgreSQL enum parity — 18 October 2026
+
+Shared Python and TypeScript literal aliases now cover the seven PostgreSQL
+enum types enforced by the mapped models: lifecycle, entity, extended entity,
+payment, sensor severity, alert lifecycle, and export status. The offline
+guard discovers the enum values and table/column cast constraints from schema
+files, then compares all 16 constrained SDK fields against those values.
+Twenty-nine Python SDK/guard tests and 29 JavaScript tests pass. TypeScript
+build, Ruff, compilation, schema guard, capability-matrix validation, and diff
+check pass. No database or network was contacted. Unconstrained string fields
+and runtime/Directus payload behavior remain outside this contract
+([evidence](builds/2026-10-18-recovery/sdk-enum-schema-parity.json)).
+
 ### CI #430 report-inventory freshness fix — 17 October 2026
 
 CI #430 on pushed commit `9742905` stopped in the fast-fail gate because the

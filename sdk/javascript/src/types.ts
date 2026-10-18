@@ -1,6 +1,13 @@
 export type JSONScalar = string | number | boolean | null;
 export type JSONValue = JSONScalar | JSONValue[] | { [key: string]: JSONValue };
 export type JSONObject = { [key: string]: JSONValue };
+export type LifecycleStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
+export type EntityStatus = 'active' | 'inactive' | 'archived';
+export type EntityStatusExtended = 'active' | 'inactive' | 'maintenance' | 'decommissioned';
+export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'cancelled';
+export type SensorSeverity = 'info' | 'warning' | 'critical';
+export type AlertLifecycle = 'open' | 'acknowledged' | 'resolved' | 'false_positive';
+export type ExportStatus = 'pending' | 'generating' | 'completed' | 'failed';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -44,7 +51,7 @@ export interface Location {
   sub_watershed?: string | null;
   organization_id?: string | null;
   schema_version?: string | null;
-  status?: string | null;
+  status?: EntityStatus | null;
   metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -74,7 +81,7 @@ export interface Farm {
   farm_type?: string | null;
   total_area?: number | null;
   area_unit?: string | null;
-  status?: string | null;
+  status?: EntityStatus | null;
   metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -100,7 +107,7 @@ export interface Plot {
   bed_area_sqm?: number | null;
   slope_pct?: number | null;
   aspect?: string | null;
-  status?: string | null;
+  status?: EntityStatus | null;
   metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -157,7 +164,7 @@ export interface HarvestEvent {
   evidence_urls?: string[] | null;
   evidence_hashes?: string[] | null;
   notes?: string | null;
-  status?: string | null;
+  status?: LifecycleStatus | null;
   verified_by?: string | null;
   verified_at?: string | null;
   submitted_at?: string | null;
@@ -185,7 +192,7 @@ export interface SalesEvent {
   buyer_type?: string | null;
   price_per_unit?: number | null;
   currency?: string | null;
-  payment_status?: string | null;
+  payment_status?: PaymentStatus | null;
   payment_date?: string | null;
   payment_method?: string | null;
   invoice_number?: string | null;
@@ -195,7 +202,7 @@ export interface SalesEvent {
   evidence_urls?: string[] | null;
   evidence_hashes?: string[] | null;
   notes?: string | null;
-  status?: string | null;
+  status?: LifecycleStatus | null;
   verified_by?: string | null;
   verified_at?: string | null;
   submitted_at?: string | null;
@@ -236,7 +243,7 @@ export interface ExpenseEvent {
   receipt_hash?: string | null;
   invoice_number?: string | null;
   notes?: string | null;
-  status?: string | null;
+  status?: LifecycleStatus | null;
   verified_by?: string | null;
   verified_at?: string | null;
   submitted_at?: string | null;
@@ -271,7 +278,7 @@ export interface LossEvent {
   evidence_urls?: string[] | null;
   evidence_hashes?: string[] | null;
   notes?: string | null;
-  status?: string | null;
+  status?: LifecycleStatus | null;
   verified_by?: string | null;
   verified_at?: string | null;
   submitted_at?: string | null;
@@ -299,7 +306,7 @@ export interface LaborEvent {
   role?: string | null;
   activity_description?: string | null;
   notes?: string | null;
-  status?: string | null;
+  status?: LifecycleStatus | null;
   verified_by?: string | null;
   verified_at?: string | null;
   submitted_at?: string | null;
@@ -324,7 +331,7 @@ export interface FieldNote {
   content?: string | null;
   images?: string[] | null;
   tags?: string[] | null;
-  status?: string | null;
+  status?: LifecycleStatus | null;
   verified_by?: string | null;
   verified_at?: string | null;
   submitted_at?: string | null;
@@ -380,7 +387,7 @@ export interface SensorDevice {
   serial_number?: string | null;
   protocol?: string | null;
   endpoint_url?: string | null;
-  status?: string | null;
+  status?: EntityStatusExtended | null;
   calibration_date?: string | null;
   calibration_interval_days?: number | null;
   installation_date?: string | null;
@@ -423,8 +430,8 @@ export interface SensorAlert {
   sensor_device_id: string;
   alert_rule_id: string;
   reading_id?: string | null;
-  severity: 'info' | 'warning' | 'critical';
-  status?: 'open' | 'acknowledged' | 'resolved' | 'false_positive' | null;
+  severity: SensorSeverity;
+  status?: AlertLifecycle | null;
   message: string;
   reading_value?: number | null;
   threshold_value?: number | null;
@@ -468,7 +475,7 @@ export interface AttestationRecord {
   evidence_hash?: string | null;
   evidence_cids?: string[] | null;
   evidence_urls?: string[] | null;
-  status?: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected' | null;
+  status?: LifecycleStatus | null;
   reviewer_id?: string | null;
   review_notes?: string | null;
   reviewed_at?: string | null;
@@ -501,7 +508,7 @@ export interface ReportSnapshot {
   period_end?: string | null;
   snapshot_hash?: string | null;
   file_url?: string | null;
-  status?: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected' | null;
+  status?: LifecycleStatus | null;
   created_at?: string | null;
   created_by?: string | null;
   entity_type?: string | null;
@@ -528,7 +535,7 @@ export interface ExportLog {
   row_count?: number | null;
   file_size_bytes?: number | null;
   file_url?: string | null;
-  status?: 'pending' | 'generating' | 'completed' | 'failed' | null;
+  status?: ExportStatus | null;
   created_at?: string | null;
   format?: ExportFormat | null;
   entity_type?: string | null;

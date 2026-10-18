@@ -6,6 +6,13 @@ from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 JSONScalar = Union[str, int, float, bool, None]
 JSONValue = Union[JSONScalar, List["JSONValue"], Dict[str, "JSONValue"]]
 JSONObject = Dict[str, JSONValue]
+LifecycleStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
+EntityStatus = Literal["active", "inactive", "archived"]
+EntityStatusExtended = Literal["active", "inactive", "maintenance", "decommissioned"]
+PaymentStatus = Literal["pending", "partial", "paid", "overdue", "cancelled"]
+SensorSeverity = Literal["info", "warning", "critical"]
+AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
+ExportStatus = Literal["pending", "generating", "completed", "failed"]
 
 GeoJSONPosition = List[float]
 
@@ -86,7 +93,7 @@ class Location:
     sub_watershed: Optional[str] = None
     organization_id: Optional[str] = None
     schema_version: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[EntityStatus] = None
     metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -117,7 +124,7 @@ class Farm:
     farm_type: Optional[str] = None
     total_area: Optional[float] = None
     area_unit: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[EntityStatus] = None
     metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -144,7 +151,7 @@ class Plot:
     bed_area_sqm: Optional[float] = None
     slope_pct: Optional[float] = None
     aspect: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[EntityStatus] = None
     metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -203,7 +210,7 @@ class HarvestEvent:
     evidence_urls: Optional[List[str]] = None
     evidence_hashes: Optional[List[str]] = None
     notes: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     submitted_at: Optional[str] = None
@@ -232,7 +239,7 @@ class SalesEvent:
     buyer_type: Optional[str] = None
     price_per_unit: Optional[float] = None
     currency: Optional[str] = None
-    payment_status: Optional[str] = None
+    payment_status: Optional[PaymentStatus] = None
     payment_date: Optional[str] = None
     payment_method: Optional[str] = None
     invoice_number: Optional[str] = None
@@ -242,7 +249,7 @@ class SalesEvent:
     evidence_urls: Optional[List[str]] = None
     evidence_hashes: Optional[List[str]] = None
     notes: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     submitted_at: Optional[str] = None
@@ -284,7 +291,7 @@ class ExpenseEvent:
     invoice_number: Optional[str] = None
     receipt_hash: Optional[str] = None
     notes: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     submitted_at: Optional[str] = None
@@ -320,7 +327,7 @@ class LossEvent:
     evidence_urls: Optional[List[str]] = None
     evidence_hashes: Optional[List[str]] = None
     notes: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     submitted_at: Optional[str] = None
@@ -349,7 +356,7 @@ class LaborEvent:
     role: Optional[str] = None
     activity_description: Optional[str] = None
     notes: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     submitted_at: Optional[str] = None
@@ -375,7 +382,7 @@ class FieldNote:
     content: Optional[str] = None
     images: Optional[List[str]] = None
     tags: Optional[List[str]] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     submitted_at: Optional[str] = None
@@ -434,7 +441,7 @@ class SensorDevice:
     serial_number: Optional[str] = None
     protocol: Optional[str] = None
     endpoint_url: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[EntityStatusExtended] = None
     calibration_date: Optional[str] = None
     calibration_interval_days: Optional[int] = None
     installation_date: Optional[str] = None
@@ -478,11 +485,11 @@ class SensorAlert:
     id: str
     sensor_device_id: str
     alert_rule_id: str
-    severity: str
+    severity: SensorSeverity
     message: str
     triggered_at: str
     reading_id: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[AlertLifecycle] = None
     reading_value: Optional[float] = None
     threshold_value: Optional[float] = None
     acknowledged_at: Optional[str] = None
@@ -526,7 +533,7 @@ class AttestationRecord:
     evidence_hash: Optional[str] = None
     evidence_cids: Optional[List[str]] = None
     evidence_urls: Optional[List[str]] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     reviewer_id: Optional[str] = None
     review_notes: Optional[str] = None
     reviewed_at: Optional[str] = None
@@ -559,7 +566,7 @@ class ReportSnapshot:
     period_end: Optional[str] = None
     snapshot_hash: Optional[str] = None
     file_url: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
     frozen: Optional[bool] = None
     frozen_at: Optional[str] = None
     frozen_by: Optional[str] = None
@@ -585,7 +592,7 @@ class ExportLog:
     row_count: Optional[int] = None
     file_size_bytes: Optional[int] = None
     file_url: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[ExportStatus] = None
     created_at: Optional[str] = None
 
 

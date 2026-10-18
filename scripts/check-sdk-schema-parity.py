@@ -225,6 +225,57 @@ def table_column_types(path: Path, table: str) -> dict[str, str]:
     return column_types
 
 
+def postgres_enum_types() -> dict[str, tuple[str, ...]]:
+    enum_types: dict[str, tuple[str, ...]] = {}
+    migrations = ROOT / "schemas" / "postgres"
+    for migration in sorted(migrations.glob("*.sql")):
+        source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+        for definition in re.finditer(
+            r"CREATE TYPE\s+([a-z_][a-z0-9_]*)\s+AS\s+ENUM\s*\((.*?)\)",
+            source,
+            flags=re.IGNORECASE | re.DOTALL,
+        ):
+            enum_types.setdefault(
+                definition.group(1).lower(),
+                tuple(re.findall(r"'((?:''|[^'])*)'", definition.group(2))),
+            )
+        for addition in re.finditer(
+            r"ALTER TYPE\s+([a-z_][a-z0-9_]*)\s+ADD VALUE"
+            r"(?:\s+IF NOT EXISTS)?\s+'((?:''|[^'])*)'",
+            source,
+            flags=re.IGNORECASE,
+        ):
+            type_name = addition.group(1).lower()
+            if type_name in enum_types and addition.group(2) not in enum_types[type_name]:
+                enum_types[type_name] += (addition.group(2),)
+    return enum_types
+
+
+def table_enum_columns(path: Path, table: str, enum_types: dict[str, tuple[str, ...]]) -> dict[str, str]:
+    enum_columns = {
+        column: sql_type.lower()
+        for column, sql_type in table_column_types(path, table).items()
+        if sql_type.lower() in enum_types
+    }
+    for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
+        source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            for constraint in re.finditer(
+                r"([a-z_][a-z0-9_]*)\s*::\s*([a-z_][a-z0-9_]*)\s+IS\s+NOT\s+NULL",
+                statement.group(1),
+                flags=re.IGNORECASE,
+            ):
+                column, type_name = constraint.group(1).lower(), constraint.group(2).lower()
+                if type_name in enum_types:
+                    enum_columns[column] = type_name
+    return enum_columns
+
+
 def sql_type_family(sql_type: str) -> str | None:
     normalized = sql_type.upper()
     if normalized == "JSONB":
@@ -256,11 +307,17 @@ def sql_type_family(sql_type: str) -> str | None:
     return None
 
 
-def python_type_matches_family(annotation: str, family: str) -> bool:
+def python_type_matches_family(
+    annotation: str,
+    family: str,
+    literal_aliases: dict[str, tuple[str, ...]] | None = None,
+) -> bool:
     normalized = annotation.strip()
     if normalized.startswith("Optional[") and normalized.endswith("]"):
         normalized = normalized[len("Optional[") : -1].strip()
     normalized = re.sub(r"\s*\|\s*None\b", "", normalized).strip()
+    if family == "string" and literal_aliases and normalized in literal_aliases:
+        return all(isinstance(value, str) for value in literal_aliases[normalized])
     compatible = {
         "string": {"str"},
         "integer": {"int"},
@@ -275,9 +332,15 @@ def python_type_matches_family(annotation: str, family: str) -> bool:
     return normalized in compatible.get(family, set())
 
 
-def typescript_type_matches_family(field_type: str, family: str) -> bool:
+def typescript_type_matches_family(
+    field_type: str,
+    family: str,
+    literal_aliases: dict[str, tuple[str, ...]] | None = None,
+) -> bool:
     normalized = re.sub(r"\s*\|\s*null\b", "", field_type).strip()
     if family == "string":
+        if literal_aliases and normalized in literal_aliases:
+            return bool(literal_aliases[normalized])
         parts = [part.strip() for part in normalized.split("|")]
         return bool(parts) and all(
             part == "string" or re.fullmatch(r"(?:'[^']*'|\"[^\"]*\")", part)
@@ -342,6 +405,62 @@ def typescript_model_field_types(path: Path) -> dict[str, dict[str, str]]:
     }
 
 
+def python_literal_aliases(path: Path) -> dict[str, tuple[str, ...]]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    aliases = {}
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        target = node.targets[0]
+        value = node.value
+        if (
+            not isinstance(target, ast.Name)
+            or not isinstance(value, ast.Subscript)
+            or not isinstance(value.value, ast.Name)
+            or value.value.id != "Literal"
+        ):
+            continue
+        literal_nodes = value.slice.elts if isinstance(value.slice, ast.Tuple) else [value.slice]
+        literals = [
+            item.value for item in literal_nodes
+            if isinstance(item, ast.Constant) and isinstance(item.value, str)
+        ]
+        if len(literals) == len(literal_nodes):
+            aliases[target.id] = tuple(literals)
+    return aliases
+
+
+def typescript_literal_aliases(path: Path) -> dict[str, tuple[str, ...]]:
+    source = path.read_text(encoding="utf-8")
+    aliases = {}
+    for declaration in re.finditer(
+        r"export type\s+(\w+)\s*=\s*([^;\n]+);", source
+    ):
+        parts = [part.strip() for part in declaration.group(2).split("|")]
+        if parts and all(re.fullmatch(r"(?:'[^']*'|\"[^\"]*\")", part) for part in parts):
+            aliases[declaration.group(1)] = tuple(
+                part[1:-1] for part in parts
+            )
+    return aliases
+
+
+def python_type_matches_enum(
+    annotation: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    normalized = annotation.strip()
+    if normalized.startswith("Optional[") and normalized.endswith("]"):
+        normalized = normalized[len("Optional[") : -1].strip()
+    normalized = re.sub(r"\s*\|\s*None\b", "", normalized).strip()
+    return normalized in aliases and set(aliases[normalized]) == set(expected)
+
+
+def typescript_type_matches_enum(
+    field_type: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    normalized = re.sub(r"\s*\|\s*null\b", "", field_type).strip()
+    return normalized in aliases and set(aliases[normalized]) == set(expected)
+
+
 def main() -> int:
     schema_dir = ROOT / "schemas" / "postgres"
     python_field_types = python_model_field_types(
@@ -354,16 +473,23 @@ def main() -> int:
     typescript_field_types = typescript_model_field_types(
         ROOT / "sdk" / "javascript" / "src" / "types.ts"
     )
+    python_enums = python_literal_aliases(ROOT / "sdk" / "python" / "kokonut" / "types.py")
+    typescript_enums = typescript_literal_aliases(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    sql_enums = postgres_enum_types()
     failures = []
     checked_columns = 0
     checked_scalar_types = 0
     checked_spatial_types = 0
     checked_json_shapes = 0
+    checked_enum_fields = 0
 
     for model, (schema_file, table) in MODEL_TABLES.items():
         columns = table_columns(schema_dir / schema_file, table)
         nullable_columns = table_nullable_columns(schema_dir / schema_file, table)
         column_types = table_column_types(schema_dir / schema_file, table)
+        enum_columns = table_enum_columns(schema_dir / schema_file, table, sql_enums)
         checked_columns += len(columns)
         for language, models in (("Python", python_models), ("TypeScript", typescript_models)):
             fields = models.get(model)
@@ -416,14 +542,30 @@ def main() -> int:
                 checked_json_shapes += 1
             else:
                 checked_scalar_types += 1
-            if not python_type_matches_family(python_type, family):
+            if not python_type_matches_family(python_type, family, python_enums):
                 failures.append(
                     f"Python {model}.{column} does not match SQL {sql_type}: {python_type}"
                 )
-            if not typescript_type_matches_family(typescript_type, family):
+            if not typescript_type_matches_family(typescript_type, family, typescript_enums):
                 failures.append(
                     f"TypeScript {model}.{column} does not match SQL {sql_type}: "
                     f"{typescript_type}"
+                )
+        for column, enum_type in enum_columns.items():
+            expected_values = sql_enums[enum_type]
+            python_type = python_field_types.get(model, {}).get(column)
+            typescript_type = typescript_field_types.get(model, {}).get(column)
+            if python_type is None or typescript_type is None:
+                continue
+            checked_enum_fields += 1
+            if not python_type_matches_enum(python_type, python_enums, expected_values):
+                failures.append(
+                    f"Python {model}.{column} does not match SQL enum {enum_type}: {python_type}"
+                )
+            if not typescript_type_matches_enum(typescript_type, typescript_enums, expected_values):
+                failures.append(
+                    f"TypeScript {model}.{column} does not match SQL enum "
+                    f"{enum_type}: {typescript_type}"
                 )
 
     if failures:
@@ -436,7 +578,7 @@ def main() -> int:
         f"SDK schema parity passed ({len(MODEL_TABLES)} models, "
         f"{checked_columns} canonical columns, {checked_scalar_types} scalar types, "
         f"{checked_spatial_types} PostGIS types, and {checked_json_shapes} JSONB shapes "
-        "checked per SDK)"
+        f"plus {checked_enum_fields} enum fields checked per SDK)"
     )
     return 0
 

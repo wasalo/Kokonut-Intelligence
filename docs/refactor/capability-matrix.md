@@ -3149,3 +3149,15 @@ matrix validation pass. These contracts describe the SDK surface; PostgreSQL
 JSONB remains unrestricted and no runtime payload validator was added. This
 does not establish Directus projection behavior or change capability/MAN-CAP
 classifications ([evidence](builds/2026-10-18-recovery/sdk-jsonb-shape-parity.json)).
+
+### SDK enum contract types — 18 October 2026
+
+The static schema guard now discovers enum definitions and `column::enum_type`
+checks from the ordered SQL sources. Python and TypeScript use shared literal
+aliases for all seven constrained PostgreSQL enum types represented by 16
+fields in the mapped SDK models. Twenty-nine Python SDK/guard tests and 29
+JavaScript tests pass with the TypeScript build, Ruff, schema guard, and matrix
+validation. This is static contract parity; it does not validate existing row
+contents, unconstrained string fields, runtime API payloads, or Directus
+projection behavior. Capability classifications and MAN-CAP acceptance remain
+unchanged ([evidence](builds/2026-10-18-recovery/sdk-enum-schema-parity.json)).
