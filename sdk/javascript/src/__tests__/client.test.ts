@@ -8,7 +8,11 @@ import type {
   Location,
   Plot,
   SalesEvent,
+  AlertRule,
+  SensorAlert,
+  SensorDevice,
   SensorReading,
+  SensorType,
 } from '../types.js';
 
 // Mock the @directus/sdk
@@ -181,6 +185,42 @@ describe('KokonutClient', () => {
 
     expect(reading.location_id).toBe('location-1');
     expect(reading.quality).toBe('bad');
+  });
+
+  it('types sensor registry and alert records with canonical nullable fields', () => {
+    const type: SensorType = { id: 'type-1', name: 'soil_moisture', unit: '%' };
+    const device: SensorDevice = {
+      id: 'device-1',
+      name: 'North Probe',
+      slug: 'north-probe',
+      sensor_type_id: type.id,
+      location_id: 'location-1',
+      status: null,
+      calibration_interval_days: null,
+    };
+    const rule: AlertRule = {
+      id: 'rule-1',
+      name: 'Dry soil',
+      sensor_type_id: type.id,
+      metric: 'value',
+      operator: 'lt',
+      threshold_value: 20,
+      enabled: null,
+    };
+    const alert: SensorAlert = {
+      id: 'alert-1',
+      sensor_device_id: device.id,
+      alert_rule_id: rule.id,
+      severity: 'warning',
+      message: 'Soil moisture below threshold',
+      triggered_at: '2026-10-17T12:00:00Z',
+      status: null,
+      reading_id: null,
+    };
+
+    expect(device.location_id).toBe('location-1');
+    expect(rule.threshold_value).toBe(20);
+    expect(alert.triggered_at).toBe('2026-10-17T12:00:00Z');
   });
 
   it('types harvest evidence and source lineage from the canonical schema', () => {

@@ -1357,6 +1357,7 @@ types also now expose their canonical payment/evidence/allocation/approval
 and lineage fields. Location, farm, and plot SDK types now also expose their
 canonical spatial, metadata, and audit columns. The TypeScript
 `SensorReading` now requires location scope and accepts canonical database
-quality values. The checklist is now 533 complete / 19 open;
+quality values. Python now also has matching sensor registry/device/alert
+dataclasses. The checklist is now 534 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

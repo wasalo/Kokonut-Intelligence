@@ -8648,3 +8648,15 @@ TypeScript build, and diff checks pass using local fixtures only; no database
 or network was contacted. Checklist: 533 complete / 19 open. Capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-sensor-reading-schema-parity.json`.
+
+### SDK sensor registry and alert schema parity — 17 October 2026
+
+The Python SDK now defines `SensorType`, `SensorDevice`, `AlertRule`, and
+`SensorAlert` dataclasses matching the registry and alert tables. The
+JavaScript types now reflect the nullable defaults in the SQL definitions,
+including nullable status, calibration, rule controls, acknowledgement, and
+metadata fields. Fourteen Python tests, 23 JavaScript tests, Ruff, TypeScript
+build, and diff checks pass with local fixtures only; no database or network
+was contacted. Checklist: 534 complete / 19 open. Capability classifications
+are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-sensor-registry-schema-parity.json`.

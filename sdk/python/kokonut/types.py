@@ -272,6 +272,83 @@ class SensorReading:
 
 
 @dataclass
+class SensorType:
+    id: str
+    name: str
+    unit: str
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    description: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
+class SensorDevice:
+    id: str
+    name: str
+    slug: str
+    sensor_type_id: str
+    location_id: str
+    plot_id: Optional[str] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    serial_number: Optional[str] = None
+    protocol: Optional[str] = None
+    endpoint_url: Optional[str] = None
+    status: Optional[str] = None
+    calibration_date: Optional[str] = None
+    calibration_interval_days: Optional[int] = None
+    installation_date: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    elevation_m: Optional[float] = None
+    metadata: Optional[Dict[str, Any]] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+@dataclass
+class AlertRule:
+    id: str
+    name: str
+    sensor_type_id: str
+    metric: str
+    operator: str
+    threshold_value: float
+    threshold_value_max: Optional[float] = None
+    severity: Optional[str] = None
+    cooldown_minutes: Optional[int] = None
+    enabled: Optional[bool] = None
+    auto_create_claim: Optional[bool] = None
+    claim_type: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+@dataclass
+class SensorAlert:
+    id: str
+    sensor_device_id: str
+    alert_rule_id: str
+    severity: str
+    message: str
+    triggered_at: str
+    reading_id: Optional[str] = None
+    status: Optional[str] = None
+    reading_value: Optional[float] = None
+    threshold_value: Optional[float] = None
+    acknowledged_at: Optional[str] = None
+    acknowledged_by: Optional[str] = None
+    resolved_at: Optional[str] = None
+    claim_id: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class WalletProfile:
     id: str
     address: str

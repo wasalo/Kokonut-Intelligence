@@ -181,6 +181,43 @@ def test_sensor_reading_sdk_type_exposes_required_location_and_quality():
     assert reading.quality == "bad"
 
 
+def test_sensor_registry_and_alert_types_expose_schema_fields():
+    from kokonut.types import AlertRule, SensorAlert, SensorDevice, SensorType
+
+    sensor_type = SensorType(id="type-1", name="soil_moisture", unit="%")
+    device = SensorDevice(
+        id="device-1",
+        name="North Probe",
+        slug="north-probe",
+        sensor_type_id=sensor_type.id,
+        location_id="location-1",
+        calibration_interval_days=None,
+    )
+    rule = AlertRule(
+        id="rule-1",
+        name="Dry soil",
+        sensor_type_id=sensor_type.id,
+        metric="value",
+        operator="lt",
+        threshold_value=20,
+        enabled=None,
+    )
+    alert = SensorAlert(
+        id="alert-1",
+        sensor_device_id=device.id,
+        alert_rule_id=rule.id,
+        severity="warning",
+        message="Soil moisture below threshold",
+        triggered_at="2026-10-17T12:00:00Z",
+        reading_id=None,
+        status=None,
+    )
+
+    assert device.location_id == "location-1"
+    assert rule.threshold_value == 20
+    assert alert.triggered_at == "2026-10-17T12:00:00Z"
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

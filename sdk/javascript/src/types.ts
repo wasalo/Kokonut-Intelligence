@@ -230,10 +230,10 @@ export interface SensorType {
   id: string;
   name: string;
   unit: string;
-  min_value?: number;
-  max_value?: number;
-  description?: string;
-  created_at: string;
+  min_value?: number | null;
+  max_value?: number | null;
+  description?: string | null;
+  created_at?: string | null;
 }
 
 export interface SensorDevice {
@@ -242,22 +242,24 @@ export interface SensorDevice {
   slug: string;
   sensor_type_id: string;
   location_id: string;
-  plot_id?: string;
-  manufacturer?: string;
-  model?: string;
-  serial_number?: string;
-  protocol?: 'http' | 'mqtt' | 'csv' | 'manual';
-  endpoint_url?: string;
-  status: 'active' | 'inactive' | 'maintenance' | 'decommissioned';
-  calibration_date?: string;
-  calibration_interval_days?: number;
-  installation_date?: string;
-  latitude?: number;
-  longitude?: number;
-  elevation_m?: number;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
+  plot_id?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
+  protocol?: string | null;
+  endpoint_url?: string | null;
+  status?: string | null;
+  calibration_date?: string | null;
+  calibration_interval_days?: number | null;
+  installation_date?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  elevation_m?: number | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface AlertRule {
@@ -268,33 +270,33 @@ export interface AlertRule {
   operator: 'gt' | 'lt' | 'gte' | 'lte' | 'eq' | 'neq' | 'outside_range';
   threshold_value: number;
   threshold_value_max?: number;
-  severity: 'info' | 'warning' | 'critical';
-  cooldown_minutes: number;
-  enabled: boolean;
-  auto_create_claim: boolean;
-  claim_type?: string;
-  metadata?: Record<string, any>;
-  created_at: string;
-  updated_at: string;
+  severity?: 'info' | 'warning' | 'critical' | null;
+  cooldown_minutes?: number | null;
+  enabled?: boolean | null;
+  auto_create_claim?: boolean | null;
+  claim_type?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;
   alert_rule_id: string;
-  reading_id?: string;
+  reading_id?: string | null;
   severity: 'info' | 'warning' | 'critical';
-  status: 'open' | 'acknowledged' | 'resolved' | 'false_positive';
+  status?: 'open' | 'acknowledged' | 'resolved' | 'false_positive' | null;
   message: string;
-  reading_value?: number;
-  threshold_value?: number;
+  reading_value?: number | null;
+  threshold_value?: number | null;
   triggered_at: string;
-  acknowledged_at?: string;
-  acknowledged_by?: string;
-  resolved_at?: string;
-  claim_id?: string;
-  metadata?: Record<string, any>;
-  created_at: string;
+  acknowledged_at?: string | null;
+  acknowledged_by?: string | null;
+  resolved_at?: string | null;
+  claim_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
 }
 
 export interface WalletProfile {
