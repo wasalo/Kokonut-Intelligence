@@ -66,6 +66,32 @@ ALTER TABLE sdk_guard_fixture ALTER COLUMN score TYPE NUMERIC(14, 4);
     }
 
 
+def test_idempotent_add_column_does_not_override_existing_column_contract(tmp_path, monkeypatch):
+    schema = tmp_path / "base.sql"
+    schema.write_text(
+        """CREATE TABLE IF NOT EXISTS sdk_guard_fixture (
+    id UUID PRIMARY KEY,
+    required_label TEXT NOT NULL
+);
+""",
+        encoding="utf-8",
+    )
+    migrations = tmp_path / "schemas" / "postgres"
+    migrations.mkdir(parents=True)
+    (migrations / "001_fixture.sql").write_text(
+        "ALTER TABLE sdk_guard_fixture ADD COLUMN IF NOT EXISTS id TEXT;\n"
+        "ALTER TABLE sdk_guard_fixture ADD COLUMN IF NOT EXISTS required_label TEXT;\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(SCHEMA_GUARD, "ROOT", tmp_path)
+
+    assert SCHEMA_GUARD.table_nullable_columns(schema, "sdk_guard_fixture") == set()
+    assert SCHEMA_GUARD.table_column_types(schema, "sdk_guard_fixture") == {
+        "id": "UUID",
+        "required_label": "TEXT",
+    }
+
+
 def test_sql_check_literal_inventory_reads_base_constraints_and_migrations(tmp_path, monkeypatch):
     schema = tmp_path / "base.sql"
     schema.write_text(
@@ -242,7 +268,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 29
+    assert checked == 30
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

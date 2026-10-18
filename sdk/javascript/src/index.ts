@@ -51,6 +51,7 @@ export type {
   CropCostAllocation,
   MetricDefinition,
   MetricVersion,
+  MetricValue,
   HarvestEvent,
   SalesEvent,
   ExpenseEvent,

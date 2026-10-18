@@ -217,6 +217,23 @@ def test_metric_version_type_preserves_change_reason_and_formula_snapshot():
     assert version.change_reason == "Approved methodology update"
 
 
+def test_metric_value_type_keeps_computation_separate_from_verification():
+    from kokonut import MetricValue
+
+    result = MetricValue(
+        id="value-1",
+        metric_id="metric-1",
+        location_id="location-1",
+        value=42.5,
+        source_record_ids=["record-1", "record-2"],
+        verified=False,
+    )
+
+    assert result.value == 42.5
+    assert result.verified is False
+    assert len(result.source_record_ids) == 2
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

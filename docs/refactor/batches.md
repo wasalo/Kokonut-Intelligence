@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 559 checklist items complete and 19
-open (578 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 560 checklist items complete and 19
+open (579 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1264,6 +1264,7 @@ reporting views.
 - [x] Add Python and TypeScript `CropCostAllocation` models for recorded crop-cycle expense allocations. The offline guard now covers 28 models, 594 columns, 559 scalar types, 28 JSONB fields, seven PostGIS shapes, 17 enum fields, and eight discovered CHECK literals. Thirty-nine Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass; no database or network was used. This type does not calculate or transfer funds ([evidence](builds/2026-10-18-recovery/sdk-crop-cost-allocation-parity.json)).
 - [x] Add Python and TypeScript `MetricDefinition` models for governed metric metadata, including source tables, validation object arrays, report usage, stakeholder fields, and additive category/state fields. The offline guard now covers 29 models, 617 columns, 581 scalar types, 29 JSONB fields, seven PostGIS shapes, 17 enum fields, and eight discovered CHECK literals. Forty Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass; no database or network was used. The type does not execute formulas or verify metric values ([evidence](builds/2026-10-18-recovery/sdk-metric-definition-parity.json)).
 - [x] Add Python and TypeScript `MetricVersion` history rows for versioned metric formula, change summary, and reason. The offline guard now covers 30 models, 625 columns, 589 scalar types, 29 JSONB fields, seven PostGIS shapes, 17 enum fields, and eight discovered CHECK literals. Forty-one Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass; no database or network was used ([evidence](builds/2026-10-18-recovery/sdk-metric-version-parity.json)).
+- [x] Add Python and TypeScript `MetricValue` models for computed results, source lineage, stored verification status, reviewer attribution, and notes. Correct the guard so duplicate `ADD COLUMN IF NOT EXISTS` statements do not replace an existing base-column type/nullability contract. The guard covers 31 models, 640 columns, 602 scalar types, 30 JSONB fields, seven PostGIS shapes, 17 enum fields, and eight discovered CHECK literals. Forty-three Python SDK/guard checks, 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass; no database or network was used. Computation remains distinct from human verification ([evidence](builds/2026-10-18-recovery/sdk-metric-value-parity.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

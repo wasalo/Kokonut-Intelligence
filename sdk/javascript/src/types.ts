@@ -625,6 +625,25 @@ export interface MetricVersion {
   created_by?: string | null;
 }
 
+/** Stored metric result; computing it does not verify it. */
+export interface MetricValue {
+  id: string;
+  metric_id: string;
+  location_id?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  value?: number | null;
+  unit?: string | null;
+  computation_method?: string | null;
+  source_record_ids?: string[] | null;
+  computed_at?: string | null;
+  verified?: boolean | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  verification_notes?: string | null;
+  metadata?: JSONObject | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

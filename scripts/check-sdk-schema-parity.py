@@ -27,6 +27,7 @@ MODEL_TABLES = {
     "CropCostAllocation": ("004_finance.sql", "crop_cost_allocation"),
     "MetricDefinition": ("007_modeled_outputs.sql", "metric_definition"),
     "MetricVersion": ("007_modeled_outputs.sql", "metric_version"),
+    "MetricValue": ("007_modeled_outputs.sql", "metric_value"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -71,6 +72,7 @@ JSONB_MODEL_SHAPES = {
     ("CapitalSource", "metadata"): "json_object",
     ("FinancialTransaction", "source_raw"): "json_object",
     ("MetricDefinition", "validation_tests"): "json_object_array",
+    ("MetricValue", "metadata"): "json_object",
 }
 
 
@@ -147,15 +149,18 @@ def table_nullable_columns(path: Path, table: str) -> set[str]:
             body = statement.group(1)
             additions = list(
                 re.finditer(
-                    r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
                     body,
                     flags=re.IGNORECASE,
                 )
             )
             for index, addition in enumerate(additions):
+                column_name = addition.group(2).lower()
+                if addition.group("if_not_exists") and column_name in nullability:
+                    continue
                 end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
                 definition = body[addition.end() : end]
-                nullability[addition.group(1).lower()] = not bool(
+                nullability[column_name] = not bool(
                     re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", definition, re.IGNORECASE)
                 )
 
@@ -218,16 +223,19 @@ def table_column_types(path: Path, table: str) -> dict[str, str]:
             body = statement.group(1)
             additions = list(
                 re.finditer(
-                    r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    r"ADD COLUMN(?P<if_not_exists>\s+IF\s+NOT\s+EXISTS)?\s+([a-z_][a-z0-9_]*)",
                     body,
                     flags=re.IGNORECASE,
                 )
             )
             for index, addition in enumerate(additions):
+                column_name = addition.group(2).lower()
+                if addition.group("if_not_exists") and column_name in column_types:
+                    continue
                 end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
                 sql_type = parse_sql_type(body[addition.end() : end])
                 if sql_type:
-                    column_types[addition.group(1).lower()] = sql_type
+                    column_types[column_name] = sql_type
 
             for alteration in re.finditer(
                 r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+TYPE\s+(.+?)(?=,\s*ALTER COLUMN|$)",

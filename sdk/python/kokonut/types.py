@@ -533,6 +533,27 @@ class MetricVersion:
 
 
 @dataclass
+class MetricValue:
+    """Stored metric result; computing it does not verify it."""
+
+    id: str
+    metric_id: str
+    location_id: Optional[str] = None
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
+    value: Optional[float] = None
+    unit: Optional[str] = None
+    computation_method: Optional[str] = None
+    source_record_ids: Optional[List[str]] = None
+    computed_at: Optional[str] = None
+    verified: Optional[bool] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    verification_notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK metric-value schema parity and guard correction — 18 October 2026
+
+Python and TypeScript now expose `metric_value`, including source-record IDs,
+stored verification state, reviewer ID/time, and verification notes. The type
+comment preserves the rule that computation does not mean verification. The
+offline guard now checks 31 models, 640 canonical columns, 602 scalar types,
+30 JSONB shapes, seven PostGIS shapes, 17 enum fields, and eight discovered
+CHECK-literal fields. A new regression also proves duplicate migration
+`ADD COLUMN IF NOT EXISTS` statements do not override a column already defined
+in the base schema. Forty-three Python SDK/guard tests and 29 JavaScript tests
+pass with TypeScript build, Ruff, compilation, schema guard, capability-matrix
+validation, and diff check. No database or network was contacted
+([evidence](builds/2026-10-18-recovery/sdk-metric-value-parity.json)).
+
 ### SDK metric-version schema parity — 18 October 2026
 
 Python and TypeScript now expose the `metric_version` history row for a metric
