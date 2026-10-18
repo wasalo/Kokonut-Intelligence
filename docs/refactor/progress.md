@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK metric-definition schema parity — 18 October 2026
+
+Python and TypeScript now expose `metric_definition`, including additive
+validation/report-governance fields, stakeholder metadata, and the `category`
+column from migration 180. `validation_tests` is typed as an array of JSON
+objects based on the seeded metric contracts. The offline guard covers 29
+models, 617 canonical columns, 581 scalar types, 29 JSONB shapes, seven PostGIS
+shapes, 17 enum fields, and eight discovered CHECK-literal fields. Forty Python
+SDK/guard tests and 29 JavaScript tests pass with TypeScript build, Ruff,
+compilation, schema guard, capability-matrix validation, and diff check. No
+database or network was contacted. This model describes governance metadata;
+it does not execute formulas or verify metric values
+([evidence](builds/2026-10-18-recovery/sdk-metric-definition-parity.json)).
+
 ### SDK crop-cost allocation schema parity — 18 October 2026
 
 Python and TypeScript now expose `crop_cost_allocation`, including required

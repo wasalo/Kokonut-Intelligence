@@ -49,6 +49,7 @@ export type {
   Plot,
   CropCycle,
   CropCostAllocation,
+  MetricDefinition,
   HarvestEvent,
   SalesEvent,
   ExpenseEvent,

@@ -586,6 +586,33 @@ export interface CropCostAllocation {
   created_at?: string | null;
 }
 
+/** Governed metric metadata; this type does not compute or verify values. */
+export interface MetricDefinition {
+  id: string;
+  metric_key: string;
+  display_name: string;
+  description?: string | null;
+  formula?: string | null;
+  source_tables?: string[] | null;
+  inclusion_rules?: string | null;
+  exclusion_rules?: string | null;
+  unit?: string | null;
+  data_type?: string | null;
+  owner?: string | null;
+  version?: number | null;
+  update_frequency?: string | null;
+  active?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  validation_tests?: JSONObject[] | null;
+  report_usage?: string[] | null;
+  deprecation_policy?: string | null;
+  definition_state?: string | null;
+  category?: string | null;
+  for_stakeholder_group?: string | null;
+  participatory?: boolean | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

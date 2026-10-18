@@ -490,6 +490,35 @@ class CropCostAllocation:
 
 
 @dataclass
+class MetricDefinition:
+    """Governed metric metadata; this type does not compute or verify values."""
+
+    id: str
+    metric_key: str
+    display_name: str
+    description: Optional[str] = None
+    formula: Optional[str] = None
+    source_tables: Optional[List[str]] = None
+    inclusion_rules: Optional[str] = None
+    exclusion_rules: Optional[str] = None
+    unit: Optional[str] = None
+    data_type: Optional[str] = None
+    owner: Optional[str] = None
+    version: Optional[int] = None
+    update_frequency: Optional[str] = None
+    active: Optional[bool] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    validation_tests: Optional[List[JSONObject]] = None
+    report_usage: Optional[List[str]] = None
+    deprecation_policy: Optional[str] = None
+    definition_state: Optional[str] = None
+    category: Optional[str] = None
+    for_stakeholder_group: Optional[str] = None
+    participatory: Optional[bool] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

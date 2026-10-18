@@ -180,6 +180,26 @@ def test_crop_cost_allocation_type_describes_recorded_allocation():
     assert allocation.allocation_ratio == 0.25
 
 
+def test_metric_definition_type_exposes_governance_and_validation_metadata():
+    from kokonut import MetricDefinition
+
+    definition = MetricDefinition(
+        id="metric-1",
+        metric_key="value_flowed",
+        display_name="Value Flowed",
+        source_tables=["value_flow_event"],
+        validation_tests=[{"test": "value >= 0", "description": "Nonnegative"}],
+        report_usage=["portfolio_summary"],
+        category="ecological",
+        participatory=True,
+    )
+
+    assert definition.validation_tests[0]["description"] == "Nonnegative"
+    assert definition.report_usage == ["portfolio_summary"]
+    assert definition.category == "ecological"
+    assert definition.participatory is True
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

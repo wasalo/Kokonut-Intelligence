@@ -1737,7 +1737,7 @@ public summary slice; live route/auth, tenant scope and broader SDK parity remai
 unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
 The 18 October SDK contract work adds PostGIS geometry, recursive JSONB, enum,
 organization, and organization-membership record types to the Python/TypeScript
-schema guard. It now checks 28 models and 594 canonical columns, including 28
+schema guard. It now checks 29 models and 617 canonical columns, including 29
 JSONB shapes, 7 PostGIS shapes, 17 enum fields, and 8 auto-discovered SQL
 `CHECK`-literal fields. Membership records are descriptive and do not grant
 tenant access. `ExpenseCategory` now exposes the shared finance taxonomy,
@@ -1747,7 +1747,9 @@ describes recorded financial facts and does not initiate payments or prove
 verification. `ValueFlowEvent` carries verification/attestation references
 without performing those actions. `ExcludedValueEvent` records exclusion
 context without mutating its linked flow. `CropCostAllocation` describes a
-stored allocation without recalculating it or transferring funds. This is source-level SDK typing evidence only; it does not close the broader SDK,
+stored allocation without recalculating it or transferring funds.
+`MetricDefinition` exposes metric governance metadata and validation cases but
+does not execute formulas or verify values. This is source-level SDK typing evidence only; it does not close the broader SDK,
 authorization, Directus projection, or tenant-isolation gates
 ([organization evidence](builds/2026-10-18-recovery/sdk-organization-schema-parity.json);
 [membership evidence](builds/2026-10-18-recovery/sdk-organization-member-parity.json);
@@ -1757,6 +1759,7 @@ authorization, Directus projection, or tenant-isolation gates
 [value-flow evidence](builds/2026-10-18-recovery/sdk-value-flow-event-parity.json);
 [excluded-value evidence](builds/2026-10-18-recovery/sdk-excluded-value-event-parity.json);
 [cost-allocation evidence](builds/2026-10-18-recovery/sdk-crop-cost-allocation-parity.json);
+[metric-definition evidence](builds/2026-10-18-recovery/sdk-metric-definition-parity.json);
 [literal evidence](builds/2026-10-18-recovery/sdk-checked-literal-parity.json);
 [auto-discovery evidence](builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json)).
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
@@ -3271,3 +3274,15 @@ TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff
 checks. The type describes a stored allocation and does not calculate or
 transfer funds. Checklist: 557 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-crop-cost-allocation-parity.json`.
+
+### SDK metric-definition parity — 18 October 2026
+
+Python and TypeScript now expose `metric_definition`, including validation
+object arrays, source/report usage, stakeholder fields, and additive category
+and state metadata. The guard checks 29 models and 617 columns, including 581
+scalar types, 29 JSONB shapes, seven PostGIS shapes, 17 enum fields, and eight
+SQL CHECK-literal fields. Forty Python SDK/guard tests and 29 JavaScript tests
+pass with TypeScript build, Ruff, compilation, schema guard, matrix validation,
+and diff checks. The type does not execute formulas or verify metric values.
+Checklist: 558 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-metric-definition-parity.json`.
