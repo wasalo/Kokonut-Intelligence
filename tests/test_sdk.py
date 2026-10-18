@@ -80,6 +80,55 @@ def test_harvest_event_sdk_type_exposes_schema_evidence_and_lineage_fields():
     assert event.updated_at == "2026-10-17T12:00:00Z"
 
 
+def test_sales_event_sdk_type_exposes_schema_evidence_and_lineage_fields():
+    from kokonut.types import SalesEvent
+
+    event = SalesEvent(
+        id="sale-1",
+        location_id="location-1",
+        sale_date="2026-10-17",
+        quantity=80,
+        unit="kg",
+        total_amount=160,
+        payment_date="2026-10-18",
+        payment_method="bank_transfer",
+        evidence_urls=["private://sales/invoice-1"],
+        evidence_hashes=["sha256:def456"],
+        source_raw={"batch_id": "import-1"},
+        updated_at="2026-10-18T12:00:00Z",
+    )
+
+    assert event.payment_method == "bank_transfer"
+    assert event.evidence_hashes == ["sha256:def456"]
+    assert event.source_raw == {"batch_id": "import-1"}
+
+
+def test_expense_event_sdk_type_exposes_schema_approval_and_lineage_fields():
+    from kokonut.types import ExpenseEvent
+
+    event = ExpenseEvent(
+        id="expense-1",
+        location_id="location-1",
+        expense_date="2026-10-17",
+        category="labor",
+        amount=75,
+        vendor_id="partner-1",
+        allocation_weight=0.5,
+        evidence_urls=["private://expenses/receipt-1"],
+        receipt_hash="sha256:ghi789",
+        approved_by="reviewer-1",
+        approved_at="2026-10-18T12:00:00Z",
+        rejection_reason=None,
+        schema_version="1.0",
+        source_raw={"batch_id": "import-2"},
+    )
+
+    assert event.vendor_id == "partner-1"
+    assert event.allocation_weight == 0.5
+    assert event.approved_by == "reviewer-1"
+    assert event.source_raw == {"batch_id": "import-2"}
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

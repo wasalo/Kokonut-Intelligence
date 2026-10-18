@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KokonutClient } from '../client.js';
-import type { CropCycle, HarvestEvent } from '../types.js';
+import type { CropCycle, ExpenseEvent, HarvestEvent, SalesEvent } from '../types.js';
 
 // Mock the @directus/sdk
 vi.mock('@directus/sdk', () => {
@@ -145,6 +145,48 @@ describe('KokonutClient', () => {
 
     expect(event.evidence_hashes).toEqual(['sha256:abc123']);
     expect(event.source_raw).toEqual({ form_version: '1.2.0' });
+  });
+
+  it('types sales evidence, payment and source lineage from the canonical schema', () => {
+    const event: SalesEvent = {
+      id: 'sale-1',
+      location_id: 'location-1',
+      sale_date: '2026-10-17',
+      quantity: 80,
+      unit: 'kg',
+      total_amount: 160,
+      payment_date: '2026-10-18',
+      payment_method: 'bank_transfer',
+      evidence_urls: ['private://sales/invoice-1'],
+      evidence_hashes: ['sha256:def456'],
+      source_raw: { batch_id: 'import-1' },
+      updated_at: '2026-10-18T12:00:00Z',
+    };
+
+    expect(event.payment_method).toBe('bank_transfer');
+    expect(event.evidence_hashes).toEqual(['sha256:def456']);
+  });
+
+  it('types expense approval, allocation and source lineage from the canonical schema', () => {
+    const event: ExpenseEvent = {
+      id: 'expense-1',
+      location_id: 'location-1',
+      expense_date: '2026-10-17',
+      category: 'labor',
+      amount: 75,
+      vendor_id: 'partner-1',
+      allocation_weight: 0.5,
+      evidence_urls: ['private://expenses/receipt-1'],
+      receipt_hash: 'sha256:ghi789',
+      approved_by: 'reviewer-1',
+      approved_at: '2026-10-18T12:00:00Z',
+      rejection_reason: null,
+      schema_version: '1.0',
+      source_raw: { batch_id: 'import-2' },
+    };
+
+    expect(event.allocation_weight).toBe(0.5);
+    expect(event.approved_by).toBe('reviewer-1');
   });
 
   it('preserves Python SDK export inputs through createExport()', async () => {

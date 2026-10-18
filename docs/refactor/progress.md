@@ -8612,3 +8612,16 @@ tests, Ruff, TypeScript build, and diff checks pass with local fixtures only;
 no database or network was contacted. Checklist: 530 complete / 19 open.
 Capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-harvest-event-schema-parity.json`.
+
+### SDK sales and expense event schema parity — 17 October 2026
+
+The Python and JavaScript `SalesEvent` and `ExpenseEvent` models now expose
+the payment, evidence, allocation, vendor, approval, rejection, source
+lineage, schema-version, and audit columns present in
+`schemas/postgres/003_operations.sql`. Nullable database values are reflected
+as optional nullable TypeScript properties; Python uses its existing optional
+dataclass convention. Eleven Python tests, 20 JavaScript tests, Ruff,
+TypeScript build, and diff checks pass with local fixtures only; no database
+or network was contacted. Checklist: 531 complete / 19 open. Capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-finance-events-schema-parity.json`.

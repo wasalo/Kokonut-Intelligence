@@ -196,13 +196,18 @@ class SalesEvent:
     return_amount: Optional[float] = None
     discount_amount: Optional[float] = None
     net_amount: Optional[float] = None
+    evidence_urls: Optional[List[str]] = None
+    evidence_hashes: Optional[List[str]] = None
     notes: Optional[str] = None
     status: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
+    schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
+    source_raw: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
 
@@ -224,6 +229,7 @@ class ExpenseEvent:
     is_capex: Optional[bool] = None
     allocation_method: Optional[str] = None
     allocation_weight: Optional[float] = None
+    evidence_urls: Optional[List[str]] = None
     invoice_number: Optional[str] = None
     receipt_hash: Optional[str] = None
     notes: Optional[str] = None
@@ -233,9 +239,12 @@ class ExpenseEvent:
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
     rejection_reason: Optional[str] = None
+    schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
+    source_raw: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
 

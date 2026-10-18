@@ -1352,7 +1352,9 @@ example uses its current yield fields. `HarvestEvent` types now include the
 canonical evidence, verification, source-lineage, schema, and audit fields in
 both clients. Focused tests, Ruff, TypeScript build, capability-matrix
 validation, and diff checks pass; no provider/database was contacted and no
-sandbox module executed in the latest slices. The checklist is now 530
+sandbox module executed in the latest slices. Sales and expense event SDK
+types also now expose their canonical payment/evidence/allocation/approval
+and lineage fields. The checklist is now 531
 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.
