@@ -8431,3 +8431,13 @@ compilation, and diff checks using mocks only. No database or provider was
 used. The checklist is 507 complete / 19 open; capability matrix
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/scheduler-worker-error-redaction.json`.
+
+Stream ingestion, buffer, window, and alert database failures now log only
+bounded exception classes, and per-reading/per-buffer exception text is no
+longer emitted. Per-row failure counts, rollback, and existing fallback and
+propagation behavior are preserved; alert event publication remains
+best-effort. Fifteen focused mocked failure cases pass within a 42-test stream
+suite with Ruff, compilation, and diff checks. No database or provider was
+used. The checklist is 508 complete / 19 open and capability classifications
+are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/stream-error-redaction.json`.

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
-from typing import Optional
+from datetime import datetime, timedelta
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("stream.windows")
@@ -88,9 +88,14 @@ class WindowAggregator:
                     )
 
             conn.commit()
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Window update failed for %s %s", sensor_device_id[:8], metric)
+            logger.error(
+                "Window update failed for %s %s (%s)",
+                sensor_device_id[:8],
+                metric,
+                safe_exception_class(exc),
+            )
 
     def get_windows(
         self,
@@ -128,8 +133,8 @@ class WindowAggregator:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to get windows")
+        except Exception as exc:
+            logger.error("Failed to get windows (%s)", safe_exception_class(exc))
             return []
 
     def detect_spikes(
@@ -182,6 +187,6 @@ class WindowAggregator:
                         "deviation": abs(recent_avg - baseline_avg) / abs(baseline_avg),
                     }
             return None
-        except Exception:
-            logger.exception("Spike detection failed")
+        except Exception as exc:
+            logger.error("Spike detection failed (%s)", safe_exception_class(exc))
             return None

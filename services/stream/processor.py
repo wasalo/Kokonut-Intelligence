@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
-from typing import Any, Optional
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("stream.processor")
@@ -52,9 +51,9 @@ class StreamProcessor:
             conn.commit()
             logger.debug("Ingested stream entry: %s %s=%f", sensor_device_id[:8], metric, value)
             return entry_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Stream ingest failed")
+            logger.error("Stream ingest failed (%s)", safe_exception_class(exc))
             raise
 
     def ingest_batch(self, readings: list[dict]) -> int:
@@ -82,14 +81,16 @@ class StreamProcessor:
                             ),
                         )
                         count += 1
-                    except Exception as e:
-                        logger.warning("Failed to ingest reading: %s", e)
+                    except Exception as exc:
+                        logger.warning(
+                            "Failed to ingest reading (%s)", safe_exception_class(exc)
+                        )
             conn.commit()
             logger.info("Batch ingested %d/%d readings", count, len(readings))
             return count
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Batch ingest failed")
+            logger.error("Batch ingest failed (%s)", safe_exception_class(exc))
             return count
 
     def process_buffer(self, batch_size: int = 500) -> dict[str, int]:
@@ -131,9 +132,13 @@ class StreamProcessor:
                             (row_id,),
                         )
                     stats["processed"] += 1
-                except Exception as e:
+                except Exception as exc:
                     stats["errors"] += 1
-                    logger.warning("Failed to process buffer entry %s: %s", row_id, e)
+                    logger.warning(
+                        "Failed to process buffer entry %s (%s)",
+                        row_id,
+                        safe_exception_class(exc),
+                    )
 
             conn.commit()
             logger.info(
@@ -141,9 +146,9 @@ class StreamProcessor:
                 stats["aggregated"], stats["errors"],
             )
             return stats
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Buffer processing failed")
+            logger.error("Buffer processing failed (%s)", safe_exception_class(exc))
             return stats
 
     def get_recent(self, sensor_device_id: str, metric: str, limit: int = 100) -> list[dict]:
@@ -165,8 +170,8 @@ class StreamProcessor:
                     {"value": r[0], "unit": r[1], "quality": r[2], "timestamp": r[3].isoformat()}
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to get recent readings")
+        except Exception as exc:
+            logger.error("Failed to get recent readings (%s)", safe_exception_class(exc))
             return []
 
     def stats(self) -> dict:
@@ -209,6 +214,6 @@ class StreamProcessor:
                     "total": alert_row[1],
                 },
             }
-        except Exception:
-            logger.exception("Stream stats failed")
+        except Exception as exc:
+            logger.error("Stream stats failed (%s)", safe_exception_class(exc))
             return {}
