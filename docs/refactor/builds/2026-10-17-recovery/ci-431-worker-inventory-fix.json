@@ -30,6 +30,6 @@
     "capability_matrix": "passed; 66 rows, 54 baseline-retained, 7 deployed, 5 prepared",
     "git_diff_check": "passed"
   },
-  "follow_up": "Local fix awaits grouped push and a passing hosted release CI run.",
+  "follow_up": "Correction pushed as ebeddb45; Security #156 passed and CI #432 is in progress.",
   "scope": "No database, worker, provider, schedule, or candidate/legacy state was accessed."
 }

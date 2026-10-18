@@ -1040,14 +1040,16 @@ secret-bearing database error
 ([query evidence](builds/2026-10-17-recovery/freshness-query-error-redaction.json)).
 
 **17 October 2026 worker inventory refresh (CAP-047):** after the EAS provider
-extraction and freshness-alert helper changes, the current static inventories
-cover 31 operation roots and 92 source files, 322 worker SQL sites, 249 SQL
-sites with static operation paths, and 73 sites without a static function
-match. The runtime SQL inventory covers 4,004 execution sites across 825 files.
-All generated worker/runtime checks and 50 focused inventory tests pass, but the boundary preflight remains
-`review_required`; source reachability does not prove runtime grants, tenant
-context, active schedules, or RLS. MAN-CAP-047 remains unaccepted
-([evidence](builds/2026-10-17-recovery/worker-inventory-refresh-current.json)).
+extraction, freshness-alert helper changes, and CI #431 correction, the current
+static inventories cover 31 operation roots and 93 source files, 632 function
+memberships, 862 direct-call edges, 322 worker SQL sites, 249 SQL sites with
+static operation paths, and 73 sites without a static function match. The
+runtime SQL inventory covers 4,004 execution sites across 825 files. The latest
+30 focused worker-inventory tests and all five generated worker checks pass,
+but the boundary preflight remains `review_required`; source reachability does
+not prove runtime grants, tenant context, active schedules, or RLS. MAN-CAP-047
+remains unaccepted ([latest worker evidence](builds/2026-10-17-recovery/ci-431-worker-inventory-fix.json);
+[runtime inventory evidence](builds/2026-10-17-recovery/worker-inventory-refresh-current.json)).
 
 **14 October 2026 runtime default-privilege boundary (CAP-047 / CAP-053):**
 the opt-in runtime bootstrap now removes default table and sequence privileges

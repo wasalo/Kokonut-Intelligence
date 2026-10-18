@@ -7,7 +7,7 @@ report-source, report-query-scope, and report-helper-scope inventories were
 stale. The three generated JSON artifacts are refreshed and each exact CI
 freshness command now passes locally. No report runtime code or parity
 conclusion changed; the full CI suite did not run after the fast-fail
-failure. The refreshed batch is now pushed at `09db43b2dd9f4d63425d94ac07017763433e73f9`; CI #431 remains in progress and Security #155 passed
+failure. The refreshed batch was pushed at `09db43b2dd9f4d63425d94ac07017763433e73f9`; CI #431 then failed eight stale worker-inventory/source-contract checks after 5,851 tests passed. The five generated maps and a line-number-coupled regression were corrected and pushed as `ebeddb45`; Security #156 passed and CI #432 is in progress. Security #155 passed on the preceding head
 ([evidence](builds/2026-10-17-recovery/ci-430-report-inventory-refresh.json)).
 
 ### Notification worker candidate migration status — 17 October 2026
@@ -8389,7 +8389,17 @@ line numbers that had shifted. The five reports are regenerated, and the
 regression now checks statement kinds by source file. All 30 focused worker
 inventory tests pass, as do Ruff, Python compilation, the five generated-map
 checks, capability-matrix validation, and `git diff --check`. No database,
-worker, provider, or schedule was used. The fix awaits a grouped push and
-hosted CI rerun; the checklist remains 503 complete / 19 open, and capability
-matrix classifications are unchanged. Evidence:
+worker, provider, or schedule was used. The fix was pushed as `ebeddb45`; CI
+#432 is in progress and Security #156 passed. The checklist is 504 complete / 19 open, and
+capability matrix classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/ci-431-worker-inventory-fix.json`.
+
+### Security audit logging hardening — 17 October 2026
+
+Access-audit and capability-token database failures now log only the exception
+class. Rollback, return fallbacks, and `issue()` exception propagation are
+unchanged. Thirty-eight focused security audit, capability, interceptor, and
+Gateway audit tests pass with Ruff, Python compilation, and `git diff --check`;
+database failures were mocked. The checklist is 504 complete / 19 open, and
+the capability matrix is unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/security-audit-error-redaction.json`.

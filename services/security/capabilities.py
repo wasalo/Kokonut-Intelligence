@@ -76,9 +76,9 @@ class CapabilityManager:
                 "expires_at": expires_at.isoformat(),
                 "max_usage": max_usage,
             }
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to issue capability token")
+            logger.error("Failed to issue capability token (%s)", type(exc).__name__)
             raise
 
     def verify(
@@ -171,9 +171,9 @@ class CapabilityManager:
                 return {"holder": holder, "capability": matched_cap, "token_id": str(token_id)}
 
             return None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Token verification failed")
+            logger.error("Token verification failed (%s)", type(exc).__name__)
             return None
 
     def revoke(self, token_id: str) -> bool:
@@ -195,9 +195,9 @@ class CapabilityManager:
             if result:
                 logger.info("Revoked token: %s", token_id)
             return result is not None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to revoke token")
+            logger.error("Failed to revoke token (%s)", type(exc).__name__)
             return False
 
     def revoke_by_holder(self, holder: str) -> int:
@@ -217,9 +217,9 @@ class CapabilityManager:
             conn.commit()
             logger.info("Revoked %d tokens for holder %s", count, holder)
             return count
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to revoke tokens for holder")
+            logger.error("Failed to revoke tokens for holder (%s)", type(exc).__name__)
             return 0
 
     def list_tokens(self, holder: str | None = None, active_only: bool = True) -> list[dict]:
@@ -261,6 +261,6 @@ class CapabilityManager:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list tokens")
+        except Exception as exc:
+            logger.error("Failed to list tokens (%s)", type(exc).__name__)
             return []

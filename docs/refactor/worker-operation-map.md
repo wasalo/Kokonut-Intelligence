@@ -64,7 +64,7 @@ application-wide RLS or proof for other workers.
   [event-handler-concurrency.md](event-handler-concurrency.md).
 - A generated [static source closure](worker-source-closure.json) records the
   local `services.*` import edges and source files reachable from each of the
-  24 scheduled modules and seven allowlisted handler pairs. It covers 92
+  24 scheduled modules and seven allowlisted handler pairs. It covers 93
   distinct local source files across 31 operation roots, with no unresolved
   local modules and known dynamic import sites (EventBus handler dispatch
   and driver registry lookup). EventBus dispatch is constrained by
@@ -87,15 +87,15 @@ application-wide RLS or proof for other workers.
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
   command/request protocol rather than a local function call. Across 31
-  operation roots and 92 source files, entry functions reach 625 function
-  memberships through 852 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  operation roots and 93 source files, entry functions reach 632 function
+  memberships through 862 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use
   `python3 scripts/worker_function_reachability.py --check docs/refactor/worker-function-reachability.json`
   to check it. The graph is a review aid, not an authorization boundary.
 - The direct [SQL execution inventory](worker-sql-inventory.json) finds 322
-  Python `.execute` sites in those 92 files. It fingerprints 279 literal
+  Python `.execute` sites in those 93 files. It fingerprints 279 literal
   statements and flags 43 composed/variable statements. Candidate relation tokens are
   extracted for review, but the scanner is regex-based and records no query
   text or values. Use
