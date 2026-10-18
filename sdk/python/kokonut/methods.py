@@ -209,6 +209,28 @@ class CausalLinkReadMethods(Generic[ReadModel]):
         )
 
 
+class AssessmentChildReadMethods(Generic[ReadModel]):
+    """Read-only situation-assessment evidence scoped to its parent assessment."""
+
+    def __init__(self, client: KokonutClient, collection: str) -> None:
+        self._client = client
+        self._collection = collection
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_assessment(
+        self, assessment_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"assessment_id": {"_eq": assessment_id}}),
+        )
+
+
 class LocationMethods(GenericMethods):
     def __init__(self, client: KokonutClient) -> None:
         super().__init__(client, "location")

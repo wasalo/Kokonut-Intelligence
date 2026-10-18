@@ -196,6 +196,40 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ("StructuralAssumption", "status"): (
             "active", "challenged", "validated", "deprecated"
         ),
+        ("SituationAssessment", "assessment_type"): (
+            "full", "quick", "deep", "reassessment"
+        ),
+        ("SituationAssessment", "situation_grade"): (
+            "critical", "warning", "stable", "flourishing"
+        ),
+        ("SituationAssessment", "confidence_level"): (
+            "high", "moderate", "low", "insufficient_evidence"
+        ),
+        ("SituationAssessment", "status"): ("draft", "verified", "superseded"),
+        ("AssessmentSignal", "signal_type"): (
+            "crisp_dimension", "metric_trend", "anomaly_cluster", "analytics_output",
+            "external_event", "user_input"
+        ),
+        ("AssessmentSignal", "signal_direction"): (
+            "positive", "negative", "neutral", "mixed"
+        ),
+        ("AssessmentDimension", "trend"): (
+            "improving", "stable", "declining", "volatile"
+        ),
+        ("AssessmentDimension", "confidence_level"): (
+            "high", "moderate", "low", "insufficient_evidence"
+        ),
+        ("OodaCycleLog", "cycle_type"): (
+            "automated", "manual", "hybrid", "simulated"
+        ),
+        ("OodaCycleLog", "status"): (
+            "in_progress", "completed", "failed", "timeout", "abandoned"
+        ),
+        ("OodaCycleLog", "failure_phase"): ("observe", "orient", "decide", "act"),
+        ("OodaCycleLog", "outcome_type"): (
+            "effective", "partially_effective", "ineffective", "no_effect",
+            "counterproductive", "unknown"
+        ),
         ("DemandForecast", "forecast_type"): (
             "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
         ),
@@ -417,7 +451,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 104
+    assert checked == 111
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

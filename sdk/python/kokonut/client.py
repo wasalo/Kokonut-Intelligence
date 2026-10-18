@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 import requests
 
 from .methods import (
+    AssessmentChildReadMethods,
     AttestationMethods,
     CausalLinkReadMethods,
     CropCycleMethods,
@@ -30,6 +31,8 @@ from .methods import (
     WalletProfileMethods,
 )
 from .types import (
+    AssessmentDimension,
+    AssessmentSignal,
     AttestationSchema,
     BuyerDemandSignal,
     BuyerSegment,
@@ -61,6 +64,7 @@ from .types import (
     MarketSizeEstimate,
     MetricValue,
     MrvClaim,
+    OodaCycleLog,
     PriceObservation,
     ProductionMarketMatch,
     Protocol,
@@ -70,6 +74,7 @@ from .types import (
     SensorDevice,
     SensorNetworkDesign,
     SensorType,
+    SituationAssessment,
     SoilCarbonMeasurement,
     SoilSample,
     SpatialAutocorrelation,
@@ -259,6 +264,18 @@ class KokonutClient:
         )
         self.structural_assumptions: LocationReadMethods[StructuralAssumption] = LocationReadMethods(
             self, "structural_assumption"
+        )
+        self.situation_assessments: LocationReadMethods[SituationAssessment] = LocationReadMethods(
+            self, "situation_assessment"
+        )
+        self.assessment_signals: AssessmentChildReadMethods[AssessmentSignal] = (
+            AssessmentChildReadMethods(self, "assessment_signal")
+        )
+        self.assessment_dimensions: AssessmentChildReadMethods[AssessmentDimension] = (
+            AssessmentChildReadMethods(self, "assessment_dimension")
+        )
+        self.ooda_cycle_logs: LocationReadMethods[OodaCycleLog] = LocationReadMethods(
+            self, "ooda_cycle_log"
         )
         self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
             self, "demand_forecast"

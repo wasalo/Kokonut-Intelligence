@@ -93,6 +93,13 @@ const archetypes = await client.systemArchetypes.listByLocation('location-uuid')
 const leverage = await client.leverageAssessments.listByLocation('location-uuid');
 // These return persisted definitions/results; they do not evaluate or simulate.
 
+// Read persisted OODA assessments, evidence, and cycle timing by location/parent
+const assessments = await client.situationAssessments.listByLocation('location-uuid');
+const signals = await client.assessmentSignals.listByAssessment('assessment-uuid');
+const dimensions = await client.assessmentDimensions.listByAssessment('assessment-uuid');
+const cycles = await client.oodaCycleLogs.listByLocation('location-uuid');
+// These reads are advisory records; they do not choose or execute actions.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -277,6 +284,10 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `leverageAssessments` | `leverage_assessment` | `listByLocation` (read-only) |
 | `timeDelays` | `time_delay` | — (read-only list/detail) |
 | `structuralAssumptions` | `structural_assumption` | `listByLocation` (read-only) |
+| `situationAssessments` | `situation_assessment` | `listByLocation` (read-only) |
+| `assessmentSignals` | `assessment_signal` | `listByAssessment` (read-only) |
+| `assessmentDimensions` | `assessment_dimension` | `listByAssessment` (read-only) |
+| `oodaCycleLogs` | `ooda_cycle_log` | `listByLocation` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensorTypes` | `sensor_type` | — (read-only list/detail) |

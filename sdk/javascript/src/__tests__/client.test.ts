@@ -8,6 +8,8 @@ import {
   ValidationError,
 } from '../errors.js';
 import type {
+  AssessmentDimension,
+  AssessmentSignal,
   CausalLink,
   CausalLoop,
   CropCycle,
@@ -26,6 +28,7 @@ import type {
   Location,
   LossEvent,
   NoiSnapshot,
+  OodaCycleLog,
   Plot,
   SalesEvent,
   AlertRule,
@@ -35,6 +38,7 @@ import type {
   SensorNetworkDesign,
   SensorReading,
   SensorType,
+  SituationAssessment,
   SpatialAutocorrelation,
   StockFlowModel,
   StockFlowRun,
@@ -309,6 +313,8 @@ describe('KokonutClient', () => {
       [client.systemArchetypes, 'system_archetype'],
       [client.leverageAssessments, 'leverage_assessment'],
       [client.structuralAssumptions, 'structural_assumption'],
+      [client.situationAssessments, 'situation_assessment'],
+      [client.oodaCycleLogs, 'ooda_cycle_log'],
       [client.soilSamples, 'soil_sample'],
       [client.soilCarbonMeasurements, 'soil_carbon_measurement'],
       [client.environmentalBaselines, 'environmental_baseline'],
@@ -400,6 +406,103 @@ describe('KokonutClient', () => {
       expect('delete' in methods).toBe(false);
       expect('listByLocation' in methods).toBe(false);
     }
+  });
+
+  it('scopes assessment evidence by assessment and keeps it read-only', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'evidence-1' } as any);
+    const options = {
+      limit: 12,
+      offset: 24,
+      sort: ['-created_at'],
+      fields: ['id', 'assessment_id', 'signal_key'],
+      filter: { assessment_id: { _eq: 'other-assessment' }, signal_type: { _eq: 'metric_trend' } },
+    };
+
+    for (const [methods, collection] of [
+      [client.assessmentSignals, 'assessment_signal'],
+      [client.assessmentDimensions, 'assessment_dimension'],
+    ] as const) {
+      await methods.list(options);
+      expect(listItems).toHaveBeenLastCalledWith(collection, options);
+      await methods.get('evidence-1', ['id']);
+      expect(getItem).toHaveBeenLastCalledWith(collection, 'evidence-1', ['id']);
+      await methods.listByAssessment('assessment-1', options);
+      expect(listItems).toHaveBeenLastCalledWith(collection, {
+        ...options,
+        filter: {
+          assessment_id: { _eq: 'assessment-1' },
+          signal_type: { _eq: 'metric_trend' },
+        },
+      });
+      expect('create' in methods).toBe(false);
+      expect('update' in methods).toBe(false);
+      expect('delete' in methods).toBe(false);
+      expect('listByLocation' in methods).toBe(false);
+    }
+  });
+
+  it('types persisted OODA advisory records and SQL-constrained values', () => {
+    const assessment: SituationAssessment = {
+      id: 'assessment-1',
+      location_id: 'location-1',
+      assessment_type: 'full',
+      situation_grade: 'stable',
+      composite_score: 0.8,
+      confidence_level: 'moderate',
+      evidence_maturity: 3,
+      anomaly_count: 1,
+      critical_anomaly_count: 0,
+      metric_trend_summary: { soil: 'improving' },
+      dimension_summaries: { ecology: {} },
+      recommendations: [{ action: 'review' }],
+      period_start: '2026-01-01T00:00:00Z',
+      period_end: '2026-01-31T00:00:00Z',
+      assessed_at: '2026-02-01T00:00:00Z',
+      assessed_by: 'reviewer',
+      methodology_version: 'v1.0',
+      status: 'verified',
+      created_at: '2026-02-01T00:00:00Z',
+      updated_at: '2026-02-01T00:00:00Z',
+    };
+    const signal: AssessmentSignal = {
+      id: 'signal-1',
+      assessment_id: assessment.id,
+      signal_type: 'metric_trend',
+      signal_key: 'soil_carbon',
+      signal_direction: 'positive',
+      weight: 1,
+      created_at: '2026-02-01T00:00:00Z',
+    };
+    const dimension: AssessmentDimension = {
+      id: 'dimension-1',
+      assessment_id: assessment.id,
+      dimension_key: 'ecology',
+      dimension_name: 'Ecology',
+      risk_score: 0.2,
+      trend: 'improving',
+      signal_count: 1,
+      confidence_level: 'high',
+      created_at: '2026-02-01T00:00:00Z',
+    };
+    const cycle: OodaCycleLog = {
+      id: 'cycle-1',
+      correlation_id: 'correlation-1',
+      location_id: 'location-1',
+      cycle_type: 'manual',
+      decision_type: 'review',
+      observe_sources: ['metrics'],
+      orient_frameworks_used: ['CRISP'],
+      status: 'completed',
+      outcome_type: 'effective',
+      created_at: '2026-02-01T00:00:00Z',
+      updated_at: '2026-02-01T00:00:00Z',
+    };
+
+    expect(assessment.recommendations[0]).toEqual({ action: 'review' });
+    expect(signal.signal_direction).toBe('positive');
+    expect(dimension.trend).toBe('improving');
+    expect(cycle.outcome_type).toBe('effective');
   });
 
   it('types stored geostatistical outputs and their constrained literals', () => {

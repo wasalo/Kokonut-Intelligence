@@ -33,6 +33,29 @@ export type SystemVariableType = 'stock' | 'flow' | 'auxiliary' | 'constant';
 export type StockFlowRunStatus = 'pending' | 'running' | 'completed' | 'failed';
 export type SystemArchetypeStatus = 'active' | 'resolved' | 'dismissed';
 export type StructuralAssumptionStatus = 'active' | 'challenged' | 'validated' | 'deprecated';
+export type SituationAssessmentType = 'full' | 'quick' | 'deep' | 'reassessment';
+export type SituationGrade = 'critical' | 'warning' | 'stable' | 'flourishing';
+export type SituationConfidence = 'high' | 'moderate' | 'low' | 'insufficient_evidence';
+export type SituationAssessmentStatus = 'draft' | 'verified' | 'superseded';
+export type AssessmentSignalType =
+  | 'crisp_dimension'
+  | 'metric_trend'
+  | 'anomaly_cluster'
+  | 'analytics_output'
+  | 'external_event'
+  | 'user_input';
+export type AssessmentSignalDirection = 'positive' | 'negative' | 'neutral' | 'mixed';
+export type AssessmentDimensionTrend = 'improving' | 'stable' | 'declining' | 'volatile';
+export type OodaCycleType = 'automated' | 'manual' | 'hybrid' | 'simulated';
+export type OodaCycleStatus = 'in_progress' | 'completed' | 'failed' | 'timeout' | 'abandoned';
+export type OodaFailurePhase = 'observe' | 'orient' | 'decide' | 'act';
+export type OodaOutcomeType =
+  | 'effective'
+  | 'partially_effective'
+  | 'ineffective'
+  | 'no_effect'
+  | 'counterproductive'
+  | 'unknown';
 export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
 export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type MarketScope = 'local' | 'regional' | 'national' | 'international';
@@ -1463,6 +1486,101 @@ export interface StructuralAssumption {
   challenged_at?: string | null;
   challenged_by?: string | null;
   original_source?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Stored advisory situation assessment and evidence summaries. */
+export interface SituationAssessment {
+  id: string;
+  location_id: string;
+  assessment_type: SituationAssessmentType;
+  situation_grade: SituationGrade;
+  composite_score: number;
+  confidence_level: SituationConfidence;
+  evidence_maturity: number;
+  crisp_rating?: string | null;
+  crisp_composite_score?: number | null;
+  anomaly_count: number;
+  critical_anomaly_count: number;
+  metric_trend_summary: JSONObject;
+  dimension_summaries: JSONObject;
+  recommendations: JSONValue[];
+  period_start: string;
+  period_end: string;
+  assessed_at: string;
+  assessed_by: string;
+  methodology_version: string;
+  status: SituationAssessmentStatus;
+  metadata?: JSONObject | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Stored signal that contributes to a situation assessment. */
+export interface AssessmentSignal {
+  id: string;
+  assessment_id: string;
+  signal_type: AssessmentSignalType;
+  signal_key: string;
+  signal_value?: number | null;
+  signal_text?: string | null;
+  signal_direction: AssessmentSignalDirection;
+  weight: number;
+  source_table?: string | null;
+  source_id?: string | null;
+  created_at: string;
+}
+
+/** Stored assessment dimension score, trend, and evidence summary. */
+export interface AssessmentDimension {
+  id: string;
+  assessment_id: string;
+  dimension_key: string;
+  dimension_name: string;
+  risk_score: number;
+  trend: AssessmentDimensionTrend;
+  trend_delta?: number | null;
+  signal_count: number;
+  confidence_level: SituationConfidence;
+  evidence_summary?: string | null;
+  created_at: string;
+}
+
+/** Persisted OODA phase timing and outcome metadata; no action is executed. */
+export interface OodaCycleLog {
+  id: string;
+  correlation_id: string;
+  location_id: string;
+  cycle_type: OodaCycleType;
+  decision_type: string;
+  trigger_event_type?: string | null;
+  trigger_event_id?: string | null;
+  observe_started_at?: string | null;
+  observe_completed_at?: string | null;
+  observe_duration_ms?: number | null;
+  observe_sources: JSONValue[];
+  orient_started_at?: string | null;
+  orient_completed_at?: string | null;
+  orient_duration_ms?: number | null;
+  orient_frameworks_used: JSONValue[];
+  orient_assessment_id?: string | null;
+  decide_started_at?: string | null;
+  decide_completed_at?: string | null;
+  decide_duration_ms?: number | null;
+  decide_policy_id?: string | null;
+  decide_decision_id?: string | null;
+  act_started_at?: string | null;
+  act_completed_at?: string | null;
+  act_duration_ms?: number | null;
+  act_outcome_id?: string | null;
+  act_action_type?: string | null;
+  total_cycle_time_ms?: number | null;
+  status: OodaCycleStatus;
+  failure_phase?: OodaFailurePhase | null;
+  error_message?: string | null;
+  outcome_type?: OodaOutcomeType | null;
+  metadata?: JSONObject | null;
   created_at: string;
   updated_at: string;
 }

@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Persisted OODA advisory SDK reads — 18 October 2026
+
+Python and TypeScript now expose typed, read-only reads for location-scoped
+situation assessments and OODA cycle logs, plus assessment-scoped signals and
+dimensions. Explicit location/parent filters override conflicting caller
+filters while retaining other query options. The SQL parity guard now covers
+the four canonical tables, all 79 added columns, exact CHECK literals, nullable
+fields, and JSON shapes. These SDK accessors return stored advisory evidence;
+they do not evaluate orientation, approve a decision, or execute an action.
+The focused Python SDK/schema/method suite passes 104 tests and JavaScript
+passes 54 tests; TypeScript build, Ruff, Python compilation, capability and
+schema guards, and diff checks pass offline. No database, provider, or network
+was contacted. CAP-010 remains unaccepted. Checklist: 630 complete / 19 open;
+the capability matrix remains 66 rows, 54 baseline-retained, 7 deployed, and
+5 prepared ([evidence](builds/2026-10-18-recovery/sdk-ooda-advisory-read-methods.json)).
+
 ### Stored systems-thinking SDK reads — 18 October 2026
 
 Python and TypeScript now expose typed, read-only access to shared causal-loop,

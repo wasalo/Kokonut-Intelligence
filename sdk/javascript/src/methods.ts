@@ -63,6 +63,12 @@ export interface CausalLinkReadMethods<T> {
   listByLoop(loopId: string, options?: ListOptions): Promise<T[]>;
 }
 
+export interface AssessmentChildReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByAssessment(assessmentId: string, options?: ListOptions): Promise<T[]>;
+}
+
 function createGenericMethods(client: any, collection: string): GenericMethods {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options),
@@ -151,6 +157,21 @@ export function buildCausalLinkReadMethods<T>(client: any): CausalLinkReadMethod
       client.listItems(collection, {
         ...options,
         filter: { ...options?.filter, loop_id: { _eq: loopId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildAssessmentChildReadMethods<T>(
+  client: any,
+  collection: string,
+): AssessmentChildReadMethods<T> {
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByAssessment: (assessmentId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, assessment_id: { _eq: assessmentId } },
       }) as Promise<T[]>,
   };
 }

@@ -1498,3 +1498,16 @@ original simulation, causal evaluation, archetype detection, and intervention
 parity gates remain open.
 
 Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-systems-thinking-read-methods.json).
+
+
+### OODA persisted advisory-record SDK continuation — 18 October 2026
+
+Expose stored situation assessments and OODA cycle logs through location-
+scoped typed read-only methods, and their signal/dimension evidence through
+parent-assessment-scoped methods. Keep decision-policy review, approval,
+decision generation, and action execution out of this SDK read slice. Extend
+the canonical SQL parity guard across migrations 124 and 127, including all
+nullable columns, JSON shapes, and CHECK-constrained values. MAN-CAP-010 stays
+open until decision and action outputs match the named acceptance fixtures.
+
+Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-ooda-advisory-read-methods.json).

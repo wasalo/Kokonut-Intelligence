@@ -1748,6 +1748,104 @@ def test_causal_links_are_read_only_and_scoped_to_the_parent_loop():
     assert not hasattr(client.causal_links, "list_by_location")
 
 
+def test_ooda_reads_are_location_and_assessment_scoped_and_read_only():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    client.get_item = Mock(return_value={"id": "assessment-1"})
+    options = ListOptions(
+        filter={"location_id": {"_eq": "other-location"}, "status": {"_eq": "verified"}},
+        fields=["id", "location_id", "status"],
+        sort=["-created_at"],
+        limit=12,
+        offset=24,
+    )
+
+    for methods, collection in (
+        (client.situation_assessments, "situation_assessment"),
+        (client.ooda_cycle_logs, "ooda_cycle_log"),
+    ):
+        assert methods.list(options) == []
+        client.list_items.assert_called_with(collection, options)
+        assert methods.get("record-1", ["id"]) == {"id": "assessment-1"}
+        client.get_item.assert_called_with(collection, "record-1", ["id"])
+        assert methods.list_by_location("location-1", options) == []
+        _, scoped = client.list_items.call_args.args
+        assert scoped.filter == {
+            "location_id": {"_eq": "location-1"},
+            "status": {"_eq": "verified"},
+        }
+        assert scoped.fields == options.fields
+        assert scoped.sort == options.sort
+        assert scoped.limit == 12
+        assert scoped.offset == 24
+        assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+    for methods, collection in (
+        (client.assessment_signals, "assessment_signal"),
+        (client.assessment_dimensions, "assessment_dimension"),
+    ):
+        assert methods.list(options) == []
+        client.list_items.assert_called_with(collection, options)
+        assert methods.get("evidence-1", ["id"]) == {"id": "assessment-1"}
+        client.get_item.assert_called_with(collection, "evidence-1", ["id"])
+        assert methods.list_by_assessment("assessment-1", options) == []
+        _, scoped = client.list_items.call_args.args
+        assert scoped.filter == {
+            "location_id": {"_eq": "other-location"},
+            "assessment_id": {"_eq": "assessment-1"},
+            "status": {"_eq": "verified"},
+        }
+        assert scoped.fields == options.fields
+        assert scoped.sort == options.sort
+        assert scoped.limit == 12
+        assert scoped.offset == 24
+        assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+
+def test_ooda_read_models_preserve_canonical_literals_and_shapes():
+    from kokonut import (
+        AssessmentDimension,
+        AssessmentSignal,
+        OodaCycleLog,
+        SituationAssessment,
+    )
+
+    assessment = SituationAssessment(
+        id="assessment-1", location_id="location-1", assessment_type="full",
+        situation_grade="stable", composite_score=0.8, confidence_level="moderate",
+        evidence_maturity=3, anomaly_count=1, critical_anomaly_count=0,
+        metric_trend_summary={"soil": "improving"}, dimension_summaries={"ecology": {}},
+        recommendations=[{"action": "review"}], period_start="2026-01-01",
+        period_end="2026-01-31", assessed_at="2026-02-01", assessed_by="reviewer",
+        methodology_version="v1.0", status="verified", created_at="2026-02-01",
+        updated_at="2026-02-01",
+    )
+    signal = AssessmentSignal(
+        id="signal-1", assessment_id=assessment.id, signal_type="metric_trend",
+        signal_key="soil_carbon", signal_direction="positive", weight=1.0,
+        created_at="2026-02-01",
+    )
+    dimension = AssessmentDimension(
+        id="dimension-1", assessment_id=assessment.id, dimension_key="ecology",
+        dimension_name="Ecology", risk_score=0.2, trend="improving", signal_count=1,
+        confidence_level="high", created_at="2026-02-01",
+    )
+    cycle = OodaCycleLog(
+        id="cycle-1", correlation_id="correlation-1", location_id="location-1",
+        cycle_type="manual", decision_type="review", observe_sources=["metrics"],
+        orient_frameworks_used=["CRISP"], status="completed", created_at="2026-02-01",
+        updated_at="2026-02-01", outcome_type="effective",
+    )
+
+    assert assessment.recommendations == [{"action": "review"}]
+    assert signal.signal_direction == "positive"
+    assert dimension.trend == "improving"
+    assert cycle.outcome_type == "effective"
+
+
 def test_systems_thinking_models_preserve_stored_fields_and_literals():
     from typing import get_args
 

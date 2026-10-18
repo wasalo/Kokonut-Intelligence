@@ -13,6 +13,8 @@ import {
 import type { AuthenticationData } from '@directus/sdk';
 import { normalizeDirectusError } from './errors.js';
 import type {
+  AssessmentDimension,
+  AssessmentSignal,
   AttestationSchema,
   CausalLink,
   CausalLoop,
@@ -44,6 +46,7 @@ import type {
   MarketSizeEstimate,
   MetricValue,
   MrvClaim,
+  OodaCycleLog,
   PriceObservation,
   ProductionMarketMatch,
   Protocol,
@@ -52,6 +55,7 @@ import type {
   SensorType,
   SensorDevice,
   SensorAlert,
+  SituationAssessment,
   SensorNetworkDesign,
   StockFlowModel,
   StockFlowRun,
@@ -75,6 +79,7 @@ import {
   buildLocationReadMethods,
   buildReferenceReadMethods,
   buildCausalLinkReadMethods,
+  buildAssessmentChildReadMethods,
   buildForecastAccuracyReadMethods,
   buildKrigingPointReadMethods,
   buildGeostatRealizationPointReadMethods,
@@ -99,6 +104,7 @@ import type {
   LocationReadMethods,
   ReferenceReadMethods,
   CausalLinkReadMethods,
+  AssessmentChildReadMethods,
   ForecastAccuracyReadMethods,
   KrigingPointReadMethods,
   GeostatRealizationPointReadMethods,
@@ -185,6 +191,10 @@ export class KokonutClient {
   sensorNetworkDesigns: LocationReadMethods<SensorNetworkDesign>;
   causalLoops: ReferenceReadMethods<CausalLoop>;
   causalLinks: CausalLinkReadMethods<CausalLink>;
+  situationAssessments: LocationReadMethods<SituationAssessment>;
+  assessmentSignals: AssessmentChildReadMethods<AssessmentSignal>;
+  assessmentDimensions: AssessmentChildReadMethods<AssessmentDimension>;
+  oodaCycleLogs: LocationReadMethods<OodaCycleLog>;
   systemVariables: LocationReadMethods<SystemVariable>;
   stockFlowModels: ReferenceReadMethods<StockFlowModel>;
   stockFlowRuns: LocationReadMethods<StockFlowRun>;
@@ -271,6 +281,10 @@ export class KokonutClient {
     this.leverageAssessments = buildLocationReadMethods<LeverageAssessment>(this, 'leverage_assessment');
     this.timeDelays = buildReferenceReadMethods<TimeDelay>(this, 'time_delay');
     this.structuralAssumptions = buildLocationReadMethods<StructuralAssumption>(this, 'structural_assumption');
+    this.situationAssessments = buildLocationReadMethods<SituationAssessment>(this, 'situation_assessment');
+    this.assessmentSignals = buildAssessmentChildReadMethods<AssessmentSignal>(this, 'assessment_signal');
+    this.assessmentDimensions = buildAssessmentChildReadMethods<AssessmentDimension>(this, 'assessment_dimension');
+    this.oodaCycleLogs = buildLocationReadMethods<OodaCycleLog>(this, 'ooda_cycle_log');
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
     this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');

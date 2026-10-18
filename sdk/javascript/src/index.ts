@@ -28,6 +28,11 @@ export type {
 } from './public-api.js';
 
 export type {
+  AssessmentDimension,
+  AssessmentDimensionTrend,
+  AssessmentSignal,
+  AssessmentSignalDirection,
+  AssessmentSignalType,
   ActivityTypeSourceOption,
   ActuationLog,
   ActuationLogStatus,
@@ -115,6 +120,11 @@ export type {
   CausalLinkPolarity,
   CausalLoop,
   CausalLoopType,
+  OodaCycleLog,
+  OodaCycleStatus,
+  OodaCycleType,
+  OodaFailurePhase,
+  OodaOutcomeType,
   ForecastAccuracy,
   GeostatCVResult,
   GeostatCVStrategy,
@@ -126,6 +136,11 @@ export type {
   KrigingPrediction,
   LeverageAssessment,
   SensorNetworkDesign,
+  SituationAssessment,
+  SituationAssessmentStatus,
+  SituationAssessmentType,
+  SituationConfidence,
+  SituationGrade,
   StockFlowModel,
   StockFlowRun,
   StockFlowRunStatus,
@@ -189,6 +204,7 @@ export type {
 } from './types.js';
 
 export type {
+  AssessmentChildReadMethods,
   GenericMethods,
   LocationReadMethods,
   ReferenceReadMethods,

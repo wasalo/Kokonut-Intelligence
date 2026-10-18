@@ -98,6 +98,13 @@ prediction_points = client.kriging_points.list_by_prediction("prediction-uuid")
 realization_points = client.geostat_realization_points.list_by_realization("realization-uuid")
 # These reads return stored output only; they do not run spatial analysis.
 
+# Read persisted OODA assessments, evidence, and cycle timing by location/parent
+assessments = client.situation_assessments.list_by_location("location-uuid")
+signals = client.assessment_signals.list_by_assessment("assessment-uuid")
+dimensions = client.assessment_dimensions.list_by_assessment("assessment-uuid")
+cycles = client.ooda_cycle_logs.list_by_location("location-uuid")
+# These records remain advisory; reading them does not choose or execute actions.
+
 # Read systems-thinking definitions and location results
 loops = client.causal_loops.list()
 links = client.causal_links.list_by_loop("loop-uuid")
@@ -264,6 +271,10 @@ except KokonutError as e:
 | `leverage_assessments` | `leverage_assessment` | `list_by_location` (read-only) |
 | `time_delays` | `time_delay` | — (read-only list/detail) |
 | `structural_assumptions` | `structural_assumption` | `list_by_location` (read-only) |
+| `situation_assessments` | `situation_assessment` | `list_by_location` (read-only) |
+| `assessment_signals` | `assessment_signal` | `list_by_assessment` (read-only) |
+| `assessment_dimensions` | `assessment_dimension` | `list_by_assessment` (read-only) |
+| `ooda_cycle_logs` | `ooda_cycle_log` | `list_by_location` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensor_types` | `sensor_type` | — (read-only list/detail) |

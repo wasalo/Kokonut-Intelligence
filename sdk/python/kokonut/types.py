@@ -46,6 +46,23 @@ SystemVariableType = Literal["stock", "flow", "auxiliary", "constant"]
 StockFlowRunStatus = Literal["pending", "running", "completed", "failed"]
 SystemArchetypeStatus = Literal["active", "resolved", "dismissed"]
 StructuralAssumptionStatus = Literal["active", "challenged", "validated", "deprecated"]
+SituationAssessmentType = Literal["full", "quick", "deep", "reassessment"]
+SituationGrade = Literal["critical", "warning", "stable", "flourishing"]
+SituationConfidence = Literal["high", "moderate", "low", "insufficient_evidence"]
+SituationAssessmentStatus = Literal["draft", "verified", "superseded"]
+AssessmentSignalType = Literal[
+    "crisp_dimension", "metric_trend", "anomaly_cluster", "analytics_output",
+    "external_event", "user_input",
+]
+AssessmentSignalDirection = Literal["positive", "negative", "neutral", "mixed"]
+AssessmentDimensionTrend = Literal["improving", "stable", "declining", "volatile"]
+OodaCycleType = Literal["automated", "manual", "hybrid", "simulated"]
+OodaCycleStatus = Literal["in_progress", "completed", "failed", "timeout", "abandoned"]
+OodaFailurePhase = Literal["observe", "orient", "decide", "act"]
+OodaOutcomeType = Literal[
+    "effective", "partially_effective", "ineffective", "no_effect",
+    "counterproductive", "unknown",
+]
 DemandForecastType = Literal[
     "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
 ]
@@ -1186,6 +1203,109 @@ class StructuralAssumption:
     challenged_at: Optional[str] = None
     challenged_by: Optional[str] = None
     original_source: Optional[str] = None
+
+
+@dataclass
+class SituationAssessment:
+    """Stored advisory situation assessment and evidence summaries."""
+
+    id: str
+    location_id: str
+    assessment_type: SituationAssessmentType
+    situation_grade: SituationGrade
+    composite_score: float
+    confidence_level: SituationConfidence
+    evidence_maturity: int
+    anomaly_count: int
+    critical_anomaly_count: int
+    metric_trend_summary: JSONObject
+    dimension_summaries: JSONObject
+    recommendations: List[JSONValue]
+    period_start: str
+    period_end: str
+    assessed_at: str
+    assessed_by: str
+    methodology_version: str
+    status: SituationAssessmentStatus
+    created_at: str
+    updated_at: str
+    crisp_rating: Optional[str] = None
+    crisp_composite_score: Optional[float] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class AssessmentSignal:
+    """Stored signal that contributes to a situation assessment."""
+
+    id: str
+    assessment_id: str
+    signal_type: AssessmentSignalType
+    signal_key: str
+    signal_direction: AssessmentSignalDirection
+    weight: float
+    created_at: str
+    signal_value: Optional[float] = None
+    signal_text: Optional[str] = None
+    source_table: Optional[str] = None
+    source_id: Optional[str] = None
+
+
+@dataclass
+class AssessmentDimension:
+    """Stored assessment dimension score, trend, and evidence summary."""
+
+    id: str
+    assessment_id: str
+    dimension_key: str
+    dimension_name: str
+    risk_score: float
+    trend: AssessmentDimensionTrend
+    signal_count: int
+    confidence_level: SituationConfidence
+    created_at: str
+    trend_delta: Optional[float] = None
+    evidence_summary: Optional[str] = None
+
+
+@dataclass
+class OodaCycleLog:
+    """Persisted OODA phase timing and outcome metadata; no action is executed."""
+
+    id: str
+    correlation_id: str
+    location_id: str
+    cycle_type: OodaCycleType
+    decision_type: str
+    observe_sources: List[JSONValue]
+    orient_frameworks_used: List[JSONValue]
+    status: OodaCycleStatus
+    created_at: str
+    updated_at: str
+    trigger_event_type: Optional[str] = None
+    trigger_event_id: Optional[str] = None
+    observe_started_at: Optional[str] = None
+    observe_completed_at: Optional[str] = None
+    observe_duration_ms: Optional[int] = None
+    orient_started_at: Optional[str] = None
+    orient_completed_at: Optional[str] = None
+    orient_duration_ms: Optional[int] = None
+    orient_assessment_id: Optional[str] = None
+    decide_started_at: Optional[str] = None
+    decide_completed_at: Optional[str] = None
+    decide_duration_ms: Optional[int] = None
+    decide_policy_id: Optional[str] = None
+    decide_decision_id: Optional[str] = None
+    act_started_at: Optional[str] = None
+    act_completed_at: Optional[str] = None
+    act_duration_ms: Optional[int] = None
+    act_outcome_id: Optional[str] = None
+    act_action_type: Optional[str] = None
+    total_cycle_time_ms: Optional[int] = None
+    failure_phase: Optional[OodaFailurePhase] = None
+    error_message: Optional[str] = None
+    outcome_type: Optional[OodaOutcomeType] = None
+    metadata: Optional[JSONObject] = None
 
 
 @dataclass
