@@ -11,6 +11,11 @@ represent the canonical `protocol` catalog fields and metadata. This data type
 does not query providers, sign transactions, or submit on-chain actions; MAN-CAP
 classifications and acceptance remain unchanged ([evidence](builds/2026-10-18-recovery/sdk-protocol-parity.json)).
 
+**EAS schema-catalog SDK note — 18 October 2026:** the clients now preserve
+stored attestation schema UIDs, definitions, resolver addresses, version, and
+active state. This does not create schemas or produce attestations, and MAN-CAP
+acceptance remains unchanged ([evidence](builds/2026-10-18-recovery/sdk-attestation-schema-parity.json)).
+
 The six-column matrix is checked by `python3 scripts/check-capability-matrix.py`
 and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate

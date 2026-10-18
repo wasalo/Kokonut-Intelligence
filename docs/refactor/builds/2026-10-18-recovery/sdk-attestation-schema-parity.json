@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python/TypeScript AttestationSchema schema parity",
+  "table": "public.attestation_schema",
+  "schema_sources": [
+    "schemas/postgres/006_web3.sql"
+  ],
+  "contract": "Stored EAS schema catalog entry with schema UID/text, chain, resolver address, version, and active state.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 75 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — 70 models, 1,438 canonical columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, 43 CHECK-literal fields — passed",
+    "ruff": "ruff check scripts/check-sdk-schema-parity.py sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py tests/test_sdk.py — passed",
+    "python_compile": "python3 -m compileall -q scripts/check-sdk-schema-parity.py sdk/python/kokonut tests/test_sdk.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The model preserves the stored EAS schema catalog and exposes no schema-creation, attestation, verification, signing, or transaction-submission behavior.",
+    "No database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

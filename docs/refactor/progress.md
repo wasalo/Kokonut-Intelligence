@@ -9391,3 +9391,17 @@ provider, or network was contacted. This record does not query providers or
 sign/submit transactions; MAN-CAP acceptance is unchanged. Checklist:
 589 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-protocol-parity.json`.
+
+### EAS attestation-schema SDK parity — 18 October 2026
+
+Python and TypeScript now represent the stored `attestation_schema` catalog
+entry, including schema UID/text, chain, resolver, version, and active state.
+The guard covers 70 models and 1,438 canonical columns, with 1,345 scalar
+types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone
+SQL CHECK literal contracts. Seventy-five focused Python SDK/guard tests and
+29 JavaScript tests pass with TypeScript build, Ruff, compilation, schema
+guard, capability-matrix validation, and diff checks. No database, provider,
+or network was contacted. This record does not create schemas or submit
+attestations; MAN-CAP acceptance is unchanged. Checklist: 590 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-attestation-schema-parity.json`.
