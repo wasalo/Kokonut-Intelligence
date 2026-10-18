@@ -51,6 +51,21 @@ triage, assignment, resolution, verification, publication, or approval action.
 Underlying legacy tables do not yet have domain-table RLS, so these protected
 routes do not establish universal tenant isolation.
 
+Location governance roles are available at `GET
+/operator/api/governance/{location_id}/roles` with the exact
+`governance_roles:read` grant. The bounded read-only registry returns role and
+circle labels, lifecycle dates, and aggregate accountability, assignment, and
+authority-domain counts; it omits party identities and policy text. Open
+tactical work is available at `GET
+/operator/api/governance/{location_id}/tactical-items` with the separate exact
+`governance_tactical:read` grant. It returns bounded open/in-progress items,
+requested action, priority, due date, session summary, and owner role key, but
+omits party identities, session notes, agenda text, and disposition detail.
+Both routes establish signed tenant context before location-filtered SQL, use
+read-only transactions and keyset pagination capped at 100, and are rendered
+as text in the console. They expose no mutation or approval action; the
+underlying governance tables do not yet have domain-table RLS.
+
 Governance tension intake is available at `POST
 /operator/api/governance/{location_id}/tensions` with a caller-generated UUID
 `request_id`, title, description, supported tension type, severity, and urgency.

@@ -7,6 +7,11 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
+    from services.gateway.governance_operations import (
+        GovernanceOperationsInvalid,
+        list_location_governance_roles,
+        list_location_governance_tactical_items,
+    )
     from services.gateway.governance_roles import get_location_governance_summary
     from services.gateway.governance_tension_actions import (
         GovernanceTensionConflict,
@@ -108,6 +113,94 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
 
         return JSONResponse(jsonable_encoder(summary), headers=headers)
+
+    @router.get("/operator/api/governance/{location_id}/roles")
+    async def location_governance_roles(
+        request: Request,
+        location_id: str,
+        status: str | None = None,
+        limit: str = "50",
+        cursor: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_governance_roles,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                status=status,
+                limit=limit,
+                cursor=cursor,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceOperationsInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance role registry unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance role registry unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/governance/{location_id}/tactical-items")
+    async def location_governance_tactical_items(
+        request: Request,
+        location_id: str,
+        limit: str = "50",
+        cursor: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_governance_tactical_items,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                cursor=cursor,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceOperationsInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance tactical queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance tactical queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get("/operator/api/governance/{location_id}/tensions")
     async def location_governance_tensions(

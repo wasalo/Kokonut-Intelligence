@@ -86,6 +86,30 @@ def test_console_ids_are_unique_and_queue_controls_are_wired():
     assert 'governanceTensionMore.addEventListener("click", () => loadGovernanceTensionQueue(true))' in source
 
 
+def test_role_and_tactical_panels_use_separate_read_grants_and_no_store():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'scope.resource === "governance_roles" && scope.action === "read"' in source
+    assert 'scope.resource === "governance_tactical" && scope.action === "read"' in source
+    role_reader = _function(
+        source,
+        "async function loadGovernanceRoles(append = false)",
+        "async function loadGovernanceTacticalItems(append = false)",
+    )
+    tactical_reader = _function(
+        source,
+        "async function loadGovernanceTacticalItems(append = false)",
+        "async function loadGovernanceTensionDetail(tensionId)",
+    )
+    assert '`/operator/api/governance/${encodeURIComponent(locationId)}/roles?${params}`' in role_reader
+    assert '`/operator/api/governance/${encodeURIComponent(locationId)}/tactical-items?${params}`' in tactical_reader
+    assert 'cache: "no-store"' in role_reader and 'cache: "no-store"' in tactical_reader
+    assert 'role.purpose' in role_reader
+    assert 'item.requested_next_action' in tactical_reader
+    assert "innerHTML" not in role_reader and "innerHTML" not in tactical_reader
+    assert "governance-role-registry" in source
+    assert "governance-tactical-queue" in source
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:

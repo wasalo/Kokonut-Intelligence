@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 843,
-    "execution_sites": 4077,
+    "source_files": 844,
+    "execution_sites": 4084,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 329,
-    "sites_without_worker_operation_refs": 3748,
+    "sites_without_worker_operation_refs": 3755,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
@@ -15,16 +15,16 @@
       "RELEASE": 8,
       "ROLLBACK": 6,
       "SAVEPOINT": 5,
-      "SELECT": 2580,
-      "SET": 99,
+      "SELECT": 2584,
+      "SET": 102,
       "UNKNOWN": 191,
       "UPDATE": 442,
       "WITH": 25
     },
     "statement_groups": {
-      "read_candidate": 2580,
+      "read_candidate": 2584,
       "schema_change": 1,
-      "transaction_or_session": 118,
+      "transaction_or_session": 121,
       "unknown_requires_manual_review": 191,
       "with_requires_manual_review": 25,
       "write_candidate": 1162
@@ -33,10 +33,10 @@
       "composed": 16,
       "composed_or_variable": 262,
       "fstring": 274,
-      "literal": 3525
+      "literal": 3532
     },
-    "relation_candidates": 1057,
-    "sites_without_relation_candidates": 518,
+    "relation_candidates": 1064,
+    "sites_without_relation_candidates": 521,
     "service_packages": 67
   },
   "service_packages": {
@@ -363,17 +363,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 41,
-      "execution_sites": 224,
+      "source_files": 42,
+      "execution_sites": 231,
       "statement_groups": {
-        "read_candidate": 101,
-        "transaction_or_session": 68,
+        "read_candidate": 105,
+        "transaction_or_session": 71,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 35
       },
-      "candidate_relation_names": 56,
-      "sites_without_relation_candidates": 98,
+      "candidate_relation_names": 63,
+      "sites_without_relation_candidates": 101,
       "non_literal_sites": 10,
       "sites_with_worker_operation_refs": 0
     },
@@ -1476,6 +1476,13 @@
     "public.crisp_risk_assessment": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/crisp/public_api.py"]},
     "public.farm_activity_operator_event": {"execution_site_count": 1,"statement_kinds": ["UNKNOWN"],"statement_groups": ["unknown_requires_manual_review"],"source_files": ["services/migration/runtime_role.py"]},
     "public.gnosis_event_log_receipt": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/ingestion/gnosis_indexer.py"]},
+    "public.governance_circle": {"execution_site_count": 4,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_operations.py"]},
+    "public.governance_role": {"execution_site_count": 3,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_operations.py"]},
+    "public.governance_role_accountability": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_operations.py"]},
+    "public.governance_role_assignment": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_operations.py"]},
+    "public.governance_role_domain": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_operations.py"]},
+    "public.governance_tactical_item": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_operations.py"]},
+    "public.governance_tactical_session": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_operations.py"]},
     "public.governance_tension": {"execution_site_count": 3,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_tension_review.py"]},
     "public.governance_tension_event": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_tension_review.py"]},
     "public.kernel_metabase_role_probe": {"execution_site_count": 1,"statement_kinds": ["CREATE"],"statement_groups": ["schema_change"],"source_files": ["services/migration/metabase_role.py"]},
@@ -4416,6 +4423,13 @@
     {"id": "services/gateway/farm_activity_workflow.py:434:12","source": "services/gateway/farm_activity_workflow.py","line": 434,"column": 12,"scope": "create_farm_activity_draft","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["farm_activity"],"static_sql_sha256": "a83209fa0a3f52a1bdd7eef221aad58a4022c97ef7e59b33bab8cc9d2a0d85b7","operation_refs": [],"statement_group": "write_candidate"},
     {"id": "services/gateway/farm_activity_workflow.py:462:16","source": "services/gateway/farm_activity_workflow.py","line": 462,"column": 16,"scope": "create_farm_activity_draft","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["farm_activity"],"static_sql_sha256": "e8d494b03983ae88c08b83896adf3e6f8ffcce1be3b0b16507e469e09094eb04","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/farm_activity_workflow.py:487:12","source": "services/gateway/farm_activity_workflow.py","line": 487,"column": 12,"scope": "create_farm_activity_draft","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["farm_activity_workflow_event"],"static_sql_sha256": "2c581c16cc48079f454fa287c8e88da9b79208e46a9bd3f8e3010af90b5fe37e","operation_refs": [],"statement_group": "write_candidate"},
+    {"id": "services/gateway/governance_operations.py:52:12","source": "services/gateway/governance_operations.py","line": 52,"column": 12,"scope": "_open_readonly","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/governance_operations.py:53:12","source": "services/gateway/governance_operations.py","line": 53,"column": 12,"scope": "_open_readonly","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/governance_operations.py:54:12","source": "services/gateway/governance_operations.py","line": 54,"column": 12,"scope": "_open_readonly","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/governance_operations.py:96:16","source": "services/gateway/governance_operations.py","line": 96,"column": 16,"scope": "list_location_governance_roles","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.governance_circle","public.governance_role"],"static_sql_sha256": "5a8d28b4999f08a70918152684fc7783051a636382e1a2a9ba957dad05c7bed1","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/governance_operations.py:116:12","source": "services/gateway/governance_operations.py","line": 116,"column": 12,"scope": "list_location_governance_roles","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.governance_circle","public.governance_role","public.governance_role_accountability","public.governance_role_assignment","public.governance_role_domain"],"static_sql_sha256": "5c15f9ab4a6f23868225557b13c3c9a495d3370d1dae46e94727ba6c2c8f6000","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/governance_operations.py:208:16","source": "services/gateway/governance_operations.py","line": 208,"column": 16,"scope": "list_location_governance_tactical_items","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.governance_circle","public.governance_tactical_item","public.governance_tactical_session"],"static_sql_sha256": "030b39e1b376edb040628f38ce2318281a416c8d5114581393118cf8f5bf797d","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/governance_operations.py:230:12","source": "services/gateway/governance_operations.py","line": 230,"column": 12,"scope": "list_location_governance_tactical_items","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.governance_circle","public.governance_role","public.governance_tactical_item","public.governance_tactical_session"],"static_sql_sha256": "665fec0690bf4bd9a86fb565cd06e2a6bb5b9c8c47279849b722f69350a012c4","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/governance_roles.py:39:12","source": "services/gateway/governance_roles.py","line": 39,"column": 12,"scope": "get_location_governance_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/governance_roles.py:40:12","source": "services/gateway/governance_roles.py","line": 40,"column": 12,"scope": "get_location_governance_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/governance_roles.py:41:12","source": "services/gateway/governance_roles.py","line": 41,"column": 12,"scope": "get_location_governance_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

@@ -1,5 +1,27 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 role registry and tactical queue reads — 18 October 2026
+
+Added the location-scoped, read-only role registry and open tactical-item
+queue. Each has a distinct exact OIDC grant, establishes signed tenant context
+before location-filtered SQL, uses a read-only transaction with timeouts, and
+supports keyset pagination capped at 100. Role output omits party identities
+and policy text; tactical output omits party identities, notes, agenda text,
+and disposition detail. The operator console renders both projections as text
+and exposes no mutation or approval controls.
+
+Forty focused Gateway, governance, route-policy, and console tests pass. Ruff,
+Python compilation, capability validation, diff checks, and the refreshed
+runtime SQL inventory pass (844 service files / 4,084 execution sites). Both
+queries were run with the candidate runtime database role inside read-only
+transactions for an unassigned random location and returned zero rows. The
+candidate app alone was rebuilt; health is 200 and anonymous requests to both
+new endpoints return 401 with `Cache-Control: no-store`. Candidate database,
+Metabase, proxy, and the legacy stack remain intact. No migration or data write
+was made. CAP-024 remains prepared, not accepted: explicit decision/approval
+records, role/tactical mutation parity, domain-table RLS, populated fixtures,
+and named MAN-CAP-024 acceptance remain open ([evidence](builds/2026-10-18-recovery/governance-role-tactical-reads.json)).
+
 ### Candidate migrations 436–437 and CAP-024 review reads — 18 October 2026
 
 The candidate was checkpointed to the external age-encrypted backup directory
