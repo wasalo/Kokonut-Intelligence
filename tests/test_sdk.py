@@ -1487,6 +1487,39 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
 
 
+def test_forecast_accuracy_read_methods_are_scoped_to_parent_forecast_only():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    client.get_item = Mock(return_value={"id": "accuracy-1"})
+    methods = client.forecast_accuracies
+    options = ListOptions(
+        filter={"forecast_id": {"_eq": "other-forecast"}, "is_within_ci": {"_eq": True}},
+        sort=["actual_timestamp"],
+        fields=["id", "forecast_id", "error_abs"],
+        limit=10,
+        offset=5,
+    )
+
+    assert methods.list(options) == []
+    client.list_items.assert_called_with("forecast_accuracy", options)
+    assert methods.get("accuracy-1", ["id"]) == {"id": "accuracy-1"}
+    client.get_item.assert_called_with("forecast_accuracy", "accuracy-1", ["id"])
+    assert methods.list_by_forecast("forecast-1", options) == []
+    _, scoped_options = client.list_items.call_args.args
+    assert scoped_options.filter == {
+        "forecast_id": {"_eq": "forecast-1"},
+        "is_within_ci": {"_eq": True},
+    }
+    assert scoped_options.sort == ["actual_timestamp"]
+    assert scoped_options.fields == ["id", "forecast_id", "error_abs"]
+    assert scoped_options.limit == 10
+    assert scoped_options.offset == 5
+    assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+
 def test_reference_read_methods_are_typed_catalog_reads_only():
     from kokonut import KokonutClient
     from kokonut.types import ListOptions

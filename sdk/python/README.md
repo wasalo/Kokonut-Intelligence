@@ -79,6 +79,10 @@ cycles = client.crop_cycles.list_by_plot("plot-uuid")
 tasks = client.farm_tasks.list_by_location("location-uuid")
 # This read does not assign, schedule, or complete work.
 
+# Read stored forecast/observation accuracy rows for one forecast
+accuracy = client.forecast_accuracies.list_by_forecast("forecast-uuid")
+# This returns persisted comparisons; it does not calculate or verify accuracy.
+
 # Create a harvest event
 harvest = client.harvest_events.create({
     "crop_cycle_id": "cycle-uuid",
@@ -211,6 +215,7 @@ except KokonutError as e:
 | `trend_dashboard_metrics` | `trend_dashboard_metric` | `list_by_location` |
 | `infrastructure_assets` | `infrastructure_asset` | `list_by_location` |
 | `farm_tasks` | `farm_task` | `list_by_location` (read-only) |
+| `forecast_accuracies` | `forecast_accuracy` | `list_by_forecast` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensor_types` | `sensor_type` | — (read-only list/detail) |
@@ -220,7 +225,8 @@ Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are
 read-only and expose only `list`, `get`, and `list_by_location`; the ecological,
 MRV, metric, forecast, market, and value-flow groups also expose only these read
-methods. SDK location filters are query conveniences, not authorization
+methods, except `forecast_accuracies`, which scopes reads by `forecast_id` because
+the canonical table has no `location_id`. SDK filters are query conveniences, not authorization
 boundaries; Directus must enforce the caller's grants, especially for buyer and
 commercial records. Shared reference catalog helpers also expose only list and
 detail reads. These methods do not ingest, calculate, verify, attest,

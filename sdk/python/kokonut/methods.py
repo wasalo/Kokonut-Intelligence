@@ -121,6 +121,28 @@ class ReferenceReadMethods(Generic[ReadModel]):
         return self._client.get_item(self._collection, item_id, fields)
 
 
+class ForecastAccuracyReadMethods(Generic[ReadModel]):
+    """Read-only stored accuracy rows scoped to their parent forecast."""
+
+    def __init__(self, client: KokonutClient) -> None:
+        self._client = client
+        self._collection = "forecast_accuracy"
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_forecast(
+        self, forecast_id: str, options: Optional[ListOptions] = None
+    ) -> List[ReadModel]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"forecast_id": {"_eq": forecast_id}}),
+        )
+
+
 class LocationMethods(GenericMethods):
     def __init__(self, client: KokonutClient) -> None:
         super().__init__(client, "location")

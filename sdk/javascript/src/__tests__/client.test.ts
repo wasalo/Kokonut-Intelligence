@@ -350,6 +350,31 @@ describe('KokonutClient', () => {
     }
   });
 
+  it('provides read-only forecast-accuracy reads scoped to the parent forecast', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'accuracy-1' } as any);
+    const options = {
+      limit: 10,
+      offset: 5,
+      fields: ['id', 'forecast_id', 'error_abs'],
+      sort: ['actual_timestamp'],
+      filter: { forecast_id: { _eq: 'other-forecast' }, is_within_ci: { _eq: true } },
+    };
+
+    await client.forecastAccuracies.list(options);
+    expect(listItems).toHaveBeenLastCalledWith('forecast_accuracy', options);
+    await client.forecastAccuracies.get('accuracy-1', ['id']);
+    expect(getItem).toHaveBeenLastCalledWith('forecast_accuracy', 'accuracy-1', ['id']);
+    await client.forecastAccuracies.listByForecast('forecast-1', options);
+    expect(listItems).toHaveBeenLastCalledWith('forecast_accuracy', {
+      ...options,
+      filter: { forecast_id: { _eq: 'forecast-1' }, is_within_ci: { _eq: true } },
+    });
+    expect('create' in client.forecastAccuracies).toBe(false);
+    expect('update' in client.forecastAccuracies).toBe(false);
+    expect('delete' in client.forecastAccuracies).toBe(false);
+  });
+
   it('preserves exact non-page-aligned offsets for Directus', async () => {
     await client.listItems('farm', { limit: 25, offset: 10 });
 

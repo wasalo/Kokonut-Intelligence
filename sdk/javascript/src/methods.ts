@@ -39,6 +39,12 @@ export interface ReferenceReadMethods<T> {
   get(id: string, fields?: string[]): Promise<T>;
 }
 
+export interface ForecastAccuracyReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByForecast(forecastId: string, options?: ListOptions): Promise<T[]>;
+}
+
 function createGenericMethods(client: any, collection: string): GenericMethods {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options),
@@ -72,6 +78,21 @@ export function buildReferenceReadMethods<T>(
   return {
     list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
     get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+  };
+}
+
+export function buildForecastAccuracyReadMethods<T>(
+  client: any,
+): ForecastAccuracyReadMethods<T> {
+  const collection = 'forecast_accuracy';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByForecast: (forecastId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, forecast_id: { _eq: forecastId } },
+      }) as Promise<T[]>,
   };
 }
 

@@ -65,6 +65,10 @@ const cycles = await client.cropCycles.listByPlot('plot-uuid');
 const tasks = await client.farmTasks.listByLocation('location-uuid');
 // This read does not assign, schedule, or complete work.
 
+// Read stored forecast/observation accuracy rows for one forecast
+const accuracy = await client.forecastAccuracies.listByForecast('forecast-uuid');
+// This returns persisted comparisons; it does not calculate or verify accuracy.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -224,6 +228,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `trendDashboardMetrics` | `trend_dashboard_metric` | `listByLocation` |
 | `infrastructureAssets` | `infrastructure_asset` | `listByLocation` |
 | `farmTasks` | `farm_task` | `listByLocation` (read-only) |
+| `forecastAccuracies` | `forecast_accuracy` | `listByForecast` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensorTypes` | `sensor_type` | — (read-only list/detail) |
@@ -233,7 +238,8 @@ Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `createMany`, `update`, `delete`. The credit-ledger, finance, ecological
 observation, and MRV groups are read-only and expose only `list`, `get`, and
 `listByLocation`; metric, forecast, market, and value-flow groups follow the
-same read-only contract. SDK location filters are query conveniences, not
+same read-only contract, except `forecastAccuracies`, which filters by
+`forecast_id` because the canonical table has no `location_id`. SDK filters are query conveniences, not
 authorization boundaries; Directus must enforce the caller's grants, especially
 for buyer and commercial records. Shared reference catalog helpers also expose
 only list/detail reads. These methods do not ingest, calculate,

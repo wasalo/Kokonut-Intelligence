@@ -12,6 +12,7 @@ from .methods import (
     ExportMethods,
     FarmMethods,
     FieldNoteMethods,
+    ForecastAccuracyReadMethods,
     HarvestEventMethods,
     LaborEventMethods,
     LocationMethods,
@@ -41,6 +42,7 @@ from .types import (
     EnvironmentalBaseline,
     FarmTask,
     FinancialTransaction,
+    ForecastAccuracy,
     ForecastOutput,
     ForecastScenario,
     InfrastructureAsset,
@@ -177,6 +179,9 @@ class KokonutClient:
         )
         self.time_series_forecasts: LocationReadMethods[TimeSeriesForecast] = LocationReadMethods(
             self, "time_series_forecast"
+        )
+        self.forecast_accuracies: ForecastAccuracyReadMethods[ForecastAccuracy] = (
+            ForecastAccuracyReadMethods(self)
         )
         self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
             self, "demand_forecast"

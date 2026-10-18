@@ -27,6 +27,7 @@ import type {
   DemandTrend,
   DemandForecast,
   FarmTask,
+  ForecastAccuracy,
   ForecastOutput,
   ForecastScenario,
   Crop,
@@ -54,6 +55,7 @@ import type {
 import {
   buildLocationReadMethods,
   buildReferenceReadMethods,
+  buildForecastAccuracyReadMethods,
   buildLocationMethods,
   buildFarmMethods,
   buildPlotMethods,
@@ -74,6 +76,7 @@ import {
 import type {
   LocationReadMethods,
   ReferenceReadMethods,
+  ForecastAccuracyReadMethods,
   LocationMethods,
   FarmMethods,
   PlotMethods,
@@ -144,6 +147,7 @@ export class KokonutClient {
   forecastScenarios: LocationReadMethods<ForecastScenario>;
   forecastOutputs: LocationReadMethods<ForecastOutput>;
   timeSeriesForecasts: LocationReadMethods<TimeSeriesForecast>;
+  forecastAccuracies: ForecastAccuracyReadMethods<ForecastAccuracy>;
   demandForecasts: LocationReadMethods<DemandForecast>;
   marketSizeEstimates: LocationReadMethods<MarketSizeEstimate>;
   priceObservations: LocationReadMethods<PriceObservation>;
@@ -203,6 +207,7 @@ export class KokonutClient {
     this.forecastScenarios = buildLocationReadMethods<ForecastScenario>(this, 'forecast_scenario');
     this.forecastOutputs = buildLocationReadMethods<ForecastOutput>(this, 'forecast_output');
     this.timeSeriesForecasts = buildLocationReadMethods<TimeSeriesForecast>(this, 'time_series_forecast');
+    this.forecastAccuracies = buildForecastAccuracyReadMethods<ForecastAccuracy>(this);
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
     this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');

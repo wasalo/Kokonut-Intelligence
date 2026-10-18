@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### Forecast-accuracy SDK reads — 18 October 2026
+
+Python and JavaScript now expose read-only access to stored `forecast_accuracy`
+rows via `list`, `get`, and `list_by_forecast` / `listByForecast`. The canonical
+table is keyed by `forecast_id` and has no `location_id`, so the SDK scopes by
+the real parent relationship and does not imply location authorization. The
+requested forecast filter wins over a conflicting caller filter, and other
+list options are retained. The accessor does not calculate or verify accuracy.
+Ninety-eight Python SDK/schema/method tests and 48 JavaScript SDK tests pass;
+TypeScript build, Ruff, Python compilation, schema and capability guards, and
+diff checks pass offline with mocked clients. Checklist: 625 complete / 19 open; capability matrix: 66 rows,
+54 baseline-retained, 7 deployed, 5 prepared ([evidence](builds/2026-10-18-recovery/sdk-forecast-accuracy-read-methods.json)).
+
 ### Shared reference catalog SDK reads — 18 October 2026
 
 Python and JavaScript now expose typed, read-only `list`/`get` accessors for
