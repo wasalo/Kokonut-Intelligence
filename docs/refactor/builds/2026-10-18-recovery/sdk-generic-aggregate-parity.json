@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline generic Directus aggregation support across Python and TypeScript SDKs",
+  "contract": "The TypeScript KokonutClient exposes aggregate(collection, options) through the pinned Directus SDK aggregate command, matching Python's generic /items/:collection/aggregate endpoint and data-envelope result behavior.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 82 passed",
+    "javascript": "npm test — 36 passed",
+    "typescript": "npm run build — passed",
+    "ruff": "ruff check tests/test_sdk.py tests/test_sdk_method_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "Synthetic query options and mocked clients are used; no HTTP request or database is used.",
+    "This is a client query capability, not an authorization or tenant-scope boundary.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

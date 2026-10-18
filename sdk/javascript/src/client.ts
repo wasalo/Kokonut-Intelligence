@@ -8,6 +8,7 @@ import {
   createItems,
   updateItem,
   deleteItem,
+  aggregate as aggregateItems,
 } from '@directus/sdk';
 import type { AuthenticationData } from '@directus/sdk';
 import type {
@@ -57,6 +58,12 @@ export interface KokonutClientOptions {
 export type KokonutLoginResult = AuthenticationData & {
   token: string;
   refreshToken: string;
+};
+
+export type KokonutAggregationOptions = {
+  aggregate: Record<string, any>;
+  groupBy?: string[];
+  query?: Record<string, any>;
 };
 
 export class KokonutClient {
@@ -171,5 +178,10 @@ export class KokonutClient {
   async deleteItem(collection: string, id: string): Promise<void> {
     await this.ready;
     await this.directus.request(deleteItem(collection, id));
+  }
+
+  async aggregate(collection: string, options: KokonutAggregationOptions): Promise<any[]> {
+    await this.ready;
+    return this.directus.request(aggregateItems(collection, options));
   }
 }

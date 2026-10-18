@@ -75,6 +75,12 @@ const harvest = await client.harvestEvents.create({
 // Query unpaid sales
 const unpaid = await client.salesEvents.listUnpaid();
 
+// Aggregate records through Directus
+const harvestCounts = await client.aggregate('harvest_event', {
+  aggregate: { count: '*' },
+  groupBy: ['location_id'],
+});
+
 // List sensor readings with anomalies
 const anomalies = await client.sensorReadings.listAnomalies();
 ```

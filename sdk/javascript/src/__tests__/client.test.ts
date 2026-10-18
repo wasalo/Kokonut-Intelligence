@@ -27,6 +27,7 @@ import type {
 vi.mock('@directus/sdk', () => {
   const mockRequest = vi.fn();
   const mockReadItems = vi.fn((collection: string, query: Record<string, any>) => ({ collection, query }));
+  const mockAggregate = vi.fn((collection: string, options: Record<string, any>) => ({ collection, options }));
   const mockReadItem = vi.fn(() => ({}));
   const mockCreateItem = vi.fn(() => ({}));
   const mockCreateItems = vi.fn(() => ({}));
@@ -45,6 +46,7 @@ vi.mock('@directus/sdk', () => {
     with: vi.fn(() => mockDirectus),
     request: mockRequest,
     readItems: mockReadItems,
+    aggregate: mockAggregate,
     readItem: mockReadItem,
     createItem: mockCreateItem,
     createItems: mockCreateItems,
@@ -60,6 +62,7 @@ vi.mock('@directus/sdk', () => {
     rest: vi.fn(() => ({})),
     authentication: vi.fn(() => ({})),
     readItems: mockReadItems,
+    aggregate: mockAggregate,
   };
 });
 
@@ -212,6 +215,18 @@ describe('KokonutClient', () => {
       collection: 'farm',
       query: { limit: 25, offset: 10 },
     });
+  });
+
+  it('supports the same generic Directus aggregation queries as Python', async () => {
+    const options = {
+      aggregate: { count: '*' },
+      groupBy: ['location_id'],
+    };
+
+    await client.aggregate('harvest_event', options);
+
+    const request = (client as any).directus.request;
+    expect(request).toHaveBeenCalledWith({ collection: 'harvest_event', options });
   });
 
   it('types crop-cycle yield fields and location scope to the canonical schema', () => {

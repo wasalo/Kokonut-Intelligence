@@ -1421,6 +1421,28 @@ def test_login_returns_directus_auth_payload_and_stores_access_token_without_net
     assert client.session.headers["Authorization"] == "Bearer synthetic-access-token"
 
 
+def test_aggregate_query_serializes_options_and_returns_data_without_network_calls():
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": [{"location_id": "location-1", "count": {"*": 2}}]}
+    client.session.get = Mock(return_value=response)
+
+    result = client.aggregate(
+        "harvest_event",
+        aggregate={"count": "*"},
+        groupBy=["location_id"],
+    )
+
+    assert result == response.json.return_value["data"]
+    client.session.get.assert_called_once_with(
+        "http://localhost:8055/items/harvest_event/aggregate",
+        params={"aggregate": '{"count": "*"}', "groupBy": '["location_id"]'},
+    )
+
+
 def test_export_create_many_delegates_to_directus_batch_without_network_calls():
     from kokonut import KokonutClient
 

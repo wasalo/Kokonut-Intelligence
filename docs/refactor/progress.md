@@ -9478,3 +9478,14 @@ build, Ruff, and diff checks pass. No real credentials or HTTP request were
 used, and Gateway operator sessions are unaffected. Checklist: 595 complete /
 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-login-response-parity.json`.
+
+### Native SDK generic aggregation parity — 18 October 2026
+
+The TypeScript client now supports generic Directus aggregate queries through
+the SDK's aggregate command, and exports the aggregate option type. Its README
+shows the same grouped count capability already available in Python. The
+focused Python SDK/schema/method suite passes 82 tests; Vitest passes 36 tests;
+TypeScript build, Ruff, capability-matrix, and diff checks pass. All requests
+are mocked; no authorization or tenant boundary is claimed. Checklist: 596
+complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-generic-aggregate-parity.json`.
