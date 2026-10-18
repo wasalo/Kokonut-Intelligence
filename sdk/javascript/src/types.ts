@@ -505,6 +505,36 @@ export interface CapitalSource {
   schema_version?: string | null;
 }
 
+/** Recorded financial fact; this model does not initiate payments. */
+export interface FinancialTransaction {
+  id: string;
+  location_id: string;
+  transaction_date: string;
+  transaction_type: string;
+  amount: number;
+  capital_source_id?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
+  currency?: string | null;
+  exchange_rate?: number | null;
+  amount_usd?: number | null;
+  description?: string | null;
+  reference?: string | null;
+  counterparty?: string | null;
+  payment_method?: string | null;
+  reconciled?: boolean | null;
+  reconciled_at?: string | null;
+  bank_reference?: string | null;
+  evidence_urls?: string[] | null;
+  notes?: string | null;
+  schema_version?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

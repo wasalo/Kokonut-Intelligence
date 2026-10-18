@@ -111,6 +111,24 @@ def test_capital_source_type_exposes_funding_and_governance_metadata():
     assert source.metadata["proposal_id"] == "42"
 
 
+def test_financial_transaction_type_describes_recorded_facts_without_payment_action():
+    from kokonut import FinancialTransaction
+
+    transaction = FinancialTransaction(
+        id="transaction-1",
+        location_id="location-1",
+        transaction_date="2026-10-18",
+        transaction_type="capital_inflow",
+        amount=1000.0,
+        evidence_urls=["evidence://receipt-1"],
+        source_raw={"import": "synthetic"},
+    )
+
+    assert transaction.amount == 1000.0
+    assert transaction.reconciled is None
+    assert transaction.source_raw == {"import": "synthetic"}
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

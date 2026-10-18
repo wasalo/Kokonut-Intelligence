@@ -401,6 +401,38 @@ class CapitalSource:
 
 
 @dataclass
+class FinancialTransaction:
+    """Recorded financial fact; this model does not initiate payments."""
+
+    id: str
+    location_id: str
+    transaction_date: str
+    transaction_type: str
+    amount: float
+    capital_source_id: Optional[str] = None
+    category: Optional[str] = None
+    subcategory: Optional[str] = None
+    currency: Optional[str] = None
+    exchange_rate: Optional[float] = None
+    amount_usd: Optional[float] = None
+    description: Optional[str] = None
+    reference: Optional[str] = None
+    counterparty: Optional[str] = None
+    payment_method: Optional[str] = None
+    reconciled: Optional[bool] = None
+    reconciled_at: Optional[str] = None
+    bank_reference: Optional[str] = None
+    evidence_urls: Optional[List[str]] = None
+    notes: Optional[str] = None
+    schema_version: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 553 checklist items complete and 19
-open (572 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 554 checklist items complete and 19
+open (573 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1258,6 +1258,7 @@ reporting views.
 - [x] Add descriptive Python and TypeScript `OrganizationMember` models, including the nullable additive `team_id`, JSONB metadata shape, and exact membership/role/status SQL CHECK literals. The offline guard now covers 22 models, 505 columns, 472 scalar types, 26 JSONB fields, seven PostGIS shapes, 16 enum fields, and eight auto-discovered CHECK literals. Thirty-three Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation, capability-matrix validation, and diff checks pass; no database or network was used. Organization membership remains descriptive and grants no tenant access ([evidence](builds/2026-10-18-recovery/sdk-organization-member-parity.json)).
 - [x] Add Python and TypeScript `ExpenseCategory` models for the shared finance taxonomy, including all base columns and the additive `schema_version`. The offline guard now covers 23 models, 516 columns, 483 scalar types, 26 JSONB fields, seven PostGIS shapes, 16 enum fields, and eight discovered CHECK literals. Thirty-four Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass; no database or network was used ([evidence](builds/2026-10-18-recovery/sdk-expense-category-parity.json)).
 - [x] Add Python and TypeScript `CapitalSource` models for funding-source metadata, including JSON-object metadata, the constrained entity status, and migration-added `schema_version`. The offline guard now covers 24 models, 529 columns, 495 scalar types, 27 JSONB fields, seven PostGIS shapes, 17 enum fields, and eight discovered CHECK literals. Thirty-five Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass; no database or network was used ([evidence](builds/2026-10-18-recovery/sdk-capital-source-parity.json)).
+- [x] Add Python and TypeScript `FinancialTransaction` models covering recorded facts, reconciliation, evidence, and source lineage. The offline guard now covers 25 models, 555 columns, 520 scalar types, 28 JSONB fields, seven PostGIS shapes, 17 enum fields, and eight discovered CHECK literals. Thirty-six Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass; no database or network was used. The model does not initiate payments or mark a transaction verified ([evidence](builds/2026-10-18-recovery/sdk-financial-transaction-parity.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

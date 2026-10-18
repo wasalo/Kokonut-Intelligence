@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK financial-transaction schema parity — 18 October 2026
+
+Python and TypeScript now expose the canonical `financial_transaction` record,
+including reconciliation state, evidence URLs, and source lineage. JSONB
+source data is typed as a JSON object. The offline guard covers 25 models, 555
+canonical columns, 520 scalar types, 28 JSONB shapes, seven PostGIS shapes,
+17 enum fields, and eight discovered CHECK-literal fields. Thirty-six Python
+SDK/guard tests and 29 JavaScript tests pass with TypeScript build, Ruff,
+compilation, schema guard, capability-matrix validation, and diff check. No
+database or network was contacted. This model describes stored facts; it does
+not execute payments or establish verification
+([evidence](builds/2026-10-18-recovery/sdk-financial-transaction-parity.json)).
+
 ### SDK capital-source schema parity — 18 October 2026
 
 Python and TypeScript now expose the canonical `capital_source` record,
