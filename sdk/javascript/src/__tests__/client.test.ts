@@ -4,7 +4,7 @@ import { KokonutClient } from '../client.js';
 // Mock the @directus/sdk
 vi.mock('@directus/sdk', () => {
   const mockRequest = vi.fn();
-  const mockReadItems = vi.fn(() => ({}));
+  const mockReadItems = vi.fn((collection: string, query: Record<string, any>) => ({ collection, query }));
   const mockReadItem = vi.fn(() => ({}));
   const mockCreateItem = vi.fn(() => ({}));
   const mockCreateItems = vi.fn(() => ({}));
@@ -32,6 +32,7 @@ vi.mock('@directus/sdk', () => {
     createDirectus: vi.fn(() => mockDirectus),
     rest: vi.fn(() => ({})),
     authentication: vi.fn(() => ({})),
+    readItems: mockReadItems,
   };
 });
 
@@ -93,6 +94,17 @@ describe('KokonutClient', () => {
     expect(typeof client.reports.listByType).toBe('function');
     expect(typeof client.noi.listByCropCycle).toBe('function');
     expect(typeof client.exports.createExport).toBe('function');
+  });
+
+  it('preserves exact non-page-aligned offsets for Directus', async () => {
+    await client.listItems('farm', { limit: 25, offset: 10 });
+
+    const request = (client as any).directus.request;
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls[0][0]).toEqual({
+      collection: 'farm',
+      query: { limit: 25, offset: 10 },
+    });
   });
 
   it('preserves Python SDK export inputs through createExport()', async () => {

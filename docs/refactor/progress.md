@@ -8577,3 +8577,12 @@ behavior. Six Python tests and 15 JavaScript tests pass, along with Ruff,
 TypeScript compilation, and diff checks. The clients are mocked; no HTTP
 requests were sent. Checklist: 527 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-export-create-many-parity.json`.
+
+### SDK exact offset pagination — 17 October 2026
+
+Both SDKs now preserve a non-page-aligned offset instead of flooring it to the
+start of a page. Explicit page handling and the zero-limit guard remain
+unchanged. Seven Python tests and 16 JavaScript tests pass with Ruff,
+TypeScript compilation, and diff checks. Request calls are mocked and no HTTP
+request was sent. Checklist: 528 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-exact-offset-pagination.json`.

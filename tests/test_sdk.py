@@ -28,6 +28,14 @@ def test_kokonut_types_import():
     assert opts.limit == 10
 
 
+def test_list_options_preserve_exact_non_page_aligned_offset():
+    from kokonut.types import ListOptions
+
+    options = ListOptions(limit=25, offset=10)
+
+    assert options.to_params() == {"limit": 25, "offset": 10}
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

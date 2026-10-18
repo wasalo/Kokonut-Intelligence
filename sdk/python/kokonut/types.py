@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 
@@ -27,7 +27,7 @@ class ListOptions:
         if self.offset is not None and self.limit is not None:
             if self.limit == 0:
                 raise ValueError("offset pagination requires a non-zero limit")
-            params["page"] = (self.offset // self.limit) + 1
+            params["offset"] = self.offset
         elif self.page is not None:
             params["page"] = self.page
         if self.meta is not None:

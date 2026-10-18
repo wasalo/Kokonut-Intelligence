@@ -113,7 +113,7 @@ export class KokonutClient {
       if (options.limit === 0) {
         throw new RangeError('offset pagination requires a non-zero limit');
       }
-      query.page = Math.floor(options.offset / options.limit) + 1;
+      query.offset = options.offset;
     } else if (options?.page !== undefined) {
       query.page = options.page;
     }

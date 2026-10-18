@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (17 October 2026):** 527 checklist items complete and 19
-open (546 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (17 October 2026):** 528 checklist items complete and 19
+open (547 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1232,6 +1232,7 @@ reporting views.
   - [x] Add a no-network fake-provider route contract for login state handoff, callback failure, opaque cookie issuance, session scope response, and CSRF-gated logout; verify the actual OIDC adapter's discovery URL, requested scopes, S256 PKCE setting, and invalid-claim rejection before database access. The combined focused operator/mobile/event set passes 105 tests. This leaves Authlib/OIDC protocol behavior, database identity provisioning, real provider, and browser acceptance open ([evidence](builds/2026-10-15-recovery/operator-oidc-provider-contract.json)).
   - [x] Build Kokonut's optional OIDC application target for `linux/arm64` and run runtime CLI help plus image-manifest generation in a network-disabled QEMU container. Authlib, cryptography, and itsdangerous resolved for ARM64. The digest-pinned ZITADEL API/Login, identity PostgreSQL, and Caddy defaults also expose ARM64 manifests; ARM64 planner overlays and merged standard+ZITADEL config pass. No provider container or live login was run ([app evidence](builds/2026-10-16-recovery/kernel-arm64-oidc-smoke.json); [provider/profile evidence](builds/2026-10-16-recovery/zitadel-arm64-profile.json)).
 - [x] Select `report_snapshot` as the first location-scoped submitted-record source; implement its bounded read-only queue/detail routes, explicit OIDC location-scope enforcement, and same-origin browser view ([contract and acceptance gates](kernel-operations-console.md)).
+- [x] Preserve exact non-page-aligned `offset` values in both SDKs instead of flooring them to a page boundary. Seven Python tests, 16 JavaScript tests, Ruff, TypeScript build, and diff checks pass; request calls are mocked ([evidence](builds/2026-10-17-recovery/sdk-exact-offset-pagination.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented
