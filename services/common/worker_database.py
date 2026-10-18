@@ -19,6 +19,7 @@ _WORKER_LOGINS = {
     "notification_enqueue": "kokonut_notification_enqueue_login",
     "market_data": "kokonut_market_data_login",
     "eas_indexer": "kokonut_eas_indexer_login",
+    "rpc_indexer": "kokonut_rpc_indexer_login",
     "sensor_ingestion": "kokonut_sensor_ingestion_login",
     "remote_sensing": "kokonut_remote_sensing_login",
 }

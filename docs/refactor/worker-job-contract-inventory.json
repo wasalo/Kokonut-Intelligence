@@ -3,11 +3,11 @@
   "generated_by": "scripts/worker_job_contract_inventory.py",
   "scope": "Static comparison of the shared JobSpec catalog with the current module allowlist and command contracts. Modeled required inputs use synthetic schema fixtures only. It does not inspect or modify persisted tasks, external Prefect schedules, provider state, or runtime execution.",
   "summary": {
-    "catalog_jobs": 17,
-    "allowlisted_modules": 24,
+    "catalog_jobs": 18,
+    "allowlisted_modules": 25,
     "outcomes": {
       "default_arguments_accepted": 5,
-      "required_runtime_inputs_validated": 12
+      "required_runtime_inputs_validated": 13
     }
   },
   "jobs": [
@@ -146,6 +146,17 @@
     },
     {
       "job": "rpc",
+      "module": "services.ingestion.rpc_worker",
+      "worker_key": "rpc_indexer",
+      "argument_count": 0,
+      "required_inputs": [
+        "chain"
+      ],
+      "status": "required_runtime_inputs_validated",
+      "reason": "schema accepts the modeled input; each scheduled instance must provide it"
+    },
+    {
+      "job": "rpc_legacy",
       "module": "services.ingestion.rpc_indexer",
       "worker_key": null,
       "argument_count": 0,

@@ -1,5 +1,6 @@
 """RPC wallet rows, projections, and chain status share one transaction."""
 
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -12,6 +13,67 @@ ADDRESS = "0x" + "a" * 40
 
 def _wallet(wallet_id="wallet-1", chain="celo", label="Kokonut"):
     return (wallet_id, ADDRESS, chain, "treasury", label)
+
+
+def _activity_record():
+    return {
+        "wallet_id": "wallet-1",
+        "chain": "celo",
+        "tx_hash": "balance-check-celo-wallet-1-100",
+        "block_number": 100,
+        "block_timestamp": "2026-10-18T12:00:00+00:00",
+        "from_address": "",
+        "to_address": ADDRESS,
+        "value": 1.234567891,
+        "token": "ETH",
+        "gas_used": 0,
+        "gas_price": 0,
+        "status": "success",
+        "activity_type": "balance_check",
+    }
+
+
+def test_rpc_activity_reuses_exact_row_without_requiring_unique_tx_hash_index():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (
+        "existing-id", 100, "", ADDRESS.lower(), Decimal("1.23456789"),
+        "ETH", Decimal("0"), Decimal("0"), "success", "balance_check",
+    )
+
+    assert rpc_indexer.insert_activity(connection, _activity_record()) is None
+
+    statement = cursor.execute.call_args.args[0]
+    assert "SELECT id, block_number" in statement
+    assert "FOR UPDATE" in statement
+    assert "ON CONFLICT" not in statement
+    assert cursor.execute.call_count == 1
+
+
+def test_rpc_activity_rejects_changed_content_for_an_existing_identity():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (
+        "existing-id", 100, "", ADDRESS, Decimal("2.00000000"),
+        "ETH", Decimal("0"), Decimal("0"), "success", "balance_check",
+    )
+
+    with pytest.raises(ValueError, match="identity conflicts"):
+        rpc_indexer.insert_activity(connection, _activity_record())
+
+    assert cursor.execute.call_count == 1
+
+
+def test_rpc_activity_insert_uses_no_unbacked_conflict_target():
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.fetchone.side_effect = [None, ("inserted-id",)]
+
+    assert rpc_indexer.insert_activity(connection, _activity_record()) == "inserted-id"
+
+    insert_statement = cursor.execute.call_args_list[1].args[0]
+    assert "INSERT INTO wallet_activity_event" in insert_statement
+    assert "ON CONFLICT" not in insert_statement
 
 
 def _rpc_patches(connection, wallets, status_calls, events, *, balance_side_effect=None,
@@ -60,8 +122,13 @@ def test_rpc_success_commits_wallet_rows_outbox_and_status_together():
         (("celo", "rpc", 100, "healthy"), {"db": connection})
     ]
     assert [event[0] for event in events] == ["status", "outbox", "commit"]
-    assert connection.cursor.return_value.__enter__.return_value.execute.call_args_list[0].args[0] == "SAVEPOINT rpc_wallet_activity"
-    assert connection.cursor.return_value.__enter__.return_value.execute.call_args_list[1].args[0] == "RELEASE SAVEPOINT rpc_wallet_activity"
+    statements = [
+        call.args[0]
+        for call in connection.cursor.return_value.__enter__.return_value.execute.call_args_list
+    ]
+    assert "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))" in statements
+    assert "SAVEPOINT rpc_wallet_activity" in statements
+    assert "RELEASE SAVEPOINT rpc_wallet_activity" in statements
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
 

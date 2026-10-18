@@ -189,6 +189,32 @@ def test_scheduled_eas_worker_receives_only_its_named_database_url():
     }
 
 
+def test_scheduled_rpc_worker_receives_only_its_database_and_provider_endpoints():
+    source = {
+        "KOKONUT_RPC_INDEXER_DATABASE_URL": "postgresql://rpc-indexer",
+        "KOKONUT_RPC_INDEXER_RPC_ENDPOINTS": '{"celo":"https://rpc.example/?token=rpc-secret"}',
+        "KOKONUT_EAS_INDEXER_DATABASE_URL": "postgresql://eas-indexer",
+        "ETH_RPC_URL": "https://eth.example/?token=global-secret",
+        "GNOSIS_RPC_URL": "https://gnosis.example/?token=global-secret",
+        "PG_HOST": "database",
+        "PG_USER": "kokonut_runtime",
+        "PG_PASSWORD": "shared-runtime-secret",
+        "POSTGRES_PASSWORD": "database-admin-secret",
+    }
+    worker_key = scheduled_module_worker_key("services.ingestion.rpc_worker")
+
+    assert worker_key == "rpc_indexer"
+    assert worker_subprocess_environment(
+        allowed_worker_keys=(worker_key,),
+        isolated_database_credentials=True,
+        environ=source,
+    ) == {
+        "KOKONUT_RPC_INDEXER_DATABASE_URL": "postgresql://rpc-indexer",
+        "KOKONUT_RPC_INDEXER_RPC_ENDPOINTS": '{"celo":"https://rpc.example/?token=rpc-secret"}',
+        ISOLATED_WORKER_KEY_ENV: "rpc_indexer",
+    }
+
+
 def test_scheduled_sensor_worker_receives_only_its_named_credentials():
     source = {
         "KOKONUT_SENSOR_INGESTION_DATABASE_URL": "postgresql://sensor-worker",

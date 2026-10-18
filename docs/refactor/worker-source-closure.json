@@ -3404,32 +3404,163 @@
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 21,
+          "line": 22,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 22,
+          "line": 23,
           "target": "services.ingestion.base",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 29,
+          "line": 30,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 30,
+          "line": 31,
           "target": "services.ingestion.config",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 194,
+          "line": 233,
           "target": "services.ingestion.clickhouse_outbox",
+          "kind": "from"
+        }
+      ],
+      "unresolved_local_modules": [],
+      "dynamic_import_sites": []
+    },
+    {
+      "kind": "scheduled_module",
+      "name": "services.ingestion.rpc_worker",
+      "root_modules": [
+        "services.ingestion.rpc_worker"
+      ],
+      "modules": [
+        "services.common.cli",
+        "services.common.database",
+        "services.common.db",
+        "services.common.env",
+        "services.common.worker_database",
+        "services.common.worker_environment",
+        "services.core.features",
+        "services.core.providers",
+        "services.ingestion.rpc_provider",
+        "services.ingestion.rpc_worker"
+      ],
+      "source_files": [
+        "services/common/cli.py",
+        "services/common/database.py",
+        "services/common/db.py",
+        "services/common/env.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/features.py",
+        "services/core/providers.py",
+        "services/ingestion/rpc_provider.py",
+        "services/ingestion/rpc_worker.py"
+      ],
+      "local_import_edges": [
+        {
+          "source": "services/common/cli.py",
+          "line": 42,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 59,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/cli.py",
+          "line": 67,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 24,
+          "target": "services.common.db",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/database.py",
+          "line": 25,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 7,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 9,
+          "target": "services.common.env",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/db.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 10,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/common/env.py",
+          "line": 197,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/core/features.py",
+          "line": 12,
+          "target": "services.core.providers",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 14,
+          "target": "services.common.cli",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 15,
+          "target": "services.common.worker_database",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 16,
+          "target": "services.common.worker_environment",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 17,
+          "target": "services.core.features",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/rpc_worker.py",
+          "line": 19,
+          "target": "services.ingestion.rpc_provider",
           "kind": "from"
         }
       ],

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "08412a68d0ca1ce4bda18d1ecccb8f005a74a056",
+  "baseline_commit": "cd741f8e7aa2140b9dc0246a2e4b58fb2d61b6ef",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1137,109 +1137,109 @@
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 128,
+      "line": 125,
       "method": "GET",
       "path": "/locations",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 144,
+      "line": 141,
       "method": "GET",
       "path": "/locations/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 169,
+      "line": 166,
       "method": "GET",
       "path": "/v1/locations",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 188,
+      "line": 185,
       "method": "GET",
       "path": "/v1/locations/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 216,
+      "line": 213,
       "method": "GET",
       "path": "/metrics/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 250,
+      "line": 247,
       "method": "GET",
       "path": "/crisp/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 274,
+      "line": 271,
       "method": "GET",
       "path": "/analytics/{location_id}/summary",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 298,
+      "line": 295,
       "method": "GET",
       "path": "/v1/metrics/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 308,
+      "line": 305,
       "method": "GET",
       "path": "/v1/crisp/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 319,
+      "line": 316,
       "method": "GET",
       "path": "/v1/analytics/{location_id}/summary",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 330,
+      "line": 327,
       "method": "GET",
       "path": "/data-stream/posts",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 365,
+      "line": 362,
       "method": "GET",
       "path": "/data-stream/posts/{post_id}/files",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 390,
+      "line": 387,
       "method": "GET",
       "path": "/data-stream/posts/{post_id}/attestation",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 417,
+      "line": 414,
       "method": "POST",
       "path": "/data-stream/post",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 442,
+      "line": 439,
       "method": "GET",
       "path": "/iri/resolve",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 466,
+      "line": 463,
       "method": "GET",
       "path": "/federation/nodes",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 478,
+      "line": 475,
       "method": "GET",
       "path": "/drivers",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 490,
+      "line": 487,
       "method": "GET",
       "path": "/health/services",
       "source": "services/gateway/router.py"
@@ -1826,7 +1826,10 @@
       "schemas/postgres/430_isolated_market_data_worker.sql",
       "schemas/postgres/431_signed_sensor_driver_worker.sql",
       "schemas/postgres/432_signed_remote_sensing_worker.sql",
-      "schemas/postgres/433_isolated_eas_indexer.sql"
+      "schemas/postgres/433_isolated_eas_indexer.sql",
+      "schemas/postgres/434_financial_events_clickhouse_outbox.sql",
+      "schemas/postgres/435_financial_projection_conflict_guard.sql",
+      "schemas/postgres/436_isolated_rpc_indexer.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2005,6 +2008,7 @@
         "services/agents/wellbeing_agent.py"
       ],
       "test_references": [
+        "tests/test_agent_action_log_redaction.py",
         "tests/test_agent_safety.py",
         "tests/test_agent_tasks.py",
         "tests/test_agents_base.py",
@@ -2247,6 +2251,7 @@
         "tests/test_data_governance.py",
         "tests/test_data_quality.py",
         "tests/test_data_retention_gate.py",
+        "tests/test_data_retention_inventory_cli.py",
         "tests/test_demand_analysis.py",
         "tests/test_digital_finance.py",
         "tests/test_digital_twin.py",
@@ -2387,6 +2392,7 @@
       "test_references": [
         "tests/test_attestation.py",
         "tests/test_attestation_cli_error_redaction.py",
+        "tests/test_attestation_reconciliation_error_redaction.py",
         "tests/test_attestation_safe.py",
         "tests/test_attestation_signer_error_redaction.py",
         "tests/test_data_stream.py",
@@ -2404,6 +2410,7 @@
       ],
       "test_references": [
         "tests/test_cache_cache.py",
+        "tests/test_cache_error_redaction.py",
         "tests/test_cache_events.py",
         "tests/test_os_architecture.py"
       ]
@@ -2514,6 +2521,7 @@
         "KOKONUT_FEATURE_ISOLATED_EAS_INDEXER_WORKER",
         "KOKONUT_FEATURE_ISOLATED_MARKET_DATA_WORKER",
         "KOKONUT_FEATURE_ISOLATED_NOTIFICATION_ENQUEUE",
+        "KOKONUT_FEATURE_ISOLATED_RPC_INDEXER_WORKER",
         "KOKONUT_FEATURE_NOTIFICATION_DELIVERY",
         "KOKONUT_FEATURE_REPORTS",
         "KOKONUT_FEATURE_SCHEDULER",
@@ -2549,11 +2557,14 @@
         "tests/test_clickhouse_outbox.py",
         "tests/test_climate_worker.py",
         "tests/test_core_features.py",
+        "tests/test_core_health_error_redaction.py",
         "tests/test_core_jobs_contract.py",
         "tests/test_driver_registry.py",
+        "tests/test_grpc_health_error_redaction.py",
         "tests/test_grpc_optional_boundary.py",
         "tests/test_kernel_runtime_supervisor.py",
         "tests/test_kernel_schema_startup.py",
+        "tests/test_mqtt_subscriber_error_redaction.py",
         "tests/test_prefect_scoped_location_fanout.py",
         "tests/test_prefect_workflow.py",
         "tests/test_scheduled_command_contracts.py"
@@ -2742,7 +2753,8 @@
         "tests/test_insight_transfer.py",
         "tests/test_notification_outbox.py",
         "tests/test_os_architecture.py",
-        "tests/test_tactical_layer.py"
+        "tests/test_tactical_layer.py",
+        "tests/test_worker_error_status_cli_redaction.py"
       ]
     },
     "export": {
@@ -2835,6 +2847,7 @@
         "services/federation/sync.py"
       ],
       "test_references": [
+        "tests/test_federation_error_redaction.py",
         "tests/test_phase3_4.py"
       ]
     },
@@ -2988,6 +3001,7 @@
         "tests/test_gateway_audit.py",
         "tests/test_gateway_auth.py",
         "tests/test_gateway_data_stream.py",
+        "tests/test_gateway_internal_error_redaction.py",
         "tests/test_gateway_lifespan.py",
         "tests/test_gateway_public_iri.py",
         "tests/test_gateway_public_locations.py",
@@ -3084,7 +3098,8 @@
       "test_references": [
         "tests/test_grpc.py",
         "tests/test_grpc_auth_context_lifecycle.py",
-        "tests/test_grpc_enabled_transport.py"
+        "tests/test_grpc_enabled_transport.py",
+        "tests/test_grpc_error_redaction.py"
       ]
     },
     "guilds": {
@@ -3208,6 +3223,8 @@
         "services/ingestion/remote_sensing_fetcher.py",
         "services/ingestion/remote_sensing_worker.py",
         "services/ingestion/rpc_indexer.py",
+        "services/ingestion/rpc_provider.py",
+        "services/ingestion/rpc_worker.py",
         "services/ingestion/sensor_anomaly_worker.py",
         "services/ingestion/sensor_ingester.py",
         "services/ingestion/sensor_projection.py",
@@ -3276,6 +3293,7 @@
         "tests/test_ingestion_base_error_redaction.py",
         "tests/test_ingestion_outbox_producers.py",
         "tests/test_ingestion_retry.py",
+        "tests/test_ingestion_status_error_redaction.py",
         "tests/test_iot_sensor_push.py",
         "tests/test_learning_plans.py",
         "tests/test_legacy_geo_import_error_redaction.py",
@@ -3287,7 +3305,9 @@
         "tests/test_marketplace_integration.py",
         "tests/test_metrics.py",
         "tests/test_ml_anomaly.py",
+        "tests/test_ml_anomaly_error_redaction.py",
         "tests/test_ml_model_loading_security.py",
+        "tests/test_mock_sensor_error_redaction.py",
         "tests/test_mqtt_actuator_error_redaction.py",
         "tests/test_mqtt_subscriber_error_redaction.py",
         "tests/test_objective_performance.py",
@@ -3313,6 +3333,7 @@
         "tests/test_process_simulation.py",
         "tests/test_program_portfolio.py",
         "tests/test_publics.py",
+        "tests/test_raster_metadata_error_redaction.py",
         "tests/test_reference_class.py",
         "tests/test_regional_readiness.py",
         "tests/test_remote_sensing_automation.py",
@@ -3325,6 +3346,7 @@
         "tests/test_revenue_multiplier.py",
         "tests/test_rpc_indexer_contract.py",
         "tests/test_rpc_indexer_recovery.py",
+        "tests/test_rpc_worker.py",
         "tests/test_runtime_import_regressions.py",
         "tests/test_sandop.py",
         "tests/test_sensor_driver_schedule.py",
@@ -3380,6 +3402,7 @@
         "tests/test_weather_legacy_error_redaction.py",
         "tests/test_weather_worker.py",
         "tests/test_work_selection.py",
+        "tests/test_worker_error_status_cli_redaction.py",
         "tests/test_worker_operation_map.py"
       ]
     },
@@ -3472,7 +3495,8 @@
         "services/metadata_api/resolver.py"
       ],
       "test_references": [
-        "tests/test_linked_data.py"
+        "tests/test_linked_data.py",
+        "tests/test_metadata_and_trend_error_redaction.py"
       ]
     },
     "metrics": {
@@ -3508,6 +3532,7 @@
       "test_references": [
         "tests/test_farm_activity_metrics.py",
         "tests/test_flow_metrics.py",
+        "tests/test_metric_event_error_redaction.py",
         "tests/test_metrics.py",
         "tests/test_metrics_noi_snapshot_scope.py",
         "tests/test_noi_snapshot_worker.py",
@@ -3534,6 +3559,8 @@
         "KOKONUT_OPERATOR_AUTH_USER",
         "KOKONUT_REMOTE_SENSING_PASSWORD",
         "KOKONUT_REMOTE_SENSING_USER",
+        "KOKONUT_RPC_INDEXER_PASSWORD",
+        "KOKONUT_RPC_INDEXER_USER",
         "KOKONUT_RUNTIME_PASSWORD",
         "KOKONUT_RUNTIME_USER",
         "KOKONUT_SENSOR_INGESTION_PASSWORD",
@@ -3711,7 +3738,8 @@
         "services/revenue_multiplier/models.py"
       ],
       "test_references": [
-        "tests/test_revenue_multiplier.py"
+        "tests/test_revenue_multiplier.py",
+        "tests/test_revenue_multiplier_error_redaction.py"
       ]
     },
     "sandbox": {
@@ -3724,7 +3752,10 @@
         "services/sandbox/monitor.py"
       ],
       "test_references": [
-        "tests/test_phase3_4.py"
+        "tests/test_phase3_4.py",
+        "tests/test_sandbox_database_error_redaction.py",
+        "tests/test_sandbox_error_redaction.py",
+        "tests/test_sandbox_module_input.py"
       ]
     },
     "scheduler": {
@@ -3746,7 +3777,8 @@
         "tests/test_os_architecture.py",
         "tests/test_scheduled_command_contracts.py",
         "tests/test_scheduler_durability.py",
-        "tests/test_scheduler_worker.py"
+        "tests/test_scheduler_worker.py",
+        "tests/test_worker_error_status_cli_redaction.py"
       ]
     },
     "schema_introspection": {
@@ -3888,7 +3920,8 @@
         "services/stream/windows.py"
       ],
       "test_references": [
-        "tests/test_phase3_4.py"
+        "tests/test_phase3_4.py",
+        "tests/test_stream_error_redaction.py"
       ]
     },
     "systems": {
@@ -3961,6 +3994,7 @@
         "tests/test_backcast_dag.py",
         "tests/test_backcasting_enhancements.py",
         "tests/test_good_offense.py",
+        "tests/test_metadata_and_trend_error_redaction.py",
         "tests/test_prediction_calibration.py",
         "tests/test_tactical_layer.py",
         "tests/test_threatcasting.py",
@@ -4067,6 +4101,7 @@
     "tests/test_advantage_links.py",
     "tests/test_advantage_outcomes.py",
     "tests/test_advisor.py",
+    "tests/test_agent_action_log_redaction.py",
     "tests/test_agent_safety.py",
     "tests/test_agent_tasks.py",
     "tests/test_agents_base.py",
@@ -4077,6 +4112,7 @@
     "tests/test_anomaly_notification_error_redaction.py",
     "tests/test_attestation.py",
     "tests/test_attestation_cli_error_redaction.py",
+    "tests/test_attestation_reconciliation_error_redaction.py",
     "tests/test_attestation_safe.py",
     "tests/test_attestation_signer_error_redaction.py",
     "tests/test_ba_integration.py",
@@ -4118,6 +4154,7 @@
     "tests/test_business_model_canvas.py",
     "tests/test_business_plan.py",
     "tests/test_cache_cache.py",
+    "tests/test_cache_error_redaction.py",
     "tests/test_cache_events.py",
     "tests/test_capability_map.py",
     "tests/test_capacity_aware_planning.py",
@@ -4164,6 +4201,7 @@
     "tests/test_coordination_market_cycles.py",
     "tests/test_coordination_strategy.py",
     "tests/test_core_features.py",
+    "tests/test_core_health_error_redaction.py",
     "tests/test_core_jobs_contract.py",
     "tests/test_credit_balance.py",
     "tests/test_credit_basket.py",
@@ -4183,6 +4221,7 @@
     "tests/test_data_module_all.py",
     "tests/test_data_quality.py",
     "tests/test_data_retention_gate.py",
+    "tests/test_data_retention_inventory_cli.py",
     "tests/test_data_stream.py",
     "tests/test_dataset_refresh_readonly.py",
     "tests/test_decision_policy.py",
@@ -4250,6 +4289,7 @@
     "tests/test_farm_activity_use_gate.py",
     "tests/test_farm_activity_workflow.py",
     "tests/test_farmer_identity.py",
+    "tests/test_federation_error_redaction.py",
     "tests/test_feedback_automation.py",
     "tests/test_feedback_automation_error_redaction.py",
     "tests/test_feedback_controller.py",
@@ -4267,6 +4307,7 @@
     "tests/test_gateway_audit.py",
     "tests/test_gateway_auth.py",
     "tests/test_gateway_data_stream.py",
+    "tests/test_gateway_internal_error_redaction.py",
     "tests/test_gateway_lifespan.py",
     "tests/test_gateway_public_iri.py",
     "tests/test_gateway_public_locations.py",
@@ -4293,6 +4334,8 @@
     "tests/test_grpc.py",
     "tests/test_grpc_auth_context_lifecycle.py",
     "tests/test_grpc_enabled_transport.py",
+    "tests/test_grpc_error_redaction.py",
+    "tests/test_grpc_health_error_redaction.py",
     "tests/test_grpc_optional_boundary.py",
     "tests/test_grpc_rpc_policy_inventory.py",
     "tests/test_guild_reorg.py",
@@ -4309,6 +4352,7 @@
     "tests/test_ingestion_outbox_producers.py",
     "tests/test_ingestion_reliability.py",
     "tests/test_ingestion_retry.py",
+    "tests/test_ingestion_status_error_redaction.py",
     "tests/test_insight_transfer.py",
     "tests/test_iot_sensor_push.py",
     "tests/test_iri_cli_offline.py",
@@ -4335,11 +4379,14 @@
     "tests/test_marketplace_integration.py",
     "tests/test_measurement_schedule.py",
     "tests/test_meta_learning.py",
+    "tests/test_metadata_and_trend_error_redaction.py",
+    "tests/test_metric_event_error_redaction.py",
     "tests/test_metrics.py",
     "tests/test_metrics_noi_snapshot_scope.py",
     "tests/test_mica_classification.py",
     "tests/test_migration.py",
     "tests/test_ml_anomaly.py",
+    "tests/test_ml_anomaly_error_redaction.py",
     "tests/test_ml_model_loading_security.py",
     "tests/test_ml_retraining.py",
     "tests/test_mobile_api.py",
@@ -4355,6 +4402,7 @@
     "tests/test_mobile_tenant_database_readiness.py",
     "tests/test_mobile_tenant_operator_preflight.py",
     "tests/test_mobile_vault.py",
+    "tests/test_mock_sensor_error_redaction.py",
     "tests/test_mqtt_actuator_error_redaction.py",
     "tests/test_mqtt_subscriber_error_redaction.py",
     "tests/test_network_trust.py",
@@ -4419,6 +4467,7 @@
     "tests/test_program_portfolio.py",
     "tests/test_public_api_sdk.py",
     "tests/test_publics.py",
+    "tests/test_raster_metadata_error_redaction.py",
     "tests/test_rdf_graph.py",
     "tests/test_reference_class.py",
     "tests/test_regenerative_outcomes.py",
@@ -4446,13 +4495,18 @@
     "tests/test_responsibility_assignment.py",
     "tests/test_revenue_model.py",
     "tests/test_revenue_multiplier.py",
+    "tests/test_revenue_multiplier_error_redaction.py",
     "tests/test_rpc_indexer_contract.py",
     "tests/test_rpc_indexer_recovery.py",
+    "tests/test_rpc_worker.py",
     "tests/test_runtime_import_regressions.py",
     "tests/test_runtime_role_boundary.py",
     "tests/test_runtime_sql_inventory.py",
     "tests/test_safe_settlement.py",
     "tests/test_sample_plot_generator.py",
+    "tests/test_sandbox_database_error_redaction.py",
+    "tests/test_sandbox_error_redaction.py",
+    "tests/test_sandbox_module_input.py",
     "tests/test_sandop.py",
     "tests/test_scenario_parameters.py",
     "tests/test_scheduled_command_contracts.py",
@@ -4462,6 +4516,8 @@
     "tests/test_schema_introspection_risks.py",
     "tests/test_scoring_normalization.py",
     "tests/test_sdk.py",
+    "tests/test_sdk_method_parity.py",
+    "tests/test_sdk_schema_parity.py",
     "tests/test_security_allowlist.py",
     "tests/test_security_audit.py",
     "tests/test_security_capabilities.py",
@@ -4525,6 +4581,7 @@
     "tests/test_strategy_review.py",
     "tests/test_strategy_risk_evidence.py",
     "tests/test_strategy_variance.py",
+    "tests/test_stream_error_redaction.py",
     "tests/test_subgraph_indexer_recovery.py",
     "tests/test_swot.py",
     "tests/test_swot_enhanced.py",
@@ -4568,6 +4625,7 @@
     "tests/test_worker_boundary_preflight.py",
     "tests/test_worker_database.py",
     "tests/test_worker_environment.py",
+    "tests/test_worker_error_status_cli_redaction.py",
     "tests/test_worker_function_reachability.py",
     "tests/test_worker_job_contract_inventory.py",
     "tests/test_worker_operation_map.py",
@@ -4586,25 +4644,25 @@
       "provider": "clickhouse"
     },
     {
-      "line": 23,
+      "line": 25,
       "module": "grpc",
       "path": "services/core/adapters/grpc.py",
       "provider": "grpc"
     },
     {
-      "line": 24,
+      "line": 26,
       "module": "grpc_health.v1",
       "path": "services/core/adapters/grpc.py",
       "provider": "grpc"
     },
     {
-      "line": 24,
+      "line": 26,
       "module": "grpc_health.v1.health_pb2",
       "path": "services/core/adapters/grpc.py",
       "provider": "grpc"
     },
     {
-      "line": 24,
+      "line": 26,
       "module": "grpc_health.v1.health_pb2_grpc",
       "path": "services/core/adapters/grpc.py",
       "provider": "grpc"

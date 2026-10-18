@@ -89,12 +89,23 @@ JOBS = MappingProxyType(
             required_inputs=("chain",),
         ),
         "rpc": JobSpec(
+            "services.ingestion.rpc_worker",
+            (),
+            300,
+            3,
+            120,
+            "RPC wallet snapshot indexing",
+            required_inputs=("chain",),
+        ),
+        # Keep previously persisted task references and the manual CLI
+        # available until schedule owners have reconciled them.
+        "rpc_legacy": JobSpec(
             "services.ingestion.rpc_indexer",
             (),
             300,
             3,
             120,
-            "RPC indexing",
+            "RPC indexing (legacy compatibility)",
             required_inputs=("chain",),
         ),
         "gnosis": JobSpec("services.ingestion.gnosis_indexer", (), 600, 2, 300, "Gnosis indexing"),
@@ -280,13 +291,16 @@ def run_job_for_indexing_chains(job_id: str) -> dict:
     if chains is None or spec.required_inputs != ("chain",):
         raise ValueError(f"{job_id.replace('_', ' ').capitalize()} is not chain-scoped")
 
-    # Prefect remains an optional compatibility adapter. Until the isolated
-    # EAS database role is provisioned and its feature enabled, its historical
-    # flow continues through the original direct CLI. Native Kernel plans use
-    # the default-off isolated worker in JOBS["eas"].
+    # Prefect remains an optional compatibility adapter. Until isolated
+    # database roles are provisioned and their features enabled, historical
+    # flows continue through their original direct CLIs. Native Kernel plans
+    # use the default-off isolated workers in JOBS["eas"] and JOBS["rpc"].
     dispatch_job_id = job_id
     if job_id == "eas" and not is_enabled("isolated_eas_indexer_worker"):
         dispatch_job_id = "eas_legacy"
+        spec = JOBS[dispatch_job_id]
+    if job_id == "rpc" and not is_enabled("isolated_rpc_indexer_worker"):
+        dispatch_job_id = "rpc_legacy"
         spec = JOBS[dispatch_job_id]
 
     results = [

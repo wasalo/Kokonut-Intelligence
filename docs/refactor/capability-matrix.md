@@ -1609,7 +1609,7 @@ CLI rejects it before opening a database connection. Ninety-three focused
 command/contract checks pass; the then-current JobSpec inventory distinguished
 nine no-input jobs, five required-location jobs, and one source-less sensor job.
 Anomaly and sensor-scope slices later changed that inventory to eight no-input
-jobs and seven validated-input jobs. The current 17-job catalog has five no-input jobs
+jobs and seven validated-input jobs. The current 18-job catalog has five no-input jobs
 and twelve validated-input jobs after EAS/RPC chain, NOI, and newer native worker scoping; the sensor
 location/driver-instance pair remains required.
 This remains a source contract: workers inherit the shared runtime identity
@@ -3750,5 +3750,28 @@ historical projection backfill, populated report parity, and named MAN-CAP
 acceptance remain open ([rollout evidence](builds/2026-10-18-recovery/candidate-migration-435-rollout.json)).
 
 Capability classifications remain unchanged: 54 baseline-retained, 7 deployed,
-and 5 prepared. Checklist: 608 complete / 19 open; named MAN-CAP acceptance
+and 5 prepared. Checklist: 609 complete / 19 open; named MAN-CAP acceptance
 remains separate.
+
+### CAP-047 isolated RPC wallet-balance snapshot worker — 18 October 2026
+
+Migration 436 and a default-off `rpc_worker` now isolate scheduled wallet
+balance snapshots behind a dedicated login and bounded chain-lock, wallet-list,
+snapshot/outbox, and completion functions. The login has no direct table access;
+the operation is global protocol data and does not claim location tenant
+context. Network-disabled PostgreSQL 16 acceptance passed migration replay,
+forced-RLS operations, idempotent snapshot/outbox replay, legacy same-block
+reuse, malformed/conflicting snapshot rejection, and direct-table denial. The
+legacy CLI now row-locks and checks duplicate content instead of using
+`ON CONFLICT (tx_hash)`, which the base schema cannot support because its index
+is non-unique. The focused worker boundary suite passes
+272 tests with Ruff and compilation. The candidate remains at migration 435;
+no worker credential, provider, schedule, or feature was activated. This only
+preserves point-in-time balance snapshots; transaction-history scanning,
+confirmation/finality, provider parity, schedule ownership, and reorg recovery
+remain open. CAP-047 remains partial and MAN-CAP acceptance is unchanged
+([worker](../services/ingestion/rpc_worker.py);
+[migration](../schemas/postgres/436_isolated_rpc_indexer.sql);
+[runner](../scripts/check-rpc-indexer-worker-disposable.py);
+[database evidence](builds/2026-10-18-recovery/rpc-indexer-worker-disposable.json);
+[checks](builds/2026-10-18-recovery/rpc-indexer-worker-checks.json)).

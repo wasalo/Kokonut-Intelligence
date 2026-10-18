@@ -153,6 +153,8 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     market_data = scheduled["services.ingestion.market_data_worker"]
     legacy_eas = scheduled["services.ingestion.eas_indexer"]
     eas_worker = scheduled["services.ingestion.eas_worker"]
+    rpc_legacy = scheduled["services.ingestion.rpc_indexer"]
+    rpc_worker = scheduled["services.ingestion.rpc_worker"]
     legacy_sensor = scheduled["services.ingestion.sensor_ingester"]
     sensor = scheduled["services.ingestion.sensor_worker"]
 
@@ -218,6 +220,16 @@ def test_scheduled_operation_map_covers_contract_permitted_side_effects():
     assert "migration 433" in eas_worker["idempotency"].lower()
     assert "feature remains off" in eas_worker["retry_boundary"].lower()
     assert "schemas/postgres/433_isolated_eas_indexer.sql" in eas_worker["sources"]
+    assert rpc_legacy["scope"].startswith("Legacy/manual compatibility entrypoint")
+    assert "non-unique tx_hash index" in rpc_legacy["idempotency"]
+    assert "does not rely on an unsupported ON CONFLICT target" in rpc_legacy["idempotency"]
+    assert rpc_worker["worker_key"] == "rpc_indexer"
+    assert "default-off global wallet balance-snapshot worker" in rpc_worker["scope"].lower()
+    assert "does not establish location tenant context" in rpc_worker["scope"]
+    assert "public.wallet_activity_event" in rpc_worker["writes"]
+    assert "public.clickhouse_outbox" in rpc_worker["writes"]
+    assert "does not scan transactions" in rpc_worker["retry_boundary"]
+    assert "schemas/postgres/436_isolated_rpc_indexer.sql" in rpc_worker["sources"]
     assert "previously persisted tasks" in legacy_sensor["scope"]
     assert sensor["worker_key"] == "sensor_ingestion"
     assert "signed sensor_driver/ingest grant" in sensor["scope"]

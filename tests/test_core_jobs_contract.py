@@ -187,7 +187,10 @@ def test_rpc_multi_chain_adapter_preserves_all_configured_networks():
 
     chains = ("ethereum", "optimism", "base", "arbitrum", "celo", "celo-alfajores", "gnosis")
     results = [{"status": "success", "output": chain} for chain in chains]
-    with patch("services.core.jobs._run_job_spec", side_effect=results) as run:
+    with (
+        patch("services.core.jobs.is_enabled", return_value=True),
+        patch("services.core.jobs._run_job_spec", side_effect=results) as run,
+    ):
         result = run_job_for_rpc_chains()
 
     assert run.call_args_list == [
@@ -196,6 +199,23 @@ def test_rpc_multi_chain_adapter_preserves_all_configured_networks():
     assert result["status"] == "success"
     assert result["chains_processed"] == len(chains)
     assert [item["chain"] for item in result["results"]] == list(chains)
+
+
+def test_rpc_multi_chain_adapter_keeps_legacy_cli_until_isolated_worker_enabled():
+    from unittest.mock import call
+
+    chains = ("ethereum", "optimism", "base", "arbitrum", "celo", "celo-alfajores", "gnosis")
+    results = [{"status": "success", "output": chain} for chain in chains]
+    with (
+        patch("services.core.jobs.is_enabled", return_value=False),
+        patch("services.core.jobs._run_job_spec", side_effect=results) as run,
+    ):
+        result = run_job_for_rpc_chains()
+
+    assert run.call_args_list == [
+        call("rpc_legacy", JOBS["rpc_legacy"], chain=chain) for chain in chains
+    ]
+    assert result["chains_processed"] == len(chains)
 
 
 def test_nonzero_job_exit_retains_return_code_and_bounded_output():

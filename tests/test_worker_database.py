@@ -386,6 +386,35 @@ def test_eas_indexer_factory_requires_its_dedicated_login_without_shared_fallbac
     cursor.execute.assert_called_once_with("SELECT current_user")
 
 
+def test_rpc_indexer_factory_requires_its_dedicated_login_without_shared_fallback(monkeypatch):
+    connect = MagicMock()
+    monkeypatch.setattr(worker_database.psycopg2, "connect", connect)
+    dsn = "postgresql://kokonut_rpc_indexer_login:secret@database/kokonut_intelligence"
+
+    with pytest.raises(
+        worker_database.WorkerDatabaseConfigurationError,
+        match="KOKONUT_RPC_INDEXER_DATABASE_URL is required",
+    ):
+        worker_database.get_worker_db(
+            "rpc_indexer",
+            environ={"PG_USER": "kokonut_runtime", "PG_PASSWORD": "shared"},
+        )
+    connect.assert_not_called()
+
+    connection, cursor = _connection("kokonut_rpc_indexer_login")
+    connect.return_value = connection
+    result = worker_database.get_worker_db(
+        "rpc_indexer", environ={"KOKONUT_RPC_INDEXER_DATABASE_URL": dsn}
+    )
+    assert result is connection
+    connect.assert_called_once_with(
+        dsn,
+        connect_timeout=8,
+        application_name="kokonut-worker-rpc_indexer",
+    )
+    cursor.execute.assert_called_once_with("SELECT current_user")
+
+
 def test_unexpected_database_login_closes_connection_without_exposing_dsn(monkeypatch):
     connection, _ = _connection("kokonut_runtime")
     monkeypatch.setattr(worker_database.psycopg2, "connect", MagicMock(return_value=connection))

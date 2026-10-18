@@ -167,6 +167,12 @@ FEATURES: dict[str, dict[str, Any]] = {
         "category": "security",
         "description": "Use a dedicated database login and bounded functions for global EAS attestation indexing",
     },
+    "isolated_rpc_indexer_worker": {
+        "enabled": os.getenv("KOKONUT_FEATURE_ISOLATED_RPC_INDEXER_WORKER", "false").lower() == "true",
+        "critical": False,
+        "category": "security",
+        "description": "Use a dedicated database login and bounded functions for global RPC wallet balance snapshots",
+    },
     "signed_sensor_ingestion_worker": {
         "enabled": os.getenv("KOKONUT_FEATURE_SIGNED_SENSOR_INGESTION_WORKER", "false").lower() == "true",
         "critical": False,

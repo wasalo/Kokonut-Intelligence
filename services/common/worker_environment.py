@@ -7,7 +7,7 @@ import re
 from typing import Mapping, Sequence
 
 _WORKER_SECRET_ENV = re.compile(
-    r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|OPENWEATHERMAP_API_KEY|GEE_SERVICE_ACCOUNT_KEY|COPERNICUS_EMAIL|COPERNICUS_PASSWORD|COPERNICUS_CLIENT_ID|COPERNICUS_CLIENT_SECRET)$"
+    r"^KOKONUT_([A-Z][A-Z0-9_]*)_(?:DATABASE_URL|WORKER_CREDENTIAL|RPC_ENDPOINTS|OPENWEATHERMAP_API_KEY|GEE_SERVICE_ACCOUNT_KEY|COPERNICUS_EMAIL|COPERNICUS_PASSWORD|COPERNICUS_CLIENT_ID|COPERNICUS_CLIENT_SECRET)$"
 )
 _WORKER_KEY = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
 _ISOLATED_WORKER_KEY = re.compile(r"^[a-z][a-z0-9_]{0,40}$")
@@ -38,6 +38,7 @@ _SCHEDULED_MODULE_WORKERS = {
     "services.ingestion.climate_worker": "climate",
     "services.ingestion.market_data_worker": "market_data",
     "services.ingestion.eas_worker": "eas_indexer",
+    "services.ingestion.rpc_worker": "rpc_indexer",
     "services.ingestion.sensor_worker": "sensor_ingestion",
     "services.ingestion.remote_sensing_worker": "remote_sensing",
 }
@@ -64,6 +65,13 @@ _GLOBAL_PROVIDER_SECRETS = frozenset({
     "COPERNICUS_PASSWORD",
     "COPERNICUS_CLIENT_ID",
     "COPERNICUS_CLIENT_SECRET",
+    "ETH_RPC_URL",
+    "OPTIMISM_RPC_URL",
+    "BASE_RPC_URL",
+    "ARBITRUM_RPC_URL",
+    "CELO_RPC_URL",
+    "CELO_ALFAJORES_RPC_URL",
+    "GNOSIS_RPC_URL",
 })
 
 _EVENT_HANDLER_ISOLATION_FEATURES = {

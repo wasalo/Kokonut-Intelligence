@@ -3,10 +3,10 @@
   "generated_by": "scripts/worker_sql_inventory.py",
   "scope": "Direct Python SQL execution calls found in the static worker source-import closure. Relation names are regex-derived candidates, not a parsed SQL AST. The inventory does not prove function reachability, complete database effects, or authorization.",
   "summary": {
-    "operation_roots": 31,
-    "source_files": 93,
-    "execution_sites": 322,
-    "static_literal_sites": 279,
+    "operation_roots": 32,
+    "source_files": 95,
+    "execution_sites": 329,
+    "static_literal_sites": 286,
     "composed_or_variable_sites": 43
   },
   "execution_sites": [
@@ -843,6 +843,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.rpc_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -888,6 +889,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.rpc_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -933,6 +935,7 @@
         "scheduled_module:services.ingestion.remote_sensing_fetcher",
         "scheduled_module:services.ingestion.remote_sensing_worker",
         "scheduled_module:services.ingestion.rpc_indexer",
+        "scheduled_module:services.ingestion.rpc_worker",
         "scheduled_module:services.ingestion.sensor_ingester",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather",
@@ -1108,9 +1111,9 @@
       ]
     },
     {
-      "id": "services/common/worker_database.py:113:12",
+      "id": "services/common/worker_database.py:114:12",
       "source": "services/common/worker_database.py",
-      "line": 113,
+      "line": 114,
       "column": 12,
       "scope": "get_worker_db",
       "method": "execute",
@@ -1131,6 +1134,7 @@
         "scheduled_module:services.ingestion.eas_worker",
         "scheduled_module:services.ingestion.market_data_worker",
         "scheduled_module:services.ingestion.remote_sensing_worker",
+        "scheduled_module:services.ingestion.rpc_worker",
         "scheduled_module:services.ingestion.sensor_worker",
         "scheduled_module:services.ingestion.weather_forecast_worker",
         "scheduled_module:services.ingestion.weather_worker",
@@ -4861,9 +4865,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:78:12",
+      "id": "services/ingestion/rpc_indexer.py:80:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 78,
+      "line": 80,
       "column": 12,
       "scope": "get_wallets",
       "method": "execute",
@@ -4878,9 +4882,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:83:12",
+      "id": "services/ingestion/rpc_indexer.py:85:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 83,
+      "line": 85,
       "column": 12,
       "scope": "get_wallets",
       "method": "execute",
@@ -4895,9 +4899,26 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:139:8",
+      "id": "services/ingestion/rpc_indexer.py:141:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 139,
+      "line": 141,
+      "column": 8,
+      "scope": "insert_activity",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "wallet_activity_event"
+      ],
+      "static_sql_sha256": "3f0d76e21ca7a2b32cbffd2d53e00a6e374b522de072ae589f64e6f36ef8fe53",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:179:8",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 179,
       "column": 8,
       "scope": "insert_activity",
       "method": "execute",
@@ -4906,15 +4927,30 @@
       "candidate_relations": [
         "wallet_activity_event"
       ],
-      "static_sql_sha256": "15309cabf845a56b5170a28396bd3d9695d7e429737a01284950c07dc2e4ff40",
+      "static_sql_sha256": "9add5a034f7a90c3c3414ab0e0ad9b1403ed422c4b9e2c495e169d9847b1904f",
       "operation_refs": [
         "scheduled_module:services.ingestion.rpc_indexer"
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:249:16",
+      "id": "services/ingestion/rpc_indexer.py:284:16",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 249,
+      "line": 284,
+      "column": 16,
+      "scope": "run",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "dc19532437f2173805af19747836b6c97098f3972e052bd0db580387bc5a1f5e",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_indexer"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_indexer.py:297:16",
+      "source": "services/ingestion/rpc_indexer.py",
+      "line": 297,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -4927,9 +4963,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:278:20",
+      "id": "services/ingestion/rpc_indexer.py:326:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 278,
+      "line": 326,
       "column": 20,
       "scope": "run",
       "method": "execute",
@@ -4942,9 +4978,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:288:20",
+      "id": "services/ingestion/rpc_indexer.py:336:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 288,
+      "line": 336,
       "column": 20,
       "scope": "run",
       "method": "execute",
@@ -4957,9 +4993,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:289:20",
+      "id": "services/ingestion/rpc_indexer.py:337:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 289,
+      "line": 337,
       "column": 20,
       "scope": "run",
       "method": "execute",
@@ -4969,6 +5005,83 @@
       "static_sql_sha256": "e1944ddc122a2d9ba0ea4a230d3a4ea3cc3a95cec7dbcf7959fcf82bb4d31a50",
       "operation_refs": [
         "scheduled_module:services.ingestion.rpc_indexer"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_worker.py:80:12",
+      "source": "services/ingestion/rpc_worker.py",
+      "line": 80,
+      "column": 12,
+      "scope": "_record_snapshot",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "1cdf4e3b4bb73919d3419f748e6631f4a914bdd5082a745b995d5f68892d9613",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_worker.py:114:12",
+      "source": "services/ingestion/rpc_worker.py",
+      "line": 114,
+      "column": 12,
+      "scope": "_finish_chain",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "9ee41d1c6753d778a366e54cb09408f13bbba7ba430374a82e71cce54b8d9211",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_worker.py:143:12",
+      "source": "services/ingestion/rpc_worker.py",
+      "line": 143,
+      "column": 12,
+      "scope": "ingest",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "05fea717478fa3106d319a556d675ce931197f638c8c7cc7adedd5cc114ee20a",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_worker.py:150:12",
+      "source": "services/ingestion/rpc_worker.py",
+      "line": 150,
+      "column": 12,
+      "scope": "ingest",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [
+        "kokonut_security.list_rpc_indexer_wallets"
+      ],
+      "static_sql_sha256": "50c9cd2b76b8955e5ffa8b898fee4c5600bc680824a98c441249922ce7be279e",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_worker"
+      ]
+    },
+    {
+      "id": "services/ingestion/rpc_worker.py:243:20",
+      "source": "services/ingestion/rpc_worker.py",
+      "line": 243,
+      "column": 20,
+      "scope": "ingest",
+      "method": "execute",
+      "expression_kind": "literal",
+      "statement_kind": "SELECT",
+      "candidate_relations": [],
+      "static_sql_sha256": "02b26a3fa9e927754ca37454553cb3713343b301b303e7276d183ce32f14e402",
+      "operation_refs": [
+        "scheduled_module:services.ingestion.rpc_worker"
       ]
     },
     {

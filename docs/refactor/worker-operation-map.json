@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "reviewed": "2026-10-17",
+  "reviewed": "2026-10-18",
   "purpose": "Source inventory of every allowlisted scheduler module and event handler; this is not an authorization or RLS policy.",
   "shared_boundary": {
-    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity.",
-    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Migration 432 adds a dedicated remote-sensing login, signed remote_sensing/run location scope, and bounded claim plus atomic observation/attempt/audit/outbox completion functions without direct application-table access. Migration 433 adds the global EAS indexer login with chain-scoped bounded functions and no direct table access; it has no tenant context because tracked wallet and attestation protocol data are global. Other scheduled jobs and handlers remain outside these integrations.",
+    "database_identity": "Scheduler and EventBus control-plane processes retain the configured runtime PG_USER and PG_PASSWORD. Child processes receive standard application settings, but worker-specific secrets are filtered unless an exact source-controlled mapping permits them. The sensor-anomaly handler and four cache handlers use dedicated worker database helpers without shared-DSN fallback; the two global notification handlers can opt into a separate notification-enqueue login. The NOI snapshot, current-weather, weather-forecast, climate, market-data, sensor-ingestion, remote-sensing, and EAS modules use separately named worker DSNs, strip shared PostgreSQL settings from their children, and use exact secret mappings; other scheduled jobs and handlers still use the shared runtime database identity. Migration 436 adds a default-off global RPC balance-snapshot worker with its own exact database URL and provider-endpoint JSON mapping; shared runtime PostgreSQL settings and global per-chain RPC variables are not forwarded to that child.",
+    "signed_tenant_context": "Migration 405 and services.common.tenant_context provide signed worker context. Scheduler dispatch and the EventBus parent do not establish it; the sensor-anomaly handler uses dedicated credentials and signed transaction context through migrations 405-414, and the four cache handlers use the shared dedicated cache_invalidation worker identity through migrations 415-416 when enabled. Migration 417 provides the global data_stale and threshold_breached enqueue handlers a separate exact login and bounded source-event validation, not tenant scope. Migrations 418-419 revoke inherited PUBLIC EXECUTE on mobile credential and worker-context functions; the runtime-role bootstrap restores only the exact runtime, worker, and bounded-owner grants. Migrations 425-427 add default-off signed location-scoped NOI snapshot, current-weather, and weather-forecast operations; migration 429 adds signed climate location lookup and whitelisted summary/audit writes. Migration 430 gives the global market-data worker a distinct login and a bounded, source-validating batch/audit function without a tenant grant. Migration 431 adds a dedicated sensor-ingestion login, signed sensor_driver/ingest location scope, bounded catalog/instance/batch/status functions, and no direct sensor-table access. Migration 432 adds a dedicated remote-sensing login, signed remote_sensing/run location scope, and bounded claim plus atomic observation/attempt/audit/outbox completion functions without direct application-table access. Migration 433 adds the global EAS indexer login with chain-scoped bounded functions and no direct table access; it has no tenant context because tracked wallet and attestation protocol data are global. Migration 436 adds the same global-data boundary for RPC wallet balance snapshots, with a dedicated login and bounded chain/wallet/status functions; it does not claim location tenancy. Other scheduled jobs and handlers remain outside these integrations.",
     "module_argument_validation": "Static module-specific operation schemas validate command_args before schedule activation, run-now, generated job plans, scheduler-allowlisted code-owned job runs, and worker subprocess creation. Unsupported manual/destructive operations and source-less recurring sensor ingestion fail closed; existing task rows are not rewritten.",
     "deployment_effect": "Inventory only; it does not change grants, activate schedules, or enable RLS."
   },
@@ -218,7 +218,7 @@
     },
     {
       "module": "services.ingestion.rpc_indexer",
-      "scope": "The direct CLI can process all active tracked wallets unless chain or wallet address selects a narrower source. Kernel scheduled tasks require exactly one supported --chain, with an optional wallet filter; the optional Prefect adapter preserves the seven CLI-supported networks as separate scoped runs.",
+      "scope": "Legacy/manual compatibility entrypoint retained for persisted task rows and direct CLI use. Native Kernel JOBS target services.ingestion.rpc_worker when isolated_rpc_indexer_worker is enabled and otherwise dispatch to this compatibility entrypoint; the optional Prefect adapter remains on the legacy path until the isolated feature and runtime login are provisioned. Scheduled runs require exactly one supported --chain, with an optional wallet filter.",
       "reads": [
         "public.wallet_profile"
       ],
@@ -230,12 +230,41 @@
       "external_effects": [
         "Configured EVM JSON-RPC providers"
       ],
-      "idempotency": "wallet_activity_event suppresses duplicate transaction hashes; only inserted rows are projected under a stable outbox source key. Wallet activity, chain status, and projection intent commit together.",
-      "retry_boundary": "One run owns a single PostgreSQL transaction with a savepoint per wallet. A provider or insert failure rolls back that wallet, records only an exception-class summary in chain status/logs, and permits successful wallet rows and outbox intents to commit. A status, outbox, or commit failure rolls back the run; outbox errors remain typed with fixed summaries, other caller-visible failures are bounded, and the indexer attempts to persist safe error status on the same connection. Retries repeat point-in-time RPC reads. This module does not scan transaction history or prove confirmation depth/reorg completeness.",
+      "idempotency": "The compatibility CLI selects and row-locks an existing wallet/chain/tx_hash identity under the chain advisory lock, compares immutable snapshot content at the numeric column precision, and returns without reprojecting an exact replay. The schema has only a non-unique tx_hash index, so the implementation does not rely on an unsupported ON CONFLICT target. Only newly inserted rows enter the stable ClickHouse outbox batch.",
+      "retry_boundary": "One run owns a single PostgreSQL transaction with a savepoint per wallet. A provider or insert failure rolls back that wallet, records only an exception-class summary in chain status/logs, and permits successful wallet rows and outbox intents to commit. A status, outbox, or commit failure rolls back the run; outbox errors remain typed with fixed summaries, other caller-visible failures are bounded, and the indexer attempts to persist safe error status on the same connection. The chain advisory lock serializes the compatibility CLI with the isolated worker. Retries repeat point-in-time RPC reads. This module does not scan transaction history or prove confirmation depth/reorg completeness.",
       "sources": [
         "services/ingestion/rpc_indexer.py",
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py"
+      ]
+    },
+    {
+      "module": "services.ingestion.rpc_worker",
+      "worker_key": "rpc_indexer",
+      "scope": "Default-off global wallet balance-snapshot worker requires exactly one supported --chain and receives only its exact worker database URL plus the worker-specific RPC endpoint JSON. Migration 436 exposes bounded chain lock, active wallet lookup, snapshot/outbox storage, and chain completion functions; the dedicated login has no direct table access. Tracked wallets and balances are global protocol data, so the operation does not establish location tenant context. Native JOBS use this module only when isolated_rpc_indexer_worker is enabled; Prefect and legacy persisted-task compatibility remain on services.ingestion.rpc_indexer until separately reconciled.",
+      "reads": [
+        "public.wallet_profile"
+      ],
+      "writes": [
+        "public.wallet_activity_event",
+        "public.chain_indexer_status",
+        "public.clickhouse_outbox",
+        "public.ingestion_log"
+      ],
+      "external_effects": [
+        "Configured EVM JSON-RPC providers"
+      ],
+      "idempotency": "A deterministic synthetic transaction hash identifies each wallet/chain/block balance snapshot. Migration 436 validates active wallet/chain identity, exact snapshot fields, same-record replay, and stable ClickHouse event key; conflicting activity or outbox content fails closed. A chain advisory lock serializes the isolated worker with the legacy RPC CLI.",
+      "retry_boundary": "One chain is processed per task. Each wallet snapshot and its ClickHouse outbox intent commit atomically through the bounded function; provider failures are summarized by exception class and the chain is completed as partial/error. The worker records point-in-time native-balance snapshots only: it does not scan transactions, track a confirmation cursor, prove finality, or recover chain reorganizations. The feature remains disabled until database credentials/grants, provider parity, persisted task state, and schedule ownership are reviewed.",
+      "sources": [
+        "services/ingestion/rpc_worker.py",
+        "services/ingestion/rpc_provider.py",
+        "services/common/worker_database.py",
+        "services/common/worker_environment.py",
+        "services/core/jobs.py",
+        "services/security/execution_allowlist.py",
+        "services/security/scheduled_command_contracts.py",
+        "schemas/postgres/436_isolated_rpc_indexer.sql"
       ]
     },
     {
@@ -1229,7 +1258,7 @@
   "known_open_items": [
     "Trace the transitive service/calculator/provider call graph for every scheduled command, including dynamic SQL and file/network effects.",
     "Reconcile existing enabled scheduled_task rows and external scheduler definitions against the new operation contracts; invalid persisted rows fail before subprocess creation but are not automatically rewritten.",
-    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, market-data, sensor-ingestion, remote-sensing, and EAS integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
+    "Provision worker database principals, credentials, and exact grants for remaining operations before their SQL can be trusted under RLS; NOI snapshot, anomaly, opt-in cache handler, notification-enqueue, climate, weather, market-data, sensor-ingestion, remote-sensing, EAS and RPC-indexer integrations remain default-off until credentials are provisioned and owner-approved candidate rollout plus schedule reconciliation are complete.",
     "Do not enable application RLS or narrow broad runtime DML grants until the complete call graph, external/operator schedules, and owner mappings are reconciled."
   ]
 }

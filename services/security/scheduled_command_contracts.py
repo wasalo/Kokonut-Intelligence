@@ -59,6 +59,7 @@ _OPTIONS: dict[str, dict[str, str | None]] = {
         "--chain": "rpc_chain",
         "--wallet": "wallet",
     },
+    "services.ingestion.rpc_worker": {"--chain": "rpc_chain"},
     # Scheduled sensor ingestion resolves a registered, enabled, location-bound
     # pull driver instance from PostgreSQL. Arbitrary file paths and payloads
     # never come from persisted task arguments.
@@ -237,6 +238,9 @@ def _validate_operation(module_path: str, values: dict[str, str | bool]) -> None
             raise _reject("scheduled RPC indexing requires one explicit chain")
         if options - {"--chain", "--wallet"}:
             raise _reject("scheduled RPC indexing accepts only one chain and an optional wallet")
+
+    if module_path == "services.ingestion.rpc_worker" and options != {"--chain"}:
+        raise _reject("isolated scheduled RPC indexing requires one explicit chain")
 
     if module_path in {
         "services.ingestion.weather_forecast",

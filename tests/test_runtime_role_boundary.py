@@ -208,6 +208,48 @@ def test_eas_indexer_login_uses_only_its_bounded_database_functions():
     assert "runtime role can execute EAS-indexer worker functions" in runtime_source
 
 
+def test_rpc_indexer_login_requires_its_paired_secret_and_owns_only_bounded_functions():
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "schemas/postgres/436_isolated_rpc_indexer.sql"
+    ).read_text()
+    runtime_source = (
+        Path(__file__).resolve().parents[1]
+        / "services/migration/runtime_role.py"
+    ).read_text()
+    common = {
+        "database": "kokonut_intelligence",
+        "admin_user": "kokonut",
+        "admin_password": "admin-password",
+        "runtime_user": "kokonut_runtime",
+        "runtime_password": "runtime-password",
+        "operator_auth_user": "kokonut_operator_auth",
+        "operator_auth_password": "operator-password",
+    }
+
+    with pytest.raises(ValueError, match="RPC-indexer user and password must be provided together"):
+        runtime_role.provision_runtime_role(
+            None, **common, rpc_indexer_user="kokonut_rpc_indexer_login"
+        )
+    with pytest.raises(ValueError, match="differ from the RPC-indexer function owner"):
+        runtime_role.provision_runtime_role(
+            None,
+            **common,
+            rpc_indexer_user="kokonut_rpc_indexer_owner",
+            rpc_indexer_password="r" * 32,
+        )
+
+    assert len(runtime_role._RPC_INDEXER_FUNCTIONS) == 5
+    assert set(runtime_role._RPC_INDEXER_FUNCTIONS) <= set(runtime_role._PRIVATE_RUNTIME_FUNCTIONS)
+    assert all(
+        (function, "kokonut_rpc_indexer_owner") in runtime_role._SECURITY_DEFINER_OWNERS
+        for function in runtime_role._RPC_INDEXER_FUNCTIONS
+    )
+    assert "session_user <> 'kokonut_rpc_indexer_login'" in migration
+    assert "RPC-indexer login retains direct relation privileges" in runtime_source
+    assert "runtime role can execute RPC-indexer worker functions" in runtime_source
+
+
 def test_market_data_function_is_private_and_owned_by_its_bounded_role():
     migration = (
         Path(__file__).resolve().parents[1]

@@ -36,6 +36,8 @@ BEGIN
         'kokonut_operator_context_owner',
         'kokonut_remote_sensing_login',
         'kokonut_remote_sensing_owner',
+        'kokonut_rpc_indexer_login',
+        'kokonut_rpc_indexer_owner',
         'kokonut_runtime',
         'kokonut_sensor_ingestion_login',
         'kokonut_sensor_ingestion_owner',

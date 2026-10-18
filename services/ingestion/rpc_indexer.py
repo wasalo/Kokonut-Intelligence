@@ -15,6 +15,7 @@ Usage:
 import argparse
 import time
 from datetime import datetime, timezone
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from web3 import Web3
 
@@ -30,6 +31,7 @@ from .clickhouse_outbox import OutboxEnqueueError
 from .config import CHAIN_RPC_MAP
 
 logger = get_logger("ingestion.rpc")
+_ACTIVITY_VALUE_QUANTUM = Decimal("0.00000001")
 
 # Chain names with a configured RPC URL and supported by the direct CLI.
 RPC_CLI_CHAINS = (
@@ -133,9 +135,47 @@ def parse_activity(tx: dict, wallet_id: str, chain: str) -> dict:
     }
 
 
-def insert_activity(db, record: dict) -> str:
-    """Insert wallet activity into PostgreSQL. Returns record ID."""
+def insert_activity(db, record: dict) -> str | None:
+    """Insert wallet activity, suppressing exact identity replays safely."""
     with db.cursor() as cur:
+        cur.execute(
+            """
+            SELECT id, block_number, from_address, to_address, value, token,
+                   gas_used, gas_price, status, activity_type
+              FROM wallet_activity_event
+             WHERE wallet_id = %s AND chain = %s AND tx_hash = %s
+             ORDER BY id
+             LIMIT 1
+             FOR UPDATE
+            """,
+            (record["wallet_id"], record["chain"], record["tx_hash"]),
+        )
+        existing = cur.fetchone()
+        if existing:
+            try:
+                stored_value = Decimal(str(existing[4])).quantize(
+                    _ACTIVITY_VALUE_QUANTUM, rounding=ROUND_HALF_UP
+                )
+                requested_value = Decimal(str(record["value"])).quantize(
+                    _ACTIVITY_VALUE_QUANTUM, rounding=ROUND_HALF_UP
+                )
+                same_value = stored_value == requested_value
+            except (InvalidOperation, TypeError, ValueError):
+                same_value = False
+            same_record = (
+                existing[1] == record["block_number"]
+                and existing[2] == record["from_address"]
+                and (existing[3] or "").lower() == (record["to_address"] or "").lower()
+                and same_value
+                and existing[5] == record["token"]
+                and Decimal(str(existing[6])) == Decimal(str(record["gas_used"]))
+                and Decimal(str(existing[7])) == Decimal(str(record["gas_price"]))
+                and existing[8] == record["status"]
+                and existing[9] == record["activity_type"]
+            )
+            if not same_record:
+                raise ValueError("RPC activity identity conflicts with stored record")
+            return None
         cur.execute(
             """
             INSERT INTO wallet_activity_event
@@ -143,7 +183,6 @@ def insert_activity(db, record: dict) -> str:
                  from_address, to_address, value, token, gas_used, gas_price,
                  status, activity_type)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (tx_hash) DO NOTHING
             RETURNING id
             """,
             (
@@ -237,6 +276,15 @@ def run(chain: str = None, wallet_address: str = None):
         if not wallets:
             logger.info("No active wallets found.")
             return
+
+        # Coordinate the manual compatibility CLI with the isolated scheduled
+        # worker. The worker uses the session-level form of this same lock key.
+        for w_chain in sorted({wallet[2] for wallet in wallets}):
+            with db.cursor() as cur:
+                cur.execute(
+                    "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))",
+                    (f"kokonut:rpc-indexer:{w_chain}",),
+                )
 
         logger.info("Indexing %d wallets...", len(wallets))
         all_records = []
