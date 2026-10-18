@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-18",
+  "branch": "feat/mobile-offline-acceptance",
+  "capability": "CAP-016",
+  "status": "prepared",
+  "route": "GET /operator/api/true-cost/{location_id}/summary",
+  "authorization": {
+    "identity": "OIDC operator session",
+    "scope": "true_cost_accounting:read",
+    "scope_location": "path location UUID",
+    "database_context": "signed operator tenant context established before domain queries"
+  },
+  "transaction": {
+    "read_only": true,
+    "statement_timeout": "8s",
+    "lock_timeout": "2s",
+    "cleanup": "rollback and close on success or failure"
+  },
+  "returned_sections": [
+    "true_cost_statement",
+    "hidden_costs",
+    "natural_capital",
+    "social_impact",
+    "capital_flows",
+    "cross_capital_dependencies"
+  ],
+  "privacy_boundary": "aggregate outputs only; no individual worker records, evidence rows, or Directus IDs",
+  "tests": {
+    "command": "python3 -m pytest tests/test_gateway_true_cost.py tests/test_true_cost_accounting.py tests/test_gateway_auth.py tests/test_gateway_audit.py -q",
+    "result": "66 passed",
+    "ruff": "passed",
+    "python_compile": "passed",
+    "capability_matrix": "passed: 66 rows, 52 baseline-retained, 7 deployed, 7 prepared",
+    "diff_check": "passed"
+  },
+  "database_provider_network_touched": false,
+  "notes": [
+    "HTTP route checks use synthetic OIDC identities and mocked calculation and audit boundaries.",
+    "An initial, pre-isolation route-test run exposed that Gateway audit sliced OIDC's boolean scope_checked value as text; audit serialization now preserves boolean and string scope-check values, with a regression test.",
+    "No database connection succeeded during the initial route-test failure; final tests mock audit persistence and do not contact PostgreSQL."
+  ],
+  "remaining_gates": [
+    "true-cost output parity against representative populated fixtures",
+    "domain-table row-level security and runtime-role least privilege",
+    "candidate deployment and authenticated runtime acceptance",
+    "MAN-CAP-016 manual acceptance"
+  ],
+  "migration": null,
+  "rollback": "Revert the Gateway service, route registration, policy, and audit normalization changes; no schema/data change was made."
+}

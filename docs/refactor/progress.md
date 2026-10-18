@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Native true-cost Gateway reads — 18 October 2026
+
+The Gateway now has an OIDC-protected location summary route for true-cost
+accounting. The service opens one read-only transaction, establishes
+database-verified signed operator tenant context, then reuses the existing
+true-cost statement, hidden-cost, natural/social valuation, and capital-flow
+calculations on that connection. It returns aggregates only and does not depend
+on Directus. A route integration regression also exposed and fixed Gateway
+audit handling that sliced OIDC's boolean `scope_checked` value as text. The
+66-test focused true-cost/Gateway/audit suite, Ruff, Python compilation,
+capability-matrix validation, and diff checks pass using synthetic identity and
+mocked calculations/audit; no candidate or legacy database was accessed.
+CAP-016 is prepared, not accepted: output parity, tenant RLS on domain tables,
+populated fixtures, and candidate deployment remain open. Checklist: 633
+complete / 19 open; capability matrix: 52 baseline-retained, 7 deployed, and
+7 prepared ([evidence](builds/2026-10-18-recovery/gateway-true-cost-aggregate-read.json)).
+
 ### Organic compliance SDK reads — 18 October 2026
 
 Python and TypeScript now expose read-only, location-filtered SDK groups for

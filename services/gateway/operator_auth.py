@@ -382,6 +382,19 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    true_cost_match = re.fullmatch(
+        r"/operator/api/true-cost/([0-9a-fA-F-]{36})/summary", path
+    )
+    if true_cost_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "true_cost_accounting",
+            "action": "read",
+            "public": False,
+            "location_id": true_cost_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     mobile_enrollment_match = re.fullmatch(
         r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/enrollments(?:/([0-9a-fA-F-]{36}))?",
         path,
@@ -1982,6 +1995,8 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
         return response
 
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
+    from services.gateway.true_cost_routes import register_true_cost_routes
 
     register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
+    register_true_cost_routes(router, provider, run_in_threadpool, psycopg2)
     return router

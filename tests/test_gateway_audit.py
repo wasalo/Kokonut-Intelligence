@@ -60,6 +60,24 @@ def test_gateway_audit_marks_handler_failures_as_errors():
     assert audit_logger.log_access.call_args.kwargs["metadata"]["outcome"] == "error"
 
 
+def test_gateway_audit_preserves_boolean_oidc_scope_check():
+    conn = MagicMock()
+    audit_logger = MagicMock()
+    with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
+        with patch("services.security.audit.AuditLogger", return_value=audit_logger):
+            GatewayAudit().log(
+                caller="operator:synthetic",
+                path="/operator/api/true-cost/location/summary",
+                method="GET",
+                status="allowed",
+                resource="true_cost_accounting",
+                action="read",
+                scope_checked=True,
+            )
+
+    assert audit_logger.log_access.call_args.kwargs["metadata"]["scope_checked"] is True
+
+
 def test_gateway_audit_closes_owned_connection():
     conn = MagicMock()
     with patch("services.gateway.audit.GatewayAudit._get_conn", return_value=conn):
