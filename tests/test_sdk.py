@@ -1395,6 +1395,101 @@ def test_scoped_list_filter_wins_and_preserves_list_options_without_network_call
     assert options.meta == "total_count"
 
 
+def test_specialized_methods_use_explicit_directus_equality_filters():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    cases = [
+        (client.farms.list_by_location, "location-1", "location_id", "farm"),
+        (client.plots.list_by_farm, "farm-1", "farm_id", "plot"),
+        (client.crop_cycles.list_by_plot, "plot-1", "plot_id", "crop_cycle"),
+        (client.harvest_events.list_by_crop_cycle, "cycle-1", "crop_cycle_id", "harvest_event"),
+        (client.sales_events.list_by_crop_cycle, "cycle-1", "crop_cycle_id", "sales_event"),
+        (client.expense_events.list_by_crop_cycle, "cycle-1", "crop_cycle_id", "expense_event"),
+        (client.loss_events.list_by_location, "location-1", "location_id", "loss_event"),
+        (client.labor_events.list_by_location, "location-1", "location_id", "labor_event"),
+        (client.field_notes.list_by_location, "location-1", "location_id", "field_note"),
+        (client.sensor_readings.list_by_device, "device-1", "sensor_id", "sensor_reading"),
+        (client.sensor_readings.list_by_plot, "plot-1", "plot_id", "sensor_reading"),
+        (client.reports.list_by_type, "impact", "report_type", "report_snapshot"),
+        (client.noi.list_by_crop_cycle, "cycle-1", "crop_cycle_id", "noi_snapshot"),
+    ]
+
+    for method, value, field, collection in cases:
+        options = ListOptions(
+            filter={field: {"_eq": "other"}, "status": {"_eq": "verified"}}
+        )
+        method(value, options)
+        actual_collection, actual_options = client.list_items.call_args.args
+        assert actual_collection == collection
+        assert actual_options.filter == {
+            field: {"_eq": value},
+            "status": {"_eq": "verified"},
+        }
+
+    client.attestations.list_by_entity("location", "location-1")
+    assert client.list_items.call_args.args == (
+        "attestation_record",
+        ListOptions(
+            filter={
+                "subject_type": {"_eq": "location"},
+                "subject_id": {"_eq": "location-1"},
+            }
+        ),
+    )
+
+    operator_cases = [
+        (
+            lambda: client.crop_cycles.list_active(
+                ListOptions(filter={"status": {"_eq": "archived"}})
+            ),
+            "crop_cycle",
+            {"status": {"_in": ["planted", "growing"]}},
+        ),
+        (
+            lambda: client.sales_events.list_unpaid(
+                ListOptions(filter={"payment_status": {"_eq": "paid"}})
+            ),
+            "sales_event",
+            {"payment_status": {"_in": ["pending", "partial"]}},
+        ),
+        (
+            lambda: client.expense_events.list_pending_approval(
+                ListOptions(filter={"status": {"_eq": "draft"}})
+            ),
+            "expense_event",
+            {"status": {"_eq": "submitted"}},
+        ),
+        (
+            lambda: client.sensor_readings.list_anomalies(
+                ListOptions(filter={"quality": {"_eq": "good"}})
+            ),
+            "sensor_reading",
+            {"quality": {"_eq": "suspect"}},
+        ),
+        (
+            lambda: client.attestations.list_pending(
+                ListOptions(filter={"status": {"_eq": "published"}})
+            ),
+            "attestation_record",
+            {"status": {"_in": ["draft", "submitted"]}},
+        ),
+    ]
+    for invoke, collection, expected_filter in operator_cases:
+        invoke()
+        actual_collection, actual_options = client.list_items.call_args.args
+        assert actual_collection == collection
+        assert actual_options.filter == expected_filter
+
+    client.wallet_profiles.find_by_address("0xwallet")
+    assert client.list_items.call_args.args == (
+        "wallet_profile",
+        ListOptions(filter={"address": {"_eq": "0xwallet"}}, limit=1),
+    )
+
+
 if __name__ == "__main__":
     test_kokonut_client_import()
     test_kokonut_types_import()

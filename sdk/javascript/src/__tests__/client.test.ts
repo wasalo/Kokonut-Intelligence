@@ -153,19 +153,19 @@ describe('KokonutClient', () => {
 
     await client.lossEvents.listByLocation('location-1', {
       limit: 10,
-      filter: { location_id: 'other-location', status: 'verified' },
+      filter: { location_id: { _eq: 'other-location' }, status: { _eq: 'verified' } },
     });
     expect(listItems).toHaveBeenLastCalledWith('loss_event', {
       limit: 10,
-      filter: { location_id: 'location-1', status: 'verified' },
+      filter: { location_id: { _eq: 'location-1' }, status: { _eq: 'verified' } },
     });
     await client.laborEvents.listByLocation('location-1');
     expect(listItems).toHaveBeenLastCalledWith('labor_event', {
-      filter: { location_id: 'location-1' },
+      filter: { location_id: { _eq: 'location-1' } },
     });
     await client.fieldNotes.listByLocation('location-1');
     expect(listItems).toHaveBeenLastCalledWith('field_note', {
-      filter: { location_id: 'location-1' },
+      filter: { location_id: { _eq: 'location-1' } },
     });
     expect(loss.evidence_hashes).toEqual(['sha256:loss']);
     expect(labor.total_cost).toBe(48);
@@ -493,7 +493,7 @@ describe('KokonutClient', () => {
     const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
 
     await client.farms.listByLocation('location-1', {
-      filter: { location_id: 'location-2', status: 'active' },
+      filter: { location_id: { _eq: 'location-2' }, status: { _eq: 'active' } },
       sort: ['name'],
       fields: ['id'],
       limit: 25,
@@ -503,13 +503,130 @@ describe('KokonutClient', () => {
     });
 
     expect(listItems).toHaveBeenCalledWith('farm', {
-      filter: { location_id: 'location-1', status: 'active' },
+      filter: { location_id: { _eq: 'location-1' }, status: { _eq: 'active' } },
       sort: ['name'],
       fields: ['id'],
       limit: 25,
       offset: 50,
       page: 3,
       meta: 'total_count',
+    });
+  });
+
+  it('uses the same explicit Directus equality filters as the Python SDK', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const keep = { status: { _eq: 'verified' } };
+    const cases: Array<{
+      collection: string;
+      run: () => Promise<unknown>;
+      filter: Record<string, unknown>;
+    }> = [
+      {
+        collection: 'farm',
+        run: () => client.farms.listByLocation('location-1', { filter: { ...keep, location_id: { _eq: 'other' } } }),
+        filter: { ...keep, location_id: { _eq: 'location-1' } },
+      },
+      {
+        collection: 'plot',
+        run: () => client.plots.listByFarm('farm-1', { filter: { ...keep, farm_id: { _eq: 'other' } } }),
+        filter: { ...keep, farm_id: { _eq: 'farm-1' } },
+      },
+      {
+        collection: 'crop_cycle',
+        run: () => client.cropCycles.listByPlot('plot-1', { filter: { ...keep, plot_id: { _eq: 'other' } } }),
+        filter: { ...keep, plot_id: { _eq: 'plot-1' } },
+      },
+      {
+        collection: 'crop_cycle',
+        run: () => client.cropCycles.listActive({ filter: { ...keep, status: { _eq: 'archived' } } }),
+        filter: { ...keep, status: { _in: ['planted', 'growing'] } },
+      },
+      {
+        collection: 'harvest_event',
+        run: () => client.harvestEvents.listByCropCycle('cycle-1', { filter: { ...keep, crop_cycle_id: { _eq: 'other' } } }),
+        filter: { ...keep, crop_cycle_id: { _eq: 'cycle-1' } },
+      },
+      {
+        collection: 'sales_event',
+        run: () => client.salesEvents.listByCropCycle('cycle-1', { filter: { ...keep, crop_cycle_id: { _eq: 'other' } } }),
+        filter: { ...keep, crop_cycle_id: { _eq: 'cycle-1' } },
+      },
+      {
+        collection: 'sales_event',
+        run: () => client.salesEvents.listUnpaid({ filter: { ...keep, payment_status: { _eq: 'paid' } } }),
+        filter: { ...keep, payment_status: { _in: ['pending', 'partial'] } },
+      },
+      {
+        collection: 'expense_event',
+        run: () => client.expenseEvents.listByCropCycle('cycle-1', { filter: { ...keep, crop_cycle_id: { _eq: 'other' } } }),
+        filter: { ...keep, crop_cycle_id: { _eq: 'cycle-1' } },
+      },
+      {
+        collection: 'expense_event',
+        run: () => client.expenseEvents.listPendingApproval({ filter: { ...keep, status: { _eq: 'draft' } } }),
+        filter: { ...keep, status: { _eq: 'submitted' } },
+      },
+      {
+        collection: 'loss_event',
+        run: () => client.lossEvents.listByLocation('location-1', { filter: { ...keep, location_id: { _eq: 'other' } } }),
+        filter: { ...keep, location_id: { _eq: 'location-1' } },
+      },
+      {
+        collection: 'labor_event',
+        run: () => client.laborEvents.listByLocation('location-1', { filter: { ...keep, location_id: { _eq: 'other' } } }),
+        filter: { ...keep, location_id: { _eq: 'location-1' } },
+      },
+      {
+        collection: 'field_note',
+        run: () => client.fieldNotes.listByLocation('location-1', { filter: { ...keep, location_id: { _eq: 'other' } } }),
+        filter: { ...keep, location_id: { _eq: 'location-1' } },
+      },
+      {
+        collection: 'sensor_reading',
+        run: () => client.sensorReadings.listByDevice('device-1', { filter: { ...keep, sensor_id: { _eq: 'other' } } }),
+        filter: { ...keep, sensor_id: { _eq: 'device-1' } },
+      },
+      {
+        collection: 'sensor_reading',
+        run: () => client.sensorReadings.listByPlot('plot-1', { filter: { ...keep, plot_id: { _eq: 'other' } } }),
+        filter: { ...keep, plot_id: { _eq: 'plot-1' } },
+      },
+      {
+        collection: 'sensor_reading',
+        run: () => client.sensorReadings.listAnomalies({ filter: { ...keep, quality: { _eq: 'good' } } }),
+        filter: { ...keep, quality: { _eq: 'suspect' } },
+      },
+      {
+        collection: 'attestation_record',
+        run: () => client.attestations.listPending({ filter: { ...keep, status: { _eq: 'published' } } }),
+        filter: { ...keep, status: { _in: ['draft', 'submitted'] } },
+      },
+      {
+        collection: 'report_snapshot',
+        run: () => client.reports.listByType('impact', { filter: { ...keep, report_type: { _eq: 'other' } } }),
+        filter: { ...keep, report_type: { _eq: 'impact' } },
+      },
+      {
+        collection: 'noi_snapshot',
+        run: () => client.noi.listByCropCycle('cycle-1', { filter: { ...keep, crop_cycle_id: { _eq: 'other' } } }),
+        filter: { ...keep, crop_cycle_id: { _eq: 'cycle-1' } },
+      },
+      {
+        collection: 'attestation_record',
+        run: () => client.attestations.listByEntity('location', 'location-1'),
+        filter: { subject_type: { _eq: 'location' }, subject_id: { _eq: 'location-1' } },
+      },
+    ];
+
+    for (const scenario of cases) {
+      await scenario.run();
+      expect(listItems).toHaveBeenLastCalledWith(scenario.collection, { filter: scenario.filter });
+    }
+
+    await client.walletProfiles.findByAddress('0xwallet');
+    expect(listItems).toHaveBeenLastCalledWith('wallet_profile', {
+      filter: { address: { _eq: '0xwallet' } },
+      limit: 1,
     });
   });
 });

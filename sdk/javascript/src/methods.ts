@@ -221,7 +221,7 @@ export function buildFarmMethods(client: any): FarmMethods {
     listByLocation: (locationId: string, options?: ListOptions) =>
       client.listItems('farm', {
         ...options,
-        filter: { ...options?.filter, location_id: locationId },
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
       }) as Promise<Farm[]>,
   };
 }
@@ -238,7 +238,7 @@ export function buildPlotMethods(client: any): PlotMethods {
     listByFarm: (farmId: string, options?: ListOptions) =>
       client.listItems('plot', {
         ...options,
-        filter: { ...options?.filter, farm_id: farmId },
+        filter: { ...options?.filter, farm_id: { _eq: farmId } },
       }) as Promise<Plot[]>,
   };
 }
@@ -255,7 +255,7 @@ export function buildCropCycleMethods(client: any): CropCycleMethods {
     listByPlot: (plotId: string, options?: ListOptions) =>
       client.listItems('crop_cycle', {
         ...options,
-        filter: { ...options?.filter, plot_id: plotId },
+        filter: { ...options?.filter, plot_id: { _eq: plotId } },
       }) as Promise<CropCycle[]>,
     listActive: (options?: ListOptions) =>
       client.listItems('crop_cycle', {
@@ -277,7 +277,7 @@ export function buildHarvestEventMethods(client: any): HarvestEventMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('harvest_event', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<HarvestEvent[]>,
   };
 }
@@ -294,7 +294,7 @@ export function buildSalesEventMethods(client: any): SalesEventMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('sales_event', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<SalesEvent[]>,
     listUnpaid: (options?: ListOptions) =>
       client.listItems('sales_event', {
@@ -316,7 +316,7 @@ export function buildExpenseEventMethods(client: any): ExpenseEventMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('expense_event', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<ExpenseEvent[]>,
     listPendingApproval: (options?: ListOptions) =>
       client.listItems('expense_event', {
@@ -338,7 +338,7 @@ export function buildLossEventMethods(client: any): LossEventMethods {
     listByLocation: (locationId: string, options?: ListOptions) =>
       client.listItems('loss_event', {
         ...options,
-        filter: { ...options?.filter, location_id: locationId },
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
       }) as Promise<LossEvent[]>,
   };
 }
@@ -355,7 +355,7 @@ export function buildLaborEventMethods(client: any): LaborEventMethods {
     listByLocation: (locationId: string, options?: ListOptions) =>
       client.listItems('labor_event', {
         ...options,
-        filter: { ...options?.filter, location_id: locationId },
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
       }) as Promise<LaborEvent[]>,
   };
 }
@@ -372,7 +372,7 @@ export function buildFieldNoteMethods(client: any): FieldNoteMethods {
     listByLocation: (locationId: string, options?: ListOptions) =>
       client.listItems('field_note', {
         ...options,
-        filter: { ...options?.filter, location_id: locationId },
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
       }) as Promise<FieldNote[]>,
   };
 }
@@ -389,12 +389,12 @@ export function buildSensorReadingMethods(client: any): SensorReadingMethods {
     listByDevice: (deviceId: string, options?: ListOptions) =>
       client.listItems('sensor_reading', {
         ...options,
-        filter: { ...options?.filter, sensor_id: deviceId },
+        filter: { ...options?.filter, sensor_id: { _eq: deviceId } },
       }) as Promise<SensorReading[]>,
     listByPlot: (plotId: string, options?: ListOptions) =>
       client.listItems('sensor_reading', {
         ...options,
-        filter: { ...options?.filter, plot_id: plotId },
+        filter: { ...options?.filter, plot_id: { _eq: plotId } },
       }) as Promise<SensorReading[]>,
     listAnomalies: (options?: ListOptions) =>
       client.listItems('sensor_reading', {
@@ -439,7 +439,7 @@ export function buildAttestationMethods(client: any): AttestationMethods {
       }) as Promise<AttestationRecord[]>,
     listByEntity: (subjectType: string, subjectId: string) =>
       client.listItems('attestation_record', {
-        filter: { subject_type: subjectType, subject_id: subjectId },
+        filter: { subject_type: { _eq: subjectType }, subject_id: { _eq: subjectId } },
       }) as Promise<AttestationRecord[]>,
   };
 }
@@ -456,7 +456,7 @@ export function buildReportMethods(client: any): ReportMethods {
     listByType: (reportType: string, options?: ListOptions) =>
       client.listItems('report_snapshot', {
         ...options,
-        filter: { ...options?.filter, report_type: reportType },
+        filter: { ...options?.filter, report_type: { _eq: reportType } },
       }) as Promise<ReportSnapshot[]>,
   };
 }
@@ -519,7 +519,7 @@ export function buildNoiMethods(client: any): NoiMethods {
     listByCropCycle: (cropCycleId: string, options?: ListOptions) =>
       client.listItems('noi_snapshot', {
         ...options,
-        filter: { ...options?.filter, crop_cycle_id: cropCycleId },
+        filter: { ...options?.filter, crop_cycle_id: { _eq: cropCycleId } },
       }) as Promise<NoiSnapshot[]>,
   };
 }
