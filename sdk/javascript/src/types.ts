@@ -1606,6 +1606,21 @@ export interface SensorAlert {
   actuation_status?: ActuationStatus | null;
 }
 
+/** Stored Web3 protocol catalog entry; this record does not submit transactions. */
+export interface Protocol {
+  id: string;
+  name: string;
+  slug: string;
+  chain: string;
+  contract_address?: string | null;
+  protocol_type?: string | null;
+  category?: string | null;
+  website?: string | null;
+  description?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+}
+
 export interface WalletProfile {
   id: string;
   address: string;

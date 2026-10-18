@@ -94,6 +94,7 @@ export type {
   DemandTrendStatus,
   ForecastAccuracy,
   Plot,
+  Protocol,
   ProductionMarketMatch,
   CropCycle,
   Crop,

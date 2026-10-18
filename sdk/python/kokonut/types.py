@@ -1771,6 +1771,23 @@ class SensorAlert:
 
 
 @dataclass
+class Protocol:
+    """Stored Web3 protocol catalog entry; this record does not submit transactions."""
+
+    id: str
+    name: str
+    slug: str
+    chain: str
+    contract_address: Optional[str] = None
+    protocol_type: Optional[str] = None
+    category: Optional[str] = None
+    website: Optional[str] = None
+    description: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class WalletProfile:
     id: str
     address: str

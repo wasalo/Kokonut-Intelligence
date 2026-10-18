@@ -53,6 +53,24 @@ def test_organization_sdk_model_uses_schema_values_and_keeps_metadata_json_typed
     )
 
 
+def test_protocol_sdk_model_is_a_passive_web3_catalog_record():
+    from kokonut import Protocol
+
+    protocol = Protocol(
+        id="protocol-1",
+        name="Celo Attestation Service",
+        slug="celo-eas",
+        chain="celo",
+        protocol_type="attestation",
+        category="governance",
+        metadata={"read_only": True, "source": "catalog"},
+    )
+
+    assert protocol.slug == "celo-eas"
+    assert protocol.chain == "celo"
+    assert protocol.metadata == {"read_only": True, "source": "catalog"}
+
+
 def test_farm_activity_model_preserves_review_scope_and_source_option_metadata():
     from typing import get_type_hints
 
