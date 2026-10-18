@@ -70,6 +70,7 @@ Commands:
 
 ## Operational Integrity
 
+- In the Codex restricted shell, direct access to Docker Desktop's user socket (`~/.docker/run/docker.sock`) is blocked by the command sandbox even when Docker is healthy. Run Docker CLI commands through the approved host-access/elevated command path; do not change socket ownership or make it world-writable, since that cannot remove the sandbox restriction and would weaken host security.
 - Metric computation creates draft, unverified `metric_value` rows. Never describe `--compute` or `compute-metrics.sh` as verification; a human must run `--verify-value` separately.
 - Base Compose keeps PostgreSQL and ClickHouse private. Use Compose service names for database access; do not document host ports unless an explicit override publishes them.
 - `compute-metrics.sh` runs metrics once and exits. With the Compose database running it uses an ephemeral `kokonut-worker` via `docker compose run --rm`; it is not a persistent metrics service.

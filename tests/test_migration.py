@@ -104,15 +104,31 @@ def test_source_validation_rejects_database_switch(tmp_path):
         cli._validate_sources(files)
 
 
-def test_psql_raises_on_query_failure(monkeypatch):
+def test_psql_raises_on_query_failure_without_exposing_database_output(monkeypatch):
     monkeypatch.setattr(
         subprocess,
         "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 1, "", "bad query"),
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 1, "sensitive stdout", "sensitive database error"
+        ),
     )
 
-    with pytest.raises(cli.MigrationError, match="bad query"):
+    with pytest.raises(cli.MigrationError, match="exit status 1") as error:
         cli._psql("SELECT 1")
+    assert "sensitive" not in str(error.value)
+
+
+def test_psql_timeout_does_not_expose_subprocess_output(monkeypatch):
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(
+            args[0], 5, output="sensitive stdout", stderr="sensitive stderr"
+        )
+
+    monkeypatch.setattr(subprocess, "run", raise_timeout)
+
+    with pytest.raises(cli.MigrationError, match="TimeoutExpired") as error:
+        cli._psql("SELECT 1")
+    assert "sensitive" not in str(error.value)
 
 
 def test_psql_passes_values_as_variables_not_interpolated_sql(monkeypatch):

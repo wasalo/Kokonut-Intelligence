@@ -12,6 +12,7 @@ import tempfile
 import uuid
 from pathlib import Path
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
 from ..common.worker_environment import worker_subprocess_environment
 
@@ -156,10 +157,13 @@ def _psql(input_sql: str, variables: dict[str, str] | None = None) -> subprocess
                 env=worker_subprocess_environment(),
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
-            raise MigrationError(f"psql execution failed: {exc}") from exc
+            raise MigrationError(
+                f"psql execution failed ({safe_exception_class(exc)})"
+            ) from exc
         if result.returncode != 0:
-            detail = result.stderr.strip() or result.stdout.strip() or "unknown psql error"
-            raise MigrationError(detail)
+            raise MigrationError(
+                f"psql execution failed with exit status {result.returncode}"
+            )
         return result
     finally:
         try:
