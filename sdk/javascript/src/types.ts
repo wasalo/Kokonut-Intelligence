@@ -8,6 +8,8 @@ export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'cancel
 export type SensorSeverity = 'info' | 'warning' | 'critical';
 export type AlertLifecycle = 'open' | 'acknowledged' | 'resolved' | 'false_positive';
 export type ExportStatus = 'pending' | 'generating' | 'completed' | 'failed';
+export type OrganizationType = 'cooperative' | 'nonprofit' | 'dao' | 'enterprise' | 'collective' | 'other';
+export type OrganizationStatus = 'active' | 'inactive' | 'dissolved';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -55,6 +57,30 @@ export interface Location {
   metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Organization record; membership rows do not grant tenant access. */
+export interface Organization {
+  id: string;
+  org_key: string;
+  name: string;
+  org_type: OrganizationType;
+  description?: string | null;
+  logo_url?: string | null;
+  website?: string | null;
+  contact_email?: string | null;
+  legal_entity_name?: string | null;
+  jurisdiction?: string | null;
+  governance_model?: string | null;
+  status: OrganizationStatus;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_at: string;
+  updated_at: string;
   created_by?: string | null;
   updated_by?: string | null;
 }

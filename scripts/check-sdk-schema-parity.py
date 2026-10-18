@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_TABLES = {
     "Location": ("001_locations.sql", "location"),
+    "Organization": ("064_organization.sql", "organization"),
     "Farm": ("001_locations.sql", "farm"),
     "Plot": ("001_locations.sql", "plot"),
     "CropCycle": ("002_crops.sql", "crop_cycle"),
@@ -55,6 +56,11 @@ JSONB_MODEL_SHAPES = {
     ("ReportSnapshot", "report_data"): "json_object",
     ("ReportSnapshot", "negative_findings"): "json_object_array",
     ("ExportLog", "filters"): "json_object",
+    ("Organization", "metadata"): "json_object",
+}
+CHECKED_LITERAL_FIELDS = {
+    ("Organization", "org_type"),
+    ("Organization", "status"),
 }
 
 
@@ -249,6 +255,43 @@ def postgres_enum_types() -> dict[str, tuple[str, ...]]:
             if type_name in enum_types and addition.group(2) not in enum_types[type_name]:
                 enum_types[type_name] += (addition.group(2),)
     return enum_types
+
+
+def table_check_literals(path: Path, table: str) -> dict[str, tuple[str, ...]]:
+    """Read simple column ``IN ('value', ...)`` checks from base SQL/migrations."""
+    source = path.read_text(encoding="utf-8")
+    table_match = re.search(
+        rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if table_match is None:
+        raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
+    fragments = [table_match.group(1)]
+    for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
+        migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+        fragments.extend(
+            statement.group(1)
+            for statement in re.finditer(
+                rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+                migration_source,
+                flags=re.IGNORECASE | re.DOTALL,
+            )
+        )
+    values: dict[str, tuple[str, ...]] = {}
+    for fragment in fragments:
+        for check in re.finditer(
+            r"\b([a-z_][a-z0-9_]*)\s+IN\s*\(([^()]*)\)",
+            fragment,
+            flags=re.IGNORECASE | re.DOTALL,
+        ):
+            literals = tuple(
+                value.replace("''", "'")
+                for value in re.findall(r"'((?:''|[^'])*)'", check.group(2))
+            )
+            if literals:
+                values[check.group(1).lower()] = literals
+    return values
 
 
 def table_enum_columns(path: Path, table: str, enum_types: dict[str, tuple[str, ...]]) -> dict[str, str]:
@@ -461,6 +504,18 @@ def typescript_type_matches_enum(
     return normalized in aliases and set(aliases[normalized]) == set(expected)
 
 
+def python_type_matches_literals(
+    annotation: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    return python_type_matches_enum(annotation, aliases, expected)
+
+
+def typescript_type_matches_literals(
+    field_type: str, aliases: dict[str, tuple[str, ...]], expected: tuple[str, ...]
+) -> bool:
+    return typescript_type_matches_enum(field_type, aliases, expected)
+
+
 def main() -> int:
     schema_dir = ROOT / "schemas" / "postgres"
     python_field_types = python_model_field_types(
@@ -490,6 +545,11 @@ def main() -> int:
         nullable_columns = table_nullable_columns(schema_dir / schema_file, table)
         column_types = table_column_types(schema_dir / schema_file, table)
         enum_columns = table_enum_columns(schema_dir / schema_file, table, sql_enums)
+        checked_literals = (
+            table_check_literals(schema_dir / schema_file, table)
+            if any(literal_model == model for literal_model, _column in CHECKED_LITERAL_FIELDS)
+            else {}
+        )
         checked_columns += len(columns)
         for language, models in (("Python", python_models), ("TypeScript", typescript_models)):
             fields = models.get(model)
@@ -567,6 +627,25 @@ def main() -> int:
                     f"TypeScript {model}.{column} does not match SQL enum "
                     f"{enum_type}: {typescript_type}"
                 )
+        for literal_model, column in CHECKED_LITERAL_FIELDS:
+            if literal_model != model:
+                continue
+            expected_values = checked_literals.get(column)
+            if expected_values is None:
+                failures.append(f"No SQL CHECK literal contract registered for {model}.{column}")
+                continue
+            python_type = python_field_types.get(model, {}).get(column)
+            typescript_type = typescript_field_types.get(model, {}).get(column)
+            if python_type is None or typescript_type is None:
+                continue
+            if not python_type_matches_literals(python_type, python_enums, expected_values):
+                failures.append(
+                    f"Python {model}.{column} does not match SQL CHECK values: {python_type}"
+                )
+            if not typescript_type_matches_literals(typescript_type, typescript_enums, expected_values):
+                failures.append(
+                    f"TypeScript {model}.{column} does not match SQL CHECK values: {typescript_type}"
+                )
 
     if failures:
         print("SDK schema parity failed:")
@@ -578,7 +657,8 @@ def main() -> int:
         f"SDK schema parity passed ({len(MODEL_TABLES)} models, "
         f"{checked_columns} canonical columns, {checked_scalar_types} scalar types, "
         f"{checked_spatial_types} PostGIS types, and {checked_json_shapes} JSONB shapes "
-        f"plus {checked_enum_fields} enum fields checked per SDK)"
+        f"plus {checked_enum_fields} enum fields and {len(CHECKED_LITERAL_FIELDS)} "
+        f"CHECK-literal fields checked per SDK)"
     )
     return 0
 

@@ -31,6 +31,28 @@ def test_kokonut_types_import():
     assert opts.limit == 10
 
 
+def test_organization_sdk_model_uses_schema_values_and_keeps_metadata_json_typed():
+    from kokonut import Organization, OrganizationStatus, OrganizationType
+
+    organization = Organization(
+        id="org-1",
+        org_key="kokonut-network",
+        name="Kokonut Network",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        org_type="dao",
+        status="active",
+        metadata={"region": "Caribbean", "active": True},
+    )
+
+    assert organization.status == "active"
+    assert organization.org_type == "dao"
+    assert OrganizationStatus.__args__ == ("active", "inactive", "dissolved")
+    assert OrganizationType.__args__ == (
+        "cooperative", "nonprofit", "dao", "enterprise", "collective", "other"
+    )
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

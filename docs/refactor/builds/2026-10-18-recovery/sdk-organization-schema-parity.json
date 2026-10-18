@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript SDK parity for the canonical organization record",
+  "source_of_truth": "schemas/postgres/064_organization.sql organization table and its SQL CHECK constraints",
+  "change": "Added Organization models plus OrganizationType and OrganizationStatus literal aliases to both SDKs. The offline CI schema guard now checks the full organization record, nullable fields, JSONB metadata shape, and exact CHECK literal unions.",
+  "inventory": {
+    "models": 21,
+    "canonical_columns": 493,
+    "scalar_types": 461,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 25,
+    "enum_fields": 16,
+    "check_literal_fields": 2
+  },
+  "focused_checks": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q",
+      "result": "32 passed"
+    },
+    "javascript": {
+      "command": "npm test",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "schema_guard": "passed: 21 models, 493 canonical columns, 461 scalar types, 7 PostGIS shapes, 25 JSONB shapes, 16 enum fields, and 2 CHECK-literal fields checked per SDK",
+    "ruff": "passed",
+    "capability_matrix": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared; MAN-CAP checks remain separately gated",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local SQL source, fixtures, and SDK tests only",
+  "limitations": [
+    "The organization model represents persisted organization data; organization membership rows do not authorize tenant access.",
+    "The source guard checks only the explicitly mapped SDK models and registered literal fields.",
+    "No Directus projection, live API authorization, or tenant isolation is claimed.",
+    "No capability classification or MAN-CAP acceptance status changed."
+  ]
+}

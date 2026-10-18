@@ -13,6 +13,8 @@ PaymentStatus = Literal["pending", "partial", "paid", "overdue", "cancelled"]
 SensorSeverity = Literal["info", "warning", "critical"]
 AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
 ExportStatus = Literal["pending", "generating", "completed", "failed"]
+OrganizationType = Literal["cooperative", "nonprofit", "dao", "enterprise", "collective", "other"]
+OrganizationStatus = Literal["active", "inactive", "dissolved"]
 
 GeoJSONPosition = List[float]
 
@@ -97,6 +99,32 @@ class Location:
     metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+@dataclass
+class Organization:
+    """Organization record; membership rows do not grant tenant access."""
+
+    id: str
+    org_key: str
+    name: str
+    created_at: str
+    updated_at: str
+    org_type: OrganizationType = "cooperative"
+    description: Optional[str] = None
+    logo_url: Optional[str] = None
+    website: Optional[str] = None
+    contact_email: Optional[str] = None
+    legal_entity_name: Optional[str] = None
+    jurisdiction: Optional[str] = None
+    governance_model: Optional[str] = None
+    status: OrganizationStatus = "active"
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
 

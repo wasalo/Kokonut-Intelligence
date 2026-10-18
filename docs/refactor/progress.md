@@ -8810,3 +8810,17 @@ Four guard regressions, 21 SDK tests, 29 JavaScript tests, the TypeScript
 build, Ruff, capability-matrix validation, and diff checks pass. No database
 or network was contacted. Checklist: 545 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-scalar-type-parity-guard.json`.
+
+### Organization SDK schema parity — 18 October 2026
+
+Added a typed `Organization` record and exact SQL-backed `OrganizationType`
+and `OrganizationStatus` literal aliases to the Python and TypeScript SDKs.
+The CI schema guard now includes the canonical organization table and verifies
+its 20 columns, JSONB metadata shape, nullability, and both literal unions
+against the table's SQL `CHECK` constraints. Thirty-two focused Python SDK and
+guard tests, 29 JavaScript tests, TypeScript build, Ruff, schema guard, matrix
+validation, and diff checks pass with local fixtures only. No database or
+network was contacted. The model describes organization data; organization
+membership records do not establish tenant ownership or authorization.
+Checklist: 548 complete / 19 open. Capability classifications are unchanged.
+Evidence: `docs/refactor/builds/2026-10-18-recovery/sdk-organization-schema-parity.json`.

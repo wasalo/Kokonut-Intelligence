@@ -66,6 +66,56 @@ ALTER TABLE sdk_guard_fixture ALTER COLUMN score TYPE NUMERIC(14, 4);
     }
 
 
+def test_sql_check_literal_inventory_reads_base_constraints_and_migrations(tmp_path, monkeypatch):
+    schema = tmp_path / "base.sql"
+    schema.write_text(
+        """CREATE TABLE IF NOT EXISTS sdk_guard_fixture (
+    id UUID PRIMARY KEY,
+    kind TEXT CHECK (kind IN ('one', 'two'))
+);
+""",
+        encoding="utf-8",
+    )
+    migrations = tmp_path / "schemas" / "postgres"
+    migrations.mkdir(parents=True)
+    (migrations / "001_fixture.sql").write_text(
+        "ALTER TABLE sdk_guard_fixture ADD CONSTRAINT state_check CHECK (state IN ('ready', 'held'));\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(SCHEMA_GUARD, "ROOT", tmp_path)
+
+    assert SCHEMA_GUARD.table_check_literals(schema, "sdk_guard_fixture") == {
+        "kind": ("one", "two"),
+        "state": ("ready", "held"),
+    }
+
+
+def test_organization_literal_contract_matches_exact_sql_check_values():
+    values = SCHEMA_GUARD.table_check_literals(
+        ROOT / "schemas" / "postgres" / "064_organization.sql", "organization"
+    )
+
+    assert values["org_type"] == (
+        "cooperative", "nonprofit", "dao", "enterprise", "collective", "other"
+    )
+    assert values["status"] == ("active", "inactive", "dissolved")
+    python_aliases = SCHEMA_GUARD.python_literal_aliases(
+        ROOT / "sdk" / "python" / "kokonut" / "types.py"
+    )
+    typescript_aliases = SCHEMA_GUARD.typescript_literal_aliases(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    assert SCHEMA_GUARD.python_type_matches_literals(
+        "OrganizationType", python_aliases, values["org_type"]
+    )
+    assert SCHEMA_GUARD.typescript_type_matches_literals(
+        "OrganizationStatus", typescript_aliases, values["status"]
+    )
+    assert not SCHEMA_GUARD.python_type_matches_literals(
+        "OrganizationStatus", python_aliases, values["org_type"]
+    )
+
+
 def test_sql_type_families_cover_scalars_and_postgis_shapes():
     assert SCHEMA_GUARD.sql_type_family("UUID") == "string"
     assert SCHEMA_GUARD.sql_type_family("NUMERIC(12, 4)") == "number"
@@ -154,7 +204,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 24
+    assert checked == 25
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )
