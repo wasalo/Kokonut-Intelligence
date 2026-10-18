@@ -1552,6 +1552,11 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.spatial_autocorrelations, "spatial_autocorrelation"),
         (client.geostat_cv_results, "geostat_cv_result"),
         (client.sensor_network_designs, "sensor_network_design"),
+        (client.system_variables, "system_variable"),
+        (client.stock_flow_runs, "stock_flow_run"),
+        (client.system_archetypes, "system_archetype"),
+        (client.leverage_assessments, "leverage_assessment"),
+        (client.structural_assumptions, "structural_assumption"),
         (client.soil_samples, "soil_sample"),
         (client.soil_carbon_measurements, "soil_carbon_measurement"),
         (client.environmental_baselines, "environmental_baseline"),
@@ -1696,6 +1701,9 @@ def test_reference_read_methods_are_typed_catalog_reads_only():
         (client.protocols, "protocol"),
         (client.sensor_types, "sensor_type"),
         (client.attestation_schemas, "attestation_schema"),
+        (client.causal_loops, "causal_loop"),
+        (client.stock_flow_models, "stock_flow_model"),
+        (client.time_delays, "time_delay"),
     ]
     options = ListOptions(limit=25, fields=["id", "name"], sort=["name"])
 
@@ -1705,6 +1713,188 @@ def test_reference_read_methods_are_typed_catalog_reads_only():
         assert methods.get("catalog-1", ["id"]) == {"id": "catalog-1"}
         client.get_item.assert_called_with(collection, "catalog-1", ["id"])
         assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+
+def test_causal_links_are_read_only_and_scoped_to_the_parent_loop():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    client.get_item = Mock(return_value={"id": "link-1"})
+    options = ListOptions(
+        filter={"loop_id": {"_eq": "other-loop"}, "polarity": {"_eq": "+"}},
+        fields=["id", "loop_id", "source_variable"],
+        limit=12,
+        offset=24,
+    )
+
+    assert client.causal_links.list(options) == []
+    client.list_items.assert_called_with("causal_link", options)
+    assert client.causal_links.list_by_loop("loop-1", options) == []
+    _, scoped_options = client.list_items.call_args.args
+    assert scoped_options.filter == {
+        "loop_id": {"_eq": "loop-1"},
+        "polarity": {"_eq": "+"},
+    }
+    assert scoped_options.fields == ["id", "loop_id", "source_variable"]
+    assert scoped_options.limit == 12
+    assert scoped_options.offset == 24
+    assert client.causal_links.get("link-1", ["id"]) == {"id": "link-1"}
+    client.get_item.assert_called_with("causal_link", "link-1", ["id"])
+    assert not any(
+        hasattr(client.causal_links, name) for name in ("create", "update", "delete")
+    )
+    assert not hasattr(client.causal_links, "list_by_location")
+
+
+def test_systems_thinking_models_preserve_stored_fields_and_literals():
+    from typing import get_args
+
+    from kokonut import (
+        CausalLink,
+        CausalLinkPolarity,
+        CausalLoop,
+        CausalLoopType,
+        LeverageAssessment,
+        StockFlowModel,
+        StockFlowRun,
+        StockFlowRunStatus,
+        StructuralAssumption,
+        StructuralAssumptionStatus,
+        SystemArchetype,
+        SystemArchetypeStatus,
+        SystemsDomain,
+        SystemVariable,
+        SystemVariableType,
+        TimeDelay,
+    )
+
+    loop = CausalLoop(
+        id="loop-1",
+        loop_name="soil-carbon-cycle",
+        loop_type="reinforcing",
+        description="Organic inputs build soil carbon.",
+        domain="ecological",
+        is_enabled=True,
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+    )
+    link = CausalLink(
+        id="link-1",
+        loop_id=loop.id,
+        source_variable="organic_inputs",
+        target_variable="soil_carbon",
+        polarity="+",
+        strength=0.8,
+        created_at="2026-10-18T00:00:00Z",
+    )
+    variable = SystemVariable(
+        id="variable-1",
+        variable_name="soil_carbon",
+        variable_type="stock",
+        location_id="location-1",
+        current_value=52.4,
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+    )
+    model = StockFlowModel(
+        id="model-1",
+        model_name="soil-carbon",
+        description="Synthetic model",
+        equations={"soil_carbon": "INTEG(inputs - losses, 50)"},
+        initial_conditions={"soil_carbon": 50},
+        parameters={"decomposition_rate": 0.02},
+        time_unit="day",
+        is_enabled=True,
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+    )
+    run = StockFlowRun(
+        id="run-1",
+        model_id=model.id,
+        location_id="location-1",
+        scenario_name="baseline",
+        parameters={},
+        start_date="2026-01-01",
+        end_date="2026-12-31",
+        time_step_days=1,
+        results={"final_soil_carbon": 55.2},
+        trajectory=[{"day": 0, "soil_carbon": 50.0}],
+        status="completed",
+        run_at="2026-10-18T00:00:00Z",
+        run_by="synthetic",
+    )
+    archetype = SystemArchetype(
+        id="archetype-1",
+        archetype_name="limits_to_growth",
+        location_id="location-1",
+        confidence=0.7,
+        evidence={"source": "synthetic"},
+        active_variables=["soil_carbon"],
+        status="active",
+        detected_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    assessment = LeverageAssessment(
+        id="assessment-1",
+        location_id="location-1",
+        leverage_point=6,
+        point_name="information flows",
+        impact_score=0.6,
+        data_sources=["metric_value"],
+        assessed_at="2026-10-18T00:00:00Z",
+        assessed_by="synthetic",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    delay = TimeDelay(
+        id="delay-1",
+        action_type="cover_crop",
+        effect_type="soil_carbon",
+        expected_delay_hours=720,
+        domain="ecological",
+        is_enabled=True,
+        created_at="2026-10-18T00:00:00Z",
+    )
+    assumption = StructuralAssumption(
+        id="assumption-1",
+        assumption_text="Synthetic assumption",
+        location_id="location-1",
+        domain="farm",
+        status="challenged",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+    )
+
+    assert link.loop_id == loop.id
+    assert variable.current_value == 52.4
+    assert run.trajectory == [{"day": 0, "soil_carbon": 50.0}]
+    assert archetype.evidence == {"source": "synthetic"}
+    assert assessment.data_sources == ["metric_value"]
+    assert delay.expected_delay_hours == 720
+    assert assumption.status == "challenged"
+    assert get_args(CausalLoopType) == ("reinforcing", "balancing", "archetype")
+    assert get_args(SystemsDomain) == (
+        "farm", "ecological", "financial", "social", "governance"
+    )
+    assert get_args(CausalLinkPolarity) == ("+", "-")
+    assert get_args(SystemVariableType) == ("stock", "flow", "auxiliary", "constant")
+    assert get_args(StockFlowRunStatus) == ("pending", "running", "completed", "failed")
+    assert get_args(SystemArchetypeStatus) == ("active", "resolved", "dismissed")
+    assert get_args(StructuralAssumptionStatus) == (
+        "active", "challenged", "validated", "deprecated"
+    )
+    assert get_args(CausalLoopType) == ("reinforcing", "balancing", "archetype")
+    assert get_args(SystemsDomain) == (
+        "farm", "ecological", "financial", "social", "governance"
+    )
+    assert get_args(CausalLinkPolarity) == ("+", "-")
+    assert get_args(SystemVariableType) == ("stock", "flow", "auxiliary", "constant")
+    assert get_args(StockFlowRunStatus) == ("pending", "running", "completed", "failed")
+    assert get_args(SystemArchetypeStatus) == ("active", "resolved", "dismissed")
+    assert get_args(StructuralAssumptionStatus) == (
+        "active", "challenged", "validated", "deprecated"
+    )
 
 
 def test_kokonut_methods_import():

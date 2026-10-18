@@ -7,6 +7,7 @@ import requests
 
 from .methods import (
     AttestationMethods,
+    CausalLinkReadMethods,
     CropCycleMethods,
     ExpenseEventMethods,
     ExportMethods,
@@ -34,6 +35,8 @@ from .types import (
     BuyerSegment,
     CarbonCredit,
     CashFlowSnapshot,
+    CausalLink,
+    CausalLoop,
     ChangePoint,
     CreditAdjustment,
     CreditRetirement,
@@ -53,6 +56,7 @@ from .types import (
     InfrastructureAsset,
     KrigingPoint,
     KrigingPrediction,
+    LeverageAssessment,
     ListOptions,
     MarketSizeEstimate,
     MetricValue,
@@ -70,6 +74,12 @@ from .types import (
     SoilSample,
     SpatialAutocorrelation,
     SpeciesObservation,
+    StockFlowModel,
+    StockFlowRun,
+    StructuralAssumption,
+    SystemArchetype,
+    SystemVariable,
+    TimeDelay,
     TimeSeriesForecast,
     TrendDashboardMetric,
     TrendEstimate,
@@ -224,6 +234,31 @@ class KokonutClient:
         )
         self.sensor_network_designs: LocationReadMethods[SensorNetworkDesign] = LocationReadMethods(
             self, "sensor_network_design"
+        )
+        self.causal_loops: ReferenceReadMethods[CausalLoop] = ReferenceReadMethods(
+            self, "causal_loop"
+        )
+        self.causal_links: CausalLinkReadMethods[CausalLink] = CausalLinkReadMethods(self)
+        self.system_variables: LocationReadMethods[SystemVariable] = LocationReadMethods(
+            self, "system_variable"
+        )
+        self.stock_flow_models: ReferenceReadMethods[StockFlowModel] = ReferenceReadMethods(
+            self, "stock_flow_model"
+        )
+        self.stock_flow_runs: LocationReadMethods[StockFlowRun] = LocationReadMethods(
+            self, "stock_flow_run"
+        )
+        self.system_archetypes: LocationReadMethods[SystemArchetype] = LocationReadMethods(
+            self, "system_archetype"
+        )
+        self.leverage_assessments: LocationReadMethods[LeverageAssessment] = LocationReadMethods(
+            self, "leverage_assessment"
+        )
+        self.time_delays: ReferenceReadMethods[TimeDelay] = ReferenceReadMethods(
+            self, "time_delay"
+        )
+        self.structural_assumptions: LocationReadMethods[StructuralAssumption] = LocationReadMethods(
+            self, "structural_assumption"
         )
         self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
             self, "demand_forecast"

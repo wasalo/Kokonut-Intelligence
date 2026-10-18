@@ -57,6 +57,12 @@ export interface GeostatRealizationPointReadMethods<T> {
   listByRealization(realizationId: string, options?: ListOptions): Promise<T[]>;
 }
 
+export interface CausalLinkReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByLoop(loopId: string, options?: ListOptions): Promise<T[]>;
+}
+
 function createGenericMethods(client: any, collection: string): GenericMethods {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options),
@@ -132,6 +138,19 @@ export function buildGeostatRealizationPointReadMethods<T>(
       client.listItems(collection, {
         ...options,
         filter: { ...options?.filter, realization_id: { _eq: realizationId } },
+      }) as Promise<T[]>,
+  };
+}
+
+export function buildCausalLinkReadMethods<T>(client: any): CausalLinkReadMethods<T> {
+  const collection = 'causal_link';
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByLoop: (loopId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, loop_id: { _eq: loopId } },
       }) as Promise<T[]>,
   };
 }

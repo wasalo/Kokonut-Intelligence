@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Stored systems-thinking SDK reads — 18 October 2026
+
+Python and TypeScript now expose typed, read-only access to shared causal-loop,
+stock-flow-model, and time-delay definitions; parent-scoped causal links; and
+location-scoped system variables, stock-flow runs, archetypes, leverage
+assessments, and structural assumptions. The SDK returns saved definitions and
+outputs without evaluating loops, simulating models, detecting archetypes, or
+selecting interventions. Stakeholder `mental_model` records remain outside the
+SDK because the canonical table has no location scope. One hundred two focused
+Python SDK/schema/method-parity tests and 52 JavaScript tests pass with the
+TypeScript build, Ruff, compilation, schema and capability guards, and diff
+checks. No database or provider was contacted. CAP-009 remains unaccepted.
+Checklist: 629 complete / 19 open; capability matrix: 66 rows, 54
+baseline-retained, 7 deployed, 5 prepared
+([evidence](builds/2026-10-18-recovery/sdk-systems-thinking-read-methods.json)).
+
 ### Stored geostatistics SDK reads — 18 October 2026
 
 Python and TypeScript now expose schema-aligned read models and read-only

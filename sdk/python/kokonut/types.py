@@ -39,6 +39,13 @@ GeostatSimulationMethod = Literal["sgs", "sis", "turning_bands"]
 SpatialAutocorrelationMetric = Literal["morans_i", "gearys_c", "join_count"]
 SpatialWeightsType = Literal["queen", "rook", "distance", "knn"]
 GeostatCVStrategy = Literal["spatial_block", "leave_one_out", "k_fold"]
+CausalLoopType = Literal["reinforcing", "balancing", "archetype"]
+SystemsDomain = Literal["farm", "ecological", "financial", "social", "governance"]
+CausalLinkPolarity = Literal["+", "-"]
+SystemVariableType = Literal["stock", "flow", "auxiliary", "constant"]
+StockFlowRunStatus = Literal["pending", "running", "completed", "failed"]
+SystemArchetypeStatus = Literal["active", "resolved", "dismissed"]
+StructuralAssumptionStatus = Literal["active", "challenged", "validated", "deprecated"]
 DemandForecastType = Literal[
     "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
 ]
@@ -1023,6 +1030,162 @@ class SensorNetworkDesign:
     confidence_level: Optional[float] = None
     notes: Optional[str] = None
     metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class CausalLoop:
+    """Shared causal-loop definition; this record does not evaluate a loop."""
+
+    id: str
+    loop_name: str
+    loop_type: CausalLoopType
+    description: str
+    domain: SystemsDomain
+    is_enabled: bool
+    created_at: str
+    updated_at: str
+    archetype: Optional[str] = None
+
+
+@dataclass
+class CausalLink:
+    """Stored causal relationship scoped to its parent loop."""
+
+    id: str
+    loop_id: str
+    source_variable: str
+    target_variable: str
+    polarity: CausalLinkPolarity
+    strength: float
+    created_at: str
+    description: Optional[str] = None
+    delay_hours: Optional[int] = None
+    data_source: Optional[str] = None
+
+
+@dataclass
+class SystemVariable:
+    """Stored system variable and latest observation; no value is recalculated."""
+
+    id: str
+    variable_name: str
+    variable_type: SystemVariableType
+    created_at: str
+    updated_at: str
+    unit: Optional[str] = None
+    current_value: Optional[float] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    location_id: Optional[str] = None
+    source_table: Optional[str] = None
+    source_column: Optional[str] = None
+    last_observed_at: Optional[str] = None
+    description: Optional[str] = None
+
+
+@dataclass
+class StockFlowModel:
+    """Shared stock-and-flow model definition; this record does not simulate."""
+
+    id: str
+    model_name: str
+    description: str
+    equations: JSONObject
+    initial_conditions: JSONObject
+    parameters: JSONObject
+    time_unit: str
+    is_enabled: bool
+    created_at: str
+    updated_at: str
+
+
+@dataclass
+class StockFlowRun:
+    """Persisted simulation result; the SDK does not execute the model."""
+
+    id: str
+    model_id: str
+    location_id: str
+    scenario_name: str
+    parameters: JSONObject
+    start_date: str
+    end_date: str
+    time_step_days: int
+    results: JSONObject
+    trajectory: List[JSONValue]
+    status: StockFlowRunStatus
+    run_at: str
+    run_by: str
+    error_message: Optional[str] = None
+
+
+@dataclass
+class SystemArchetype:
+    """Stored location-level archetype detection and evidence."""
+
+    id: str
+    archetype_name: str
+    location_id: str
+    detected_at: str
+    confidence: float
+    evidence: JSONObject
+    active_variables: List[JSONValue]
+    status: SystemArchetypeStatus
+    created_at: str
+    suggested_intervention: Optional[str] = None
+    resolved_at: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class LeverageAssessment:
+    """Stored leverage-point assessment; suggestions remain advisory."""
+
+    id: str
+    location_id: str
+    leverage_point: int
+    point_name: str
+    impact_score: float
+    data_sources: List[JSONValue]
+    assessed_at: str
+    assessed_by: str
+    created_at: str
+    current_state: Optional[str] = None
+    intervention_suggestion: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class TimeDelay:
+    """Shared action-to-effect delay configuration; no delay is inferred."""
+
+    id: str
+    action_type: str
+    effect_type: str
+    expected_delay_hours: int
+    domain: str
+    is_enabled: bool
+    created_at: str
+    min_delay_hours: Optional[int] = None
+    max_delay_hours: Optional[int] = None
+    description: Optional[str] = None
+
+
+@dataclass
+class StructuralAssumption:
+    """Stored location assumption and challenge history."""
+
+    id: str
+    assumption_text: str
+    domain: str
+    status: StructuralAssumptionStatus
+    created_at: str
+    updated_at: str
+    location_id: Optional[str] = None
+    challenge_evidence: Optional[str] = None
+    challenged_at: Optional[str] = None
+    challenged_by: Optional[str] = None
+    original_source: Optional[str] = None
 
 
 @dataclass

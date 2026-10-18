@@ -14,6 +14,8 @@ import type { AuthenticationData } from '@directus/sdk';
 import { normalizeDirectusError } from './errors.js';
 import type {
   AttestationSchema,
+  CausalLink,
+  CausalLoop,
   BuyerDemandSignal,
   BuyerSegment,
   ChangePoint,
@@ -38,6 +40,7 @@ import type {
   InfrastructureAsset,
   KrigingPoint,
   KrigingPrediction,
+  LeverageAssessment,
   MarketSizeEstimate,
   MetricValue,
   MrvClaim,
@@ -50,7 +53,13 @@ import type {
   SensorDevice,
   SensorAlert,
   SensorNetworkDesign,
+  StockFlowModel,
+  StockFlowRun,
+  StructuralAssumption,
+  SystemArchetype,
+  SystemVariable,
   SpatialAutocorrelation,
+  TimeDelay,
   SoilCarbonMeasurement,
   SoilSample,
   SpeciesObservation,
@@ -65,6 +74,7 @@ import type {
 import {
   buildLocationReadMethods,
   buildReferenceReadMethods,
+  buildCausalLinkReadMethods,
   buildForecastAccuracyReadMethods,
   buildKrigingPointReadMethods,
   buildGeostatRealizationPointReadMethods,
@@ -88,6 +98,7 @@ import {
 import type {
   LocationReadMethods,
   ReferenceReadMethods,
+  CausalLinkReadMethods,
   ForecastAccuracyReadMethods,
   KrigingPointReadMethods,
   GeostatRealizationPointReadMethods,
@@ -172,6 +183,15 @@ export class KokonutClient {
   spatialAutocorrelations: LocationReadMethods<SpatialAutocorrelation>;
   geostatCvResults: LocationReadMethods<GeostatCVResult>;
   sensorNetworkDesigns: LocationReadMethods<SensorNetworkDesign>;
+  causalLoops: ReferenceReadMethods<CausalLoop>;
+  causalLinks: CausalLinkReadMethods<CausalLink>;
+  systemVariables: LocationReadMethods<SystemVariable>;
+  stockFlowModels: ReferenceReadMethods<StockFlowModel>;
+  stockFlowRuns: LocationReadMethods<StockFlowRun>;
+  systemArchetypes: LocationReadMethods<SystemArchetype>;
+  leverageAssessments: LocationReadMethods<LeverageAssessment>;
+  timeDelays: ReferenceReadMethods<TimeDelay>;
+  structuralAssumptions: LocationReadMethods<StructuralAssumption>;
   demandForecasts: LocationReadMethods<DemandForecast>;
   marketSizeEstimates: LocationReadMethods<MarketSizeEstimate>;
   priceObservations: LocationReadMethods<PriceObservation>;
@@ -242,6 +262,15 @@ export class KokonutClient {
     this.spatialAutocorrelations = buildLocationReadMethods<SpatialAutocorrelation>(this, 'spatial_autocorrelation');
     this.geostatCvResults = buildLocationReadMethods<GeostatCVResult>(this, 'geostat_cv_result');
     this.sensorNetworkDesigns = buildLocationReadMethods<SensorNetworkDesign>(this, 'sensor_network_design');
+    this.causalLoops = buildReferenceReadMethods<CausalLoop>(this, 'causal_loop');
+    this.causalLinks = buildCausalLinkReadMethods<CausalLink>(this);
+    this.systemVariables = buildLocationReadMethods<SystemVariable>(this, 'system_variable');
+    this.stockFlowModels = buildReferenceReadMethods<StockFlowModel>(this, 'stock_flow_model');
+    this.stockFlowRuns = buildLocationReadMethods<StockFlowRun>(this, 'stock_flow_run');
+    this.systemArchetypes = buildLocationReadMethods<SystemArchetype>(this, 'system_archetype');
+    this.leverageAssessments = buildLocationReadMethods<LeverageAssessment>(this, 'leverage_assessment');
+    this.timeDelays = buildReferenceReadMethods<TimeDelay>(this, 'time_delay');
+    this.structuralAssumptions = buildLocationReadMethods<StructuralAssumption>(this, 'structural_assumption');
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
     this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');

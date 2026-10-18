@@ -185,6 +185,17 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
             "queen", "rook", "distance", "knn"
         ),
         ("GeostatCVResult", "cv_strategy"): ("spatial_block", "leave_one_out", "k_fold"),
+        ("CausalLoop", "loop_type"): ("reinforcing", "balancing", "archetype"),
+        ("CausalLoop", "domain"): (
+            "farm", "ecological", "financial", "social", "governance"
+        ),
+        ("CausalLink", "polarity"): ("+", "-"),
+        ("SystemVariable", "variable_type"): ("stock", "flow", "auxiliary", "constant"),
+        ("StockFlowRun", "status"): ("pending", "running", "completed", "failed"),
+        ("SystemArchetype", "status"): ("active", "resolved", "dismissed"),
+        ("StructuralAssumption", "status"): (
+            "active", "challenged", "validated", "deprecated"
+        ),
         ("DemandForecast", "forecast_type"): (
             "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
         ),
@@ -406,7 +417,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 93
+    assert checked == 104
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

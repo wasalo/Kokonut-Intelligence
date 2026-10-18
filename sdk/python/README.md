@@ -98,6 +98,15 @@ prediction_points = client.kriging_points.list_by_prediction("prediction-uuid")
 realization_points = client.geostat_realization_points.list_by_realization("realization-uuid")
 # These reads return stored output only; they do not run spatial analysis.
 
+# Read systems-thinking definitions and location results
+loops = client.causal_loops.list()
+links = client.causal_links.list_by_loop("loop-uuid")
+models = client.stock_flow_models.list()
+runs = client.stock_flow_runs.list_by_location("location-uuid")
+archetypes = client.system_archetypes.list_by_location("location-uuid")
+leverage = client.leverage_assessments.list_by_location("location-uuid")
+# These return persisted definitions/results; they do not evaluate or simulate.
+
 # Create a harvest event
 harvest = client.harvest_events.create({
     "crop_cycle_id": "cycle-uuid",
@@ -246,6 +255,15 @@ except KokonutError as e:
 | `spatial_autocorrelations` | `spatial_autocorrelation` | `list_by_location` (read-only) |
 | `geostat_cv_results` | `geostat_cv_result` | `list_by_location` (read-only) |
 | `sensor_network_designs` | `sensor_network_design` | `list_by_location` (read-only) |
+| `causal_loops` | `causal_loop` | — (read-only list/detail) |
+| `causal_links` | `causal_link` | `list_by_loop` (read-only) |
+| `system_variables` | `system_variable` | `list_by_location` (read-only) |
+| `stock_flow_models` | `stock_flow_model` | — (read-only list/detail) |
+| `stock_flow_runs` | `stock_flow_run` | `list_by_location` (read-only) |
+| `system_archetypes` | `system_archetype` | `list_by_location` (read-only) |
+| `leverage_assessments` | `leverage_assessment` | `list_by_location` (read-only) |
+| `time_delays` | `time_delay` | — (read-only list/detail) |
+| `structural_assumptions` | `structural_assumption` | `list_by_location` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensor_types` | `sensor_type` | — (read-only list/detail) |
@@ -255,6 +273,9 @@ Geostatistics groups expose saved outputs only. `kriging_points` requires a
 prediction ID, and `geostat_realization_points` requires a realization ID,
 because their canonical tables have no location column. Client-side filters do
 not grant access; the configured API must enforce the caller's authorization.
+Systems-thinking groups also expose persisted configuration and results only;
+`causal_links` requires a loop ID. Stakeholder `mental_model` records are not
+exposed because their canonical table has no location scope.
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are

@@ -8,6 +8,8 @@ import {
   ValidationError,
 } from '../errors.js';
 import type {
+  CausalLink,
+  CausalLoop,
   CropCycle,
   ExpenseEvent,
   ExportLog,
@@ -19,6 +21,7 @@ import type {
   HarvestEvent,
   KrigingPoint,
   KrigingPrediction,
+  LeverageAssessment,
   LaborEvent,
   Location,
   LossEvent,
@@ -33,6 +36,12 @@ import type {
   SensorReading,
   SensorType,
   SpatialAutocorrelation,
+  StockFlowModel,
+  StockFlowRun,
+  StructuralAssumption,
+  SystemArchetype,
+  SystemVariable,
+  TimeDelay,
   ReportSnapshot,
   WalletProfile,
 } from '../types.js';
@@ -295,6 +304,11 @@ describe('KokonutClient', () => {
       [client.spatialAutocorrelations, 'spatial_autocorrelation'],
       [client.geostatCvResults, 'geostat_cv_result'],
       [client.sensorNetworkDesigns, 'sensor_network_design'],
+      [client.systemVariables, 'system_variable'],
+      [client.stockFlowRuns, 'stock_flow_run'],
+      [client.systemArchetypes, 'system_archetype'],
+      [client.leverageAssessments, 'leverage_assessment'],
+      [client.structuralAssumptions, 'structural_assumption'],
       [client.soilSamples, 'soil_sample'],
       [client.soilCarbonMeasurements, 'soil_carbon_measurement'],
       [client.environmentalBaselines, 'environmental_baseline'],
@@ -465,6 +479,9 @@ describe('KokonutClient', () => {
       [client.protocols, 'protocol'],
       [client.sensorTypes, 'sensor_type'],
       [client.attestationSchemas, 'attestation_schema'],
+      [client.causalLoops, 'causal_loop'],
+      [client.stockFlowModels, 'stock_flow_model'],
+      [client.timeDelays, 'time_delay'],
     ] as const;
     const options = { limit: 25, fields: ['id', 'name'], sort: ['name'] };
 
@@ -477,6 +494,138 @@ describe('KokonutClient', () => {
       expect('update' in methods).toBe(false);
       expect('delete' in methods).toBe(false);
     }
+  });
+
+  it('scopes causal links to their parent loop and keeps them read-only', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'link-1' } as any);
+    const options = {
+      limit: 12,
+      offset: 24,
+      fields: ['id', 'loop_id', 'source_variable'],
+      filter: { loop_id: { _eq: 'other-loop' }, polarity: { _eq: '+' } },
+    };
+
+    await client.causalLinks.list(options);
+    expect(listItems).toHaveBeenLastCalledWith('causal_link', options);
+    await client.causalLinks.listByLoop('loop-1', options);
+    expect(listItems).toHaveBeenLastCalledWith('causal_link', {
+      ...options,
+      filter: { loop_id: { _eq: 'loop-1' }, polarity: { _eq: '+' } },
+    });
+    await client.causalLinks.get('link-1', ['id']);
+    expect(getItem).toHaveBeenLastCalledWith('causal_link', 'link-1', ['id']);
+    expect('create' in client.causalLinks).toBe(false);
+    expect('update' in client.causalLinks).toBe(false);
+    expect('delete' in client.causalLinks).toBe(false);
+    expect('listByLocation' in client.causalLinks).toBe(false);
+  });
+
+  it('types stored systems-thinking records and their SQL-constrained values', () => {
+    const loop: CausalLoop = {
+      id: 'loop-1',
+      loop_name: 'soil-carbon-cycle',
+      loop_type: 'reinforcing',
+      description: 'Organic inputs build soil carbon.',
+      domain: 'ecological',
+      is_enabled: true,
+      created_at: '2026-10-18T00:00:00Z',
+      updated_at: '2026-10-18T00:00:00Z',
+    };
+    const variable: SystemVariable = {
+      id: 'variable-1',
+      variable_name: 'soil_carbon',
+      variable_type: 'stock',
+      location_id: 'location-1',
+      current_value: 52.4,
+      created_at: '2026-10-18T00:00:00Z',
+      updated_at: '2026-10-18T00:00:00Z',
+    };
+    const link: CausalLink = {
+      id: 'link-1',
+      loop_id: loop.id,
+      source_variable: 'organic_inputs',
+      target_variable: 'soil_carbon',
+      polarity: '+',
+      strength: 0.8,
+      created_at: '2026-10-18T00:00:00Z',
+    };
+    const model: StockFlowModel = {
+      id: 'model-1',
+      model_name: 'soil-carbon',
+      description: 'Synthetic model',
+      equations: { soil_carbon: 'INTEG(inputs - losses, 50)' },
+      initial_conditions: { soil_carbon: 50 },
+      parameters: { decomposition_rate: 0.02 },
+      time_unit: 'day',
+      is_enabled: true,
+      created_at: '2026-10-18T00:00:00Z',
+      updated_at: '2026-10-18T00:00:00Z',
+    };
+    const run: StockFlowRun = {
+      id: 'run-1',
+      model_id: model.id,
+      location_id: 'location-1',
+      scenario_name: 'baseline',
+      parameters: {},
+      start_date: '2026-01-01',
+      end_date: '2026-12-31',
+      time_step_days: 1,
+      results: { final_soil_carbon: 55.2 },
+      trajectory: [{ day: 0, soil_carbon: 50 }],
+      status: 'completed',
+      run_at: '2026-10-18T00:00:00Z',
+      run_by: 'synthetic',
+    };
+    const archetype: SystemArchetype = {
+      id: 'archetype-1',
+      archetype_name: 'limits_to_growth',
+      location_id: 'location-1',
+      detected_at: '2026-10-18T00:00:00Z',
+      confidence: 0.7,
+      evidence: { source: 'synthetic' },
+      active_variables: ['soil_carbon'],
+      status: 'active',
+      created_at: '2026-10-18T00:00:00Z',
+    };
+    const assessment: LeverageAssessment = {
+      id: 'assessment-1',
+      location_id: 'location-1',
+      leverage_point: 6,
+      point_name: 'information flows',
+      impact_score: 0.6,
+      data_sources: ['metric_value'],
+      assessed_at: '2026-10-18T00:00:00Z',
+      assessed_by: 'synthetic',
+      created_at: '2026-10-18T00:00:00Z',
+    };
+    const timeDelay: TimeDelay = {
+      id: 'delay-1',
+      action_type: 'cover_crop',
+      effect_type: 'soil_carbon',
+      expected_delay_hours: 720,
+      domain: 'ecological',
+      is_enabled: true,
+      created_at: '2026-10-18T00:00:00Z',
+    };
+    const assumption: StructuralAssumption = {
+      id: 'assumption-1',
+      assumption_text: 'Synthetic assumption',
+      location_id: 'location-1',
+      domain: 'farm',
+      status: 'challenged',
+      created_at: '2026-10-18T00:00:00Z',
+      updated_at: '2026-10-18T00:00:00Z',
+    };
+
+    expect(loop.loop_type).toBe('reinforcing');
+    expect(link.loop_id).toBe(loop.id);
+    expect(variable.current_value).toBe(52.4);
+    expect(run.trajectory[0]).toEqual({ day: 0, soil_carbon: 50 });
+    expect(archetype.evidence).toEqual({ source: 'synthetic' });
+    expect(assessment.data_sources).toEqual(['metric_value']);
+    expect(timeDelay.expected_delay_hours).toBe(720);
+    expect(assumption.status).toBe('challenged');
   });
 
   it('provides read-only forecast-accuracy reads scoped to the parent forecast', async () => {

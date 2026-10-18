@@ -26,6 +26,13 @@ export type GeostatSimulationMethod = 'sgs' | 'sis' | 'turning_bands';
 export type SpatialAutocorrelationMetric = 'morans_i' | 'gearys_c' | 'join_count';
 export type SpatialWeightsType = 'queen' | 'rook' | 'distance' | 'knn';
 export type GeostatCVStrategy = 'spatial_block' | 'leave_one_out' | 'k_fold';
+export type CausalLoopType = 'reinforcing' | 'balancing' | 'archetype';
+export type SystemsDomain = 'farm' | 'ecological' | 'financial' | 'social' | 'governance';
+export type CausalLinkPolarity = '+' | '-';
+export type SystemVariableType = 'stock' | 'flow' | 'auxiliary' | 'constant';
+export type StockFlowRunStatus = 'pending' | 'running' | 'completed' | 'failed';
+export type SystemArchetypeStatus = 'active' | 'resolved' | 'dismissed';
+export type StructuralAssumptionStatus = 'active' | 'challenged' | 'validated' | 'deprecated';
 export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
 export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type MarketScope = 'local' | 'regional' | 'national' | 'international';
@@ -1320,6 +1327,144 @@ export interface SensorNetworkDesign {
   computed_at: string;
   metadata?: JSONObject | null;
   created_at: string;
+}
+
+/** Shared causal-loop definition; this record does not evaluate a loop. */
+export interface CausalLoop {
+  id: string;
+  loop_name: string;
+  loop_type: CausalLoopType;
+  archetype?: string | null;
+  description: string;
+  domain: SystemsDomain;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Stored causal relationship scoped to its parent loop. */
+export interface CausalLink {
+  id: string;
+  loop_id: string;
+  source_variable: string;
+  target_variable: string;
+  polarity: CausalLinkPolarity;
+  strength: number;
+  description?: string | null;
+  delay_hours?: number | null;
+  data_source?: string | null;
+  created_at: string;
+}
+
+/** Stored system variable and latest observation; no value is recalculated. */
+export interface SystemVariable {
+  id: string;
+  variable_name: string;
+  variable_type: SystemVariableType;
+  unit?: string | null;
+  current_value?: number | null;
+  min_value?: number | null;
+  max_value?: number | null;
+  location_id?: string | null;
+  source_table?: string | null;
+  source_column?: string | null;
+  last_observed_at?: string | null;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Shared stock-and-flow model definition; this record does not simulate. */
+export interface StockFlowModel {
+  id: string;
+  model_name: string;
+  description: string;
+  equations: JSONObject;
+  initial_conditions: JSONObject;
+  parameters: JSONObject;
+  time_unit: string;
+  is_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Persisted simulation result; the SDK does not execute the model. */
+export interface StockFlowRun {
+  id: string;
+  model_id: string;
+  location_id: string;
+  scenario_name: string;
+  parameters: JSONObject;
+  start_date: string;
+  end_date: string;
+  time_step_days: number;
+  results: JSONObject;
+  trajectory: JSONValue[];
+  status: StockFlowRunStatus;
+  error_message?: string | null;
+  run_at: string;
+  run_by: string;
+}
+
+/** Stored location-level archetype detection and evidence. */
+export interface SystemArchetype {
+  id: string;
+  archetype_name: string;
+  location_id: string;
+  detected_at: string;
+  confidence: number;
+  evidence: JSONObject;
+  active_variables: JSONValue[];
+  suggested_intervention?: string | null;
+  status: SystemArchetypeStatus;
+  resolved_at?: string | null;
+  metadata?: JSONObject | null;
+  created_at: string;
+}
+
+/** Stored leverage-point assessment; suggestions remain advisory. */
+export interface LeverageAssessment {
+  id: string;
+  location_id: string;
+  leverage_point: number;
+  point_name: string;
+  current_state?: string | null;
+  impact_score: number;
+  intervention_suggestion?: string | null;
+  data_sources: JSONValue[];
+  assessed_at: string;
+  assessed_by: string;
+  metadata?: JSONObject | null;
+  created_at: string;
+}
+
+/** Shared action-to-effect delay configuration; no delay is inferred. */
+export interface TimeDelay {
+  id: string;
+  action_type: string;
+  effect_type: string;
+  expected_delay_hours: number;
+  min_delay_hours?: number | null;
+  max_delay_hours?: number | null;
+  domain: string;
+  description?: string | null;
+  is_enabled: boolean;
+  created_at: string;
+}
+
+/** Stored location assumption and challenge history. */
+export interface StructuralAssumption {
+  id: string;
+  assumption_text: string;
+  location_id?: string | null;
+  domain: string;
+  status: StructuralAssumptionStatus;
+  challenge_evidence?: string | null;
+  challenged_at?: string | null;
+  challenged_by?: string | null;
+  original_source?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /** Stored forecast-versus-observation measurements; does not compute accuracy. */

@@ -1484,3 +1484,17 @@ nullable values, and exact CHECK literals. Keep MAN-CAP-008 open: this slice
 does not implement or validate geostatistical calculations.
 
 Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-geostat-stored-output-read-methods.json).
+
+
+### Systems-thinking stored-record SDK continuation — 18 October 2026
+
+Expose the 129 systems-thinking schema as typed read-only Python and TypeScript
+SDK groups: shared causal-loop, stock-flow model, and time-delay catalogs;
+loop-scoped causal links; and location-scoped variable and saved-result
+records. Keep stakeholder `mental_model` out of the generic read surface because
+its table has no location column. SQL parity includes CHECK values and JSONB
+shapes. This establishes access to stored configuration and results only; the
+original simulation, causal evaluation, archetype detection, and intervention
+parity gates remain open.
+
+Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-systems-thinking-read-methods.json).
