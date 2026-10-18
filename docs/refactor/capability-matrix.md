@@ -39,6 +39,12 @@ durable per-reading/rule outcome receipt as data, including its location scope.
 This does not run detection or change MAN-CAP-040 acceptance. See [the parity
 record](builds/2026-10-18-recovery/sdk-sensor-anomaly-effect-parity.json).
 
+
+**SDK method inventory note — 18 October 2026:** the convenience-method names
+now have an offline cross-language regression, including generic inheritance.
+This source check does not accept any API, tenant, or transport MAN-CAP gate.
+See [the method inventory evidence](builds/2026-10-18-recovery/sdk-method-inventory-parity.json).
+
 The repository owner authorized ongoing focused test execution. Current
 owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual

@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### SDK method inventory parity — 18 October 2026
+
+An offline source regression now compares the Python and TypeScript SDK
+convenience-method surfaces after snake_case/camelCase normalization and
+accounts for inherited generic methods. All current method names match. The
+67-test focused Python SDK suite and 29 JavaScript tests pass; TypeScript build,
+schema guard, Ruff, compilation, matrix validation, and diff checks pass. This
+source inventory does not compare parameter/return types, resource semantics,
+request behavior, or REST/gRPC authorization. No database, provider, or
+network was contacted; capability classifications and MAN-CAP acceptance are
+unchanged ([evidence](builds/2026-10-18-recovery/sdk-method-inventory-parity.json)).
+
 ### SDK sensor anomaly durable-effect receipt parity — 18 October 2026
 
 Python and TypeScript now expose the composite-key `sensor_anomaly_effect`

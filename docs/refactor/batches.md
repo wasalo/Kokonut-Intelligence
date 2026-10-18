@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 581 checklist items complete and 19
-open (600 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 582 checklist items complete and 19
+open (601 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1286,6 +1286,7 @@ reporting views.
 - [x] Add Python and TypeScript `OraclePriceLog` records for stored feed values, aggregation summaries, and optional chain-attestation references. The guard covers 58 models, 1,252 columns, 1,173 scalar types, 10 PostGIS shapes, 69 JSONB shapes, 21 enum fields, and 37 standalone CHECK literals. Sixty-four Python SDK/guard tests and 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass offline. The model does not query feeds, aggregate prices, or submit/verify attestations ([evidence](builds/2026-10-18-recovery/sdk-oracle-price-log-parity.json)).
 - [x] Add Python and TypeScript `ActuationLog` records for command intent, approval attribution, responses, and sensor-event linkage; extend the schema guard to recognize `public.`-qualified `ALTER TABLE` statements. This also surfaced and closed existing `MrvClaim.source_sensor_reading_event_id` and `SensorAlert.location_id` parity gaps from migrations 406/411. The guard covers 59 models, 1,274 columns, 1,192 scalar types, 10 PostGIS shapes, 72 JSONB shapes, 21 enum fields, and 39 standalone CHECK literals. Sixty-five Python SDK/guard tests and 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass offline. The SDK cannot approve, send, or execute commands ([evidence](builds/2026-10-18-recovery/sdk-actuation-log-parity.json)).
 - [x] Add Python and TypeScript `SensorAnomalyEffect` records for the composite reading/rule receipt, event/location links, outcome, alert link, and timestamps. The guard covers 60 models, 1,282 columns, 1,200 scalar types, 10 PostGIS shapes, 72 JSONB shapes, 21 enum fields, and 40 standalone CHECK literals. Sixty-six Python SDK/guard tests and 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass offline. The record does not run detection or mutate durable worker receipts ([evidence](builds/2026-10-18-recovery/sdk-sensor-anomaly-effect-parity.json)).
+- [x] Add an offline Python/TypeScript SDK method-surface regression. It compares every convenience-method interface after snake_case/camelCase normalization and includes inherited generic methods; the 67-test focused Python SDK suite, 29 JavaScript tests, TypeScript build, schema guard, Ruff, compilation, matrix validation, and diff checks pass. It checks names only, not route/resource semantics, parameter/return typing, request behavior, or transport authorization ([evidence](builds/2026-10-18-recovery/sdk-method-inventory-parity.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented
