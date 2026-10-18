@@ -85,6 +85,11 @@ const transactions = await client.financialTransactions.listByLocation('location
 const cashFlows = await client.cashFlowSnapshots.listByLocation('location-uuid');
 // These reads do not initiate transactions or calculate/reconcile balances.
 
+// Read persisted ecological observations and reviewed MRV claims
+const soilSamples = await client.soilSamples.listByLocation('location-uuid');
+const claims = await client.mrvClaims.listByLocation('location-uuid');
+// These reads do not ingest, calculate, verify, or attest records.
+
 // Aggregate records through Directus
 const harvestCounts = await client.aggregate('harvest_event', {
   aggregate: { count: '*' },
@@ -172,11 +177,20 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `creditTransfers` | `credit_transfer` | `listByLocation` |
 | `financialTransactions` | `financial_transaction` | `listByLocation` |
 | `cashFlowSnapshots` | `cash_flow_snapshot` | `listByLocation` |
+| `weatherObservations` | `weather_observation` | `listByLocation` |
+| `soilSamples` | `soil_sample` | `listByLocation` |
+| `soilCarbonMeasurements` | `soil_carbon_measurement` | `listByLocation` |
+| `environmentalBaselines` | `environmental_baseline` | `listByLocation` |
+| `speciesObservations` | `species_observation` | `listByLocation` |
+| `remoteSensingObservations` | `remote_sensing_observation` | `listByLocation` |
+| `mrvClaims` | `mrv_claim` | `listByLocation` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
-`createMany`, `update`, `delete`. The credit-ledger and finance groups are
-read-only and expose only `list`, `get`, and `listByLocation`; governed
-lifecycle changes remain in reviewed platform services.
+`createMany`, `update`, `delete`. The credit-ledger, finance, ecological
+observation, and MRV groups are read-only and expose only `list`, `get`, and
+`listByLocation`. SDK location filters are query conveniences, not authorization
+boundaries; Directus must enforce the caller's grants. These methods do not
+ingest, calculate, verify, attest, or mutate governed lifecycle state.
 
 ## Examples
 

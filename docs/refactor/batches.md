@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 617 checklist items complete and 19
-open (636 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 618 checklist items complete and 19
+open (637 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1322,6 +1322,7 @@ reporting views.
 - [x] Add Python and TypeScript read models for carbon credits and the adjustment, retirement, and transfer ledgers. Their lifecycle/type literals, additive SQL columns, JSON shapes, nullability, and scalar types are now checked against the canonical schema; Python quantity fields use `Decimal`. The guard covers 74 models, 1,555 columns, 1,456 scalar types, 10 PostGIS types, 86 JSONB shapes, 23 enum fields, and 50 CHECK-literal fields per SDK. Ninety-five focused Python SDK/schema/method tests, 45 JavaScript tests, TypeScript build, Ruff, and the schema guard pass offline. No ledger write helpers were introduced; credit authorization, lifecycle parity, and MAN-CAP-020 remain open ([evidence](builds/2026-10-18-recovery/sdk-carbon-credit-ledger-parity.json)).
 - [x] Add read-only, typed Python and TypeScript SDK groups for `carbon_credit`, `credit_adjustment`, `credit_retirement`, and `credit_transfer`, including location-filtered list methods whose required location overrides a conflicting caller filter. Document the four groups and preserve only `list`, `get`, and `list_by_location`/`listByLocation`. Ninety-six focused Python tests, 46 JavaScript tests, TypeScript build, Ruff, SDK schema guard, capability validator, and diff checks pass offline. Governed writes and MAN-CAP-020 remain open ([evidence](builds/2026-10-18-recovery/sdk-credit-ledger-read-methods.json)).
 - [x] Generalize the typed read-only, location-scoped SDK accessor and use it for `financial_transaction` and `cash_flow_snapshot` in both languages. The location filter overrides conflicting caller scope; finance groups expose no write, calculation, or reconciliation helpers. The focused 96-test Python SDK suite, 46 JavaScript tests, TypeScript build, Ruff, schema guard, capability validator, and diff checks pass offline; CAP-031 remains unaccepted ([evidence](builds/2026-10-18-recovery/sdk-finance-read-methods.json)).
+- [x] Add typed, read-only location-scoped Python and TypeScript SDK accessors for stored weather, soil, baseline, biodiversity, remote-sensing, and MRV claim records. The required location overrides conflicting caller scope; these accessors do not ingest, calculate, verify, attest, or mutate. Ninety-six focused Python tests, 46 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability validator, and diff checks pass offline; CAP-040/041 remain unaccepted ([evidence](builds/2026-10-18-recovery/sdk-ecology-read-methods.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

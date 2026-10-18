@@ -20,6 +20,13 @@ import type {
   CreditTransfer,
   CashFlowSnapshot,
   FinancialTransaction,
+  EnvironmentalBaseline,
+  MrvClaim,
+  RemoteSensingObservation,
+  SoilCarbonMeasurement,
+  SoilSample,
+  SpeciesObservation,
+  WeatherObservation,
 } from './types.js';
 import {
   buildLocationReadMethods,
@@ -101,6 +108,13 @@ export class KokonutClient {
   creditTransfers: LocationReadMethods<CreditTransfer>;
   financialTransactions: LocationReadMethods<FinancialTransaction>;
   cashFlowSnapshots: LocationReadMethods<CashFlowSnapshot>;
+  weatherObservations: LocationReadMethods<WeatherObservation>;
+  soilSamples: LocationReadMethods<SoilSample>;
+  soilCarbonMeasurements: LocationReadMethods<SoilCarbonMeasurement>;
+  environmentalBaselines: LocationReadMethods<EnvironmentalBaseline>;
+  speciesObservations: LocationReadMethods<SpeciesObservation>;
+  remoteSensingObservations: LocationReadMethods<RemoteSensingObservation>;
+  mrvClaims: LocationReadMethods<MrvClaim>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -130,6 +144,13 @@ export class KokonutClient {
     this.creditTransfers = buildLocationReadMethods<CreditTransfer>(this, 'credit_transfer');
     this.financialTransactions = buildLocationReadMethods<FinancialTransaction>(this, 'financial_transaction');
     this.cashFlowSnapshots = buildLocationReadMethods<CashFlowSnapshot>(this, 'cash_flow_snapshot');
+    this.weatherObservations = buildLocationReadMethods<WeatherObservation>(this, 'weather_observation');
+    this.soilSamples = buildLocationReadMethods<SoilSample>(this, 'soil_sample');
+    this.soilCarbonMeasurements = buildLocationReadMethods<SoilCarbonMeasurement>(this, 'soil_carbon_measurement');
+    this.environmentalBaselines = buildLocationReadMethods<EnvironmentalBaseline>(this, 'environmental_baseline');
+    this.speciesObservations = buildLocationReadMethods<SpeciesObservation>(this, 'species_observation');
+    this.remoteSensingObservations = buildLocationReadMethods<RemoteSensingObservation>(this, 'remote_sensing_observation');
+    this.mrvClaims = buildLocationReadMethods<MrvClaim>(this, 'mrv_claim');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {

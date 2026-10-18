@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Ecological and MRV SDK location-scoped reads — 18 October 2026
+
+Python and TypeScript clients now expose typed, read-only accessors for stored
+weather observations, soil samples, soil-carbon measurements, environmental
+baselines, species observations, remote-sensing observations, and MRV claims.
+Each offers `list`, `get`, and location-filtered listing; the requested
+location overrides a conflicting caller filter while other query options are
+preserved. The SDK READMEs state that location filters are query conveniences,
+not authorization boundaries, and that these methods do not ingest, calculate,
+verify, attest, or mutate lifecycle state. Ninety-six focused Python SDK tests,
+46 JavaScript tests, TypeScript build, Ruff, compilation, schema guard,
+capability validation, and diff checks pass offline with mocked client calls.
+CAP-040/041 and MAN-CAP acceptance remain unchanged
+([evidence](builds/2026-10-18-recovery/sdk-ecology-read-methods.json)).
+Checklist: 618 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### Finance SDK location-scoped reads — 18 October 2026
 
 Python and TypeScript clients now expose typed, read-only location-scoped

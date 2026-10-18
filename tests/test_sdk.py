@@ -1436,6 +1436,13 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.credit_transfers, "credit_transfer"),
         (client.financial_transactions, "financial_transaction"),
         (client.cash_flow_snapshots, "cash_flow_snapshot"),
+        (client.weather_observations, "weather_observation"),
+        (client.soil_samples, "soil_sample"),
+        (client.soil_carbon_measurements, "soil_carbon_measurement"),
+        (client.environmental_baselines, "environmental_baseline"),
+        (client.species_observations, "species_observation"),
+        (client.remote_sensing_observations, "remote_sensing_observation"),
+        (client.mrv_claims, "mrv_claim"),
     ]
     options = ListOptions(
         filter={"location_id": {"_eq": "other"}, "status": {"_eq": "verified"}},

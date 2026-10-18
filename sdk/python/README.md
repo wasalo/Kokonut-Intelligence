@@ -99,6 +99,11 @@ transactions = client.financial_transactions.list_by_location("location-uuid")
 cash_flows = client.cash_flow_snapshots.list_by_location("location-uuid")
 # These reads do not initiate transactions or calculate/reconcile balances.
 
+# Read persisted ecological observations and reviewed MRV claims
+soil_samples = client.soil_samples.list_by_location("location-uuid")
+claims = client.mrv_claims.list_by_location("location-uuid")
+# These reads do not ingest, calculate, verify, or attest records.
+
 # Aggregate query
 counts = client.aggregate(
     "harvest_event",
@@ -159,11 +164,21 @@ except KokonutError as e:
 | `credit_transfers` | `credit_transfer` | `list_by_location` |
 | `financial_transactions` | `financial_transaction` | `list_by_location` |
 | `cash_flow_snapshots` | `cash_flow_snapshot` | `list_by_location` |
+| `weather_observations` | `weather_observation` | `list_by_location` |
+| `soil_samples` | `soil_sample` | `list_by_location` |
+| `soil_carbon_measurements` | `soil_carbon_measurement` | `list_by_location` |
+| `environmental_baselines` | `environmental_baseline` | `list_by_location` |
+| `species_observations` | `species_observation` | `list_by_location` |
+| `remote_sensing_observations` | `remote_sensing_observation` | `list_by_location` |
+| `mrv_claims` | `mrv_claim` | `list_by_location` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are
-read-only and expose only `list`, `get`, and `list_by_location`; governed
-lifecycle changes remain in reviewed platform services.
+read-only and expose only `list`, `get`, and `list_by_location`; the ecological
+observation and MRV groups also expose only these read methods. SDK location
+filters are query conveniences, not authorization boundaries; Directus must
+enforce the caller's grants. These methods do not ingest, calculate, verify,
+attest, or mutate governed lifecycle state.
 
 ## Examples
 

@@ -30,8 +30,15 @@ from .types import (
     CreditAdjustment,
     CreditRetirement,
     CreditTransfer,
+    EnvironmentalBaseline,
     FinancialTransaction,
     ListOptions,
+    MrvClaim,
+    RemoteSensingObservation,
+    SoilCarbonMeasurement,
+    SoilSample,
+    SpeciesObservation,
+    WeatherObservation,
 )
 
 
@@ -116,6 +123,25 @@ class KokonutClient:
         self.cash_flow_snapshots: LocationReadMethods[CashFlowSnapshot] = LocationReadMethods(
             self, "cash_flow_snapshot"
         )
+        self.weather_observations: LocationReadMethods[WeatherObservation] = LocationReadMethods(
+            self, "weather_observation"
+        )
+        self.soil_samples: LocationReadMethods[SoilSample] = LocationReadMethods(
+            self, "soil_sample"
+        )
+        self.soil_carbon_measurements: LocationReadMethods[SoilCarbonMeasurement] = LocationReadMethods(
+            self, "soil_carbon_measurement"
+        )
+        self.environmental_baselines: LocationReadMethods[EnvironmentalBaseline] = LocationReadMethods(
+            self, "environmental_baseline"
+        )
+        self.species_observations: LocationReadMethods[SpeciesObservation] = LocationReadMethods(
+            self, "species_observation"
+        )
+        self.remote_sensing_observations: LocationReadMethods[RemoteSensingObservation] = LocationReadMethods(
+            self, "remote_sensing_observation"
+        )
+        self.mrv_claims: LocationReadMethods[MrvClaim] = LocationReadMethods(self, "mrv_claim")
 
     # -- Auth ------------------------------------------------------------------
 

@@ -269,7 +269,7 @@ describe('KokonutClient', () => {
     expect(note.tags).toEqual(['test']);
   });
 
-  it('provides read-only location-scoped methods for financial and credit ledger records', async () => {
+  it('provides typed read-only location-scoped methods for persisted domain records', async () => {
     const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
     const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'credit-1' } as any);
     const groups = [
@@ -279,6 +279,13 @@ describe('KokonutClient', () => {
       [client.creditTransfers, 'credit_transfer'],
       [client.financialTransactions, 'financial_transaction'],
       [client.cashFlowSnapshots, 'cash_flow_snapshot'],
+      [client.weatherObservations, 'weather_observation'],
+      [client.soilSamples, 'soil_sample'],
+      [client.soilCarbonMeasurements, 'soil_carbon_measurement'],
+      [client.environmentalBaselines, 'environmental_baseline'],
+      [client.speciesObservations, 'species_observation'],
+      [client.remoteSensingObservations, 'remote_sensing_observation'],
+      [client.mrvClaims, 'mrv_claim'],
     ] as const;
     const options = {
       limit: 20,
