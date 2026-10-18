@@ -75,6 +75,10 @@ farm = client.farms.get("farm-uuid")
 # List crop cycles for a plot
 cycles = client.crop_cycles.list_by_plot("plot-uuid")
 
+# Read stored farm task plans for one location
+tasks = client.farm_tasks.list_by_location("location-uuid")
+# This read does not assign, schedule, or complete work.
+
 # Create a harvest event
 harvest = client.harvest_events.create({
     "crop_cycle_id": "cycle-uuid",
@@ -206,6 +210,7 @@ except KokonutError as e:
 | `seasonal_decompositions` | `seasonal_decomposition` | `list_by_location` |
 | `trend_dashboard_metrics` | `trend_dashboard_metric` | `list_by_location` |
 | `infrastructure_assets` | `infrastructure_asset` | `list_by_location` |
+| `farm_tasks` | `farm_task` | `list_by_location` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensor_types` | `sensor_type` | — (read-only list/detail) |

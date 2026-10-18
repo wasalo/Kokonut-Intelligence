@@ -132,6 +132,12 @@ model stored `farm_task` data with SQL-constrained category, priority, and
 status. It does not implement task assignment, scheduling, completion, or
 dependency operations and changes no MAN-CAP classification ([evidence](builds/2026-10-18-recovery/sdk-farm-task-parity.json)).
 
+**Farm-task SDK reads — 18 October 2026:** Python and JavaScript provide typed,
+read-only location-scoped list/detail access to stored farm task plans. The
+location filter is a client query convenience and does not establish
+authorization; these methods do not assign, schedule, or complete work. MAN-CAP
+acceptance remains unchanged ([evidence](builds/2026-10-18-recovery/sdk-farm-task-read-methods.json)).
+
 **Farm-task relationship SDK note — 18 October 2026:** clients now preserve
 dependency, framework-step, and weekly-plan associations with their source
 identity fields. They do not evaluate or execute these workflows; MAN-CAP

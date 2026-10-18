@@ -39,6 +39,7 @@ from .types import (
     DemandForecast,
     DemandTrend,
     EnvironmentalBaseline,
+    FarmTask,
     FinancialTransaction,
     ForecastOutput,
     ForecastScenario,
@@ -219,6 +220,7 @@ class KokonutClient:
         self.infrastructure_assets: LocationReadMethods[InfrastructureAsset] = LocationReadMethods(
             self, "infrastructure_asset"
         )
+        self.farm_tasks: LocationReadMethods[FarmTask] = LocationReadMethods(self, "farm_task")
         self.crops: ReferenceReadMethods[Crop] = ReferenceReadMethods(self, "crop")
         self.protocols: ReferenceReadMethods[Protocol] = ReferenceReadMethods(self, "protocol")
         self.sensor_types: ReferenceReadMethods[SensorType] = ReferenceReadMethods(self, "sensor_type")

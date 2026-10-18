@@ -13,6 +13,18 @@ does not change any MAN-CAP classification or acceptance. Checklist: 623
 complete / 19 open; capability matrix: 66 rows, 54 baseline-retained, 7
 deployed, 5 prepared ([evidence](builds/2026-10-18-recovery/sdk-reference-catalog-read-methods.json)).
 
+### Farm-task location-scoped SDK reads — 18 October 2026
+
+Python and JavaScript now expose typed, read-only `list`/`get` methods and a
+`list_by_location` convenience accessor for stored `farm_task` planning records.
+The requested location takes precedence over any conflicting caller filter;
+other query options are preserved. This does not assign, schedule, complete, or
+authorize tasks. Focused Python and JavaScript checks, method parity, TypeScript
+build, Ruff, SDK schema and capability guards, Python compilation, and diff
+checks pass. MAN-CAP acceptance remains unchanged. Checklist: 624 complete /
+19 open; capability matrix: 66 rows, 54 baseline-retained, 7 deployed, 5
+prepared ([evidence](builds/2026-10-18-recovery/sdk-farm-task-read-methods.json)).
+
 ### ARM64/QEMU current-source software smoke — 18 October 2026
 
 The current-source default app image builds for `linux/arm64`. A read-only,

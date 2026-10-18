@@ -61,6 +61,10 @@ const farm = await client.farms.get('farm-uuid');
 // List crop cycles for a plot
 const cycles = await client.cropCycles.listByPlot('plot-uuid');
 
+// Read stored farm task plans for one location
+const tasks = await client.farmTasks.listByLocation('location-uuid');
+// This read does not assign, schedule, or complete work.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -219,6 +223,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `seasonalDecompositions` | `seasonal_decomposition` | `listByLocation` |
 | `trendDashboardMetrics` | `trend_dashboard_metric` | `listByLocation` |
 | `infrastructureAssets` | `infrastructure_asset` | `listByLocation` |
+| `farmTasks` | `farm_task` | `listByLocation` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensorTypes` | `sensor_type` | — (read-only list/detail) |

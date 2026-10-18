@@ -26,6 +26,7 @@ import type {
   FinancialTransaction,
   DemandTrend,
   DemandForecast,
+  FarmTask,
   ForecastOutput,
   ForecastScenario,
   Crop,
@@ -157,6 +158,7 @@ export class KokonutClient {
   seasonalDecompositions: LocationReadMethods<SeasonalDecomposition>;
   trendDashboardMetrics: LocationReadMethods<TrendDashboardMetric>;
   infrastructureAssets: LocationReadMethods<InfrastructureAsset>;
+  farmTasks: LocationReadMethods<FarmTask>;
   crops: ReferenceReadMethods<Crop>;
   protocols: ReferenceReadMethods<Protocol>;
   sensorTypes: ReferenceReadMethods<SensorType>;
@@ -215,6 +217,7 @@ export class KokonutClient {
     this.seasonalDecompositions = buildLocationReadMethods<SeasonalDecomposition>(this, 'seasonal_decomposition');
     this.trendDashboardMetrics = buildLocationReadMethods<TrendDashboardMetric>(this, 'trend_dashboard_metric');
     this.infrastructureAssets = buildLocationReadMethods<InfrastructureAsset>(this, 'infrastructure_asset');
+    this.farmTasks = buildLocationReadMethods<FarmTask>(this, 'farm_task');
     this.crops = buildReferenceReadMethods<Crop>(this, 'crop');
     this.protocols = buildReferenceReadMethods<Protocol>(this, 'protocol');
     this.sensorTypes = buildReferenceReadMethods<SensorType>(this, 'sensor_type');
