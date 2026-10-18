@@ -9517,10 +9517,11 @@ both SDKs: detail reads with field projection, single and bulk creation,
 updates, and deletes. Python checks the exact item endpoints, query/body
 arguments, `data` envelope unwrapping, and its no-value delete result;
 TypeScript checks each operation is routed through the matching pinned SDK
-command. Eighty-four focused Python SDK/schema/method tests and 38 JavaScript
+command. Eighty-four focused Python SDK/schema/method tests and 39 JavaScript
 tests pass; TypeScript build, compilation, capability-matrix validation,
-targeted Ruff, and diff checks pass. All clients are mocked; no HTTP, database,
-provider, or credentials were used. This request-shape coverage does not establish
+targeted Ruff, and diff checks pass. Python uses mocked requests and TypeScript
+uses the pinned SDK with stubbed fetch; no network, database, provider, or
+credentials were accessed. This request-shape coverage does not establish
 live Directus behavior, authorization, tenant scope, or MAN-CAP acceptance.
 Checklist: 598 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-generic-crud-contract.json`.
