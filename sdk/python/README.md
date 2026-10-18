@@ -110,6 +110,14 @@ risk_assessments = client.crisp_risk_assessments.list_by_location("location-uuid
 climate_details = client.crisp_climate_risks.list_by_assessment("assessment-uuid")
 # These return persisted scores/evidence only; they do not score or verify CRISP.
 
+# Read location-scoped organic certification, transition, and compliance records
+certifications = client.organic_certification_records.list_by_location("location-uuid")
+transitions = client.organic_transition_plans.list_by_location("location-uuid")
+readiness = client.organic_readiness_assessments.list_by_location("location-uuid")
+buffers = client.buffer_zones.list_by_location("location-uuid")
+# Other read-only groups cover substance, input, handling, and checklist evidence.
+# These are persisted records; they do not recalculate readiness or certify a farm.
+
 # Read systems-thinking definitions and location results
 loops = client.causal_loops.list()
 links = client.causal_links.list_by_loop("loop-uuid")
@@ -286,6 +294,14 @@ except KokonutError as e:
 | `crisp_policy_risks` | `crisp_policy_risk` | `list_by_location`, `list_by_assessment` (read-only) |
 | `crisp_financial_risks` | `crisp_financial_risk` | `list_by_location`, `list_by_assessment` (read-only) |
 | `crisp_implementation_risks` | `crisp_implementation_risk` | `list_by_location`, `list_by_assessment` (read-only) |
+| `organic_certification_records` | `organic_certification_record` | `list_by_location` (read-only) |
+| `organic_transition_plans` | `organic_transition_plan` | `list_by_location` (read-only) |
+| `prohibited_substance_records` | `prohibited_substance_record` | `list_by_location` (read-only) |
+| `buffer_zones` | `buffer_zone` | `list_by_location` (read-only) |
+| `organic_input_audits` | `organic_input_audit` | `list_by_location` (read-only) |
+| `harvest_handling_records` | `harvest_handling_record` | `list_by_location` (read-only) |
+| `organic_compliance_checklists` | `organic_compliance_checklist` | `list_by_location` (read-only) |
+| `organic_readiness_assessments` | `organic_readiness_assessment` | `list_by_location` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensor_types` | `sensor_type` | — (read-only list/detail) |

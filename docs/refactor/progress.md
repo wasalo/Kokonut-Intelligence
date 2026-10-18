@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Organic compliance SDK reads — 18 October 2026
+
+Python and TypeScript now expose read-only, location-filtered SDK groups for
+certification records, transition plans, prohibited-substance records, buffer
+zones, organic input audits, harvest-handling records, compliance checklists,
+and stored readiness assessments. The schema guard includes the later-added
+buffer operational status and preserves nullability, JSON shapes, and all
+16 CHECK-constrained literal fields. These methods return persisted evidence;
+they do not calculate readiness or certify a location. The focused Python
+SDK/schema/method suite passes 107 tests; JavaScript passes 56 tests. TypeScript
+build, Ruff, Python compilation, schema and capability guards, and diff checks
+pass offline. No database, provider, or network was contacted. CAP-015's
+Directus-backed SDK slice is prepared; the optional-Directus Kernel access path
+and MAN-CAP-015 remain open. Checklist: 632 complete / 19 open; capability
+matrix: 53 baseline-retained, 7 deployed, 6 prepared
+([evidence](builds/2026-10-18-recovery/sdk-organic-compliance-reads.json)).
+
 ### Stored CRISP assessment SDK reads — 18 October 2026
 
 Python and TypeScript now expose typed read-only reads for location-scoped CRISP

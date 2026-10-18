@@ -56,6 +56,22 @@ export type OodaOutcomeType =
   | 'no_effect'
   | 'counterproductive'
   | 'unknown';
+export type OrganicCertificationType = 'initial' | 'renewal' | 'extension';
+export type OrganicCertificationStatus = 'planned' | 'preparing' | 'submitted' | 'inspected' | 'certified' | 'suspended' | 'revoked' | 'expired';
+export type OrganicCertificationScope = 'full' | 'partial' | 'transitioning';
+export type BufferOperationalStatus = 'active' | 'inactive' | 'maintenance_needed';
+export type OrganicTransitionStatus = 'planned' | 'active' | 'paused' | 'completed' | 'failed';
+export type ProhibitedSubstanceCategory = 'synthetic_pesticide' | 'synthetic_fertilizer' | 'gmo_seed' | 'sewage_sludge' | 'ionizing_radiation' | 'prohibited_additive' | 'other';
+export type ProhibitedSubstanceComplianceStatus = 'cleared' | 'violation' | 'pending_remediation' | 'under_review';
+export type BufferType = 'physical_fence' | 'vegetative_barrier' | 'uncultivated_strip' | 'water_barrier' | 'road' | 'hedgerow' | 'other';
+export type BufferAdjacentUse = 'conventional_farm' | 'road' | 'industrial' | 'urban' | 'water_body' | 'wildland' | 'other';
+export type BufferConditionStatus = 'adequate' | 'needs_repair' | 'non_compliant';
+export type OrganicInputCategory = 'fertilizer' | 'pesticide' | 'fungicide' | 'herbicide' | 'seed_treatment' | 'soil_amendment' | 'mulch' | 'other';
+export type OrganicInputSource = 'on_farm' | 'purchased' | 'traded';
+export type HarvestHandlingType = 'cleaning' | 'sorting' | 'grading' | 'drying' | 'processing' | 'packaging' | 'storage' | 'transport';
+export type HarvestContaminationRisk = 'low' | 'medium' | 'high';
+export type OrganicInspectionType = 'initial' | 'renewal' | 'follow_up' | 'unannounced';
+export type OrganicChecklistResult = 'pass' | 'conditional' | 'fail' | 'pending';
 export type CrispRating = 'AAA' | 'AA' | 'A' | 'B' | 'C' | 'D';
 export type CrispConfidenceLevel = 'high' | 'moderate' | 'low' | 'insufficient_evidence';
 export type CrispSSPScenario = 'SSP1' | 'SSP2' | 'SSP5';
@@ -1586,6 +1602,238 @@ export interface OodaCycleLog {
   metadata?: JSONObject | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface OrganicCertificationRecord {
+  id: string;
+  location_id: string;
+  standard: string;
+  certification_type: OrganicCertificationType;
+  status: OrganicCertificationStatus;
+  created_at: string;
+  updated_at: string;
+  certification_body?: string | null;
+  application_date?: string | null;
+  inspection_date?: string | null;
+  certification_date?: string | null;
+  expiration_date?: string | null;
+  certificate_number?: string | null;
+  certificate_url?: string | null;
+  scope?: OrganicCertificationScope | null;
+  scope_areas?: JSONValue[] | null;
+  annual_fee_usd?: number | null;
+  notes?: string | null;
+  evidence_urls?: JSONValue[] | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface OrganicTransitionPlan {
+  id: string;
+  location_id: string;
+  standard: string;
+  transition_start_date: string;
+  current_year: number;
+  total_years_required: number;
+  status: OrganicTransitionStatus;
+  created_at: string;
+  updated_at: string;
+  plot_id?: string | null;
+  expected_certification_date?: string | null;
+  prohibited_substance_free_date?: string | null;
+  buffer_zone_established_date?: string | null;
+  record_keeping_ready_date?: string | null;
+  training_completed_date?: string | null;
+  organic_management_plan_date?: string | null;
+  readiness_score?: number | null;
+  barriers?: JSONValue[] | null;
+  notes?: string | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface ProhibitedSubstanceRecord {
+  id: string;
+  location_id: string;
+  substance_name: string;
+  substance_category: ProhibitedSubstanceCategory;
+  date_used: string;
+  compliance_status: ProhibitedSubstanceComplianceStatus;
+  created_at: string;
+  updated_at: string;
+  plot_id?: string | null;
+  cas_number?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  reason_for_use?: string | null;
+  remediation_action?: string | null;
+  remediation_date?: string | null;
+  withdrawal_period_days?: number | null;
+  withdrawal_end_date?: string | null;
+  notes?: string | null;
+  evidence_urls?: JSONValue[] | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface BufferZone {
+  id: string;
+  location_id: string;
+  buffer_name: string;
+  buffer_type: BufferType;
+  width_m: number;
+  condition_status: BufferConditionStatus;
+  status?: BufferOperationalStatus | null;
+  created_at: string;
+  updated_at: string;
+  plot_id?: string | null;
+  length_m?: number | null;
+  area_m2?: number | null;
+  adjacent_use?: BufferAdjacentUse | null;
+  boundary_geometry?: JSONValue | null;
+  establishment_date?: string | null;
+  last_inspection_date?: string | null;
+  photos_urls?: JSONValue[] | null;
+  notes?: string | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface OrganicInputAudit {
+  id: string;
+  location_id: string;
+  application_date: string;
+  input_category: OrganicInputCategory;
+  input_name: string;
+  input_source: OrganicInputSource;
+  organic_certified: boolean;
+  quantity: number;
+  unit: string;
+  is_prohibited: boolean;
+  created_at: string;
+  updated_at: string;
+  plot_id?: string | null;
+  crop_cycle_id?: string | null;
+  supplier_name?: string | null;
+  supplier_organic_cert_url?: string | null;
+  application_method?: string | null;
+  target_pest_or_nutrient?: string | null;
+  pre_harvest_interval_days?: number | null;
+  reentry_interval_hours?: number | null;
+  prohibition_standard?: string | null;
+  notes?: string | null;
+  evidence_urls?: JSONValue[] | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface HarvestHandlingRecord {
+  id: string;
+  location_id: string;
+  harvest_event_id: string;
+  handling_date: string;
+  handling_type: HarvestHandlingType;
+  organic_segregated: boolean;
+  equipment_cleaned: boolean;
+  contamination_risk: HarvestContaminationRisk;
+  temperature_controlled: boolean;
+  buyer_requirements_met: boolean;
+  created_at: string;
+  updated_at: string;
+  storage_conditions?: string | null;
+  transport_conditions?: string | null;
+  organic_lot_number?: string | null;
+  notes?: string | null;
+  evidence_urls?: JSONValue[] | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface OrganicComplianceChecklist {
+  id: string;
+  location_id: string;
+  inspection_date: string;
+  inspection_type: OrganicInspectionType;
+  checklist_items: JSONValue[];
+  overall_result: OrganicChecklistResult;
+  created_at: string;
+  updated_at: string;
+  certification_record_id?: string | null;
+  inspector_name?: string | null;
+  inspector_organization?: string | null;
+  findings?: string | null;
+  non_conformances?: JSONValue[] | null;
+  corrective_actions_required?: JSONValue[] | null;
+  follow_up_date?: string | null;
+  notes?: string | null;
+  evidence_urls?: JSONValue[] | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored organic compliance record; read access does not compute or mutate it. */
+export interface OrganicReadinessAssessment {
+  id: string;
+  location_id: string;
+  assessment_date: string;
+  standard: string;
+  overall_score: number;
+  created_at: string;
+  updated_at: string;
+  transition_progress_pct?: number | null;
+  soil_health_score?: number | null;
+  input_compliance_pct?: number | null;
+  pest_management_score?: number | null;
+  biodiversity_score?: number | null;
+  buffer_zone_score?: number | null;
+  record_completeness_pct?: number | null;
+  training_completion_pct?: number | null;
+  harvest_segregation_score?: number | null;
+  barriers?: JSONValue[] | null;
+  recommendations?: JSONValue[] | null;
+  assessor?: string | null;
+  notes?: string | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 /** Persisted CRISP assessment; reading it does not recompute its scores. */

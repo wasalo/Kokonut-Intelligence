@@ -22,6 +22,14 @@ import type {
   CrispImplementationRisk,
   CrispPolicyRisk,
   CrispRiskAssessment,
+  BufferZone,
+  HarvestHandlingRecord,
+  OrganicCertificationRecord,
+  OrganicComplianceChecklist,
+  OrganicInputAudit,
+  OrganicReadinessAssessment,
+  OrganicTransitionPlan,
+  ProhibitedSubstanceRecord,
   CausalLink,
   CausalLoop,
   BuyerDemandSignal,
@@ -209,6 +217,14 @@ export class KokonutClient {
   crispPolicyRisks: AssessmentLocationReadMethods<CrispPolicyRisk>;
   crispFinancialRisks: AssessmentLocationReadMethods<CrispFinancialRisk>;
   crispImplementationRisks: AssessmentLocationReadMethods<CrispImplementationRisk>;
+  organicCertificationRecords: LocationReadMethods<OrganicCertificationRecord>;
+  organicTransitionPlans: LocationReadMethods<OrganicTransitionPlan>;
+  prohibitedSubstanceRecords: LocationReadMethods<ProhibitedSubstanceRecord>;
+  bufferZones: LocationReadMethods<BufferZone>;
+  organicInputAudits: LocationReadMethods<OrganicInputAudit>;
+  harvestHandlingRecords: LocationReadMethods<HarvestHandlingRecord>;
+  organicComplianceChecklists: LocationReadMethods<OrganicComplianceChecklist>;
+  organicReadinessAssessments: LocationReadMethods<OrganicReadinessAssessment>;
   systemVariables: LocationReadMethods<SystemVariable>;
   stockFlowModels: ReferenceReadMethods<StockFlowModel>;
   stockFlowRuns: LocationReadMethods<StockFlowRun>;
@@ -305,6 +321,14 @@ export class KokonutClient {
     this.crispPolicyRisks = buildAssessmentLocationReadMethods<CrispPolicyRisk>(this, 'crisp_policy_risk');
     this.crispFinancialRisks = buildAssessmentLocationReadMethods<CrispFinancialRisk>(this, 'crisp_financial_risk');
     this.crispImplementationRisks = buildAssessmentLocationReadMethods<CrispImplementationRisk>(this, 'crisp_implementation_risk');
+    this.organicCertificationRecords = buildLocationReadMethods<OrganicCertificationRecord>(this, 'organic_certification_record');
+    this.organicTransitionPlans = buildLocationReadMethods<OrganicTransitionPlan>(this, 'organic_transition_plan');
+    this.prohibitedSubstanceRecords = buildLocationReadMethods<ProhibitedSubstanceRecord>(this, 'prohibited_substance_record');
+    this.bufferZones = buildLocationReadMethods<BufferZone>(this, 'buffer_zone');
+    this.organicInputAudits = buildLocationReadMethods<OrganicInputAudit>(this, 'organic_input_audit');
+    this.harvestHandlingRecords = buildLocationReadMethods<HarvestHandlingRecord>(this, 'harvest_handling_record');
+    this.organicComplianceChecklists = buildLocationReadMethods<OrganicComplianceChecklist>(this, 'organic_compliance_checklist');
+    this.organicReadinessAssessments = buildLocationReadMethods<OrganicReadinessAssessment>(this, 'organic_readiness_assessment');
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
     this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');

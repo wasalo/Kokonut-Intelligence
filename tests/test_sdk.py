@@ -1552,6 +1552,14 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.spatial_autocorrelations, "spatial_autocorrelation"),
         (client.geostat_cv_results, "geostat_cv_result"),
         (client.sensor_network_designs, "sensor_network_design"),
+        (client.organic_certification_records, "organic_certification_record"),
+        (client.organic_transition_plans, "organic_transition_plan"),
+        (client.prohibited_substance_records, "prohibited_substance_record"),
+        (client.buffer_zones, "buffer_zone"),
+        (client.organic_input_audits, "organic_input_audit"),
+        (client.harvest_handling_records, "harvest_handling_record"),
+        (client.organic_compliance_checklists, "organic_compliance_checklist"),
+        (client.organic_readiness_assessments, "organic_readiness_assessment"),
         (client.system_variables, "system_variable"),
         (client.stock_flow_runs, "stock_flow_run"),
         (client.system_archetypes, "system_archetype"),
@@ -2529,6 +2537,53 @@ def test_specialized_methods_use_explicit_directus_equality_filters():
         "wallet_profile",
         ListOptions(filter={"address": {"_eq": "0xwallet"}}, limit=1),
     )
+
+
+def test_organic_compliance_read_models_preserve_sql_literals_and_evidence_shapes():
+    from kokonut import (
+        BufferOperationalStatus,
+        BufferZone,
+        OrganicCertificationRecord,
+        OrganicReadinessAssessment,
+    )
+
+    certification = OrganicCertificationRecord(
+        id="cert-1",
+        location_id="location-1",
+        standard="USDA NOP",
+        certification_type="renewal",
+        status="certified",
+        created_at="2026-10-18T12:00:00Z",
+        updated_at="2026-10-18T12:00:00Z",
+        scope="partial",
+        evidence_urls=["https://example.invalid/certificate"],
+    )
+    readiness = OrganicReadinessAssessment(
+        id="readiness-1",
+        location_id="location-1",
+        assessment_date="2026-10-18",
+        standard="IFOAM",
+        overall_score=82.5,
+        created_at="2026-10-18T12:00:00Z",
+        updated_at="2026-10-18T12:00:00Z",
+        recommendations=[{"dimension": "buffer_zone", "action": "review"}],
+    )
+    buffer = BufferZone(
+        id="buffer-1",
+        location_id="location-1",
+        buffer_name="North hedgerow",
+        buffer_type="hedgerow",
+        width_m=5.0,
+        condition_status="adequate",
+        created_at="2026-10-18T12:00:00Z",
+        updated_at="2026-10-18T12:00:00Z",
+        status="maintenance_needed",
+    )
+
+    assert certification.status == "certified"
+    assert readiness.recommendations == [{"dimension": "buffer_zone", "action": "review"}]
+    assert buffer.status == "maintenance_needed"
+    assert BufferOperationalStatus.__args__ == ("active", "inactive", "maintenance_needed")
 
 
 if __name__ == "__main__":

@@ -35,6 +35,7 @@ from .types import (
     AssessmentDimension,
     AssessmentSignal,
     AttestationSchema,
+    BufferZone,
     BuyerDemandSignal,
     BuyerSegment,
     CarbonCredit,
@@ -63,6 +64,7 @@ from .types import (
     GeostatCVResult,
     GeostatRealization,
     GeostatRealizationPoint,
+    HarvestHandlingRecord,
     InfrastructureAsset,
     KrigingPoint,
     KrigingPrediction,
@@ -72,8 +74,14 @@ from .types import (
     MetricValue,
     MrvClaim,
     OodaCycleLog,
+    OrganicCertificationRecord,
+    OrganicComplianceChecklist,
+    OrganicInputAudit,
+    OrganicReadinessAssessment,
+    OrganicTransitionPlan,
     PriceObservation,
     ProductionMarketMatch,
+    ProhibitedSubstanceRecord,
     Protocol,
     RemoteSensingObservation,
     SeasonalDecomposition,
@@ -301,6 +309,28 @@ class KokonutClient:
         )
         self.crisp_implementation_risks: AssessmentLocationReadMethods[CrispImplementationRisk] = (
             AssessmentLocationReadMethods(self, "crisp_implementation_risk")
+        )
+        self.organic_certification_records: LocationReadMethods[OrganicCertificationRecord] = (
+            LocationReadMethods(self, "organic_certification_record")
+        )
+        self.organic_transition_plans: LocationReadMethods[OrganicTransitionPlan] = (
+            LocationReadMethods(self, "organic_transition_plan")
+        )
+        self.prohibited_substance_records: LocationReadMethods[ProhibitedSubstanceRecord] = (
+            LocationReadMethods(self, "prohibited_substance_record")
+        )
+        self.buffer_zones: LocationReadMethods[BufferZone] = LocationReadMethods(self, "buffer_zone")
+        self.organic_input_audits: LocationReadMethods[OrganicInputAudit] = LocationReadMethods(
+            self, "organic_input_audit"
+        )
+        self.harvest_handling_records: LocationReadMethods[HarvestHandlingRecord] = (
+            LocationReadMethods(self, "harvest_handling_record")
+        )
+        self.organic_compliance_checklists: LocationReadMethods[OrganicComplianceChecklist] = (
+            LocationReadMethods(self, "organic_compliance_checklist")
+        )
+        self.organic_readiness_assessments: LocationReadMethods[OrganicReadinessAssessment] = (
+            LocationReadMethods(self, "organic_readiness_assessment")
         )
         self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
             self, "demand_forecast"

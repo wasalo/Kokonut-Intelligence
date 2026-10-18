@@ -1793,7 +1793,7 @@ acceptance remain open.
 | CAP-012 | Process architecture & costing | services/analytics/process_architecture.py | MAN-CAP-012: Process maps, interfaces and cost totals preserve ownership and lineage | tests/test_process_architecture.py; tests/test_process_costing.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-013 | Impact accountability | services/analytics/; services/registry/ | MAN-CAP-013: Evidence maturity, impact claims, participation and CIDS public export enforce consent | tests/test_ebf_gates.py; tests/test_cids_export.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-014 | CRISP risk scoring | services/crisp/ | MAN-CAP-014: Five dimensions, configured weights and composite rating match baseline | tests/test_crisp_scoring.py | D — published-assessment GET and additive `/api/v1/crisp/{location_id}` alias are source-defined. Typed, schema-parity-guarded Python/TypeScript read-only methods now expose private stored assessments and all five location/assessment-linked dimension records; weights/configuration are not exposed. The SDK reads persisted scores and evidence only; five-dimension scoring, configured-weight, and output parity remain open ([contract](public-summary-contracts.md); [evidence](builds/2026-10-18-recovery/sdk-crisp-stored-assessment-reads.json)). |
-| CAP-015 | Organic certification readiness | services/analytics/organic_certification.py | MAN-CAP-015: Input, buffer and segregation evidence produce same readiness score | tests/test_organic_certification.py | B — baseline code retained; Kernel capability path and parity unassessed. |
+| CAP-015 | Organic certification readiness | services/analytics/organic_certification.py | MAN-CAP-015: Input, buffer and segregation evidence produce same readiness score | tests/test_organic_certification.py | P — typed, schema-parity-guarded, read-only Python/TypeScript SDK groups prepare Directus-backed reads for location-scoped certification, transition, prohibited-substance, buffer, input-audit, harvest-handling, compliance-checklist, and readiness-assessment records. Directus remains optional, so these reads do not establish the Kernel access path. Readiness scoring, standard-specific rules, Gateway parity, and baseline output parity remain open ([evidence](builds/2026-10-18-recovery/sdk-organic-compliance-reads.json)). |
 | CAP-016 | True cost accounting | services/analytics/true_cost_accounting.py | MAN-CAP-016: Hidden costs, valuations and cross-capital flows match fixture | tests/test_true_cost_accounting.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-017 | Emergency response | services/analytics/ | MAN-CAP-017: Incident, response and recovery workflow retains approval/evidence history | tests/test_emergency_response.py | B — baseline code retained; Kernel capability path and parity unassessed. |
 | CAP-018 | EAS on Celo | services/attestation/ | MAN-CAP-018: Prepare and verify proof metadata without broadcasting or exposing private evidence | tests/test_attestation.py | B — baseline code retained; Kernel capability path and parity unassessed. |
@@ -1878,7 +1878,7 @@ and [complete](builds/2026-10-13-recovery/field-collector-tenant-preflight-schem
 evidence, and [phase progress](progress.md)
 for the implementation ledger and the [runtime record](portability-runtime.md) for
 exact deployed images. Seven capabilities have a deployed partial/adjacent integration
-(D), three have prepared partial integration (P), and 56 retain their baseline code
+(D), six have prepared partial integration (P), and 53 retain their baseline code
 with their Kernel access path unassessed (B). **0 of 66 capabilities are certified
 for end-to-end Kernel parity.** B does not mean removed, migrated, or working in the
 minimal image: optional dependencies and full access paths still require assessment.
@@ -3775,8 +3775,8 @@ image, Metabase, or proxy were changed. Financial update/delete reconciliation,
 historical projection backfill, populated report parity, and named MAN-CAP
 acceptance remain open ([rollout evidence](builds/2026-10-18-recovery/candidate-migration-435-rollout.json)).
 
-Capability classifications remain unchanged: 54 baseline-retained, 7 deployed,
-and 5 prepared. Checklist: 611 complete / 19 open; named MAN-CAP acceptance
+Capability classifications are 53 baseline-retained, 7 deployed, and 6 prepared.
+Checklist: 632 complete / 19 open; named MAN-CAP acceptance
 remains separate.
 
 ### CAP-047 isolated RPC wallet-balance snapshot worker — 18 October 2026

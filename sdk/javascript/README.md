@@ -105,6 +105,14 @@ const riskAssessments = await client.crispRiskAssessments.listByLocation('locati
 const climateDetails = await client.crispClimateRisks.listByAssessment('assessment-uuid');
 // These return persisted scores/evidence only; they do not score or verify CRISP.
 
+// Read location-scoped organic certification, transition, and compliance records
+const certifications = await client.organicCertificationRecords.listByLocation('location-uuid');
+const transitions = await client.organicTransitionPlans.listByLocation('location-uuid');
+const readiness = await client.organicReadinessAssessments.listByLocation('location-uuid');
+const buffers = await client.bufferZones.listByLocation('location-uuid');
+// Other read-only groups cover substance, input, handling, and checklist evidence.
+// These are persisted records; they do not recalculate readiness or certify a farm.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -299,6 +307,14 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `crispPolicyRisks` | `crisp_policy_risk` | `listByLocation`, `listByAssessment` (read-only) |
 | `crispFinancialRisks` | `crisp_financial_risk` | `listByLocation`, `listByAssessment` (read-only) |
 | `crispImplementationRisks` | `crisp_implementation_risk` | `listByLocation`, `listByAssessment` (read-only) |
+| `organicCertificationRecords` | `organic_certification_record` | `listByLocation` (read-only) |
+| `organicTransitionPlans` | `organic_transition_plan` | `listByLocation` (read-only) |
+| `prohibitedSubstanceRecords` | `prohibited_substance_record` | `listByLocation` (read-only) |
+| `bufferZones` | `buffer_zone` | `listByLocation` (read-only) |
+| `organicInputAudits` | `organic_input_audit` | `listByLocation` (read-only) |
+| `harvestHandlingRecords` | `harvest_handling_record` | `listByLocation` (read-only) |
+| `organicComplianceChecklists` | `organic_compliance_checklist` | `listByLocation` (read-only) |
+| `organicReadinessAssessments` | `organic_readiness_assessment` | `listByLocation` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensorTypes` | `sensor_type` | — (read-only list/detail) |

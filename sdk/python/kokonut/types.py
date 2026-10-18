@@ -63,6 +63,22 @@ OodaOutcomeType = Literal[
     "effective", "partially_effective", "ineffective", "no_effect",
     "counterproductive", "unknown",
 ]
+OrganicCertificationType = Literal['initial', 'renewal', 'extension']
+OrganicCertificationStatus = Literal['planned', 'preparing', 'submitted', 'inspected', 'certified', 'suspended', 'revoked', 'expired']
+OrganicCertificationScope = Literal['full', 'partial', 'transitioning']
+BufferOperationalStatus = Literal['active', 'inactive', 'maintenance_needed']
+OrganicTransitionStatus = Literal['planned', 'active', 'paused', 'completed', 'failed']
+ProhibitedSubstanceCategory = Literal['synthetic_pesticide', 'synthetic_fertilizer', 'gmo_seed', 'sewage_sludge', 'ionizing_radiation', 'prohibited_additive', 'other']
+ProhibitedSubstanceComplianceStatus = Literal['cleared', 'violation', 'pending_remediation', 'under_review']
+BufferType = Literal['physical_fence', 'vegetative_barrier', 'uncultivated_strip', 'water_barrier', 'road', 'hedgerow', 'other']
+BufferAdjacentUse = Literal['conventional_farm', 'road', 'industrial', 'urban', 'water_body', 'wildland', 'other']
+BufferConditionStatus = Literal['adequate', 'needs_repair', 'non_compliant']
+OrganicInputCategory = Literal['fertilizer', 'pesticide', 'fungicide', 'herbicide', 'seed_treatment', 'soil_amendment', 'mulch', 'other']
+OrganicInputSource = Literal['on_farm', 'purchased', 'traded']
+HarvestHandlingType = Literal['cleaning', 'sorting', 'grading', 'drying', 'processing', 'packaging', 'storage', 'transport']
+HarvestContaminationRisk = Literal['low', 'medium', 'high']
+OrganicInspectionType = Literal['initial', 'renewal', 'follow_up', 'unannounced']
+OrganicChecklistResult = Literal['pass', 'conditional', 'fail', 'pending']
 CrispRating = Literal["AAA", "AA", "A", "B", "C", "D"]
 CrispConfidenceLevel = Literal["high", "moderate", "low", "insufficient_evidence"]
 CrispSSPScenario = Literal["SSP1", "SSP2", "SSP5"]
@@ -1309,6 +1325,247 @@ class OodaCycleLog:
     error_message: Optional[str] = None
     outcome_type: Optional[OodaOutcomeType] = None
     metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class OrganicCertificationRecord:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    standard: str
+    certification_type: OrganicCertificationType
+    status: OrganicCertificationStatus
+    created_at: str
+    updated_at: str
+    certification_body: Optional[str] = None
+    application_date: Optional[str] = None
+    inspection_date: Optional[str] = None
+    certification_date: Optional[str] = None
+    expiration_date: Optional[str] = None
+    certificate_number: Optional[str] = None
+    certificate_url: Optional[str] = None
+    scope: Optional[OrganicCertificationScope] = None
+    scope_areas: Optional[List[JSONValue]] = None
+    annual_fee_usd: Optional[float] = None
+    notes: Optional[str] = None
+    evidence_urls: Optional[List[JSONValue]] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class OrganicTransitionPlan:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    standard: str
+    transition_start_date: str
+    current_year: int
+    total_years_required: int
+    status: OrganicTransitionStatus
+    created_at: str
+    updated_at: str
+    plot_id: Optional[str] = None
+    expected_certification_date: Optional[str] = None
+    prohibited_substance_free_date: Optional[str] = None
+    buffer_zone_established_date: Optional[str] = None
+    record_keeping_ready_date: Optional[str] = None
+    training_completed_date: Optional[str] = None
+    organic_management_plan_date: Optional[str] = None
+    readiness_score: Optional[float] = None
+    barriers: Optional[List[JSONValue]] = None
+    notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class ProhibitedSubstanceRecord:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    substance_name: str
+    substance_category: ProhibitedSubstanceCategory
+    date_used: str
+    compliance_status: ProhibitedSubstanceComplianceStatus
+    created_at: str
+    updated_at: str
+    plot_id: Optional[str] = None
+    cas_number: Optional[str] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    reason_for_use: Optional[str] = None
+    remediation_action: Optional[str] = None
+    remediation_date: Optional[str] = None
+    withdrawal_period_days: Optional[int] = None
+    withdrawal_end_date: Optional[str] = None
+    notes: Optional[str] = None
+    evidence_urls: Optional[List[JSONValue]] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class BufferZone:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    buffer_name: str
+    buffer_type: BufferType
+    width_m: float
+    condition_status: BufferConditionStatus
+    created_at: str
+    updated_at: str
+    status: Optional[BufferOperationalStatus] = None
+    plot_id: Optional[str] = None
+    length_m: Optional[float] = None
+    area_m2: Optional[float] = None
+    adjacent_use: Optional[BufferAdjacentUse] = None
+    boundary_geometry: Optional[JSONValue] = None
+    establishment_date: Optional[str] = None
+    last_inspection_date: Optional[str] = None
+    photos_urls: Optional[List[JSONValue]] = None
+    notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class OrganicInputAudit:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    application_date: str
+    input_category: OrganicInputCategory
+    input_name: str
+    input_source: OrganicInputSource
+    organic_certified: bool
+    quantity: float
+    unit: str
+    is_prohibited: bool
+    created_at: str
+    updated_at: str
+    plot_id: Optional[str] = None
+    crop_cycle_id: Optional[str] = None
+    supplier_name: Optional[str] = None
+    supplier_organic_cert_url: Optional[str] = None
+    application_method: Optional[str] = None
+    target_pest_or_nutrient: Optional[str] = None
+    pre_harvest_interval_days: Optional[int] = None
+    reentry_interval_hours: Optional[int] = None
+    prohibition_standard: Optional[str] = None
+    notes: Optional[str] = None
+    evidence_urls: Optional[List[JSONValue]] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class HarvestHandlingRecord:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    harvest_event_id: str
+    handling_date: str
+    handling_type: HarvestHandlingType
+    organic_segregated: bool
+    equipment_cleaned: bool
+    contamination_risk: HarvestContaminationRisk
+    temperature_controlled: bool
+    buyer_requirements_met: bool
+    created_at: str
+    updated_at: str
+    storage_conditions: Optional[str] = None
+    transport_conditions: Optional[str] = None
+    organic_lot_number: Optional[str] = None
+    notes: Optional[str] = None
+    evidence_urls: Optional[List[JSONValue]] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class OrganicComplianceChecklist:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    inspection_date: str
+    inspection_type: OrganicInspectionType
+    checklist_items: List[JSONValue]
+    overall_result: OrganicChecklistResult
+    created_at: str
+    updated_at: str
+    certification_record_id: Optional[str] = None
+    inspector_name: Optional[str] = None
+    inspector_organization: Optional[str] = None
+    findings: Optional[str] = None
+    non_conformances: Optional[List[JSONValue]] = None
+    corrective_actions_required: Optional[List[JSONValue]] = None
+    follow_up_date: Optional[str] = None
+    notes: Optional[str] = None
+    evidence_urls: Optional[List[JSONValue]] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class OrganicReadinessAssessment:
+    """Stored organic compliance record; reading it does not recompute or mutate it."""
+
+    id: str
+    location_id: str
+    assessment_date: str
+    standard: str
+    overall_score: float
+    created_at: str
+    updated_at: str
+    transition_progress_pct: Optional[float] = None
+    soil_health_score: Optional[float] = None
+    input_compliance_pct: Optional[float] = None
+    pest_management_score: Optional[float] = None
+    biodiversity_score: Optional[float] = None
+    buffer_zone_score: Optional[float] = None
+    record_completeness_pct: Optional[float] = None
+    training_completion_pct: Optional[float] = None
+    harvest_segregation_score: Optional[float] = None
+    barriers: Optional[List[JSONValue]] = None
+    recommendations: Optional[List[JSONValue]] = None
+    assessor: Optional[str] = None
+    notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass

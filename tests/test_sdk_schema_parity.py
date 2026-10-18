@@ -310,6 +310,41 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ),
         ("FarmTask", "priority"): ("low", "medium", "high", "critical"),
         ("FarmTask", "status"): ("pending", "in_progress", "completed", "cancelled"),
+        ("OrganicCertificationRecord", "certification_type"): ("initial", "renewal", "extension"),
+        ("OrganicCertificationRecord", "status"): (
+            "planned", "preparing", "submitted", "inspected", "certified", "suspended", "revoked", "expired"
+        ),
+        ("OrganicCertificationRecord", "scope"): ("full", "partial", "transitioning"),
+        ("OrganicTransitionPlan", "status"): ("planned", "active", "paused", "completed", "failed"),
+        ("ProhibitedSubstanceRecord", "substance_category"): (
+            "synthetic_pesticide", "synthetic_fertilizer", "gmo_seed", "sewage_sludge",
+            "ionizing_radiation", "prohibited_additive", "other"
+        ),
+        ("ProhibitedSubstanceRecord", "compliance_status"): (
+            "cleared", "violation", "pending_remediation", "under_review"
+        ),
+        ("BufferZone", "buffer_type"): (
+            "physical_fence", "vegetative_barrier", "uncultivated_strip", "water_barrier",
+            "road", "hedgerow", "other"
+        ),
+        ("BufferZone", "adjacent_use"): (
+            "conventional_farm", "road", "industrial", "urban", "water_body", "wildland", "other"
+        ),
+        ("BufferZone", "condition_status"): ("adequate", "needs_repair", "non_compliant"),
+        ("BufferZone", "status"): ("active", "inactive", "maintenance_needed"),
+        ("OrganicInputAudit", "input_category"): (
+            "fertilizer", "pesticide", "fungicide", "herbicide", "seed_treatment",
+            "soil_amendment", "mulch", "other"
+        ),
+        ("OrganicInputAudit", "input_source"): ("on_farm", "purchased", "traded"),
+        ("HarvestHandlingRecord", "handling_type"): (
+            "cleaning", "sorting", "grading", "drying", "processing", "packaging", "storage", "transport"
+        ),
+        ("HarvestHandlingRecord", "contamination_risk"): ("low", "medium", "high"),
+        ("OrganicComplianceChecklist", "inspection_type"): (
+            "initial", "renewal", "follow_up", "unannounced"
+        ),
+        ("OrganicComplianceChecklist", "overall_result"): ("pass", "conditional", "fail", "pending"),
     }
     python_aliases = SCHEMA_GUARD.python_literal_aliases(
         ROOT / "sdk" / "python" / "kokonut" / "types.py"
@@ -459,7 +494,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 126
+    assert checked == 147
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )
