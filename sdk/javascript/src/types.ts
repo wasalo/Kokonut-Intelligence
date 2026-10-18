@@ -462,6 +462,58 @@ export interface WeatherObservation {
   created_at?: string | null;
 }
 
+/** Stored soil laboratory/field sample; it does not validate the recorded results. */
+export interface SoilSample {
+  id: string;
+  plot_id: string;
+  location_id: string;
+  sample_date: string;
+  sample_id?: string | null;
+  depth_cm?: number | null;
+  depth_layer?: string | null;
+  ph?: number | null;
+  organic_matter_pct?: number | null;
+  organic_carbon_pct?: number | null;
+  nitrogen_ppm?: number | null;
+  phosphorus_ppm?: number | null;
+  potassium_ppm?: number | null;
+  calcium_ppm?: number | null;
+  magnesium_ppm?: number | null;
+  sulfur_ppm?: number | null;
+  cec?: number | null;
+  texture?: string | null;
+  moisture_pct?: number | null;
+  lab_name?: string | null;
+  lab_report_url?: string | null;
+  evidence_hash?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  schema_version?: string | null;
+  status?: LifecycleStatus | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  evidence_maturity?: number | null;
+  lab_accredited?: boolean | null;
+  analytical_method?: string | null;
+  protocol_id?: string | null;
+  composite_count?: number | null;
+  sub_sample_count?: number | null;
+  gps_latitude?: number | null;
+  gps_longitude?: number | null;
+  collector_name?: string | null;
+  collector_id?: string | null;
+  chain_of_custody?: string | null;
+  container_type?: string | null;
+  preservative?: string | null;
+  sample_mass_g?: number | null;
+  moisture_conditions?: string | null;
+  point_geometry?: GeoJSONPoint | null;
+}
+
 export interface SensorType {
   id: string;
   name: string;

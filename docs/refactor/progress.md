@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### SDK soil sample schema parity — 18 October 2026
+
+Python and TypeScript now expose soil samples across the canonical table and
+additive lifecycle, sampling protocol, source-lineage, and geospatial
+migrations. The model includes the governed `draft`/`submitted`/`verified`/
+`published`/`rejected` lifecycle and a typed GeoJSON point. The guard covers
+50 models, 1,060 canonical columns, 991 scalar types, eight PostGIS shapes,
+59 JSONB shapes, 20 enum fields, and 32 standalone SQL CHECK literals.
+Fifty-six Python SDK/guard tests and 29 JavaScript tests pass, along with the
+TypeScript build, Ruff, Python compilation, schema guard, capability-matrix
+validation, and diff check. The SDK does not validate lab results or perform
+review transitions. No database or network was contacted; capability
+classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-soil-sample-parity.json)).
+
 ### SDK weather observation schema parity — 18 October 2026
 
 Python and TypeScript now expose stored `weather_observation` rows, including

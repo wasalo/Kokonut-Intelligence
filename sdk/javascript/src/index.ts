@@ -99,6 +99,7 @@ export type {
   ValueFlowEvent,
   ExcludedValueEvent,
   SensorReading,
+  SoilSample,
   WeatherObservation,
   WalletProfile,
   AttestationRecord,

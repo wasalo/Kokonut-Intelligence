@@ -3464,3 +3464,14 @@ standalone SQL CHECK literals. This adds data contracts only; it does not
 fetch, validate, or verify provider data. Checklist: 571 complete / 19 open.
 Capability classifications and MAN-CAP acceptance are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-weather-observation-parity.json`.
+
+### Soil sample SDK model parity — 18 October 2026
+
+Python and TypeScript now represent soil sample measurements with source
+lineage, governed lifecycle, sampling protocol/custody fields, and typed
+location geometry. The guard covers 50 models and 1,060 columns, including
+991 scalar types, eight PostGIS shapes, 59 JSONB shapes, 20 enum fields, and
+32 standalone SQL CHECK literals. This adds record contracts only; it does not
+validate measurements or authorize review. Checklist: 572 complete / 19 open.
+Capability classifications and MAN-CAP acceptance are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-soil-sample-parity.json`.

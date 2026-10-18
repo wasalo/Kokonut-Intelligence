@@ -1158,6 +1158,60 @@ class WeatherObservation:
 
 
 @dataclass
+class SoilSample:
+    """Stored soil laboratory/field sample; creating it does not validate results."""
+
+    id: str
+    plot_id: str
+    location_id: str
+    sample_date: str
+    sample_id: Optional[str] = None
+    depth_cm: Optional[float] = None
+    depth_layer: Optional[str] = None
+    ph: Optional[float] = None
+    organic_matter_pct: Optional[float] = None
+    organic_carbon_pct: Optional[float] = None
+    nitrogen_ppm: Optional[float] = None
+    phosphorus_ppm: Optional[float] = None
+    potassium_ppm: Optional[float] = None
+    calcium_ppm: Optional[float] = None
+    magnesium_ppm: Optional[float] = None
+    sulfur_ppm: Optional[float] = None
+    cec: Optional[float] = None
+    texture: Optional[str] = None
+    moisture_pct: Optional[float] = None
+    lab_name: Optional[str] = None
+    lab_report_url: Optional[str] = None
+    evidence_hash: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    schema_version: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    evidence_maturity: Optional[int] = None
+    lab_accredited: Optional[bool] = None
+    analytical_method: Optional[str] = None
+    protocol_id: Optional[str] = None
+    composite_count: Optional[int] = None
+    sub_sample_count: Optional[int] = None
+    gps_latitude: Optional[float] = None
+    gps_longitude: Optional[float] = None
+    collector_name: Optional[str] = None
+    collector_id: Optional[str] = None
+    chain_of_custody: Optional[str] = None
+    container_type: Optional[str] = None
+    preservative: Optional[str] = None
+    sample_mass_g: Optional[int] = None
+    moisture_conditions: Optional[str] = None
+    point_geometry: Optional[GeoJSONPoint] = None
+
+
+@dataclass
 class SensorType:
     id: str
     name: str

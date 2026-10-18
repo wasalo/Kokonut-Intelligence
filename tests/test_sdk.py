@@ -256,6 +256,34 @@ def test_weather_observation_type_preserves_stored_measurements_without_ingestio
     assert observation.schema_version == "1.0"
 
 
+def test_soil_sample_type_preserves_measurements_and_source_lineage():
+    from kokonut import SoilSample
+
+    sample = SoilSample(
+        id="sample-1",
+        plot_id="plot-1",
+        location_id="location-1",
+        sample_date="2026-10-18",
+        ph=6.4,
+        organic_carbon_pct=2.15,
+        lab_name="Synthetic Lab",
+        source_system="lab_import",
+        source_raw={"report": "synthetic"},
+        schema_version="1.0",
+        status="submitted",
+        lab_accredited=True,
+        point_geometry={"type": "Point", "coordinates": [-69.9, 18.5]},
+    )
+
+    assert sample.ph == 6.4
+    assert sample.organic_carbon_pct == 2.15
+    assert sample.source_raw == {"report": "synthetic"}
+    assert sample.schema_version == "1.0"
+    assert sample.status == "submitted"
+    assert sample.lab_accredited is True
+    assert sample.point_geometry == {"type": "Point", "coordinates": [-69.9, 18.5]}
+
+
 def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
     from kokonut import ForecastScenario
 
