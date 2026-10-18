@@ -18,6 +18,8 @@ export type ActuationStatus = 'pending' | 'sent' | 'acknowledged' | 'executed' |
 export type AttestationVerdict = 'pending' | 'approved' | 'rejected' | 'needs_info';
 export type TimeSeriesForecastModelType = 'arima' | 'exponential_smoothing' | 'prophet' | 'naive' | 'seasonal_naive';
 export type TimeSeriesForecastStatus = 'active' | 'superseded' | 'expired';
+export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
+export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -735,6 +737,40 @@ export interface ForecastAccuracy {
   is_within_ci?: boolean | null;
   computed_at: string;
   created_at: string;
+}
+
+/** Stored demand projection; creating this value does not calculate a forecast. */
+export interface DemandForecast {
+  id: string;
+  location_id: string;
+  forecast_type: DemandForecastType;
+  forecast_period_start: string;
+  forecast_period_end: string;
+  predicted_quantity: number;
+  unit: string;
+  status: DemandForecastStatus;
+  created_at: string;
+  updated_at: string;
+  crop_id?: string | null;
+  predicted_revenue_usd?: number | null;
+  confidence_low?: number | null;
+  confidence_high?: number | null;
+  confidence_level?: number | null;
+  seasonal_index?: number | null;
+  trend_slope?: number | null;
+  model_name?: string | null;
+  model_version?: string | null;
+  training_data_points?: number | null;
+  mape_pct?: number | null;
+  inputs?: JSONObject | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  schema_version?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface SensorAlert {

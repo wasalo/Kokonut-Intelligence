@@ -33,6 +33,7 @@ MODEL_TABLES = {
     "DashboardDataset": ("007_modeled_outputs.sql", "dashboard_dataset"),
     "TimeSeriesForecast": ("131_trend_analysis.sql", "time_series_forecast"),
     "ForecastAccuracy": ("131_trend_analysis.sql", "forecast_accuracy"),
+    "DemandForecast": ("069_demand_analysis.sql", "demand_forecast"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -90,6 +91,8 @@ JSONB_MODEL_SHAPES = {
     ("TimeSeriesForecast", "forecast_values"): "json_value_array",
     ("TimeSeriesForecast", "prediction_intervals"): "json_object",
     ("TimeSeriesForecast", "metadata"): "json_object",
+    ("DemandForecast", "inputs"): "json_object",
+    ("DemandForecast", "source_raw"): "json_object",
 }
 
 

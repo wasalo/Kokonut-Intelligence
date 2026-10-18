@@ -341,6 +341,30 @@ def test_time_series_forecast_and_accuracy_types_preserve_stored_values():
     assert accuracy.is_within_ci is None
 
 
+def test_demand_forecast_type_keeps_estimate_provenance_and_review_state():
+    from kokonut import DemandForecast
+
+    forecast = DemandForecast(
+        id="demand-1",
+        location_id="location-1",
+        forecast_type="buyer_pipeline",
+        forecast_period_start="2026-11-01",
+        forecast_period_end="2026-11-30",
+        predicted_quantity=250.0,
+        unit="kg",
+        status="draft",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        inputs={"pipeline_records": 3},
+        source_raw={"fixture": "synthetic"},
+    )
+
+    assert forecast.predicted_quantity == 250.0
+    assert forecast.inputs["pipeline_records"] == 3
+    assert forecast.status == "draft"
+    assert forecast.verified_by is None
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

@@ -27,6 +27,10 @@ TimeSeriesForecastModelType = Literal[
     "arima", "exponential_smoothing", "prophet", "naive", "seasonal_naive"
 ]
 TimeSeriesForecastStatus = Literal["active", "superseded", "expired"]
+DemandForecastType = Literal[
+    "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
+]
+DemandForecastStatus = Literal["draft", "submitted", "verified", "published"]
 
 GeoJSONPosition = List[float]
 
@@ -656,6 +660,42 @@ class ForecastAccuracy:
     created_at: str
     error_pct: Optional[float] = None
     is_within_ci: Optional[bool] = None
+
+
+@dataclass
+class DemandForecast:
+    """Stored demand projection; creating this value does not calculate a forecast."""
+
+    id: str
+    location_id: str
+    forecast_type: DemandForecastType
+    forecast_period_start: str
+    forecast_period_end: str
+    predicted_quantity: float
+    unit: str
+    status: DemandForecastStatus
+    created_at: str
+    updated_at: str
+    crop_id: Optional[str] = None
+    predicted_revenue_usd: Optional[float] = None
+    confidence_low: Optional[float] = None
+    confidence_high: Optional[float] = None
+    confidence_level: Optional[float] = None
+    seasonal_index: Optional[float] = None
+    trend_slope: Optional[float] = None
+    model_name: Optional[str] = None
+    model_version: Optional[str] = None
+    training_data_points: Optional[int] = None
+    mape_pct: Optional[float] = None
+    inputs: Optional[JSONObject] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    schema_version: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass

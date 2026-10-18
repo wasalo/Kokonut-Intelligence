@@ -3373,3 +3373,17 @@ guard, matrix validation, and diff checks pass. The types do not calculate
 forecasts or accuracy; capability status and MAN-CAP acceptance are unchanged.
 Checklist: 564 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-time-series-forecast-parity.json`.
+
+### Demand forecast SDK model parity — 18 October 2026
+
+Python and TypeScript now model stored demand projections with period,
+quantity, revenue/confidence, model, input/source lineage, and review fields.
+The guard validates the forecast-type and lifecycle literals plus both JSON
+object fields. It checks 38 models and 755 columns, including 703 scalar
+types, seven PostGIS shapes, 43 JSONB shapes, 20 enum fields, and 12 standalone
+SQL CHECK literals. Forty-nine focused Python SDK/guard tests, 29 JavaScript
+tests, TypeScript build, Ruff, compilation, guard, matrix validation, and diff
+checks pass. The contract does not compute or verify estimates; capability
+status and MAN-CAP acceptance are unchanged. Checklist: 565 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-demand-forecast-parity.json`.

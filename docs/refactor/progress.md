@@ -9034,3 +9034,18 @@ Ruff, compilation, schema guard, matrix validation, and diff checks. No
 database, provider, or network was contacted. The types do not run forecasts
 or calculate accuracy. Checklist: 564 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-time-series-forecast-parity.json`.
+
+### Demand forecast SDK schema parity — 18 October 2026
+
+Python and TypeScript now model the stored `demand_forecast` contract,
+including projection periods and quantities, revenue/confidence fields,
+forecast method, model/input provenance, lifecycle status, and reviewer
+attribution. The guard checks the forecast-type and lifecycle SQL literals and
+both JSON-object fields. It covers 38 models and 755 canonical columns, with
+703 scalar types, seven PostGIS shapes, 43 JSONB shapes, 20 enum fields, and
+12 standalone SQL CHECK literal contracts. Forty-nine focused Python
+SDK/guard tests and 29 JavaScript tests pass with TypeScript build, Ruff,
+compilation, schema guard, matrix validation, and diff checks. No database,
+provider, or network was contacted. The type does not calculate or verify
+demand estimates. Checklist: 565 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-demand-forecast-parity.json`.
