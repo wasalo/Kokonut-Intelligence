@@ -3124,3 +3124,16 @@ provider or schedule was accessed. No MAN-CAP status changes
 [migration](../schemas/postgres/430_isolated_market_data_worker.sql);
 [runner](../scripts/check-market-data-worker-disposable.py);
 [evidence](builds/2026-10-17-recovery/market-data-worker-disposable.json)).
+
+### SDK spatial type contract — 18 October 2026
+
+Python and TypeScript SDK models now represent schema-constrained PostGIS
+`POINT` and `POLYGON` values with reusable GeoJSON shapes. The offline schema
+guard verifies all seven mapped spatial fields alongside the 442 scalar types,
+473 SQL columns, and nullable annotations across 20 models. Five source-guard
+tests and the 29-test JavaScript suite pass; the TypeScript build, Ruff,
+compilation, and guard pass. This improves generated/client-side data contracts
+only; it does not establish Directus projection behavior, GIS validity, or
+tenant authorization. JSONB semantic contracts remain under separate audit.
+Capability classifications and MAN-CAP acceptance do not change
+([evidence](builds/2026-10-18-recovery/sdk-postgis-shape-parity.json)).

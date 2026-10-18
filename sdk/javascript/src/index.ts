@@ -21,6 +21,9 @@ export type {
 } from './public-api.js';
 
 export type {
+  GeoJSONPoint,
+  GeoJSONPolygon,
+  GeoJSONPosition,
   Location,
   Farm,
   Plot,

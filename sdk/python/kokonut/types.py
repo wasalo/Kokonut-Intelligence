@@ -1,7 +1,23 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional, TypedDict
+
+GeoJSONPosition = List[float]
+
+
+class GeoJSONPoint(TypedDict):
+    """GeoJSON point returned for PostGIS POINT columns."""
+
+    type: Literal["Point"]
+    coordinates: GeoJSONPosition
+
+
+class GeoJSONPolygon(TypedDict):
+    """GeoJSON polygon returned for PostGIS POLYGON columns."""
+
+    type: Literal["Polygon"]
+    coordinates: List[List[GeoJSONPosition]]
 
 
 @dataclass
@@ -44,8 +60,8 @@ class Location:
     project_url: Optional[str] = None
     project_start_date: Optional[str] = None
     project_end_date: Optional[str] = None
-    boundary: Optional[Dict[str, Any]] = None
-    center: Optional[Dict[str, Any]] = None
+    boundary: Optional[GeoJSONPolygon] = None
+    center: Optional[GeoJSONPoint] = None
     country: Optional[str] = None
     region: Optional[str] = None
     sub_region: Optional[str] = None
@@ -81,8 +97,8 @@ class Farm:
     name: str
     slug: str
     description: Optional[str] = None
-    boundary: Optional[Dict[str, Any]] = None
-    center: Optional[Dict[str, Any]] = None
+    boundary: Optional[GeoJSONPolygon] = None
+    center: Optional[GeoJSONPoint] = None
     logo_url: Optional[str] = None
     logo_file_id: Optional[str] = None
     property_id: Optional[str] = None
@@ -113,8 +129,8 @@ class Plot:
     name: str
     slug: Optional[str] = None
     description: Optional[str] = None
-    boundary: Optional[Dict[str, Any]] = None
-    center: Optional[Dict[str, Any]] = None
+    boundary: Optional[GeoJSONPolygon] = None
+    center: Optional[GeoJSONPoint] = None
     area: Optional[float] = None
     area_unit: Optional[str] = None
     soil_type: Optional[str] = None
@@ -421,7 +437,7 @@ class SensorDevice:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     elevation_m: Optional[float] = None
-    point_geometry: Optional[Dict[str, Any]] = None
+    point_geometry: Optional[GeoJSONPoint] = None
     metadata: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

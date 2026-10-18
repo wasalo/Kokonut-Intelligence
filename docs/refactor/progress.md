@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK PostGIS shape parity — 18 October 2026
+
+The Python and TypeScript SDKs now expose reusable GeoJSON `Point` and
+`Polygon` types for the seven schema-constrained spatial fields in the 20-model
+inventory. The offline source guard checks each annotation against its
+PostgreSQL geometry subtype as well as scalar types, nullability, and columns.
+Five guard tests and the 29-test JavaScript suite pass; the TypeScript build,
+Ruff, Python compilation, schema guard, and diff check pass. No database or
+network was contacted. JSONB remains a separate shape-audit item because SQL
+allows arbitrary JSON values and those field contracts cannot safely be
+inferred from the column type alone
+([evidence](builds/2026-10-18-recovery/sdk-postgis-shape-parity.json)).
+
 ### CI #430 report-inventory freshness fix — 17 October 2026
 
 CI #430 on pushed commit `9742905` stopped in the fast-fail gate because the

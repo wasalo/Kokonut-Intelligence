@@ -66,13 +66,14 @@ ALTER TABLE sdk_guard_fixture ALTER COLUMN score TYPE NUMERIC(14, 4);
     }
 
 
-def test_sql_type_families_cover_scalar_and_leave_domain_types_explicit():
+def test_sql_type_families_cover_scalars_and_postgis_shapes():
     assert SCHEMA_GUARD.sql_type_family("UUID") == "string"
     assert SCHEMA_GUARD.sql_type_family("NUMERIC(12, 4)") == "number"
     assert SCHEMA_GUARD.sql_type_family("INTEGER") == "integer"
     assert SCHEMA_GUARD.sql_type_family("TEXT[]") == "string_array"
     assert SCHEMA_GUARD.sql_type_family("JSONB") is None
-    assert SCHEMA_GUARD.sql_type_family("GEOMETRY(POINT, 4326)") is None
+    assert SCHEMA_GUARD.sql_type_family("GEOMETRY(POINT, 4326)") == "geojson_point"
+    assert SCHEMA_GUARD.sql_type_family("GEOMETRY(POLYGON, 4326)") == "geojson_polygon"
 
 
 def test_sdk_scalar_types_match_sql_families_and_nullable_unions():
@@ -84,3 +85,34 @@ def test_sdk_scalar_types_match_sql_families_and_nullable_unions():
     assert SCHEMA_GUARD.typescript_type_matches_family("'draft' | 'published' | null", "string")
     assert SCHEMA_GUARD.typescript_type_matches_family("string[]", "string_array")
     assert not SCHEMA_GUARD.typescript_type_matches_family("string", "number")
+    assert SCHEMA_GUARD.python_type_matches_family("Optional[GeoJSONPoint]", "geojson_point")
+    assert SCHEMA_GUARD.python_type_matches_family("Optional[GeoJSONPolygon]", "geojson_polygon")
+    assert SCHEMA_GUARD.typescript_type_matches_family("GeoJSONPoint | null", "geojson_point")
+    assert SCHEMA_GUARD.typescript_type_matches_family(
+        "GeoJSONPolygon | null", "geojson_polygon"
+    )
+
+
+def test_sdk_spatial_field_shapes_match_canonical_postgis_types():
+    python_types = SCHEMA_GUARD.python_model_field_types(
+        ROOT / "sdk" / "python" / "kokonut" / "types.py"
+    )
+    typescript_types = SCHEMA_GUARD.typescript_model_field_types(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    checked = 0
+    for model, (schema_file, table) in SCHEMA_GUARD.MODEL_TABLES.items():
+        for column, sql_type in SCHEMA_GUARD.table_column_types(
+            ROOT / "schemas" / "postgres" / schema_file, table
+        ).items():
+            family = SCHEMA_GUARD.sql_type_family(sql_type)
+            if family not in {"geojson_point", "geojson_polygon"}:
+                continue
+            checked += 1
+            assert SCHEMA_GUARD.python_type_matches_family(
+                python_types[model][column], family
+            ), f"Python {model}.{column} does not match {sql_type}"
+            assert SCHEMA_GUARD.typescript_type_matches_family(
+                typescript_types[model][column], family
+            ), f"TypeScript {model}.{column} does not match {sql_type}"
+    assert checked == 7

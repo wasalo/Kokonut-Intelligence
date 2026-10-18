@@ -219,6 +219,12 @@ def sql_type_family(sql_type: str) -> str | None:
         return "boolean"
     if normalized in {"TEXT[]", "VARCHAR[]"}:
         return "string_array"
+    spatial_type = re.fullmatch(
+        r"(?:GEOMETRY|GEOGRAPHY)\s*\(\s*(POINT|POLYGON)\s*,\s*\d+\s*\)",
+        normalized,
+    )
+    if spatial_type:
+        return f"geojson_{spatial_type.group(1).lower()}"
     return None
 
 
@@ -233,6 +239,8 @@ def python_type_matches_family(annotation: str, family: str) -> bool:
         "number": {"float", "int", "Decimal"},
         "boolean": {"bool"},
         "string_array": {"List[str]", "list[str]"},
+        "geojson_point": {"GeoJSONPoint"},
+        "geojson_polygon": {"GeoJSONPolygon"},
     }
     return normalized in compatible.get(family, set())
 
@@ -250,6 +258,8 @@ def typescript_type_matches_family(field_type: str, family: str) -> bool:
         "number": "number",
         "boolean": "boolean",
         "string_array": "string[]",
+        "geojson_point": "GeoJSONPoint",
+        "geojson_polygon": "GeoJSONPolygon",
     }.get(family)
     return normalized == expected
 
@@ -315,6 +325,7 @@ def main() -> int:
     failures = []
     checked_columns = 0
     checked_scalar_types = 0
+    checked_spatial_types = 0
 
     for model, (schema_file, table) in MODEL_TABLES.items():
         columns = table_columns(schema_dir / schema_file, table)
@@ -361,7 +372,10 @@ def main() -> int:
             typescript_type = typescript_field_types.get(model, {}).get(column)
             if python_type is None or typescript_type is None:
                 continue
-            checked_scalar_types += 1
+            if family.startswith("geojson_"):
+                checked_spatial_types += 1
+            else:
+                checked_scalar_types += 1
             if not python_type_matches_family(python_type, family):
                 failures.append(
                     f"Python {model}.{column} does not match SQL {sql_type}: {python_type}"
@@ -380,8 +394,8 @@ def main() -> int:
 
     print(
         f"SDK schema parity passed ({len(MODEL_TABLES)} models, "
-        f"{checked_columns} canonical columns and {checked_scalar_types} scalar types "
-        "checked per SDK)"
+        f"{checked_columns} canonical columns, {checked_scalar_types} scalar types, and "
+        f"{checked_spatial_types} PostGIS types checked per SDK)"
     )
     return 0
 

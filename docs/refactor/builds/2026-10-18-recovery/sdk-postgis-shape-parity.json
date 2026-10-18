@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript SDK PostGIS shape parity",
+  "source_of_truth": "Mapped PostgreSQL geometry subtypes in base schemas and additive migrations",
+  "change": "Added exported GeoJSON Point and Polygon SDK types and extended the offline schema guard to compare each PostGIS model field to its declared SQL geometry subtype.",
+  "focused_checks": {
+    "python_guard": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q",
+      "result": "26 passed: 21 SDK tests and 5 schema-guard tests"
+    },
+    "javascript": {
+      "command": "npm test -- --run",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "schema_guard": "passed: 20 models, 473 columns, 442 scalar types, and 7 PostGIS types checked per SDK",
+    "diff_check": "passed",
+    "capability_matrix": "66 rows; classifications unchanged"
+  },
+  "network_and_database": "none; local source and SDK tests only",
+  "limitations": [
+    "JSONB allows arbitrary JSON at the SQL type level; semantic object/array contracts remain unverified.",
+    "No Directus geometry projection or live API behavior is claimed.",
+    "No capability or MAN-CAP acceptance classification changed."
+  ]
+}

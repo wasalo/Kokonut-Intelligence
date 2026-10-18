@@ -1,26 +1,10 @@
 from .client import (
+    AuthenticationError,
+    ForbiddenError,
     KokonutClient,
     KokonutError,
-    AuthenticationError,
     NotFoundError,
-    ForbiddenError,
     ValidationError,
-)
-from .types import (
-    Location,
-    Farm,
-    Plot,
-    CropCycle,
-    HarvestEvent,
-    SalesEvent,
-    ExpenseEvent,
-    SensorReading,
-    WalletProfile,
-    AttestationRecord,
-    ReportSnapshot,
-    ExportLog,
-    NoiSnapshot,
-    ListOptions,
 )
 from .public_api import (
     KokonutPublicApiClient,
@@ -33,6 +17,25 @@ from .public_api import (
     PublicMetricCounts,
     PublicMetricSummary,
 )
+from .types import (
+    AttestationRecord,
+    CropCycle,
+    ExpenseEvent,
+    ExportLog,
+    Farm,
+    GeoJSONPoint,
+    GeoJSONPolygon,
+    GeoJSONPosition,
+    HarvestEvent,
+    ListOptions,
+    Location,
+    NoiSnapshot,
+    Plot,
+    ReportSnapshot,
+    SalesEvent,
+    SensorReading,
+    WalletProfile,
+)
 
 __all__ = [
     "KokonutClient",
@@ -41,6 +44,9 @@ __all__ = [
     "NotFoundError",
     "ForbiddenError",
     "ValidationError",
+    "GeoJSONPoint",
+    "GeoJSONPolygon",
+    "GeoJSONPosition",
     "Location",
     "Farm",
     "Plot",

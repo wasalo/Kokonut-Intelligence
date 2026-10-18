@@ -1,3 +1,15 @@
+export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
+
+export interface GeoJSONPoint {
+  type: 'Point';
+  coordinates: GeoJSONPosition;
+}
+
+export interface GeoJSONPolygon {
+  type: 'Polygon';
+  coordinates: GeoJSONPosition[][];
+}
+
 export interface Location {
   id: string;
   name: string;
@@ -6,8 +18,8 @@ export interface Location {
   project_url?: string | null;
   project_start_date?: string | null;
   project_end_date?: string | null;
-  boundary?: Record<string, unknown> | null;
-  center?: Record<string, unknown> | null;
+  boundary?: GeoJSONPolygon | null;
+  center?: GeoJSONPoint | null;
   country?: string | null;
   region?: string | null;
   sub_region?: string | null;
@@ -42,8 +54,8 @@ export interface Farm {
   name: string;
   slug: string;
   description?: string | null;
-  boundary?: Record<string, unknown> | null;
-  center?: Record<string, unknown> | null;
+  boundary?: GeoJSONPolygon | null;
+  center?: GeoJSONPoint | null;
   logo_url?: string | null;
   logo_file_id?: string | null;
   property_id?: string | null;
@@ -75,8 +87,8 @@ export interface Plot {
   description?: string | null;
   area?: number | null;
   area_unit?: string | null;
-  boundary?: Record<string, unknown> | null;
-  center?: Record<string, unknown> | null;
+  boundary?: GeoJSONPolygon | null;
+  center?: GeoJSONPoint | null;
   soil_type?: string | null;
   water_source?: string | null;
   elevation_m?: number | null;
@@ -371,7 +383,7 @@ export interface SensorDevice {
   latitude?: number | null;
   longitude?: number | null;
   elevation_m?: number | null;
-  point_geometry?: Record<string, unknown> | null;
+  point_geometry?: GeoJSONPoint | null;
   metadata?: Record<string, unknown> | null;
   created_at?: string | null;
   updated_at?: string | null;
