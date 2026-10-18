@@ -1,5 +1,33 @@
 # Kokonut Kernel implementation progress
 
+### Candidate migrations 436–437 and CAP-024 review reads — 18 October 2026
+
+The candidate was checkpointed to the external age-encrypted backup directory
+and restore-rehearsed in a network-disabled, no-volume PostgreSQL 16 container.
+The restored database matched the pre-migration 432-row ledger fingerprint,
+extension versions, and 1,396 public relations; the scratch container was
+removed. The ordered schema-only runner applied only migrations 436 and 437.
+The candidate now has 428 applied schema entries, six existing seed entries,
+and zero pending schema migrations. The disposable 436 and 437 PostgreSQL
+acceptance procedures pass. No seed data or active human party binding was
+created.
+
+CAP-024 now also has an exact-grant, read-only tension queue and detail API,
+plus a console panel. Reads establish signed location context before querying,
+use queue-only lifecycle states, bounded keyset pagination, and omit reporter
+identities, evidence, metadata, event notes, and actor IDs. Thirty focused
+Gateway/action/role/route/console tests pass. Ruff, Python compilation,
+capability validation, the refreshed runtime SQL inventory (843 service files
+/ 4,077 execution sites), and diff checks pass. The candidate app alone was
+rebuilt from the current work: `/health` returned 200 and unauthenticated queue
+and detail requests returned 401 with `Cache-Control: no-store`. Candidate
+PostgreSQL, Metabase, and proxy stayed healthy; the legacy stack was untouched.
+The external encrypted checkpoint remains the rollback path; do not reverse
+applied ordered migrations. CAP-024 remains prepared, not accepted: decision
+and approval workflows, domain-table RLS, populated output parity, and named
+MAN-CAP acceptance remain open ([rollout evidence](builds/2026-10-18-recovery/candidate-migrations-436-437-rollout.json);
+[review evidence](builds/2026-10-18-recovery/governance-tension-review.json)).
+
 ### Explicit governance identity and first Gateway tension actions — 18 October 2026
 
 Migration 437 adds an administrator-provisioned, one-to-one OIDC operator to

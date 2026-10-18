@@ -110,6 +110,39 @@
             <pre id="report-data"></pre>
           </section>
         </section>
+        <section id="governance-tension-review" hidden aria-labelledby="governance-tension-review-heading">
+          <h2 id="governance-tension-review-heading">Governance tension review</h2>
+          <p class="muted">Review submitted and actively managed tensions at locations explicitly granted to your account. Reporter identities, evidence payloads, and private event notes are omitted. This panel does not triage, assign, resolve, verify, or approve tensions.</p>
+          <div class="toolbar">
+            <label for="governance-tension-location">Granted location</label>
+            <select id="governance-tension-location"></select>
+            <label for="governance-tension-status-filter">Queue status</label>
+            <select id="governance-tension-status-filter">
+              <option value="">All open statuses</option>
+              <option value="submitted">Submitted</option>
+              <option value="triaged">Triaged</option>
+              <option value="in_progress">In progress</option>
+              <option value="deferred">Deferred</option>
+            </select>
+            <button id="governance-tension-refresh" type="button">Refresh queue</button>
+          </div>
+          <p id="governance-tension-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Tension</th><th>Type</th><th>Severity</th><th>Urgency</th><th>Status</th><th>Created</th><th></th></tr></thead>
+              <tbody id="governance-tension-queue"></tbody>
+            </table>
+          </div>
+          <button id="governance-tension-more" class="secondary" type="button" hidden>Load more tensions</button>
+          <section id="governance-tension-detail" hidden aria-labelledby="governance-tension-detail-heading">
+            <h3 id="governance-tension-detail-heading">Tension detail</h3>
+            <dl id="governance-tension-fields"></dl>
+            <p id="governance-tension-description"></p>
+            <h4>Lifecycle history</h4>
+            <ol id="governance-tension-events"></ol>
+            <p id="governance-tension-detail-status" class="muted" role="status"></p>
+          </section>
+        </section>
         <section id="farm-activity" hidden aria-labelledby="farm-activity-heading">
           <h2 id="farm-activity-heading">Farm activity workflow</h2>
           <p class="muted">Review eligible Field Collector submissions before creating a canonical draft. Drafts, decisions, verification, and publication stay under separate location grants. Private descriptions and notes require a detail grant. Published records may enter governed reports.</p>
@@ -309,7 +342,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, collection review, farm activity, or enrollment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, farm activity, or enrollment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -325,6 +358,17 @@
       const queueStatus = document.querySelector("#queue-status");
       const detail = document.querySelector("#report-detail");
       const reportData = document.querySelector("#report-data");
+      const governanceTensionReview = document.querySelector("#governance-tension-review");
+      const governanceTensionLocation = document.querySelector("#governance-tension-location");
+      const governanceTensionStatusFilter = document.querySelector("#governance-tension-status-filter");
+      const governanceTensionStatus = document.querySelector("#governance-tension-status");
+      const governanceTensionQueue = document.querySelector("#governance-tension-queue");
+      const governanceTensionDetail = document.querySelector("#governance-tension-detail");
+      const governanceTensionFields = document.querySelector("#governance-tension-fields");
+      const governanceTensionDescription = document.querySelector("#governance-tension-description");
+      const governanceTensionEvents = document.querySelector("#governance-tension-events");
+      const governanceTensionDetailStatus = document.querySelector("#governance-tension-detail-status");
+      const governanceTensionMore = document.querySelector("#governance-tension-more");
       const fields = [["Name", "display_name"], ["Subject", "subject"], ["Issuer", "issuer"]];
       const farmActivity = document.querySelector("#farm-activity");
       const farmActivityLocation = document.querySelector("#farm-activity-location");
@@ -396,6 +440,10 @@
       let farmActivityRecordCreateLocations = new Set();
       let farmActivityRecordEditLocations = new Set();
       let farmActivityRecordActionLocations = new Map();
+      let governanceTensionReadLocations = new Set();
+      let governanceTensionNextCursor = null;
+      let governanceTensionQueueRequestVersion = 0;
+      let governanceTensionDetailRequestVersion = 0;
       let currentFarmActivityRecord = null;
       let currentFarmActivityIntakeId = null;
       let currentFarmActivity = null;
@@ -436,6 +484,12 @@
           const reviewLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "report_snapshot_review" && scope.action === "read")
             .map((scope) => scope.location_id))];
+          const governanceTensionLocations = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "governance_tension" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          governanceTensionReadLocations = new Set(governanceTensionLocations);
           const mobileLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "mobile_device" && scope.action === "enroll")
             .map((scope) => scope.location_id))];
@@ -554,6 +608,17 @@
             await loadQueue();
             hasAuthorizedSurface = true;
           }
+          if (governanceTensionLocations.length) {
+            for (const locationId of governanceTensionLocations) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              governanceTensionLocation.append(option);
+            }
+            governanceTensionReview.hidden = false;
+            await loadGovernanceTensionQueue();
+            hasAuthorizedSurface = true;
+          }
           if (farmActivityLocations.length) {
             for (const locationId of farmActivityLocations) {
               const option = document.createElement("option");
@@ -591,6 +656,132 @@
           document.querySelector("#no-grants").hidden = hasAuthorizedSurface;
         } catch {
           status.textContent = "Operator session could not be checked. Retry after the service is available.";
+        }
+      }
+
+      async function loadGovernanceTensionQueue(append = false) {
+        const locationId = governanceTensionLocation.value;
+        const requestVersion = ++governanceTensionQueueRequestVersion;
+        if (!append) {
+          governanceTensionDetailRequestVersion += 1;
+          governanceTensionQueue.replaceChildren();
+          governanceTensionDetail.hidden = true;
+          governanceTensionNextCursor = null;
+        }
+        governanceTensionMore.hidden = true;
+        if (!governanceTensionReadLocations.has(locationId)) {
+          governanceTensionStatus.textContent = "A separate location-scoped tension read grant is required.";
+          return;
+        }
+        governanceTensionStatus.textContent = "Loading submitted tensions…";
+        const params = new URLSearchParams({ limit: "50" });
+        if (governanceTensionStatusFilter.value) {
+          params.set("status", governanceTensionStatusFilter.value);
+        }
+        if (append && governanceTensionNextCursor) {
+          params.set("cursor", governanceTensionNextCursor);
+        }
+        try {
+          const response = await fetch(
+            `/operator/api/governance/${encodeURIComponent(locationId)}/tensions?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== governanceTensionQueueRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-scoped tension read grant is not valid.");
+          }
+          if (!response.ok) throw new Error("The governance tension queue is unavailable.");
+          const result = await response.json();
+          for (const tension of result.items || []) {
+            const row = document.createElement("tr");
+            const title = document.createElement("td");
+            title.textContent = tension.title;
+            const type = document.createElement("td");
+            type.textContent = tension.tension_type;
+            const severity = document.createElement("td");
+            severity.textContent = String(tension.severity);
+            const urgency = document.createElement("td");
+            urgency.textContent = String(tension.urgency);
+            const state = document.createElement("td");
+            state.textContent = tension.status;
+            const created = document.createElement("td");
+            created.textContent = tension.created_at ? new Date(tension.created_at).toLocaleString() : "—";
+            const action = document.createElement("td");
+            const open = document.createElement("button");
+            open.type = "button";
+            open.className = "secondary";
+            open.textContent = "Review";
+            open.addEventListener("click", () => loadGovernanceTensionDetail(tension.id));
+            action.append(open);
+            row.append(title, type, severity, urgency, state, created, action);
+            governanceTensionQueue.append(row);
+          }
+          governanceTensionNextCursor = result.next_cursor || null;
+          governanceTensionMore.hidden = !governanceTensionNextCursor;
+          const count = governanceTensionQueue.rows.length;
+          governanceTensionStatus.textContent = count
+            ? `${count} submitted or actively managed tension${count === 1 ? "" : "s"} loaded.`
+            : "No submitted or actively managed tensions are available for this location.";
+        } catch (error) {
+          if (requestVersion === governanceTensionQueueRequestVersion) {
+            governanceTensionStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function loadGovernanceTensionDetail(tensionId) {
+        const locationId = governanceTensionLocation.value;
+        const requestVersion = ++governanceTensionDetailRequestVersion;
+        governanceTensionDetail.hidden = true;
+        governanceTensionFields.replaceChildren();
+        governanceTensionDescription.textContent = "";
+        governanceTensionEvents.replaceChildren();
+        governanceTensionDetailStatus.textContent = "Loading tension detail…";
+        if (!governanceTensionReadLocations.has(locationId)) {
+          governanceTensionDetailStatus.textContent = "A separate location-scoped tension read grant is required.";
+          return;
+        }
+        try {
+          const response = await fetch(
+            `/operator/api/governance/${encodeURIComponent(locationId)}/tensions/${encodeURIComponent(tensionId)}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== governanceTensionDetailRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-scoped tension read grant is not valid.");
+          }
+          if (response.status === 404) throw new Error("This tension is not available in the review queue.");
+          if (!response.ok) throw new Error("The governance tension detail is unavailable.");
+          const result = await response.json();
+          const tension = result.tension;
+          for (const [label, value] of [
+            ["Type", tension.tension_type], ["Severity", tension.severity],
+            ["Urgency", tension.urgency], ["Status", tension.status],
+            ["Review due", tension.review_due_at ? new Date(tension.review_due_at).toLocaleString() : "—"]
+          ]) {
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = String(value ?? "—");
+            governanceTensionFields.append(term, description);
+          }
+          governanceTensionDescription.textContent = tension.description;
+          for (const event of result.events || []) {
+            const item = document.createElement("li");
+            const transition = [event.from_status, event.to_status].filter(Boolean).join(" → ");
+            const timestamp = event.created_at ? new Date(event.created_at).toLocaleString() : "—";
+            item.textContent = `${event.action}${transition ? ` (${transition})` : ""} · ${timestamp}`;
+            governanceTensionEvents.append(item);
+          }
+          governanceTensionDetail.hidden = false;
+          governanceTensionDetailStatus.textContent = result.events_truncated
+            ? "Showing the latest 100 lifecycle events; earlier history is not displayed."
+            : "Lifecycle history omits actor identities and private event notes.";
+        } catch (error) {
+          if (requestVersion === governanceTensionDetailRequestVersion) {
+            governanceTensionDetailStatus.textContent = error.message;
+            governanceTensionDetail.hidden = false;
+          }
         }
       }
 
@@ -1508,6 +1699,10 @@
 
       document.querySelector("#refresh").addEventListener("click", loadQueue);
       locationSelect.addEventListener("change", loadQueue);
+      document.querySelector("#governance-tension-refresh").addEventListener("click", () => loadGovernanceTensionQueue());
+      governanceTensionLocation.addEventListener("change", () => loadGovernanceTensionQueue());
+      governanceTensionStatusFilter.addEventListener("change", () => loadGovernanceTensionQueue());
+      governanceTensionMore.addEventListener("click", () => loadGovernanceTensionQueue(true));
       document.querySelector("#farm-activity-refresh").addEventListener("click", refreshFarmActivity);
       farmActivityLocation.addEventListener("change", refreshFarmActivity);
       farmActivityDraftEditForm.addEventListener("submit", saveFarmActivityDraftEdit);

@@ -35,9 +35,21 @@ location-specific `governance_roles:read` grant. The signed-tenant, read-only
 response includes circle review state and counts for roles, assignments,
 authority domains, tensions, and tactical items. It excludes stakeholder
 identities, policy text, tension descriptions, session notes, and requested
-actions. Role/tactical mutations and item-level review are not exposed;
-the underlying legacy tables do not yet have domain-table RLS, so this route
-does not establish universal tenant isolation.
+actions.
+
+The read-only tension review queue is available at `GET
+/operator/api/governance/{location_id}/tensions`, with an optional queue status,
+bounded page size, and opaque `cursor` for keyset pagination. Detail is
+available at `GET
+/operator/api/governance/{location_id}/tensions/{tension_id}`. Both require
+the exact location-specific `governance_tension:read` grant and signed tenant
+context. Only submitted, triaged, in-progress, and deferred records appear;
+page size is capped at 100 and event history at 100 entries. The projection
+omits reporter and affected-party identities, evidence, private metadata,
+event notes, and actor IDs. The console renders these reads as text and has no
+triage, assignment, resolution, verification, publication, or approval action.
+Underlying legacy tables do not yet have domain-table RLS, so these protected
+routes do not establish universal tenant isolation.
 
 Governance tension intake is available at `POST
 /operator/api/governance/{location_id}/tensions` with a caller-generated UUID

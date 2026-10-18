@@ -13,5 +13,5 @@
     "revocation is audited and permits a new explicit binding without deleting prior history"
   ],
   "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",
-  "elapsed_seconds": 8.72
+  "elapsed_seconds": 9.25
 }

@@ -1,0 +1,44 @@
+{
+  "title": "CAP-024 read-only governance tension review",
+  "status": "passed",
+  "verified_at_utc": "2026-10-18T23:42:05Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "source_commit_before_local_batch": "f619321e",
+  "checks": {
+    "focused_tests": {
+      "command": "python3 -m pytest tests/test_gateway_governance_tension_review.py tests/test_gateway_governance_tension_actions.py tests/test_gateway_governance_roles.py tests/test_operator_route_policy_inventory.py tests/test_operator_console_governance_tensions.py -q",
+      "result": "30 passed"
+    },
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix": "66 rows valid; 45 baseline-retained, 7 deployed, 14 prepared",
+    "git_diff_check": "passed",
+    "candidate_health": 200,
+    "anonymous_queue": 401,
+    "anonymous_detail": 401,
+    "private_route_cache_control": "no-store"
+  },
+  "contract": {
+    "authorization": "Exact location governance_tension:read OIDC grant with signed tenant context",
+    "queue_states": ["submitted", "triaged", "in_progress", "deferred"],
+    "max_page_size": 100,
+    "max_event_history": 100,
+    "projection_excludes": [
+      "reporter identity",
+      "affected-party identity",
+      "evidence payloads",
+      "private metadata",
+      "free-text event notes",
+      "actor identifiers"
+    ],
+    "console_mutations": []
+  },
+  "remaining_gates": [
+    "governance triage and decision actions",
+    "explicit human approval records",
+    "domain-table row-level security",
+    "populated reference-fixture parity",
+    "MAN-CAP-024 owner acceptance"
+  ],
+  "scope": "Synthetic tests and the local candidate were used. No provider, legacy database, seed data, or human identity binding was used."
+}

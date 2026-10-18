@@ -288,7 +288,7 @@ def test_tension_routes_have_only_exact_location_scopes():
         "operator_auth": True,
     }
     assert auth_route_policy("POST", submit_path, enabled=True)["action"] == "submit"
-    assert auth_route_policy("GET", create_path, enabled=True) is None
+    assert auth_route_policy("GET", create_path, enabled=True)["action"] == "read"
     assert auth_route_policy("POST", create_path + "/extra", enabled=True) is None
     assert auth_route_policy("POST", create_path, enabled=False) is None
 

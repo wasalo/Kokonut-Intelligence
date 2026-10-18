@@ -1,0 +1,76 @@
+{
+  "title": "Candidate migrations 436 and 437 rollout",
+  "status": "passed",
+  "verified_at_utc": "2026-10-18T23:38:58Z",
+  "branch": "feat/mobile-offline-acceptance",
+  "source_commit_before_local_batch": "f619321e",
+  "checkpoint": {
+    "path": "/Users/gilbertoadon/Downloads/Kokonut-Kernel-Backups/kernel-candidate-pre-436-437-20261018T2327Z",
+    "archive": "postgres.dump.age",
+    "encrypted": true,
+    "sha256": "447bdd2b40647547ee472005719b8a96b54f52a411f49769cc164bc25d6c81ff",
+    "bytes": 6344526,
+    "restore_rehearsal": {
+      "status": "passed",
+      "network": "none",
+      "persistent_volume": false,
+      "target": "fresh database created from template0",
+      "pre_migration_ledger_rows": 432,
+      "pre_migration_ledger_fingerprint": "573fe7a41c10fef73303886b8f56d85a",
+      "public_relations": 1396,
+      "extension_versions_matched": true,
+      "scratch_container_removed": true,
+      "verified_at_utc": "2026-10-18T23:35:43Z"
+    }
+  },
+  "migrations": [
+    {
+      "id": "schema:436_isolated_rpc_indexer.sql",
+      "checksum": "77295ecfb43f53d2f620d54d7d6ca28e35c83e31220aba9147efc7a8770e9a77",
+      "candidate_status": "applied",
+      "disposable_postgresql_16_acceptance": "passed",
+      "evidence": "rpc-indexer-worker-disposable.json"
+    },
+    {
+      "id": "schema:437_governance_operator_binding_and_actions.sql",
+      "checksum": "45b397ad009424dbc8f63c47fb135fcc42242b4eec1a0f930ebdc5129c66dc09",
+      "candidate_status": "applied",
+      "disposable_postgresql_16_acceptance": "passed",
+      "evidence": "governance-tension-actions-disposable.json"
+    }
+  ],
+  "ordered_runner": {
+    "mode": "schemas-only",
+    "selected_migrations": [
+      "schema:436_isolated_rpc_indexer.sql",
+      "schema:437_governance_operator_binding_and_actions.sql"
+    ],
+    "applied": 2,
+    "failed": 0,
+    "seeds_applied": 0
+  },
+  "candidate_after": {
+    "applied_schema_entries": 428,
+    "preexisting_applied_seed_entries": 6,
+    "total_applied_ledger_entries": 434,
+    "pending_schema_migrations": 0,
+    "active_operator_party_bindings": 0
+  },
+  "candidate_app": {
+    "action": "rebuilt and force-recreated app service only from the current local source",
+    "container_id": "b8903ee883781404448d350e90e31c769d893f118c5a3ccfd3bccc29edd04149",
+    "health": "healthy",
+    "health_endpoint_status": 200,
+    "anonymous_review_queue_status": 401,
+    "anonymous_review_detail_status": 401,
+    "private_route_cache_control": "no-store"
+  },
+  "other_services": {
+    "candidate_database": "healthy and not recreated",
+    "metabase": "healthy and not recreated",
+    "proxy": "running and not recreated",
+    "legacy_stack": "not accessed"
+  },
+  "rollback": "Keep the encrypted checkpoint outside the repository. Applied ordered migrations are additive and must not be edited or reversed. If candidate data rollback is required, use a separately reviewed restore of this checkpoint; application rollback is a code rebuild and must remain compatible with the additive schema.",
+  "scope": "Only migrations 436 and 437 were applied to the local candidate. No seed SQL, provider credentials, OIDC identity bindings, or legacy database changes were made."
+}

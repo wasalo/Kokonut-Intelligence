@@ -448,6 +448,33 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_tension_list_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/tensions", path
+    )
+    if governance_tension_list_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "governance_tension",
+            "action": "read",
+            "public": False,
+            "location_id": governance_tension_list_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    governance_tension_detail_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/tensions/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if governance_tension_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "governance_tension",
+            "action": "read",
+            "public": False,
+            "location_id": governance_tension_detail_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_tension_create_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/tensions", path
     )

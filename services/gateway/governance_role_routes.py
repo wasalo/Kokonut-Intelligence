@@ -1,4 +1,4 @@
-"""OIDC route registration for aggregate governance-circle reads."""
+"""OIDC route registration for location-scoped governance reads and actions."""
 
 
 def register_governance_role_routes(router, provider, run_in_threadpool, psycopg2):
@@ -14,6 +14,12 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         report_governance_tension,
         submit_governance_tension,
     )
+    from services.gateway.governance_tension_review import (
+        GovernanceTensionReviewInvalid,
+        GovernanceTensionReviewNotFound,
+        get_location_governance_tension,
+        list_location_governance_tensions,
+    )
 
     def error_response(exc, *, headers):
         if isinstance(exc, TenantContextDenied):
@@ -24,8 +30,12 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
         if isinstance(exc, GovernanceTensionInvalid):
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        if isinstance(exc, GovernanceTensionReviewInvalid):
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         if isinstance(exc, GovernanceTensionConflict):
             return JSONResponse(status_code=409, content={"error": str(exc)}, headers=headers)
+        if isinstance(exc, GovernanceTensionReviewNotFound):
+            return JSONResponse(status_code=404, content={"error": str(exc)}, headers=headers)
         if isinstance(exc, psycopg2.Error):
             code = getattr(exc, "pgcode", None)
             if code == "42501":
@@ -98,6 +108,66 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             )
 
         return JSONResponse(jsonable_encoder(summary), headers=headers)
+
+    @router.get("/operator/api/governance/{location_id}/tensions")
+    async def location_governance_tensions(
+        request: Request,
+        location_id: str,
+        status: str | None = None,
+        limit: str = "50",
+        cursor: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_governance_tensions,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                status=status,
+                limit=limit,
+                cursor=cursor,
+            )
+        except (
+            TenantContextDenied,
+            GovernanceTensionReviewInvalid,
+            GovernanceTensionReviewNotFound,
+            psycopg2.Error,
+        ) as exc:
+            return error_response(exc, headers=headers)
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/governance/{location_id}/tensions/{tension_id}")
+    async def location_governance_tension_detail(
+        request: Request, location_id: str, tension_id: str
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_governance_tension,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                tension_id,
+            )
+        except (
+            TenantContextDenied,
+            GovernanceTensionReviewInvalid,
+            GovernanceTensionReviewNotFound,
+            psycopg2.Error,
+        ) as exc:
+            return error_response(exc, headers=headers)
+        return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.post("/operator/api/governance/{location_id}/tensions", status_code=201)
     async def create_governance_tension(request: Request, location_id: str):

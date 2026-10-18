@@ -83,6 +83,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/tensions",
     ): _expected("governance_tension", "create", scoped=True, location_id=_LOCATION_ID),
     (
+        "GET",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tensions",
+    ): _expected("governance_tension", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tensions/66666666-6666-4666-8666-666666666666",
+    ): _expected("governance_tension", "read", scoped=True, location_id=_LOCATION_ID),
+    (
         "POST",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/tensions/66666666-6666-4666-8666-666666666666/submit",
     ): _expected("governance_tension", "submit", scoped=True, location_id=_LOCATION_ID),
