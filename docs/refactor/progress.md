@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### SDK actuation log parity and qualified-migration guard — 18 October 2026
+
+Python and TypeScript now expose stored `actuation_log` records, including
+approval attribution, command/result payloads, and the source alert-event link.
+The schema guard now reads `public.`-qualified `ALTER TABLE` statements; that
+correction also exposed and closed `MrvClaim.source_sensor_reading_event_id`
+and `SensorAlert.location_id` gaps from migrations 406 and 411. The guard covers
+59 models, 1,274 columns, 1,192 scalar types, 10 PostGIS shapes, 72 JSONB
+shapes, 21 enum fields, and 39 standalone SQL CHECK literals. Sixty-five
+Python SDK/guard tests and 29 JavaScript tests pass with TypeScript build,
+Ruff, compilation, schema guard, matrix validation, and diff checks. The model
+does not approve, send, or execute commands. No database or provider was
+contacted; capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-actuation-log-parity.json)).
+
 ### SDK oracle price log schema parity — 18 October 2026
 
 Python and TypeScript now model `oracle_price_log` feed records with source,

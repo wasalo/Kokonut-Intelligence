@@ -37,6 +37,7 @@ MODEL_TABLES = {
     "MarketSizeEstimate": ("069_demand_analysis.sql", "market_size_estimate"),
     "PriceObservation": ("010_market_data.sql", "price_observation"),
     "OraclePriceLog": ("081_oracle_infrastructure.sql", "oracle_price_log"),
+    "ActuationLog": ("081_oracle_infrastructure.sql", "actuation_log"),
     "DemandTrend": ("069_demand_analysis.sql", "demand_trend"),
     "BuyerDemandSignal": ("069_demand_analysis.sql", "buyer_demand_signal"),
     "ProductionMarketMatch": ("069_demand_analysis.sql", "production_market_match"),
@@ -97,6 +98,9 @@ JSONB_MODEL_SHAPES = {
     ("PriceObservation", "metadata"): "json_object",
     ("PriceObservation", "source_metadata"): "json_object",
     ("OraclePriceLog", "metadata"): "json_object",
+    ("ActuationLog", "command_payload"): "json_object",
+    ("ActuationLog", "response_payload"): "json_object",
+    ("ActuationLog", "metadata"): "json_object",
     ("SensorReading", "source_raw"): "json_object",
     ("SensorDevice", "metadata"): "json_object",
     ("AlertRule", "metadata"): "json_object",
@@ -165,7 +169,7 @@ def table_columns(path: Path, table: str) -> set[str]:
     for migration in (ROOT / "schemas" / "postgres").glob("*.sql"):
         migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
         statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             migration_source,
             flags=re.IGNORECASE | re.DOTALL,
         )
@@ -207,7 +211,7 @@ def table_nullable_columns(path: Path, table: str) -> set[str]:
     for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
         migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
         statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             migration_source,
             flags=re.IGNORECASE | re.DOTALL,
         )
@@ -281,7 +285,7 @@ def table_column_types(path: Path, table: str) -> dict[str, str]:
     for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
         migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
         statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             migration_source,
             flags=re.IGNORECASE | re.DOTALL,
         )
@@ -356,7 +360,7 @@ def table_check_literals(path: Path, table: str) -> dict[str, tuple[str, ...]]:
         fragments.extend(
             statement.group(1)
             for statement in re.finditer(
-                rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+                rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
                 migration_source,
                 flags=re.IGNORECASE | re.DOTALL,
             )
@@ -398,7 +402,7 @@ def table_enum_columns(path: Path, table: str, enum_types: dict[str, tuple[str, 
     for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
         source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
         statements = re.finditer(
-            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            rf"ALTER TABLE\s+(?:ONLY\s+)?(?:public\.)?{re.escape(table)}\b(.*?);",
             source,
             flags=re.IGNORECASE | re.DOTALL,
         )

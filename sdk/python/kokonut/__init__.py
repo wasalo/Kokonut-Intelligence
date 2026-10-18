@@ -18,6 +18,8 @@ from .public_api import (
     PublicMetricSummary,
 )
 from .types import (
+    ActuationLog,
+    ActuationLogStatus,
     ActuationStatus,
     ActuatorType,
     AiSummary,
@@ -118,6 +120,8 @@ from .types import (
 )
 
 __all__ = [
+    "ActuationLog",
+    "ActuationLogStatus",
     "KokonutClient",
     "KokonutError",
     "AuthenticationError",

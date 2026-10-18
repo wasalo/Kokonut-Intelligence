@@ -19,6 +19,10 @@ OrganizationMembershipType = Literal["owned", "affiliated", "sponsored", "partne
 OrganizationMemberRole = Literal["primary", "satellite", "partner", "incubated"]
 OrganizationMemberStatus = Literal["active", "inactive", "suspended"]
 ActuatorType = Literal["irrigation", "pest_control", "fertilization", "notification", "custom"]
+ActuationLogStatus = Literal[
+    "pending", "requires_approval", "approved", "sent", "acknowledged",
+    "executed", "failed", "cancelled"
+]
 ActuationStatus = Literal[
     "pending", "sent", "acknowledged", "executed", "failed", "requires_approval"
 ]
@@ -838,6 +842,32 @@ class OraclePriceLog:
 
 
 @dataclass
+class ActuationLog:
+    """Stored actuation intent and result; it cannot approve, send, or execute commands."""
+
+    id: str
+    actuator_type: ActuatorType
+    actuator_command: str
+    command_payload: JSONObject
+    trigger_source: str
+    location_id: Optional[str] = None
+    sensor_alert_id: Optional[str] = None
+    actuator_topic: Optional[str] = None
+    trigger_alert_severity: Optional[str] = None
+    human_approval_required: Optional[bool] = None
+    approved_by: Optional[str] = None
+    approved_at: Optional[str] = None
+    sent_at: Optional[str] = None
+    response_received_at: Optional[str] = None
+    response_payload: Optional[JSONObject] = None
+    status: Optional[ActuationLogStatus] = None
+    error_message: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    source_alert_event_id: Optional[str] = None
+
+
+@dataclass
 class DemandTrend:
     """Stored demand trend analysis and inputs; does not rerun its calculation."""
 
@@ -1449,6 +1479,7 @@ class MrvClaim:
     external_verifier: Optional[str] = None
     methodology_ref: Optional[str] = None
     public_claim: Optional[bool] = None
+    source_sensor_reading_event_id: Optional[str] = None
 
 
 @dataclass
@@ -1537,6 +1568,7 @@ class SensorAlert:
     severity: SensorSeverity
     message: str
     triggered_at: str
+    location_id: Optional[str] = None
     reading_id: Optional[str] = None
     status: Optional[AlertLifecycle] = None
     reading_value: Optional[float] = None

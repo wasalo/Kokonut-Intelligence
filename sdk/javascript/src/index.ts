@@ -21,6 +21,8 @@ export type {
 } from './public-api.js';
 
 export type {
+  ActuationLog,
+  ActuationLogStatus,
   ActuatorType,
   ActuationStatus,
   AiSummary,

@@ -26,6 +26,13 @@ SDKs now expose `oracle_price_log` records with saved feed and attestation
 references. This remains data-model parity only; it does not query providers or
 submit attestations. See [the parity record](builds/2026-10-18-recovery/sdk-oracle-price-log-parity.json).
 
+
+**Actuation SDK schema note — 18 October 2026:** the typed record preserves
+command and approval history while providing no command execution API. The
+schema guard also now includes qualified additive migrations for MRV and sensor
+alert records. These are SDK source checks only and do not accept MAN-CAP-040.
+See [the parity record](builds/2026-10-18-recovery/sdk-actuation-log-parity.json).
+
 The repository owner authorized ongoing focused test execution. Current
 owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual

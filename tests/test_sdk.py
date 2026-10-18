@@ -121,6 +121,29 @@ def test_oracle_price_log_keeps_attestation_reference_separate_from_submission()
     assert entry.metadata == {"round": 17}
 
 
+def test_actuation_log_keeps_approval_state_and_command_as_stored_data():
+    from kokonut import ActuationLog, ActuationLogStatus
+
+    log = ActuationLog(
+        id="actuation-1",
+        actuator_type="irrigation",
+        actuator_command="open_valve",
+        command_payload={"duration_seconds": 30},
+        trigger_source="sensor_alert",
+        status="requires_approval",
+        human_approval_required=True,
+        source_alert_event_id="event-1",
+    )
+
+    assert log.status == "requires_approval"
+    assert log.human_approval_required is True
+    assert log.source_alert_event_id == "event-1"
+    assert ActuationLogStatus.__args__ == (
+        "pending", "requires_approval", "approved", "sent", "acknowledged",
+        "executed", "failed", "cancelled"
+    )
+
+
 def test_expense_category_type_exposes_shared_taxonomy_fields():
     from kokonut import ExpenseCategory
 

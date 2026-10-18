@@ -54,6 +54,7 @@ def test_column_type_inventory_applies_additions_and_type_migrations(tmp_path, m
     (migrations / "001_fixture.sql").write_text(
         """ALTER TABLE sdk_guard_fixture ADD COLUMN score NUMERIC(12, 4);
 ALTER TABLE sdk_guard_fixture ALTER COLUMN score TYPE NUMERIC(14, 4);
+ALTER TABLE public.sdk_guard_fixture ADD COLUMN source_alert_event_id UUID NOT NULL;
 """,
         encoding="utf-8",
     )
@@ -63,7 +64,11 @@ ALTER TABLE sdk_guard_fixture ALTER COLUMN score TYPE NUMERIC(14, 4);
         "id": "UUID",
         "label": "TEXT",
         "score": "NUMERIC(14, 4)",
+        "source_alert_event_id": "UUID",
     }
+    assert "source_alert_event_id" not in SCHEMA_GUARD.table_nullable_columns(
+        schema, "sdk_guard_fixture"
+    )
 
 
 def test_idempotent_add_column_does_not_override_existing_column_contract(tmp_path, monkeypatch):
@@ -122,6 +127,13 @@ def test_sql_check_literal_inventory_reads_base_constraints_and_migrations(tmp_p
 
 def test_sdk_literal_contracts_match_exact_sql_check_values():
     expected = {
+        ("ActuationLog", "actuator_type"): (
+            "irrigation", "pest_control", "fertilization", "notification", "custom"
+        ),
+        ("ActuationLog", "status"): (
+            "pending", "requires_approval", "approved", "sent", "acknowledged",
+            "executed", "failed", "cancelled"
+        ),
         ("Organization", "org_type"): (
             "cooperative", "nonprofit", "dao", "enterprise", "collective", "other"
         ),
@@ -359,7 +371,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 69
+    assert checked == 72
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

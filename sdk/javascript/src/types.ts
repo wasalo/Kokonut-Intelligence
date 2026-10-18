@@ -14,6 +14,7 @@ export type OrganizationMembershipType = 'owned' | 'affiliated' | 'sponsored' | 
 export type OrganizationMemberRole = 'primary' | 'satellite' | 'partner' | 'incubated';
 export type OrganizationMemberStatus = 'active' | 'inactive' | 'suspended';
 export type ActuatorType = 'irrigation' | 'pest_control' | 'fertilization' | 'notification' | 'custom';
+export type ActuationLogStatus = 'pending' | 'requires_approval' | 'approved' | 'sent' | 'acknowledged' | 'executed' | 'failed' | 'cancelled';
 export type ActuationStatus = 'pending' | 'sent' | 'acknowledged' | 'executed' | 'failed' | 'requires_approval';
 export type AttestationVerdict = 'pending' | 'approved' | 'rejected' | 'needs_info';
 export type TimeSeriesForecastModelType = 'arima' | 'exponential_smoothing' | 'prophet' | 'naive' | 'seasonal_naive';
@@ -687,6 +688,7 @@ export interface MrvClaim {
   external_verifier?: string | null;
   methodology_ref?: string | null;
   public_claim?: boolean | null;
+  source_sensor_reading_event_id?: string | null;
 }
 
 /** Stored human verification review; recording it does not transition the claim. */
@@ -1149,6 +1151,30 @@ export interface OraclePriceLog {
   created_at?: string | null;
 }
 
+/** Stored actuation intent and result; it cannot approve, send, or execute commands. */
+export interface ActuationLog {
+  id: string;
+  actuator_type: ActuatorType;
+  actuator_command: string;
+  command_payload: JSONObject;
+  trigger_source: string;
+  location_id?: string | null;
+  sensor_alert_id?: string | null;
+  actuator_topic?: string | null;
+  trigger_alert_severity?: string | null;
+  human_approval_required?: boolean | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+  sent_at?: string | null;
+  response_received_at?: string | null;
+  response_payload?: JSONObject | null;
+  status?: ActuationLogStatus | null;
+  error_message?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  source_alert_event_id?: string | null;
+}
+
 /** Stored demand trend analysis and inputs; does not rerun its calculation. */
 export interface DemandTrend {
   id: string;
@@ -1390,6 +1416,7 @@ export interface SensorAlert {
   severity: SensorSeverity;
   status?: AlertLifecycle | null;
   message: string;
+  location_id?: string | null;
   reading_value?: number | null;
   threshold_value?: number | null;
   triggered_at: string;
