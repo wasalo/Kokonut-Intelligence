@@ -284,6 +284,27 @@ def test_soil_sample_type_preserves_measurements_and_source_lineage():
     assert sample.point_geometry == {"type": "Point", "coordinates": [-69.9, 18.5]}
 
 
+def test_soil_carbon_measurement_type_preserves_evidence_and_review_state():
+    from kokonut import SoilCarbonMeasurement
+
+    measurement = SoilCarbonMeasurement(
+        id="carbon-1",
+        plot_id="plot-1",
+        location_id="location-1",
+        measurement_date="2026-10-18",
+        carbon_pct=2.15,
+        organic_carbon_stock=42.8,
+        evidence_urls=["https://example.invalid/lab-report"],
+        status="submitted",
+        source_raw={"lab_batch": "synthetic"},
+    )
+
+    assert measurement.carbon_pct == 2.15
+    assert measurement.evidence_urls == ["https://example.invalid/lab-report"]
+    assert measurement.status == "submitted"
+    assert measurement.source_raw == {"lab_batch": "synthetic"}
+
+
 def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
     from kokonut import ForecastScenario
 

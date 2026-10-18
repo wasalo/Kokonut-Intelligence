@@ -1212,6 +1212,39 @@ class SoilSample:
 
 
 @dataclass
+class SoilCarbonMeasurement:
+    """Stored soil-carbon measurement; the SDK does not calculate or verify it."""
+
+    id: str
+    plot_id: str
+    location_id: str
+    measurement_date: str
+    carbon_pct: Optional[float] = None
+    carbon_tonnes_per_ha: Optional[float] = None
+    organic_carbon_stock: Optional[float] = None
+    measurement_method: Optional[str] = None
+    depth_cm: Optional[float] = None
+    is_baseline: Optional[bool] = None
+    baseline_id: Optional[str] = None
+    evidence_urls: Optional[List[str]] = None
+    evidence_hash: Optional[str] = None
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    schema_version: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    evidence_maturity: Optional[int] = None
+    lab_accredited: Optional[bool] = None
+    analytical_method: Optional[str] = None
+    protocol_id: Optional[str] = None
+
+
+@dataclass
 class SensorType:
     id: str
     name: str

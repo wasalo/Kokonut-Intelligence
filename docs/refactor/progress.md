@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK soil-carbon measurement schema parity — 18 October 2026
+
+Python and TypeScript now expose stored soil-carbon measurements, including
+evidence URLs, baseline links, governed lifecycle and reviewer fields, lab
+protocol metadata, and source lineage from additive migrations 013, 080, and
+095. The guard covers 51 models, 1,087 canonical columns, 1,017 scalar types,
+eight PostGIS shapes, 60 JSONB shapes, 20 enum fields, and 33 standalone SQL
+CHECK literals. Fifty-seven Python SDK/guard tests and 29 JavaScript tests
+pass, alongside the TypeScript build, Ruff, Python compilation, schema guard,
+capability-matrix validation, and diff check. The model does not calculate
+carbon stocks or verify measurements. No database or network was contacted;
+capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-soil-carbon-measurement-parity.json)).
+
 ### SDK soil sample schema parity — 18 October 2026
 
 Python and TypeScript now expose soil samples across the canonical table and

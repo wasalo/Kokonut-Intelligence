@@ -3475,3 +3475,14 @@ location geometry. The guard covers 50 models and 1,060 columns, including
 validate measurements or authorize review. Checklist: 572 complete / 19 open.
 Capability classifications and MAN-CAP acceptance are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-soil-sample-parity.json`.
+
+### Soil-carbon measurement SDK model parity — 18 October 2026
+
+Python and TypeScript now represent stored soil-carbon measurements with
+evidence links, baseline lineage, governed review metadata, and lab protocol
+fields. The guard covers 51 models and 1,087 columns, including 1,017 scalar
+types, eight PostGIS shapes, 60 JSONB shapes, 20 enum fields, and 33 standalone
+SQL CHECK literals. The type does not calculate carbon stocks or perform
+verification. Checklist: 573 complete / 19 open. Capability classifications
+and MAN-CAP acceptance are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-soil-carbon-measurement-parity.json`.

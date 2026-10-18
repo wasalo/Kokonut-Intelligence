@@ -100,6 +100,7 @@ export type {
   ExcludedValueEvent,
   SensorReading,
   SoilSample,
+  SoilCarbonMeasurement,
   WeatherObservation,
   WalletProfile,
   AttestationRecord,

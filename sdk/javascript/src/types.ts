@@ -514,6 +514,37 @@ export interface SoilSample {
   point_geometry?: GeoJSONPoint | null;
 }
 
+/** Stored soil-carbon measurement; it is not calculated or verified here. */
+export interface SoilCarbonMeasurement {
+  id: string;
+  plot_id: string;
+  location_id: string;
+  measurement_date: string;
+  carbon_pct?: number | null;
+  carbon_tonnes_per_ha?: number | null;
+  organic_carbon_stock?: number | null;
+  measurement_method?: string | null;
+  depth_cm?: number | null;
+  is_baseline?: boolean | null;
+  baseline_id?: string | null;
+  evidence_urls?: string[] | null;
+  evidence_hash?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  schema_version?: string | null;
+  status?: LifecycleStatus | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  evidence_maturity?: number | null;
+  lab_accredited?: boolean | null;
+  analytical_method?: string | null;
+  protocol_id?: string | null;
+}
+
 export interface SensorType {
   id: string;
   name: string;
