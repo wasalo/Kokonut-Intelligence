@@ -11,6 +11,7 @@ import time
 import uuid
 
 from services.common.database import get_db
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 from services.scheduler.backend import get_scheduler
 
@@ -63,17 +64,19 @@ def _run_tick(worker_id: str) -> dict[str, int] | None:
                 stats["launched"], stats["failed"], stats["skipped"], stats["no_resources"],
             )
         return stats
-    except Exception:
+    except Exception as exc:
         # Do not call rollback on a connection that may itself have failed. A
         # close discards the transaction; the next loop iteration reconnects.
-        logger.exception("Scheduler tick failed")
+        logger.error("Scheduler tick failed (%s)", safe_exception_class(exc))
         return None
     finally:
         if conn is not None:
             try:
                 conn.close()
-            except Exception:
-                logger.warning("Failed to close scheduler tick connection", exc_info=True)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to close scheduler tick connection (%s)", safe_exception_class(exc)
+                )
 
 
 def main():

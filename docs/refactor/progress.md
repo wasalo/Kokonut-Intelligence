@@ -8421,3 +8421,13 @@ tests plus three subtests pass with Ruff, compilation, and diff checks using
 mocks only; no database or provider was contacted. The checklist is 506
 complete / 19 open, and capability matrix classifications are unchanged.
 Evidence: `docs/refactor/builds/2026-10-17-recovery/event-worker-error-redaction.json`.
+
+Scheduler tick and connection-close failures now log only bounded exception
+classes. Failed ticks still return `None`, close their connection without
+rollback, and reconnect on the next tick; close failures remain contained.
+Thirteen focused scheduler checks pass. The combined security/federation/
+EventBus/scheduler slice passes 131 tests plus three subtests with Ruff,
+compilation, and diff checks using mocks only. No database or provider was
+used. The checklist is 507 complete / 19 open; capability matrix
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/scheduler-worker-error-redaction.json`.
