@@ -1754,6 +1754,7 @@ export interface ExportLog {
 }
 
 export interface ListOptions {
+  [queryParameter: string]: unknown;
   filter?: Record<string, any>;
   sort?: string[];
   fields?: string[];

@@ -9489,3 +9489,19 @@ TypeScript build, Ruff, capability-matrix, and diff checks pass. All requests
 are mocked; no authorization or tenant boundary is claimed. Checklist: 596
 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-generic-aggregate-parity.json`.
+
+### Native SDK list-query option parity — 18 October 2026
+
+TypeScript `listItems()` now preserves additional Directus list-query options,
+including caller-defined search, aggregate, and deep parameters, matching
+Python's `list_items(..., **kwargs)` behavior. Standard fields remain
+normalized, and a defined non-zero `limit` plus `offset` continues to take
+precedence over `page`. The focused Python SDK/schema/method suite passes 83
+tests; Vitest passes 37 tests; TypeScript build and compilation, capability
+matrix validation, targeted Ruff, and diff checks pass. A package-wide Ruff
+scan still reports 39 findings in untouched generated and example files; the
+changed Python test passes targeted Ruff. Mock clients were used; no HTTP,
+database, provider, or credentials were accessed. Generic query options do not
+provide an authorization or tenant boundary. Checklist: 597 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-list-query-parameter-parity.json`.

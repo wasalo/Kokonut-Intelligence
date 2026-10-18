@@ -133,7 +133,11 @@ export class KokonutClient {
 
   async listItems(collection: string, options?: ListOptions): Promise<any[]> {
     await this.ready;
-    const query: Record<string, any> = {};
+    const query: Record<string, any> = { ...(options ?? {}) };
+
+    for (const key of ['filter', 'sort', 'fields', 'limit', 'offset', 'page', 'meta']) {
+      delete query[key];
+    }
 
     if (options?.filter) query.filter = options.filter;
     if (options?.sort) query.sort = options.sort;

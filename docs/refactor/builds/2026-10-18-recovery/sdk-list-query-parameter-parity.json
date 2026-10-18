@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-18",
+  "scope": "Offline Python and TypeScript Directus list-query option parity",
+  "contract": "TypeScript KokonutClient.listItems preserves additional Directus query parameters as Python list_items does with keyword arguments, while normalizing standard query fields and preserving offset-before-page precedence.",
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py tests/test_sdk_method_parity.py -q — 83 passed",
+    "javascript": "npm test -- --run — 37 passed",
+    "typescript": "npm run build — passed",
+    "ruff": "python3 -m ruff check tests/test_sdk.py — passed; package-wide sdk/python scan reports 39 existing findings in untouched generated/example files",
+    "compilation": "python3 -m compileall -q sdk/python tests/test_sdk.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "Mocked clients and synthetic query parameters were used; no HTTP request, database, provider, or credential was accessed.",
+    "Generic client query parameters do not grant authorization or tenant scope.",
+    "No MAN-CAP acceptance is claimed."
+  ]
+}

@@ -217,6 +217,27 @@ describe('KokonutClient', () => {
     });
   });
 
+  it('preserves additional Directus list-query parameters and pagination precedence', async () => {
+    await client.listItems('harvest_event', {
+      search: 'coconut',
+      aggregate: { count: '*' },
+      limit: 25,
+      offset: 10,
+      page: 3,
+    });
+
+    const request = (client as any).directus.request;
+    expect(request).toHaveBeenCalledWith({
+      collection: 'harvest_event',
+      query: {
+        search: 'coconut',
+        aggregate: { count: '*' },
+        limit: 25,
+        offset: 10,
+      },
+    });
+  });
+
   it('supports the same generic Directus aggregation queries as Python', async () => {
     const options = {
       aggregate: { count: '*' },

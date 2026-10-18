@@ -42,6 +42,12 @@ generic Directus aggregation command already available in Python and documents
 its query options. This permits data aggregation but does not establish
 authorization, tenant scope, or MAN-CAP acceptance ([evidence](builds/2026-10-18-recovery/sdk-generic-aggregate-parity.json)).
 
+**SDK list-query option parity note — 18 October 2026:** TypeScript now forwards
+additional Directus list-query parameters like Python's generic list helper,
+while retaining explicit pagination precedence. Caller-supplied query options
+do not establish authorization or tenant scope; MAN-CAP acceptance is unchanged
+([evidence](builds/2026-10-18-recovery/sdk-list-query-parameter-parity.json)).
+
 **SDK export creation signature note — 18 October 2026:** TypeScript accepts the
 existing request object, export type plus options, and the positional field
 order supported by Python. These forms create the same pending export payload;

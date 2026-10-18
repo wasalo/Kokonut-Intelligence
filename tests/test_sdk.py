@@ -1443,6 +1443,36 @@ def test_aggregate_query_serializes_options_and_returns_data_without_network_cal
     )
 
 
+def test_list_items_preserves_extra_directus_query_parameters_without_network_calls():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    response = Mock()
+    response.ok = True
+    response.json.return_value = {"data": []}
+    client.session.get = Mock(return_value=response)
+
+    client.list_items(
+        "harvest_event",
+        ListOptions(limit=25, offset=10),
+        search="coconut",
+        aggregate={"count": "*"},
+        groupBy=["location_id"],
+    )
+
+    client.session.get.assert_called_once_with(
+        "http://localhost:8055/items/harvest_event",
+        params={
+            "limit": 25,
+            "offset": 10,
+            "search": "coconut",
+            "aggregate": '{"count": "*"}',
+            "groupBy": '["location_id"]',
+        },
+    )
+
+
 def test_export_create_many_delegates_to_directus_batch_without_network_calls():
     from kokonut import KokonutClient
 
