@@ -106,6 +106,12 @@ labels remain free-form as in SQL. Python and TypeScript now also expose
 location-scoped, read-only access to stored assets; the SDK does not assess
 condition or certify infrastructure ([model evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-parity.json); [read-method evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-read-methods.json)).
 
+**Reference-catalog SDK reads — 18 October 2026:** Python and JavaScript now
+offer typed, read-only list/detail access to stored crops, protocols, sensor
+types, and attestation schemas. The methods do not mutate catalogs, submit
+transactions, or establish authorization; MAN-CAP status is unchanged
+([evidence](builds/2026-10-18-recovery/sdk-reference-catalog-read-methods.json)).
+
 **Cash-flow SDK contract note — 18 October 2026:** Python and TypeScript expose
 stored period summaries and input provenance. The SDK does not calculate,
 reconcile, or verify the figures and changes no MAN-CAP classification

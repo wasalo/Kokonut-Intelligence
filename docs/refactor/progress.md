@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### Shared reference catalog SDK reads — 18 October 2026
+
+Python and JavaScript now expose typed, read-only `list`/`get` accessors for
+the stored crop, protocol, sensor-type, and attestation-schema reference
+catalogs. These accessors forward list options unchanged and provide no create,
+update, or delete methods. They do not establish authorization; Directus or the
+configured API remains responsible for enforcing access. Focused Python and
+JavaScript checks, method-surface parity, TypeScript build, Ruff, schema and
+capability guards, and diff checks pass offline with mocked transports. This
+does not change any MAN-CAP classification or acceptance. Checklist: 623
+complete / 19 open; capability matrix: 66 rows, 54 baseline-retained, 7
+deployed, 5 prepared ([evidence](builds/2026-10-18-recovery/sdk-reference-catalog-read-methods.json)).
+
 ### ARM64/QEMU current-source software smoke — 18 October 2026
 
 The current-source default app image builds for `linux/arm64`. A read-only,

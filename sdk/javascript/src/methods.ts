@@ -34,6 +34,11 @@ export interface LocationReadMethods<T> {
   listByLocation(locationId: string, options?: ListOptions): Promise<T[]>;
 }
 
+export interface ReferenceReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+}
+
 function createGenericMethods(client: any, collection: string): GenericMethods {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options),
@@ -57,6 +62,16 @@ export function buildLocationReadMethods<T>(
         ...options,
         filter: { ...options?.filter, location_id: { _eq: locationId } },
       }) as Promise<T[]>,
+  };
+}
+
+export function buildReferenceReadMethods<T>(
+  client: any,
+  collection: string,
+): ReferenceReadMethods<T> {
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
   };
 }
 

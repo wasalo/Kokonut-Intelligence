@@ -1413,3 +1413,5 @@ Rollback: recorded prior images, provider configuration and recoverable data sna
 
 Batch 2 scoped restore milestone: [evidence](builds/2026-10-10-recovery/README.md).
 Schema inventory matches; empty workloads do not close complete recovery acceptance.
+
+- [x] Add read-only Python and JavaScript SDK accessors for shared crop, protocol, sensor-type, and attestation-schema catalogs. The accessors preserve list options and expose only `list`/`get`; mocked parity checks, SDK tests, TypeScript build, Ruff, schema guard, capability validation, and diff checks pass. These SDK calls do not establish authorization or change MAN-CAP acceptance ([evidence](builds/2026-10-18-recovery/sdk-reference-catalog-read-methods.json)).

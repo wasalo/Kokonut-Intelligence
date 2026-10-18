@@ -327,6 +327,28 @@ describe('KokonutClient', () => {
     }
   });
 
+  it('provides typed read-only methods for shared reference catalogs', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'catalog-1' } as any);
+    const groups = [
+      [client.crops, 'crop'],
+      [client.protocols, 'protocol'],
+      [client.sensorTypes, 'sensor_type'],
+      [client.attestationSchemas, 'attestation_schema'],
+    ] as const;
+    const options = { limit: 25, fields: ['id', 'name'], sort: ['name'] };
+
+    for (const [methods, collection] of groups) {
+      await methods.list(options);
+      expect(listItems).toHaveBeenLastCalledWith(collection, options);
+      await methods.get('catalog-1', ['id']);
+      expect(getItem).toHaveBeenLastCalledWith(collection, 'catalog-1', ['id']);
+      expect('create' in methods).toBe(false);
+      expect('update' in methods).toBe(false);
+      expect('delete' in methods).toBe(false);
+    }
+  });
+
   it('preserves exact non-page-aligned offsets for Directus', async () => {
     await client.listItems('farm', { limit: 25, offset: 10 });
 

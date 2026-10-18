@@ -107,6 +107,20 @@ class LocationReadMethods(Generic[ReadModel]):
         )
 
 
+class ReferenceReadMethods(Generic[ReadModel]):
+    """Read-only list/detail access for shared reference catalogs."""
+
+    def __init__(self, client: KokonutClient, collection: str) -> None:
+        self._client = client
+        self._collection = collection
+
+    def list(self, options: Optional[ListOptions] = None) -> List[ReadModel]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> ReadModel:
+        return self._client.get_item(self._collection, item_id, fields)
+
+
 class LocationMethods(GenericMethods):
     def __init__(self, client: KokonutClient) -> None:
         super().__init__(client, "location")

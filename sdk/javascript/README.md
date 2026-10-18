@@ -100,6 +100,13 @@ const prices = await client.priceObservations.listByLocation('location-uuid');
 const demand = await client.buyerDemandSignals.listByLocation('location-uuid');
 // These reads do not fetch prices or confirm buyer commitments/fulfillment.
 
+// Read shared reference catalogs
+const crops = await client.crops.list();
+const protocols = await client.protocols.list();
+const sensorTypes = await client.sensorTypes.list();
+const schemas = await client.attestationSchemas.list();
+// Catalog helpers are read-only; API permissions still govern access.
+
 // Aggregate records through Directus
 const harvestCounts = await client.aggregate('harvest_event', {
   aggregate: { count: '*' },
@@ -212,6 +219,10 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `seasonalDecompositions` | `seasonal_decomposition` | `listByLocation` |
 | `trendDashboardMetrics` | `trend_dashboard_metric` | `listByLocation` |
 | `infrastructureAssets` | `infrastructure_asset` | `listByLocation` |
+| `crops` | `crop` | — (read-only list/detail) |
+| `protocols` | `protocol` | — (read-only list/detail) |
+| `sensorTypes` | `sensor_type` | — (read-only list/detail) |
+| `attestationSchemas` | `attestation_schema` | — (read-only list/detail) |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `createMany`, `update`, `delete`. The credit-ledger, finance, ecological
@@ -219,7 +230,8 @@ observation, and MRV groups are read-only and expose only `list`, `get`, and
 `listByLocation`; metric, forecast, market, and value-flow groups follow the
 same read-only contract. SDK location filters are query conveniences, not
 authorization boundaries; Directus must enforce the caller's grants, especially
-for buyer and commercial records. These methods do not ingest, calculate,
+for buyer and commercial records. Shared reference catalog helpers also expose
+only list/detail reads. These methods do not ingest, calculate,
 verify, attest, confirm commitments, or mutate governed lifecycle state. Stored
 forecast, metric, and trend outputs are returned without recalculation or an
 assertion that they are current or verified.

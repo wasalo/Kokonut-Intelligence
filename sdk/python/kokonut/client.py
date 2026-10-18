@@ -19,12 +19,14 @@ from .methods import (
     LossEventMethods,
     NoiMethods,
     PlotMethods,
+    ReferenceReadMethods,
     ReportMethods,
     SalesEventMethods,
     SensorReadingMethods,
     WalletProfileMethods,
 )
 from .types import (
+    AttestationSchema,
     BuyerDemandSignal,
     BuyerSegment,
     CarbonCredit,
@@ -33,6 +35,7 @@ from .types import (
     CreditAdjustment,
     CreditRetirement,
     CreditTransfer,
+    Crop,
     DemandForecast,
     DemandTrend,
     EnvironmentalBaseline,
@@ -46,8 +49,10 @@ from .types import (
     MrvClaim,
     PriceObservation,
     ProductionMarketMatch,
+    Protocol,
     RemoteSensingObservation,
     SeasonalDecomposition,
+    SensorType,
     SoilCarbonMeasurement,
     SoilSample,
     SpeciesObservation,
@@ -213,6 +218,12 @@ class KokonutClient:
         )
         self.infrastructure_assets: LocationReadMethods[InfrastructureAsset] = LocationReadMethods(
             self, "infrastructure_asset"
+        )
+        self.crops: ReferenceReadMethods[Crop] = ReferenceReadMethods(self, "crop")
+        self.protocols: ReferenceReadMethods[Protocol] = ReferenceReadMethods(self, "protocol")
+        self.sensor_types: ReferenceReadMethods[SensorType] = ReferenceReadMethods(self, "sensor_type")
+        self.attestation_schemas: ReferenceReadMethods[AttestationSchema] = ReferenceReadMethods(
+            self, "attestation_schema"
         )
 
     # -- Auth ------------------------------------------------------------------

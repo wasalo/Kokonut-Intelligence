@@ -77,6 +77,7 @@ export type {
   SensorSeverity,
   SensorAnomalyEffectOutcome,
   SeasonalDecomposition,
+  SensorType,
   SeasonalDecompositionMethod,
   SpeciesObservation,
   RemoteSensingObservation,
@@ -160,6 +161,7 @@ export type {
 export type {
   GenericMethods,
   LocationReadMethods,
+  ReferenceReadMethods,
   LocationMethods,
   FarmMethods,
   PlotMethods,

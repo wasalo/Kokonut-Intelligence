@@ -114,6 +114,13 @@ prices = client.price_observations.list_by_location("location-uuid")
 demand = client.buyer_demand_signals.list_by_location("location-uuid")
 # These reads do not fetch prices or confirm buyer commitments/fulfillment.
 
+# Read shared reference catalogs
+crops = client.crops.list()
+protocols = client.protocols.list()
+sensor_types = client.sensor_types.list()
+schemas = client.attestation_schemas.list()
+# Catalog helpers are read-only; API permissions still govern access.
+
 # Aggregate query
 counts = client.aggregate(
     "harvest_event",
@@ -199,6 +206,10 @@ except KokonutError as e:
 | `seasonal_decompositions` | `seasonal_decomposition` | `list_by_location` |
 | `trend_dashboard_metrics` | `trend_dashboard_metric` | `list_by_location` |
 | `infrastructure_assets` | `infrastructure_asset` | `list_by_location` |
+| `crops` | `crop` | — (read-only list/detail) |
+| `protocols` | `protocol` | — (read-only list/detail) |
+| `sensor_types` | `sensor_type` | — (read-only list/detail) |
+| `attestation_schemas` | `attestation_schema` | — (read-only list/detail) |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are
@@ -206,7 +217,8 @@ read-only and expose only `list`, `get`, and `list_by_location`; the ecological,
 MRV, metric, forecast, market, and value-flow groups also expose only these read
 methods. SDK location filters are query conveniences, not authorization
 boundaries; Directus must enforce the caller's grants, especially for buyer and
-commercial records. These methods do not ingest, calculate, verify, attest,
+commercial records. Shared reference catalog helpers also expose only list and
+detail reads. These methods do not ingest, calculate, verify, attest,
 confirm commitments, or mutate governed lifecycle state. Stored forecast,
 metric, and trend outputs are returned without recalculation or an assertion
 that they are current or verified.

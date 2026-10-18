@@ -1486,6 +1486,29 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
 
 
+def test_reference_read_methods_are_typed_catalog_reads_only():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    client.get_item = Mock(return_value={"id": "catalog-1"})
+    collections = [
+        (client.crops, "crop"),
+        (client.protocols, "protocol"),
+        (client.sensor_types, "sensor_type"),
+        (client.attestation_schemas, "attestation_schema"),
+    ]
+    options = ListOptions(limit=25, fields=["id", "name"], sort=["name"])
+
+    for methods, collection in collections:
+        assert methods.list(options) == []
+        client.list_items.assert_called_with(collection, options)
+        assert methods.get("catalog-1", ["id"]) == {"id": "catalog-1"}
+        client.get_item.assert_called_with(collection, "catalog-1", ["id"])
+        assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

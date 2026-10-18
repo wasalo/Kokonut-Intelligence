@@ -13,6 +13,7 @@ import {
 import type { AuthenticationData } from '@directus/sdk';
 import { normalizeDirectusError } from './errors.js';
 import type {
+  AttestationSchema,
   BuyerDemandSignal,
   BuyerSegment,
   ChangePoint,
@@ -27,15 +28,18 @@ import type {
   DemandForecast,
   ForecastOutput,
   ForecastScenario,
-  InfrastructureAsset,
+  Crop,
   EnvironmentalBaseline,
+  InfrastructureAsset,
   MarketSizeEstimate,
   MetricValue,
   MrvClaim,
   PriceObservation,
   ProductionMarketMatch,
+  Protocol,
   RemoteSensingObservation,
   SeasonalDecomposition,
+  SensorType,
   SoilCarbonMeasurement,
   SoilSample,
   SpeciesObservation,
@@ -48,6 +52,7 @@ import type {
 } from './types.js';
 import {
   buildLocationReadMethods,
+  buildReferenceReadMethods,
   buildLocationMethods,
   buildFarmMethods,
   buildPlotMethods,
@@ -67,6 +72,7 @@ import {
 } from './methods.js';
 import type {
   LocationReadMethods,
+  ReferenceReadMethods,
   LocationMethods,
   FarmMethods,
   PlotMethods,
@@ -151,6 +157,10 @@ export class KokonutClient {
   seasonalDecompositions: LocationReadMethods<SeasonalDecomposition>;
   trendDashboardMetrics: LocationReadMethods<TrendDashboardMetric>;
   infrastructureAssets: LocationReadMethods<InfrastructureAsset>;
+  crops: ReferenceReadMethods<Crop>;
+  protocols: ReferenceReadMethods<Protocol>;
+  sensorTypes: ReferenceReadMethods<SensorType>;
+  attestationSchemas: ReferenceReadMethods<AttestationSchema>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -205,6 +215,10 @@ export class KokonutClient {
     this.seasonalDecompositions = buildLocationReadMethods<SeasonalDecomposition>(this, 'seasonal_decomposition');
     this.trendDashboardMetrics = buildLocationReadMethods<TrendDashboardMetric>(this, 'trend_dashboard_metric');
     this.infrastructureAssets = buildLocationReadMethods<InfrastructureAsset>(this, 'infrastructure_asset');
+    this.crops = buildReferenceReadMethods<Crop>(this, 'crop');
+    this.protocols = buildReferenceReadMethods<Protocol>(this, 'protocol');
+    this.sensorTypes = buildReferenceReadMethods<SensorType>(this, 'sensor_type');
+    this.attestationSchemas = buildReferenceReadMethods<AttestationSchema>(this, 'attestation_schema');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {
