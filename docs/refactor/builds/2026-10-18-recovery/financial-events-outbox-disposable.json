@@ -1,0 +1,22 @@
+{
+  "candidate_or_legacy_modified": false,
+  "database_image": "postgres:16-alpine",
+  "date": "2026-10-18",
+  "expense_projection": "passed",
+  "financial_projection_owner_can_login": false,
+  "forced_outbox_rls": "passed",
+  "host_port": null,
+  "migration": "434_financial_events_clickhouse_outbox.sql",
+  "migration_apply": "passed",
+  "migration_replay": "passed",
+  "network": "none",
+  "non_usd_amount_usd": "null",
+  "outbox_rows": 2,
+  "outbox_write_in_source_transaction": "passed; rollback removed source and outbox row",
+  "persistent_volume": false,
+  "result": "passed",
+  "sales_projection": "passed",
+  "source_login_can_insert_outbox": false,
+  "source_login_direct_outbox_write": "denied",
+  "zero_amount_omitted": true
+}

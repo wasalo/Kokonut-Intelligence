@@ -590,10 +590,11 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     await recalculateNoi(payload.crop_cycle_id);
   });
 
+  // sales_event and expense_event financial mirrors are captured atomically
+  // by PostgreSQL migration 434 and delivered by the optional outbox worker.
   action('sales_event.items.create', async (meta: Record<string, any>) => {
     const payload = meta.payload || meta;
     await recalculateNoi(payload.crop_cycle_id);
-    await writeFinancialEvent('sales', payload);
   });
 
   action('expense_event.items.create', async (meta: Record<string, any>) => {
@@ -601,7 +602,6 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
     if (payload.crop_cycle_id) {
       await recalculateNoi(payload.crop_cycle_id);
     }
-    await writeFinancialEvent('expense', payload);
   });
 
   // ============================================================
@@ -650,52 +650,5 @@ async function recalculateNoi(cropCycleId: string | undefined) {
     console.log(`[Kokonut] NOI recalculated for crop cycle: ${cropCycleId}`);
   } catch (error) {
     console.error(`[Kokonut] Failed to recalulate NOI for ${cropCycleId}:`, error);
-  }
-}
-
-async function writeFinancialEvent(type: string, payload: Record<string, any>) {
-  try {
-    const amount = payload.total_amount || payload.amount || 0;
-    if (amount === 0) return;
-
-    const chHost = process.env.CH_HOST || 'clickhouse';
-    const chPort = process.env.CH_PORT || '8123';
-    const chUser = process.env.CH_USER || 'kokonut';
-    const chPass = process.env.CH_PASSWORD || '';
-
-    // Validate all values before ClickHouse interpolation
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const STR_RE = /^[a-zA-Z0-9_\- ]+$/;
-    const CAT_RE = /^[a-zA-Z0-9_\-]+$/;
-    const CUR_RE = /^[A-Z]{3}$/;
-
-    const txId = (payload.id && UUID_RE.test(payload.id)) ? payload.id : crypto.randomUUID();
-    const locId = (payload.location_id && UUID_RE.test(payload.location_id)) ? payload.location_id : '00000000-0000-0000-0000-000000000000';
-    const cat = payload.category && CAT_RE.test(payload.category) ? payload.category.substring(0, 50) : (type || 'other');
-    const rawCurrency = payload.currency || 'USD';
-    const cur = CUR_RE.test(rawCurrency) ? rawCurrency : 'USD';
-    const amt = typeof amount === 'number' && isFinite(amount) ? amount : 0;
-    const ts = new Date().toISOString().replace('T', ' ').replace('Z', '');
-    const safeType = STR_RE.test(type) ? type : 'other';
-
-    const query = `INSERT INTO financial_events
-      (timestamp, transaction_id, location_id, transaction_type, category,
-       amount, currency, amount_usd, chain, token, metadata)
-      VALUES (
-        '${ts}', '${txId}', '${locId}', '${safeType}', '${cat}',
-        ${amt}, '${cur}', ${amt}, '', '', map()
-      )`;
-
-    const auth = Buffer.from(`${chUser}:${chPass}`).toString('base64');
-    await fetch(`http://${chHost}:${chPort}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain',
-        'Authorization': `Basic ${auth}`,
-      },
-      body: query,
-    });
-  } catch (error) {
-    console.error(`[Kokonut] Failed to write financial event to ClickHouse:`, error);
   }
 }

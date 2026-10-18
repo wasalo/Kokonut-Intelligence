@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import registerHook from './index.js';
 
 describe('Directus hook event registration', () => {
@@ -29,6 +29,29 @@ describe('Directus hook event registration', () => {
     expect(events).toContain('revenue_event.items.create');
     expect(events).toContain('revenue_event.items.update');
     expect(events).toContain('revenue_event.items.delete');
+  });
+
+  it('keeps financial ClickHouse delivery in the transactional PostgreSQL outbox', async () => {
+    const actions = new Map<string, (...args: any[]) => Promise<void>>();
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: () => undefined,
+        action: (event: string, callback: (...args: any[]) => Promise<void>) => {
+          actions.set(event, callback);
+        },
+        schedule: () => undefined,
+      },
+      { database: {} },
+    );
+
+    await actions.get('sales_event.items.create')!({ payload: { id: 'sale-1', total_amount: 12 } });
+    await actions.get('expense_event.items.create')!({ payload: { id: 'expense-1', amount: 8 } });
+
+    expect(fetch).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   it('wires the pre-read tenant filter to request accountability, issuer, and transaction', async () => {

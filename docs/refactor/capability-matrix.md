@@ -3678,3 +3678,16 @@ not verify claims, change lifecycle, or submit attestations. Checklist: 577
 complete / 19 open. Capability classifications and MAN-CAP acceptance are
 unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-mrv-claim-review-parity.json`.
+
+### Financial ClickHouse outbox source parity — 18 October 2026
+
+PostgreSQL migration 434 replaces the Directus hook's best-effort HTTP insert
+with an atomic outbox trigger for `sales_event` and `expense_event` creation.
+The optional ClickHouse worker remains the delivery adapter. Disposable
+PostgreSQL 16 replay, forced-RLS, transaction rollback, USD/non-USD mapping,
+zero-value omission, and narrow owner/source-role ACL checks pass, along with the focused
+Directus-hook test and extension build. Candidate rollout, updates/deletes,
+historical backfill, populated report parity, and MAN-CAP acceptance remain
+open. No capability classification changes. Checklist: 604 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.

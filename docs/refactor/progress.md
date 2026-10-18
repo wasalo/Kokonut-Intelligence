@@ -1,5 +1,23 @@
 # Kokonut Kernel implementation progress
 
+### Native financial-events outbox projection — 18 October 2026
+
+Migration 434 now captures `sales_event` and `expense_event` inserts in the
+same PostgreSQL transaction and routes the financial mirror through the
+optional ClickHouse outbox. The dedicated function owner has a NOLOGIN role,
+column-scoped outbox access, and only the conflict-key read needed for
+idempotent insertion. The Directus hook no longer sends best-effort HTTP writes
+or holds ClickHouse credentials. Three focused hook tests and the Directus
+extension build pass; migration validation recognizes 425 ordered schema
+sources, the migration suite passes 33 tests, Ruff passes, and isolated
+PostgreSQL 16 apply/replay, forced-RLS, ACL, zero-value, currency, and
+transaction rollback checks pass. No candidate, legacy database, or ClickHouse
+service was touched.
+The implementation retains create-time projection semantics; updates/deletes,
+historical backfill, and populated report parity remain open. Checklist: 604
+complete / 19 open. Evidence:
+`builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.
+
 ### SDK infrastructure-asset inventory parity — 18 October 2026
 
 Python and TypeScript now model `infrastructure_asset`, including its nullable
