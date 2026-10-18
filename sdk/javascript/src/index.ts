@@ -95,6 +95,7 @@ export type {
   Plot,
   ProductionMarketMatch,
   CropCycle,
+  Crop,
   CropCostAllocation,
   MetricDefinition,
   MetricVersion,

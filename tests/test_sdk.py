@@ -133,6 +133,29 @@ def test_farm_task_relationship_models_preserve_composite_keys_and_source_identi
     assert (weekly_plan.task_id, weekly_plan.weekly_plan_id) == ("task-1", "week-1")
 
 
+def test_crop_model_preserves_reference_metadata_and_schema_version():
+    from kokonut import Crop
+
+    crop = Crop(
+        id="crop-1",
+        name="Cacao",
+        scientific_name="Theobroma cacao",
+        variety="Trinitario",
+        crop_category="tree",
+        growing_season_days=180,
+        expected_yield_per_ha=0.8,
+        expected_yield_unit="tonnes_per_ha",
+        water_needs="high",
+        metadata={"origin": "reference catalog"},
+        schema_version="common-data-schema-v1",
+    )
+
+    assert crop.scientific_name == "Theobroma cacao"
+    assert crop.expected_yield_per_ha == 0.8
+    assert crop.metadata == {"origin": "reference catalog"}
+    assert crop.schema_version == "common-data-schema-v1"
+
+
 def test_organization_member_type_is_descriptive_not_an_access_grant():
     from kokonut import OrganizationMember, OrganizationMembershipType
 

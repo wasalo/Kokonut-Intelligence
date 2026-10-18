@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK Crop reference parity — 18 October 2026
+
+Python and TypeScript now model the canonical `crop` reference row, including
+agronomic descriptors, expected-yield fields, JSON metadata, and the additive
+schema version from migration 017. The guard covers 66 models, 1,381 canonical
+columns, 1,291 scalar types, 10 PostGIS shapes, 77 JSONB shapes, 22 enum
+fields, and 43 standalone SQL CHECK literals. Seventy-one focused Python
+SDK/schema/method-parity tests and 29 JavaScript tests pass; TypeScript build,
+Ruff, compilation, schema guard, capability-matrix validation, and diff checks
+pass. Stored yield expectations remain reference data and are not calculated
+or verified. No database, provider, or network was contacted; capability
+classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-crop-parity.json)).
+
 ### SDK FarmTask relationship parity — 18 October 2026
 
 Python and TypeScript now expose the three composite-key associations introduced

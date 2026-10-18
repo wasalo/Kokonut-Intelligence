@@ -220,6 +220,23 @@ export interface Plot {
   schema_version?: string | null;
 }
 
+/** Stored crop reference; this record does not estimate or verify yields. */
+export interface Crop {
+  id: string;
+  name: string;
+  scientific_name?: string | null;
+  variety?: string | null;
+  crop_category?: string | null;
+  growing_season_days?: number | null;
+  expected_yield_per_ha?: number | null;
+  expected_yield_unit?: string | null;
+  water_needs?: string | null;
+  climate_zone?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  schema_version?: string | null;
+}
+
 export interface CropCycle {
   id: string;
   plot_id: string;

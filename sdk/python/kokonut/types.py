@@ -283,6 +283,25 @@ class Plot:
 
 
 @dataclass
+class Crop:
+    """Stored crop reference; this record does not estimate or verify yields."""
+
+    id: str
+    name: str
+    scientific_name: Optional[str] = None
+    variety: Optional[str] = None
+    crop_category: Optional[str] = None
+    growing_season_days: Optional[int] = None
+    expected_yield_per_ha: Optional[float] = None
+    expected_yield_unit: Optional[str] = None
+    water_needs: Optional[str] = None
+    climate_zone: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    schema_version: Optional[str] = None
+
+
+@dataclass
 class CropCycle:
     id: str
     plot_id: str
