@@ -10,6 +10,9 @@ export type AlertLifecycle = 'open' | 'acknowledged' | 'resolved' | 'false_posit
 export type ExportStatus = 'pending' | 'generating' | 'completed' | 'failed';
 export type OrganizationType = 'cooperative' | 'nonprofit' | 'dao' | 'enterprise' | 'collective' | 'other';
 export type OrganizationStatus = 'active' | 'inactive' | 'dissolved';
+export type OrganizationMembershipType = 'owned' | 'affiliated' | 'sponsored' | 'partner';
+export type OrganizationMemberRole = 'primary' | 'satellite' | 'partner' | 'incubated';
+export type OrganizationMemberStatus = 'active' | 'inactive' | 'suspended';
 export type ActuatorType = 'irrigation' | 'pest_control' | 'fertilization' | 'notification' | 'custom';
 export type ActuationStatus = 'pending' | 'sent' | 'acknowledged' | 'executed' | 'failed' | 'requires_approval';
 export type AttestationVerdict = 'pending' | 'approved' | 'rejected' | 'needs_info';
@@ -86,6 +89,22 @@ export interface Organization {
   updated_at: string;
   created_by?: string | null;
   updated_by?: string | null;
+}
+
+/** Descriptive organization/location link; it does not grant tenant access. */
+export interface OrganizationMember {
+  id: string;
+  organization_id: string;
+  location_id: string;
+  team_id?: string | null;
+  farm_id?: string | null;
+  membership_type: OrganizationMembershipType;
+  join_date: string;
+  role: OrganizationMemberRole;
+  status: OrganizationMemberStatus;
+  metadata?: JSONObject | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Farm {

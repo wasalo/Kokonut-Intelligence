@@ -15,6 +15,9 @@ AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
 ExportStatus = Literal["pending", "generating", "completed", "failed"]
 OrganizationType = Literal["cooperative", "nonprofit", "dao", "enterprise", "collective", "other"]
 OrganizationStatus = Literal["active", "inactive", "dissolved"]
+OrganizationMembershipType = Literal["owned", "affiliated", "sponsored", "partner"]
+OrganizationMemberRole = Literal["primary", "satellite", "partner", "incubated"]
+OrganizationMemberStatus = Literal["active", "inactive", "suspended"]
 ActuatorType = Literal["irrigation", "pest_control", "fertilization", "notification", "custom"]
 ActuationStatus = Literal[
     "pending", "sent", "acknowledged", "executed", "failed", "requires_approval"
@@ -132,6 +135,24 @@ class Organization:
     source_raw: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+
+
+@dataclass
+class OrganizationMember:
+    """Descriptive organization/location link; it does not grant tenant access."""
+
+    id: str
+    organization_id: str
+    location_id: str
+    join_date: str
+    created_at: str
+    updated_at: str
+    team_id: Optional[str] = None
+    farm_id: Optional[str] = None
+    membership_type: OrganizationMembershipType = "owned"
+    role: OrganizationMemberRole = "primary"
+    status: OrganizationMemberStatus = "active"
+    metadata: Optional[JSONObject] = None
 
 
 @dataclass

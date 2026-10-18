@@ -96,6 +96,11 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
             "cooperative", "nonprofit", "dao", "enterprise", "collective", "other"
         ),
         ("Organization", "status"): ("active", "inactive", "dissolved"),
+        ("OrganizationMember", "membership_type"): (
+            "owned", "affiliated", "sponsored", "partner"
+        ),
+        ("OrganizationMember", "role"): ("primary", "satellite", "partner", "incubated"),
+        ("OrganizationMember", "status"): ("active", "inactive", "suspended"),
         ("AlertRule", "actuator_type"): (
             "irrigation", "pest_control", "fertilization", "notification", "custom"
         ),
@@ -237,7 +242,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 25
+    assert checked == 26
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

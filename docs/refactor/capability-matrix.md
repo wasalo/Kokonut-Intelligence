@@ -1736,12 +1736,14 @@ partial evidence applies to CAP-001, CAP-007, CAP-014 and the adjacent CAP-031
 public summary slice; live route/auth, tenant scope and broader SDK parity remain
 unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
 The 18 October SDK contract work adds PostGIS geometry, recursive JSONB, enum,
-and organization record types to the Python/TypeScript schema guard. It now
-checks 21 models and 493 canonical columns, including 25 JSONB shapes, 7
-PostGIS shapes, 16 enum fields, and 5 auto-discovered SQL `CHECK`-literal fields. This
-is source-level SDK typing evidence only; it does not close the broader SDK,
+organization, and organization-membership record types to the Python/TypeScript
+schema guard. It now checks 22 models and 505 canonical columns, including 26
+JSONB shapes, 7 PostGIS shapes, 16 enum fields, and 8 auto-discovered SQL
+`CHECK`-literal fields. Membership records are descriptive and do not grant
+tenant access. This is source-level SDK typing evidence only; it does not close the broader SDK,
 authorization, Directus projection, or tenant-isolation gates
 ([organization evidence](builds/2026-10-18-recovery/sdk-organization-schema-parity.json);
+[membership evidence](builds/2026-10-18-recovery/sdk-organization-member-parity.json);
 [literal evidence](builds/2026-10-18-recovery/sdk-checked-literal-parity.json);
 [auto-discovery evidence](builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json)).
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
@@ -3170,3 +3172,16 @@ validation. This is static contract parity; it does not validate existing row
 contents, unconstrained string fields, runtime API payloads, or Directus
 projection behavior. Capability classifications and MAN-CAP acceptance remain
 unchanged ([evidence](builds/2026-10-18-recovery/sdk-enum-schema-parity.json)).
+
+### SDK organization-member schema parity — 18 October 2026
+
+Python and TypeScript now model `organization_member`, including the nullable
+`team_id` introduced by migration 174, JSON-object metadata, and the SQL
+membership, role, and status literals. The source guard checks 22 models and
+505 canonical columns, including 472 scalar types, 26 JSONB shapes, seven
+PostGIS shapes, 16 enum fields, and eight discovered SQL CHECK fields. Thirty-
+three Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff,
+compilation, matrix validation, and diff checks pass. This type is descriptive;
+it does not represent ownership, authorization, or a tenant grant. Checklist:
+551 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-organization-member-parity.json`.

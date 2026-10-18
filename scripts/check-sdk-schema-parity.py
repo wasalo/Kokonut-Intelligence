@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL_TABLES = {
     "Location": ("001_locations.sql", "location"),
     "Organization": ("064_organization.sql", "organization"),
+    "OrganizationMember": ("064_organization.sql", "organization_member"),
     "Farm": ("001_locations.sql", "farm"),
     "Plot": ("001_locations.sql", "plot"),
     "CropCycle": ("002_crops.sql", "crop_cycle"),
@@ -58,6 +59,7 @@ JSONB_MODEL_SHAPES = {
     ("ReportSnapshot", "negative_findings"): "json_object_array",
     ("ExportLog", "filters"): "json_object",
     ("Organization", "metadata"): "json_object",
+    ("OrganizationMember", "metadata"): "json_object",
 }
 
 

@@ -53,6 +53,28 @@ def test_organization_sdk_model_uses_schema_values_and_keeps_metadata_json_typed
     )
 
 
+def test_organization_member_type_is_descriptive_not_an_access_grant():
+    from kokonut import OrganizationMember, OrganizationMembershipType
+
+    membership = OrganizationMember(
+        id="membership-1",
+        organization_id="org-1",
+        location_id="location-1",
+        join_date="2026-10-18",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        membership_type="owned",
+        role="primary",
+        status="active",
+    )
+
+    assert membership.membership_type == "owned"
+    assert membership.status == "active"
+    assert OrganizationMembershipType.__args__ == (
+        "owned", "affiliated", "sponsored", "partner"
+    )
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

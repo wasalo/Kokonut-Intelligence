@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK organization-member schema parity — 18 October 2026
+
+Python and TypeScript now expose a descriptive `OrganizationMember` record,
+including the additive nullable `team_id`, JSON-object metadata, and literal
+membership type, role, and status values discovered from SQL CHECK constraints.
+The source guard covers 22 models, 505 canonical columns, 472 scalar types,
+26 JSONB shapes, seven PostGIS shapes, 16 enum fields, and eight automatically
+discovered CHECK-literal fields. Thirty-three focused Python SDK/guard tests
+and 29 JavaScript tests pass with the TypeScript build, Ruff, compilation,
+capability-matrix validation, and diff check. No database or network was
+contacted. This record is descriptive and does not grant tenant access
+([evidence](builds/2026-10-18-recovery/sdk-organization-member-parity.json)).
+
 ### SDK PostGIS shape parity — 18 October 2026
 
 The Python and TypeScript SDKs now expose reusable GeoJSON `Point` and
