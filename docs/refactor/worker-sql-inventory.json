@@ -4865,9 +4865,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:80:12",
+      "id": "services/ingestion/rpc_indexer.py:100:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 80,
+      "line": 100,
       "column": 12,
       "scope": "get_wallets",
       "method": "execute",
@@ -4882,9 +4882,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:85:12",
+      "id": "services/ingestion/rpc_indexer.py:105:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 85,
+      "line": 105,
       "column": 12,
       "scope": "get_wallets",
       "method": "execute",
@@ -4899,9 +4899,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:141:8",
+      "id": "services/ingestion/rpc_indexer.py:161:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 141,
+      "line": 161,
       "column": 8,
       "scope": "insert_activity",
       "method": "execute",
@@ -4916,9 +4916,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:179:8",
+      "id": "services/ingestion/rpc_indexer.py:199:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 179,
+      "line": 199,
       "column": 8,
       "scope": "insert_activity",
       "method": "execute",
@@ -4933,9 +4933,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:284:16",
+      "id": "services/ingestion/rpc_indexer.py:304:16",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 284,
+      "line": 304,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -4948,9 +4948,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:297:16",
+      "id": "services/ingestion/rpc_indexer.py:317:16",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 297,
+      "line": 317,
       "column": 16,
       "scope": "run",
       "method": "execute",
@@ -4963,9 +4963,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:326:20",
+      "id": "services/ingestion/rpc_indexer.py:346:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 326,
+      "line": 346,
       "column": 20,
       "scope": "run",
       "method": "execute",
@@ -4978,9 +4978,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:336:20",
+      "id": "services/ingestion/rpc_indexer.py:356:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 336,
+      "line": 356,
       "column": 20,
       "scope": "run",
       "method": "execute",
@@ -4993,9 +4993,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:337:20",
+      "id": "services/ingestion/rpc_indexer.py:357:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 337,
+      "line": 357,
       "column": 20,
       "scope": "run",
       "method": "execute",

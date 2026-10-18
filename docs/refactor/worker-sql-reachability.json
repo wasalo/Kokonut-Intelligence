@@ -330,15 +330,15 @@
       "statically_reachable_sql_site_ids": [
         "services/ingestion/base.py:207:12",
         "services/ingestion/clickhouse_outbox.py:53:12",
-        "services/ingestion/rpc_indexer.py:141:8",
-        "services/ingestion/rpc_indexer.py:179:8",
-        "services/ingestion/rpc_indexer.py:284:16",
-        "services/ingestion/rpc_indexer.py:297:16",
-        "services/ingestion/rpc_indexer.py:326:20",
-        "services/ingestion/rpc_indexer.py:336:20",
-        "services/ingestion/rpc_indexer.py:337:20",
-        "services/ingestion/rpc_indexer.py:80:12",
-        "services/ingestion/rpc_indexer.py:85:12"
+        "services/ingestion/rpc_indexer.py:100:12",
+        "services/ingestion/rpc_indexer.py:105:12",
+        "services/ingestion/rpc_indexer.py:161:8",
+        "services/ingestion/rpc_indexer.py:199:8",
+        "services/ingestion/rpc_indexer.py:304:16",
+        "services/ingestion/rpc_indexer.py:317:16",
+        "services/ingestion/rpc_indexer.py:346:20",
+        "services/ingestion/rpc_indexer.py:356:20",
+        "services/ingestion/rpc_indexer.py:357:20"
       ]
     },
     {
@@ -6406,9 +6406,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:80:12",
+      "id": "services/ingestion/rpc_indexer.py:100:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 80,
+      "line": 100,
       "scope": "get_wallets",
       "method": "execute",
       "expression_kind": "literal",
@@ -6427,9 +6427,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:85:12",
+      "id": "services/ingestion/rpc_indexer.py:105:12",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 85,
+      "line": 105,
       "scope": "get_wallets",
       "method": "execute",
       "expression_kind": "literal",
@@ -6448,9 +6448,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:141:8",
+      "id": "services/ingestion/rpc_indexer.py:161:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 141,
+      "line": 161,
       "scope": "insert_activity",
       "method": "execute",
       "expression_kind": "literal",
@@ -6469,9 +6469,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:179:8",
+      "id": "services/ingestion/rpc_indexer.py:199:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 179,
+      "line": 199,
       "scope": "insert_activity",
       "method": "execute",
       "expression_kind": "literal",
@@ -6490,9 +6490,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:284:16",
+      "id": "services/ingestion/rpc_indexer.py:304:16",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 284,
+      "line": 304,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6509,9 +6509,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:297:16",
+      "id": "services/ingestion/rpc_indexer.py:317:16",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 297,
+      "line": 317,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6528,9 +6528,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:326:20",
+      "id": "services/ingestion/rpc_indexer.py:346:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 326,
+      "line": 346,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6547,9 +6547,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:336:20",
+      "id": "services/ingestion/rpc_indexer.py:356:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 336,
+      "line": 356,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6566,9 +6566,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:337:20",
+      "id": "services/ingestion/rpc_indexer.py:357:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 337,
+      "line": 357,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",

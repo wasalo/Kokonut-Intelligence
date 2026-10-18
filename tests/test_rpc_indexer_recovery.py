@@ -76,6 +76,73 @@ def test_rpc_activity_insert_uses_no_unbacked_conflict_target():
     assert "ON CONFLICT" not in insert_statement
 
 
+@pytest.mark.parametrize(
+    ("balance_wei", "expected"),
+    [
+        (5_000_000_000, Decimal("0.00000001")),
+        (
+            9_000_000_000 * 10**18 + 123456780000000000,
+            Decimal("9000000000.12345678"),
+        ),
+    ],
+)
+def test_legacy_rpc_balance_conversion_preserves_numeric_eight_decimal_precision(
+    balance_wei, expected
+):
+    assert rpc_indexer._wei_to_eth(balance_wei) == expected
+
+
+def test_legacy_rpc_run_passes_exact_decimal_balance_to_postgres_write():
+    connection = MagicMock()
+    status_calls = []
+    events = []
+    captured_records = []
+
+    def capture_activity(_connection, record):
+        captured_records.append(record.copy())
+        return "row-1"
+
+    patches = _rpc_patches(
+        connection, [_wallet()], status_calls, events, balance_side_effect=[5_000_000_000]
+    )
+    with (
+        patches[0], patches[1], patches[2], patches[3], patches[4],
+        patch("services.ingestion.rpc_indexer.insert_activity", side_effect=capture_activity),
+        patches[6], patches[7],
+    ):
+        rpc_indexer.run(chain="celo")
+
+    assert captured_records[0]["value"] == Decimal("0.00000001")
+
+
+def test_legacy_rpc_activity_parser_uses_exact_wei_conversion():
+    record = rpc_indexer.parse_activity(
+        {
+            "hash": "0x" + "a" * 64,
+            "value": 5_000_000_000,
+            "blockNumber": 100,
+            "timestamp": 1_700_000_000,
+            "from": ADDRESS,
+            "to": ADDRESS,
+            "receipt": {"status": 1},
+        },
+        "wallet-1",
+        "celo",
+    )
+
+    assert record["value"] == Decimal("0.00000001")
+
+
+def test_legacy_rpc_clickhouse_payload_keeps_decimal_balance():
+    record = _activity_record()
+    record["value"] = Decimal("9000000000.12345678")
+    with patch.object(rpc_indexer, "insert_clickhouse_rows") as insert:
+        rpc_indexer.insert_activity_clickhouse([record])
+
+    values = insert.call_args.args[2]
+    assert values[0][6] == Decimal("9000000000.12345678")
+
+
 def _rpc_patches(connection, wallets, status_calls, events, *, balance_side_effect=None,
                  outbox_side_effect=None):
     status = MagicMock(

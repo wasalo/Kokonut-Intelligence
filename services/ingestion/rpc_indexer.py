@@ -58,6 +58,26 @@ def _safe_failure_message(exc: Exception) -> str:
     return f"RPC indexer failed ({type(exc).__name__})"
 
 
+def _wei_to_eth(value: int) -> Decimal:
+    """Convert a Web3 integer amount to the database's exact ETH precision."""
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError("RPC wei value is invalid")
+    return (Decimal(value) / Decimal(10**18)).quantize(
+        _ACTIVITY_VALUE_QUANTUM, rounding=ROUND_HALF_UP
+    )
+
+
+def _activity_value_decimal(value) -> Decimal:
+    """Return an activity amount as a finite eight-decimal ClickHouse value."""
+    try:
+        amount = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValueError("RPC activity value is invalid") from None
+    if not amount.is_finite():
+        raise ValueError("RPC activity value is invalid")
+    return amount.quantize(_ACTIVITY_VALUE_QUANTUM, rounding=ROUND_HALF_UP)
+
+
 def _validate_ch_value(value: str, pattern, name: str) -> str:
     """Validate a value against a regex pattern for ClickHouse SQL safety."""
     if not pattern.match(value):
@@ -112,7 +132,7 @@ def parse_activity(tx: dict, wallet_id: str, chain: str) -> dict:
         activity_type = "transfer"
 
     # Convert value from wei to ether
-    value_eth = value / 1e18 if value else 0
+    value_eth = _wei_to_eth(value)
 
     timestamp = datetime.fromtimestamp(
         tx.get("timestamp", time.time()), tz=timezone.utc
@@ -219,7 +239,7 @@ def insert_activity_clickhouse(records: list[dict], conn=None) -> None:
             str(rec.get("tx_hash", "")),
             int(rec.get("block_number", 0)),
             str(rec.get("activity_type", "")),
-            float(rec.get("value", 0)),
+            _activity_value_decimal(rec.get("value", 0)),
             str(rec.get("token", "ETH")),
             str(rec.get("status", "success")),
             {},
@@ -301,7 +321,7 @@ def run(chain: str = None, wallet_address: str = None):
 
                 current_block = fetch_latest_block(w3)
                 balance_wei = fetch_balance(w3, checksum)
-                balance_eth = balance_wei / 1e18
+                balance_eth = _wei_to_eth(balance_wei)
 
                 # Record a summary activity event
                 timestamp = now_utc()

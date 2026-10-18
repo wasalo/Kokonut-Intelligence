@@ -3770,8 +3770,15 @@ forced-RLS operations, idempotent snapshot/outbox replay, legacy same-block
 reuse, malformed/conflicting snapshot rejection, exact eight-decimal numeric
 storage, and direct-table denial. The legacy CLI now row-locks and checks
 duplicate content instead of using `ON CONFLICT (tx_hash)`, which the base
-schema cannot support because its index is non-unique. The focused worker
-boundary suite passes 274 tests with Ruff and compilation. The candidate remains at migration 435;
+schema cannot support because its index is non-unique. The focused
+worker/legacy boundary suite passes 281 tests with Ruff and compilation. Both
+balance paths now use decimal half-up rounding; the legacy ClickHouse row
+builder preserves a decimal instead of converting through a binary float. The
+isolated worker hashes the exact numeric JSON sent to PostgreSQL and anchors
+each run to one requested block height and timestamp, preventing ordinary chain
+advancement from mixing heights. It does not pin a block hash or establish
+consistency across a provider reorganization. The candidate remains at
+migration 435;
 no worker credential, provider, schedule, or feature was activated. This only
 preserves point-in-time balance snapshots; transaction-history scanning,
 confirmation/finality, provider parity, schedule ownership, and reorg recovery
@@ -3786,7 +3793,8 @@ QEMU imported the worker and constructed a synthetic balance snapshot with
 networking disabled. No ARM64 database/app stack or migration 436 replay ran;
 physical Raspberry Pi acceptance remains open
 ([ARM64 evidence](builds/2026-10-18-recovery/arm64-rpc-worker-image-smoke.json)).
-Wei-to-ETH conversion now uses decimal half-up rounding and exact numeric JSON;
-the 274-test focused worker boundary suite and disposable PostgreSQL precision
-check pass. This changes source correctness evidence only, not capability
+Wei-to-ETH conversion now uses decimal half-up rounding in both the isolated
+and manual RPC paths. Exact numeric JSON, payload hash parity, one-block
+snapshot reads, and decimal ClickHouse payload preparation are covered by 281
+focused tests; disposable PostgreSQL confirms exact precision. This changes source correctness evidence only, not capability
 classification or MAN-CAP status.

@@ -446,14 +446,14 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 73,
+          "line": 93,
           "function": "services.ingestion.rpc_indexer:get_web3",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 93,
+          "line": 113,
           "function": "services.ingestion.rpc_indexer:fetch_balance",
           "category": "evm_rpc",
           "call": "w3.eth.get_balance"

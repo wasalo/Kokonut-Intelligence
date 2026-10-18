@@ -16,16 +16,17 @@
     "git_diff_check": "passed",
     "provider_boundaries": "passed: 17 vendor import sites",
     "python_compileall": "passed",
-    "rpc_snapshot_consistency": "passed: one chain block and timestamp is used for every wallet in a run; anchor failure stores no partial snapshots",
-    "wei_to_eth_precision": "passed: PostgreSQL-compatible half-up rounding, exact numeric JSON encoding, and matching canonical payload digest",
+    "legacy_rpc_compatibility_precision": "passed: exact Decimal balance conversion, transaction parser conversion, PostgreSQL input, and ClickHouse decimal row values",
+    "rpc_snapshot_consistency": "passed: one requested block height and timestamp is used for every wallet, preventing ordinary chain advancement from mixing heights; provider reorganization consistency is not established; anchor failure stores no partial snapshots",
+    "wei_to_eth_precision": "passed: PostgreSQL-compatible half-up rounding, exact numeric JSON encoding, and matching canonical payload digest in the isolated worker; legacy values remain Decimal through projection preparation",
     "ruff": "passed"
   },
   "date": "2026-10-18",
   "feature_activated": false,
   "focused_suite": {
-    "command": "python3 -m pytest tests/test_rpc_worker.py tests/test_worker_environment.py tests/test_worker_database.py tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py tests/test_rpc_indexer_contract.py tests/test_rpc_indexer_recovery.py tests/test_runtime_role_boundary.py tests/test_worker_operation_map.py -q",
+    "command": "python3 -m pytest tests/test_rpc_worker.py tests/test_rpc_indexer_recovery.py tests/test_rpc_indexer_contract.py tests/test_worker_environment.py tests/test_worker_database.py tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py tests/test_runtime_role_boundary.py tests/test_worker_operation_map.py -q",
     "result": "passed",
-    "tests_passed": 276
+    "tests_passed": 281
   },
   "inventory": {
     "allowlisted_modules": 25,
