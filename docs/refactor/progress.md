@@ -9565,3 +9565,19 @@ Python SDK/schema/method suite remains at 94 tests with Ruff and compilation
 passing. No live API, network, database, provider, or credential was used.
 Checklist: 602 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-error-normalization-parity.json`.
+
+### ARM64/QEMU current-schema refresh — 18 October 2026
+
+The current-source Kernel app and ARM64 PostGIS image were exercised in a
+disposable internal-only Compose project with a dedicated private subnet and
+resource limits. The ordered runner applied all 424 schema migrations through
+433 with zero failures; a database query confirmed zero non-applied entries.
+Only after schema replay did the app start. The app image reports
+`linux/arm64`, Compose reported the app healthy, `/health` returned 200, and an
+anonymous operator farm-activity request returned 401. The test used no seeds,
+farm data, provider, candidate or legacy database, or public host port. The
+project's containers, network, and volumes were removed; the existing candidate
+remained healthy. This is emulation evidence only and does not establish
+physical Raspberry Pi, power-loss, 24-hour recovery, or performance acceptance.
+Evidence:
+`docs/refactor/builds/2026-10-18-recovery/arm64-qemu-current-schema-433.json`.

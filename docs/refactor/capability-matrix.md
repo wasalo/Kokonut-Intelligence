@@ -6,6 +6,14 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**ARM64/QEMU runtime refresh — 18 October 2026:** the current-source Kernel app
+and PostGIS images were exercised through migration 433 on an internal-only,
+resource-capped disposable stack. All 424 ordered schema migrations passed;
+health and anonymous protected-route checks returned 200 and 401. This updates
+software compatibility evidence only. No physical Raspberry Pi, performance,
+power-loss, provider, or MAN-CAP acceptance is claimed
+([evidence](builds/2026-10-18-recovery/arm64-qemu-current-schema-433.json)).
+
 **Protocol-catalog SDK note — 18 October 2026:** Python and TypeScript now
 represent the canonical `protocol` catalog fields and metadata. This data type
 does not query providers, sign transactions, or submit on-chain actions; MAN-CAP
