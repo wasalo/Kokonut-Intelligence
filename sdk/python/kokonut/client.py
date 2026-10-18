@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import json
 from typing import Any, Dict, List, Optional
-from urllib.parse import urlencode
 
 import requests
 
 from .methods import (
     AttestationMethods,
     CropCycleMethods,
-    ExportMethods,
     ExpenseEventMethods,
+    ExportMethods,
     FarmMethods,
+    FieldNoteMethods,
     HarvestEventMethods,
+    LaborEventMethods,
     LocationMethods,
+    LossEventMethods,
     NoiMethods,
     PlotMethods,
     ReportMethods,
@@ -78,6 +80,9 @@ class KokonutClient:
         self.harvest_events = HarvestEventMethods(self)
         self.sales_events = SalesEventMethods(self)
         self.expense_events = ExpenseEventMethods(self)
+        self.loss_events = LossEventMethods(self)
+        self.labor_events = LaborEventMethods(self)
+        self.field_notes = FieldNoteMethods(self)
         self.sensor_readings = SensorReadingMethods(self)
         self.wallet_profiles = WalletProfileMethods(self)
         self.attestations = AttestationMethods(self)

@@ -20,6 +20,9 @@ import {
   buildHarvestEventMethods,
   buildSalesEventMethods,
   buildExpenseEventMethods,
+  buildLossEventMethods,
+  buildLaborEventMethods,
+  buildFieldNoteMethods,
   buildSensorReadingMethods,
   buildWalletProfileMethods,
   buildAttestationMethods,
@@ -35,6 +38,9 @@ import type {
   HarvestEventMethods,
   SalesEventMethods,
   ExpenseEventMethods,
+  LossEventMethods,
+  LaborEventMethods,
+  FieldNoteMethods,
   SensorReadingMethods,
   WalletProfileMethods,
   AttestationMethods,
@@ -58,6 +64,9 @@ export class KokonutClient {
   harvestEvents: HarvestEventMethods;
   salesEvents: SalesEventMethods;
   expenseEvents: ExpenseEventMethods;
+  lossEvents: LossEventMethods;
+  laborEvents: LaborEventMethods;
+  fieldNotes: FieldNoteMethods;
   sensorReadings: SensorReadingMethods;
   walletProfiles: WalletProfileMethods;
   attestations: AttestationMethods;
@@ -78,6 +87,9 @@ export class KokonutClient {
     this.harvestEvents = buildHarvestEventMethods(this);
     this.salesEvents = buildSalesEventMethods(this);
     this.expenseEvents = buildExpenseEventMethods(this);
+    this.lossEvents = buildLossEventMethods(this);
+    this.laborEvents = buildLaborEventMethods(this);
+    this.fieldNotes = buildFieldNoteMethods(this);
     this.sensorReadings = buildSensorReadingMethods(this);
     this.walletProfiles = buildWalletProfileMethods(this);
     this.attestations = buildAttestationMethods(this);

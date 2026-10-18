@@ -6,6 +6,9 @@ import type {
   HarvestEvent,
   SalesEvent,
   ExpenseEvent,
+  LossEvent,
+  LaborEvent,
+  FieldNote,
   SensorReading,
   WalletProfile,
   AttestationRecord,
@@ -98,6 +101,33 @@ export interface ExpenseEventMethods extends GenericMethods {
   update(id: string, data: Partial<ExpenseEvent>): Promise<ExpenseEvent>;
   listByCropCycle(cropCycleId: string, options?: ListOptions): Promise<ExpenseEvent[]>;
   listPendingApproval(options?: ListOptions): Promise<ExpenseEvent[]>;
+}
+
+export interface LossEventMethods extends GenericMethods {
+  list(options?: ListOptions): Promise<LossEvent[]>;
+  get(id: string, fields?: string[]): Promise<LossEvent>;
+  create(data: Partial<LossEvent>): Promise<LossEvent>;
+  createMany(data: Partial<LossEvent>[]): Promise<LossEvent[]>;
+  update(id: string, data: Partial<LossEvent>): Promise<LossEvent>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<LossEvent[]>;
+}
+
+export interface LaborEventMethods extends GenericMethods {
+  list(options?: ListOptions): Promise<LaborEvent[]>;
+  get(id: string, fields?: string[]): Promise<LaborEvent>;
+  create(data: Partial<LaborEvent>): Promise<LaborEvent>;
+  createMany(data: Partial<LaborEvent>[]): Promise<LaborEvent[]>;
+  update(id: string, data: Partial<LaborEvent>): Promise<LaborEvent>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<LaborEvent[]>;
+}
+
+export interface FieldNoteMethods extends GenericMethods {
+  list(options?: ListOptions): Promise<FieldNote[]>;
+  get(id: string, fields?: string[]): Promise<FieldNote>;
+  create(data: Partial<FieldNote>): Promise<FieldNote>;
+  createMany(data: Partial<FieldNote>[]): Promise<FieldNote[]>;
+  update(id: string, data: Partial<FieldNote>): Promise<FieldNote>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<FieldNote[]>;
 }
 
 export interface SensorReadingMethods extends GenericMethods {
@@ -292,6 +322,57 @@ export function buildExpenseEventMethods(client: any): ExpenseEventMethods {
         ...options,
         filter: { ...options?.filter, status: { _eq: 'submitted' } },
       }) as Promise<ExpenseEvent[]>,
+  };
+}
+
+export function buildLossEventMethods(client: any): LossEventMethods {
+  const base = createGenericMethods(client, 'loss_event');
+  return {
+    ...base,
+    list: (options?: ListOptions) => client.listItems('loss_event', options) as Promise<LossEvent[]>,
+    get: (id: string, fields?: string[]) => client.getItem('loss_event', id, fields) as Promise<LossEvent>,
+    create: (data: Partial<LossEvent>) => client.createItem('loss_event', data) as Promise<LossEvent>,
+    createMany: (data: Partial<LossEvent>[]) => client.createItems('loss_event', data) as Promise<LossEvent[]>,
+    update: (id: string, data: Partial<LossEvent>) => client.updateItem('loss_event', id, data) as Promise<LossEvent>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems('loss_event', {
+        ...options,
+        filter: { ...options?.filter, location_id: locationId },
+      }) as Promise<LossEvent[]>,
+  };
+}
+
+export function buildLaborEventMethods(client: any): LaborEventMethods {
+  const base = createGenericMethods(client, 'labor_event');
+  return {
+    ...base,
+    list: (options?: ListOptions) => client.listItems('labor_event', options) as Promise<LaborEvent[]>,
+    get: (id: string, fields?: string[]) => client.getItem('labor_event', id, fields) as Promise<LaborEvent>,
+    create: (data: Partial<LaborEvent>) => client.createItem('labor_event', data) as Promise<LaborEvent>,
+    createMany: (data: Partial<LaborEvent>[]) => client.createItems('labor_event', data) as Promise<LaborEvent[]>,
+    update: (id: string, data: Partial<LaborEvent>) => client.updateItem('labor_event', id, data) as Promise<LaborEvent>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems('labor_event', {
+        ...options,
+        filter: { ...options?.filter, location_id: locationId },
+      }) as Promise<LaborEvent[]>,
+  };
+}
+
+export function buildFieldNoteMethods(client: any): FieldNoteMethods {
+  const base = createGenericMethods(client, 'field_note');
+  return {
+    ...base,
+    list: (options?: ListOptions) => client.listItems('field_note', options) as Promise<FieldNote[]>,
+    get: (id: string, fields?: string[]) => client.getItem('field_note', id, fields) as Promise<FieldNote>,
+    create: (data: Partial<FieldNote>) => client.createItem('field_note', data) as Promise<FieldNote>,
+    createMany: (data: Partial<FieldNote>[]) => client.createItems('field_note', data) as Promise<FieldNote[]>,
+    update: (id: string, data: Partial<FieldNote>) => client.updateItem('field_note', id, data) as Promise<FieldNote>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems('field_note', {
+        ...options,
+        filter: { ...options?.filter, location_id: locationId },
+      }) as Promise<FieldNote[]>,
   };
 }
 

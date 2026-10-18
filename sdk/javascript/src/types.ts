@@ -211,6 +211,71 @@ export interface ExpenseEvent {
   updated_by?: string | null;
 }
 
+export interface LossEvent {
+  id: string;
+  location_id: string;
+  loss_date: string;
+  loss_type: string;
+  crop_cycle_id?: string | null;
+  harvest_id?: string | null;
+  plot_id?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  estimated_value?: number | null;
+  cause?: string | null;
+  impact_description?: string | null;
+  mitigation?: string | null;
+  severity?: string | null;
+  evidence_urls?: string[] | null;
+  evidence_hashes?: string[] | null;
+  notes?: string | null;
+  status?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  schema_version?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
+export interface LaborEvent {
+  id: string;
+  location_id: string;
+  work_date: string;
+  hours_worked: number;
+  plot_id?: string | null;
+  crop_cycle_id?: string | null;
+  staff_id?: string | null;
+  worker_name?: string | null;
+  hourly_rate?: number | null;
+  total_cost?: number | null;
+  role?: string | null;
+  activity_description?: string | null;
+  notes?: string | null;
+  status?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
+export interface FieldNote {
+  id: string;
+  location_id: string;
+  note_date: string;
+  plot_id?: string | null;
+  crop_cycle_id?: string | null;
+  note_type?: string | null;
+  title?: string | null;
+  content?: string | null;
+  images?: string[] | null;
+  tags?: string[] | null;
+  status?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
 export interface SensorReading {
   id: string;
   sensor_id: string;

@@ -18,6 +18,9 @@ def test_kokonut_client_import():
     assert client.locations is not None
     assert client.farms is not None
     assert client.harvest_events is not None
+    assert client.loss_events is not None
+    assert client.labor_events is not None
+    assert client.field_notes is not None
     assert issubclass(AuthenticationError, KokonutError)
 
 
@@ -216,6 +219,55 @@ def test_sensor_registry_and_alert_types_expose_schema_fields():
     assert device.location_id == "location-1"
     assert rule.threshold_value == 20
     assert alert.triggered_at == "2026-10-17T12:00:00Z"
+
+
+def test_loss_labor_and_field_note_types_expose_operational_schema_fields():
+    from kokonut.types import FieldNote, LaborEvent, LossEvent
+
+    loss = LossEvent(
+        id="loss-1",
+        location_id="location-1",
+        loss_date="2026-10-17",
+        loss_type="weather",
+        evidence_hashes=["sha256:loss"],
+    )
+    labor = LaborEvent(
+        id="labor-1",
+        location_id="location-1",
+        work_date="2026-10-17",
+        hours_worked=6,
+        total_cost=48,
+    )
+    note = FieldNote(
+        id="note-1",
+        location_id="location-1",
+        note_date="2026-10-17",
+        content="Synthetic fixture",
+        tags=["test"],
+    )
+
+    assert loss.evidence_hashes == ["sha256:loss"]
+    assert labor.total_cost == 48
+    assert note.tags == ["test"]
+
+
+def test_location_scoped_operational_methods_force_scope_and_preserve_options():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    options = ListOptions(filter={"location_id": {"_eq": "other"}, "status": {"_eq": "verified"}}, limit=10)
+
+    client.loss_events.list_by_location("location-1", options)
+    client.labor_events.list_by_location("location-1", options)
+    client.field_notes.list_by_location("location-1", options)
+
+    assert client.list_items.call_args_list == [
+        ( ("loss_event", ListOptions(filter={"location_id": {"_eq": "location-1"}, "status": {"_eq": "verified"}}, limit=10)), {}),
+        ( ("labor_event", ListOptions(filter={"location_id": {"_eq": "location-1"}, "status": {"_eq": "verified"}}, limit=10)), {}),
+        ( ("field_note", ListOptions(filter={"location_id": {"_eq": "location-1"}, "status": {"_eq": "verified"}}, limit=10)), {}),
+    ]
 
 
 def test_kokonut_methods_import():

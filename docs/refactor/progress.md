@@ -8681,3 +8681,16 @@ and does not make claims about type/nullability correctness or runtime
 authorization. The guard passes across 256 column names per SDK; shell syntax
 and diff checks pass. Checklist: 536 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-schema-parity-ci-integration.json`.
+
+### SDK loss/labor/field-note operational records — 17 October 2026
+
+Added Python dataclasses, TypeScript interfaces, and typed collection groups
+for `loss_event`, `labor_event`, and `field_note`. Each SDK exposes generic
+CRUD plus `list_by_location`/`listByLocation`; the required location filter
+overrides a conflicting caller value while preserving the rest of the query.
+The source guard now covers 15 operational tables and 312 canonical columns
+per SDK. Sixteen Python tests, 24 JavaScript tests, Ruff, TypeScript build,
+schema guard, and diff checks pass using mocks and local fixtures only; no
+database or network was contacted. Checklist: 537 complete / 19 open.
+Capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-operational-record-methods.json`.

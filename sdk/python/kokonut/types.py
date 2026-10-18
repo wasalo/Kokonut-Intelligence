@@ -256,6 +256,74 @@ class ExpenseEvent:
 
 
 @dataclass
+class LossEvent:
+    id: str
+    location_id: str
+    loss_date: str
+    loss_type: str
+    crop_cycle_id: Optional[str] = None
+    harvest_id: Optional[str] = None
+    plot_id: Optional[str] = None
+    quantity: Optional[float] = None
+    unit: Optional[str] = None
+    estimated_value: Optional[float] = None
+    cause: Optional[str] = None
+    impact_description: Optional[str] = None
+    mitigation: Optional[str] = None
+    severity: Optional[str] = None
+    evidence_urls: Optional[List[str]] = None
+    evidence_hashes: Optional[List[str]] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    schema_version: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
+class LaborEvent:
+    id: str
+    location_id: str
+    work_date: str
+    hours_worked: float
+    plot_id: Optional[str] = None
+    crop_cycle_id: Optional[str] = None
+    staff_id: Optional[str] = None
+    worker_name: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    total_cost: Optional[float] = None
+    role: Optional[str] = None
+    activity_description: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
+class FieldNote:
+    id: str
+    location_id: str
+    note_date: str
+    plot_id: Optional[str] = None
+    crop_cycle_id: Optional[str] = None
+    note_type: Optional[str] = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    images: Optional[List[str]] = None
+    tags: Optional[List[str]] = None
+    status: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
 class SensorReading:
     id: str
     location_id: str

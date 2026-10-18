@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-17",
+  "scope": "Python and JavaScript SDK models and location-scoped collection methods for loss, labor, and field notes",
+  "source_of_truth": "schemas/postgres/003_operations.sql: loss_event, labor_event, field_note",
+  "change": "Added complete canonical record models and typed CRUD method groups in both SDKs. Location-scoped list helpers force the requested location and preserve other filters/options. Expanded the CI schema-coverage guard from 12 to 15 mapped operational models.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "16 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "24 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed for changed SDK modules, tests, and schema guard",
+    "schema_guard": "passed: 15 models, 312 canonical columns checked per SDK",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; mocked clients and local fixtures only",
+  "capability_matrix": "classifications unchanged"
+}

@@ -8,9 +8,12 @@ from .types import (
     ExpenseEvent,
     ExportLog,
     Farm,
+    FieldNote,
     HarvestEvent,
+    LaborEvent,
     ListOptions,
     Location,
+    LossEvent,
     NoiSnapshot,
     Plot,
     ReportSnapshot,
@@ -244,6 +247,75 @@ class ExpenseEventMethods(GenericMethods):
 
     def list_pending_approval(self, options: Optional[ListOptions] = None) -> List[ExpenseEvent]:
         return super().list(_list_options_with_filter(options, {"status": {"_eq": "submitted"}}))
+
+
+class LossEventMethods(GenericMethods):
+    def __init__(self, client: KokonutClient) -> None:
+        super().__init__(client, "loss_event")
+
+    def list(self, options: Optional[ListOptions] = None) -> List[LossEvent]:
+        return super().list(options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> LossEvent:
+        return super().get(item_id, fields)
+
+    def create(self, data: Dict[str, Any]) -> LossEvent:
+        return super().create(data)
+
+    def create_many(self, data: List[Dict[str, Any]]) -> List[LossEvent]:
+        return super().create_many(data)
+
+    def update(self, item_id: str, data: Dict[str, Any]) -> LossEvent:
+        return super().update(item_id, data)
+
+    def list_by_location(self, location_id: str, options: Optional[ListOptions] = None) -> List[LossEvent]:
+        return super().list(_list_options_with_filter(options, {"location_id": {"_eq": location_id}}))
+
+
+class LaborEventMethods(GenericMethods):
+    def __init__(self, client: KokonutClient) -> None:
+        super().__init__(client, "labor_event")
+
+    def list(self, options: Optional[ListOptions] = None) -> List[LaborEvent]:
+        return super().list(options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> LaborEvent:
+        return super().get(item_id, fields)
+
+    def create(self, data: Dict[str, Any]) -> LaborEvent:
+        return super().create(data)
+
+    def create_many(self, data: List[Dict[str, Any]]) -> List[LaborEvent]:
+        return super().create_many(data)
+
+    def update(self, item_id: str, data: Dict[str, Any]) -> LaborEvent:
+        return super().update(item_id, data)
+
+    def list_by_location(self, location_id: str, options: Optional[ListOptions] = None) -> List[LaborEvent]:
+        return super().list(_list_options_with_filter(options, {"location_id": {"_eq": location_id}}))
+
+
+class FieldNoteMethods(GenericMethods):
+    def __init__(self, client: KokonutClient) -> None:
+        super().__init__(client, "field_note")
+
+    def list(self, options: Optional[ListOptions] = None) -> List[FieldNote]:
+        return super().list(options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> FieldNote:
+        return super().get(item_id, fields)
+
+    def create(self, data: Dict[str, Any]) -> FieldNote:
+        return super().create(data)
+
+    def create_many(self, data: List[Dict[str, Any]]) -> List[FieldNote]:
+        return super().create_many(data)
+
+    def update(self, item_id: str, data: Dict[str, Any]) -> FieldNote:
+        return super().update(item_id, data)
+
+    def list_by_location(self, location_id: str, options: Optional[ListOptions] = None) -> List[FieldNote]:
+        return super().list(_list_options_with_filter(options, {"location_id": {"_eq": location_id}}))
 
 
 class SensorReadingMethods(GenericMethods):

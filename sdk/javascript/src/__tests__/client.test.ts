@@ -3,9 +3,12 @@ import { KokonutClient } from '../client.js';
 import type {
   CropCycle,
   ExpenseEvent,
+  FieldNote,
   Farm,
   HarvestEvent,
+  LaborEvent,
   Location,
+  LossEvent,
   Plot,
   SalesEvent,
   AlertRule,
@@ -66,6 +69,9 @@ describe('KokonutClient', () => {
     expect(client.harvestEvents).toBeDefined();
     expect(client.salesEvents).toBeDefined();
     expect(client.expenseEvents).toBeDefined();
+    expect(client.lossEvents).toBeDefined();
+    expect(client.laborEvents).toBeDefined();
+    expect(client.fieldNotes).toBeDefined();
     expect(client.sensorReadings).toBeDefined();
     expect(client.walletProfiles).toBeDefined();
     expect(client.attestations).toBeDefined();
@@ -82,6 +88,9 @@ describe('KokonutClient', () => {
     expect(typeof client.harvestEvents.list).toBe('function');
     expect(typeof client.salesEvents.list).toBe('function');
     expect(typeof client.expenseEvents.list).toBe('function');
+    expect(typeof client.lossEvents.list).toBe('function');
+    expect(typeof client.laborEvents.list).toBe('function');
+    expect(typeof client.fieldNotes.list).toBe('function');
     expect(typeof client.sensorReadings.list).toBe('function');
     expect(typeof client.walletProfiles.list).toBe('function');
     expect(typeof client.attestations.list).toBe('function');
@@ -108,6 +117,54 @@ describe('KokonutClient', () => {
     expect(typeof client.reports.listByType).toBe('function');
     expect(typeof client.noi.listByCropCycle).toBe('function');
     expect(typeof client.exports.createExport).toBe('function');
+    expect(typeof client.lossEvents.listByLocation).toBe('function');
+    expect(typeof client.laborEvents.listByLocation).toBe('function');
+    expect(typeof client.fieldNotes.listByLocation).toBe('function');
+  });
+
+  it('provides typed, location-scoped methods for loss, labor and field-note records', async () => {
+    const loss: LossEvent = {
+      id: 'loss-1',
+      location_id: 'location-1',
+      loss_date: '2026-10-17',
+      loss_type: 'weather',
+      evidence_hashes: ['sha256:loss'],
+    };
+    const labor: LaborEvent = {
+      id: 'labor-1',
+      location_id: 'location-1',
+      work_date: '2026-10-17',
+      hours_worked: 6,
+      total_cost: 48,
+    };
+    const note: FieldNote = {
+      id: 'note-1',
+      location_id: 'location-1',
+      note_date: '2026-10-17',
+      content: 'Synthetic fixture',
+      tags: ['test'],
+    };
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+
+    await client.lossEvents.listByLocation('location-1', {
+      limit: 10,
+      filter: { location_id: 'other-location', status: 'verified' },
+    });
+    expect(listItems).toHaveBeenLastCalledWith('loss_event', {
+      limit: 10,
+      filter: { location_id: 'location-1', status: 'verified' },
+    });
+    await client.laborEvents.listByLocation('location-1');
+    expect(listItems).toHaveBeenLastCalledWith('labor_event', {
+      filter: { location_id: 'location-1' },
+    });
+    await client.fieldNotes.listByLocation('location-1');
+    expect(listItems).toHaveBeenLastCalledWith('field_note', {
+      filter: { location_id: 'location-1' },
+    });
+    expect(loss.evidence_hashes).toEqual(['sha256:loss']);
+    expect(labor.total_cost).toBe(48);
+    expect(note.tags).toEqual(['test']);
   });
 
   it('preserves exact non-page-aligned offsets for Directus', async () => {
