@@ -20,6 +20,10 @@ export type TimeSeriesForecastModelType = 'arima' | 'exponential_smoothing' | 'p
 export type TimeSeriesForecastStatus = 'active' | 'superseded' | 'expired';
 export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
 export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
+export type MarketScope = 'local' | 'regional' | 'national' | 'international';
+export type MarketSizeEstimateStatus = 'draft' | 'submitted' | 'verified' | 'published';
+export type DemandTrendAnalysisType = 'seasonal_pattern' | 'price_elasticity' | 'moving_average' | 'trend_decomposition';
+export type DemandTrendStatus = 'draft' | 'submitted' | 'verified' | 'published';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -771,6 +775,82 @@ export interface DemandForecast {
   source_raw?: JSONObject | null;
   created_by?: string | null;
   updated_by?: string | null;
+}
+
+/** Stored TAM/SAM/SOM estimate with market scope and source fields. */
+export interface MarketSizeEstimate {
+  id: string;
+  location_id: string;
+  market_scope: MarketScope;
+  status: MarketSizeEstimateStatus;
+  created_at: string;
+  updated_at: string;
+  crop_id?: string | null;
+  market_name?: string | null;
+  tam_value?: number | null;
+  tam_unit?: string | null;
+  tam_source?: string | null;
+  sam_value?: number | null;
+  sam_unit?: string | null;
+  sam_source?: string | null;
+  som_value?: number | null;
+  som_unit?: string | null;
+  som_source?: string | null;
+  market_penetration_pct?: number | null;
+  market_share_pct?: number | null;
+  annual_growth_rate_pct?: number | null;
+  growth_source?: string | null;
+  estimation_method?: string | null;
+  confidence_level?: string | null;
+  assessment_date?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  notes?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  schema_version?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  metadata?: JSONObject | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored demand trend analysis and inputs; does not rerun its calculation. */
+export interface DemandTrend {
+  id: string;
+  location_id: string;
+  analysis_type: DemandTrendAnalysisType;
+  period_start: string;
+  period_end: string;
+  status: DemandTrendStatus;
+  created_at: string;
+  updated_at: string;
+  crop_id?: string | null;
+  month_of_year?: number | null;
+  seasonal_index?: number | null;
+  seasonal_amplitude?: number | null;
+  price_elasticity?: number | null;
+  cross_price_elasticity?: number | null;
+  reference_crop_id?: string | null;
+  trend_direction?: string | null;
+  trend_slope?: number | null;
+  trend_r_squared?: number | null;
+  moving_avg_3m?: number | null;
+  moving_avg_6m?: number | null;
+  moving_avg_12m?: number | null;
+  avg_monthly_demand?: number | null;
+  peak_month?: number | null;
+  trough_month?: number | null;
+  coefficient_of_variation?: number | null;
+  model_name?: string | null;
+  data_points?: number | null;
+  calculation_version?: string | null;
+  inputs?: JSONObject | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  created_by?: string | null;
 }
 
 export interface SensorAlert {

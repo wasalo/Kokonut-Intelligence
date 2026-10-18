@@ -365,6 +365,38 @@ def test_demand_forecast_type_keeps_estimate_provenance_and_review_state():
     assert forecast.verified_by is None
 
 
+def test_market_size_and_demand_trend_types_preserve_scoped_measures():
+    from kokonut import DemandTrend, MarketSizeEstimate
+
+    market = MarketSizeEstimate(
+        id="market-1",
+        location_id="location-1",
+        market_scope="regional",
+        status="draft",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        tam_value=100000.0,
+        metadata={"currency": "USD"},
+    )
+    trend = DemandTrend(
+        id="trend-1",
+        location_id="location-1",
+        analysis_type="seasonal_pattern",
+        period_start="2026-01-01",
+        period_end="2026-12-31",
+        status="draft",
+        created_at="2026-10-18T00:00:00Z",
+        updated_at="2026-10-18T00:00:00Z",
+        peak_month=10,
+        inputs={"months_observed": 12},
+    )
+
+    assert market.market_scope == "regional"
+    assert market.tam_value == 100000.0
+    assert trend.analysis_type == "seasonal_pattern"
+    assert trend.peak_month == 10
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

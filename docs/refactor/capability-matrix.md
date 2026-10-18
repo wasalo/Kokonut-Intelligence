@@ -3387,3 +3387,16 @@ checks pass. The contract does not compute or verify estimates; capability
 status and MAN-CAP acceptance are unchanged. Checklist: 565 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-demand-forecast-parity.json`.
+
+### Demand market-size and trend SDK model parity — 18 October 2026
+
+Python and TypeScript now model stored TAM/SAM/SOM estimates and demand-trend
+records, including constrained market/analysis types, lifecycle, source
+metadata, and reviewer attribution. The schema guard checks 40 models and 823
+columns, including 768 scalar types, seven PostGIS shapes, 46 JSONB shapes, 20
+enum fields, and 16 standalone SQL CHECK literals. Fifty focused Python
+SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation,
+guard, matrix validation, and diff checks pass. These types do not calculate
+market size or rerun trend analysis; capability status and MAN-CAP acceptance
+remain unchanged. Checklist: 566 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-demand-market-analysis-parity.json`.

@@ -9049,3 +9049,18 @@ compilation, schema guard, matrix validation, and diff checks. No database,
 provider, or network was contacted. The type does not calculate or verify
 demand estimates. Checklist: 565 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-demand-forecast-parity.json`.
+
+### Demand market sizing and trend SDK schema parity — 18 October 2026
+
+Python and TypeScript now model `market_size_estimate` and `demand_trend`,
+including TAM/SAM/SOM measures, scoped market and analysis types, period and
+trend values, source metadata, and review attribution. The guard checks all
+four scope/type/status literals and JSON-object fields. It covers 40 models
+and 823 canonical columns, with 768 scalar types, seven PostGIS shapes, 46
+JSONB shapes, 20 enum fields, and 16 standalone SQL CHECK literal contracts.
+Fifty focused Python SDK/guard tests and 29 JavaScript tests pass with
+TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff
+checks. No database, provider, or network was contacted. These types do not
+calculate market size or rerun trend analysis. Checklist: 566 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-demand-market-analysis-parity.json`.

@@ -31,6 +31,12 @@ DemandForecastType = Literal[
     "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
 ]
 DemandForecastStatus = Literal["draft", "submitted", "verified", "published"]
+MarketScope = Literal["local", "regional", "national", "international"]
+MarketSizeEstimateStatus = Literal["draft", "submitted", "verified", "published"]
+DemandTrendAnalysisType = Literal[
+    "seasonal_pattern", "price_elasticity", "moving_average", "trend_decomposition"
+]
+DemandTrendStatus = Literal["draft", "submitted", "verified", "published"]
 
 GeoJSONPosition = List[float]
 
@@ -696,6 +702,86 @@ class DemandForecast:
     source_raw: Optional[JSONObject] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+
+
+@dataclass
+class MarketSizeEstimate:
+    """Stored TAM/SAM/SOM estimate with market scope and source fields."""
+
+    id: str
+    location_id: str
+    market_scope: MarketScope
+    status: MarketSizeEstimateStatus
+    created_at: str
+    updated_at: str
+    crop_id: Optional[str] = None
+    market_name: Optional[str] = None
+    tam_value: Optional[float] = None
+    tam_unit: Optional[str] = None
+    tam_source: Optional[str] = None
+    sam_value: Optional[float] = None
+    sam_unit: Optional[str] = None
+    sam_source: Optional[str] = None
+    som_value: Optional[float] = None
+    som_unit: Optional[str] = None
+    som_source: Optional[str] = None
+    market_penetration_pct: Optional[float] = None
+    market_share_pct: Optional[float] = None
+    annual_growth_rate_pct: Optional[float] = None
+    growth_source: Optional[str] = None
+    estimation_method: Optional[str] = None
+    confidence_level: Optional[str] = None
+    assessment_date: Optional[str] = None
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
+    notes: Optional[str] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    schema_version: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    metadata: Optional[JSONObject] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+@dataclass
+class DemandTrend:
+    """Stored demand trend analysis and inputs; does not rerun its calculation."""
+
+    id: str
+    location_id: str
+    analysis_type: DemandTrendAnalysisType
+    period_start: str
+    period_end: str
+    status: DemandTrendStatus
+    created_at: str
+    updated_at: str
+    crop_id: Optional[str] = None
+    month_of_year: Optional[int] = None
+    seasonal_index: Optional[float] = None
+    seasonal_amplitude: Optional[float] = None
+    price_elasticity: Optional[float] = None
+    cross_price_elasticity: Optional[float] = None
+    reference_crop_id: Optional[str] = None
+    trend_direction: Optional[str] = None
+    trend_slope: Optional[float] = None
+    trend_r_squared: Optional[float] = None
+    moving_avg_3m: Optional[float] = None
+    moving_avg_6m: Optional[float] = None
+    moving_avg_12m: Optional[float] = None
+    avg_monthly_demand: Optional[float] = None
+    peak_month: Optional[int] = None
+    trough_month: Optional[int] = None
+    coefficient_of_variation: Optional[float] = None
+    model_name: Optional[str] = None
+    data_points: Optional[int] = None
+    calculation_version: Optional[str] = None
+    inputs: Optional[JSONObject] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    created_by: Optional[str] = None
 
 
 @dataclass
