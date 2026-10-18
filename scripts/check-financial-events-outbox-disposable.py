@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply/replay migration 434 and verify financial outbox writes on disposable PostgreSQL."""
+"""Apply/replay financial projection migrations on disposable PostgreSQL."""
 
 from __future__ import annotations
 
@@ -15,7 +15,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTBOX_SCHEMA = ROOT / "schemas/postgres/335_clickhouse_outbox.sql"
-MIGRATION = ROOT / "schemas/postgres/434_financial_events_clickhouse_outbox.sql"
+MIGRATIONS = [
+    ROOT / "schemas/postgres/434_financial_events_clickhouse_outbox.sql",
+    ROOT / "schemas/postgres/435_financial_projection_conflict_guard.sql",
+]
 DEFAULT_OUTPUT = (
     ROOT
     / "docs/refactor/builds/2026-10-18-recovery/financial-events-outbox-disposable.json"
@@ -25,6 +28,7 @@ SALE_ID = "22222222-2222-4222-8222-222222222222"
 ZERO_SALE_ID = "33333333-3333-4333-8333-333333333333"
 EXPENSE_ID = "44444444-4444-4444-8444-444444444444"
 ROLLED_BACK_ID = "55555555-5555-4555-8555-555555555555"
+CONFLICT_EXPENSE_ID = "66666666-6666-4666-8666-666666666666"
 
 
 def run(command: list[str], *, input_text: str | None = None, check: bool = True):
@@ -89,7 +93,7 @@ def main() -> int:
     image = os.environ.get("FINANCIAL_OUTBOX_POSTGRES_IMAGE", "postgres:16-alpine")
     result = {
         "date": datetime.now(timezone.utc).date().isoformat(),
-        "migration": MIGRATION.name,
+        "migrations": [migration.name for migration in MIGRATIONS],
         "database_image": image,
         "network": "none",
         "host_port": None,
@@ -129,9 +133,10 @@ def main() -> int:
             "created_at TIMESTAMPTZ);\n",
         )
         docker_sql(docker, container, OUTBOX_SCHEMA.read_text(encoding="utf-8"))
-        migration_sql = MIGRATION.read_text(encoding="utf-8")
-        docker_sql(docker, container, migration_sql)
-        docker_sql(docker, container, migration_sql)
+        for migration in MIGRATIONS:
+            migration_sql = migration.read_text(encoding="utf-8")
+            docker_sql(docker, container, migration_sql)
+            docker_sql(docker, container, migration_sql)
         docker_sql(
             docker,
             container,
@@ -148,6 +153,11 @@ def main() -> int:
             "SET ROLE financial_projection_test_writer;\n"
             f"INSERT INTO public.sales_event (id, location_id, total_amount, currency, buyer_type, status, created_at) "
             f"VALUES ('{SALE_ID}', '{LOCATION_ID}', 120.50, 'USD', 'direct', 'draft', '2026-10-18 12:34:56.789+00');\n"
+            "RESET ROLE;\n"
+            f"DELETE FROM public.sales_event WHERE id = '{SALE_ID}';\n"
+            "SET ROLE financial_projection_test_writer;\n"
+            f"INSERT INTO public.sales_event (id, location_id, total_amount, currency, buyer_type, status, created_at) "
+            f"VALUES ('{SALE_ID}', '{LOCATION_ID}', 120.50, 'USD', 'direct', 'draft', '2026-10-18 12:34:56.789+00');\n"
             f"INSERT INTO public.sales_event (id, location_id, total_amount, currency, buyer_type, status, created_at) "
             f"VALUES ('{ZERO_SALE_ID}', '{LOCATION_ID}', 0, 'USD', 'direct', 'draft', '2026-10-18 12:34:56.789+00');\n"
             f"INSERT INTO public.expense_event (id, location_id, category, amount, currency, status, created_at) "
@@ -160,6 +170,32 @@ def main() -> int:
             "DO $$ BEGIN IF (SELECT count(*) FROM public.clickhouse_outbox) <> 3 THEN "
             "RAISE EXCEPTION 'trigger did not enqueue inside the caller transaction'; END IF; END $$;\n"
             "ROLLBACK;\n",
+        )
+
+        docker_sql(
+            docker,
+            container,
+            "INSERT INTO public.clickhouse_outbox ("
+            "event_key, source_table, source_id, target_table, columns, rows, payload_hash) VALUES ("
+            f"'financial:expense_event:{CONFLICT_EXPENSE_ID}', 'expense_event', '{CONFLICT_EXPENSE_ID}', "
+            "'financial_events', '[]'::jsonb, '[]'::jsonb, repeat('0', 64));\n"
+            "SET ROLE financial_projection_test_writer;\n"
+            "DO $$ BEGIN\n"
+            "    BEGIN\n"
+            f"        INSERT INTO public.expense_event (id, location_id, category, amount, currency, status, created_at) "
+            f"        VALUES ('{CONFLICT_EXPENSE_ID}', '{LOCATION_ID}', 'irrigation', 21.00, 'USD', 'draft', '2026-10-18 15:00:00+00');\n"
+            "        RAISE EXCEPTION 'expected conflicting financial projection to fail';\n"
+            "    EXCEPTION WHEN unique_violation THEN\n"
+            "        NULL;\n"
+            "    END;\n"
+            "END $$;\n"
+            "RESET ROLE;\n"
+            "DO $$ BEGIN\n"
+            f"    IF EXISTS (SELECT 1 FROM public.expense_event WHERE id = '{CONFLICT_EXPENSE_ID}') THEN\n"
+            "        RAISE EXCEPTION 'source row survived a conflicting projection';\n"
+            "    END IF;\n"
+            "END $$;\n"
+            f"DELETE FROM public.clickhouse_outbox WHERE event_key = 'financial:expense_event:{CONFLICT_EXPENSE_ID}';\n",
         )
 
         access_denied = docker_sql(
@@ -218,19 +254,21 @@ def main() -> int:
             "|| ':' || has_column_privilege('kokonut_financial_projection_owner', 'public.clickhouse_outbox', 'rows', 'SELECT')::TEXT "
             "|| ':' || has_table_privilege('financial_projection_test_writer', 'public.clickhouse_outbox', 'INSERT')::TEXT;\n",
         ).stdout.strip().splitlines()[-1]
-        if privileges != "false:true:true:false:false":
+        if privileges != "false:true:true:true:false":
             raise AssertionError(f"unexpected owner/source writer ACL: {privileges}")
 
         result.update(
             {
                 "result": "passed",
-                "migration_apply": "passed",
-                "migration_replay": "passed",
+                "migration_apply": "passed for 434 and 435",
+                "migration_replay": "passed for both migrations",
                 "sales_projection": "passed",
                 "expense_projection": "passed",
                 "non_usd_amount_usd": "null",
                 "zero_amount_omitted": True,
                 "outbox_write_in_source_transaction": "passed; rollback removed source and outbox row",
+                "exact_duplicate_projection": "accepted without adding a second outbox row",
+                "conflicting_duplicate_projection": "rejected and source insert rolled back",
                 "forced_outbox_rls": "passed",
                 "source_login_direct_outbox_write": "denied",
                 "financial_projection_owner_can_login": False,

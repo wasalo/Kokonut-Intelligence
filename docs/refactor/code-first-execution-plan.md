@@ -2,9 +2,9 @@
 
 **Updated:** 18 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Current checkpoint — 18 October 2026:** PR #68 continues on `feat/mobile-offline-acceptance`; implementation commit `90f665ba` closes Python/TypeScript Directus error normalization parity. Both SDKs map 400/401/403/404 to matching named exceptions; malformed Python envelopes fall back safely, and TypeScript preserves native network failures without an HTTP response. The SDK schema guard covers 70 models, 1,438 columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone SQL CHECK literals. The focused SDK/schema/method suite passes 94 Python tests and 45 JavaScript tests; TypeScript build, targeted Ruff, compilation, capability-matrix validation, and diff checks pass. A current-source ARM64/QEMU refresh applied all 425 schema migrations through 434 and verified ARM64 app/PostGIS, app health, and anonymous-route denial under explicit resource limits. The disposable project was internal-only, had no published host port, and was removed; this does not establish physical Raspberry Pi, power-loss, sustained performance, provider, or MAN-CAP acceptance. A package-wide Ruff scan still reports 39 findings in untouched generated/example files. These offline checks do not establish live API behavior, authorization, tenant scope, domain writes, or provider execution. The matrix remains 54 baseline-retained, 7 deployed, and 5 prepared. Checklist: 605 complete / 19 open. Tenant/RLS, provider parity, physical Raspberry Pi, production recovery, release certification, and cutover remain open.
+**Current checkpoint — 18 October 2026:** PR #68 continues on `feat/mobile-offline-acceptance`. The current pushed rollout record is commit `8074a701`; Security #211 passed and CI #487 is still running. The local candidate is through migration 434 (425 applied schema entries); migration 435's financial projection conflict guard now passes network-disabled PostgreSQL 16 replay and forced-RLS acceptance but is not applied to the candidate. A current-source ARM64/QEMU refresh through 434 verified ARM64 app/PostGIS, app health, and anonymous-route denial under explicit resource limits. This does not establish physical Raspberry Pi, power-loss, sustained performance, provider, or MAN-CAP acceptance. A package-wide Ruff scan still reports 39 findings in untouched generated/example files. The matrix remains 54 baseline-retained, 7 deployed, and 5 prepared. Checklist: 607 complete / 19 open. Tenant/RLS, provider parity, physical Raspberry Pi, production recovery, release certification, and cutover remain open.
 
-**Latest batch — 18 October 2026:** Before this local update, PR #68's last pushed head was the documentation commit `255ed9de`; Security #210 had passed and CI #486 was in progress. This rollout update awaits its own hosted checks after push. The latest code commit remains `90f665ba`; its Python/TypeScript SDK error-normalization parity and the ARM64/QEMU refresh are documented above. Migration 434 replaces the Directus-only best-effort financial ClickHouse HTTP write with an atomic PostgreSQL outbox trigger. Its focused Directus-hook tests/build, 33 migration tests, Ruff, and disposable PostgreSQL 16 apply/replay/forced-RLS/transaction/ACL checks pass. The local candidate migration rollout is now complete: a fresh encrypted checkpoint was restore-rehearsed, the ordered runner applied 434, the schema ledger reports 425 applied with zero pending/failed and six seed entries, and candidate health is good ([rollout evidence](builds/2026-10-18-recovery/candidate-migration-434-rollout.json)). Directus was not running; rebuild its hook before enabling any Directus write profile to prevent duplicate projection. Financial update/delete reconciliation, historical backfill, populated report parity, candidate provider delivery, and named MAN-CAP acceptance remain open. Checklist: 605 complete / 19 open; capability matrix: 54 baseline-retained, 7 deployed, 5 prepared.
+**Latest batch — 18 October 2026:** Commit `8074a701` was pushed to PR #68 with the candidate migration 434 rollout record; Security #211 passed and CI #487 is in progress. The local candidate migration rollout is complete: a fresh encrypted checkpoint was restore-rehearsed, the ordered runner applied 434, the schema ledger reports 425 applied with zero pending/failed and six seed entries, and candidate health is good ([rollout evidence](builds/2026-10-18-recovery/candidate-migration-434-rollout.json)). Migration 435 now closes the silent conflicting-outbox-key case in source and passes disposable PostgreSQL 16 replay, forced-RLS, exact-replay, conflict-rollback, and ACL checks. Migration 435 is not applied to the candidate. Directus was not running; rebuild its hook before enabling any Directus write profile to prevent duplicate projection. Financial update/delete reconciliation, historical backfill, populated report parity, candidate provider delivery, and named MAN-CAP acceptance remain open. Checklist: 607 complete / 19 open; capability matrix: 54 baseline-retained, 7 deployed, 5 prepared.
 
 **Historical branch checkpoint — 17 October 2026:** PR #68 was at `efdd05b5`; CI #433 was in progress and Security #157 passed. CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 and CI #432 passed on `ebeddb45`. The pushed correction refreshed five worker inventories and removed line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests passed, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The batch also refreshed report source/query/helper inventories that fixed CI #430. Worker-status output containment redacted historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reported only a bounded remote exception class and closed the channel. At that historical checkpoint, the checklist was 517 complete / 19 open; these counts are superseded by [batches.md](batches.md).
 
@@ -1426,3 +1426,29 @@ Note reads still allow the granted location and hide the other location. Seven
 focused source/fixture tests pass with Ruff and Python compilation. This does
 not establish a fresh pinned-image run or broader collection/field/hook/schedule
 parity ([evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
+
+### Financial projection idempotency follow-up — 18 October 2026
+
+Source review found that migration 434 used `ON CONFLICT DO NOTHING` for a
+stable financial outbox key. That prevented duplicate rows but silently
+accepted a pre-existing key with different contents. Migration 435 adds an
+after-insert verification trigger, using the bounded projection-owner role to
+compare source identity, target table, columns, rows, and payload hash. Exact
+replays remain idempotent; mismatched duplicates raise `23505` so the source
+transaction rolls back. Network-disabled disposable PostgreSQL 16 acceptance
+applies and replays migrations 434 and 435 under forced RLS and checks both
+cases along with source transaction rollback and existing role boundaries.
+The candidate remains at migration 434; migration 435 has not been rolled out
+and needs its own fresh checkpoint and restore rehearsal. Financial edit/delete
+semantics, historical backfill, and populated report parity remain open
+([migration](../../schemas/postgres/435_financial_projection_conflict_guard.sql); [evidence](builds/2026-10-18-recovery/financial-events-outbox-disposable.json)).
+
+### Field Collector successful-upload CORS contract — 18 October 2026
+
+An in-process TestClient regression now drives the actual Field Collector media
+upload handler through Gateway middleware and verifies a successful 201 keeps
+the configured origin, credentialed CORS, and `Vary: Origin`. The device-token
+resolver, PostgreSQL connections, and media store are synthetic/mocked. The
+focused success and preflight checks pass with Ruff. This is source/runtime
+contract evidence, not live device authentication, browser-through-proxy, or
+public-ingress acceptance ([evidence](builds/2026-10-18-recovery/mobile-upload-success-cors.json)).

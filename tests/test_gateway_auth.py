@@ -1,7 +1,8 @@
 """Focused gateway authorization tests."""
 
 import hashlib
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -63,6 +64,51 @@ def test_mobile_upload_cors_requires_allowlisted_origin_and_allows_device_header
     }
     assert set(headers["Access-Control-Request-Headers"].split(",")) <= allowed_headers
     assert "access-control-allow-origin" not in denied.headers
+
+
+def test_mobile_upload_success_has_credentialed_cors_for_device_auth(monkeypatch):
+    monkeypatch.setenv("KOKONUT_GATEWAY_CORS_ORIGINS", "https://collector.example")
+    provider = SimpleNamespace(
+        settings=SimpleNamespace(state_secret="test-state-secret-with-at-least-32-bytes")
+    )
+    monkeypatch.setattr("services.gateway.operator_auth.create_provider", lambda: provider)
+    policy_connection = MagicMock()
+    write_connection = MagicMock()
+    monkeypatch.setattr(
+        "services.mobile.api.get_db",
+        MagicMock(side_effect=[policy_connection, write_connection]),
+    )
+    monkeypatch.setattr(
+        "services.mobile.api._device_for_token",
+        lambda token: ("device-id", "user-id", "11111111-1111-4111-8111-111111111111")
+        if token == "synthetic-device-token"
+        else None,
+    )
+    monkeypatch.setattr("services.mobile.api.set_mobile_device_tenant_context", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("services.mobile.api._validate_media_upload_policy", lambda *_args, **_kwargs: None)
+    media_store = SimpleNamespace(put_private=MagicMock(), delete_private=MagicMock())
+    monkeypatch.setattr("services.mobile.api.get_media_store", lambda: media_store)
+
+    with TestClient(create_app()) as client:
+        response = client.post(
+            "/api/mobile/media/uploads",
+            content=b"\xff\xd8\xffsynthetic-jpeg",
+            headers={
+                "Origin": "https://collector.example",
+                "Content-Type": "image/jpeg",
+                "X-Device-Token": "synthetic-device-token",
+                "X-Collection-Client-ID": "synthetic-client-id",
+            },
+        )
+
+    assert response.status_code == 201, response.text
+    assert response.headers["access-control-allow-origin"] == "https://collector.example"
+    assert response.headers["access-control-allow-credentials"] == "true"
+    assert response.headers["vary"] == "Origin"
+    assert response.json()["size_bytes"] == len(b"\xff\xd8\xffsynthetic-jpeg")
+    media_store.put_private.assert_called_once()
+    policy_connection.commit.assert_called_once()
+    write_connection.commit.assert_called_once()
 
 
 def test_gateway_cors_preflight_allows_scoped_enrollment_revocation(monkeypatch):

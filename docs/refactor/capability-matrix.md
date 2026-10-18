@@ -3707,6 +3707,30 @@ role inventory regression passes 2 tests. No capability classification changes. 
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.
 
+Migration 435 adds an after-insert guard for both sources. It verifies the
+existing stable outbox key resolves to the exact expected source, target,
+columns, rows, and payload digest; a mismatch raises and rolls back the source
+insert instead of being silently accepted by migration 434's enqueue. A
+network-disabled PostgreSQL 16 replay and forced-RLS check passes exact
+duplicate acceptance and conflicting duplicate rejection, along with the
+existing currency, zero-value, transaction, and privilege behavior. Migration
+435 is not applied to the local candidate and requires its own checkpointed
+rollout. Capability classifications are unchanged. Checklist: 606 complete /
+19 open ([migration](../schemas/postgres/435_financial_projection_conflict_guard.sql); [disposable evidence](builds/2026-10-18-recovery/financial-events-outbox-disposable.json)).
+
 ### Directus farm-activity source-contract update — 18 October 2026
 
 The optional Directus fixture now enforces the owner-selected Gateway boundary: synthetic location grants do not authorize farm-activity API reads or writes, and Field Note reads remain location-scoped. Seven focused source/fixture checks, Ruff, compilation, and the matrix validator pass. Commit `6c53e0fe` is pushed to PR #68; Security #209 passed and CI #485 is in progress. No capability classification changed, and this is not fresh pinned-runtime acceptance or broader Directus parity evidence ([source evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
+
+### Field Collector successful-upload CORS contract — 18 October 2026
+
+The actual Gateway middleware and Field Collector upload handler now have an
+in-process successful-response check using a synthetic device-token resolver
+and mocked PostgreSQL/media adapters. A successful HTTP 201 carries the exact
+allowlisted origin, `Access-Control-Allow-Credentials: true`, and `Vary:
+Origin`; the existing preflight test also confirms the custom device/upload
+headers. Two focused CORS tests and Ruff pass. No live credentials, database,
+provider, or network were used. This closes only the source/in-process response
+contract, not browser-through-proxy, live OIDC/device auth, or external ingress.
+Capability classifications remain unchanged; checklist: 607 complete / 19
+open ([evidence](builds/2026-10-18-recovery/mobile-upload-success-cors.json)).

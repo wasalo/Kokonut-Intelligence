@@ -63,7 +63,8 @@ complete / 19 open. Evidence:
 The batch was pushed as commit `0780c9bd` together with ARM64 evidence commit
 `5727d7aa`; CI #483 failed only the restore-role inventory regression. Commit
 `89290f09` adds the missing migration-owned role; Security #208 passed and CI
-#484 is in progress. The candidate still has not received migration 434.
+#484 is in progress. The candidate has since received migration 434; migration
+435 remains unapplied pending its own checkpointed rollout.
 
 ### SDK infrastructure-asset inventory parity — 18 October 2026
 
@@ -9686,3 +9687,32 @@ baseline-retained, 7 deployed, and 5 prepared; named MAN-CAP checks remain
 separate. At the time this rollout entry was prepared, pushed head `255ed9de` had
 Security #210 passed and CI #486 still running. The rollout record is now part
 of a new local batch awaiting hosted checks.
+
+### Financial projection duplicate-conflict guard — 18 October 2026
+
+Migration 435 adds a verification trigger after migration 434's financial
+outbox enqueue trigger. It accepts an exact replay of a stable event key and
+rejects a pre-existing key whose source, target, projection columns, row
+payload, or SHA-256 digest differs. PostgreSQL 16 disposable checks applied
+and replayed both migrations with forced RLS, confirmed exact duplicate
+acceptance and conflict rollback, and retained the zero-value omission,
+currency mapping, same-transaction rollback, and source/owner ACL boundaries.
+The disposable container had no network, host port, or persistent volume. The
+local candidate remains at migration 434; migration 435 is not applied there
+and needs a fresh encrypted checkpoint/restore rehearsal before rollout. No
+candidate, legacy, seed, Directus, or ClickHouse data was touched. Checklist:
+606 complete / 19 open; capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.
+
+### Field Collector successful-upload CORS contract — 18 October 2026
+
+The actual Gateway middleware and Field Collector upload handler now have an
+in-process successful-response check using a synthetic device-token resolver
+and mocked PostgreSQL/media adapters. A successful HTTP 201 carries the exact
+allowlisted origin, credentialed CORS, and `Vary: Origin`; the preflight test
+also verifies the custom device/upload headers. Two focused CORS tests and
+Ruff pass. No live credential, database, provider, or network was used. This
+does not close browser-through-proxy, live OIDC/device authentication, or
+external ingress acceptance. Checklist: 607 complete / 19 open; capability
+classifications unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/mobile-upload-success-cors.json`.

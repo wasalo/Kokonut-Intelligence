@@ -1,14 +1,19 @@
 {
   "candidate_or_legacy_modified": false,
+  "conflicting_duplicate_projection": "rejected and source insert rolled back",
   "database_image": "postgres:16-alpine",
   "date": "2026-10-18",
+  "exact_duplicate_projection": "accepted without adding a second outbox row",
   "expense_projection": "passed",
   "financial_projection_owner_can_login": false,
   "forced_outbox_rls": "passed",
   "host_port": null,
-  "migration": "434_financial_events_clickhouse_outbox.sql",
-  "migration_apply": "passed",
-  "migration_replay": "passed",
+  "migration_apply": "passed for 434 and 435",
+  "migration_replay": "passed for both migrations",
+  "migrations": [
+    "434_financial_events_clickhouse_outbox.sql",
+    "435_financial_projection_conflict_guard.sql"
+  ],
   "network": "none",
   "non_usd_amount_usd": "null",
   "outbox_rows": 2,
