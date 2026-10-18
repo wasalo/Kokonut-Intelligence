@@ -8559,3 +8559,12 @@ record are unchanged. The focused Gateway audit/auth suites pass 35 tests with
 Ruff; the regression uses a synthetic IP and no database or network. The
 checklist is 525 complete / 19 open; capability classifications are unchanged.
 Evidence: `docs/refactor/builds/2026-10-17-recovery/gateway-rate-limiter-identity-redaction.json`.
+
+### Gateway catch-all path log redaction — 17 October 2026
+
+The unknown-route policy warning no longer includes arbitrary caller-provided
+paths. Unknown routes remain private and fail closed under the same default
+policy. The route-policy/operator-auth suites pass 75 tests with Ruff and
+capability-matrix validation; the regression uses a synthetic path, with no
+database or network. The checklist is 526 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/gateway-catch-all-path-redaction.json`.

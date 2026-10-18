@@ -3,6 +3,7 @@
 import asyncio
 import re
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -90,6 +91,22 @@ def test_registered_api_routes_have_exact_reviewed_policy_coverage():
                     assert policy["location_id"] == _LOCATION_ID
 
     assert actual == _EXPECTED_ROUTE_POLICIES
+
+
+def test_catch_all_policy_log_does_not_include_unregistered_path():
+    sensitive_path = "/api/private/participant/participant-name/secret-token"
+
+    with patch("services.gateway.router.logger.warning") as warning:
+        policy = get_route_policy("GET", sensitive_path)
+
+    assert policy == {
+        "resource": "gateway",
+        "action": "get",
+        "public": False,
+        "location_id": None,
+    }
+    warning.assert_called_once_with("Catch-all route hit — no explicit policy defined")
+    assert sensitive_path not in str(warning.call_args)
 
 
 def test_data_stream_read_policy_extracts_and_normalizes_query_location():
