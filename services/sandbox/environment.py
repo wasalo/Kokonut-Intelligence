@@ -122,15 +122,15 @@ class AnalysisEnvironment:
         sandbox whitelist.  Arbitrary filesystem paths and imports outside the
         allowlist are rejected.
         """
-        if not _MODULE_PATH_RE.match(module_path):
-            logger.warning("Rejected invalid module path: %s", module_path)
+        if not isinstance(module_path, str) or not _MODULE_PATH_RE.fullmatch(module_path):
+            logger.warning("Rejected invalid sandbox module path")
             return {"error": "Invalid module path format"}
 
         if module_path not in _ALLOWED_MODULES:
-            logger.warning("Rejected unregistered module: %s", module_path)
-            return {"error": f"Module not allowed: {module_path}"}
+            logger.warning("Rejected unregistered sandbox module")
+            return {"error": "Module not allowed"}
 
-        logger.error("Sandbox execution requested without a restricted worker: %s", module_path)
+        logger.error("Sandbox execution requested without a restricted worker")
         return {
             "error": (
                 "Sandbox executor is not configured. Configure a restricted "

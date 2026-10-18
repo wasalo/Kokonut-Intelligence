@@ -564,6 +564,12 @@ retaining the generic HTTP 500 response; 34 route-policy/auth checks pass.
 Core PostgreSQL, ClickHouse, and Directus health-probe failures likewise log
 only exception classes while preserving generic unhealthy status; three new
 checks pass within a 33-test health/driver-registry suite.
+The sandbox module runner now type-checks and validates module names before
+whitelist lookup, does not echo rejected input to logs or responses, and
+continues to fail closed when no restricted worker is configured. Five
+synthetic input cases pass within a 14-test sandbox suite with Ruff and
+compilation; no module executes and no capability acceptance status changes
+([evidence](builds/2026-10-17-recovery/sandbox-module-input-validation.json)).
 This source-level display change does not
 substitute for live worker retry or dead-letter acceptance
 ([worker history](builds/2026-10-17-recovery/worker-status-cli-error-redaction.json);

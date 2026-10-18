@@ -8523,6 +8523,17 @@ was accessed. The checklist is 516 complete / 19 open. Evidence:
 
 Failed synthetic sensor-reading inserts now log only a bounded exception class; sensor names, timestamps, and raw database details are excluded. Existing per-reading continuation and connection cleanup remain intact. The mocked regression passes; test lint, source import/syntax checks, compilation, and diff checks pass. Full-file Ruff still reports pre-existing unused imports and locals in this legacy demo module. No database or provider was used. The checklist is 517 complete / 19 open; capability classifications are unchanged. Evidence: `docs/refactor/builds/2026-10-17-recovery/mock-sensor-error-redaction.json`.
 
+### Sandbox module-input validation — 17 October 2026
+
+The sandbox runner now rejects non-string, malformed, and unregistered module
+names without logging or returning the caller-provided value. A registered
+module still fails closed until a restricted worker is configured. Five
+synthetic input regressions pass inside a 14-test sandbox suite with Ruff,
+compilation, and diff checks; no module was executed and no database/provider
+was accessed. Checklist: 523 complete / 19 open; capability classifications
+remain unchanged. Evidence:
+docs/refactor/builds/2026-10-17-recovery/sandbox-module-input-validation.json.
+
 ### Post-restart candidate availability — 17 October 2026
 
 Read-only Docker inspection confirms the candidate app is healthy and bound to
