@@ -476,6 +476,20 @@ class ExcludedValueEvent:
 
 
 @dataclass
+class CropCostAllocation:
+    """Recorded cost-to-cycle allocation; it does not calculate or transfer funds."""
+
+    id: str
+    crop_cycle_id: str
+    expense_id: str
+    allocation_method: str
+    allocated_amount: float
+    allocation_ratio: Optional[float] = None
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

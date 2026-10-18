@@ -48,6 +48,7 @@ export type {
   Farm,
   Plot,
   CropCycle,
+  CropCostAllocation,
   HarvestEvent,
   SalesEvent,
   ExpenseEvent,

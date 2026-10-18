@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### SDK crop-cost allocation schema parity — 18 October 2026
+
+Python and TypeScript now expose `crop_cost_allocation`, including required
+crop-cycle and expense links, allocation method and amount, optional ratio, and
+audit timestamp. The offline guard covers 28 models, 594 canonical columns,
+559 scalar types, 28 JSONB shapes, seven PostGIS shapes, 17 enum fields, and
+eight discovered CHECK-literal fields. Thirty-nine Python SDK/guard tests and
+29 JavaScript tests pass with TypeScript build, Ruff, compilation, schema
+guard, capability-matrix validation, and diff check. No database or network
+was contacted. This type describes a stored allocation and does not calculate
+or transfer funds ([evidence](builds/2026-10-18-recovery/sdk-crop-cost-allocation-parity.json)).
+
 ### SDK excluded-value event schema parity — 18 October 2026
 
 Python and TypeScript now expose the canonical `excluded_value_event` record,

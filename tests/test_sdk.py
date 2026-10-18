@@ -164,6 +164,22 @@ def test_excluded_value_event_type_preserves_reviewer_and_reason_context():
     assert exclusion.reason == "Returned to funding source"
 
 
+def test_crop_cost_allocation_type_describes_recorded_allocation():
+    from kokonut import CropCostAllocation
+
+    allocation = CropCostAllocation(
+        id="allocation-1",
+        crop_cycle_id="cycle-1",
+        expense_id="expense-1",
+        allocation_method="area_based",
+        allocated_amount=125.5,
+        allocation_ratio=0.25,
+    )
+
+    assert allocation.allocated_amount == 125.5
+    assert allocation.allocation_ratio == 0.25
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

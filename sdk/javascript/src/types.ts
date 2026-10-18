@@ -574,6 +574,18 @@ export interface ExcludedValueEvent {
   created_at?: string | null;
 }
 
+/** Recorded cost-to-cycle allocation; it does not calculate or transfer funds. */
+export interface CropCostAllocation {
+  id: string;
+  crop_cycle_id: string;
+  expense_id: string;
+  allocation_method: string;
+  allocated_amount: number;
+  allocation_ratio?: number | null;
+  notes?: string | null;
+  created_at?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

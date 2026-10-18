@@ -1737,7 +1737,7 @@ public summary slice; live route/auth, tenant scope and broader SDK parity remai
 unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
 The 18 October SDK contract work adds PostGIS geometry, recursive JSONB, enum,
 organization, and organization-membership record types to the Python/TypeScript
-schema guard. It now checks 27 models and 586 canonical columns, including 28
+schema guard. It now checks 28 models and 594 canonical columns, including 28
 JSONB shapes, 7 PostGIS shapes, 17 enum fields, and 8 auto-discovered SQL
 `CHECK`-literal fields. Membership records are descriptive and do not grant
 tenant access. `ExpenseCategory` now exposes the shared finance taxonomy,
@@ -1746,7 +1746,8 @@ and status but does not authorize financial actions. `FinancialTransaction`
 describes recorded financial facts and does not initiate payments or prove
 verification. `ValueFlowEvent` carries verification/attestation references
 without performing those actions. `ExcludedValueEvent` records exclusion
-context without mutating its linked flow. This is source-level SDK typing evidence only; it does not close the broader SDK,
+context without mutating its linked flow. `CropCostAllocation` describes a
+stored allocation without recalculating it or transferring funds. This is source-level SDK typing evidence only; it does not close the broader SDK,
 authorization, Directus projection, or tenant-isolation gates
 ([organization evidence](builds/2026-10-18-recovery/sdk-organization-schema-parity.json);
 [membership evidence](builds/2026-10-18-recovery/sdk-organization-member-parity.json);
@@ -1755,6 +1756,7 @@ authorization, Directus projection, or tenant-isolation gates
 [financial-transaction evidence](builds/2026-10-18-recovery/sdk-financial-transaction-parity.json);
 [value-flow evidence](builds/2026-10-18-recovery/sdk-value-flow-event-parity.json);
 [excluded-value evidence](builds/2026-10-18-recovery/sdk-excluded-value-event-parity.json);
+[cost-allocation evidence](builds/2026-10-18-recovery/sdk-crop-cost-allocation-parity.json);
 [literal evidence](builds/2026-10-18-recovery/sdk-checked-literal-parity.json);
 [auto-discovery evidence](builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json)).
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
@@ -3257,3 +3259,15 @@ tests pass with TypeScript build, Ruff, compilation, schema guard, matrix
 validation, and diff checks. This type records exclusion context and does not
 mutate the linked flow. Checklist: 556 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-excluded-value-event-parity.json`.
+
+### SDK crop-cost allocation parity — 18 October 2026
+
+Python and TypeScript now expose `crop_cost_allocation`, including its crop
+cycle/expense references, allocation method, amount, and optional ratio. The
+guard checks 28 models and 594 columns, including 559 scalar fields, 28 JSONB
+shapes, seven PostGIS shapes, 17 enum fields, and eight SQL CHECK-literal
+fields. Thirty-nine Python SDK/guard tests and 29 JavaScript tests pass with
+TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff
+checks. The type describes a stored allocation and does not calculate or
+transfer funds. Checklist: 557 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-crop-cost-allocation-parity.json`.
