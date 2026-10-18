@@ -101,6 +101,7 @@ export type {
   SensorReading,
   SoilSample,
   SoilCarbonMeasurement,
+  EnvironmentalBaseline,
   WeatherObservation,
   WalletProfile,
   AttestationRecord,

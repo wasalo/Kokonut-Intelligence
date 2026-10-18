@@ -305,6 +305,25 @@ def test_soil_carbon_measurement_type_preserves_evidence_and_review_state():
     assert measurement.source_raw == {"lab_batch": "synthetic"}
 
 
+def test_environmental_baseline_type_preserves_value_evidence_and_lineage():
+    from kokonut import EnvironmentalBaseline
+
+    baseline = EnvironmentalBaseline(
+        id="baseline-1",
+        location_id="location-1",
+        metric_name="soil_carbon",
+        baseline_value=42.8,
+        unit="tC/ha",
+        evidence_urls=["https://example.invalid/baseline"],
+        source_system="field_survey",
+        source_raw={"survey": "synthetic"},
+    )
+
+    assert baseline.baseline_value == 42.8
+    assert baseline.evidence_urls == ["https://example.invalid/baseline"]
+    assert baseline.source_raw == {"survey": "synthetic"}
+
+
 def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
     from kokonut import ForecastScenario
 

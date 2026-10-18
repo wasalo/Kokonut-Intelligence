@@ -545,6 +545,27 @@ export interface SoilCarbonMeasurement {
   protocol_id?: string | null;
 }
 
+/** Stored environmental baseline; this record does not calculate the reference value. */
+export interface EnvironmentalBaseline {
+  id: string;
+  location_id: string;
+  metric_name: string;
+  plot_id?: string | null;
+  baseline_value?: number | null;
+  unit?: string | null;
+  measurement_date?: string | null;
+  measurement_method?: string | null;
+  source?: string | null;
+  evidence_urls?: string[] | null;
+  notes?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  schema_version?: string | null;
+}
+
 export interface SensorType {
   id: string;
   name: string;

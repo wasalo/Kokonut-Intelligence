@@ -3486,3 +3486,14 @@ SQL CHECK literals. The type does not calculate carbon stocks or perform
 verification. Checklist: 573 complete / 19 open. Capability classifications
 and MAN-CAP acceptance are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-soil-carbon-measurement-parity.json`.
+
+### Environmental baseline SDK model parity — 18 October 2026
+
+Python and TypeScript now represent stored environmental baseline values with
+optional plot scope, evidence links, and source lineage. The guard covers 52
+models and 1,104 columns, including 1,033 scalar types, eight PostGIS shapes,
+61 JSONB shapes, 20 enum fields, and 33 standalone SQL CHECK literals. The
+record does not calculate values or establish an authoritative baseline.
+Checklist: 574 complete / 19 open. Capability classifications and MAN-CAP
+acceptance are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-environmental-baseline-parity.json`.

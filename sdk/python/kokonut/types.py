@@ -1245,6 +1245,29 @@ class SoilCarbonMeasurement:
 
 
 @dataclass
+class EnvironmentalBaseline:
+    """Stored environmental reference measurement; this record does not calculate it."""
+
+    id: str
+    location_id: str
+    metric_name: str
+    plot_id: Optional[str] = None
+    baseline_value: Optional[float] = None
+    unit: Optional[str] = None
+    measurement_date: Optional[str] = None
+    measurement_method: Optional[str] = None
+    source: Optional[str] = None
+    evidence_urls: Optional[List[str]] = None
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    schema_version: Optional[str] = None
+
+
+@dataclass
 class SensorType:
     id: str
     name: str

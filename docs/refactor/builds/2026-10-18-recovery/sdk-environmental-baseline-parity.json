@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript environmental baseline SDK schema parity",
+  "model": "EnvironmentalBaseline",
+  "source_table": "schemas/postgres/005_environmental.sql:environmental_baseline",
+  "additive_columns": {
+    "schemas/postgres/013_prd_completion.sql": [
+      "source_system", "source_id", "source_raw", "schema_version"
+    ]
+  },
+  "schema_guard": {
+    "models": 52,
+    "canonical_columns": 1104,
+    "scalar_types": 1033,
+    "postgis_shapes": 8,
+    "jsonb_shapes": 61,
+    "enum_fields": 20,
+    "check_literal_fields": 33
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 58 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "EnvironmentalBaseline represents stored reference data and does not calculate values or establish authoritative baselines.",
+    "Checks used local source and synthetic fixtures; no database or provider was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

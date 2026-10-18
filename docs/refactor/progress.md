@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK environmental baseline schema parity — 18 October 2026
+
+Python and TypeScript now expose saved environmental reference measurements,
+including optional plot scope, evidence links, and the source-lineage fields
+added by migration 013. The offline guard covers 52 models, 1,104 canonical
+columns, 1,033 scalar types, eight PostGIS shapes, 61 JSONB shapes, 20 enum
+fields, and 33 standalone SQL CHECK literals. Fifty-eight Python SDK/guard
+tests and 29 JavaScript tests pass with the TypeScript build, Ruff, Python
+compilation, schema guard, capability-matrix validation, and diff check. The
+record does not calculate values or establish authoritative baselines. No
+database or network was contacted; capability classifications and MAN-CAP
+acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-environmental-baseline-parity.json)).
+
 ### SDK soil-carbon measurement schema parity — 18 October 2026
 
 Python and TypeScript now expose stored soil-carbon measurements, including
