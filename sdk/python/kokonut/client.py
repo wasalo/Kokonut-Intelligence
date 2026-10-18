@@ -30,14 +30,20 @@ from .types import (
     CreditAdjustment,
     CreditRetirement,
     CreditTransfer,
+    DemandForecast,
     EnvironmentalBaseline,
     FinancialTransaction,
+    ForecastOutput,
+    ForecastScenario,
     ListOptions,
+    MarketSizeEstimate,
+    MetricValue,
     MrvClaim,
     RemoteSensingObservation,
     SoilCarbonMeasurement,
     SoilSample,
     SpeciesObservation,
+    TimeSeriesForecast,
     WeatherObservation,
 )
 
@@ -142,6 +148,24 @@ class KokonutClient:
             self, "remote_sensing_observation"
         )
         self.mrv_claims: LocationReadMethods[MrvClaim] = LocationReadMethods(self, "mrv_claim")
+        self.metric_values: LocationReadMethods[MetricValue] = LocationReadMethods(
+            self, "metric_value"
+        )
+        self.forecast_scenarios: LocationReadMethods[ForecastScenario] = LocationReadMethods(
+            self, "forecast_scenario"
+        )
+        self.forecast_outputs: LocationReadMethods[ForecastOutput] = LocationReadMethods(
+            self, "forecast_output"
+        )
+        self.time_series_forecasts: LocationReadMethods[TimeSeriesForecast] = LocationReadMethods(
+            self, "time_series_forecast"
+        )
+        self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
+            self, "demand_forecast"
+        )
+        self.market_size_estimates: LocationReadMethods[MarketSizeEstimate] = LocationReadMethods(
+            self, "market_size_estimate"
+        )
 
     # -- Auth ------------------------------------------------------------------
 

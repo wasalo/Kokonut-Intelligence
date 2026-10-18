@@ -1443,6 +1443,12 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.species_observations, "species_observation"),
         (client.remote_sensing_observations, "remote_sensing_observation"),
         (client.mrv_claims, "mrv_claim"),
+        (client.metric_values, "metric_value"),
+        (client.forecast_scenarios, "forecast_scenario"),
+        (client.forecast_outputs, "forecast_output"),
+        (client.time_series_forecasts, "time_series_forecast"),
+        (client.demand_forecasts, "demand_forecast"),
+        (client.market_size_estimates, "market_size_estimate"),
     ]
     options = ListOptions(
         filter={"location_id": {"_eq": "other"}, "status": {"_eq": "verified"}},

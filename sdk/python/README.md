@@ -104,6 +104,11 @@ soil_samples = client.soil_samples.list_by_location("location-uuid")
 claims = client.mrv_claims.list_by_location("location-uuid")
 # These reads do not ingest, calculate, verify, or attest records.
 
+# Read stored metrics and forecast results for one location
+metric_values = client.metric_values.list_by_location("location-uuid")
+forecasts = client.demand_forecasts.list_by_location("location-uuid")
+# Stored outputs are returned as-is; the SDK does not compute or verify them.
+
 # Aggregate query
 counts = client.aggregate(
     "harvest_event",
@@ -171,14 +176,21 @@ except KokonutError as e:
 | `species_observations` | `species_observation` | `list_by_location` |
 | `remote_sensing_observations` | `remote_sensing_observation` | `list_by_location` |
 | `mrv_claims` | `mrv_claim` | `list_by_location` |
+| `metric_values` | `metric_value` | `list_by_location` |
+| `forecast_scenarios` | `forecast_scenario` | `list_by_location` |
+| `forecast_outputs` | `forecast_output` | `list_by_location` |
+| `time_series_forecasts` | `time_series_forecast` | `list_by_location` |
+| `demand_forecasts` | `demand_forecast` | `list_by_location` |
+| `market_size_estimates` | `market_size_estimate` | `list_by_location` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are
-read-only and expose only `list`, `get`, and `list_by_location`; the ecological
-observation and MRV groups also expose only these read methods. SDK location
-filters are query conveniences, not authorization boundaries; Directus must
-enforce the caller's grants. These methods do not ingest, calculate, verify,
-attest, or mutate governed lifecycle state.
+read-only and expose only `list`, `get`, and `list_by_location`; the ecological,
+MRV, metric, and forecast groups also expose only these read methods. SDK
+location filters are query conveniences, not authorization boundaries;
+Directus must enforce the caller's grants. These methods do not ingest,
+calculate, verify, attest, or mutate governed lifecycle state. Stored forecast
+and metric outputs are returned without asserting they are current or verified.
 
 ## Examples
 

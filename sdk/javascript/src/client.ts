@@ -20,12 +20,18 @@ import type {
   CreditTransfer,
   CashFlowSnapshot,
   FinancialTransaction,
+  DemandForecast,
+  ForecastOutput,
+  ForecastScenario,
   EnvironmentalBaseline,
+  MarketSizeEstimate,
+  MetricValue,
   MrvClaim,
   RemoteSensingObservation,
   SoilCarbonMeasurement,
   SoilSample,
   SpeciesObservation,
+  TimeSeriesForecast,
   WeatherObservation,
 } from './types.js';
 import {
@@ -115,6 +121,12 @@ export class KokonutClient {
   speciesObservations: LocationReadMethods<SpeciesObservation>;
   remoteSensingObservations: LocationReadMethods<RemoteSensingObservation>;
   mrvClaims: LocationReadMethods<MrvClaim>;
+  metricValues: LocationReadMethods<MetricValue>;
+  forecastScenarios: LocationReadMethods<ForecastScenario>;
+  forecastOutputs: LocationReadMethods<ForecastOutput>;
+  timeSeriesForecasts: LocationReadMethods<TimeSeriesForecast>;
+  demandForecasts: LocationReadMethods<DemandForecast>;
+  marketSizeEstimates: LocationReadMethods<MarketSizeEstimate>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -151,6 +163,12 @@ export class KokonutClient {
     this.speciesObservations = buildLocationReadMethods<SpeciesObservation>(this, 'species_observation');
     this.remoteSensingObservations = buildLocationReadMethods<RemoteSensingObservation>(this, 'remote_sensing_observation');
     this.mrvClaims = buildLocationReadMethods<MrvClaim>(this, 'mrv_claim');
+    this.metricValues = buildLocationReadMethods<MetricValue>(this, 'metric_value');
+    this.forecastScenarios = buildLocationReadMethods<ForecastScenario>(this, 'forecast_scenario');
+    this.forecastOutputs = buildLocationReadMethods<ForecastOutput>(this, 'forecast_output');
+    this.timeSeriesForecasts = buildLocationReadMethods<TimeSeriesForecast>(this, 'time_series_forecast');
+    this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
+    this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {

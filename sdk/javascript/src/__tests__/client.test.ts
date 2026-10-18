@@ -286,6 +286,12 @@ describe('KokonutClient', () => {
       [client.speciesObservations, 'species_observation'],
       [client.remoteSensingObservations, 'remote_sensing_observation'],
       [client.mrvClaims, 'mrv_claim'],
+      [client.metricValues, 'metric_value'],
+      [client.forecastScenarios, 'forecast_scenario'],
+      [client.forecastOutputs, 'forecast_output'],
+      [client.timeSeriesForecasts, 'time_series_forecast'],
+      [client.demandForecasts, 'demand_forecast'],
+      [client.marketSizeEstimates, 'market_size_estimate'],
     ] as const;
     const options = {
       limit: 20,

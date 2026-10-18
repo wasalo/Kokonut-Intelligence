@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### Metrics and forecast SDK location-scoped reads — 18 October 2026
+
+Python and TypeScript clients now expose typed, read-only accessors for stored
+metric values, forecast scenarios and outputs, time-series forecasts, demand
+forecasts, and market-size estimates. Each group exposes `list`, `get`, and
+location-filtered listing; the explicit location overrides a conflicting
+caller filter while preserving other options. SDK documentation states that
+stored outputs are returned as-is and are not calculated, verified, or
+authorized by the client. Ninety-six focused Python SDK tests, 46 JavaScript
+tests, TypeScript build, Ruff, compilation, schema guard, capability validation,
+and diff checks pass offline with mocked SDK calls. CAP-007/008 and MAN-CAP
+acceptance remain unchanged ([evidence](builds/2026-10-18-recovery/sdk-forecast-read-methods.json)).
+Checklist: 619 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### Ecological and MRV SDK location-scoped reads — 18 October 2026
 
 Python and TypeScript clients now expose typed, read-only accessors for stored
