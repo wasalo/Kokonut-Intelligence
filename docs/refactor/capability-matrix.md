@@ -17,6 +17,12 @@ compatibility evidence only. No physical Raspberry Pi, performance,
 power-loss, provider, or MAN-CAP acceptance is claimed
 ([evidence](builds/2026-10-18-recovery/arm64-qemu-current-schema-434.json)).
 
+The default Kernel image from commit `9e02eeff` also builds for `linux/arm64`;
+QEMU imported the isolated RPC worker and constructed a synthetic snapshot with
+networking disabled. This adds image and worker-import evidence only; no
+ARM64 database/app stack or migration-436 replay was performed in that smoke
+([evidence](builds/2026-10-18-recovery/arm64-rpc-worker-image-smoke.json)).
+
 **Protocol-catalog SDK note — 18 October 2026:** Python and TypeScript now
 represent the canonical `protocol` catalog fields and metadata. This data type
 does not query providers, sign transactions, or submit on-chain actions; MAN-CAP
@@ -3750,7 +3756,7 @@ historical projection backfill, populated report parity, and named MAN-CAP
 acceptance remain open ([rollout evidence](builds/2026-10-18-recovery/candidate-migration-435-rollout.json)).
 
 Capability classifications remain unchanged: 54 baseline-retained, 7 deployed,
-and 5 prepared. Checklist: 609 complete / 19 open; named MAN-CAP acceptance
+and 5 prepared. Checklist: 610 complete / 19 open; named MAN-CAP acceptance
 remains separate.
 
 ### CAP-047 isolated RPC wallet-balance snapshot worker — 18 October 2026
@@ -3774,4 +3780,9 @@ remain open. CAP-047 remains partial and MAN-CAP acceptance is unchanged
 [migration](../schemas/postgres/436_isolated_rpc_indexer.sql);
 [runner](../scripts/check-rpc-indexer-worker-disposable.py);
 [database evidence](builds/2026-10-18-recovery/rpc-indexer-worker-disposable.json);
-[checks](builds/2026-10-18-recovery/rpc-indexer-worker-checks.json)).
+[checks](builds/2026-10-18-recovery/rpc-indexer-worker-checks.json)). The
+default image from pushed commit `9e02eeff` also built for `linux/arm64`, and
+QEMU imported the worker and constructed a synthetic balance snapshot with
+networking disabled. No ARM64 database/app stack or migration 436 replay ran;
+physical Raspberry Pi acceptance remains open
+([ARM64 evidence](builds/2026-10-18-recovery/arm64-rpc-worker-image-smoke.json)).

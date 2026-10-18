@@ -1,0 +1,42 @@
+{
+  "date": "2026-10-18",
+  "scope": "Current-source ARM64/QEMU build and isolated RPC worker import smoke",
+  "source_revision": "9e02eeff",
+  "build": {
+    "command": "docker buildx build -f Dockerfile.kernel --platform linux/arm64 --target kernel --load --build-arg KOKONUT_CLICKHOUSE=false -t kokonut-kernel-rpc-arm64:local .",
+    "result": "passed",
+    "platform": "linux/arm64",
+    "image_user": "appuser",
+    "manifest_digest": "sha256:752fcd3fd025d875ccc39889e4f52281a911d1ec605c0d5032e79ac954b755a0"
+  },
+  "runtime": {
+    "engine": "Docker Buildx desktop-linux with QEMU",
+    "network": "none",
+    "container_lifetime": "ephemeral --rm",
+    "command": "python3 -c import platform; from services.ingestion.rpc_worker import _snapshot_record; print(platform.machine()); print(_snapshot_record(...)[0]['token'])",
+    "result": "passed",
+    "machine": "aarch64",
+    "worker_import": "passed",
+    "snapshot_contract": "deterministic synthetic balance snapshot constructed; token ETH",
+    "database_access": false,
+    "provider_calls": false,
+    "credentials_or_mounts": false,
+    "ports_published": false
+  },
+  "cleanup": {
+    "temporary_image_tag_removed": true,
+    "temporary_runtime_container_removed": true,
+    "candidate_containers_unchanged": true,
+    "candidate_health_after_check": {
+      "app": "healthy",
+      "database": "healthy",
+      "proxy": "running",
+      "metabase": "healthy"
+    }
+  },
+  "limitations": [
+    "QEMU is code-only ARM64 execution evidence, not physical Raspberry Pi compatibility, performance, thermal, power-loss, storage, or network acceptance.",
+    "Migration 436 was independently exercised against disposable PostgreSQL 16; it was not replayed on ARM64 in this image smoke.",
+    "No worker database credential was provisioned, no schedule was persisted or activated, and the local candidate remains at migration 435."
+  ]
+}

@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### ARM64 RPC worker image smoke and pushed worker batch — 18 October 2026
+
+Commit `9e02eeff` is pushed to PR #68. A current-source `linux/arm64` Kernel
+image built successfully. Under QEMU with networking disabled, Python reported
+`aarch64`, imported `services.ingestion.rpc_worker`, and created a deterministic
+synthetic balance snapshot. The temporary image tag and container were removed;
+the candidate app, database, proxy, and Metabase remained healthy. This was an
+image/import smoke only: no ARM64 service stack or migration replay was run in
+this check, no database/provider credentials were supplied, and the candidate
+remains through migration 435. Migration 436 has separate disposable PostgreSQL
+16 acceptance. The result does not establish physical Raspberry Pi behavior,
+performance, storage, power-loss, or provider acceptance
+([evidence](builds/2026-10-18-recovery/arm64-rpc-worker-image-smoke.json)).
+
 ### Current-source ARM64/QEMU acceptance and CI #483 correction — 18 October 2026
 
 A fresh internal-only QEMU project applied all 425 ordered schema migrations
@@ -9756,7 +9770,7 @@ Python source compilation passes. Worker inventories were refreshed. The
 candidate remains at migration 435; no credential, provider request, persisted
 schedule, candidate/legacy database, or feature activation was used. This
 worker records balance snapshots only and does not scan transaction history or
-establish confirmation depth/finality/reorg recovery. Checklist: 609 complete /
+establish confirmation depth/finality/reorg recovery. Checklist: 610 complete /
 19 open; capability classifications stay 54 baseline-retained, 7 deployed,
 and 5 prepared. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/rpc-indexer-worker-disposable.json` and
