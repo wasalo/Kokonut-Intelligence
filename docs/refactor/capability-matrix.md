@@ -20,6 +20,12 @@ columns; focused evidence is in
 This implementation note does not change the matrix classifications or mark
 any MAN-CAP acceptance check accepted.
 
+
+**Oracle SDK schema note — 18 October 2026:** The native Python and TypeScript
+SDKs now expose `oracle_price_log` records with saved feed and attestation
+references. This remains data-model parity only; it does not query providers or
+submit attestations. See [the parity record](builds/2026-10-18-recovery/sdk-oracle-price-log-parity.json).
+
 The repository owner authorized ongoing focused test execution. Current
 owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual

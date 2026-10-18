@@ -1130,6 +1130,25 @@ export interface PriceObservation {
   updated_at?: string | null;
 }
 
+/** Stored oracle feed and attestation reference; it does not submit attestations. */
+export interface OraclePriceLog {
+  id: string;
+  commodity: string;
+  price: number;
+  price_timestamp: string;
+  source: string;
+  currency?: string | null;
+  source_count?: number | null;
+  confidence?: number | null;
+  deviation_pct?: number | null;
+  aggregation_method?: PriceAggregationMethod | null;
+  attestation_uid?: string | null;
+  attested_at?: string | null;
+  chain?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+}
+
 /** Stored demand trend analysis and inputs; does not rerun its calculation. */
 export interface DemandTrend {
   id: string;

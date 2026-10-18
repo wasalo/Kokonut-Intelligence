@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK oracle price log schema parity — 18 October 2026
+
+Python and TypeScript now model `oracle_price_log` feed records with source,
+price, timestamp, aggregation summary, optional chain-attestation references,
+and metadata. The guard covers 58 models, 1,252 columns, 1,173 scalar types,
+10 PostGIS shapes, 69 JSONB shapes, 21 enum fields, and 37 standalone SQL
+CHECK literals. Sixty-four Python SDK/guard tests and 29 JavaScript tests
+pass with TypeScript build, Ruff, compilation, schema guard, matrix validation,
+and diff checks. The model does not query feeds, aggregate prices, or submit
+or verify attestations. No database, provider, or network was contacted;
+capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-oracle-price-log-parity.json)).
+
 ### SDK price observation schema parity — 18 October 2026
 
 Python and TypeScript now model stored `price_observation` rows across the base

@@ -817,6 +817,27 @@ class PriceObservation:
 
 
 @dataclass
+class OraclePriceLog:
+    """Stored oracle feed and attestation reference; it does not submit attestations."""
+
+    id: str
+    commodity: str
+    price: float
+    price_timestamp: str
+    source: str
+    currency: Optional[str] = None
+    source_count: Optional[int] = None
+    confidence: Optional[float] = None
+    deviation_pct: Optional[float] = None
+    aggregation_method: Optional[PriceAggregationMethod] = None
+    attestation_uid: Optional[str] = None
+    attested_at: Optional[str] = None
+    chain: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class DemandTrend:
     """Stored demand trend analysis and inputs; does not rerun its calculation."""
 

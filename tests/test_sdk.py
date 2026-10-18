@@ -101,6 +101,26 @@ def test_price_observation_model_preserves_consensus_and_review_as_stored_fields
     )
 
 
+def test_oracle_price_log_keeps_attestation_reference_separate_from_submission():
+    from kokonut import OraclePriceLog
+
+    entry = OraclePriceLog(
+        id="oracle-price-1",
+        commodity="cacao",
+        price=4.25,
+        price_timestamp="2026-10-18T12:00:00Z",
+        source="synthetic-feed",
+        aggregation_method="weighted_average",
+        attestation_uid="0xsynthetic",
+        chain="celo",
+        metadata={"round": 17},
+    )
+
+    assert entry.attestation_uid == "0xsynthetic"
+    assert entry.chain == "celo"
+    assert entry.metadata == {"round": 17}
+
+
 def test_expense_category_type_exposes_shared_taxonomy_fields():
     from kokonut import ExpenseCategory
 

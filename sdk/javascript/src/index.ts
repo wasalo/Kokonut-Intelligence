@@ -50,6 +50,7 @@ export type {
   OrganizationMembershipType,
   OrganizationMemberRole,
   OrganizationMemberStatus,
+  OraclePriceLog,
   LifecycleStatus,
   PaymentStatus,
   SensorSeverity,
