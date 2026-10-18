@@ -1365,9 +1365,9 @@ the operational tables. WalletProfile, AttestationRecord, and ReportSnapshot
 now have current schema column coverage, including selected additive
 migrations; `ExportLog` now includes its canonical table fields in both SDKs,
 `NoiSnapshot` nullability matches the finance table, and the guard now rejects
-TypeScript fields that omit null for nullable SQL columns. `AlertRule`'s
+Python/TypeScript fields that omit nullable SQL annotations. `AlertRule`'s
 nullable maximum threshold is corrected. The guard passes across 20 models and
-473 columns. The checklist is now 542
+473 columns. The checklist is now 543
 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

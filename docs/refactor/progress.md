@@ -8751,3 +8751,13 @@ JavaScript tests, TypeScript build, Ruff, capability-matrix validation, and
 diff checks pass. No database or network was contacted. Checklist: 542
 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-typescript-nullability-guard.json`.
+
+### Python SDK nullable-field guard — 17 October 2026
+
+Extended the offline schema guard to require `Optional[...]` or `None` in
+Python annotations for every nullable SQL column, alongside the TypeScript
+`| null` check. All mapped Python models already matched, and now fail CI if
+that contract regresses. The 20-model/473-column guard, 21 Python tests, 29
+JavaScript tests, TypeScript build, Ruff, capability-matrix validation, and
+diff checks pass. Checklist: 543 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-python-nullability-guard.json`.

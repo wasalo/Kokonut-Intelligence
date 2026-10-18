@@ -129,13 +129,15 @@ def table_nullable_columns(path: Path, table: str) -> set[str]:
     return {name for name, nullable in nullability.items() if nullable}
 
 
-def python_model_fields(path: Path) -> dict[str, set[str]]:
+def python_model_field_types(path: Path) -> dict[str, dict[str, str]]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     return {
         node.name: {
-            field.target.id
+            field.target.id: ast.unparse(field.annotation)
             for field in node.body
-            if isinstance(field, ast.AnnAssign) and isinstance(field.target, ast.Name)
+            if isinstance(field, ast.AnnAssign)
+            and isinstance(field.target, ast.Name)
+            and field.annotation is not None
         }
         for node in ast.walk(tree)
         if isinstance(node, ast.ClassDef)
@@ -175,7 +177,10 @@ def typescript_model_field_types(path: Path) -> dict[str, dict[str, str]]:
 
 def main() -> int:
     schema_dir = ROOT / "schemas" / "postgres"
-    python_models = python_model_fields(ROOT / "sdk" / "python" / "kokonut" / "types.py")
+    python_field_types = python_model_field_types(
+        ROOT / "sdk" / "python" / "kokonut" / "types.py"
+    )
+    python_models = {model: set(fields) for model, fields in python_field_types.items()}
     typescript_models = typescript_model_fields(
         ROOT / "sdk" / "javascript" / "src" / "types.ts"
     )
@@ -207,6 +212,19 @@ def main() -> int:
             failures.append(
                 f"TypeScript {model} omits null from nullable SQL columns: "
                 f"{', '.join(nullable_without_null)}"
+            )
+        nullable_without_optional = sorted(
+            column
+            for column in nullable_columns
+            if column in python_field_types.get(model, {})
+            and not re.search(
+                r"\b(?:Optional|None)\b", python_field_types[model][column]
+            )
+        )
+        if nullable_without_optional:
+            failures.append(
+                f"Python {model} omits Optional from nullable SQL columns: "
+                f"{', '.join(nullable_without_optional)}"
             )
 
     if failures:
