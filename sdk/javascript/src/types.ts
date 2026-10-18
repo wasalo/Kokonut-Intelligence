@@ -561,6 +561,19 @@ export interface ValueFlowEvent {
   created_by?: string | null;
 }
 
+/** Record of an excluded value-flow amount; it does not mutate the flow. */
+export interface ExcludedValueEvent {
+  id: string;
+  exclusion_type: string;
+  reason: string;
+  value_flow_id?: string | null;
+  amount?: number | null;
+  currency?: string | null;
+  excluded_by?: string | null;
+  excluded_at?: string | null;
+  created_at?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

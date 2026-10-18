@@ -55,6 +55,7 @@ export type {
   CapitalSource,
   FinancialTransaction,
   ValueFlowEvent,
+  ExcludedValueEvent,
   SensorReading,
   WalletProfile,
   AttestationRecord,

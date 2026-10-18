@@ -461,6 +461,21 @@ class ValueFlowEvent:
 
 
 @dataclass
+class ExcludedValueEvent:
+    """Record of an excluded value-flow amount; it does not mutate the flow."""
+
+    id: str
+    exclusion_type: str
+    reason: str
+    value_flow_id: Optional[str] = None
+    amount: Optional[float] = None
+    currency: Optional[str] = None
+    excluded_by: Optional[str] = None
+    excluded_at: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

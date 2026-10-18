@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### SDK excluded-value event schema parity — 18 October 2026
+
+Python and TypeScript now expose the canonical `excluded_value_event` record,
+including its optional flow link, exclusion type, amount, reason, and reviewer
+attribution. The offline guard covers 27 models, 586 canonical columns, 551
+scalar types, 28 JSONB shapes, seven PostGIS shapes, 17 enum fields, and eight
+discovered CHECK-literal fields. Thirty-eight Python SDK/guard tests and 29
+JavaScript tests pass with TypeScript build, Ruff, compilation, schema guard,
+capability-matrix validation, and diff check. No database or network was
+contacted. The model records exclusion context and does not mutate the source
+flow ([evidence](builds/2026-10-18-recovery/sdk-excluded-value-event-parity.json)).
+
 ### SDK value-flow event schema parity — 18 October 2026
 
 Python and TypeScript now expose the canonical `value_flow_event` record,

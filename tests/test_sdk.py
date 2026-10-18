@@ -147,6 +147,23 @@ def test_value_flow_type_exposes_verification_and_attestation_references():
     assert flow.is_excluded is False
 
 
+def test_excluded_value_event_type_preserves_reviewer_and_reason_context():
+    from kokonut import ExcludedValueEvent
+
+    exclusion = ExcludedValueEvent(
+        id="exclusion-1",
+        value_flow_id="flow-1",
+        exclusion_type="returned_fund",
+        amount=25.0,
+        reason="Returned to funding source",
+        excluded_by="reviewer-1",
+    )
+
+    assert exclusion.value_flow_id == "flow-1"
+    assert exclusion.exclusion_type == "returned_fund"
+    assert exclusion.reason == "Returned to funding source"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 
