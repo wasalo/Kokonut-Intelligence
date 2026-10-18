@@ -3535,31 +3535,31 @@
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 14,
+          "line": 15,
           "target": "services.common.cli",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 15,
+          "line": 16,
           "target": "services.common.worker_database",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 16,
+          "line": 17,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 17,
+          "line": 18,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 19,
+          "line": 20,
           "target": "services.ingestion.rpc_provider",
           "kind": "from"
         }

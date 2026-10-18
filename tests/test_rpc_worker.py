@@ -1,6 +1,7 @@
 """Isolated RPC wallet snapshot worker contracts use mocked providers and DB."""
 
 import json
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -65,8 +66,40 @@ def test_snapshot_identity_and_payload_are_deterministic_for_the_same_block():
     record, payload_hash = first
     assert record["tx_hash"].startswith("0x")
     assert len(record["tx_hash"]) == 66
-    assert record["value"] == 1.23456789
+    assert record["value"] == Decimal("1.23456789")
     assert payload_hash == rpc_worker._hash_payload(record)
+
+
+def test_balance_rounding_matches_postgres_numeric_half_up():
+    record, _ = rpc_worker._snapshot_record(
+        wallet_id=_WALLET_ID,
+        chain="celo",
+        address=_ADDRESS,
+        block_number=100,
+        block_timestamp=1_700_000_000,
+        balance_wei=5_000_000_000,
+    )
+
+    assert record["value"] == Decimal("0.00000001")
+    payload = rpc_worker._snapshot_record_json(record)
+    assert '"value":0.00000001' in payload
+    assert json.loads(payload, parse_float=Decimal)["value"] == Decimal("0.00000001")
+
+
+def test_large_balance_keeps_all_eight_decimal_places_in_json_number():
+    balance_wei = 9_000_000_000 * 10**18 + 123456780000000000
+    record, _ = rpc_worker._snapshot_record(
+        wallet_id=_WALLET_ID,
+        chain="celo",
+        address=_ADDRESS,
+        block_number=100,
+        block_timestamp=1_700_000_000,
+        balance_wei=balance_wei,
+    )
+
+    assert record["value"] == Decimal("9000000000.12345678")
+    payload = rpc_worker._snapshot_record_json(record)
+    assert json.loads(payload, parse_float=Decimal)["value"] == Decimal("9000000000.12345678")
 
 
 def test_isolated_worker_commits_each_snapshot_with_its_outbox_and_status():

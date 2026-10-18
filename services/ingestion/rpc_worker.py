@@ -7,6 +7,7 @@ import hashlib
 import json
 import time
 from datetime import datetime, timezone
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from web3 import Web3
@@ -23,6 +24,7 @@ _PROJECTION_COLUMNS = [
     "timestamp", "wallet_address", "chain", "tx_hash", "block_number",
     "event_type", "value", "token", "status", "metadata",
 ]
+_ETH_BALANCE_QUANTUM = Decimal("0.00000001")
 
 
 class RPCWorkerPersistenceError(RuntimeError):
@@ -39,6 +41,23 @@ def _hash_payload(value: Any) -> str:
     ).hexdigest()
 
 
+def _snapshot_record_json(record: dict[str, Any]) -> str:
+    """Serialize a snapshot with its decimal balance as an exact JSON number."""
+    value = record.get("value")
+    if not isinstance(value, Decimal):
+        return json.dumps(record, separators=(",", ":"), default=str)
+    if not value.is_finite():
+        raise ValueError("RPC balance value is invalid")
+    decimal_number = format(value, "f")
+    serializable_record = {**record, "value": decimal_number}
+    encoded = json.dumps(serializable_record, separators=(",", ":"), default=str)
+    encoded_string = json.dumps(decimal_number, separators=(",", ":"))
+    marker = f'"value":{encoded_string}'
+    if marker not in encoded:
+        raise ValueError("RPC balance value could not be serialized")
+    return encoded.replace(marker, f'"value":{decimal_number}', 1)
+
+
 def _snapshot_record(
     *, wallet_id: str, chain: str, address: str, block_number: int,
     block_timestamp: int, balance_wei: int
@@ -53,7 +72,9 @@ def _snapshot_record(
     tx_hash = "0x" + hashlib.sha256(
         f"kokonut:rpc-balance:{chain}:{wallet_id}:{block_number}".encode()
     ).hexdigest()
-    balance_eth = round(balance_wei / 10**18, 8)
+    balance_eth = (Decimal(balance_wei) / Decimal(10**18)).quantize(
+        _ETH_BALANCE_QUANTUM, rounding=ROUND_HALF_UP
+    )
     record = {
         "wallet_id": wallet_id,
         "chain": chain,
@@ -82,7 +103,7 @@ def _record_snapshot(
                 (
                     chain,
                     record["wallet_id"],
-                    json.dumps(record, separators=(",", ":")),
+                    _snapshot_record_json(record),
                     payload_hash,
                 ),
             )

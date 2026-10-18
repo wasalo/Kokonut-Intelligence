@@ -16,6 +16,7 @@
     "git_diff_check": "passed",
     "provider_boundaries": "passed: 17 vendor import sites",
     "python_compileall": "passed",
+    "wei_to_eth_precision": "passed: PostgreSQL-compatible half-up rounding and exact numeric JSON encoding",
     "ruff": "passed"
   },
   "date": "2026-10-18",
@@ -23,7 +24,7 @@
   "focused_suite": {
     "command": "python3 -m pytest tests/test_rpc_worker.py tests/test_worker_environment.py tests/test_worker_database.py tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py tests/test_rpc_indexer_contract.py tests/test_rpc_indexer_recovery.py tests/test_runtime_role_boundary.py tests/test_worker_operation_map.py -q",
     "result": "passed",
-    "tests_passed": 272
+    "tests_passed": 274
   },
   "inventory": {
     "allowlisted_modules": 25,
@@ -43,6 +44,7 @@
     "forced_rls": "bounded function operations passed",
     "legacy_snapshot_reuse": "passed without duplicate activity or outbox row",
     "malformed_identity": "rejected",
+    "numeric_eight_decimal_precision": "passed",
     "network": "none",
     "postgresql_major": 16,
     "replay": "passed twice",

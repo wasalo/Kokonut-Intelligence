@@ -470,21 +470,21 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 158,
+          "line": 179,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 165,
+          "line": 186,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_rpc",
           "call": "web3.eth.get_balance"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 166,
+          "line": 187,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_rpc",
           "call": "web3.eth.get_block"

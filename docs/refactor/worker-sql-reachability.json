@@ -348,11 +348,11 @@
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
         "services/common/worker_database.py:114:12",
-        "services/ingestion/rpc_worker.py:114:12",
-        "services/ingestion/rpc_worker.py:143:12",
-        "services/ingestion/rpc_worker.py:150:12",
-        "services/ingestion/rpc_worker.py:243:20",
-        "services/ingestion/rpc_worker.py:80:12"
+        "services/ingestion/rpc_worker.py:101:12",
+        "services/ingestion/rpc_worker.py:135:12",
+        "services/ingestion/rpc_worker.py:164:12",
+        "services/ingestion/rpc_worker.py:171:12",
+        "services/ingestion/rpc_worker.py:264:20"
       ]
     },
     {
@@ -6585,9 +6585,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:80:12",
+      "id": "services/ingestion/rpc_worker.py:101:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 80,
+      "line": 101,
       "scope": "_record_snapshot",
       "method": "execute",
       "expression_kind": "literal",
@@ -6604,9 +6604,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:114:12",
+      "id": "services/ingestion/rpc_worker.py:135:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 114,
+      "line": 135,
       "scope": "_finish_chain",
       "method": "execute",
       "expression_kind": "literal",
@@ -6623,9 +6623,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:143:12",
+      "id": "services/ingestion/rpc_worker.py:164:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 143,
+      "line": 164,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -6642,9 +6642,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:150:12",
+      "id": "services/ingestion/rpc_worker.py:171:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 150,
+      "line": 171,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -6663,9 +6663,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:243:20",
+      "id": "services/ingestion/rpc_worker.py:264:20",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 243,
+      "line": 264,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",

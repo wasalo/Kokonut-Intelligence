@@ -3756,7 +3756,7 @@ historical projection backfill, populated report parity, and named MAN-CAP
 acceptance remain open ([rollout evidence](builds/2026-10-18-recovery/candidate-migration-435-rollout.json)).
 
 Capability classifications remain unchanged: 54 baseline-retained, 7 deployed,
-and 5 prepared. Checklist: 610 complete / 19 open; named MAN-CAP acceptance
+and 5 prepared. Checklist: 611 complete / 19 open; named MAN-CAP acceptance
 remains separate.
 
 ### CAP-047 isolated RPC wallet-balance snapshot worker — 18 October 2026
@@ -3767,11 +3767,11 @@ snapshot/outbox, and completion functions. The login has no direct table access;
 the operation is global protocol data and does not claim location tenant
 context. Network-disabled PostgreSQL 16 acceptance passed migration replay,
 forced-RLS operations, idempotent snapshot/outbox replay, legacy same-block
-reuse, malformed/conflicting snapshot rejection, and direct-table denial. The
-legacy CLI now row-locks and checks duplicate content instead of using
-`ON CONFLICT (tx_hash)`, which the base schema cannot support because its index
-is non-unique. The focused worker boundary suite passes
-272 tests with Ruff and compilation. The candidate remains at migration 435;
+reuse, malformed/conflicting snapshot rejection, exact eight-decimal numeric
+storage, and direct-table denial. The legacy CLI now row-locks and checks
+duplicate content instead of using `ON CONFLICT (tx_hash)`, which the base
+schema cannot support because its index is non-unique. The focused worker
+boundary suite passes 274 tests with Ruff and compilation. The candidate remains at migration 435;
 no worker credential, provider, schedule, or feature was activated. This only
 preserves point-in-time balance snapshots; transaction-history scanning,
 confirmation/finality, provider parity, schedule ownership, and reorg recovery
@@ -3786,3 +3786,7 @@ QEMU imported the worker and constructed a synthetic balance snapshot with
 networking disabled. No ARM64 database/app stack or migration 436 replay ran;
 physical Raspberry Pi acceptance remains open
 ([ARM64 evidence](builds/2026-10-18-recovery/arm64-rpc-worker-image-smoke.json)).
+Wei-to-ETH conversion now uses decimal half-up rounding and exact numeric JSON;
+the 274-test focused worker boundary suite and disposable PostgreSQL precision
+check pass. This changes source correctness evidence only, not capability
+classification or MAN-CAP status.

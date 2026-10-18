@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### RPC wei-to-ETH decimal precision follow-up — 18 October 2026
+
+The isolated RPC worker now converts integer wei to `NUMERIC(18,8)` with
+`Decimal` and PostgreSQL-compatible half-up rounding. The JSON passed to the
+bounded migration function retains the balance as an exact number, avoiding
+binary-float loss for both the half-unit boundary and large balances. The
+focused nine-suite worker boundary set passes 274 tests; the RPC worker/legacy
+slice passes 13 tests, Ruff and Python compilation pass, and generated worker
+and runtime inventories were refreshed. A network-disabled PostgreSQL 16
+replay confirms migration 436 stores `0.00000001` exactly under forced RLS.
+No provider, candidate, or legacy database was contacted. This follow-up is
+local and not yet pushed; the candidate remains at migration 435
+([checks](builds/2026-10-18-recovery/rpc-indexer-worker-checks.json);
+[database evidence](builds/2026-10-18-recovery/rpc-indexer-worker-disposable.json)).
+Checklist: 611 complete / 19 open; matrix classifications remain 54
+baseline-retained, 7 deployed, and 5 prepared.
+
 ### ARM64 RPC worker image smoke and pushed worker batch — 18 October 2026
 
 Commit `9e02eeff` is pushed to PR #68. A current-source `linux/arm64` Kernel
@@ -9765,12 +9782,12 @@ missing transaction identities, reuses a legacy same-block snapshot without a
 second outbox intent, and denies direct table access. The legacy CLI's
 unsupported `ON CONFLICT (tx_hash)` was replaced with a row-locked content
 check because the schema provides only a non-unique tx-hash index. The focused
-worker/environment/job/runtime-role suite passes 272 tests, Ruff passes, and
+worker/environment/job/runtime-role suite passes 274 tests, Ruff passes, and
 Python source compilation passes. Worker inventories were refreshed. The
 candidate remains at migration 435; no credential, provider request, persisted
 schedule, candidate/legacy database, or feature activation was used. This
 worker records balance snapshots only and does not scan transaction history or
-establish confirmation depth/finality/reorg recovery. Checklist: 610 complete /
+establish confirmation depth/finality/reorg recovery. Checklist: 611 complete /
 19 open; capability classifications stay 54 baseline-retained, 7 deployed,
 and 5 prepared. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/rpc-indexer-worker-disposable.json` and

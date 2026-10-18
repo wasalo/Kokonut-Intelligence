@@ -144,6 +144,7 @@ BEGIN
     changed := jsonb_set(record, '{{block_number}}', '101'::JSONB);
     changed := jsonb_set(changed, '{{block_timestamp}}', to_jsonb('2023-11-14T22:13:21+00:00'::TEXT));
     changed := jsonb_set(changed, '{{tx_hash}}', to_jsonb('0x' || repeat('c', 64)));
+    changed := jsonb_set(changed, '{{value}}', '0.00000001'::JSONB);
     inserted := kokonut_security.store_rpc_indexer_snapshot(
         'celo', '{WALLET_ID}', changed, repeat('a', 64)
     );
@@ -186,6 +187,10 @@ BEGIN
     END IF;
     IF (SELECT count(*) FROM public.ingestion_log) <> 1 THEN
         RAISE EXCEPTION 'completion audit count mismatch';
+    END IF;
+    IF (SELECT value FROM public.wallet_activity_event
+         WHERE tx_hash = '0x' || repeat('c', 64)) IS DISTINCT FROM 0.00000001::NUMERIC THEN
+        RAISE EXCEPTION 'eight-decimal wallet balance precision was not preserved';
     END IF;
     IF NOT has_function_privilege(
         'kokonut_rpc_indexer_login',
@@ -267,6 +272,7 @@ def main() -> int:
             "forced_rls": "bounded function operations passed",
             "direct_table_access": "denied",
             "snapshot_and_outbox_idempotency": "passed",
+            "numeric_eight_decimal_precision": "passed",
             "legacy_snapshot_reuse": "passed without duplicate activity or outbox row",
             "malformed_identity": "rejected",
             "conflicting_snapshot": "rejected",

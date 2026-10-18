@@ -8,6 +8,7 @@
   "migration_replay": "passed twice",
   "migration_sha256": "77295ecfb43f53d2f620d54d7d6ca28e35c83e31220aba9147efc7a8770e9a77",
   "network": "none",
+  "numeric_eight_decimal_precision": "passed",
   "postgresql_major": 16,
   "provider_contacted": false,
   "runtime_database_touched": false,
