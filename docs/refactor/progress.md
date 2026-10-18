@@ -9496,13 +9496,16 @@ TypeScript `listItems()` now preserves additional Directus list-query options,
 including caller-defined search, aggregate, and deep parameters, matching
 Python's `list_items(..., **kwargs)` behavior. Standard fields remain
 normalized, and a defined non-zero `limit` plus `offset` continues to take
-precedence over `page`. The focused Python SDK/schema/method suite passes 83
-tests; Vitest passes 37 tests; TypeScript build and compilation, capability
-matrix validation, targeted Ruff, and diff checks pass. A package-wide Ruff
+precedence over `page`. A transport regression instantiates the pinned Directus
+SDK with a stubbed global `fetch` and confirms query-key serialization,
+including JSON encoding for nested `aggregate` and `deep` options, and response
+unwrapping. The focused Python SDK/schema/method suite passes 84 tests; Vitest
+passes 39 tests; TypeScript build and compilation, capability-matrix validation,
+targeted Ruff, and diff checks pass. A package-wide Ruff
 scan still reports 39 findings in untouched generated and example files; the
-changed Python test passes targeted Ruff. Mock clients were used; no HTTP,
-database, provider, or credentials were accessed. Generic query options do not
-provide an authorization or tenant boundary. Checklist: 597 complete / 19
+changed Python test passes targeted Ruff. The fetch is stubbed, so no network
+request was made; no database, provider, or credentials were accessed. Generic query options do not
+provide an authorization or tenant boundary. Checklist: 599 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-list-query-parameter-parity.json`.
 
