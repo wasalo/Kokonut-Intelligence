@@ -473,6 +473,18 @@ describe('KokonutClient', () => {
     });
   });
 
+  it('forwards export field projections like the Python SDK', async () => {
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({
+      id: 'export-1',
+      status: 'completed',
+    });
+
+    const result = await client.exports.get('export-1', ['id', 'status']);
+
+    expect(result).toEqual({ id: 'export-1', status: 'completed' });
+    expect(getItem).toHaveBeenCalledWith('export_log', 'export-1', ['id', 'status']);
+  });
+
   it('keeps the existing create() payload behavior', async () => {
     const createItem = vi.spyOn(client, 'createItem').mockResolvedValue({ id: 'export-2' });
 

@@ -1280,6 +1280,18 @@ def test_export_log_type_exposes_canonical_export_table_fields():
     assert export_log.status == "generating"
 
 
+def test_export_get_forwards_requested_fields_without_network_calls():
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    client.get_item = Mock(return_value={"id": "export-1", "status": "completed"})
+
+    result = client.exports.get("export-1", fields=["id", "status"])
+
+    assert result == {"id": "export-1", "status": "completed"}
+    client.get_item.assert_called_once_with("export_log", "export-1", ["id", "status"])
+
+
 def test_noi_snapshot_type_exposes_canonical_financial_fields():
     from kokonut.types import NoiSnapshot
 

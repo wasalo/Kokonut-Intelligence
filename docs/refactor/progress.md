@@ -9431,3 +9431,15 @@ network, database, or API was used. Gateway operator
 sessions are independent from this legacy Directus client contract. Checklist:
 591 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-session-logout-parity.json`.
+
+### Native SDK export-field projection parity — 18 October 2026
+
+The TypeScript export-record `get()` method now accepts the same optional
+field projection as Python and forwards it to the shared item-read boundary.
+The focused Python SDK/schema/method suite passes 78 tests and Vitest passes 32
+tests. TypeScript build, schema guard, capability matrix, Ruff, and diff checks
+pass. Mock clients were used; no HTTP, database, provider, or credential was
+used. This aligns the client method contract without changing permissions,
+tenant scope, or MAN-CAP acceptance. Checklist: 592 complete / 19 open.
+Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-export-field-projection-parity.json`.

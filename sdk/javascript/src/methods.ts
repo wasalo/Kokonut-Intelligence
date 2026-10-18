@@ -181,7 +181,7 @@ export interface ExportCreateRequest {
 
 export interface ExportMethods extends GenericMethods {
   list(options?: ListOptions): Promise<ExportLog[]>;
-  get(id: string): Promise<ExportLog>;
+  get(id: string, fields?: string[]): Promise<ExportLog>;
   createExport(data: ExportCreateRequest): Promise<ExportLog>;
   /** Existing JavaScript creation method; use createExport() for Python parity. */
   create(data: {
@@ -489,7 +489,7 @@ export function buildExportMethods(client: any): ExportMethods {
 
   return {
     list: (options?: ListOptions) => client.listItems('export_log', options) as Promise<ExportLog[]>,
-    get: (id: string) => client.getItem('export_log', id) as Promise<ExportLog>,
+    get: (id: string, fields?: string[]) => client.getItem('export_log', id, fields) as Promise<ExportLog>,
     createExport,
     create,
     createMany: (data: Partial<ExportLog>[]) => client.createItems('export_log', data) as Promise<ExportLog[]>,

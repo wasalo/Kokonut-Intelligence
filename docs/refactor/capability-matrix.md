@@ -27,6 +27,11 @@ cleared even when the remote logout request fails, matching Python's
 best-effort behavior. This does not affect Gateway session authorization or
 MAN-CAP status ([evidence](builds/2026-10-18-recovery/sdk-session-logout-parity.json)).
 
+**SDK export projection parity note — 18 October 2026:** both clients now accept
+an optional field projection when reading an export record and forward it to
+the Directus item read. This does not change server permissions, tenant scope,
+or MAN-CAP status ([evidence](builds/2026-10-18-recovery/sdk-export-field-projection-parity.json)).
+
 The six-column matrix is checked by `python3 scripts/check-capability-matrix.py`
 and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate
