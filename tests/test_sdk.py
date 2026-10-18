@@ -343,6 +343,28 @@ def test_species_observation_type_preserves_constrained_ecology_and_lifecycle():
     assert observation.status == "submitted"
 
 
+def test_remote_sensing_type_preserves_nullable_plot_and_spatial_shapes():
+    from kokonut import RemoteSensingObservation
+
+    observation = RemoteSensingObservation(
+        id="remote-1",
+        location_id="location-1",
+        observation_date="2026-10-18",
+        plot_id=None,
+        ndvi=0.72,
+        bbox={"type": "Polygon", "coordinates": [[[-70.0, 18.0], [-69.9, 18.0], [-69.9, 18.1], [-70.0, 18.0]]]},
+        centroid={"type": "Point", "coordinates": [-69.95, 18.05]},
+        band_nir=0.61,
+        source_raw={"asset": "synthetic"},
+    )
+
+    assert observation.plot_id is None
+    assert observation.ndvi == 0.72
+    assert observation.bbox["type"] == "Polygon"
+    assert observation.centroid["type"] == "Point"
+    assert observation.band_nir == 0.61
+
+
 def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
     from kokonut import ForecastScenario
 

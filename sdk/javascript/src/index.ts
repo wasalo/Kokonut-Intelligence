@@ -56,6 +56,7 @@ export type {
   SeasonalDecomposition,
   SeasonalDecompositionMethod,
   SpeciesObservation,
+  RemoteSensingObservation,
   TrendConfidenceLevel,
   TrendDirection,
   TrendEstimate,

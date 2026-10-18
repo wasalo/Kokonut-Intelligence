@@ -613,6 +613,49 @@ export interface SpeciesObservation {
   evidence_maturity?: number | null;
 }
 
+/** Stored satellite/drone observation; it does not fetch imagery or compute indices. */
+export interface RemoteSensingObservation {
+  id: string;
+  location_id: string;
+  observation_date: string;
+  plot_id?: string | null;
+  source?: string | null;
+  ndvi?: number | null;
+  ndre?: number | null;
+  evi?: number | null;
+  savi?: number | null;
+  canopy_cover_pct?: number | null;
+  canopy_height_m?: number | null;
+  ndwi?: number | null;
+  bbox?: GeoJSONPolygon | null;
+  centroid?: GeoJSONPoint | null;
+  cloud_cover_pct?: number | null;
+  image_url?: string | null;
+  thumbnail_url?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  schema_version?: string | null;
+  msavi?: number | null;
+  satvi?: number | null;
+  bsi?: number | null;
+  nbr2?: number | null;
+  ndti?: number | null;
+  lswi?: number | null;
+  brightness_index?: number | null;
+  tc_brightness?: number | null;
+  tc_greenness?: number | null;
+  tc_wetness?: number | null;
+  band_blue?: number | null;
+  band_green?: number | null;
+  band_red?: number | null;
+  band_nir?: number | null;
+  band_swir1?: number | null;
+  band_swir2?: number | null;
+}
+
 export interface SensorType {
   id: string;
   name: string;

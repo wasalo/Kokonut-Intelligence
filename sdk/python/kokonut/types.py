@@ -1315,6 +1315,51 @@ class SpeciesObservation:
 
 
 @dataclass
+class RemoteSensingObservation:
+    """Stored satellite/drone observation; this record does not fetch imagery or compute indices."""
+
+    id: str
+    location_id: str
+    observation_date: str
+    plot_id: Optional[str] = None
+    source: Optional[str] = None
+    ndvi: Optional[float] = None
+    ndre: Optional[float] = None
+    evi: Optional[float] = None
+    savi: Optional[float] = None
+    canopy_cover_pct: Optional[float] = None
+    canopy_height_m: Optional[float] = None
+    ndwi: Optional[float] = None
+    bbox: Optional[GeoJSONPolygon] = None
+    centroid: Optional[GeoJSONPoint] = None
+    cloud_cover_pct: Optional[float] = None
+    image_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    schema_version: Optional[str] = None
+    msavi: Optional[float] = None
+    satvi: Optional[float] = None
+    bsi: Optional[float] = None
+    nbr2: Optional[float] = None
+    ndti: Optional[float] = None
+    lswi: Optional[float] = None
+    brightness_index: Optional[float] = None
+    tc_brightness: Optional[float] = None
+    tc_greenness: Optional[float] = None
+    tc_wetness: Optional[float] = None
+    band_blue: Optional[float] = None
+    band_green: Optional[float] = None
+    band_red: Optional[float] = None
+    band_nir: Optional[float] = None
+    band_swir1: Optional[float] = None
+    band_swir2: Optional[float] = None
+
+
+@dataclass
 class SensorType:
     id: str
     name: str

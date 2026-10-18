@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK remote-sensing observation schema parity — 18 October 2026
+
+Python and TypeScript now expose stored satellite/drone observations, including
+the later spectral indices, tasseled-cap values, raw bands, source lineage,
+and typed polygon/point geometry. Migration 432 makes `plot_id` optional, and
+the SDK reflects that evolved nullability. The guard covers 54 models, 1,172
+canonical columns, 1,096 scalar types, 10 PostGIS shapes, 64 JSONB shapes, 20
+enum fields, and 36 standalone SQL CHECK literals. Sixty-one Python SDK/guard
+tests and 29 JavaScript tests pass with TypeScript build, Ruff, compilation,
+schema guard, matrix validation, and diff checks. The record does not fetch
+imagery or compute spectral indices. No database or provider was contacted;
+capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-remote-sensing-observation-parity.json)).
+
 ### SDK species observation schema parity — 18 October 2026
 
 Python and TypeScript now expose biodiversity observations with evidence

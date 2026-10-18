@@ -3509,3 +3509,14 @@ The model does not verify field observations or ecological classifications.
 Checklist: 575 complete / 19 open. Capability classifications and MAN-CAP
 acceptance are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-species-observation-parity.json`.
+
+### Remote-sensing observation SDK model parity — 18 October 2026
+
+Python and TypeScript now represent remote-sensing observations with evolved
+spectral fields, image metadata, source lineage, and typed geometry. The model
+reflects migration 432's nullable plot link. The guard covers 54 models and
+1,172 columns, including 1,096 scalar types, 10 PostGIS shapes, 64 JSONB
+shapes, 20 enum fields, and 36 standalone SQL CHECK literals. It does not
+fetch imagery or calculate indices. Checklist: 576 complete / 19 open.
+Capability classifications and MAN-CAP acceptance are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-remote-sensing-observation-parity.json`.
