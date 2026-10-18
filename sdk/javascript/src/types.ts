@@ -386,7 +386,7 @@ export interface AlertRule {
   metric: 'value' | 'rate_of_change' | 'gap' | 'min' | 'max';
   operator: 'gt' | 'lt' | 'gte' | 'lte' | 'eq' | 'neq' | 'outside_range';
   threshold_value: number;
-  threshold_value_max?: number;
+  threshold_value_max?: number | null;
   severity?: 'info' | 'warning' | 'critical' | null;
   cooldown_minutes?: number | null;
   enabled?: boolean | null;

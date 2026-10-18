@@ -71,6 +71,64 @@ def table_columns(path: Path, table: str) -> set[str]:
     return columns
 
 
+def table_nullable_columns(path: Path, table: str) -> set[str]:
+    source = path.read_text(encoding="utf-8")
+    match = re.search(
+        rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
+        source,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if match is None:
+        raise ValueError(f"canonical table {table!r} not found in {path.relative_to(ROOT)}")
+
+    nullability = {}
+    for line in match.group(1).splitlines():
+        declaration = line.split("--", maxsplit=1)[0].strip().rstrip(",")
+        if not declaration:
+            continue
+        name = declaration.split(maxsplit=1)[0].strip('"').lower()
+        if name in {"constraint", "primary", "unique", "check", "foreign"}:
+            continue
+        if re.fullmatch(r"[a-z][a-z0-9_]*", name):
+            nullability[name] = not bool(
+                re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", declaration, re.IGNORECASE)
+            )
+
+    for migration in sorted((ROOT / "schemas" / "postgres").glob("*.sql")):
+        migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            migration_source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            body = statement.group(1)
+            additions = list(
+                re.finditer(
+                    r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    body,
+                    flags=re.IGNORECASE,
+                )
+            )
+            for index, addition in enumerate(additions):
+                end = additions[index + 1].start() if index + 1 < len(additions) else len(body)
+                definition = body[addition.end() : end]
+                nullability[addition.group(1).lower()] = not bool(
+                    re.search(r"\b(?:NOT\s+NULL|PRIMARY\s+KEY)\b", definition, re.IGNORECASE)
+                )
+
+            for alteration in re.finditer(
+                r"ALTER COLUMN\s+([a-z_][a-z0-9_]*)\s+(SET|DROP)\s+NOT\s+NULL",
+                body,
+                flags=re.IGNORECASE,
+            ):
+                nullability[alteration.group(1).lower()] = (
+                    alteration.group(2).upper() == "DROP"
+                )
+
+    return {name for name, nullable in nullability.items() if nullable}
+
+
 def python_model_fields(path: Path) -> dict[str, set[str]]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     return {
@@ -97,10 +155,31 @@ def typescript_model_fields(path: Path) -> dict[str, set[str]]:
     }
 
 
+def typescript_model_field_types(path: Path) -> dict[str, dict[str, str]]:
+    source = path.read_text(encoding="utf-8")
+    interfaces = re.finditer(
+        r"export interface\s+(\w+)\s*\{(.*?)\n\}", source, flags=re.DOTALL
+    )
+    return {
+        match.group(1): {
+            name: field_type.strip()
+            for name, field_type in re.findall(
+                r"^\s{2}([A-Za-z_][A-Za-z0-9_]*)\??\s*:\s*([^;\n]+)",
+                match.group(2),
+                flags=re.MULTILINE,
+            )
+        }
+        for match in interfaces
+    }
+
+
 def main() -> int:
     schema_dir = ROOT / "schemas" / "postgres"
     python_models = python_model_fields(ROOT / "sdk" / "python" / "kokonut" / "types.py")
     typescript_models = typescript_model_fields(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
+    )
+    typescript_field_types = typescript_model_field_types(
         ROOT / "sdk" / "javascript" / "src" / "types.ts"
     )
     failures = []
@@ -108,6 +187,7 @@ def main() -> int:
 
     for model, (schema_file, table) in MODEL_TABLES.items():
         columns = table_columns(schema_dir / schema_file, table)
+        nullable_columns = table_nullable_columns(schema_dir / schema_file, table)
         checked_columns += len(columns)
         for language, models in (("Python", python_models), ("TypeScript", typescript_models)):
             fields = models.get(model)
@@ -117,6 +197,17 @@ def main() -> int:
             missing = sorted(columns - fields)
             if missing:
                 failures.append(f"{language} {model} is missing SQL columns: {', '.join(missing)}")
+        nullable_without_null = sorted(
+            column
+            for column in nullable_columns
+            if column in typescript_field_types.get(model, {})
+            and not re.search(r"\bnull\b", typescript_field_types[model][column])
+        )
+        if nullable_without_null:
+            failures.append(
+                f"TypeScript {model} omits null from nullable SQL columns: "
+                f"{', '.join(nullable_without_null)}"
+            )
 
     if failures:
         print("SDK schema parity failed:")

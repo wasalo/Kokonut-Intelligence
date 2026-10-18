@@ -8740,3 +8740,14 @@ the TypeScript build, the schema guard, and diff checks pass with fixtures only;
 no database or network was contacted. Checklist: 541 complete / 19 open.
 Capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-noi-snapshot-schema-parity.json`.
+
+### SDK nullable-field guard — 17 October 2026
+
+Extended the fast-fail SDK schema guard to compare nullable SQL columns with
+TypeScript field unions, including nullability changes in additive migrations.
+Fixed `AlertRule.threshold_value_max` to accept null, matching PostgreSQL. The
+guard passes across 20 models/473 columns per SDK; 21 Python tests, 29
+JavaScript tests, TypeScript build, Ruff, capability-matrix validation, and
+diff checks pass. No database or network was contacted. Checklist: 542
+complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-typescript-nullability-guard.json`.

@@ -267,6 +267,7 @@ describe('KokonutClient', () => {
       metric: 'value',
       operator: 'lt',
       threshold_value: 20,
+      threshold_value_max: null,
       enabled: null,
     };
     const alert: SensorAlert = {
