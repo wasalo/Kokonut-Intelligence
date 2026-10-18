@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK price observation schema parity — 18 October 2026
+
+Python and TypeScript now model stored `price_observation` rows across the base
+schema and migrations 081 and 142. The model includes commodity and market
+identity, prices and quantities, oracle confidence/consensus fields, source
+metadata, and verification attribution. The guard covers 57 models, 1,237
+columns, 1,159 scalar types, 10 PostGIS shapes, 68 JSONB shapes, 21 enum
+fields, and 37 standalone SQL CHECK literals. Sixty-three Python SDK/guard
+tests and 29 JavaScript tests pass with TypeScript build, Ruff, compilation,
+schema guard, matrix validation, and diff checks. The record does not fetch,
+aggregate, verify, or attest prices. No database, provider, or network was
+contacted; capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-price-observation-parity.json)).
+
 ### SDK MRV claim and verification review schema parity — 18 October 2026
 
 Python and TypeScript now expose MRV claims and separate verification-review

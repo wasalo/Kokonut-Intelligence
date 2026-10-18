@@ -193,6 +193,9 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ("ChangePoint", "direction"): ("increase", "decrease", "variance_change"),
         ("ChangePoint", "status"): ("detected", "confirmed", "dismissed"),
         ("SeasonalDecomposition", "decomposition_method"): ("classical", "stl", "x11"),
+        ("PriceObservation", "aggregation_method"): (
+            "single", "median_consensus", "weighted_average", "on_chain_attested"
+        ),
         ("SoilSample", "status"): ("draft", "submitted", "verified", "published", "rejected"),
         ("SoilCarbonMeasurement", "status"): (
             "draft", "submitted", "verified", "published", "rejected"
@@ -356,7 +359,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 66
+    assert checked == 68
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

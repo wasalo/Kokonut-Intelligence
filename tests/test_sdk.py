@@ -75,6 +75,32 @@ def test_organization_member_type_is_descriptive_not_an_access_grant():
     )
 
 
+def test_price_observation_model_preserves_consensus_and_review_as_stored_fields():
+    from kokonut import PriceAggregationMethod, PriceObservation
+
+    observation = PriceObservation(
+        id="price-1",
+        price_date="2026-10-18",
+        commodity_code="CACAO",
+        price_per_unit=4.25,
+        currency="USD",
+        source_count=3,
+        aggregation_method="median_consensus",
+        source_metadata={"sources_used": ["source-a", "source-b", "source-c"]},
+        verified=False,
+    )
+
+    assert observation.price_per_unit == 4.25
+    assert observation.aggregation_method == "median_consensus"
+    assert observation.source_metadata == {
+        "sources_used": ["source-a", "source-b", "source-c"]
+    }
+    assert observation.verified is False
+    assert PriceAggregationMethod.__args__ == (
+        "single", "median_consensus", "weighted_average", "on_chain_attested"
+    )
+
+
 def test_expense_category_type_exposes_shared_taxonomy_fields():
     from kokonut import ExpenseCategory
 

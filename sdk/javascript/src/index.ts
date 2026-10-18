@@ -88,6 +88,8 @@ export type {
   MarketScope,
   MarketSizeEstimate,
   MarketSizeEstimateStatus,
+  PriceAggregationMethod,
+  PriceObservation,
   MrvClaim,
   MetricValue,
   HarvestEvent,

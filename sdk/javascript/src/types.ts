@@ -21,6 +21,7 @@ export type TimeSeriesForecastStatus = 'active' | 'superseded' | 'expired';
 export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
 export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type MarketScope = 'local' | 'regional' | 'national' | 'international';
+export type PriceAggregationMethod = 'single' | 'median_consensus' | 'weighted_average' | 'on_chain_attested';
 export type MarketSizeEstimateStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type DemandTrendAnalysisType = 'seasonal_pattern' | 'price_elasticity' | 'moving_average' | 'trend_decomposition';
 export type DemandTrendStatus = 'draft' | 'submitted' | 'verified' | 'published';
@@ -1095,6 +1096,38 @@ export interface MarketSizeEstimate {
   metadata?: JSONObject | null;
   created_by?: string | null;
   updated_by?: string | null;
+}
+
+/** Stored market price and oracle consensus; it does not fetch or attest prices. */
+export interface PriceObservation {
+  id: string;
+  price_date: string;
+  crop_id?: string | null;
+  commodity_code?: string | null;
+  market_name?: string | null;
+  price_per_unit?: number | null;
+  unit?: string | null;
+  currency?: string | null;
+  source?: string | null;
+  source_url?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  confidence?: number | null;
+  deviation_pct?: number | null;
+  source_count?: number | null;
+  aggregation_method?: PriceAggregationMethod | null;
+  source_metadata?: JSONObject | null;
+  market_id?: string | null;
+  location_id?: string | null;
+  buyer_type?: string | null;
+  quality_grade?: string | null;
+  quantity_traded?: number | null;
+  bid_price?: number | null;
+  ask_price?: number | null;
+  verified?: boolean | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  updated_at?: string | null;
 }
 
 /** Stored demand trend analysis and inputs; does not rerun its calculation. */

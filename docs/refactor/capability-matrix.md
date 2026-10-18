@@ -11,6 +11,15 @@ and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate
 capability behavior or mark any MAN-CAP check accepted.
 
+
+**SDK schema implementation note — 18 October 2026:** Python and TypeScript
+now expose stored `price_observation` records and the SQL-constrained oracle
+aggregation method. The source guard covers 57 models and 1,237 canonical
+columns; focused evidence is in
+[the SDK parity record](builds/2026-10-18-recovery/sdk-price-observation-parity.json).
+This implementation note does not change the matrix classifications or mark
+any MAN-CAP acceptance check accepted.
+
 The repository owner authorized ongoing focused test execution. Current
 owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual

@@ -32,6 +32,9 @@ DemandForecastType = Literal[
 ]
 DemandForecastStatus = Literal["draft", "submitted", "verified", "published"]
 MarketScope = Literal["local", "regional", "national", "international"]
+PriceAggregationMethod = Literal[
+    "single", "median_consensus", "weighted_average", "on_chain_attested"
+]
 MarketSizeEstimateStatus = Literal["draft", "submitted", "verified", "published"]
 DemandTrendAnalysisType = Literal[
     "seasonal_pattern", "price_elasticity", "moving_average", "trend_decomposition"
@@ -777,6 +780,40 @@ class MarketSizeEstimate:
     metadata: Optional[JSONObject] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+
+
+@dataclass
+class PriceObservation:
+    """Stored market price and oracle consensus; it does not fetch or attest prices."""
+
+    id: str
+    price_date: str
+    crop_id: Optional[str] = None
+    commodity_code: Optional[str] = None
+    market_name: Optional[str] = None
+    price_per_unit: Optional[float] = None
+    unit: Optional[str] = None
+    currency: Optional[str] = None
+    source: Optional[str] = None
+    source_url: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    confidence: Optional[float] = None
+    deviation_pct: Optional[float] = None
+    source_count: Optional[int] = None
+    aggregation_method: Optional[PriceAggregationMethod] = None
+    source_metadata: Optional[JSONObject] = None
+    market_id: Optional[str] = None
+    location_id: Optional[str] = None
+    buyer_type: Optional[str] = None
+    quality_grade: Optional[str] = None
+    quantity_traded: Optional[float] = None
+    bid_price: Optional[float] = None
+    ask_price: Optional[float] = None
+    verified: Optional[bool] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 
 @dataclass
