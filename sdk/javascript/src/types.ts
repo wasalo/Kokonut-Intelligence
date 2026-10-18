@@ -54,6 +54,18 @@ export type ConservationStatus =
   | 'least_concern'
   | 'data_deficient'
   | 'not_evaluated';
+export type FarmTaskCategory =
+  | 'planting'
+  | 'weeding'
+  | 'irrigation'
+  | 'spraying'
+  | 'harvesting'
+  | 'maintenance'
+  | 'training'
+  | 'reporting'
+  | 'other';
+export type FarmTaskPriority = 'low' | 'medium' | 'high' | 'critical';
+export type FarmTaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -303,6 +315,35 @@ export interface FarmActivity {
   duration_minutes?: number | null;
   activity_end_date?: string | null;
   activity_type_source_options?: ActivityTypeSourceOption[] | null;
+}
+
+/** Stored farm-task plan; this record does not assign or complete work. */
+export interface FarmTask {
+  id: string;
+  location_id: string;
+  task_name: string;
+  category: FarmTaskCategory;
+  priority: FarmTaskPriority;
+  status: FarmTaskStatus;
+  farm_id?: string | null;
+  plot_id?: string | null;
+  crop_cycle_id?: string | null;
+  assignee_id?: string | null;
+  description?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  duration_days?: number | null;
+  estimated_cost_usd?: number | null;
+  actual_cost_usd?: number | null;
+  notes?: string | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface SalesEvent {

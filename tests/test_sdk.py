@@ -79,6 +79,34 @@ def test_farm_activity_model_preserves_review_scope_and_source_option_metadata()
     assert get_type_hints(ActivityTypeSourceOption) == {"option_id": int, "label": str}
 
 
+def test_farm_task_model_preserves_sql_constrained_planning_values():
+    from kokonut import FarmTask, FarmTaskCategory, FarmTaskPriority, FarmTaskStatus
+
+    task = FarmTask(
+        id="task-1",
+        location_id="location-1",
+        task_name="Irrigate north plot",
+        category="irrigation",
+        priority="high",
+        status="in_progress",
+        farm_id="farm-1",
+        duration_days=2,
+        metadata={"plan": "morning rotation"},
+        source_raw="legacy task payload",
+    )
+
+    assert task.category == "irrigation"
+    assert task.priority == "high"
+    assert task.status == "in_progress"
+    assert task.metadata == {"plan": "morning rotation"}
+    assert FarmTaskCategory.__args__ == (
+        "planting", "weeding", "irrigation", "spraying", "harvesting",
+        "maintenance", "training", "reporting", "other",
+    )
+    assert FarmTaskPriority.__args__ == ("low", "medium", "high", "critical")
+    assert FarmTaskStatus.__args__ == ("pending", "in_progress", "completed", "cancelled")
+
+
 def test_organization_member_type_is_descriptive_not_an_access_grant():
     from kokonut import OrganizationMember, OrganizationMembershipType
 

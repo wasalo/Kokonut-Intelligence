@@ -78,6 +78,12 @@ ConservationStatus = Literal[
     "data_deficient",
     "not_evaluated",
 ]
+FarmTaskCategory = Literal[
+    "planting", "weeding", "irrigation", "spraying", "harvesting", "maintenance",
+    "training", "reporting", "other",
+]
+FarmTaskPriority = Literal["low", "medium", "high", "critical"]
+FarmTaskStatus = Literal["pending", "in_progress", "completed", "cancelled"]
 
 GeoJSONPosition = List[float]
 
@@ -343,6 +349,37 @@ class FarmActivity:
     duration_minutes: Optional[int] = None
     activity_end_date: Optional[str] = None
     activity_type_source_options: Optional[List[ActivityTypeSourceOption]] = None
+
+
+@dataclass
+class FarmTask:
+    """Stored farm-task plan; this record does not assign or complete work."""
+
+    id: str
+    location_id: str
+    task_name: str
+    category: FarmTaskCategory
+    priority: FarmTaskPriority
+    status: FarmTaskStatus
+    farm_id: Optional[str] = None
+    plot_id: Optional[str] = None
+    crop_cycle_id: Optional[str] = None
+    assignee_id: Optional[str] = None
+    description: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    duration_days: Optional[int] = None
+    estimated_cost_usd: Optional[float] = None
+    actual_cost_usd: Optional[float] = None
+    notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass

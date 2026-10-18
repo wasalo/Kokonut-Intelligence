@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 583 checklist items complete and 19
-open (602 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 584 checklist items complete and 19
+open (603 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1288,6 +1288,7 @@ reporting views.
 - [x] Add Python and TypeScript `SensorAnomalyEffect` records for the composite reading/rule receipt, event/location links, outcome, alert link, and timestamps. The guard covers 60 models, 1,282 columns, 1,200 scalar types, 10 PostGIS shapes, 72 JSONB shapes, 21 enum fields, and 40 standalone CHECK literals. Sixty-six Python SDK/guard tests and 29 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass offline. The record does not run detection or mutate durable worker receipts ([evidence](builds/2026-10-18-recovery/sdk-sensor-anomaly-effect-parity.json)).
 - [x] Add an offline Python/TypeScript SDK method-surface regression. It compares every convenience-method interface after snake_case/camelCase normalization and includes inherited generic methods; the 67-test focused Python SDK suite, 29 JavaScript tests, TypeScript build, schema guard, Ruff, compilation, matrix validation, and diff checks pass. It checks names only, not route/resource semantics, parameter/return typing, request behavior, or transport authorization ([evidence](builds/2026-10-18-recovery/sdk-method-inventory-parity.json)).
 - [x] Add Python and TypeScript `FarmActivity` stored-record models covering the base schema plus migrations 009, 359, and 369, with typed source-option metadata and JSON payloads. The guard covers 61 models, 1,313 canonical columns, 1,228 scalar types, 10 PostGIS shapes, 75 JSONB shapes, 22 enum fields, and 40 standalone CHECK literals. Sixty-eight Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. This does not claim Gateway write/lifecycle or tenant parity ([evidence](builds/2026-10-18-recovery/sdk-farm-activity-parity.json)).
+- [x] Add Python and TypeScript `FarmTask` stored-record models for scoped task planning, costs, metadata, and source lineage, with exact category/priority/status aliases from the SQL CHECK constraints. The guard covers 62 models, 1,338 canonical columns, 1,252 scalar types, 10 PostGIS shapes, 76 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals. Sixty-nine Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. This model does not assign, schedule, or complete work and does not cover task dependency/weekly-plan relations ([evidence](builds/2026-10-18-recovery/sdk-farm-task-parity.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

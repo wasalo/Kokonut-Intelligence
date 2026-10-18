@@ -1,5 +1,20 @@
 # Kokonut Kernel implementation progress
 
+### SDK FarmTask planning-record parity — 18 October 2026
+
+Python and TypeScript now model the `farm_task` record with location/farm/plot
+scope, assignee reference, dates, duration, cost, metadata, and source lineage.
+The category, priority, and status types exactly match SQL CHECK literals. The
+guard covers 62 models, 1,338 canonical columns, 1,252 scalar types, 10 PostGIS
+shapes, 76 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals.
+Sixty-nine focused Python SDK/schema/method-parity tests and 29 JavaScript
+tests pass; TypeScript build, Ruff, compilation, schema guard,
+capability-matrix validation, and diff checks pass. This record does not
+assign, schedule, or complete work and does not model task dependency or weekly
+plan relations. No database, provider, or network was contacted; capability
+classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-farm-task-parity.json)).
+
 ### SDK FarmActivity stored-record parity — 18 October 2026
 
 Python and TypeScript now expose the canonical `farm_activity` record across

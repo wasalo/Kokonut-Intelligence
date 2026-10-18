@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MODEL_TABLES = {
     "Location": ("001_locations.sql", "location"),
     "FarmActivity": ("003_operations.sql", "farm_activity"),
+    "FarmTask": ("061_impact_value_chain.sql", "farm_task"),
     "Organization": ("064_organization.sql", "organization"),
     "OrganizationMember": ("064_organization.sql", "organization_member"),
     "Farm": ("001_locations.sql", "farm"),
@@ -106,6 +107,7 @@ JSONB_MODEL_SHAPES = {
     ("FarmActivity", "materials_used"): "json_value",
     ("FarmActivity", "source_raw"): "json_object",
     ("FarmActivity", "activity_type_source_options"): "json_object_array",
+    ("FarmTask", "metadata"): "json_object",
     ("SensorReading", "source_raw"): "json_object",
     ("SensorDevice", "metadata"): "json_object",
     ("AlertRule", "metadata"): "json_object",
