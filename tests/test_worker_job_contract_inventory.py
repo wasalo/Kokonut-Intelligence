@@ -18,7 +18,7 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
 
     assert inventory["summary"]["outcomes"] == {
         "default_arguments_accepted": 5,
-        "required_runtime_inputs_validated": 12,
+        "required_runtime_inputs_validated": 13,
     }
     assert jobs["eas"]["required_inputs"] == ["chain"]
     assert jobs["eas"]["module"] == "services.ingestion.eas_worker"
@@ -52,3 +52,7 @@ def test_inventory_distinguishes_location_and_sensor_driver_instance_inputs():
     assert jobs["sensors"]["reason"] == "schema accepts the modeled input; each scheduled instance must provide it"
     assert jobs["anomaly"]["required_inputs"] == ["location_id"]
     assert jobs["anomaly"]["status"] == "required_runtime_inputs_validated"
+    assert jobs["rpc"]["required_inputs"] == ["chain"]
+    assert jobs["rpc"]["status"] == "required_runtime_inputs_validated"
+    assert jobs["rpc_legacy"]["required_inputs"] == ["chain"]
+    assert jobs["rpc_legacy"]["status"] == "required_runtime_inputs_validated"

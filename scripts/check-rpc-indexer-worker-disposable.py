@@ -243,7 +243,7 @@ def main() -> int:
         deadline = time.monotonic() + 90
         while time.monotonic() < deadline:
             ready = subprocess.run(
-                [docker, "exec", name, "pg_isready", "-h", "/var/run/postgresql", "-U", "postgres"],
+                [docker, "exec", name, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"],
                 text=True, capture_output=True, check=False,
             )
             if ready.returncode == 0:
