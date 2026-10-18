@@ -30,21 +30,21 @@
     {
       "dispatcher": "services.events.bus:EventBus._invoke_handler",
       "source": "services/events/bus.py",
-      "process_creation_line": 235,
+      "process_creation_line": 236,
       "child_module": "services.events.handler_runner",
       "child_entrypoint": "services.events.handler_runner:main",
       "worker_secret_filter": "services.events.bus:_handler_child_environment",
-      "worker_secret_filter_line": 241,
+      "worker_secret_filter_line": 242,
       "request_executor": "services.events.handler_runner:execute_request",
-      "request_executor_call_line": 61,
+      "request_executor_call_line": 76,
       "callback_resolver": "services.events.bus:resolve_handler",
-      "resolver_call_line": 44,
+      "resolver_call_line": 55,
       "allowlist_validator": "services.security.execution_allowlist.validate_event_handler",
-      "allowlist_validation_line": 44,
-      "dynamic_import_line": 45,
+      "allowlist_validation_line": 45,
+      "dynamic_import_line": 46,
       "dynamic_handler_invocation_lines": [
-        46,
-        48
+        57,
+        59
       ],
       "allowlisted_handler_targets": [
         "services.cache.events.handle_crisp_scored",
@@ -72,7 +72,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 235,
+          "line": 236,
           "function": "services.events.bus:EventBus._invoke_handler",
           "category": "process",
           "call": "subprocess.Popen"
@@ -145,42 +145,42 @@
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 52,
+          "line": 53,
           "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
           "category": "filesystem",
           "call": "os.open"
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 55,
+          "line": 56,
           "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
           "category": "filesystem",
           "call": "os.open"
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 60,
+          "line": 61,
           "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
           "category": "filesystem",
           "call": "os.mkdir"
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 63,
+          "line": 64,
           "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_directory",
           "category": "filesystem",
           "call": "os.open"
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 114,
+          "line": 115,
           "function": "services.ingestion.ml_anomaly_detector:_open_trusted_model_file",
           "category": "filesystem",
           "call": "os.open"
         },
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
-          "line": 140,
+          "line": 141,
           "function": "services.ingestion.ml_anomaly_detector:_save_model_artifact",
           "category": "filesystem",
           "call": "os.open"
@@ -216,21 +216,21 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 340,
+          "line": 345,
           "function": "services.ingestion.data_freshness:_send_alert",
           "category": "http",
           "call": "services.common.http.http.post"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 370,
+          "line": 375,
           "function": "services.ingestion.data_freshness:_send_alert",
           "category": "email_delivery",
           "call": "smtplib.SMTP"
         },
         {
           "source": "services/ingestion/data_freshness.py",
-          "line": 371,
+          "line": 376,
           "function": "services.ingestion.data_freshness:_send_alert",
           "category": "email_delivery",
           "call": "server.send_message"
@@ -446,14 +446,14 @@
       "candidate_effect_sites": [
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 64,
+          "line": 71,
           "function": "services.ingestion.rpc_indexer:get_web3",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 84,
+          "line": 91,
           "function": "services.ingestion.rpc_indexer:fetch_balance",
           "category": "evm_rpc",
           "call": "w3.eth.get_balance"
@@ -470,7 +470,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 290,
+          "line": 301,
           "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"
@@ -502,7 +502,7 @@
       "candidate_effect_sites": [
         {
           "source": "services/drivers/registry.py",
-          "line": 290,
+          "line": 301,
           "function": "services.drivers.registry:DriverRegistry.load_schedulable_sensor_driver",
           "category": "dynamic_import",
           "call": "importlib.import_module"

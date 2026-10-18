@@ -21,9 +21,9 @@ checkpoint and isolated restore rehearsals. The ordered migration plan reports
 424 applied schema entries through migration 433 and zero pending; the candidate
 app health route returns 200 and the anonymous protected route returns 401.
 No migration enables application-table RLS, which remains disabled. The current
-generated SQL inventory records 4,004 execution sites across 825 service source
+generated SQL inventory records 4,006 execution sites across 826 service source
 files, with 322 sites linked to 31 worker operation roots across 93 source files.
-The worker graph records 632 function memberships, 862 direct-call edges,
+The worker graph records 639 function memberships, 875 direct-call edges,
 and 20 dynamic-dispatch edges; its SQL report records 321 operation/site
 memberships on static paths, 249 unique sites with a static operation path, and
 73 sites without a static function match. These generated counts are source
@@ -152,8 +152,8 @@ allowlisted scheduled modules and seven event-handler pairs, including their
 source-visible data objects, source scope, external effects, and replay notes.
 `tests/test_worker_operation_map.py` ensures the inventory matches both
 executable allowlists and every entry has source references. The refreshed
-graph covers 31 operation roots across 93 source files, with 632 function
-memberships, 862 direct-call edges, and 20 dynamic-dispatch edges. Its SQL map
+graph covers 31 operation roots across 93 source files, with 639 function
+memberships, 875 direct-call edges, and 20 dynamic-dispatch edges. Its SQL map
 has 322 sites; 249 unique sites have static operation paths and 73 lack a
 resolved function path. The boundary preflight remains `review_required`, with
 identity/RLS readiness not established. These are source-navigation aids, not

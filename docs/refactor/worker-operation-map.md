@@ -87,8 +87,8 @@ application-wide RLS or proof for other workers.
   wrapper. EventBus subprocess dispatch is described separately by the worker
   effect inventory, since the handler runner is selected by its process
   command/request protocol rather than a local function call. Across 31
-  operation roots and 93 source files, entry functions reach 632 function
-  memberships through 862 direct-call and 20 dynamic-dispatch edges, with no unresolved
+  operation roots and 93 source files, entry functions reach 639 function
+  memberships through 875 direct-call and 20 dynamic-dispatch edges, with no unresolved
   operation roots. This remains a conservative source map: callbacks and
   dynamic dispatch outside the pinned registry, unresolved instance types,
   extension code, and database/provider behavior may be absent. Use

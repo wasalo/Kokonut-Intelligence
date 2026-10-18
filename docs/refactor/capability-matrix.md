@@ -1043,10 +1043,10 @@ secret-bearing database error
 
 **17 October 2026 worker inventory refresh (CAP-047):** after the EAS provider
 extraction, freshness-alert helper changes, and CI #431 correction, the current
-static inventories cover 31 operation roots and 93 source files, 632 function
-memberships, 862 direct-call edges, 322 worker SQL sites, 249 SQL sites with
+static inventories cover 31 operation roots and 93 source files, 639 function
+memberships, 875 direct-call edges, 322 worker SQL sites, 249 SQL sites with
 static operation paths, and 73 sites without a static function match. The
-runtime SQL inventory covers 4,004 execution sites across 825 files. The latest
+runtime SQL inventory covers 4,006 execution sites across 826 files. The latest
 30 focused worker-inventory tests and all five generated worker checks pass,
 but the boundary preflight remains `review_required`; source reachability does
 not prove runtime grants, tenant context, active schedules, or RLS. MAN-CAP-047
@@ -1438,8 +1438,8 @@ CLI rejects it before opening a database connection. Ninety-three focused
 command/contract checks pass; the then-current JobSpec inventory distinguished
 nine no-input jobs, five required-location jobs, and one source-less sensor job.
 Anomaly and sensor-scope slices later changed that inventory to eight no-input
-jobs and seven validated-input jobs. The current catalog has five no-input jobs
-and eleven validated-input jobs after EAS/RPC chain and NOI location scoping; the sensor
+jobs and seven validated-input jobs. The current 17-job catalog has five no-input jobs
+and twelve validated-input jobs after EAS/RPC chain, NOI, and newer native worker scoping; the sensor
 location/driver-instance pair remains required.
 This remains a source contract: workers inherit the shared runtime identity
 without signed tenant context, RLS remains blocked, and no MAN-CAP status or

@@ -301,7 +301,7 @@ credential was used ([evidence](builds/2026-10-17-recovery/isolated-worker-impor
 The current source-inventory refresh covers 31 operation roots and 93 source
 files; 73 worker SQL sites still lack a static function path and the worker
 boundary preflight remains `review_required`. The whole-service SQL inventory
-covers 4,004 execution sites across 825 files. Generated worker/runtime maps
+covers 4,006 execution sites across 826 files. Generated worker/runtime maps
 were regenerated after current source edits, their check modes pass, and the
 eight focused inventory suites pass 50 tests
 ([latest worker inventory evidence](builds/2026-10-17-recovery/ci-431-worker-inventory-fix.json);
@@ -786,8 +786,8 @@ before protected reads and writes, and make direct database access fail closed.
   adjustment check has its own read-only entrypoint; the interactive
   credit-management CLI is excluded from scheduler allowlisting. The function
   graph now follows the shared `services.common.cli.run(main)` callback. A separate comparison
-  covers 16 shared JobSpecs: the current inventory has five no-input defaults
-  and eleven validated-input jobs, while EAS/RPC now require explicit supported
+  covers the current 17 shared JobSpecs: the inventory has five no-input defaults
+  and twelve validated-input jobs, while EAS/RPC require explicit supported
   chains. The earlier eight-no-input comparison recorded that anomaly,
   climate, weather, weather forecast, metrics, credit adjustment, and remote sensing require a
   schema-validated location per scheduled task; scheduled sensor ingestion now requires one location-bound registered driver
