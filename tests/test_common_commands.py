@@ -11,6 +11,7 @@ import contextlib
 import io
 import json
 import os
+import subprocess
 
 os.environ.setdefault("KOKONUT_ALLOW_PLAINTEXT_ENV", "true")
 
@@ -132,6 +133,30 @@ def test_no_command_prints_help() -> None:
         cli.main([])
     assert "usage:" in out.getvalue()
     assert "hi" in out.getvalue()
+
+
+def test_help_does_not_load_database_secrets() -> None:
+    """A command parser can show help without importing the DB environment."""
+    script = """
+import subprocess
+subprocess.run = lambda *args, **kwargs: (_ for _ in ()).throw(
+    AssertionError('help attempted to load database secrets')
+)
+from services.common.commands import CommandLine
+cli = CommandLine('prog', 'help without database')
+cli.subcommand('inspect', 'Inspect policy').run(lambda conn, args: {})
+cli.main(['--help'])
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        env={"PYTHONPATH": os.getcwd(), "KOKONUT_ENV": "development"},
+        timeout=10,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "inspect" in result.stdout
 
 
 def test_required_arg_error_preserved() -> None:

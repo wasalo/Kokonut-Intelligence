@@ -22,6 +22,8 @@ from .data_governance import (
     get_governance_summary,
     get_portability_requests,
     get_sharing_agreements,
+    list_retention_legal_holds,
+    list_retention_policies,
     log_access,
     place_retention_legal_hold,
     record_consent,
@@ -102,6 +104,28 @@ def _cmd_set_retention(db, a):
         location_id=a.location_id, policy_owner=a.policy_owner,
         actor=a.actor, reason=a.reason,
         jurisdiction_code=a.jurisdiction_code, purpose_code=a.purpose_code,
+    )
+
+
+def _cmd_list_retention_policies(db, a):
+    return list_retention_policies(
+        db,
+        status=a.status,
+        data_category=a.data_category,
+        jurisdiction_code=a.jurisdiction_code,
+        purpose_code=a.purpose_code,
+        location_id=a.location_id,
+        limit=a.limit,
+    )
+
+
+def _cmd_list_retention_holds(db, a):
+    return list_retention_legal_holds(
+        db,
+        active_only=not a.include_released,
+        entity_type=a.entity_type,
+        entity_id=a.entity_id,
+        limit=a.limit,
     )
 
 
@@ -251,6 +275,25 @@ cli.subcommand("set-retention", "Set retention policy") \
     .add("--reason", required=True) \
     .add("--json", action="store_true") \
     .run(_cmd_set_retention)
+
+cli.subcommand("retention-policies", "List configured retention policies") \
+    .add("--status", choices=["draft", "active", "inactive"]) \
+    .add("--data-category") \
+    .add("--jurisdiction-code") \
+    .add("--purpose-code") \
+    .add("--location-id") \
+    .add("--limit", type=int, default=100) \
+    .add("--json", action="store_true") \
+    .run(_cmd_list_retention_policies)
+
+cli.subcommand("retention-holds", "List active legal holds") \
+    .add("--entity-type") \
+    .add("--entity-id") \
+    .add("--include-released", action="store_true",
+         help="Include released holds in the bounded inventory") \
+    .add("--limit", type=int, default=100) \
+    .add("--json", action="store_true") \
+    .run(_cmd_list_retention_holds)
 
 cli.subcommand("approve-retention", "Approve a configured retention policy") \
     .add("--policy-id", required=True) \

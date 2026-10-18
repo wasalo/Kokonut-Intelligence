@@ -871,6 +871,151 @@ def set_retention_policy(
         cur.close()
 
 
+def list_retention_policies(
+    conn,
+    *,
+    status: str | None = None,
+    data_category: str | None = None,
+    jurisdiction_code: str | None = None,
+    purpose_code: str | None = None,
+    location_id: str | None = None,
+    limit: int = 100,
+) -> dict:
+    """Return a bounded policy inventory without exposing free-text metadata."""
+    if status is not None and (
+        not isinstance(status, str)
+        or status not in {"draft", "active", "inactive"}
+    ):
+        raise ValueError("status must be draft, active, or inactive")
+    if data_category is not None:
+        if not isinstance(data_category, str) or not data_category.strip():
+            raise ValueError("data_category must be a non-empty string")
+        data_category = data_category.strip()
+    jurisdiction_code = _normalize_retention_scope_code(
+        jurisdiction_code, "jurisdiction_code",
+    )
+    purpose_code = _normalize_retention_scope_code(purpose_code, "purpose_code")
+    if location_id is not None:
+        try:
+            location_id = str(uuid.UUID(str(location_id)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("location_id must be a UUID") from exc
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
+        raise ValueError("limit must be an integer between 1 and 500")
+
+    filters = []
+    params = []
+    for column, value in (
+        ("status", status),
+        ("data_category", data_category),
+        ("jurisdiction_code", jurisdiction_code),
+        ("purpose_code", purpose_code),
+        ("location_id", location_id),
+    ):
+        if value is not None:
+            filters.append(f"{column} = %s")
+            params.append(value)
+    where = " AND ".join(filters) if filters else "TRUE"
+    params.append(limit)
+
+    columns = (
+        "id", "data_category", "entity_type", "location_id",
+        "jurisdiction_code", "purpose_code", "retention_days",
+        "deletion_method", "auto_enforce", "status", "enforcement_status",
+        "policy_owner", "approved_by", "approval_date", "created_at",
+        "updated_at", "last_enforced_at",
+    )
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            f"""
+            SELECT {", ".join(columns)}
+            FROM data_retention_policy
+            WHERE {where}
+            ORDER BY created_at DESC, id
+            LIMIT %s
+            """,
+            tuple(params),
+        )
+        policies = []
+        for row in cur.fetchall():
+            policy = dict(zip(columns, row))
+            for key, value in policy.items():
+                if isinstance(value, (date, datetime, uuid.UUID)):
+                    policy[key] = str(value) if isinstance(value, uuid.UUID) else value.isoformat()
+            policies.append(policy)
+        return {"policies": policies, "total": len(policies), "limit": limit}
+    finally:
+        cur.close()
+
+
+def list_retention_legal_holds(
+    conn,
+    *,
+    active_only: bool = True,
+    entity_type: str | None = None,
+    entity_id: str | None = None,
+    limit: int = 100,
+) -> dict:
+    """Return a bounded legal-hold inventory without exposing hold reasons."""
+    if not isinstance(active_only, bool):
+        raise ValueError("active_only must be a boolean")
+    if entity_type is not None and (
+        not isinstance(entity_type, str)
+        or not re.fullmatch(r"[a-z_]+", entity_type)
+    ):
+        raise ValueError("entity_type must be a lowercase table name")
+    if entity_id is not None:
+        try:
+            entity_id = str(uuid.UUID(str(entity_id)))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ValueError("entity_id must be a UUID") from exc
+    if entity_id is not None and entity_type is None:
+        raise ValueError("entity_type is required when entity_id is supplied")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 500:
+        raise ValueError("limit must be an integer between 1 and 500")
+
+    filters = []
+    params = []
+    if active_only:
+        filters.append("released_at IS NULL")
+    if entity_type is not None:
+        filters.append("entity_type = %s")
+        params.append(entity_type)
+    if entity_id is not None:
+        filters.append("entity_id = %s")
+        params.append(entity_id)
+    where = " AND ".join(filters) if filters else "TRUE"
+    params.append(limit)
+
+    columns = (
+        "id", "entity_type", "entity_id", "placed_by", "placed_at",
+        "released_by", "released_at",
+    )
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            f"""
+            SELECT {", ".join(columns)}
+            FROM data_retention_legal_hold
+            WHERE {where}
+            ORDER BY placed_at DESC, id
+            LIMIT %s
+            """,
+            tuple(params),
+        )
+        holds = []
+        for row in cur.fetchall():
+            hold = dict(zip(columns, row))
+            for key, value in hold.items():
+                if isinstance(value, (date, datetime, uuid.UUID)):
+                    hold[key] = str(value) if isinstance(value, uuid.UUID) else value.isoformat()
+            holds.append(hold)
+        return {"holds": holds, "total": len(holds), "limit": limit}
+    finally:
+        cur.close()
+
+
 def approve_retention_policy(
     conn,
     policy_id: str,

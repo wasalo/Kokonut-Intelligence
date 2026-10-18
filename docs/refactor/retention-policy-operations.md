@@ -18,7 +18,7 @@ reviews the applicable purpose and jurisdiction; optional opaque codes can be
 recorded without selecting a duration:
 
 ```bash
-python3 -m services.analytics.data_governance set-retention \
+python3 -m services.analytics.cli_data_governance set-retention \
   --data-category soil --entity-type soil_sample \
   --jurisdiction-code us --purpose-code research \
   --policy-owner ACCOUNTABLE_OWNER \
@@ -46,7 +46,7 @@ python3 -m services.analytics.data_governance set-retention \
   --data-category soil --entity-type soil_sample --retention-days N \
   --action soft_delete --policy-owner ACCOUNTABLE_OWNER \
   --actor OPERATOR --reason "Reviewed proposal"
-python3 -m services.analytics.data_governance approve-retention \
+python3 -m services.analytics.cli_data_governance approve-retention \
   --policy-id UUID --approved-by OPERATOR --reason "Approved schedule" \
   --auto-enforce
 ```
@@ -55,6 +55,16 @@ Replace an active policy by creating its successor, retiring the current
 policy, then approving the successor. Overlapping active policies are rejected
 or skipped as ambiguous. Retirement disables enforcement and records the
 actor, reason, and policy snapshot in append-only history.
+
+Review the current policy inventory before a change. The bounded read-only
+command supports filters for status, category, jurisdiction, purpose, and
+location. It returns configured windows and approval state, while omitting
+free-text metadata and audit reasons:
+
+```bash
+python3 -m services.analytics.cli_data_governance retention-policies \
+  --status draft --jurisdiction-code us --purpose-code research --limit 100
+```
 
 ## Legal holds
 
@@ -74,12 +84,18 @@ opening a database cursor. This matches the persisted audit columns; it does
 not authenticate the supplied identity.
 
 ```bash
-python3 -m services.analytics.data_governance place-retention-hold \
+python3 -m services.analytics.cli_data_governance place-retention-hold \
   --entity-type platform_event --entity-id UUID \
   --actor OPERATOR --reason "Preserve for active review"
-python3 -m services.analytics.data_governance release-retention-hold \
+python3 -m services.analytics.cli_data_governance release-retention-hold \
   --hold-id UUID --actor OPERATOR --reason "Review closed"
+python3 -m services.analytics.cli_data_governance retention-holds \
+  --entity-type platform_event
 ```
+
+The hold inventory is active-only by default, is limited to 500 rows, and
+omits hold/release reasons. Add `--include-released` for bounded historical
+state, or filter to one entity with both `--entity-type` and `--entity-id`.
 
 Hold placement/release serializes with generic and event cleanup using a
 transaction advisory lock. Both cleanup paths exclude active record-level
@@ -97,8 +113,12 @@ Each successful run is recorded with its operator and outcome.
 The generic sweeper remains a default-off soft-delete path for explicitly
 approved tables with `created_at`, `id`, and `deleted_at` semantics. It excludes
 protected lifecycle entities and unresolved jurisdiction/purpose scopes,
-detects overlapping active policy scopes, and checks active holds. Policy actor fields currently provide attribution, not
-authenticated administrative authorization. It is not a general erasure executor. Notification
+detects overlapping active policy scopes, and checks active holds. Policy actor
+fields currently provide attribution, not authenticated administrative
+authorization. The inventory and mutation commands remain local
+protected-operator tools; do not expose them through the Gateway until an
+authenticated, least-privilege policy-management contract is implemented. It
+is not a general erasure executor. Notification
 outbox, handler attempt history, operator-audit records, media, exports,
 backups, and Field Collector disposition do not have automatic pruning paths.
 

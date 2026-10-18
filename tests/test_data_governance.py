@@ -24,6 +24,8 @@ from services.analytics.data_governance import (
     get_governance_summary,
     get_portability_requests,
     get_sharing_agreements,
+    list_retention_legal_holds,
+    list_retention_policies,
     log_access,
     place_retention_legal_hold,
     record_consent,
@@ -469,6 +471,106 @@ class TestSetRetentionPolicy(unittest.TestCase):
             )
 
         self.conn.cursor.assert_not_called()
+
+
+class TestRetentionInventory(unittest.TestCase):
+    POLICY_ID = "a0000000-0000-0000-0000-000000000402"
+    LOCATION_ID = "a0000000-0000-0000-0000-000000000403"
+
+    def test_policy_inventory_returns_bounded_scope_without_free_text(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [(
+            self.POLICY_ID, "soil", "soil_sample", self.LOCATION_ID,
+            "us", "research", None, "soft_delete", False, "draft", "paused",
+            "Kokonut Network", None, None, datetime(2026, 10, 17, tzinfo=timezone.utc),
+            datetime(2026, 10, 17, tzinfo=timezone.utc), None,
+        )]
+
+        result = list_retention_policies(
+            conn, status="draft", jurisdiction_code=" US ",
+            purpose_code="Research", location_id=self.LOCATION_ID, limit=20,
+        )
+
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["limit"], 20)
+        self.assertEqual(result["policies"][0]["retention_days"], None)
+        self.assertEqual(result["policies"][0]["jurisdiction_code"], "us")
+        self.assertEqual(result["policies"][0]["created_at"], "2026-10-17T00:00:00+00:00")
+        sql, params = cursor.execute.call_args.args
+        self.assertIn("FROM data_retention_policy", sql)
+        self.assertNotIn("metadata", sql)
+        self.assertNotIn("reason", sql)
+        self.assertEqual(params, ("draft", "us", "research", self.LOCATION_ID, 20))
+        cursor.close.assert_called_once()
+
+    def test_policy_inventory_validates_filters_before_database_access(self):
+        for kwargs in (
+            {"status": "deleted"},
+            {"jurisdiction_code": "USA/DR"},
+            {"purpose_code": " "},
+            {"location_id": "not-a-uuid"},
+            {"limit": 0},
+            {"limit": True},
+            {"limit": 501},
+        ):
+            with self.subTest(kwargs=kwargs):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    list_retention_policies(conn, **kwargs)
+                conn.cursor.assert_not_called()
+
+    def test_active_hold_inventory_omits_sensitive_reason(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = [(
+            self.POLICY_ID, "platform_event", self.LOCATION_ID, "operator-1",
+            datetime(2026, 10, 17, tzinfo=timezone.utc), None, None,
+        )]
+
+        result = list_retention_legal_holds(conn, entity_type="platform_event")
+
+        self.assertEqual(result["total"], 1)
+        self.assertNotIn("reason", result["holds"][0])
+        self.assertNotIn("release_reason", result["holds"][0])
+        sql, params = cursor.execute.call_args.args
+        self.assertIn("released_at IS NULL", sql)
+        self.assertNotIn("reason", sql)
+        self.assertEqual(params, ("platform_event", 100))
+
+    def test_hold_inventory_can_include_released_records_for_one_entity(self):
+        conn = MagicMock()
+        cursor = MagicMock()
+        conn.cursor.return_value = cursor
+        cursor.fetchall.return_value = []
+
+        result = list_retention_legal_holds(
+            conn, active_only=False, entity_type="platform_event",
+            entity_id=self.LOCATION_ID, limit=10,
+        )
+
+        self.assertEqual(result["holds"], [])
+        sql, params = cursor.execute.call_args.args
+        self.assertNotIn("released_at IS NULL", sql)
+        self.assertEqual(params, ("platform_event", self.LOCATION_ID, 10))
+
+    def test_hold_inventory_validates_scope_and_limit_before_database_access(self):
+        for kwargs in (
+            {"entity_id": self.LOCATION_ID},
+            {"entity_type": "public.location"},
+            {"entity_type": "location", "entity_id": "bad"},
+            {"active_only": 1},
+            {"limit": 0},
+            {"limit": True},
+            {"limit": 501},
+        ):
+            with self.subTest(kwargs=kwargs):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    list_retention_legal_holds(conn, **kwargs)
+                conn.cursor.assert_not_called()
 
 
 class TestApproveRetentionPolicy(unittest.TestCase):
