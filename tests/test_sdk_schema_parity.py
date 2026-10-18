@@ -178,6 +178,20 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
             "high_value", "medium_value", "low_value", "potential", "at_risk", "churned"
         ),
         ("BuyerSegment", "status"): ("draft", "submitted", "verified", "published"),
+        ("TrendEstimate", "direction"): (
+            "improving", "stable", "declining", "insufficient_data"
+        ),
+        ("TrendEstimate", "confidence_level"): (
+            "high", "moderate", "low", "insufficient_data"
+        ),
+        ("TrendSmoothing", "smoothing_type"): (
+            "moving_average", "weighted_moving_average", "exponential", "holt_linear"
+        ),
+        ("ChangePoint", "detection_method"): (
+            "cusum", "pelt", "binary_segmentation", "window_slider"
+        ),
+        ("ChangePoint", "direction"): ("increase", "decrease", "variance_change"),
+        ("ChangePoint", "status"): ("detected", "confirmed", "dismissed"),
     }
     python_aliases = SCHEMA_GUARD.python_literal_aliases(
         ROOT / "sdk" / "python" / "kokonut" / "types.py"
@@ -310,7 +324,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 50
+    assert checked == 52
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

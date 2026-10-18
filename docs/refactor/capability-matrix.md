@@ -3427,3 +3427,16 @@ guard, matrix validation, and diff checks pass. The type does not classify
 buyers or calculate measures; capability status and MAN-CAP acceptance remain
 unchanged. Checklist: 568 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-buyer-segment-parity.json`.
+
+### Trend result SDK model parity — 18 October 2026
+
+Python and TypeScript now model trend estimates, smoothed values, and detected
+change points, including constrained confidence/direction, smoothing and
+detection methods, status, and evidence fields. The schema guard checks 46
+models and 957 columns, including 896 scalar types, seven PostGIS shapes, 52
+JSONB shapes, 20 enum fields, and 30 standalone SQL CHECK literals. Fifty-three
+focused Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff,
+compilation, guard, matrix validation, and diff checks pass. The models do not
+compute the represented analyses; capability status and MAN-CAP acceptance
+remain unchanged. Checklist: 569 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-trend-result-parity.json`.

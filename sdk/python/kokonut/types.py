@@ -49,6 +49,14 @@ BuyerSegmentType = Literal["value_based", "behavior_based", "need_based", "tier_
 BuyerSegmentValue = Literal[
     "high_value", "medium_value", "low_value", "potential", "at_risk", "churned"
 ]
+TrendDirection = Literal["improving", "stable", "declining", "insufficient_data"]
+TrendConfidenceLevel = Literal["high", "moderate", "low", "insufficient_data"]
+TrendSmoothingType = Literal[
+    "moving_average", "weighted_moving_average", "exponential", "holt_linear"
+]
+ChangePointDetectionMethod = Literal["cusum", "pelt", "binary_segmentation", "window_slider"]
+ChangePointDirection = Literal["increase", "decrease", "variance_change"]
+ChangePointStatus = Literal["detected", "confirmed", "dismissed"]
 
 GeoJSONPosition = List[float]
 
@@ -895,6 +903,75 @@ class BuyerSegment:
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
     created_by: Optional[str] = None
+
+
+@dataclass
+class TrendEstimate:
+    """Stored trend fit and confidence metadata; this type does not fit a trend."""
+
+    id: str
+    metric_key: str
+    location_id: str
+    period_start: str
+    period_end: str
+    data_points: int
+    slope: float
+    intercept: float
+    r_squared: float
+    standard_error: float
+    direction: TrendDirection
+    confidence_level: TrendConfidenceLevel
+    time_unit: str
+    computed_at: str
+    computed_by: str
+    created_at: str
+    slope_p_value: Optional[float] = None
+    slope_ci_lower: Optional[float] = None
+    slope_ci_upper: Optional[float] = None
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class TrendSmoothing:
+    """Stored smoothed series value; this type does not perform smoothing."""
+
+    id: str
+    metric_key: str
+    location_id: str
+    smoothing_type: TrendSmoothingType
+    original_value: float
+    smoothed_value: float
+    timestamp: str
+    computed_at: str
+    created_at: str
+    window_size: Optional[int] = None
+    alpha: Optional[float] = None
+    beta: Optional[float] = None
+
+
+@dataclass
+class ChangePoint:
+    """Stored detected regime change and its evidence fields."""
+
+    id: str
+    metric_key: str
+    location_id: str
+    detection_method: ChangePointDetectionMethod
+    change_point_index: int
+    magnitude: float
+    direction: ChangePointDirection
+    confidence: float
+    segment_count: int
+    status: ChangePointStatus
+    detected_at: str
+    created_at: str
+    change_point_timestamp: Optional[str] = None
+    pre_mean: Optional[float] = None
+    post_mean: Optional[float] = None
+    pre_std: Optional[float] = None
+    post_std: Optional[float] = None
+    classification: Optional[str] = None
+    metadata: Optional[JSONObject] = None
 
 
 @dataclass

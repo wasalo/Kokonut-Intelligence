@@ -452,6 +452,58 @@ def test_buyer_segment_type_exposes_stored_criteria_and_measures():
     assert segment.segment_value == "high_value"
 
 
+def test_trend_estimate_smoothing_and_change_point_types_store_results_only():
+    from kokonut import ChangePoint, TrendEstimate, TrendSmoothing
+
+    estimate = TrendEstimate(
+        id="trend-1",
+        metric_key="soil_carbon",
+        location_id="location-1",
+        period_start="2025-01-01T00:00:00Z",
+        period_end="2026-01-01T00:00:00Z",
+        data_points=12,
+        slope=0.4,
+        intercept=1.2,
+        r_squared=0.82,
+        standard_error=0.1,
+        direction="improving",
+        confidence_level="moderate",
+        time_unit="month",
+        computed_at="2026-10-18T00:00:00Z",
+        computed_by="synthetic",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    smooth = TrendSmoothing(
+        id="smooth-1",
+        metric_key="soil_carbon",
+        location_id="location-1",
+        smoothing_type="moving_average",
+        original_value=10.0,
+        smoothed_value=9.5,
+        timestamp="2026-10-18T00:00:00Z",
+        computed_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    point = ChangePoint(
+        id="change-1",
+        metric_key="soil_carbon",
+        location_id="location-1",
+        detection_method="cusum",
+        change_point_index=8,
+        magnitude=0.7,
+        direction="increase",
+        confidence=0.9,
+        segment_count=2,
+        status="detected",
+        detected_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+    )
+
+    assert estimate.direction == "improving"
+    assert smooth.smoothed_value == 9.5
+    assert point.status == "detected"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

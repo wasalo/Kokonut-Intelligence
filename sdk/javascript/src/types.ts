@@ -30,6 +30,12 @@ export type BuyerCommitmentLevel = 'firm' | 'probable' | 'possible' | 'explorato
 export type BuyerSignalStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
 export type BuyerSegmentType = 'value_based' | 'behavior_based' | 'need_based' | 'tier_based';
 export type BuyerSegmentValue = 'high_value' | 'medium_value' | 'low_value' | 'potential' | 'at_risk' | 'churned';
+export type TrendDirection = 'improving' | 'stable' | 'declining' | 'insufficient_data';
+export type TrendConfidenceLevel = 'high' | 'moderate' | 'low' | 'insufficient_data';
+export type TrendSmoothingType = 'moving_average' | 'weighted_moving_average' | 'exponential' | 'holt_linear';
+export type ChangePointDetectionMethod = 'cusum' | 'pelt' | 'binary_segmentation' | 'window_slider';
+export type ChangePointDirection = 'increase' | 'decrease' | 'variance_change';
+export type ChangePointStatus = 'detected' | 'confirmed' | 'dismissed';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -952,6 +958,69 @@ export interface BuyerSegment {
   verified_by?: string | null;
   verified_at?: string | null;
   created_by?: string | null;
+}
+
+/** Stored trend fit and confidence metadata; this type does not fit a trend. */
+export interface TrendEstimate {
+  id: string;
+  metric_key: string;
+  location_id: string;
+  period_start: string;
+  period_end: string;
+  data_points: number;
+  slope: number;
+  intercept: number;
+  r_squared: number;
+  standard_error: number;
+  direction: TrendDirection;
+  confidence_level: TrendConfidenceLevel;
+  time_unit: string;
+  computed_at: string;
+  computed_by: string;
+  created_at: string;
+  slope_p_value?: number | null;
+  slope_ci_lower?: number | null;
+  slope_ci_upper?: number | null;
+  metadata?: JSONObject | null;
+}
+
+/** Stored smoothed series value; this type does not perform smoothing. */
+export interface TrendSmoothing {
+  id: string;
+  metric_key: string;
+  location_id: string;
+  smoothing_type: TrendSmoothingType;
+  original_value: number;
+  smoothed_value: number;
+  timestamp: string;
+  computed_at: string;
+  created_at: string;
+  window_size?: number | null;
+  alpha?: number | null;
+  beta?: number | null;
+}
+
+/** Stored detected regime change and its evidence fields. */
+export interface ChangePoint {
+  id: string;
+  metric_key: string;
+  location_id: string;
+  detection_method: ChangePointDetectionMethod;
+  change_point_index: number;
+  magnitude: number;
+  direction: ChangePointDirection;
+  confidence: number;
+  segment_count: number;
+  status: ChangePointStatus;
+  detected_at: string;
+  created_at: string;
+  change_point_timestamp?: string | null;
+  pre_mean?: number | null;
+  post_mean?: number | null;
+  pre_std?: number | null;
+  post_std?: number | null;
+  classification?: string | null;
+  metadata?: JSONObject | null;
 }
 
 export interface SensorAlert {
