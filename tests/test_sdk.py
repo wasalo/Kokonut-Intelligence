@@ -268,6 +268,27 @@ def test_forecast_output_type_exposes_results_and_confidence_inputs():
     assert output.inputs["source"] == "synthetic"
 
 
+def test_ai_summary_type_preserves_lineage_and_review_as_distinct_fields():
+    from kokonut import AiSummary
+
+    summary = AiSummary(
+        id="summary-1",
+        subject_type="location",
+        subject_id="location-1",
+        content="Synthetic draft summary",
+        source_record_ids=["record-1"],
+        source_tables=["metric_value"],
+        model_version="rules-v1",
+        confidence=0.75,
+        status="draft",
+    )
+
+    assert summary.source_record_ids == ["record-1"]
+    assert summary.source_tables == ["metric_value"]
+    assert summary.status == "draft"
+    assert summary.reviewed_by is None
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

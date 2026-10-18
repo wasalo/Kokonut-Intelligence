@@ -20,6 +20,7 @@ from .public_api import (
 from .types import (
     ActuationStatus,
     ActuatorType,
+    AiSummary,
     AlertLifecycle,
     AttestationRecord,
     AttestationVerdict,
@@ -80,6 +81,7 @@ __all__ = [
     "GeoJSONPosition",
     "ActuatorType",
     "ActuationStatus",
+    "AiSummary",
     "AttestationVerdict",
     "JSONObject",
     "JSONScalar",

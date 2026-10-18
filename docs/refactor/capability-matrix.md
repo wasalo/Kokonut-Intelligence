@@ -3332,3 +3332,16 @@ and 29 JavaScript tests pass with TypeScript build, Ruff, compilation, schema
 guard, matrix validation, and diff checks. The types do not execute forecasts
 or establish output verification. Checklist: 561 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-forecast-model-parity.json`.
+
+### AI summary SDK model parity — 18 October 2026
+
+Python and TypeScript now model stored AI narratives with subject identity,
+source lineage, confidence, lifecycle state, and review attribution. The
+schema guard checks 34 models and 687 columns, including 642 scalar types,
+seven PostGIS shapes, 36 JSONB shapes, 19 enum fields, and eight standalone
+SQL CHECK literals. Forty-six focused Python SDK/guard tests, 29 JavaScript
+tests, TypeScript build, Ruff, compilation, guard, matrix validation, and diff
+checks pass. This adds a typed data contract only; it does not generate or
+publish summaries. No capability status or MAN-CAP acceptance changed.
+Checklist: 562 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-ai-summary-parity.json`.

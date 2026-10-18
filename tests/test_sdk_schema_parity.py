@@ -105,7 +105,11 @@ def test_sql_check_literal_inventory_reads_base_constraints_and_migrations(tmp_p
     migrations = tmp_path / "schemas" / "postgres"
     migrations.mkdir(parents=True)
     (migrations / "001_fixture.sql").write_text(
-        "ALTER TABLE sdk_guard_fixture ADD CONSTRAINT state_check CHECK (state IN ('ready', 'held'));\n",
+        "ALTER TABLE sdk_guard_fixture ADD CONSTRAINT state_check CHECK (state IN ('ready', 'held'));\n"
+        "ALTER TABLE sdk_guard_fixture ADD CONSTRAINT nullable_check "
+        "CHECK (kind IS NULL OR kind IN ('one', 'two'));\n"
+        "ALTER TABLE sdk_guard_fixture ADD CONSTRAINT conditional_check "
+        "CHECK (created_by IS NULL OR state IN ('draft', 'submitted'));\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(SCHEMA_GUARD, "ROOT", tmp_path)
@@ -331,4 +335,4 @@ def test_sdk_enum_annotations_match_all_mapped_postgres_enum_constraints():
                 typescript_types[model][column], typescript_enums, values
             ), f"TypeScript {model}.{column} does not match SQL enum {enum_type}"
 
-    assert checked == 18
+    assert checked == 19

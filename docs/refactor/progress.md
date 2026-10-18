@@ -8989,3 +8989,19 @@ TypeScript build, Ruff, compilation, schema guard, and diff checks pass without
 database or network access. Checklist: 550 complete / 19 open. Capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json`.
+
+### AI summary SDK schema parity — 18 October 2026
+
+Python and TypeScript now model stored AI summaries, including subject
+identity, source-record and source-table lineage, confidence, lifecycle status,
+and reviewer attribution. The schema guard covers 34 models and 687 canonical
+columns, with 642 scalar types, seven PostGIS shapes, 36 JSONB shapes, 19 enum
+fields, and eight standalone SQL CHECK literal contracts. The guard now ignores
+conditional agent-only lifecycle constraints when deriving a field's complete
+literal type, while still recognizing nullable direct `IN` checks. Forty-six
+focused Python SDK/guard tests and 29 JavaScript tests pass with TypeScript
+build, Ruff, compilation, schema guard, matrix validation, and diff checks.
+No database, provider, or network was contacted. The SDK type does not generate
+summary content or authorize review transitions. Checklist: 562 complete / 19
+open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-ai-summary-parity.json`.

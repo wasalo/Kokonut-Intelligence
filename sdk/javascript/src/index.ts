@@ -23,6 +23,7 @@ export type {
 export type {
   ActuatorType,
   ActuationStatus,
+  AiSummary,
   AttestationVerdict,
   JSONObject,
   JSONScalar,

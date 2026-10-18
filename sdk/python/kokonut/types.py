@@ -870,6 +870,26 @@ class ReportSnapshot:
 
 
 @dataclass
+class AiSummary:
+    """Stored agent narrative with source lineage and human review state."""
+
+    id: str
+    subject_type: str
+    subject_id: str
+    content: str
+    summary_type: Optional[str] = None
+    source_record_ids: Optional[List[str]] = None
+    source_tables: Optional[List[str]] = None
+    model_version: Optional[str] = None
+    confidence: Optional[float] = None
+    status: Optional[LifecycleStatus] = None
+    reviewed_by: Optional[str] = None
+    reviewed_at: Optional[str] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
 class ExportLog:
     id: str
     export_type: str

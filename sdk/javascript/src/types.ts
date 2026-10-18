@@ -784,6 +784,24 @@ export interface ReportSnapshot {
   expires_at?: string | null;
 }
 
+/** Stored agent narrative with source lineage and human review state. */
+export interface AiSummary {
+  id: string;
+  subject_type: string;
+  subject_id: string;
+  content: string;
+  summary_type?: string | null;
+  source_record_ids?: string[] | null;
+  source_tables?: string[] | null;
+  model_version?: string | null;
+  confidence?: number | null;
+  status?: LifecycleStatus | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
 export type ExportFormat = 'csv' | 'json' | 'xlsx' | 'pdf' | 'parquet';
 
 export interface ExportLog {

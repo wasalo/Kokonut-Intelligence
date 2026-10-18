@@ -42,6 +42,7 @@ MODEL_TABLES = {
     "WalletProfile": ("006_web3.sql", "wallet_profile"),
     "AttestationRecord": ("006_web3.sql", "attestation_record"),
     "ReportSnapshot": ("007_modeled_outputs.sql", "report_snapshot"),
+    "AiSummary": ("007_modeled_outputs.sql", "ai_summary"),
     "ExportLog": ("008_governance.sql", "export_log"),
 }
 JSONB_MODEL_SHAPES = {
@@ -284,7 +285,7 @@ def postgres_enum_types() -> dict[str, tuple[str, ...]]:
 
 
 def table_check_literals(path: Path, table: str) -> dict[str, tuple[str, ...]]:
-    """Read simple column ``IN ('value', ...)`` checks from base SQL/migrations."""
+    """Read standalone ``CHECK (column IN ('value', ...))`` contracts."""
     source = re.sub(r"--[^\n]*", "", path.read_text(encoding="utf-8"))
     table_match = re.search(
         rf"CREATE TABLE IF NOT EXISTS\s+{re.escape(table)}\s*\((.*?)\n\);",
@@ -306,16 +307,19 @@ def table_check_literals(path: Path, table: str) -> dict[str, tuple[str, ...]]:
     values: dict[str, tuple[str, ...]] = {}
     for fragment in fragments:
         for check in re.finditer(
-            r"\b([a-z_][a-z0-9_]*)\s+IN\s*\(([^()]*)\)",
+            r"\bCHECK\s*\(\s*(?:([a-z_][a-z0-9_]*)\s+IS\s+NULL\s+OR\s+)?"
+            r"([a-z_][a-z0-9_]*)\s+IN\s*\(([^()]*)\)\s*\)",
             fragment,
             flags=re.IGNORECASE | re.DOTALL,
         ):
+            if check.group(1) and check.group(1).lower() != check.group(2).lower():
+                continue
             literals = tuple(
                 value.replace("''", "'")
-                for value in re.findall(r"'((?:''|[^'])*)'", check.group(2))
+                for value in re.findall(r"'((?:''|[^'])*)'", check.group(3))
             )
             if literals:
-                values[check.group(1).lower()] = literals
+                values[check.group(2).lower()] = literals
     return values
 
 
