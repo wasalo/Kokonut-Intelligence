@@ -6,6 +6,11 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
+**Protocol-catalog SDK note — 18 October 2026:** Python and TypeScript now
+represent the canonical `protocol` catalog fields and metadata. This data type
+does not query providers, sign transactions, or submit on-chain actions; MAN-CAP
+classifications and acceptance remain unchanged ([evidence](builds/2026-10-18-recovery/sdk-protocol-parity.json)).
+
 The six-column matrix is checked by `python3 scripts/check-capability-matrix.py`
 and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate

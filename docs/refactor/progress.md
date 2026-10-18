@@ -9377,3 +9377,17 @@ compilation, schema guard, matrix validation, and diff checks. No database,
 provider, or network was contacted. The types do not decompose series or
 aggregate dashboard results. Checklist: 570 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-seasonal-trend-dashboard-parity.json`.
+
+### Web3 protocol-catalog SDK schema parity — 18 October 2026
+
+Python and TypeScript now expose the stored `protocol` catalog row, including
+chain and contract references, descriptive fields, and typed JSON metadata.
+The schema guard covers 69 models and 1,428 canonical columns, with 1,335
+scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43
+standalone SQL CHECK literal contracts. Seventy-four focused Python SDK/guard
+tests and 29 JavaScript tests pass with TypeScript build, Ruff, compilation,
+schema guard, capability-matrix validation, and diff checks. No database,
+provider, or network was contacted. This record does not query providers or
+sign/submit transactions; MAN-CAP acceptance is unchanged. Checklist:
+589 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-protocol-parity.json`.

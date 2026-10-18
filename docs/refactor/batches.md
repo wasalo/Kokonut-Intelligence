@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 588 checklist items complete and 19
-open (607 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 589 checklist items complete and 19
+open (608 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1293,6 +1293,7 @@ reporting views.
 - [x] Add Python and TypeScript `Crop` reference records, including metadata and the migration-017 `schema_version`. The guard covers 66 models, 1,381 canonical columns, 1,291 scalar types, 10 PostGIS shapes, 77 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals. Seventy-one Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. Stored expected yields are reference data only; this does not calculate or verify yield ([evidence](builds/2026-10-18-recovery/sdk-crop-parity.json)).
 - [x] Add Python and TypeScript `CashFlowSnapshot` records for stored period inflows, outflows, balances, calculation version, and JSON input provenance. The guard covers 67 models, 1,400 canonical columns, 1,309 scalar types, 10 PostGIS shapes, 78 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals. Seventy-two Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. This record does not calculate, reconcile, or verify financial amounts ([evidence](builds/2026-10-18-recovery/sdk-cash-flow-snapshot-parity.json)).
 - [x] Add Python and TypeScript `InfrastructureAsset` records with location/plot links, inventory fields, metadata, schema version, and the migration-constrained status enum. The guard covers 68 models, 1,417 canonical columns, 1,325 scalar types, 10 PostGIS shapes, 79 JSONB shapes, 23 enum fields, and 43 standalone CHECK literals. Seventy-three Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. `condition_status` remains a string because SQL only documents sample values; this type does not assess condition or certify infrastructure ([evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-parity.json)).
+- [x] Add Python and TypeScript `Protocol` records for the stored Web3 protocol catalog, covering chain and contract references, descriptive fields, and JSON metadata. The guard covers 69 models, 1,428 canonical columns, 1,335 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone CHECK literals. Seventy-four Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. This record does not query a provider, sign transactions, or submit on-chain actions ([evidence](builds/2026-10-18-recovery/sdk-protocol-parity.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented
