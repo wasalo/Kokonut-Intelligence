@@ -24,8 +24,22 @@ migration 434 introduced the no-login
 `kokonut_financial_projection_owner` role without listing it in the
 database-only restore prerequisites. The role is now included in
 `scripts/kernel-restore-role-prerequisites.sql`; the focused test file passes
-2 tests. Security #207 passed. The correction is local and will be included in
-the next PR batch; candidate migration 434 remains unapplied.
+2 tests. The fix was pushed as `89290f09`; Security #208 passed and CI #484 is
+in progress. Candidate migration 434 remains unapplied.
+
+### Directus API fixture aligned to Gateway-owned farm activity — 18 October 2026
+
+The owner-selected architecture keeps `farm_activity` operations on the
+Gateway and Directus optional. The synthetic Directus parity fixture still
+expected a Field Worker to read and create farm activity directly, which
+contradicted that choice and the seed's deliberate removal of those
+permissions. It now expects Directus to deny own- and cross-location activity
+reads and writes even when the synthetic operator has matching tenant grants;
+the fixture also verifies no source rows changed. Supported Field Note reads
+still verify own-location visibility and cross-location hiding. Seven focused
+source/fixture tests pass with Ruff, and the script compiles. This corrects the tested
+contract but is not a new pinned-runtime run or broader Directus parity
+acceptance ([evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
 
 ### Native financial-events outbox projection — 18 October 2026
 
@@ -41,13 +55,13 @@ PostgreSQL 16 apply/replay, forced-RLS, ACL, zero-value, currency, and
 transaction rollback checks pass. No candidate, legacy database, or ClickHouse
 service was touched.
 The implementation retains create-time projection semantics; updates/deletes,
-historical backfill, and populated report parity remain open. Checklist: 604
+historical backfill, and populated report parity remain open. Checklist: 605
 complete / 19 open. Evidence:
 `builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.
 The batch was pushed as commit `0780c9bd` together with ARM64 evidence commit
-`5727d7aa`; Security #207 passed and CI #483 failed only the restore-role
-inventory regression. The missing migration-owned role was added locally and
-the focused test passes; a pushed rerun is pending.
+`5727d7aa`; CI #483 failed only the restore-role inventory regression. Commit
+`89290f09` adds the missing migration-owned role; Security #208 passed and CI
+#484 is in progress. The candidate still has not received migration 434.
 
 ### SDK infrastructure-asset inventory parity — 18 October 2026
 

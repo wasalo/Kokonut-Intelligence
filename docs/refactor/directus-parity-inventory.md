@@ -19,6 +19,14 @@ Migration 404 and its disposable PostgreSQL acceptance establish this bounded
 Gateway slice only; broader collection, field/relationship, hook, and schedule
 parity remain open.
 
+The disposable API fixture now matches the owner-selected split: farm activity
+is denied through Directus even when a synthetic operator has valid tenant
+grants, while Field Note reads remain location-scoped. The fixture checks
+own/cross-location read denial, write denial without row changes, allowed own
+Field Note reads, and hidden cross-location Field Notes. Source checks pass;
+this is not a fresh Directus runtime execution and does not close the broader
+parity gate ([evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
+
 The hook extension now declares the exact Directus host version pinned by the
 base Compose file. A source regression check keeps the package host metadata
 aligned with that image. This removes the previous Directus 11 versus 12

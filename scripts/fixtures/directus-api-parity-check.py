@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Exercise Directus API location permissions on a disposable populated clone.
+"""Exercise optional Directus role and tenant permissions on a disposable clone.
 
 The runner uses two verified same-owner locations when available, otherwise
 creates a synthetic organization and locations only inside the clone. It never
 changes existing organization ownership or enables tenant RLS. All inserted
-rows and temporary Directus users are removed in a finally block.
+rows and temporary Directus users are removed in a finally block. Farm activity
+remains Gateway-owned, so even an operator with a matching tenant grant must be
+denied by the optional Directus API; Field Note reads exercise Directus tenant
+scoping.
 """
 
 from __future__ import annotations
@@ -38,6 +41,13 @@ OPERATOR_OIDC_ISSUER = os.environ.get(
 
 class StopCheck(Exception):
     """Exit the acceptance run after recording a sanitized blocking reason."""
+
+
+def permission_denied(status: int, body: dict | None) -> bool:
+    """Return true only when the API rejects access without returning data."""
+    payload = body if isinstance(body, dict) else {}
+    data = payload.get("data")
+    return status in (401, 403, 404) and data in (None, [])
 
 
 def api_request(
@@ -371,6 +381,12 @@ def main() -> int:
                    )"""
             )
             evidence["farm_activity_source_raw_available"] = bool(cur.fetchone()[0])
+        evidence["farm_activity_gateway_only"] = (
+            evidence["database_read_grant_allows"]
+            and evidence["database_create_grant_allows"]
+            and not evidence["field_worker_farm_activity_has_custom_permission_rules"]
+            and not evidence["field_worker_read_permission_exists"]
+        )
         conn.commit()
 
         runtime_conn = connect_directus_runtime_db()
@@ -507,6 +523,12 @@ def main() -> int:
         evidence["field_worker_effective_collection_present"] = (
             "farm_activity" in effective_data if isinstance(effective_data, dict) else False
         )
+        evidence["farm_activity_gateway_only"] = (
+            evidence["farm_activity_gateway_only"]
+            and evidence["effective_permissions_http_status"] == 200
+            and evidence["effective_permissions_data_is_object"]
+            and not evidence["field_worker_effective_collection_present"]
+        )
         evidence["field_worker_effective_actions"] = sorted(
             action for action, detail in effective.items() if isinstance(detail, dict)
         )
@@ -586,20 +608,20 @@ def main() -> int:
         own_status, own_rows, own_errors, own_hook_denied = query_activity(worker_tokens[0], row_ids[0])
         cross_status, cross_rows, cross_errors, cross_hook_denied = query_activity(worker_tokens[0], row_ids[1])
         evidence["tenant_scope_testable"] = True
-        evidence["own_location_read_http_status"] = own_status
-        evidence["cross_location_read_http_status"] = cross_status
-        evidence["own_location_read_error_codes"] = own_errors
-        evidence["cross_location_read_error_codes"] = cross_errors
-        evidence["own_location_read_hook_denied"] = own_hook_denied
-        evidence["cross_location_read_hook_denied"] = cross_hook_denied
-        evidence["own_location_read"] = own_status == 200 and len(own_rows) == 1
-        evidence["cross_location_read_hidden"] = cross_status == 200 and len(cross_rows) == 0
-        evidence["cross_location_row_count"] = len(cross_rows)
-        own_raw = own_rows[0].get("source_raw") if own_rows else None
-        evidence["source_raw_probe_visible"] = bool(
-            isinstance(own_raw, dict)
-            and own_raw.get("synthetic_secret_probe") == markers[0]
+        evidence["farm_activity_own_read_http_status"] = own_status
+        evidence["farm_activity_cross_read_http_status"] = cross_status
+        evidence["farm_activity_own_read_error_codes"] = own_errors
+        evidence["farm_activity_cross_read_error_codes"] = cross_errors
+        evidence["farm_activity_own_read_hook_denied"] = own_hook_denied
+        evidence["farm_activity_cross_read_hook_denied"] = cross_hook_denied
+        evidence["farm_activity_own_read_denied"] = (
+            permission_denied(own_status, {"data": own_rows})
         )
+        evidence["farm_activity_cross_read_denied"] = (
+            permission_denied(cross_status, {"data": cross_rows})
+        )
+        evidence["farm_activity_private_probe_hidden"] = not own_rows and not cross_rows
+        evidence["farm_activity_cross_location_row_count"] = len(cross_rows)
 
         def query_field_note(
             token: str, note_id: uuid.UUID
@@ -669,6 +691,9 @@ def main() -> int:
             )
             other_description = cur.fetchone()[0]
         evidence["cross_location_patch_http_status"] = patch_status
+        evidence["farm_activity_cross_patch_denied"] = (
+            permission_denied(patch_status, patch_body)
+        )
         evidence["cross_location_write_unchanged"] = other_description == markers[1]
         evidence["cross_location_patch_returned_data"] = bool(
             ((patch_body or {}).get("data"))
@@ -694,7 +719,9 @@ def main() -> int:
                 created_uuid = None
             if created_uuid:
                 row_ids.append(created_uuid)
-        evidence["cross_location_create_denied"] = create_status in (400, 403, 404)
+        evidence["cross_location_create_denied"] = (
+            permission_denied(create_status, create_body)
+        )
         evidence["cross_location_create_http_status"] = create_status
         evidence["cross_location_create_error_codes"] = [
             (error.get("extensions") or {}).get("code", "unknown")
@@ -720,7 +747,9 @@ def main() -> int:
                 row_ids.append(uuid.UUID(str(own_created_id)))
             except ValueError:
                 pass
-        evidence["own_location_create"] = own_create_status in (200, 201) and bool(own_created_id)
+        evidence["own_location_create_denied"] = (
+            permission_denied(own_create_status, own_create_body)
+        )
         evidence["own_location_create_http_status"] = own_create_status
         evidence["own_location_create_error_codes"] = [
             (error.get("extensions") or {}).get("code", "unknown")
@@ -733,16 +762,42 @@ def main() -> int:
             if isinstance(error, dict)
         )
 
-        location_scope_pass = all(
+        evidence["field_note_tenant_scope_pass"] = all(
             evidence.get(key) is True
             for key in (
-                "anonymous_collection_denied",
-                "own_location_read",
-                "cross_location_read_hidden",
+                "field_note_own_location_read",
+                "field_note_cross_location_read_hidden",
+            )
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT count(*) FROM public.farm_activity "
+                "WHERE description = ANY(%s)",
+                (markers,),
+            )
+            activity_rows_after_api_writes = int(cur.fetchone()[0])
+        evidence["farm_activity_api_write_row_count"] = activity_rows_after_api_writes
+        evidence["farm_activity_api_writes_left_rows_unchanged"] = (
+            activity_rows_after_api_writes == len(row_ids[:2])
+        )
+        evidence["farm_activity_gateway_only_contract_pass"] = all(
+            evidence.get(key) is True
+            for key in (
+                "farm_activity_gateway_only",
+                "farm_activity_own_read_denied",
+                "farm_activity_cross_read_denied",
+                "farm_activity_private_probe_hidden",
+                "farm_activity_cross_patch_denied",
                 "cross_location_write_unchanged",
                 "cross_location_create_denied",
-                "own_location_create",
+                "own_location_create_denied",
+                "farm_activity_api_writes_left_rows_unchanged",
+                "anonymous_collection_denied",
             )
+        )
+        location_scope_pass = (
+            evidence["field_note_tenant_scope_pass"]
+            and evidence["farm_activity_gateway_only_contract_pass"]
         )
         evidence["row_authorization_pass"] = location_scope_pass
         evidence["result"] = "passed" if location_scope_pass else "failed"

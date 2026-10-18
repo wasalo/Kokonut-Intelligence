@@ -6,13 +6,16 @@ Each row assigns a code/domain owner and a named manual acceptance check. Existi
 
 All 66 named MAN-CAP acceptance checks remain **not accepted**; implementation and deployment progress are tracked separately in the progress column. Some source, unit, disposable-database, and local-runtime checks have run and are recorded below, but none substitutes for a named capability acceptance unless its exact result is recorded. Execute each with a representative scoped fixture and retain outputs, identifiers, evidence links, and audit history before provider cutover. Chain write behavior is evaluated with local/mocked contracts; these checks do not authorize mainnet transactions. Contract capabilities also retain the existing Foundry suite in contracts/test/.
 
-**ARM64/QEMU runtime refresh — 18 October 2026:** the current-source Kernel app
-and PostGIS images were exercised through migration 433 on an internal-only,
-resource-capped disposable stack. All 424 ordered schema migrations passed;
-health and anonymous protected-route checks returned 200 and 401. This updates
-software compatibility evidence only. No physical Raspberry Pi, performance,
+**ARM64/QEMU runtime refresh — 18 October 2026:** the current-source ARM64 app
+and PostgreSQL/PostGIS images were exercised through migration 434 on an
+internal-only, resource-capped disposable stack. All 425 ordered schema
+migrations passed; health and anonymous protected-route checks returned 200
+and 401. The wrapper returned a false negative by misreading the null host-port
+binding and comparing changing uptime text; captured runtime values confirmed
+no published port and unchanged candidate containers. This updates software
+compatibility evidence only. No physical Raspberry Pi, performance,
 power-loss, provider, or MAN-CAP acceptance is claimed
-([evidence](builds/2026-10-18-recovery/arm64-qemu-current-schema-433.json)).
+([evidence](builds/2026-10-18-recovery/arm64-qemu-current-schema-434.json)).
 
 **Protocol-catalog SDK note — 18 October 2026:** Python and TypeScript now
 represent the canonical `protocol` catalog fields and metadata. This data type
@@ -850,6 +853,15 @@ parity. MAN-CAP checks remain unaccepted
 ([seed](../../config/directus/permissions.sql);
 [runtime evidence](builds/2026-10-15-recovery/directus-profile-disposable.json);
 [parity inventory](directus-parity-inventory.md)).
+
+**18 October 2026 Directus fixture contract correction (CAP-001 / CAP-047 / CAP-053):**
+the synthetic API fixture now expects farm-activity requests to be denied by
+the optional Directus API even when the operator has matching tenant grants;
+those operations belong to the Gateway. It still checks allowed own-location
+Field Note reads and hidden cross-location reads. Seven source/fixture checks, Ruff, and
+Python compilation pass. No live Directus runtime was exercised and MAN-CAP
+acceptance/classifications remain unchanged
+([evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
 
 **14 October 2026 Directus parity preflight (CAP-001 / CAP-047 / CAP-053):**
 the disposable Directus parity fixture now stops before synthetic user or farm
@@ -3690,6 +3702,6 @@ Directus-hook test and extension build. Candidate rollout, updates/deletes,
 historical backfill, populated report parity, and MAN-CAP acceptance remain
 open. CI #483 exposed that the new NOLOGIN projection owner was absent from the
 database-only restore-role prerequisites; it is now listed and the focused
-role inventory regression passes 2 tests. No capability classification changes. Checklist: 604 complete / 19
+role inventory regression passes 2 tests. No capability classification changes. Checklist: 605 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.

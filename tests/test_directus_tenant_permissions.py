@@ -52,6 +52,14 @@ def test_directus_fixture_uses_verified_organization_location_grants() -> None:
     assert "permission_row.fields <> '*'" in text
     assert "effective_permissions_collection_names" in text
     assert "field_worker_effective_collection_present" in text
+    assert 'evidence["farm_activity_gateway_only"]' in text
+    assert 'evidence["farm_activity_own_read_denied"]' in text
+    assert 'evidence["farm_activity_cross_read_denied"]' in text
+    assert 'evidence["farm_activity_cross_patch_denied"]' in text
+    assert 'evidence["own_location_create_denied"]' in text
+    assert 'evidence["farm_activity_api_writes_left_rows_unchanged"]' in text
+    assert 'evidence["field_note_own_location_read"]' in text
+    assert 'evidence["field_note_cross_location_read_hidden"]' in text
     assert "directus_user_location_column" not in text
     assert "UPDATE public.directus_users SET location_id" not in text
     assert '"/items/field_note"' in text
@@ -166,3 +174,15 @@ def test_missing_grant_schema_blocks_before_fixture_writes(monkeypatch, capsys) 
     assert connection.queries[0].lstrip().startswith("SELECT")
     assert connection.commits == 2
     assert connection.closed
+
+
+def test_directus_fixture_requires_denial_status_without_returned_data() -> None:
+    spec = importlib.util.spec_from_file_location("directus_parity_denial", PARITY_CHECK)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    assert module.permission_denied(403, {"errors": [{"message": "Forbidden"}]})
+    assert module.permission_denied(404, {"data": []})
+    assert not module.permission_denied(200, {"data": []})
+    assert not module.permission_denied(403, {"data": {"id": "synthetic"}})
