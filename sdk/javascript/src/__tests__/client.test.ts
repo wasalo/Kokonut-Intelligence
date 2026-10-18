@@ -127,6 +127,19 @@ describe('KokonutClient', () => {
     expect(typeof client.fieldNotes.listByLocation).toBe('function');
   });
 
+  it('clears local authentication state when the remote logout request fails', async () => {
+    const directus = (client as any).directus as {
+      logout: () => Promise<void>;
+      setToken: (token: string | null) => Promise<void>;
+    };
+    vi.spyOn(directus, 'logout').mockRejectedValue(new TypeError('network unavailable'));
+    const setToken = vi.spyOn(directus, 'setToken');
+
+    await expect(client.logout()).resolves.toBeUndefined();
+
+    expect(setToken).toHaveBeenLastCalledWith(null);
+  });
+
   it('provides typed, location-scoped methods for loss, labor and field-note records', async () => {
     const loss: LossEvent = {
       id: 'loss-1',

@@ -31,6 +31,19 @@ def test_kokonut_types_import():
     assert opts.limit == 10
 
 
+def test_logout_clears_local_auth_when_remote_request_fails():
+    import requests
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055", token="synthetic-token")
+    client.session.post = Mock(side_effect=requests.ConnectionError("offline"))
+
+    client.logout()
+
+    assert "Authorization" not in client.session.headers
+    client.session.post.assert_called_once_with("http://localhost:8055/auth/logout")
+
+
 def test_organization_sdk_model_uses_schema_values_and_keeps_metadata_json_typed():
     from kokonut import Organization, OrganizationStatus, OrganizationType
 

@@ -109,8 +109,13 @@ export class KokonutClient {
 
   async logout(): Promise<void> {
     await this.ready;
-    await this.directus.logout();
-    await this.directus.setToken(null);
+    try {
+      await this.directus.logout();
+    } catch {
+      // Local logout must still clear credentials when the server is unreachable.
+    } finally {
+      await this.directus.setToken(null);
+    }
   }
 
   async listItems(collection: string, options?: ListOptions): Promise<any[]> {
