@@ -128,6 +128,22 @@ describe('KokonutClient', () => {
     });
   });
 
+  it('supports export createMany with the same raw batch semantics as Python', async () => {
+    const createItems = vi.spyOn(client, 'createItems').mockResolvedValue([
+      { id: 'export-1' },
+      { id: 'export-2' },
+    ]);
+    const requests = [
+      { export_type: 'farm_data', status: 'pending' },
+      { export_type: 'metric_data', status: 'pending' },
+    ];
+
+    const result = await client.exports.createMany(requests);
+
+    expect(result).toEqual([{ id: 'export-1' }, { id: 'export-2' }]);
+    expect(createItems).toHaveBeenCalledWith('export_log', requests);
+  });
+
   it('keeps required convenience filters authoritative and forwards list options', async () => {
     const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
 

@@ -161,7 +161,7 @@ export interface ExportMethods extends GenericMethods {
     target_table?: string;
     filters?: Record<string, any>;
   }): Promise<ExportLog>;
-  createMany: never;
+  createMany(data: Partial<ExportLog>[]): Promise<ExportLog[]>;
   update(id: string, data: Record<string, any>): Promise<ExportLog>;
   delete(id: string): Promise<void>;
 }
@@ -410,7 +410,7 @@ export function buildExportMethods(client: any): ExportMethods {
     get: (id: string) => client.getItem('export_log', id) as Promise<ExportLog>,
     createExport,
     create,
-    createMany: undefined as never,
+    createMany: (data: Partial<ExportLog>[]) => client.createItems('export_log', data) as Promise<ExportLog[]>,
     update: (id: string, data: Record<string, any>) => client.updateItem('export_log', id, data) as Promise<ExportLog>,
     delete: (id: string) => client.deleteItem('export_log', id),
   };

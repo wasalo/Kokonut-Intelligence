@@ -1344,9 +1344,10 @@ configured. Malformed migration-ledger output also produces a fixed
 summary rather than echoing database-returned data. Gateway in-memory
 rate-limit warnings also omit client IP-based limiter keys while retaining the
 same denial, retry, and audit behavior; Gateway catch-all warnings omit
-arbitrary caller paths while unknown routes still fail closed. Focused tests,
-Ruff, TypeScript build, capability-matrix validation, and diff checks pass; no
-provider/database was contacted and no sandbox module executed in the latest
-slices. The checklist is now 526 complete / 19 open;
+arbitrary caller paths while unknown routes still fail closed. The JavaScript
+SDK now implements Python's existing raw export `createMany` operation.
+Focused tests, Ruff, TypeScript build, capability-matrix validation, and diff
+checks pass; no provider/database was contacted and no sandbox module executed
+in the latest slices. The checklist is now 527 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

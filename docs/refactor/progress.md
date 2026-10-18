@@ -8568,3 +8568,12 @@ policy. The route-policy/operator-auth suites pass 75 tests with Ruff and
 capability-matrix validation; the regression uses a synthetic path, with no
 database or network. The checklist is 526 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/gateway-catch-all-path-redaction.json`.
+
+### SDK export batch parity — 17 October 2026
+
+JavaScript exports now implement `createMany` by delegating to the bulk
+`export_log` client operation, matching Python's existing `create_many`
+behavior. Six Python tests and 15 JavaScript tests pass, along with Ruff,
+TypeScript compilation, and diff checks. The clients are mocked; no HTTP
+requests were sent. Checklist: 527 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-export-create-many-parity.json`.

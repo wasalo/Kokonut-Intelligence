@@ -66,6 +66,22 @@ def test_export_creation_preserves_target_table_without_network_calls():
     )
 
 
+def test_export_create_many_delegates_to_directus_batch_without_network_calls():
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+    client.create_items = Mock(return_value=[{"id": "export-1"}, {"id": "export-2"}])
+    requests = [
+        {"export_type": "farm_data", "status": "pending"},
+        {"export_type": "metric_data", "status": "pending"},
+    ]
+
+    result = client.exports.create_many(requests)
+
+    assert result == [{"id": "export-1"}, {"id": "export-2"}]
+    client.create_items.assert_called_once_with("export_log", requests)
+
+
 def test_scoped_list_filter_wins_and_preserves_list_options_without_network_calls():
     from kokonut import KokonutClient
     from kokonut.types import ListOptions

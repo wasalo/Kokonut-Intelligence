@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-17",
+  "scope": "Python and JavaScript SDK export batch creation parity",
+  "gap": "Python exports.create_many() delegates to the Directus bulk create operation, while JavaScript exports.createMany was typed as unavailable and implemented as undefined.",
+  "change": "JavaScript now delegates createMany to createItems('export_log', data), matching Python's existing raw batch semantics.",
+  "focused_checks": {
+    "python": {
+      "command": ".venv/bin/python -s -m pytest tests/test_sdk.py -q",
+      "result": "6 passed"
+    },
+    "javascript": {
+      "command": "npm test -- --reporter=dot",
+      "result": "15 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "diff_check": "passed"
+  },
+  "network": "none; client calls are mocked",
+  "limitations": [
+    "Batch records are passed through unchanged, matching Python create_many; this does not add authorization semantics or change createExport defaults."
+  ]
+}

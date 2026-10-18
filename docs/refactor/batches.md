@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (17 October 2026):** 526 checklist items complete and 19
-open (545 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (17 October 2026):** 527 checklist items complete and 19
+open (546 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1225,6 +1225,7 @@ reporting views.
 - [x] Exercise the enabled gRPC server over an ephemeral loopback listener: health remains key-exempt; missing keys and insufficient scope are denied; correctly scoped generated `GenerateIRI` and `Classes` calls return serialized responses; auth/service connections are released; all handler protobuf symbols resolve from their correct generated modules. The five focused gRPC suites pass 37 tests; TLS, live database/tenant, and REST parity remain open ([evidence](builds/2026-10-14-recovery/grpc-enabled-loopback-transport.json)).
 - [ ] Complete remaining live route, authorization, tenant-scope and broader SDK parity; publish only after explicit release authorization.
 - [x] Align specialized SDK query filters across Python and JavaScript: required location/status/entity filters take precedence over conflicting caller filters, while sort, fields, limit, offset, page, and meta are preserved. Five Python SDK tests, 14 Vitest tests, Ruff, and the TypeScript build pass with mocked clients and no HTTP calls. This is client query behavior, not an authorization or tenant-isolation boundary ([evidence](builds/2026-10-17-recovery/sdk-convenience-query-parity.json)).
+- [x] Restore Python/JavaScript SDK parity for export batch creation: JavaScript `createMany` now delegates to the same raw `export_log` bulk-create operation already exposed by Python `create_many`. Six Python tests, 15 JavaScript tests, Ruff, TypeScript build, and diff check pass; both clients are mocked ([evidence](builds/2026-10-17-recovery/sdk-export-create-many-parity.json)).
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
 - [ ] Configure the owner-selected self-hosted ZITADEL provider, then verify login/session/logout, grant provisioning, scope denials, enrollment-code delivery/revocation, audit attribution, and browser queue/detail behavior. The opt-in Compose/Caddy profile and isolated database role are source-checked by 25 current planner/Compose tests; no provider or credentials were configured. The identity hostname and secret values remain open; Kokonut's Gateway sessions and org/location grants remain the authorization authority ([deployment plan](zitadel-provider.md)).
