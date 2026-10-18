@@ -58,16 +58,31 @@ export interface CropCycle {
   id: string;
   plot_id: string;
   crop_id: string;
-  cycle_name: string;
-  planting_date: string;
-  expected_harvest_date?: string;
-  actual_harvest_date?: string;
-  status: 'planned' | 'planted' | 'growing' | 'harvested' | 'completed' | 'cancelled';
-  yield_target?: number;
-  yield_actual?: number;
-  yield_unit?: string;
-  created_at: string;
-  updated_at: string;
+  location_id: string;
+  cycle_name?: string | null;
+  season?: string | null;
+  planting_date?: string | null;
+  expected_harvest_date?: string | null;
+  actual_harvest_date?: string | null;
+  expected_yield?: number | null;
+  expected_yield_unit?: string | null;
+  actual_yield?: number | null;
+  actual_yield_unit?: string | null;
+  expected_price_per_unit?: number | null;
+  expected_revenue?: number | null;
+  actual_revenue?: number | null;
+  planting_density?: number | null;
+  planting_density_unit?: string | null;
+  area_planted?: number | null;
+  area_unit?: string | null;
+  status?: string | null;
+  failure_reason?: string | null;
+  metadata?: Record<string, unknown> | null;
+  schema_version?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface HarvestEvent {

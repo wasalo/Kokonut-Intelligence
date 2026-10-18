@@ -136,6 +136,7 @@ class CropCycle:
     status: Optional[str] = None
     failure_reason: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+    schema_version: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None

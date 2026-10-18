@@ -8586,3 +8586,16 @@ unchanged. Seven Python tests and 16 JavaScript tests pass with Ruff,
 TypeScript compilation, and diff checks. Request calls are mocked and no HTTP
 request was sent. Checklist: 528 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-exact-offset-pagination.json`.
+
+### SDK CropCycle schema parity — 17 October 2026
+
+The Python and JavaScript `CropCycle` models now match the canonical
+`crop_cycle` columns in `schemas/postgres/002_crops.sql`, including the
+location scope, expected/actual yield, revenue, planting, lifecycle, audit,
+and schema-version fields. The JavaScript NOI example now reads
+`actual_yield`/`actual_yield_unit`; regressions assert schema-aligned fields in
+both SDKs. Eight Python tests, 17 JavaScript tests, Ruff, TypeScript build, and
+diff checks pass using local fixtures and mocked clients; no database or
+network was contacted. Checklist: 529 complete / 19 open. Capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-crop-cycle-schema-parity.json`.

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KokonutClient } from '../client.js';
+import type { CropCycle } from '../types.js';
 
 // Mock the @directus/sdk
 vi.mock('@directus/sdk', () => {
@@ -105,6 +106,22 @@ describe('KokonutClient', () => {
       collection: 'farm',
       query: { limit: 25, offset: 10 },
     });
+  });
+
+  it('types crop-cycle yield fields and location scope to the canonical schema', () => {
+    const cycle: CropCycle = {
+      id: 'cycle-1',
+      plot_id: 'plot-1',
+      crop_id: 'crop-1',
+      location_id: 'location-1',
+      expected_yield: 250,
+      expected_yield_unit: 'kg',
+      actual_yield: 215,
+      actual_yield_unit: 'kg',
+    };
+
+    expect(cycle.actual_yield).toBe(215);
+    expect(cycle.location_id).toBe('location-1');
   });
 
   it('preserves Python SDK export inputs through createExport()', async () => {

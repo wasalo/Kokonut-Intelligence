@@ -26,7 +26,7 @@ async function main() {
     console.log(`--- ${cycle.cycle_name} (${cycle.id}) ---`);
     console.log(`  Planted: ${cycle.planting_date}`);
     console.log(`  Harvested: ${cycle.actual_harvest_date ?? 'N/A'}`);
-    console.log(`  Yield: ${cycle.yield_actual ?? 'N/A'} ${cycle.yield_unit ?? ''}`);
+    console.log(`  Yield: ${cycle.actual_yield ?? 'N/A'} ${cycle.actual_yield_unit ?? ''}`);
 
     const harvests = await client.harvestEvents.listByCropCycle(cycle.id, {
       sort: ['-harvest_date'],

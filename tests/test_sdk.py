@@ -36,6 +36,25 @@ def test_list_options_preserve_exact_non_page_aligned_offset():
     assert options.to_params() == {"limit": 25, "offset": 10}
 
 
+def test_crop_cycle_sdk_type_exposes_schema_aligned_yield_fields():
+    from kokonut.types import CropCycle
+
+    cycle = CropCycle(
+        id="cycle-1",
+        plot_id="plot-1",
+        crop_id="crop-1",
+        location_id="location-1",
+        actual_yield=215,
+        actual_yield_unit="kg",
+        schema_version="1.0",
+    )
+
+    assert cycle.location_id == "location-1"
+    assert cycle.actual_yield == 215
+    assert cycle.actual_yield_unit == "kg"
+    assert cycle.schema_version == "1.0"
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 
