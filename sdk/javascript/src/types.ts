@@ -1638,6 +1638,20 @@ export interface WalletProfile {
   updated_at?: string | null;
 }
 
+/** Stored EAS schema catalog entry; it does not create or submit attestations. */
+export interface AttestationSchema {
+  id: string;
+  schema_uid: string;
+  name: string;
+  chain: string;
+  description?: string | null;
+  schema_text?: string | null;
+  resolver_address?: string | null;
+  version?: number | null;
+  active?: boolean | null;
+  created_at?: string | null;
+}
+
 export interface AttestationRecord {
   id: string;
   schema_id: string;

@@ -71,6 +71,26 @@ def test_protocol_sdk_model_is_a_passive_web3_catalog_record():
     assert protocol.metadata == {"read_only": True, "source": "catalog"}
 
 
+def test_attestation_schema_model_preserves_stored_eas_definition():
+    from kokonut import AttestationSchema
+
+    schema = AttestationSchema(
+        id="schema-1",
+        schema_uid="0xabc123",
+        name="Farm Activity",
+        chain="celo",
+        schema_text="string activityType,uint256 activityDate",
+        resolver_address="0x0000000000000000000000000000000000000001",
+        version=2,
+        active=True,
+    )
+
+    assert schema.schema_uid == "0xabc123"
+    assert schema.version == 2
+    assert schema.active is True
+    assert "activityType" in schema.schema_text
+
+
 def test_farm_activity_model_preserves_review_scope_and_source_option_metadata():
     from typing import get_type_hints
 

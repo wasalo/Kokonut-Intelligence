@@ -131,6 +131,7 @@ export type {
   WeatherObservation,
   WalletProfile,
   AttestationRecord,
+  AttestationSchema,
   ReportSnapshot,
   ExportLog,
   NoiSnapshot,

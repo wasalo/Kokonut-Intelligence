@@ -1806,6 +1806,22 @@ class WalletProfile:
 
 
 @dataclass
+class AttestationSchema:
+    """Stored EAS schema catalog entry; it does not create or submit attestations."""
+
+    id: str
+    schema_uid: str
+    name: str
+    chain: str
+    description: Optional[str] = None
+    schema_text: Optional[str] = None
+    resolver_address: Optional[str] = None
+    version: Optional[int] = None
+    active: Optional[bool] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class AttestationRecord:
     id: str
     schema_id: str

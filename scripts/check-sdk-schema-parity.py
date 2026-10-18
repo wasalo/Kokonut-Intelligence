@@ -76,6 +76,7 @@ MODEL_TABLES = {
     "WalletProfile": ("006_web3.sql", "wallet_profile"),
     "Protocol": ("006_web3.sql", "protocol"),
     "AttestationRecord": ("006_web3.sql", "attestation_record"),
+    "AttestationSchema": ("006_web3.sql", "attestation_schema"),
     "ReportSnapshot": ("007_modeled_outputs.sql", "report_snapshot"),
     "AiSummary": ("007_modeled_outputs.sql", "ai_summary"),
     "ExportLog": ("008_governance.sql", "export_log"),
