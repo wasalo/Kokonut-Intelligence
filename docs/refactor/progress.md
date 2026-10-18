@@ -8705,3 +8705,16 @@ SDK. Seventeen Python tests, 25 JavaScript tests, Ruff, TypeScript build, the
 guard, and diff checks pass with local fixtures only. Checklist: 538 complete
 / 19 open. Capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-wallet-profile-schema-parity.json`.
+
+### Attestation and report schema parity — 17 October 2026
+
+Aligned both SDKs' `AttestationRecord` and `ReportSnapshot` with their base
+tables and additive migrations, including evidence CIDs/URLs, private payload
+and verdict metadata, evaluator IDs, report location/creator fields, freeze
+state, public-interest findings, and expiration. The offline guard now reads
+additive `ALTER TABLE ... ADD COLUMN` declarations and passes across 18 models
+and 445 columns per SDK. Nineteen Python tests, 27 JavaScript tests, Ruff,
+TypeScript build, and diff checks pass using local fixtures only; no database
+or network was contacted. Checklist: 539 complete / 19 open. Capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-governed-record-schema-parity.json`.

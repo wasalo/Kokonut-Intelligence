@@ -12,10 +12,12 @@ import type {
   Plot,
   SalesEvent,
   AlertRule,
+  AttestationRecord,
   SensorAlert,
   SensorDevice,
   SensorReading,
   SensorType,
+  ReportSnapshot,
   WalletProfile,
 } from '../types.js';
 
@@ -297,6 +299,42 @@ describe('KokonutClient', () => {
     expect(wallet.role).toBe('operations');
     expect(wallet.chain_id).toBe(100);
     expect(wallet.metadata).toEqual({ source: 'fixture' });
+  });
+
+  it('types attestation evidence and additive schema fields', () => {
+    const attestation: AttestationRecord = {
+      id: 'attestation-1',
+      schema_id: 'schema-1',
+      claim_data: { outcome: 'verified' },
+      evidence_cids: ['bafy-test'],
+      evidence_urls: ['private://evidence/1'],
+      schema_version: '1.0',
+      private_payload_hash: 'sha256:private',
+      verdict: 'accepted',
+      evidence_reviewed: ['photo-1'],
+      evaluator_id: 'reviewer-1',
+    };
+
+    expect(attestation.schema_id).toBe('schema-1');
+    expect(attestation.evidence_cids).toEqual(['bafy-test']);
+  });
+
+  it('types report location, creator and frozen public-interest fields', () => {
+    const report: ReportSnapshot = {
+      id: 'report-1',
+      report_name: 'Quarterly farm report',
+      report_data: { summary: 'fixture' },
+      location_id: 'location-1',
+      created_by: 'operator-1',
+      frozen: true,
+      public_interest_summary: 'Public summary',
+      negative_findings: ['finding-1'],
+      expires_at: '2027-10-17T00:00:00Z',
+    };
+
+    expect(report.report_name).toBe('Quarterly farm report');
+    expect(report.frozen).toBe(true);
+    expect(report.negative_findings).toEqual(['finding-1']);
   });
 
   it('types harvest evidence and source lineage from the canonical schema', () => {

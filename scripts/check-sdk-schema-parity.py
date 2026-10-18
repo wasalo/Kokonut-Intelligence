@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Ensure selected Python/TypeScript SDK models expose every canonical SQL column."""
+"""Ensure selected Python/TypeScript SDK models expose canonical and additive SQL columns."""
 
 from __future__ import annotations
 
@@ -25,6 +25,8 @@ MODEL_TABLES = {
     "AlertRule": ("011_sensor_registry.sql", "alert_rule"),
     "SensorAlert": ("011_sensor_registry.sql", "sensor_alert"),
     "WalletProfile": ("006_web3.sql", "wallet_profile"),
+    "AttestationRecord": ("006_web3.sql", "attestation_record"),
+    "ReportSnapshot": ("007_modeled_outputs.sql", "report_snapshot"),
 }
 
 
@@ -46,6 +48,24 @@ def table_columns(path: Path, table: str) -> set[str]:
         name = declaration.split(maxsplit=1)[0].strip('"')
         if re.fullmatch(r"[a-z][a-z0-9_]*", name):
             columns.add(name)
+    # Include additive column migrations so the guard follows the evolved
+    # schema, not just the initial CREATE TABLE declaration.
+    for migration in (ROOT / "schemas" / "postgres").glob("*.sql"):
+        migration_source = re.sub(r"--[^\n]*", "", migration.read_text(encoding="utf-8"))
+        statements = re.finditer(
+            rf"ALTER TABLE\s+(?:ONLY\s+)?{re.escape(table)}\b(.*?);",
+            migration_source,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        for statement in statements:
+            columns.update(
+                name.lower()
+                for name in re.findall(
+                    r"ADD COLUMN(?:\s+IF NOT EXISTS)?\s+([a-z_][a-z0-9_]*)",
+                    statement.group(1),
+                    flags=re.IGNORECASE,
+                )
+            )
     return columns
 
 

@@ -41,6 +41,9 @@ class Location:
     name: str
     slug: str
     description: Optional[str] = None
+    project_url: Optional[str] = None
+    project_start_date: Optional[str] = None
+    project_end_date: Optional[str] = None
     boundary: Optional[Dict[str, Any]] = None
     center: Optional[Dict[str, Any]] = None
     country: Optional[str] = None
@@ -56,6 +59,13 @@ class Location:
     baseline_assumptions: Optional[Dict[str, Any]] = None
     baseline_source: Optional[str] = None
     baseline_date: Optional[str] = None
+    baseline_recorded_at: Optional[str] = None
+    bioregion: Optional[List[str]] = None
+    biome_type: Optional[List[str]] = None
+    watershed: Optional[str] = None
+    sub_watershed: Optional[str] = None
+    organization_id: Optional[str] = None
+    schema_version: Optional[str] = None
     status: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
@@ -74,6 +84,8 @@ class Farm:
     boundary: Optional[Dict[str, Any]] = None
     center: Optional[Dict[str, Any]] = None
     logo_url: Optional[str] = None
+    logo_file_id: Optional[str] = None
+    property_id: Optional[str] = None
     traditional_name: Optional[str] = None
     languages: Optional[List[str]] = None
     global_standard_certifications: Optional[List[str]] = None
@@ -91,6 +103,7 @@ class Farm:
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+    schema_version: Optional[str] = None
 
 
 @dataclass
@@ -107,6 +120,8 @@ class Plot:
     soil_type: Optional[str] = None
     water_source: Optional[str] = None
     elevation_m: Optional[float] = None
+    bed_count: Optional[int] = None
+    bed_area_sqm: Optional[float] = None
     slope_pct: Optional[float] = None
     aspect: Optional[str] = None
     status: Optional[str] = None
@@ -115,6 +130,7 @@ class Plot:
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+    schema_version: Optional[str] = None
 
 
 @dataclass
@@ -170,6 +186,7 @@ class HarvestEvent:
     status: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
+    submitted_at: Optional[str] = None
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
@@ -208,6 +225,7 @@ class SalesEvent:
     status: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
+    submitted_at: Optional[str] = None
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
@@ -227,11 +245,18 @@ class ExpenseEvent:
     amount: float
     plot_id: Optional[str] = None
     crop_cycle_id: Optional[str] = None
+    farm_id: Optional[str] = None
+    farm_task_id: Optional[str] = None
+    weekly_plan_id: Optional[str] = None
     subcategory: Optional[str] = None
     description: Optional[str] = None
     vendor: Optional[str] = None
     vendor_id: Optional[str] = None
     currency: Optional[str] = None
+    payment_status: Optional[str] = None
+    people_impacted_count: Optional[int] = None
+    weekly_plan_scope_exception: Optional[bool] = None
+    weekly_plan_scope_exception_reason: Optional[str] = None
     is_capex: Optional[bool] = None
     allocation_method: Optional[str] = None
     allocation_weight: Optional[float] = None
@@ -242,6 +267,7 @@ class ExpenseEvent:
     status: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
+    submitted_at: Optional[str] = None
     approved_by: Optional[str] = None
     approved_at: Optional[str] = None
     rejection_reason: Optional[str] = None
@@ -277,11 +303,15 @@ class LossEvent:
     status: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
+    submitted_at: Optional[str] = None
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
+    source_raw: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass
@@ -300,10 +330,17 @@ class LaborEvent:
     activity_description: Optional[str] = None
     notes: Optional[str] = None
     status: Optional[str] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    submitted_at: Optional[str] = None
+    rejection_reason: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
+    source_raw: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass
@@ -319,8 +356,18 @@ class FieldNote:
     images: Optional[List[str]] = None
     tags: Optional[List[str]] = None
     status: Optional[str] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    submitted_at: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    schema_version: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass
@@ -337,6 +384,10 @@ class SensorReading:
     quality: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[Dict[str, Any]] = None
+    schema_version: Optional[str] = None
 
 
 @dataclass
@@ -370,6 +421,7 @@ class SensorDevice:
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     elevation_m: Optional[float] = None
+    point_geometry: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -391,6 +443,11 @@ class AlertRule:
     enabled: Optional[bool] = None
     auto_create_claim: Optional[bool] = None
     claim_type: Optional[str] = None
+    actuator_enabled: Optional[bool] = None
+    actuator_type: Optional[str] = None
+    actuator_command: Optional[str] = None
+    actuator_topic: Optional[str] = None
+    human_approval_required: Optional[bool] = None
     metadata: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -414,6 +471,9 @@ class SensorAlert:
     claim_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
+    actuation_sent: Optional[bool] = None
+    actuation_response: Optional[Dict[str, Any]] = None
+    actuation_status: Optional[str] = None
 
 
 @dataclass
@@ -444,6 +504,8 @@ class AttestationRecord:
     subject_id: Optional[str] = None
     subject_type: Optional[str] = None
     evidence_hash: Optional[str] = None
+    evidence_cids: Optional[List[str]] = None
+    evidence_urls: Optional[List[str]] = None
     status: Optional[str] = None
     reviewer_id: Optional[str] = None
     review_notes: Optional[str] = None
@@ -453,6 +515,15 @@ class AttestationRecord:
     attested_at: Optional[str] = None
     expiration_date: Optional[str] = None
     revocation_date: Optional[str] = None
+    schema_version: Optional[str] = None
+    expires_at: Optional[str] = None
+    evaluator_id: Optional[str] = None
+    private_payload_hash: Optional[str] = None
+    payload_cid: Optional[str] = None
+    verdict: Optional[str] = None
+    rationale: Optional[str] = None
+    evidence_reviewed: Optional[List[str]] = None
+    graph_iri: Optional[str] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
 
@@ -469,6 +540,14 @@ class ReportSnapshot:
     snapshot_hash: Optional[str] = None
     file_url: Optional[str] = None
     status: Optional[str] = None
+    frozen: Optional[bool] = None
+    frozen_at: Optional[str] = None
+    frozen_by: Optional[str] = None
+    public_interest_summary: Optional[str] = None
+    uncertainty_notes: Optional[str] = None
+    negative_findings: Optional[List[Any]] = None
+    affected_community_voice: Optional[str] = None
+    expires_at: Optional[str] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
 

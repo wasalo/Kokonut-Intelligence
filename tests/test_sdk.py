@@ -271,6 +271,47 @@ def test_wallet_profile_sdk_type_exposes_schema_metadata():
     assert wallet.metadata == {"source": "fixture"}
 
 
+def test_attestation_record_type_exposes_evidence_and_migrated_fields():
+    from kokonut.types import AttestationRecord
+
+    attestation = AttestationRecord(
+        id="attestation-1",
+        schema_id="schema-1",
+        claim_data={"outcome": "verified"},
+        evidence_cids=["bafy-test"],
+        evidence_urls=["private://evidence/1"],
+        schema_version="1.0",
+        private_payload_hash="sha256:private",
+        verdict="accepted",
+        evidence_reviewed=["photo-1"],
+        evaluator_id="reviewer-1",
+    )
+
+    assert attestation.schema_id == "schema-1"
+    assert attestation.evidence_cids == ["bafy-test"]
+    assert attestation.evaluator_id == "reviewer-1"
+
+
+def test_report_snapshot_type_exposes_location_freeze_and_public_fields():
+    from kokonut.types import ReportSnapshot
+
+    report = ReportSnapshot(
+        id="report-1",
+        report_name="Quarterly farm report",
+        report_data={"summary": "fixture"},
+        location_id="location-1",
+        created_by="operator-1",
+        frozen=True,
+        public_interest_summary="Public summary",
+        negative_findings=["finding-1"],
+        expires_at="2027-10-17T00:00:00Z",
+    )
+
+    assert report.report_name == "Quarterly farm report"
+    assert report.frozen is True
+    assert report.negative_findings == ["finding-1"]
+
+
 def test_location_scoped_operational_methods_force_scope_and_preserve_options():
     from kokonut import KokonutClient
     from kokonut.types import ListOptions
