@@ -6,6 +6,7 @@ export type EntityStatus = 'active' | 'inactive' | 'archived';
 export type EntityStatusExtended = 'active' | 'inactive' | 'maintenance' | 'decommissioned';
 export type PaymentStatus = 'pending' | 'partial' | 'paid' | 'overdue' | 'cancelled';
 export type SensorSeverity = 'info' | 'warning' | 'critical';
+export type SensorAnomalyEffectOutcome = 'no_match' | 'cooldown' | 'alert_created';
 export type AlertLifecycle = 'open' | 'acknowledged' | 'resolved' | 'false_positive';
 export type ExportStatus = 'pending' | 'generating' | 'completed' | 'failed';
 export type OrganizationType = 'cooperative' | 'nonprofit' | 'dao' | 'enterprise' | 'collective' | 'other';
@@ -1173,6 +1174,18 @@ export interface ActuationLog {
   metadata?: JSONObject | null;
   created_at?: string | null;
   source_alert_event_id?: string | null;
+}
+
+/** Durable per-reading/rule processing receipt; it does not run anomaly detection. */
+export interface SensorAnomalyEffect {
+  source_reading_id: string;
+  alert_rule_id: string;
+  source_event_id: string;
+  outcome: SensorAnomalyEffectOutcome;
+  created_at: string;
+  updated_at: string;
+  sensor_alert_id?: string | null;
+  location_id?: string | null;
 }
 
 /** Stored demand trend analysis and inputs; does not rerun its calculation. */

@@ -38,6 +38,7 @@ MODEL_TABLES = {
     "PriceObservation": ("010_market_data.sql", "price_observation"),
     "OraclePriceLog": ("081_oracle_infrastructure.sql", "oracle_price_log"),
     "ActuationLog": ("081_oracle_infrastructure.sql", "actuation_log"),
+    "SensorAnomalyEffect": ("376_sensor_anomaly_delivery.sql", "sensor_anomaly_effect"),
     "DemandTrend": ("069_demand_analysis.sql", "demand_trend"),
     "BuyerDemandSignal": ("069_demand_analysis.sql", "buyer_demand_signal"),
     "ProductionMarketMatch": ("069_demand_analysis.sql", "production_market_match"),

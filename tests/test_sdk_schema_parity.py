@@ -127,6 +127,7 @@ def test_sql_check_literal_inventory_reads_base_constraints_and_migrations(tmp_p
 
 def test_sdk_literal_contracts_match_exact_sql_check_values():
     expected = {
+        ("SensorAnomalyEffect", "outcome"): ("no_match", "cooldown", "alert_created"),
         ("ActuationLog", "actuator_type"): (
             "irrigation", "pest_control", "fertilization", "notification", "custom"
         ),

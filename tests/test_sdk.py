@@ -144,6 +144,25 @@ def test_actuation_log_keeps_approval_state_and_command_as_stored_data():
     )
 
 
+def test_sensor_anomaly_effect_exposes_durable_receipt_without_detection_behavior():
+    from kokonut import SensorAnomalyEffect, SensorAnomalyEffectOutcome
+
+    effect = SensorAnomalyEffect(
+        source_reading_id="reading-1",
+        alert_rule_id="rule-1",
+        source_event_id="event-1",
+        outcome="alert_created",
+        created_at="2026-10-18T12:00:00Z",
+        updated_at="2026-10-18T12:00:00Z",
+        sensor_alert_id="alert-1",
+        location_id="location-1",
+    )
+
+    assert effect.outcome == "alert_created"
+    assert effect.sensor_alert_id == "alert-1"
+    assert SensorAnomalyEffectOutcome.__args__ == ("no_match", "cooldown", "alert_created")
+
+
 def test_expense_category_type_exposes_shared_taxonomy_fields():
     from kokonut import ExpenseCategory
 

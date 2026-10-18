@@ -33,6 +33,12 @@ schema guard also now includes qualified additive migrations for MRV and sensor
 alert records. These are SDK source checks only and do not accept MAN-CAP-040.
 See [the parity record](builds/2026-10-18-recovery/sdk-actuation-log-parity.json).
 
+
+**Anomaly receipt SDK note — 18 October 2026:** clients now represent the
+durable per-reading/rule outcome receipt as data, including its location scope.
+This does not run detection or change MAN-CAP-040 acceptance. See [the parity
+record](builds/2026-10-18-recovery/sdk-sensor-anomaly-effect-parity.json).
+
 The repository owner authorized ongoing focused test execution. Current
 owner-only decisions and external acceptance inputs are listed in [Open Follow
 Ups](open-follow-ups.md). Passing source tests do not close the named manual

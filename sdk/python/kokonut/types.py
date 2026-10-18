@@ -26,6 +26,7 @@ ActuationLogStatus = Literal[
 ActuationStatus = Literal[
     "pending", "sent", "acknowledged", "executed", "failed", "requires_approval"
 ]
+SensorAnomalyEffectOutcome = Literal["no_match", "cooldown", "alert_created"]
 AttestationVerdict = Literal["pending", "approved", "rejected", "needs_info"]
 TimeSeriesForecastModelType = Literal[
     "arima", "exponential_smoothing", "prophet", "naive", "seasonal_naive"
@@ -865,6 +866,20 @@ class ActuationLog:
     metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     source_alert_event_id: Optional[str] = None
+
+
+@dataclass
+class SensorAnomalyEffect:
+    """Durable per-reading/rule processing receipt; it does not run anomaly detection."""
+
+    source_reading_id: str
+    alert_rule_id: str
+    source_event_id: str
+    outcome: SensorAnomalyEffectOutcome
+    created_at: str
+    updated_at: str
+    sensor_alert_id: Optional[str] = None
+    location_id: Optional[str] = None
 
 
 @dataclass

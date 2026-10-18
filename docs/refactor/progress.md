@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK sensor anomaly durable-effect receipt parity — 18 October 2026
+
+Python and TypeScript now expose the composite-key `sensor_anomaly_effect`
+receipt, including event/location lineage, its constrained outcome, alert link,
+and timestamps. The guard covers 60 models, 1,282 columns, 1,200 scalar
+types, 10 PostGIS shapes, 72 JSONB shapes, 21 enum fields, and 40 standalone
+SQL CHECK literals. Sixty-six Python SDK/guard tests and 29 JavaScript tests
+pass with TypeScript build, Ruff, compilation, schema guard, matrix validation,
+and diff checks. The SDK record does not run detection or mutate durable
+worker receipts. No database, sensor, worker, or provider was contacted;
+capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-sensor-anomaly-effect-parity.json)).
+
 ### SDK actuation log parity and qualified-migration guard — 18 October 2026
 
 Python and TypeScript now expose stored `actuation_log` records, including
