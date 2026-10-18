@@ -176,6 +176,28 @@ def test_cash_flow_snapshot_preserves_inputs_without_claiming_calculation():
     assert snapshot.inputs == {"currency": "USD", "source_snapshot": "quarterly-close"}
 
 
+def test_infrastructure_asset_preserves_inventory_and_constrained_lifecycle_status():
+    from kokonut import InfrastructureAsset
+
+    asset = InfrastructureAsset(
+        id="asset-1",
+        location_id="location-1",
+        name="North well pump",
+        asset_type="pump",
+        condition_status="good",
+        capacity=4.5,
+        capacity_unit="kW",
+        status="maintenance",
+        metadata={"inspection_source": "field register"},
+        schema_version="common-data-schema-v1",
+    )
+
+    assert asset.asset_type == "pump"
+    assert asset.condition_status == "good"
+    assert asset.status == "maintenance"
+    assert asset.metadata == {"inspection_source": "field register"}
+
+
 def test_organization_member_type_is_descriptive_not_an_access_grant():
     from kokonut import OrganizationMember, OrganizationMembershipType
 

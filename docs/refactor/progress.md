@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### SDK infrastructure-asset inventory parity — 18 October 2026
+
+Python and TypeScript now model `infrastructure_asset`, including its nullable
+plot link, equipment inventory, inspection dates, replacement cost, JSON
+metadata, and migration-added schema version. Its `status` uses the constrained
+`EntityStatusExtended` enum. `condition_status` stays an unconstrained string:
+the SQL comments describe example values but do not enforce them. The guard
+covers 68 models, 1,417 canonical columns, 1,325 scalar types, 10 PostGIS
+shapes, 79 JSONB shapes, 23 enum fields, and 43 standalone SQL CHECK literals.
+Seventy-three focused Python SDK/schema/method-parity tests and 29 JavaScript
+tests pass; TypeScript build, Ruff, compilation, schema guard,
+capability-matrix validation, and diff checks pass. The type does not assess
+asset condition or certify infrastructure. No database, provider, or network
+was contacted; capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-parity.json)).
+
 ### SDK cash-flow snapshot parity — 18 October 2026
 
 Python and TypeScript now expose stored `cash_flow_snapshot` rows, including

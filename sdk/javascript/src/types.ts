@@ -163,6 +163,27 @@ export interface OrganizationMember {
   updated_at: string;
 }
 
+/** Stored farm infrastructure inventory; this record does not assess condition. */
+export interface InfrastructureAsset {
+  id: string;
+  location_id: string;
+  name: string;
+  asset_type: string;
+  plot_id?: string | null;
+  description?: string | null;
+  install_date?: string | null;
+  capacity?: number | null;
+  capacity_unit?: string | null;
+  condition_status?: string | null;
+  last_inspection_date?: string | null;
+  replacement_cost?: number | null;
+  metadata?: JSONObject | null;
+  status?: EntityStatusExtended | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  schema_version?: string | null;
+}
+
 export interface Farm {
   id: string;
   location_id: string;

@@ -73,6 +73,7 @@ export type {
   GeoJSONPolygon,
   GeoJSONPosition,
   Location,
+  InfrastructureAsset,
   Organization,
   OrganizationMember,
   Farm,

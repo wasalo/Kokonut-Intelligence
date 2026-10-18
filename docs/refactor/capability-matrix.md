@@ -11,6 +11,11 @@ and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate
 capability behavior or mark any MAN-CAP check accepted.
 
+**Infrastructure-asset SDK note — 18 October 2026:** clients now represent
+stored equipment inventory and its constrained lifecycle status. Condition
+labels remain free-form as in SQL, and the SDK does not assess asset condition
+or certify infrastructure ([evidence](builds/2026-10-18-recovery/sdk-infrastructure-asset-parity.json)).
+
 **Cash-flow SDK contract note — 18 October 2026:** Python and TypeScript expose
 stored period summaries and input provenance. The SDK does not calculate,
 reconcile, or verify the figures and changes no MAN-CAP classification

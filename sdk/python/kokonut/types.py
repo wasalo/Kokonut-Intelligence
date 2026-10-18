@@ -224,6 +224,29 @@ class OrganizationMember:
 
 
 @dataclass
+class InfrastructureAsset:
+    """Stored farm infrastructure inventory; this record does not assess condition."""
+
+    id: str
+    location_id: str
+    name: str
+    asset_type: str
+    plot_id: Optional[str] = None
+    description: Optional[str] = None
+    install_date: Optional[str] = None
+    capacity: Optional[float] = None
+    capacity_unit: Optional[str] = None
+    condition_status: Optional[str] = None
+    last_inspection_date: Optional[str] = None
+    replacement_cost: Optional[float] = None
+    metadata: Optional[JSONObject] = None
+    status: Optional[EntityStatusExtended] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    schema_version: Optional[str] = None
+
+
+@dataclass
 class Farm:
     id: str
     location_id: str
