@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("sandbox.isolation")
@@ -45,8 +44,8 @@ class IsolationGuard:
                     "max_execution_seconds": row[3],
                     "network_access": row[4],
                 }
-        except Exception:
-            logger.exception("Failed to get sandbox rules")
+        except Exception as exc:
+            logger.error("Failed to get sandbox rules (%s)", safe_exception_class(exc))
             return None
 
     def validate_query(self, env_id: str, query: str) -> tuple[bool, str]:

@@ -6,6 +6,7 @@ import json
 import re
 import uuid
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("sandbox.environment")
@@ -79,9 +80,9 @@ class AnalysisEnvironment:
             conn.commit()
             logger.info("Created analysis environment: %s (type=%s, location=%s)", env_id[:8], env_type, location_id[:8])
             return env_id
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to create analysis environment")
+            logger.error("Failed to create analysis environment (%s)", safe_exception_class(exc))
             raise
 
     def destroy(self, env_id: str) -> bool:
@@ -103,9 +104,9 @@ class AnalysisEnvironment:
             if result:
                 logger.info("Destroyed analysis environment: %s", env_id[:8])
             return result is not None
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to destroy analysis environment")
+            logger.error("Failed to destroy analysis environment (%s)", safe_exception_class(exc))
             return False
 
     def run(
@@ -152,9 +153,9 @@ class AnalysisEnvironment:
                     (status, duration_ms, output, error, run_id),
                 )
             conn.commit()
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to complete analysis run")
+            logger.error("Failed to complete analysis run (%s)", safe_exception_class(exc))
 
     def list_environments(self, location_id: str | None = None, status: str | None = None) -> list[dict]:
         """List analysis environments."""
@@ -192,8 +193,8 @@ class AnalysisEnvironment:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list environments")
+        except Exception as exc:
+            logger.error("Failed to list environments (%s)", safe_exception_class(exc))
             return []
 
     def list_runs(self, env_id: str | None = None, limit: int = 20) -> list[dict]:
@@ -239,6 +240,6 @@ class AnalysisEnvironment:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to list runs")
+        except Exception as exc:
+            logger.error("Failed to list analysis runs (%s)", safe_exception_class(exc))
             return []

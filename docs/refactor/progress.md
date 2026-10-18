@@ -8475,3 +8475,12 @@ file/dependency behavior remain unchanged. Two mocked regressions pass in the
 provider was contacted. The checklist is 512 complete / 19 open; capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/raster-metadata-error-redaction.json`.
+
+Sandbox environment, run-history, resource-monitor, and isolation failures now
+log bounded exception classes only. Creation rollback/re-raise, write
+fallbacks, and empty/None read results are preserved; run details remain
+redacted from returned history. Eight mocked failures pass in a 36-test
+sandbox suite with Ruff, compilation, and diff checks. No database/provider was
+contacted. The checklist is 513 complete / 19 open; capability classifications
+are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sandbox-database-error-redaction.json`.
