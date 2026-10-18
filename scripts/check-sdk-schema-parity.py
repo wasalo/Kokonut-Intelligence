@@ -80,6 +80,10 @@ MODEL_TABLES = {
     "ReportSnapshot": ("007_modeled_outputs.sql", "report_snapshot"),
     "AiSummary": ("007_modeled_outputs.sql", "ai_summary"),
     "ExportLog": ("008_governance.sql", "export_log"),
+    "CarbonCredit": ("078_carbon_credits.sql", "carbon_credit"),
+    "CreditAdjustment": ("078_carbon_credits.sql", "credit_adjustment"),
+    "CreditRetirement": ("078_carbon_credits.sql", "credit_retirement"),
+    "CreditTransfer": ("078_carbon_credits.sql", "credit_transfer"),
 }
 JSONB_MODEL_SHAPES = {
     ("Location", "baseline_assumptions"): "json_object",
@@ -162,6 +166,12 @@ JSONB_MODEL_SHAPES = {
     ("SeasonalDecomposition", "seasonal_component"): "json_value_array",
     ("SeasonalDecomposition", "residual_component"): "json_value_array",
     ("SeasonalDecomposition", "metadata"): "json_object",
+    ("CarbonCredit", "metadata"): "json_object",
+    ("CarbonCredit", "source_raw"): "json_object",
+    ("CreditAdjustment", "trigger_snapshot"): "json_object",
+    ("CreditAdjustment", "metadata"): "json_object",
+    ("CreditRetirement", "metadata"): "json_object",
+    ("CreditTransfer", "metadata"): "json_object",
 }
 
 

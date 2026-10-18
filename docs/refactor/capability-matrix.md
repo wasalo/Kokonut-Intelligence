@@ -1629,6 +1629,13 @@ and performs no writes. No job was registered or activated. MAN-CAP-020 credit
 custody/retirement parity, worker identity, and tenant context remain unaccepted
 ([historical command evidence](builds/2026-10-15-recovery/scheduled-credit-adjustment-command-contract.json)).
 
+Python and TypeScript SDKs now expose schema-checked read models for the
+`carbon_credit`, `credit_adjustment`, `credit_retirement`, and `credit_transfer`
+tables. Their SQL lifecycle and transfer/adjustment literals are checked in
+both SDKs. This adds stored-record representation only; it does not expose
+ledger mutation methods, establish route permissions, or change CAP-020's
+baseline-retained classification. See the [schema-parity evidence](builds/2026-10-18-recovery/sdk-carbon-credit-ledger-parity.json).
+
 **16 October 2026 per-location metric schedule contract (CAP-040 / CAP-047):**
 the native scheduled `metrics` JobSpec now uses `--compute --all` with one
 required `--location-id`; its command contract rejects `--all-locations`.

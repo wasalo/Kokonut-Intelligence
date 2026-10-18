@@ -127,6 +127,24 @@ def test_sql_check_literal_inventory_reads_base_constraints_and_migrations(tmp_p
 
 def test_sdk_literal_contracts_match_exact_sql_check_values():
     expected = {
+        ("CarbonCredit", "status"): (
+            "draft", "submitted", "verified", "published", "retired", "revoked", "rejected"
+        ),
+        ("CreditAdjustment", "status"): ("draft", "submitted", "verified", "published", "rejected"),
+        ("CreditAdjustment", "adjustment_type"): (
+            "measurement_update", "methodology_change", "reversal", "correction"
+        ),
+        ("CreditAdjustment", "trigger_source"): (
+            "tree_inventory", "soil_carbon_measurement", "ghg_emissions_inventory",
+            "climate_impact_summary", "remote_sensing", "manual_override"
+        ),
+        ("CreditRetirement", "status"): (
+            "draft", "submitted", "verified", "published", "rejected", "cancelled"
+        ),
+        ("CreditTransfer", "status"): ("draft", "submitted", "verified", "published", "rejected"),
+        ("CreditTransfer", "transfer_type"): (
+            "allocation", "sale", "grant", "internal_rebalance"
+        ),
         ("SensorAnomalyEffect", "outcome"): ("no_match", "cooldown", "alert_created"),
         ("ActuationLog", "actuator_type"): (
             "irrigation", "pest_control", "fertilization", "notification", "custom"
@@ -378,7 +396,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 80
+    assert checked == 86
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
 JSONScalar = Union[str, int, float, bool, None]
@@ -84,6 +85,16 @@ FarmTaskCategory = Literal[
 ]
 FarmTaskPriority = Literal["low", "medium", "high", "critical"]
 FarmTaskStatus = Literal["pending", "in_progress", "completed", "cancelled"]
+CarbonCreditStatus = Literal["draft", "submitted", "verified", "published", "retired", "revoked", "rejected"]
+CreditAdjustmentStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
+CreditAdjustmentType = Literal["measurement_update", "methodology_change", "reversal", "correction"]
+CreditAdjustmentTriggerSource = Literal[
+    "tree_inventory", "soil_carbon_measurement", "ghg_emissions_inventory",
+    "climate_impact_summary", "remote_sensing", "manual_override"
+]
+CreditRetirementStatus = Literal["draft", "submitted", "verified", "published", "rejected", "cancelled"]
+CreditTransferStatus = Literal["draft", "submitted", "verified", "published", "rejected"]
+CreditTransferType = Literal["allocation", "sale", "grant", "internal_rebalance"]
 
 GeoJSONPosition = List[float]
 
@@ -1960,4 +1971,145 @@ class NoiSnapshot:
     calculation_version: Optional[str] = None
     calculated_at: Optional[str] = None
     inputs: Optional[JSONObject] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
+class CarbonCredit:
+    """Read model for a governed credit; lifecycle actions use reviewed services."""
+
+    id: str
+    location_id: str
+    credit_code: str
+    vintage_year: int
+    methodology: str
+    initial_sequestration_tonnes: Decimal
+    current_sequestration_tonnes: Decimal
+    issuable_tonnes: Decimal
+    farm_id: Optional[str] = None
+    methodology_version: Optional[str] = None
+    adjustment_margin_pct: Optional[Decimal] = None
+    buffer_pool_pct: Optional[Decimal] = None
+    retired_tonnes: Optional[Decimal] = None
+    available_tonnes: Optional[Decimal] = None
+    price_per_tonne_usd: Optional[Decimal] = None
+    market_price_per_tonne_usd: Optional[Decimal] = None
+    effective_price_per_tonne_usd: Optional[Decimal] = None
+    total_value_usd: Optional[Decimal] = None
+    climate_impact_summary_id: Optional[str] = None
+    evidence_maturity: Optional[int] = None
+    external_verifier: Optional[str] = None
+    methodology_ref: Optional[str] = None
+    attestation_uid: Optional[str] = None
+    attestation_schema_id: Optional[str] = None
+    attested_at: Optional[str] = None
+    token_chain: Optional[str] = None
+    token_contract: Optional[str] = None
+    token_id: Optional[str] = None
+    token_minted_at: Optional[str] = None
+    status: Optional[CarbonCreditStatus] = None
+    reviewer_id: Optional[str] = None
+    review_date: Optional[str] = None
+    review_notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+    credit_class_id: Optional[str] = None
+    credit_batch_id: Optional[str] = None
+    expires_at: Optional[str] = None
+    reserved_tonnes: Optional[Decimal] = None
+
+
+@dataclass
+class CreditAdjustment:
+    """Append-oriented credit adjustment review record."""
+
+    id: str
+    credit_id: str
+    location_id: str
+    adjustment_type: CreditAdjustmentType
+    previous_sequestration_tonnes: Decimal
+    new_sequestration_tonnes: Decimal
+    delta_tonnes: Decimal
+    delta_pct: Decimal
+    trigger_source: CreditAdjustmentTriggerSource
+    within_margin: bool
+    requires_review: bool
+    trigger_record_id: Optional[str] = None
+    trigger_snapshot: Optional[JSONObject] = None
+    reviewer_id: Optional[str] = None
+    review_date: Optional[str] = None
+    review_result: Optional[str] = None
+    review_notes: Optional[str] = None
+    adjustment_attestation_uid: Optional[str] = None
+    adjustment_attested_at: Optional[str] = None
+    status: Optional[CreditAdjustmentStatus] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
+class CreditRetirement:
+    """Read model for a retirement request and its separate review state."""
+
+    id: str
+    credit_id: str
+    location_id: str
+    retirement_reason: str
+    retired_tonnes: Decimal
+    beneficiary_name: Optional[str] = None
+    beneficiary_wallet: Optional[str] = None
+    retirement_statement: Optional[str] = None
+    retirement_value_usd: Optional[Decimal] = None
+    evidence_cid: Optional[str] = None
+    evidence_hash: Optional[str] = None
+    retirement_attestation_uid: Optional[str] = None
+    retired_onchain_at: Optional[str] = None
+    retirement_tx_hash: Optional[str] = None
+    status: Optional[CreditRetirementStatus] = None
+    reviewer_id: Optional[str] = None
+    review_date: Optional[str] = None
+    review_notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    created_by: Optional[str] = None
+    expires_at: Optional[str] = None
+    idempotency_key: Optional[str] = None
+    confirmed_at: Optional[str] = None
+    cancelled_at: Optional[str] = None
+
+
+@dataclass
+class CreditTransfer:
+    """Read model for a credit transfer ledger entry."""
+
+    id: str
+    credit_id: str
+    location_id: str
+    transfer_type: CreditTransferType
+    transferred_tonnes: Decimal
+    transfer_value_usd: Optional[Decimal] = None
+    price_per_tonne_usd: Optional[Decimal] = None
+    from_wallet: Optional[str] = None
+    to_wallet: Optional[str] = None
+    from_entity: Optional[str] = None
+    to_entity: Optional[str] = None
+    revenue_event_id: Optional[str] = None
+    treasury_event_id: Optional[str] = None
+    evidence_cid: Optional[str] = None
+    evidence_hash: Optional[str] = None
+    tx_hash: Optional[str] = None
+    chain: Optional[str] = None
+    status: Optional[CreditTransferStatus] = None
+    reviewer_id: Optional[str] = None
+    review_date: Optional[str] = None
+    review_notes: Optional[str] = None
+    metadata: Optional[JSONObject] = None
+    created_at: Optional[str] = None
     created_by: Optional[str] = None

@@ -66,6 +66,19 @@ export type FarmTaskCategory =
   | 'other';
 export type FarmTaskPriority = 'low' | 'medium' | 'high' | 'critical';
 export type FarmTaskStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+export type CarbonCreditStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'retired' | 'revoked' | 'rejected';
+export type CreditAdjustmentStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
+export type CreditAdjustmentType = 'measurement_update' | 'methodology_change' | 'reversal' | 'correction';
+export type CreditAdjustmentTriggerSource =
+  | 'tree_inventory'
+  | 'soil_carbon_measurement'
+  | 'ghg_emissions_inventory'
+  | 'climate_impact_summary'
+  | 'remote_sensing'
+  | 'manual_override';
+export type CreditRetirementStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'rejected' | 'cancelled';
+export type CreditTransferStatus = 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
+export type CreditTransferType = 'allocation' | 'sale' | 'grant' | 'internal_rebalance';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -1814,5 +1827,138 @@ export interface NoiSnapshot {
   calculation_version?: string | null;
   calculated_at?: string | null;
   inputs?: JSONObject | null;
+  created_by?: string | null;
+}
+
+/** Read model for a governed credit; lifecycle actions use reviewed services. */
+export interface CarbonCredit {
+  id: string;
+  location_id: string;
+  credit_code: string;
+  vintage_year: number;
+  methodology: string;
+  initial_sequestration_tonnes: number;
+  current_sequestration_tonnes: number;
+  issuable_tonnes: number;
+  farm_id?: string | null;
+  methodology_version?: string | null;
+  adjustment_margin_pct?: number | null;
+  buffer_pool_pct?: number | null;
+  retired_tonnes?: number | null;
+  available_tonnes?: number | null;
+  price_per_tonne_usd?: number | null;
+  market_price_per_tonne_usd?: number | null;
+  effective_price_per_tonne_usd?: number | null;
+  total_value_usd?: number | null;
+  climate_impact_summary_id?: string | null;
+  evidence_maturity?: number | null;
+  external_verifier?: string | null;
+  methodology_ref?: string | null;
+  attestation_uid?: string | null;
+  attestation_schema_id?: string | null;
+  attested_at?: string | null;
+  token_chain?: string | null;
+  token_contract?: string | null;
+  token_id?: string | null;
+  token_minted_at?: string | null;
+  status?: CarbonCreditStatus | null;
+  reviewer_id?: string | null;
+  review_date?: string | null;
+  review_notes?: string | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  credit_class_id?: string | null;
+  credit_batch_id?: string | null;
+  expires_at?: string | null;
+  reserved_tonnes?: number | null;
+}
+
+/** Append-oriented credit adjustment review record. */
+export interface CreditAdjustment {
+  id: string;
+  credit_id: string;
+  location_id: string;
+  adjustment_type: CreditAdjustmentType;
+  previous_sequestration_tonnes: number;
+  new_sequestration_tonnes: number;
+  delta_tonnes: number;
+  delta_pct: number;
+  trigger_source: CreditAdjustmentTriggerSource;
+  within_margin: boolean;
+  requires_review: boolean;
+  trigger_record_id?: string | null;
+  trigger_snapshot?: JSONObject | null;
+  reviewer_id?: string | null;
+  review_date?: string | null;
+  review_result?: string | null;
+  review_notes?: string | null;
+  adjustment_attestation_uid?: string | null;
+  adjustment_attested_at?: string | null;
+  status?: CreditAdjustmentStatus | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  created_by?: string | null;
+}
+
+/** Read model for a retirement request and its separate review state. */
+export interface CreditRetirement {
+  id: string;
+  credit_id: string;
+  location_id: string;
+  retirement_reason: string;
+  retired_tonnes: number;
+  beneficiary_name?: string | null;
+  beneficiary_wallet?: string | null;
+  retirement_statement?: string | null;
+  retirement_value_usd?: number | null;
+  evidence_cid?: string | null;
+  evidence_hash?: string | null;
+  retirement_attestation_uid?: string | null;
+  retired_onchain_at?: string | null;
+  retirement_tx_hash?: string | null;
+  status?: CreditRetirementStatus | null;
+  reviewer_id?: string | null;
+  review_date?: string | null;
+  review_notes?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
+  created_by?: string | null;
+  expires_at?: string | null;
+  idempotency_key?: string | null;
+  confirmed_at?: string | null;
+  cancelled_at?: string | null;
+}
+
+/** Read model for a credit transfer ledger entry. */
+export interface CreditTransfer {
+  id: string;
+  credit_id: string;
+  location_id: string;
+  transfer_type: CreditTransferType;
+  transferred_tonnes: number;
+  transfer_value_usd?: number | null;
+  price_per_tonne_usd?: number | null;
+  from_wallet?: string | null;
+  to_wallet?: string | null;
+  from_entity?: string | null;
+  to_entity?: string | null;
+  revenue_event_id?: string | null;
+  treasury_event_id?: string | null;
+  evidence_cid?: string | null;
+  evidence_hash?: string | null;
+  tx_hash?: string | null;
+  chain?: string | null;
+  status?: CreditTransferStatus | null;
+  reviewer_id?: string | null;
+  review_date?: string | null;
+  review_notes?: string | null;
+  metadata?: JSONObject | null;
+  created_at?: string | null;
   created_by?: string | null;
 }

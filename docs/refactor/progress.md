@@ -1,5 +1,22 @@
 # Kokonut Kernel implementation progress
 
+### Carbon credit ledger SDK schema parity — 18 October 2026
+
+Python and TypeScript now model the canonical `carbon_credit`,
+`credit_adjustment`, `credit_retirement`, and `credit_transfer` records,
+including nullable migrated columns, JSON metadata, exact SQL lifecycle/type
+literals, and Python `Decimal` annotations for quantities. The types are
+read-model contracts only; no convenience write operations were added for
+governed credit, retirement, or transfer workflows. The schema guard now covers
+74 models, 1,555 columns, 1,456 scalar types, 10 PostGIS types, 86 JSONB shapes,
+23 enum fields, and 50 CHECK-literal fields per SDK. Ninety-five focused Python
+SDK/schema/method checks, 45 JavaScript tests, the TypeScript build, and Ruff
+pass. No database, provider, API, credentials, candidate, legacy service, or
+seed data was used. CAP-020 and MAN-CAP acceptance remain unchanged
+([evidence](builds/2026-10-18-recovery/sdk-carbon-credit-ledger-parity.json)).
+Checklist: 615 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### RPC snapshot precision and block-consistency follow-up — 18 October 2026
 
 The isolated and legacy RPC paths now convert integer wei to `NUMERIC(18,8)` with

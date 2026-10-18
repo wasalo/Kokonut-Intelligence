@@ -33,6 +33,93 @@ def test_kokonut_types_import():
     assert opts.limit == 10
 
 
+def test_carbon_credit_ledger_types_are_read_models_with_sql_lifecycles():
+    from decimal import Decimal
+
+    from kokonut import (
+        CarbonCredit,
+        CarbonCreditStatus,
+        CreditAdjustment,
+        CreditAdjustmentStatus,
+        CreditAdjustmentTriggerSource,
+        CreditAdjustmentType,
+        CreditRetirement,
+        CreditRetirementStatus,
+        CreditTransfer,
+        CreditTransferStatus,
+        CreditTransferType,
+    )
+
+    credit = CarbonCredit(
+        id="credit-1",
+        location_id="location-1",
+        credit_code="KKNT-2026-TEST-0001",
+        vintage_year=2026,
+        methodology="IPCC 2006 Tier 2",
+        initial_sequestration_tonnes=Decimal("12.3456"),
+        current_sequestration_tonnes=Decimal("12.3456"),
+        issuable_tonnes=Decimal("9.8765"),
+        status="verified",
+        metadata={"source": "reviewed"},
+    )
+    adjustment = CreditAdjustment(
+        id="adjustment-1",
+        credit_id=credit.id,
+        location_id=credit.location_id,
+        adjustment_type="measurement_update",
+        previous_sequestration_tonnes=Decimal("12.3456"),
+        new_sequestration_tonnes=Decimal("12.3000"),
+        delta_tonnes=Decimal("-0.0456"),
+        delta_pct=Decimal("-0.3695"),
+        trigger_source="soil_carbon_measurement",
+        within_margin=True,
+        requires_review=False,
+    )
+    retirement = CreditRetirement(
+        id="retirement-1",
+        credit_id=credit.id,
+        location_id=credit.location_id,
+        retirement_reason="voluntary_retirement",
+        retired_tonnes=Decimal("1.0000"),
+        status="submitted",
+    )
+    transfer = CreditTransfer(
+        id="transfer-1",
+        credit_id=credit.id,
+        location_id=credit.location_id,
+        transfer_type="allocation",
+        transferred_tonnes=Decimal("2.0000"),
+        status="draft",
+    )
+
+    assert credit.current_sequestration_tonnes == Decimal("12.3456")
+    assert adjustment.requires_review is False
+    assert retirement.status == "submitted"
+    assert transfer.transfer_type == "allocation"
+    assert CarbonCreditStatus.__args__ == (
+        "draft", "submitted", "verified", "published", "retired", "revoked", "rejected"
+    )
+    assert CreditAdjustmentStatus.__args__ == (
+        "draft", "submitted", "verified", "published", "rejected"
+    )
+    assert CreditAdjustmentType.__args__ == (
+        "measurement_update", "methodology_change", "reversal", "correction"
+    )
+    assert CreditAdjustmentTriggerSource.__args__ == (
+        "tree_inventory", "soil_carbon_measurement", "ghg_emissions_inventory",
+        "climate_impact_summary", "remote_sensing", "manual_override",
+    )
+    assert CreditRetirementStatus.__args__ == (
+        "draft", "submitted", "verified", "published", "rejected", "cancelled"
+    )
+    assert CreditTransferStatus.__args__ == (
+        "draft", "submitted", "verified", "published", "rejected"
+    )
+    assert CreditTransferType.__args__ == (
+        "allocation", "sale", "grant", "internal_rebalance"
+    )
+
+
 def test_logout_clears_local_auth_when_remote_request_fails():
     import requests
     from kokonut import KokonutClient
