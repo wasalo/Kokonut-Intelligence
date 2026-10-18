@@ -13,6 +13,8 @@ Ninety-six focused Python SDK tests, 46 JavaScript tests, TypeScript build,
 Ruff, compilation, schema guard, capability validation, and diff checks pass
 offline with mocked calls. CAP-049/056/058 and MAN-CAP acceptance remain
 unchanged ([evidence](builds/2026-10-18-recovery/sdk-market-capital-read-methods.json)).
+The six-commit SDK batch was pushed as `5eefa4c2`; CI #493 and Security #217
+are running on the new head.
 Checklist: 620 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
 7 deployed, 5 prepared.
 
