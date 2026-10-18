@@ -51,6 +51,7 @@ export type {
   HarvestEvent,
   SalesEvent,
   ExpenseEvent,
+  ExpenseCategory,
   SensorReading,
   WalletProfile,
   AttestationRecord,

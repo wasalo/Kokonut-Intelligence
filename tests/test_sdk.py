@@ -75,6 +75,24 @@ def test_organization_member_type_is_descriptive_not_an_access_grant():
     )
 
 
+def test_expense_category_type_exposes_shared_taxonomy_fields():
+    from kokonut import ExpenseCategory
+
+    category = ExpenseCategory(
+        id="category-1",
+        name="Seeds",
+        code="SEEDS",
+        is_direct=True,
+        active=True,
+        schema_version="common-data-schema-v1",
+    )
+
+    assert category.name == "Seeds"
+    assert category.is_direct is True
+    assert category.parent_id is None
+    assert category.schema_version == "common-data-schema-v1"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

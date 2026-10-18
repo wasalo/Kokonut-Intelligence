@@ -473,6 +473,21 @@ export interface AlertRule {
   updated_at?: string | null;
 }
 
+/** Descriptive entry in the shared expense taxonomy. */
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  code?: string | null;
+  parent_id?: string | null;
+  description?: string | null;
+  is_direct?: boolean | null;
+  allocation_default?: string | null;
+  sort_order?: number | null;
+  active?: boolean | null;
+  created_at?: string | null;
+  schema_version?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

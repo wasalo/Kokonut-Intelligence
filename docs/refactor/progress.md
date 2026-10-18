@@ -1,5 +1,17 @@
 # Kokonut Kernel implementation progress
 
+### SDK expense-category schema parity — 18 October 2026
+
+Python and TypeScript now expose the `expense_category` taxonomy row, including
+all base-table columns and `schema_version` added by migration 017. The offline
+guard covers 23 models, 516 canonical columns, 483 scalar types, 26 JSONB
+shapes, seven PostGIS shapes, 16 enum fields, and eight discovered CHECK-literal
+fields. Thirty-four Python SDK/guard tests and 29 JavaScript tests pass with
+the TypeScript build, Ruff, compilation, schema guard, capability-matrix
+validation, and diff check. No database or network was contacted; this typed
+catalog contract adds no authorization behavior
+([evidence](builds/2026-10-18-recovery/sdk-expense-category-parity.json)).
+
 ### SDK organization-member schema parity — 18 October 2026
 
 Python and TypeScript now expose a descriptive `OrganizationMember` record,

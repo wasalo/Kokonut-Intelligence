@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript expense_category SDK schema parity",
+  "model": "ExpenseCategory",
+  "source_table": "schemas/postgres/004_finance.sql:expense_category",
+  "additive_column": "schemas/postgres/017_fr_gaps.sql:schema_version",
+  "schema_guard": {
+    "models": 23,
+    "canonical_columns": 516,
+    "scalar_types": 483,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 26,
+    "enum_fields": 16,
+    "check_literal_fields": 8
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 34 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/types.py sdk/python/kokonut/__init__.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The model describes shared taxonomy data and adds no authorization behavior.",
+    "Checks used local source and synthetic fixtures; no database, provider, or network was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

@@ -276,6 +276,8 @@ class HarvestEvent:
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
 
 
 @dataclass
@@ -360,6 +362,23 @@ class ExpenseEvent:
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+
+
+@dataclass
+class ExpenseCategory:
+    """Descriptive entry in the shared expense taxonomy."""
+
+    id: str
+    name: str
+    code: Optional[str] = None
+    parent_id: Optional[str] = None
+    description: Optional[str] = None
+    is_direct: Optional[bool] = None
+    allocation_default: Optional[str] = None
+    sort_order: Optional[int] = None
+    active: Optional[bool] = None
+    created_at: Optional[str] = None
+    schema_version: Optional[str] = None
 
 
 @dataclass
