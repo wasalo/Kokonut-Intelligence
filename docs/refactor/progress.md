@@ -8467,3 +8467,11 @@ mocked check passes with Ruff, compilation, and diff checks. No database or
 provider was contacted. The checklist is 511 complete / 19 open; capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/metric-event-error-redaction.json`.
+
+Raster metadata readers now log bounded exception classes only, without local
+file paths or traceback details. Their generic read-error results and
+file/dependency behavior remain unchanged. Two mocked regressions pass in the
+21-test raster suite with Ruff, compilation, and diff checks. No database or
+provider was contacted. The checklist is 512 complete / 19 open; capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/raster-metadata-error-redaction.json`.

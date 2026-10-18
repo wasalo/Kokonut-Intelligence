@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import os
-from typing import Any
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("ingestion.raster_metadata")
@@ -48,8 +48,8 @@ def import_raster_metadata(filepath: str, location_id: str = None,
                 "source_system": source_system,
             }
             return {"status": "success", "metadata": data}
-    except Exception:
-        logger.exception("Failed to import raster metadata")
+    except Exception as exc:
+        logger.error("Failed to import raster metadata (%s)", safe_exception_class(exc))
         return {"status": "error", "message": "Failed to read raster metadata"}
 
 
@@ -78,6 +78,6 @@ def get_raster_info(filepath: str) -> dict:
                 "data_type": str(src.dtypes[0]) if src.dtypes else None,
                 "file_size": os.path.getsize(filepath),
             }
-    except Exception:
-        logger.exception("Failed to read raster info")
+    except Exception as exc:
+        logger.error("Failed to read raster info (%s)", safe_exception_class(exc))
         return {"status": "error", "message": "Failed to read raster info"}

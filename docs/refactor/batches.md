@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (17 October 2026):** 511 checklist items complete and 19
-open (530 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (17 October 2026):** 512 checklist items complete and 19
+open (531 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -99,6 +99,7 @@ these new tags are build candidates only.
 - [x] Bound computation-cache database failure logs without exposing cache keys, location identifiers, exception text, or tracebacks; preserve cache fallbacks and write rollback/propagation. Five focused failure cases pass in a 48-test cache suite with Ruff, compilation, and diff checks using mocks ([evidence](builds/2026-10-17-recovery/cache-error-redaction.json)).
 - [x] Bound typed graph projection and RDF rebuild failure logs while preserving rollback, re-raise, and generation activation boundaries. Two redaction regressions pass within a 157-test graph/RDF/linked-data suite with Ruff, compilation, and diff checks using mocks ([evidence](builds/2026-10-17-recovery/graph-rdf-error-redaction.json)).
 - [x] Bound best-effort metric event publication failures to exception classes without location identifiers, while keeping computed metric results available. The mocked regression, Ruff, compilation, and diff checks pass; no database or provider was contacted ([evidence](builds/2026-10-17-recovery/metric-event-error-redaction.json)).
+- [x] Bound raster metadata read failures to exception classes without private paths or tracebacks, while preserving the existing generic error results. Two mocked regressions pass within the 21-test raster suite with Ruff, compilation, and diff checks ([evidence](builds/2026-10-17-recovery/raster-metadata-error-redaction.json)).
   - [x] Run a current-source `linux/arm64` Kernel image build under Buildx/QEMU; inspect the ARM64 image/non-root user and run runtime CLI help plus image-manifest generation with networking disabled. The temporary image/archive were removed. This closes the code-only ARM64 build/import check, not physical Pi performance, power-loss, or device acceptance ([evidence](builds/2026-10-16-recovery/kernel-arm64-qemu-smoke.json)).
   - [x] Split Gateway CORS into `KOKONUT_GATEWAY_CORS_ORIGINS`, empty by default, so the legacy Directus `CORS_ORIGIN` cannot enable Gateway browser access; focused source tests cover explicit, empty, wildcard, and legacy-only configuration. Successful credentialed browser/runtime acceptance remains open.
 - [x] Document scoped backup and restore commands, destinations and retention.
