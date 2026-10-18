@@ -25,12 +25,15 @@ from .methods import (
     WalletProfileMethods,
 )
 from .types import (
+    BuyerDemandSignal,
+    BuyerSegment,
     CarbonCredit,
     CashFlowSnapshot,
     CreditAdjustment,
     CreditRetirement,
     CreditTransfer,
     DemandForecast,
+    DemandTrend,
     EnvironmentalBaseline,
     FinancialTransaction,
     ForecastOutput,
@@ -39,11 +42,14 @@ from .types import (
     MarketSizeEstimate,
     MetricValue,
     MrvClaim,
+    PriceObservation,
+    ProductionMarketMatch,
     RemoteSensingObservation,
     SoilCarbonMeasurement,
     SoilSample,
     SpeciesObservation,
     TimeSeriesForecast,
+    ValueFlowEvent,
     WeatherObservation,
 )
 
@@ -165,6 +171,24 @@ class KokonutClient:
         )
         self.market_size_estimates: LocationReadMethods[MarketSizeEstimate] = LocationReadMethods(
             self, "market_size_estimate"
+        )
+        self.price_observations: LocationReadMethods[PriceObservation] = LocationReadMethods(
+            self, "price_observation"
+        )
+        self.demand_trends: LocationReadMethods[DemandTrend] = LocationReadMethods(
+            self, "demand_trend"
+        )
+        self.buyer_demand_signals: LocationReadMethods[BuyerDemandSignal] = LocationReadMethods(
+            self, "buyer_demand_signal"
+        )
+        self.production_market_matches: LocationReadMethods[ProductionMarketMatch] = LocationReadMethods(
+            self, "production_market_match"
+        )
+        self.buyer_segments: LocationReadMethods[BuyerSegment] = LocationReadMethods(
+            self, "buyer_segment"
+        )
+        self.value_flow_events: LocationReadMethods[ValueFlowEvent] = LocationReadMethods(
+            self, "value_flow_event"
         )
 
     # -- Auth ------------------------------------------------------------------

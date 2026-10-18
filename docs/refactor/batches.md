@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 619 checklist items complete and 19
-open (638 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 620 checklist items complete and 19
+open (639 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1324,6 +1324,7 @@ reporting views.
 - [x] Generalize the typed read-only, location-scoped SDK accessor and use it for `financial_transaction` and `cash_flow_snapshot` in both languages. The location filter overrides conflicting caller scope; finance groups expose no write, calculation, or reconciliation helpers. The focused 96-test Python SDK suite, 46 JavaScript tests, TypeScript build, Ruff, schema guard, capability validator, and diff checks pass offline; CAP-031 remains unaccepted ([evidence](builds/2026-10-18-recovery/sdk-finance-read-methods.json)).
 - [x] Add typed, read-only location-scoped Python and TypeScript SDK accessors for stored weather, soil, baseline, biodiversity, remote-sensing, and MRV claim records. The required location overrides conflicting caller scope; these accessors do not ingest, calculate, verify, attest, or mutate. Ninety-six focused Python tests, 46 JavaScript tests, TypeScript build, Ruff, compilation, schema guard, capability validator, and diff checks pass offline; CAP-040/041 remain unaccepted ([evidence](builds/2026-10-18-recovery/sdk-ecology-read-methods.json)).
 - [x] Add typed read-only, location-scoped SDK groups for stored metric values, forecast scenarios/outputs, time-series and demand forecasts, and market-size estimates in Python and TypeScript. Location wins over conflicting caller filters; stored outputs are not calculated or verified by the SDK. Focused SDK, schema parity, TypeScript, Ruff, matrix, and diff checks pass offline; CAP-007/008 acceptance remains open ([evidence](builds/2026-10-18-recovery/sdk-forecast-read-methods.json)).
+- [x] Add typed read-only, location-scoped SDK groups for stored market prices, demand trends/signals, production-market matches, buyer segments, and value-flow events in Python and TypeScript. Location wins over conflicting caller filters; no price fetch, buyer commitment, marketplace lifecycle, or financial verification behavior is added. Focused SDK, schema, TypeScript, Ruff, matrix, and diff checks pass offline; CAP-049/056/058 remain unaccepted ([evidence](builds/2026-10-18-recovery/sdk-market-capital-read-methods.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

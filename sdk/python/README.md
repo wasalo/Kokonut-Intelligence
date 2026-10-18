@@ -109,6 +109,11 @@ metric_values = client.metric_values.list_by_location("location-uuid")
 forecasts = client.demand_forecasts.list_by_location("location-uuid")
 # Stored outputs are returned as-is; the SDK does not compute or verify them.
 
+# Read stored local prices and market demand records
+prices = client.price_observations.list_by_location("location-uuid")
+demand = client.buyer_demand_signals.list_by_location("location-uuid")
+# These reads do not fetch prices or confirm buyer commitments/fulfillment.
+
 # Aggregate query
 counts = client.aggregate(
     "harvest_event",
@@ -182,15 +187,22 @@ except KokonutError as e:
 | `time_series_forecasts` | `time_series_forecast` | `list_by_location` |
 | `demand_forecasts` | `demand_forecast` | `list_by_location` |
 | `market_size_estimates` | `market_size_estimate` | `list_by_location` |
+| `price_observations` | `price_observation` | `list_by_location` |
+| `demand_trends` | `demand_trend` | `list_by_location` |
+| `buyer_demand_signals` | `buyer_demand_signal` | `list_by_location` |
+| `production_market_matches` | `production_market_match` | `list_by_location` |
+| `buyer_segments` | `buyer_segment` | `list_by_location` |
+| `value_flow_events` | `value_flow_event` | `list_by_location` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `create_many`, `update`, `delete`. The credit-ledger and finance groups are
 read-only and expose only `list`, `get`, and `list_by_location`; the ecological,
-MRV, metric, and forecast groups also expose only these read methods. SDK
-location filters are query conveniences, not authorization boundaries;
-Directus must enforce the caller's grants. These methods do not ingest,
-calculate, verify, attest, or mutate governed lifecycle state. Stored forecast
-and metric outputs are returned without asserting they are current or verified.
+MRV, metric, forecast, market, and value-flow groups also expose only these read
+methods. SDK location filters are query conveniences, not authorization
+boundaries; Directus must enforce the caller's grants, especially for buyer and
+commercial records. These methods do not ingest, calculate, verify, attest,
+confirm commitments, or mutate governed lifecycle state. Stored forecast and
+metric outputs are returned without asserting they are current or verified.
 
 ## Examples
 

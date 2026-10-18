@@ -292,6 +292,12 @@ describe('KokonutClient', () => {
       [client.timeSeriesForecasts, 'time_series_forecast'],
       [client.demandForecasts, 'demand_forecast'],
       [client.marketSizeEstimates, 'market_size_estimate'],
+      [client.priceObservations, 'price_observation'],
+      [client.demandTrends, 'demand_trend'],
+      [client.buyerDemandSignals, 'buyer_demand_signal'],
+      [client.productionMarketMatches, 'production_market_match'],
+      [client.buyerSegments, 'buyer_segment'],
+      [client.valueFlowEvents, 'value_flow_event'],
     ] as const;
     const options = {
       limit: 20,

@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Market, demand, and value-flow SDK location-scoped reads — 18 October 2026
+
+Python and TypeScript clients now expose read-only, typed accessors for local
+price observations, demand trends, buyer-demand signals, production-market
+matches, buyer segments, and value-flow events. The explicit location filter
+overrides a conflicting caller filter and preserves the rest of the query
+options. The groups do not fetch prices, confirm commitments, fulfill orders,
+verify value flows, or change marketplace lifecycle. README notes retain
+Directus as the authorization boundary, including buyer and commercial records.
+Ninety-six focused Python SDK tests, 46 JavaScript tests, TypeScript build,
+Ruff, compilation, schema guard, capability validation, and diff checks pass
+offline with mocked calls. CAP-049/056/058 and MAN-CAP acceptance remain
+unchanged ([evidence](builds/2026-10-18-recovery/sdk-market-capital-read-methods.json)).
+Checklist: 620 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### Metrics and forecast SDK location-scoped reads — 18 October 2026
 
 Python and TypeScript clients now expose typed, read-only accessors for stored

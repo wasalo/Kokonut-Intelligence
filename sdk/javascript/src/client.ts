@@ -13,6 +13,8 @@ import {
 import type { AuthenticationData } from '@directus/sdk';
 import { normalizeDirectusError } from './errors.js';
 import type {
+  BuyerDemandSignal,
+  BuyerSegment,
   ListOptions,
   CarbonCredit,
   CreditAdjustment,
@@ -20,6 +22,7 @@ import type {
   CreditTransfer,
   CashFlowSnapshot,
   FinancialTransaction,
+  DemandTrend,
   DemandForecast,
   ForecastOutput,
   ForecastScenario,
@@ -27,11 +30,14 @@ import type {
   MarketSizeEstimate,
   MetricValue,
   MrvClaim,
+  PriceObservation,
+  ProductionMarketMatch,
   RemoteSensingObservation,
   SoilCarbonMeasurement,
   SoilSample,
   SpeciesObservation,
   TimeSeriesForecast,
+  ValueFlowEvent,
   WeatherObservation,
 } from './types.js';
 import {
@@ -127,6 +133,12 @@ export class KokonutClient {
   timeSeriesForecasts: LocationReadMethods<TimeSeriesForecast>;
   demandForecasts: LocationReadMethods<DemandForecast>;
   marketSizeEstimates: LocationReadMethods<MarketSizeEstimate>;
+  priceObservations: LocationReadMethods<PriceObservation>;
+  demandTrends: LocationReadMethods<DemandTrend>;
+  buyerDemandSignals: LocationReadMethods<BuyerDemandSignal>;
+  productionMarketMatches: LocationReadMethods<ProductionMarketMatch>;
+  buyerSegments: LocationReadMethods<BuyerSegment>;
+  valueFlowEvents: LocationReadMethods<ValueFlowEvent>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -169,6 +181,12 @@ export class KokonutClient {
     this.timeSeriesForecasts = buildLocationReadMethods<TimeSeriesForecast>(this, 'time_series_forecast');
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
+    this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');
+    this.demandTrends = buildLocationReadMethods<DemandTrend>(this, 'demand_trend');
+    this.buyerDemandSignals = buildLocationReadMethods<BuyerDemandSignal>(this, 'buyer_demand_signal');
+    this.productionMarketMatches = buildLocationReadMethods<ProductionMarketMatch>(this, 'production_market_match');
+    this.buyerSegments = buildLocationReadMethods<BuyerSegment>(this, 'buyer_segment');
+    this.valueFlowEvents = buildLocationReadMethods<ValueFlowEvent>(this, 'value_flow_event');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {

@@ -1449,6 +1449,12 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.time_series_forecasts, "time_series_forecast"),
         (client.demand_forecasts, "demand_forecast"),
         (client.market_size_estimates, "market_size_estimate"),
+        (client.price_observations, "price_observation"),
+        (client.demand_trends, "demand_trend"),
+        (client.buyer_demand_signals, "buyer_demand_signal"),
+        (client.production_market_matches, "production_market_match"),
+        (client.buyer_segments, "buyer_segment"),
+        (client.value_flow_events, "value_flow_event"),
     ]
     options = ListOptions(
         filter={"location_id": {"_eq": "other"}, "status": {"_eq": "verified"}},

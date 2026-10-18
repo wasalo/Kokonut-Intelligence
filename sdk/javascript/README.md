@@ -95,6 +95,11 @@ const metricValues = await client.metricValues.listByLocation('location-uuid');
 const forecasts = await client.demandForecasts.listByLocation('location-uuid');
 // Stored outputs are returned as-is; the SDK does not compute or verify them.
 
+// Read stored local prices and market demand records
+const prices = await client.priceObservations.listByLocation('location-uuid');
+const demand = await client.buyerDemandSignals.listByLocation('location-uuid');
+// These reads do not fetch prices or confirm buyer commitments/fulfillment.
+
 // Aggregate records through Directus
 const harvestCounts = await client.aggregate('harvest_event', {
   aggregate: { count: '*' },
@@ -195,15 +200,23 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `timeSeriesForecasts` | `time_series_forecast` | `listByLocation` |
 | `demandForecasts` | `demand_forecast` | `listByLocation` |
 | `marketSizeEstimates` | `market_size_estimate` | `listByLocation` |
+| `priceObservations` | `price_observation` | `listByLocation` |
+| `demandTrends` | `demand_trend` | `listByLocation` |
+| `buyerDemandSignals` | `buyer_demand_signal` | `listByLocation` |
+| `productionMarketMatches` | `production_market_match` | `listByLocation` |
+| `buyerSegments` | `buyer_segment` | `listByLocation` |
+| `valueFlowEvents` | `value_flow_event` | `listByLocation` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
 `createMany`, `update`, `delete`. The credit-ledger, finance, ecological
 observation, and MRV groups are read-only and expose only `list`, `get`, and
-`listByLocation`; metric and forecast groups follow the same read-only contract.
-SDK location filters are query conveniences, not authorization boundaries;
-Directus must enforce the caller's grants. These methods do not ingest,
-calculate, verify, attest, or mutate governed lifecycle state. Stored forecast
-and metric outputs are returned without asserting they are current or verified.
+`listByLocation`; metric, forecast, market, and value-flow groups follow the
+same read-only contract. SDK location filters are query conveniences, not
+authorization boundaries; Directus must enforce the caller's grants, especially
+for buyer and commercial records. These methods do not ingest, calculate,
+verify, attest, confirm commitments, or mutate governed lifecycle state. Stored
+forecast and metric outputs are returned without asserting they are current or
+verified.
 
 ## Examples
 
