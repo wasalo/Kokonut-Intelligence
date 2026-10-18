@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Native governance circle summary — 18 October 2026
+
+The OIDC operator API now exposes `/operator/api/governance/{location_id}/summary`
+for a location with an exact `governance_roles:read` grant. It sets signed tenant
+context before scoped queries and runs read-only with bounded statement and lock
+timeouts. The response includes location-circle names/review status and
+aggregate role, assignment, authority-domain, tension, and tactical counts.
+Stakeholder identities, policies, descriptions, session notes, tension details,
+and requested actions are excluded. Eight focused service/HTTP/policy checks,
+Ruff, compilation, and capability validation pass using synthetic connections
+and identities; no database/provider was contacted. CAP-024 is prepared, not
+accepted: mutation/detail parity, populated output parity, domain-table RLS,
+and MAN-CAP-024 remain open. Checklist: 640 complete / 19 open; matrix: 45
+baseline-retained, 7 deployed, 14 prepared
+([evidence](builds/2026-10-18-recovery/gateway-governance-role-summary.json)).
+
 ### Native Baal governance reads — 18 October 2026
 
 The Gateway now exposes global, read-only Baal configuration, a bounded

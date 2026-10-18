@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-18",
+  "slice": "CAP-024 location-scoped governance summary",
+  "route": "GET /operator/api/governance/{location_id}/summary",
+  "authorization": "OIDC operator session with exact location governance_roles:read scope; database-verified signed tenant context is set before scoped queries.",
+  "projection": "Read-only aggregate of location circles, role and assignment counts, location authority-domain counts, tension health, and tactical session/item counts. Stakeholder identities, private free text, policy text, requested actions, and per-item details are excluded.",
+  "checks": {
+    "pytest": {
+      "command": "python3 -m pytest tests/test_gateway_governance_roles.py tests/test_operator_route_policy_inventory.py -q",
+      "result": "8 passed"
+    },
+    "ruff": "passed on changed Python modules/tests",
+    "py_compile": "passed on changed Python modules",
+    "capability_matrix": "66 rows validated; 45 baseline-retained, 7 deployed, 14 prepared",
+    "git_diff_check": "passed"
+  },
+  "boundaries": {
+    "database_contacted": false,
+    "candidate_or_legacy_touched": false,
+    "provider_contacted": false,
+    "clients_and_data": "synthetic identities and mocked connections"
+  },
+  "limitations": [
+    "Role, tension, and tactical mutation/detail routes are not implemented in this slice.",
+    "The source retains human approval constraints, but full Kernel workflow parity and populated-output comparison remain unverified.",
+    "The affected legacy tables do not yet have domain-table RLS; this route is explicitly location-filtered after signed authorization and does not establish universal tenant isolation.",
+    "MAN-CAP-024 remains unaccepted."
+  ]
+}

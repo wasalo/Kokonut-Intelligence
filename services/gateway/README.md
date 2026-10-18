@@ -29,6 +29,16 @@ contains counts, recovery/deadline measures, affected-area and financial
 aggregates; it excludes incident descriptions, actions, support notes, lessons,
 and individual incident rows.
 
+Governance-circle operations have an aggregate read at
+`GET /operator/api/governance/{location_id}/summary` for operators with the
+location-specific `governance_roles:read` grant. The signed-tenant, read-only
+response includes circle review state and counts for roles, assignments,
+authority domains, tensions, and tactical items. It excludes stakeholder
+identities, policy text, tension descriptions, session notes, and requested
+actions. Role/tension/tactical mutations and item-level review are not exposed;
+the underlying legacy tables do not yet have domain-table RLS, so this route
+does not establish universal tenant isolation.
+
 Stored Celo attestation metadata can be read at
 `GET /operator/api/attestations/{location_id}` with the location-specific
 `attestation:read` grant. The route excludes claim payloads, evidence references,

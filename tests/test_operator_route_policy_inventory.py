@@ -75,6 +75,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("emergency_response", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/summary",
+    ): _expected("governance_roles", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/attestations/11111111-1111-4111-8111-111111111111",
     ): _expected("attestation", "read", scoped=True, location_id=_LOCATION_ID),
     ("GET", "/operator/api/report-review-queue"): _expected("report_snapshot_review", "read", scoped=True),
