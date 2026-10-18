@@ -16,6 +16,7 @@ import type {
   SensorDevice,
   SensorReading,
   SensorType,
+  WalletProfile,
 } from '../types.js';
 
 // Mock the @directus/sdk
@@ -278,6 +279,24 @@ describe('KokonutClient', () => {
     expect(device.location_id).toBe('location-1');
     expect(rule.threshold_value).toBe(20);
     expect(alert.triggered_at).toBe('2026-10-17T12:00:00Z');
+  });
+
+  it('types wallet profile metadata and schema-defined role values', () => {
+    const wallet: WalletProfile = {
+      id: 'wallet-1',
+      address: '0x0000000000000000000000000000000000000001',
+      chain: 'gnosis',
+      chain_id: 100,
+      role: 'operations',
+      label: 'Kokonut Operations',
+      first_seen_date: '2026-10-17',
+      last_active_date: '2026-10-18',
+      metadata: { source: 'fixture' },
+    };
+
+    expect(wallet.role).toBe('operations');
+    expect(wallet.chain_id).toBe(100);
+    expect(wallet.metadata).toEqual({ source: 'fixture' });
   });
 
   it('types harvest evidence and source lineage from the canonical schema', () => {

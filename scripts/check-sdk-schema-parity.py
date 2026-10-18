@@ -24,6 +24,7 @@ MODEL_TABLES = {
     "SensorDevice": ("011_sensor_registry.sql", "sensor_device"),
     "AlertRule": ("011_sensor_registry.sql", "alert_rule"),
     "SensorAlert": ("011_sensor_registry.sql", "sensor_alert"),
+    "WalletProfile": ("006_web3.sql", "wallet_profile"),
 }
 
 

@@ -251,6 +251,26 @@ def test_loss_labor_and_field_note_types_expose_operational_schema_fields():
     assert note.tags == ["test"]
 
 
+def test_wallet_profile_sdk_type_exposes_schema_metadata():
+    from kokonut.types import WalletProfile
+
+    wallet = WalletProfile(
+        id="wallet-1",
+        address="0x0000000000000000000000000000000000000001",
+        chain="gnosis",
+        chain_id=100,
+        role="operations",
+        label="Kokonut Operations",
+        first_seen_date="2026-10-17",
+        last_active_date="2026-10-18",
+        metadata={"source": "fixture"},
+    )
+
+    assert wallet.role == "operations"
+    assert wallet.chain_id == 100
+    assert wallet.metadata == {"source": "fixture"}
+
+
 def test_location_scoped_operational_methods_force_scope_and_preserve_options():
     from kokonut import KokonutClient
     from kokonut.types import ListOptions

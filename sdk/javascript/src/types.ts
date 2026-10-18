@@ -368,12 +368,17 @@ export interface WalletProfile {
   id: string;
   address: string;
   chain: string;
-  role: 'farm' | 'buyer' | 'investor' | 'verifier' | 'community' | 'treasury';
-  owner_type?: string;
-  owner_id?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  chain_id?: number | null;
+  role?: string | null;
+  owner_type?: string | null;
+  owner_id?: string | null;
+  label?: string | null;
+  is_active?: boolean | null;
+  first_seen_date?: string | null;
+  last_active_date?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface AttestationRecord {

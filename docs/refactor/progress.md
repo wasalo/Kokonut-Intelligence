@@ -8694,3 +8694,14 @@ schema guard, and diff checks pass using mocks and local fixtures only; no
 database or network was contacted. Checklist: 537 complete / 19 open.
 Capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-operational-record-methods.json`.
+
+### WalletProfile SDK schema parity — 17 October 2026
+
+The TypeScript `WalletProfile` model now includes the persisted chain ID,
+label, first/last activity dates, and metadata fields, and removes a role union
+that excluded valid schema values. The canonical wallet table is now included
+in the CI column-coverage guard, which checks 16 models and 326 columns per
+SDK. Seventeen Python tests, 25 JavaScript tests, Ruff, TypeScript build, the
+guard, and diff checks pass with local fixtures only. Checklist: 538 complete
+/ 19 open. Capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-wallet-profile-schema-parity.json`.
