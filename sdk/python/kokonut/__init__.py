@@ -102,6 +102,7 @@ from .types import (
     TrendSmoothingType,
     ValueFlowEvent,
     WalletProfile,
+    WeatherObservation,
 )
 
 __all__ = [
@@ -187,6 +188,7 @@ __all__ = [
     "ForecastOutput",
     "ForecastScenario",
     "SensorReading",
+    "WeatherObservation",
     "WalletProfile",
     "ValueFlowEvent",
     "ExcludedValueEvent",

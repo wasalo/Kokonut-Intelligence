@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK weather observation schema parity — 18 October 2026
+
+Python and TypeScript now expose stored `weather_observation` rows, including
+the measurement fields, provider metadata, and source-lineage columns added by
+migration 013. The offline guard covers 49 models, 1,012 canonical columns,
+945 scalar types, seven PostGIS shapes, 58 JSONB shapes, 20 enum fields, and 31
+standalone SQL CHECK literals. Fifty-five Python SDK/guard tests and 29
+JavaScript tests pass, along with the TypeScript build, Ruff, Python
+compilation, schema guard, capability-matrix validation, and diff check. The
+record does not fetch or verify weather data. No database or network was
+contacted; capability classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-weather-observation-parity.json)).
+
 ### SDK forecast model schema parity — 18 October 2026
 
 Python and TypeScript now expose `forecast_scenario` and `forecast_output`,

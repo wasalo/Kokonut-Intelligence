@@ -3454,3 +3454,13 @@ The types do not calculate decomposition or dashboard aggregates; capability
 status and MAN-CAP acceptance remain unchanged. Checklist: 570 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-seasonal-trend-dashboard-parity.json`.
+
+### Weather observation SDK model parity — 18 October 2026
+
+Python and TypeScript now represent stored weather observations and their
+source lineage. The guard covers 49 models and 1,012 columns, including 945
+scalar types, seven PostGIS shapes, 58 JSONB shapes, 20 enum fields, and 31
+standalone SQL CHECK literals. This adds data contracts only; it does not
+fetch, validate, or verify provider data. Checklist: 571 complete / 19 open.
+Capability classifications and MAN-CAP acceptance are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-weather-observation-parity.json`.

@@ -234,6 +234,28 @@ def test_metric_value_type_keeps_computation_separate_from_verification():
     assert len(result.source_record_ids) == 2
 
 
+def test_weather_observation_type_preserves_stored_measurements_without_ingestion():
+    from kokonut import WeatherObservation
+
+    observation = WeatherObservation(
+        id="weather-1",
+        location_id="location-1",
+        observation_date="2026-10-18",
+        source="station",
+        temperature_c=28.5,
+        rainfall_mm=12.4,
+        metadata={"station_code": "synthetic-1"},
+        source_raw={"provider_record": "synthetic"},
+        schema_version="1.0",
+    )
+
+    assert observation.temperature_c == 28.5
+    assert observation.rainfall_mm == 12.4
+    assert observation.metadata == {"station_code": "synthetic-1"}
+    assert observation.source_raw == {"provider_record": "synthetic"}
+    assert observation.schema_version == "1.0"
+
+
 def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
     from kokonut import ForecastScenario
 

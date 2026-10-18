@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript weather observation SDK schema parity",
+  "model": "WeatherObservation",
+  "source_table": "schemas/postgres/005_environmental.sql:weather_observation",
+  "additive_lineage_columns": {
+    "migration": "schemas/postgres/013_prd_completion.sql",
+    "columns": ["source_system", "source_id", "source_raw", "schema_version"]
+  },
+  "schema_guard": {
+    "models": 49,
+    "canonical_columns": 1012,
+    "scalar_types": 945,
+    "postgis_shapes": 7,
+    "jsonb_shapes": 58,
+    "enum_fields": 20,
+    "check_literal_fields": 31
+  },
+  "validation": {
+    "python": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q — 55 passed",
+    "javascript": "npm test — 29 passed",
+    "typescript": "npm run build — passed",
+    "schema_guard": "python3 scripts/check-sdk-schema-parity.py — passed",
+    "ruff": "ruff check sdk/python/kokonut/__init__.py sdk/python/kokonut/types.py scripts/check-sdk-schema-parity.py tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "python_compile": "python3 -m compileall -q sdk/python/kokonut tests/test_sdk.py tests/test_sdk_schema_parity.py — passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py — 66 rows valid",
+    "diff_check": "git diff --check — passed"
+  },
+  "boundaries": [
+    "The SDK model represents stored observations and does not fetch, validate, or verify weather-provider data.",
+    "Checks used local source and synthetic fixtures; no database or provider was contacted.",
+    "Capability classifications and MAN-CAP acceptance are unchanged."
+  ]
+}

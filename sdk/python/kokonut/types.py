@@ -1128,6 +1128,36 @@ class SensorReading:
 
 
 @dataclass
+class WeatherObservation:
+    """Stored weather observation; this record does not fetch or validate provider data."""
+
+    id: str
+    location_id: str
+    observation_date: str
+    observation_time: Optional[str] = None
+    source: Optional[str] = None
+    temperature_c: Optional[float] = None
+    temp_min_c: Optional[float] = None
+    temp_max_c: Optional[float] = None
+    precipitation_mm: Optional[float] = None
+    rainfall_mm: Optional[float] = None
+    humidity_pct: Optional[float] = None
+    wind_speed_kmh: Optional[float] = None
+    wind_direction_deg: Optional[float] = None
+    solar_radiation_wm2: Optional[float] = None
+    sunshine_hours: Optional[float] = None
+    cloud_cover_pct: Optional[float] = None
+    pressure_hpa: Optional[float] = None
+    visibility_km: Optional[float] = None
+    metadata: Optional[JSONObject] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    schema_version: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+@dataclass
 class SensorType:
     id: str
     name: str

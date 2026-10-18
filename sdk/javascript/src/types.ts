@@ -434,6 +434,34 @@ export interface SensorReading {
   schema_version?: string | null;
 }
 
+/** Stored weather observation; this record does not fetch or validate provider data. */
+export interface WeatherObservation {
+  id: string;
+  location_id: string;
+  observation_date: string;
+  observation_time?: string | null;
+  source?: string | null;
+  temperature_c?: number | null;
+  temp_min_c?: number | null;
+  temp_max_c?: number | null;
+  precipitation_mm?: number | null;
+  rainfall_mm?: number | null;
+  humidity_pct?: number | null;
+  wind_speed_kmh?: number | null;
+  wind_direction_deg?: number | null;
+  solar_radiation_wm2?: number | null;
+  sunshine_hours?: number | null;
+  cloud_cover_pct?: number | null;
+  pressure_hpa?: number | null;
+  visibility_km?: number | null;
+  metadata?: JSONObject | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  schema_version?: string | null;
+  created_at?: string | null;
+}
+
 export interface SensorType {
   id: string;
   name: string;
