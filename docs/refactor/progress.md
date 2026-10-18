@@ -8441,3 +8441,12 @@ suite with Ruff, compilation, and diff checks. No database or provider was
 used. The checklist is 508 complete / 19 open and capability classifications
 are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/stream-error-redaction.json`.
+
+Computation-cache database failures no longer log exception messages,
+tracebacks, cache keys, or location identifiers. Cache write rollback and
+propagation plus read, cleanup, invalidation, and statistics fallbacks are
+unchanged. Five focused mocked failure cases pass within a 48-test cache suite
+with Ruff, compilation, and diff checks. No database/provider was contacted.
+The checklist is 509 complete / 19 open; capability classifications are
+unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/cache-error-redaction.json`.

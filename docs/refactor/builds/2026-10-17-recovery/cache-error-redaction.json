@@ -1,0 +1,19 @@
+{
+  "scope": "computation cache database failure logging",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_cache_error_redaction.py tests/test_cache_cache.py tests/test_cache_events.py -q",
+    "focused_test_result": "48 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "cache get misses remain None and failed gets remain best-effort",
+    "cache set still rolls back and re-raises",
+    "invalidation and cleanup fallbacks remain zero",
+    "statistics failure remains an empty result"
+  ],
+  "redaction": "cache failures omit database exception text, traceback, and cache key/location identifier; only bounded exception class is logged"
+}

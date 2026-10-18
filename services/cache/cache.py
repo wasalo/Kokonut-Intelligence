@@ -8,9 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone, timedelta
-from typing import Any, Optional
+from datetime import datetime, timedelta, timezone
+from typing import Optional
 
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("cache.computation")
@@ -89,9 +90,9 @@ class ComputationCache:
                     "computed_at": computed_at.isoformat() if computed_at else None,
                     "hits": hit_count + 1,
                 }
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Cache get failed for key=%s", key)
+            logger.error("Cache get failed (%s)", safe_exception_class(exc))
             return None
 
     def set(
@@ -148,9 +149,9 @@ class ComputationCache:
             conn.commit()
             logger.debug("Cache set: %s (expires=%s)", key, expires_at)
             return key
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Cache set failed for key=%s", key)
+            logger.error("Cache set failed (%s)", safe_exception_class(exc))
             raise
 
     def invalidate(
@@ -189,9 +190,9 @@ class ComputationCache:
             conn.commit()
             logger.info("Invalidated %d cache entries (reason=%s)", count, reason)
             return count
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Cache invalidation failed")
+            logger.error("Cache invalidation failed (%s)", safe_exception_class(exc))
             return 0
 
     def cleanup_expired(self) -> int:
@@ -210,9 +211,9 @@ class ComputationCache:
             conn.commit()
             logger.info("Cleaned up %d expired cache entries", count)
             return count
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Cache cleanup failed")
+            logger.error("Cache cleanup failed (%s)", safe_exception_class(exc))
             return 0
 
     def stats(self) -> dict:
@@ -259,6 +260,6 @@ class ComputationCache:
                 "expired_entries": row[6],
                 "by_type": by_type,
             }
-        except Exception:
-            logger.exception("Cache stats failed")
+        except Exception as exc:
+            logger.error("Cache stats failed (%s)", safe_exception_class(exc))
             return {}
