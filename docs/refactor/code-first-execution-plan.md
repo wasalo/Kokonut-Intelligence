@@ -1348,9 +1348,11 @@ arbitrary caller paths while unknown routes still fail closed. The JavaScript
 SDK now implements Python's existing raw export `createMany` operation, and
 both SDKs preserve exact non-page-aligned offsets. Python and JavaScript
 `CropCycle` types now reflect the canonical PostgreSQL schema, and the NOI
-example uses its current yield fields. Focused tests, Ruff, TypeScript build,
-capability-matrix validation, and diff checks pass; no provider/database was
-contacted and no sandbox module executed in the latest slices. The checklist
-is now 529 complete / 19 open;
+example uses its current yield fields. `HarvestEvent` types now include the
+canonical evidence, verification, source-lineage, schema, and audit fields in
+both clients. Focused tests, Ruff, TypeScript build, capability-matrix
+validation, and diff checks pass; no provider/database was contacted and no
+sandbox module executed in the latest slices. The checklist is now 530
+complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (17 October 2026):** 529 checklist items complete and 19
-open (548 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (17 October 2026):** 530 checklist items complete and 19
+open (549 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1234,6 +1234,7 @@ reporting views.
 - [x] Select `report_snapshot` as the first location-scoped submitted-record source; implement its bounded read-only queue/detail routes, explicit OIDC location-scope enforcement, and same-origin browser view ([contract and acceptance gates](kernel-operations-console.md)).
 - [x] Preserve exact non-page-aligned `offset` values in both SDKs instead of flooring them to a page boundary. Seven Python tests, 16 JavaScript tests, Ruff, TypeScript build, and diff checks pass; request calls are mocked ([evidence](builds/2026-10-17-recovery/sdk-exact-offset-pagination.json)).
 - [x] Align Python and JavaScript `CropCycle` SDK fields with the canonical PostgreSQL table, including `location_id`, yield/revenue/planting fields, lifecycle metadata, and `schema_version`; update the example to use canonical yield names. Eight Python tests, 17 JavaScript tests, Ruff, TypeScript build, and diff checks pass with no database or network calls ([evidence](builds/2026-10-17-recovery/sdk-crop-cycle-schema-parity.json)).
+- [x] Align Python and JavaScript `HarvestEvent` SDK fields with the canonical PostgreSQL table, including evidence hashes, schema version, source lineage, and update/audit timestamps. Nine Python tests, 18 JavaScript tests, Ruff, TypeScript build, and diff checks pass with local fixtures and no database or network calls ([evidence](builds/2026-10-17-recovery/sdk-harvest-event-schema-parity.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

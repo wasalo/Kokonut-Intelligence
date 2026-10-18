@@ -93,17 +93,26 @@ export interface HarvestEvent {
   harvest_date: string;
   quantity: number;
   unit: string;
-  quality_grade?: string;
-  destination?: string;
-  loss_amount?: number;
-  loss_unit?: string;
-  loss_reason?: string;
-  loss_estimated_value?: number;
-  evidence_urls?: string[];
-  notes?: string;
-  status: 'draft' | 'submitted' | 'verified' | 'published' | 'rejected';
-  created_at: string;
-  updated_at: string;
+  quality_grade?: string | null;
+  destination?: string | null;
+  loss_amount?: number | null;
+  loss_unit?: string | null;
+  loss_reason?: string | null;
+  loss_estimated_value?: number | null;
+  evidence_urls?: string[] | null;
+  evidence_hashes?: string[] | null;
+  notes?: string | null;
+  status?: string | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  schema_version?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: Record<string, unknown> | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 }
 
 export interface SalesEvent {

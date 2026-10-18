@@ -55,6 +55,31 @@ def test_crop_cycle_sdk_type_exposes_schema_aligned_yield_fields():
     assert cycle.schema_version == "1.0"
 
 
+def test_harvest_event_sdk_type_exposes_schema_evidence_and_lineage_fields():
+    from kokonut.types import HarvestEvent
+
+    event = HarvestEvent(
+        id="harvest-1",
+        crop_cycle_id="cycle-1",
+        plot_id="plot-1",
+        location_id="location-1",
+        harvest_date="2026-10-17",
+        quantity=120,
+        unit="kg",
+        evidence_urls=["private://harvest/photo-1"],
+        evidence_hashes=["sha256:abc123"],
+        schema_version="1.0",
+        source_system="field_collector",
+        source_id="device-note-1",
+        source_raw={"form_version": "1.2.0"},
+        updated_at="2026-10-17T12:00:00Z",
+    )
+
+    assert event.evidence_hashes == ["sha256:abc123"]
+    assert event.source_raw == {"form_version": "1.2.0"}
+    assert event.updated_at == "2026-10-17T12:00:00Z"
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

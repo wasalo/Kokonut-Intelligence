@@ -158,13 +158,18 @@ class HarvestEvent:
     loss_unit: Optional[str] = None
     loss_reason: Optional[str] = None
     loss_estimated_value: Optional[float] = None
+    evidence_urls: Optional[List[str]] = None
+    evidence_hashes: Optional[List[str]] = None
     notes: Optional[str] = None
     status: Optional[str] = None
     verified_by: Optional[str] = None
     verified_at: Optional[str] = None
+    schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
+    source_raw: Optional[Dict[str, Any]] = None
     created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
 

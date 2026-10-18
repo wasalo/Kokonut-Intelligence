@@ -8599,3 +8599,16 @@ diff checks pass using local fixtures and mocked clients; no database or
 network was contacted. Checklist: 529 complete / 19 open. Capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-crop-cycle-schema-parity.json`.
+
+### SDK HarvestEvent schema parity — 17 October 2026
+
+The Python and JavaScript `HarvestEvent` models now expose the canonical
+`harvest_event` evidence, verification, source-lineage, schema-version, and
+audit columns. Python now includes `evidence_urls`, `evidence_hashes`,
+`source_raw`, and `updated_at`; JavaScript now includes hashes and the source,
+verification, schema, and audit fields, with nullable database columns
+represented as optional nullable properties. Nine Python tests, 18 JavaScript
+tests, Ruff, TypeScript build, and diff checks pass with local fixtures only;
+no database or network was contacted. Checklist: 530 complete / 19 open.
+Capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-harvest-event-schema-parity.json`.

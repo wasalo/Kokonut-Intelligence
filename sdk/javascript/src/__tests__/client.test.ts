@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KokonutClient } from '../client.js';
-import type { CropCycle } from '../types.js';
+import type { CropCycle, HarvestEvent } from '../types.js';
 
 // Mock the @directus/sdk
 vi.mock('@directus/sdk', () => {
@@ -122,6 +122,29 @@ describe('KokonutClient', () => {
 
     expect(cycle.actual_yield).toBe(215);
     expect(cycle.location_id).toBe('location-1');
+  });
+
+  it('types harvest evidence and source lineage from the canonical schema', () => {
+    const event: HarvestEvent = {
+      id: 'harvest-1',
+      crop_cycle_id: 'cycle-1',
+      plot_id: 'plot-1',
+      location_id: 'location-1',
+      harvest_date: '2026-10-17',
+      quantity: 120,
+      unit: 'kg',
+      evidence_urls: ['private://harvest/photo-1'],
+      evidence_hashes: ['sha256:abc123'],
+      schema_version: '1.0',
+      source_system: 'field_collector',
+      source_id: 'device-note-1',
+      source_raw: { form_version: '1.2.0' },
+      created_by: 'operator-1',
+      updated_by: 'operator-1',
+    };
+
+    expect(event.evidence_hashes).toEqual(['sha256:abc123']);
+    expect(event.source_raw).toEqual({ form_version: '1.2.0' });
   });
 
   it('preserves Python SDK export inputs through createExport()', async () => {
