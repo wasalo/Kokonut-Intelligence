@@ -149,3 +149,15 @@ def test_rate_limiter_returns_retry_after_and_bounds_callers():
     assert limiter.retry_after("first") >= 1
     assert limiter.check("second")
     assert "first" not in limiter._buckets
+
+
+def test_rate_limiter_does_not_log_caller_identity():
+    caller = "ip:203.0.113.17"
+    limiter = RateLimiter(max_tokens=1)
+    assert limiter.check(caller)
+
+    with patch("services.gateway.rate_limiter.logger.warning") as warning:
+        assert not limiter.check(caller)
+
+    warning.assert_called_once_with("Rate limit exceeded")
+    assert caller not in str(warning.call_args)

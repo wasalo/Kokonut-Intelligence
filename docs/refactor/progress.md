@@ -8550,3 +8550,12 @@ Read-only Docker inspection confirms the candidate app is healthy and bound to
 `127.0.0.1:8098`; PostgreSQL and Metabase are healthy and the proxy is running.
 The candidate `/health` endpoint returned HTTP 200 after the host restart. No
 container, database, or service state was changed.
+
+### Gateway rate-limit identity log redaction — 17 October 2026
+
+In-memory Gateway rate-limit warnings no longer include the limiter key, which
+can contain a client IP address. Denial, retry timing, and the separate audit
+record are unchanged. The focused Gateway audit/auth suites pass 35 tests with
+Ruff; the regression uses a synthetic IP and no database or network. The
+checklist is 525 complete / 19 open; capability classifications are unchanged.
+Evidence: `docs/refactor/builds/2026-10-17-recovery/gateway-rate-limiter-identity-redaction.json`.

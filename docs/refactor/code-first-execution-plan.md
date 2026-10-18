@@ -1341,9 +1341,11 @@ scope plus pagination/metadata options. The sandbox runner now rejects
 non-string, malformed, and unregistered module names without echoing caller
 input, while registered modules remain blocked until a restricted executor is
 configured. Malformed migration-ledger output also produces a fixed
-summary rather than echoing database-returned data. Focused tests, Ruff,
-TypeScript build, capability-matrix validation, and diff checks pass; no
-provider/database was contacted and no sandbox module executed in the latest
-slices. The checklist is now 524 complete / 19 open;
+summary rather than echoing database-returned data. Gateway in-memory
+rate-limit warnings also omit client IP-based limiter keys while retaining the
+same denial, retry, and audit behavior. Focused tests, Ruff, TypeScript build,
+capability-matrix validation, and diff checks pass; no provider/database was
+contacted and no sandbox module executed in the latest slices. The checklist
+is now 525 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.
