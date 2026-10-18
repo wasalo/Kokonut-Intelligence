@@ -18,6 +18,7 @@ from .public_api import (
     PublicMetricSummary,
 )
 from .types import (
+    ActivityTypeSourceOption,
     ActuationLog,
     ActuationLogStatus,
     ActuationStatus,
@@ -58,6 +59,7 @@ from .types import (
     ExportLog,
     ExportStatus,
     Farm,
+    FarmActivity,
     FinancialTransaction,
     ForecastAccuracy,
     ForecastOutput,
@@ -122,6 +124,7 @@ from .types import (
 )
 
 __all__ = [
+    "ActivityTypeSourceOption",
     "ActuationLog",
     "ActuationLogStatus",
     "KokonutClient",
@@ -180,6 +183,7 @@ __all__ = [
     "Organization",
     "OrganizationMember",
     "Farm",
+    "FarmActivity",
     "DashboardDataset",
     "DemandForecast",
     "DemandForecastStatus",

@@ -96,6 +96,13 @@ class GeoJSONPolygon(TypedDict):
     coordinates: List[List[GeoJSONPosition]]
 
 
+class ActivityTypeSourceOption(TypedDict):
+    """Preserved source option metadata; it does not select the canonical activity type."""
+
+    option_id: int
+    label: str
+
+
 @dataclass
 class ListOptions:
     filter: Optional[Dict[str, Any]] = None
@@ -299,6 +306,43 @@ class CropCycle:
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
+
+
+@dataclass
+class FarmActivity:
+    """Stored farm operation record; this model does not advance its review lifecycle."""
+
+    id: str
+    location_id: str
+    activity_type: str
+    activity_date: str
+    plot_id: Optional[str] = None
+    crop_cycle_id: Optional[str] = None
+    description: Optional[str] = None
+    labor_hours: Optional[float] = None
+    labor_cost: Optional[float] = None
+    materials_used: Optional[JSONValue] = None
+    evidence_urls: Optional[List[str]] = None
+    evidence_hashes: Optional[List[str]] = None
+    notes: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
+    verified_by: Optional[str] = None
+    verified_at: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    schema_version: Optional[str] = None
+    source_system: Optional[str] = None
+    source_id: Optional[str] = None
+    source_raw: Optional[JSONObject] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+    submitted_at: Optional[str] = None
+    farm_id: Optional[str] = None
+    farm_task_id: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    activity_end_date: Optional[str] = None
+    activity_type_source_options: Optional[List[ActivityTypeSourceOption]] = None
 
 
 @dataclass

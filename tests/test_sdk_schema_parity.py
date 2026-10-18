@@ -372,7 +372,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 72
+    assert checked == 75
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )
@@ -435,4 +435,4 @@ def test_sdk_enum_annotations_match_all_mapped_postgres_enum_constraints():
                 typescript_types[model][column], typescript_enums, values
             ), f"TypeScript {model}.{column} does not match SQL enum {enum_type}"
 
-    assert checked == 21
+    assert checked == 22

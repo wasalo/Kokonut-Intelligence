@@ -53,6 +53,32 @@ def test_organization_sdk_model_uses_schema_values_and_keeps_metadata_json_typed
     )
 
 
+def test_farm_activity_model_preserves_review_scope_and_source_option_metadata():
+    from typing import get_type_hints
+
+    from kokonut import ActivityTypeSourceOption, FarmActivity
+
+    activity = FarmActivity(
+        id="activity-1",
+        location_id="location-1",
+        activity_type="irrigation",
+        activity_date="2026-10-18",
+        farm_id="farm-1",
+        duration_minutes=45,
+        status="draft",
+        materials_used={"items": ["water"]},
+        activity_type_source_options=[{"option_id": 71, "label": "Irrigation"}],
+    )
+
+    assert activity.duration_minutes == 45
+    assert activity.status == "draft"
+    assert activity.materials_used == {"items": ["water"]}
+    assert activity.activity_type_source_options == [
+        {"option_id": 71, "label": "Irrigation"}
+    ]
+    assert get_type_hints(ActivityTypeSourceOption) == {"option_id": int, "label": str}
+
+
 def test_organization_member_type_is_descriptive_not_an_access_grant():
     from kokonut import OrganizationMember, OrganizationMembershipType
 

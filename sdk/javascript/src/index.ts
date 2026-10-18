@@ -21,6 +21,7 @@ export type {
 } from './public-api.js';
 
 export type {
+  ActivityTypeSourceOption,
   ActuationLog,
   ActuationLogStatus,
   ActuatorType,
@@ -75,6 +76,7 @@ export type {
   Organization,
   OrganizationMember,
   Farm,
+  FarmActivity,
   DashboardDataset,
   DemandForecast,
   DemandForecastStatus,

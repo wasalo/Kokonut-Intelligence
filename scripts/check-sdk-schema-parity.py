@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MODEL_TABLES = {
     "Location": ("001_locations.sql", "location"),
+    "FarmActivity": ("003_operations.sql", "farm_activity"),
     "Organization": ("064_organization.sql", "organization"),
     "OrganizationMember": ("064_organization.sql", "organization_member"),
     "Farm": ("001_locations.sql", "farm"),
@@ -102,6 +103,9 @@ JSONB_MODEL_SHAPES = {
     ("ActuationLog", "command_payload"): "json_object",
     ("ActuationLog", "response_payload"): "json_object",
     ("ActuationLog", "metadata"): "json_object",
+    ("FarmActivity", "materials_used"): "json_value",
+    ("FarmActivity", "source_raw"): "json_object",
+    ("FarmActivity", "activity_type_source_options"): "json_object_array",
     ("SensorReading", "source_raw"): "json_object",
     ("SensorDevice", "metadata"): "json_object",
     ("AlertRule", "metadata"): "json_object",
@@ -470,7 +474,11 @@ def python_type_matches_family(
         "geojson_point": {"GeoJSONPoint"},
         "geojson_polygon": {"GeoJSONPolygon"},
         "json_object": {"JSONObject"},
-        "json_object_array": {"List[JSONObject]", "list[JSONObject]"},
+        "json_object_array": {
+            "List[JSONObject]", "list[JSONObject]",
+            "List[ActivityTypeSourceOption]", "list[ActivityTypeSourceOption]",
+        },
+        "json_value": {"JSONValue"},
         "json_value_array": {"List[JSONValue]", "list[JSONValue]"},
     }
     return normalized in compatible.get(family, set())
@@ -498,10 +506,11 @@ def typescript_type_matches_family(
         "geojson_point": "GeoJSONPoint",
         "geojson_polygon": "GeoJSONPolygon",
         "json_object": "JSONObject",
-        "json_object_array": "JSONObject[]",
+        "json_object_array": {"JSONObject[]", "ActivityTypeSourceOption[]"},
+        "json_value": "JSONValue",
         "json_value_array": "JSONValue[]",
     }.get(family)
-    return normalized == expected
+    return normalized in expected if isinstance(expected, set) else normalized == expected
 
 
 def python_model_field_types(path: Path) -> dict[str, dict[str, str]]:

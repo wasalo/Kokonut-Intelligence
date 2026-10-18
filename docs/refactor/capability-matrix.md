@@ -11,6 +11,11 @@ and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate
 capability behavior or mark any MAN-CAP check accepted.
 
+**Farm-activity SDK contract note — 18 October 2026:** Python and TypeScript
+now model the stored `farm_activity` record and schema-added fields. This
+source contract does not establish write, lifecycle, Directus, or tenant
+parity and changes no MAN-CAP classification ([evidence](builds/2026-10-18-recovery/sdk-farm-activity-parity.json)).
+
 
 **SDK schema implementation note — 18 October 2026:** Python and TypeScript
 now expose stored `price_observation` records and the SQL-constrained oracle

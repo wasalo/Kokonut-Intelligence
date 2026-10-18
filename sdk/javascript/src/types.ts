@@ -67,6 +67,12 @@ export interface GeoJSONPolygon {
   coordinates: GeoJSONPosition[][];
 }
 
+/** Preserved source option metadata; it does not select the canonical activity type. */
+export interface ActivityTypeSourceOption {
+  option_id: number;
+  label: string;
+}
+
 export interface Location {
   id: string;
   name: string;
@@ -262,6 +268,41 @@ export interface HarvestEvent {
   updated_at?: string | null;
   created_by?: string | null;
   updated_by?: string | null;
+}
+
+/** Stored farm operation record; this model does not advance its review lifecycle. */
+export interface FarmActivity {
+  id: string;
+  location_id: string;
+  activity_type: string;
+  activity_date: string;
+  plot_id?: string | null;
+  crop_cycle_id?: string | null;
+  description?: string | null;
+  labor_hours?: number | null;
+  labor_cost?: number | null;
+  materials_used?: JSONValue | null;
+  evidence_urls?: string[] | null;
+  evidence_hashes?: string[] | null;
+  notes?: string | null;
+  status?: LifecycleStatus | null;
+  verified_by?: string | null;
+  verified_at?: string | null;
+  rejection_reason?: string | null;
+  schema_version?: string | null;
+  source_system?: string | null;
+  source_id?: string | null;
+  source_raw?: JSONObject | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  submitted_at?: string | null;
+  farm_id?: string | null;
+  farm_task_id?: string | null;
+  duration_minutes?: number | null;
+  activity_end_date?: string | null;
+  activity_type_source_options?: ActivityTypeSourceOption[] | null;
 }
 
 export interface SalesEvent {

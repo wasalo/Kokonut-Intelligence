@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### SDK FarmActivity stored-record parity — 18 October 2026
+
+Python and TypeScript now expose the canonical `farm_activity` record across
+the base schema and migrations 009, 359, and 369. The contract includes farm
+and task links, duration and end-date fields, recursive materials JSON, and a
+typed array preserving source activity-option metadata. The source guard covers
+61 models, 1,313 columns, 1,228 scalar types, 10 PostGIS shapes, 75 JSONB
+shapes, 22 enum fields, and 40 standalone SQL CHECK literals. Sixty-eight
+focused Python SDK/schema/method-parity tests and 29 JavaScript tests pass;
+TypeScript build, Ruff, compilation, schema guard, capability-matrix
+validation, and diff checks pass. The stored-record type does not create,
+submit, verify, or publish farm activities and establishes no tenant or
+Directus parity. No database, provider, or network was contacted; capability
+classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-farm-activity-parity.json)).
+
 ### SDK method inventory parity — 18 October 2026
 
 An offline source regression now compares the Python and TypeScript SDK
