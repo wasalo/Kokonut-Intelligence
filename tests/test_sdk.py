@@ -234,6 +234,40 @@ def test_metric_value_type_keeps_computation_separate_from_verification():
     assert len(result.source_record_ids) == 2
 
 
+def test_forecast_scenario_type_exposes_assumptions_without_running_engine():
+    from kokonut import ForecastScenario
+
+    scenario = ForecastScenario(
+        id="scenario-1",
+        name="Base case",
+        assumptions={"rainfall_mm": 1200},
+        price_assumptions={"cocoa_usd_per_tonne": 4200},
+        status="draft",
+    )
+
+    assert scenario.assumptions["rainfall_mm"] == 1200
+    assert scenario.price_assumptions["cocoa_usd_per_tonne"] == 4200
+
+
+def test_forecast_output_type_exposes_results_and_confidence_inputs():
+    from kokonut import ForecastOutput
+
+    output = ForecastOutput(
+        id="forecast-1",
+        scenario_id="scenario-1",
+        metric_name="crop_noi",
+        value=5200.0,
+        confidence_low=4700.0,
+        confidence_high=5700.0,
+        confidence_level=0.9,
+        inputs={"source": "synthetic"},
+    )
+
+    assert output.value == 5200.0
+    assert output.confidence_level == 0.9
+    assert output.inputs["source"] == "synthetic"
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 

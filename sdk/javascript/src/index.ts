@@ -58,6 +58,8 @@ export type {
   ExpenseCategory,
   CapitalSource,
   FinancialTransaction,
+  ForecastOutput,
+  ForecastScenario,
   ValueFlowEvent,
   ExcludedValueEvent,
   SensorReading,

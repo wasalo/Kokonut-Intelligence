@@ -554,6 +554,51 @@ class MetricValue:
 
 
 @dataclass
+class ForecastScenario:
+    """Scenario definition and assumptions; does not run the forecast engine."""
+
+    id: str
+    name: str
+    assumptions: JSONObject
+    description: Optional[str] = None
+    scenario_type: Optional[str] = None
+    location_id: Optional[str] = None
+    price_assumptions: Optional[JSONObject] = None
+    yield_assumptions: Optional[JSONObject] = None
+    cost_assumptions: Optional[JSONObject] = None
+    growth_assumptions: Optional[JSONObject] = None
+    version: Optional[int] = None
+    parent_scenario_id: Optional[str] = None
+    status: Optional[LifecycleStatus] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+@dataclass
+class ForecastOutput:
+    """Stored forecast result; it does not establish verification."""
+
+    id: str
+    scenario_id: str
+    metric_name: str
+    location_id: Optional[str] = None
+    crop_cycle_id: Optional[str] = None
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
+    value: Optional[float] = None
+    unit: Optional[str] = None
+    confidence_low: Optional[float] = None
+    confidence_high: Optional[float] = None
+    confidence_level: Optional[float] = None
+    calculation_version: Optional[str] = None
+    calculated_at: Optional[str] = None
+    inputs: Optional[JSONObject] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
 class LossEvent:
     id: str
     location_id: str

@@ -28,6 +28,8 @@ MODEL_TABLES = {
     "MetricDefinition": ("007_modeled_outputs.sql", "metric_definition"),
     "MetricVersion": ("007_modeled_outputs.sql", "metric_version"),
     "MetricValue": ("007_modeled_outputs.sql", "metric_value"),
+    "ForecastScenario": ("007_modeled_outputs.sql", "forecast_scenario"),
+    "ForecastOutput": ("007_modeled_outputs.sql", "forecast_output"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -73,6 +75,12 @@ JSONB_MODEL_SHAPES = {
     ("FinancialTransaction", "source_raw"): "json_object",
     ("MetricDefinition", "validation_tests"): "json_object_array",
     ("MetricValue", "metadata"): "json_object",
+    ("ForecastScenario", "assumptions"): "json_object",
+    ("ForecastScenario", "price_assumptions"): "json_object",
+    ("ForecastScenario", "yield_assumptions"): "json_object",
+    ("ForecastScenario", "cost_assumptions"): "json_object",
+    ("ForecastScenario", "growth_assumptions"): "json_object",
+    ("ForecastOutput", "inputs"): "json_object",
 }
 
 

@@ -644,6 +644,47 @@ export interface MetricValue {
   metadata?: JSONObject | null;
 }
 
+/** Scenario definition and assumptions; does not run the forecast engine. */
+export interface ForecastScenario {
+  id: string;
+  name: string;
+  assumptions: JSONObject;
+  description?: string | null;
+  scenario_type?: string | null;
+  location_id?: string | null;
+  price_assumptions?: JSONObject | null;
+  yield_assumptions?: JSONObject | null;
+  cost_assumptions?: JSONObject | null;
+  growth_assumptions?: JSONObject | null;
+  version?: number | null;
+  parent_scenario_id?: string | null;
+  status?: LifecycleStatus | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+}
+
+/** Stored forecast result; it does not establish verification. */
+export interface ForecastOutput {
+  id: string;
+  scenario_id: string;
+  metric_name: string;
+  location_id?: string | null;
+  crop_cycle_id?: string | null;
+  period_start?: string | null;
+  period_end?: string | null;
+  value?: number | null;
+  unit?: string | null;
+  confidence_low?: number | null;
+  confidence_high?: number | null;
+  confidence_level?: number | null;
+  calculation_version?: string | null;
+  calculated_at?: string | null;
+  inputs?: JSONObject | null;
+  created_by?: string | null;
+}
+
 export interface SensorAlert {
   id: string;
   sensor_device_id: string;

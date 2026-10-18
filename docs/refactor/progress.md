@@ -1,5 +1,18 @@
 # Kokonut Kernel implementation progress
 
+### SDK forecast model schema parity — 18 October 2026
+
+Python and TypeScript now expose `forecast_scenario` and `forecast_output`,
+including scenario assumptions, lifecycle state, location/crop-cycle links,
+forecast values, confidence bounds, and input metadata. The guard checks 33
+models, 673 canonical columns, 629 scalar types, 36 JSONB shapes, seven
+PostGIS shapes, 18 enum fields, and eight discovered CHECK-literal fields.
+Forty-five Python SDK/guard tests and 29 JavaScript tests pass with TypeScript
+build, Ruff, compilation, schema guard, capability-matrix validation, and diff
+check. No database or network was contacted. The data types do not run a
+forecast engine or establish output verification
+([evidence](builds/2026-10-18-recovery/sdk-forecast-model-parity.json)).
+
 ### SDK metric-value schema parity and guard correction — 18 October 2026
 
 Python and TypeScript now expose `metric_value`, including source-record IDs,
