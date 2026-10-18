@@ -22,6 +22,7 @@ import os
 import signal
 import sys
 
+from ..common.errors import safe_exception_class
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion
 from .field_validation import get_transport_timestamp_mode, parse_transport_timestamp, validate_sensor_reading
@@ -410,9 +411,12 @@ class MQTTSensorSubscriber:
         self.client.username_pw_set(self.username, self.password)
         try:
             self.client.tls_set(ca_certs=self.ca_cert, certfile=self.client_cert, keyfile=self.client_key)
-        except Exception:
-            logger.exception("MQTT TLS configuration failed")
-            raise
+        except Exception as exc:
+            error_class = safe_exception_class(exc)
+            logger.error("MQTT TLS configuration failed (%s)", error_class)
+            raise RuntimeError(
+                f"MQTT TLS configuration failed ({error_class})"
+            ) from None
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
         self.client.on_subscribe = self._on_subscribe

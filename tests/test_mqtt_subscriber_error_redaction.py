@@ -87,3 +87,38 @@ def test_clickhouse_compatibility_fallback_logs_only_exception_class(monkeypatch
 
     assert SECRET not in str(logger.warning.call_args)
     assert "RuntimeError" in str(logger.warning.call_args)
+
+
+def test_tls_configuration_failure_does_not_expose_certificate_details(monkeypatch):
+    from services.core.providers import ProviderSettings
+    from services.ingestion import mqtt_subscriber
+
+    logger = MagicMock()
+    monkeypatch.setattr(mqtt_subscriber, "logger", logger)
+    monkeypatch.setattr(
+        ProviderSettings,
+        "from_environment",
+        classmethod(lambda cls: SimpleNamespace(mqtt=True)),
+    )
+    client = MagicMock()
+    client.tls_set.side_effect = RuntimeError(
+        f"certificate at /private/certs/client.key contains {SECRET}"
+    )
+    monkeypatch.setattr(
+        "services.core.adapters.mqtt.create_client", lambda **kwargs: client
+    )
+
+    subscriber = MQTTSensorSubscriber(username="operator", password="synthetic")
+    subscriber._state = MagicMock()
+
+    with pytest.raises(
+        RuntimeError, match=r"MQTT TLS configuration failed \(RuntimeError\)"
+    ) as error:
+        subscriber.start()
+
+    assert SECRET not in str(error.value)
+    assert "/private/certs/client.key" not in str(error.value)
+    assert error.value.__suppress_context__ is True
+    assert "RuntimeError" in str(logger.error.call_args)
+    assert SECRET not in str(logger.error.call_args)
+    client.connect.assert_not_called()
