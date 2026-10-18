@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Governance role authority evaluation — 18 October 2026
+
+The CAP-024 role evaluator now requires an active circle and role, a current
+non-recused assignment, and matching active authority domain. It reports
+`approval_required` separately from role authority; the compatibility
+`role_can_act` helper remains an authority-threshold check and is documented
+not to authorize execution when a separate human approval gate is configured.
+Six mocked authority tests, Ruff, compilation, the runtime SQL inventory, and
+capability validation pass without database access. The refreshed inventory
+now includes six Gateway reader modules and 28 SQL sites missing from the
+prior report, for 841 source files and 4,055 execution sites. OIDC operator identities
+do not currently map to governance `party` records, so action routes cannot
+safely attribute a human approver and remain deferred. Checklist: 641 complete
+/ 19 open; matrix: 45 baseline-retained, 7 deployed, 14 prepared
+([evidence](builds/2026-10-18-recovery/governance-role-authority-evaluation.json)).
+
 ### Native governance circle summary — 18 October 2026
 
 The OIDC operator API now exposes `/operator/api/governance/{location_id}/summary`

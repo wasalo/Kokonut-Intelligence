@@ -19,12 +19,13 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 640 checklist items complete and 19
-open (659 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 45
+**Current snapshot (18 October 2026):** 641 checklist items complete and 19
+open (660 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 45
 baseline-retained, 7 deployed, and 14 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
 - [x] Add a private OIDC Gateway summary for governance circles and roles at `/operator/api/governance/{location_id}/summary`. It requires an exact `governance_roles:read` location grant, signed tenant context, and a read-only transaction; it returns circle review state and role, assignment, authority, tension, and tactical counts while excluding stakeholder identities and private free text. Eight focused service/route/policy checks, Ruff, compilation, capability validation, and diff checks pass using synthetic data. This is aggregate operational visibility only: no role/tension/tactical mutations, item-level content, candidate database, or legacy database was accessed. MAN-CAP-024, populated parity, and domain-table RLS remain open ([evidence](builds/2026-10-18-recovery/gateway-governance-role-summary.json)).
+- [x] Harden CAP-024 role authority evaluation: only an active circle, active role, current non-recused assignment, and effective scoped domain can satisfy the requested level. Return `approval_required` separately from authority so a caller cannot treat a role grant as human approval. Six mocked regressions, Ruff, compilation, runtime SQL inventory, capability validation, and diff checks pass; no database was contacted. The inventory refresh also captured six Gateway reader modules and 28 SQL sites that the prior report omitted; it now records 841 service source files and 4,055 execution sites. Gateway action routes remain deferred because OIDC operators currently have no governed `party` identity to attribute a human approval to ([evidence](builds/2026-10-18-recovery/governance-role-authority-evaluation.json)).
 
 ## Batch 1 — Identify matching release artifacts (Phases 1, 8)
 
