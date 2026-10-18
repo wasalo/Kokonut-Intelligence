@@ -15,6 +15,11 @@ AlertLifecycle = Literal["open", "acknowledged", "resolved", "false_positive"]
 ExportStatus = Literal["pending", "generating", "completed", "failed"]
 OrganizationType = Literal["cooperative", "nonprofit", "dao", "enterprise", "collective", "other"]
 OrganizationStatus = Literal["active", "inactive", "dissolved"]
+ActuatorType = Literal["irrigation", "pest_control", "fertilization", "notification", "custom"]
+ActuationStatus = Literal[
+    "pending", "sent", "acknowledged", "executed", "failed", "requires_approval"
+]
+AttestationVerdict = Literal["pending", "approved", "rejected", "needs_info"]
 
 GeoJSONPosition = List[float]
 
@@ -499,7 +504,7 @@ class AlertRule:
     auto_create_claim: Optional[bool] = None
     claim_type: Optional[str] = None
     actuator_enabled: Optional[bool] = None
-    actuator_type: Optional[str] = None
+    actuator_type: Optional[ActuatorType] = None
     actuator_command: Optional[str] = None
     actuator_topic: Optional[str] = None
     human_approval_required: Optional[bool] = None
@@ -528,7 +533,7 @@ class SensorAlert:
     created_at: Optional[str] = None
     actuation_sent: Optional[bool] = None
     actuation_response: Optional[JSONObject] = None
-    actuation_status: Optional[str] = None
+    actuation_status: Optional[ActuationStatus] = None
 
 
 @dataclass
@@ -575,7 +580,7 @@ class AttestationRecord:
     evaluator_id: Optional[str] = None
     private_payload_hash: Optional[str] = None
     payload_cid: Optional[str] = None
-    verdict: Optional[str] = None
+    verdict: Optional[AttestationVerdict] = None
     rationale: Optional[str] = None
     evidence_reviewed: Optional[List[str]] = None
     graph_iri: Optional[str] = None

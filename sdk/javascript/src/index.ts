@@ -21,6 +21,9 @@ export type {
 } from './public-api.js';
 
 export type {
+  ActuatorType,
+  ActuationStatus,
+  AttestationVerdict,
   JSONObject,
   JSONScalar,
   JSONValue,

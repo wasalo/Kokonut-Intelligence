@@ -8824,3 +8824,16 @@ network was contacted. The model describes organization data; organization
 membership records do not establish tenant ownership or authorization.
 Checklist: 548 complete / 19 open. Capability classifications are unchanged.
 Evidence: `docs/refactor/builds/2026-10-18-recovery/sdk-organization-schema-parity.json`.
+
+### SDK SQL CHECK literal parity — 18 October 2026
+
+Replaced unconstrained strings in three mapped fields with shared Python and
+TypeScript literal aliases: alert actuator type, sensor-alert actuation status,
+and attestation verdict. The source guard now validates these alongside the
+organization type/status fields, deriving each allowed set from its base table
+or ordered migration `CHECK` constraint. Thirty-two focused Python SDK/guard
+tests, 29 JavaScript tests, TypeScript build, Ruff, the schema guard, and
+`git diff --check` pass; no database or network was contacted. The guard now
+checks five SQL `CHECK` literal fields across the 21 mapped models. Checklist:
+549 complete / 19 open. Capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-checked-literal-parity.json`.

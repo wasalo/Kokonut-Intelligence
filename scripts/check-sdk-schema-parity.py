@@ -59,6 +59,9 @@ JSONB_MODEL_SHAPES = {
     ("Organization", "metadata"): "json_object",
 }
 CHECKED_LITERAL_FIELDS = {
+    ("AlertRule", "actuator_type"),
+    ("SensorAlert", "actuation_status"),
+    ("AttestationRecord", "verdict"),
     ("Organization", "org_type"),
     ("Organization", "status"),
 }

@@ -90,29 +90,48 @@ def test_sql_check_literal_inventory_reads_base_constraints_and_migrations(tmp_p
     }
 
 
-def test_organization_literal_contract_matches_exact_sql_check_values():
-    values = SCHEMA_GUARD.table_check_literals(
-        ROOT / "schemas" / "postgres" / "064_organization.sql", "organization"
-    )
-
-    assert values["org_type"] == (
-        "cooperative", "nonprofit", "dao", "enterprise", "collective", "other"
-    )
-    assert values["status"] == ("active", "inactive", "dissolved")
+def test_sdk_literal_contracts_match_exact_sql_check_values():
+    expected = {
+        ("Organization", "org_type"): (
+            "cooperative", "nonprofit", "dao", "enterprise", "collective", "other"
+        ),
+        ("Organization", "status"): ("active", "inactive", "dissolved"),
+        ("AlertRule", "actuator_type"): (
+            "irrigation", "pest_control", "fertilization", "notification", "custom"
+        ),
+        ("SensorAlert", "actuation_status"): (
+            "pending", "sent", "acknowledged", "executed", "failed", "requires_approval"
+        ),
+        ("AttestationRecord", "verdict"): (
+            "pending", "approved", "rejected", "needs_info"
+        ),
+    }
     python_aliases = SCHEMA_GUARD.python_literal_aliases(
         ROOT / "sdk" / "python" / "kokonut" / "types.py"
     )
     typescript_aliases = SCHEMA_GUARD.typescript_literal_aliases(
         ROOT / "sdk" / "javascript" / "src" / "types.ts"
     )
-    assert SCHEMA_GUARD.python_type_matches_literals(
-        "OrganizationType", python_aliases, values["org_type"]
+    python_types = SCHEMA_GUARD.python_model_field_types(
+        ROOT / "sdk" / "python" / "kokonut" / "types.py"
     )
-    assert SCHEMA_GUARD.typescript_type_matches_literals(
-        "OrganizationStatus", typescript_aliases, values["status"]
+    typescript_types = SCHEMA_GUARD.typescript_model_field_types(
+        ROOT / "sdk" / "javascript" / "src" / "types.ts"
     )
+    for (model, column), expected_values in expected.items():
+        schema_file, table = SCHEMA_GUARD.MODEL_TABLES[model]
+        sql_values = SCHEMA_GUARD.table_check_literals(
+            ROOT / "schemas" / "postgres" / schema_file, table
+        )[column]
+        assert sql_values == expected_values
+        assert SCHEMA_GUARD.python_type_matches_literals(
+            python_types[model][column], python_aliases, sql_values
+        )
+        assert SCHEMA_GUARD.typescript_type_matches_literals(
+            typescript_types[model][column], typescript_aliases, sql_values
+        )
     assert not SCHEMA_GUARD.python_type_matches_literals(
-        "OrganizationStatus", python_aliases, values["org_type"]
+        "OrganizationStatus", python_aliases, expected[("Organization", "org_type")]
     )
 
 

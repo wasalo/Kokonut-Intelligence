@@ -18,8 +18,11 @@ from .public_api import (
     PublicMetricSummary,
 )
 from .types import (
+    ActuationStatus,
+    ActuatorType,
     AlertLifecycle,
     AttestationRecord,
+    AttestationVerdict,
     CropCycle,
     EntityStatus,
     EntityStatusExtended,
@@ -60,6 +63,9 @@ __all__ = [
     "GeoJSONPoint",
     "GeoJSONPolygon",
     "GeoJSONPosition",
+    "ActuatorType",
+    "ActuationStatus",
+    "AttestationVerdict",
     "JSONObject",
     "JSONScalar",
     "JSONValue",

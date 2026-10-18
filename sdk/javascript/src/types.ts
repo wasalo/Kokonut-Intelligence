@@ -10,6 +10,9 @@ export type AlertLifecycle = 'open' | 'acknowledged' | 'resolved' | 'false_posit
 export type ExportStatus = 'pending' | 'generating' | 'completed' | 'failed';
 export type OrganizationType = 'cooperative' | 'nonprofit' | 'dao' | 'enterprise' | 'collective' | 'other';
 export type OrganizationStatus = 'active' | 'inactive' | 'dissolved';
+export type ActuatorType = 'irrigation' | 'pest_control' | 'fertilization' | 'notification' | 'custom';
+export type ActuationStatus = 'pending' | 'sent' | 'acknowledged' | 'executed' | 'failed' | 'requires_approval';
+export type AttestationVerdict = 'pending' | 'approved' | 'rejected' | 'needs_info';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -442,7 +445,7 @@ export interface AlertRule {
   auto_create_claim?: boolean | null;
   claim_type?: string | null;
   actuator_enabled?: boolean | null;
-  actuator_type?: string | null;
+  actuator_type?: ActuatorType | null;
   actuator_command?: string | null;
   actuator_topic?: string | null;
   human_approval_required?: boolean | null;
@@ -470,7 +473,7 @@ export interface SensorAlert {
   created_at?: string | null;
   actuation_sent?: boolean | null;
   actuation_response?: JSONObject | null;
-  actuation_status?: string | null;
+  actuation_status?: ActuationStatus | null;
 }
 
 export interface WalletProfile {
@@ -516,7 +519,7 @@ export interface AttestationRecord {
   updated_at?: string | null;
   private_payload_hash?: string | null;
   payload_cid?: string | null;
-  verdict?: string | null;
+  verdict?: AttestationVerdict | null;
   rationale?: string | null;
   evidence_reviewed?: string[] | null;
   graph_iri?: string | null;

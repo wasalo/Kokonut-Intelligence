@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-18",
+  "scope": "Python and TypeScript SDK parity for mapped SQL CHECK-constrained text fields",
+  "source_of_truth": "Base-table CHECK constraints and ordered PostgreSQL migration CHECK constraints",
+  "change": "Added literal aliases for AlertRule.actuator_type, SensorAlert.actuation_status, and AttestationRecord.verdict. The existing organization aliases remain checked, and the offline schema guard now verifies all five mapped literal fields against SQL.",
+  "fields": {
+    "AlertRule.actuator_type": ["irrigation", "pest_control", "fertilization", "notification", "custom"],
+    "SensorAlert.actuation_status": ["pending", "sent", "acknowledged", "executed", "failed", "requires_approval"],
+    "AttestationRecord.verdict": ["pending", "approved", "rejected", "needs_info"],
+    "Organization.org_type": ["cooperative", "nonprofit", "dao", "enterprise", "collective", "other"],
+    "Organization.status": ["active", "inactive", "dissolved"]
+  },
+  "schema_guard": "passed: 21 models, 493 canonical columns, 461 scalar types, 7 PostGIS shapes, 25 JSONB shapes, 16 enum fields, and 5 CHECK-literal fields checked per SDK",
+  "focused_checks": {
+    "python": {
+      "command": "python3 -m pytest tests/test_sdk.py tests/test_sdk_schema_parity.py -q",
+      "result": "32 passed"
+    },
+    "javascript": {
+      "command": "npm test",
+      "result": "29 passed across 2 files"
+    },
+    "typescript_build": "passed",
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "diff_check": "passed"
+  },
+  "network_and_database": "none; local SQL source, fixtures, and SDK tests only",
+  "limitations": [
+    "Only five explicitly registered CHECK-constrained SDK fields are validated.",
+    "These types do not validate runtime payloads or Directus projections.",
+    "No capability classification or MAN-CAP acceptance status changed."
+  ]
+}
