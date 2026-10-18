@@ -395,6 +395,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    emergency_response_match = re.fullmatch(
+        r"/operator/api/emergency-response/([0-9a-fA-F-]{36})/summary", path
+    )
+    if emergency_response_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "emergency_response",
+            "action": "read",
+            "public": False,
+            "location_id": emergency_response_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     mobile_enrollment_match = re.fullmatch(
         r"/operator/api/mobile/locations/([0-9a-fA-F-]{36})/enrollments(?:/([0-9a-fA-F-]{36}))?",
         path,
@@ -1994,9 +2007,13 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                                samesite="strict")
         return response
 
+    from services.gateway.emergency_response_routes import (
+        register_emergency_response_routes,
+    )
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
     from services.gateway.true_cost_routes import register_true_cost_routes
 
     register_farm_activity_record_routes(router, provider, run_in_threadpool, psycopg2)
+    register_emergency_response_routes(router, provider, run_in_threadpool, psycopg2)
     register_true_cost_routes(router, provider, run_in_threadpool, psycopg2)
     return router

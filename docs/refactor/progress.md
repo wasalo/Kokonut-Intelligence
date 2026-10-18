@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Native emergency-response Gateway reads — 18 October 2026
+
+The OIDC operator API now exposes a location-scoped emergency-response
+summary. A read-only PostgreSQL transaction establishes database-verified
+tenant context before returning incident counts, recovery timing, deadline
+compliance, affected-area and financial aggregates, grouped only by the schema
+incident types and severities. It excludes descriptions, response/support
+notes, actions, lessons, and individual incident rows. Fifty-nine focused
+emergency/Gateway/auth/audit tests pass with Ruff, compilation, capability
+validation, and diff checks; all database and identity boundaries are mocked.
+CAP-017 is prepared, not accepted: incident lifecycle writes, approval and
+evidence history, output parity, domain-table RLS, and candidate acceptance
+remain open. Checklist: 634 complete / 19 open; capability matrix: 51
+baseline-retained, 7 deployed, and 8 prepared
+([evidence](builds/2026-10-18-recovery/gateway-emergency-response-summary.json)).
+
 ### Native true-cost Gateway reads — 18 October 2026
 
 The Gateway now has an OIDC-protected location summary route for true-cost
