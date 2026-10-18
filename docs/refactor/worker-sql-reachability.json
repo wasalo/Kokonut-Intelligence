@@ -32,25 +32,25 @@
       "operation_ref": "scheduled_module:services.events",
       "statically_reachable_sql_site_count": 44,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:106:12",
-        "services/events/bus.py:156:12",
-        "services/events/bus.py:175:16",
-        "services/events/bus.py:187:16",
-        "services/events/bus.py:203:16",
-        "services/events/bus.py:208:16",
-        "services/events/bus.py:274:12",
-        "services/events/bus.py:289:12",
-        "services/events/bus.py:298:16",
-        "services/events/bus.py:314:12",
-        "services/events/bus.py:351:12",
-        "services/events/bus.py:363:12",
-        "services/events/bus.py:376:16",
-        "services/events/bus.py:379:16",
-        "services/events/bus.py:420:16",
-        "services/events/bus.py:449:16",
-        "services/events/bus.py:457:16",
-        "services/events/cli.py:163:12",
-        "services/events/cli.py:192:12",
+        "services/events/bus.py:107:12",
+        "services/events/bus.py:157:12",
+        "services/events/bus.py:176:16",
+        "services/events/bus.py:188:16",
+        "services/events/bus.py:204:16",
+        "services/events/bus.py:209:16",
+        "services/events/bus.py:275:12",
+        "services/events/bus.py:290:12",
+        "services/events/bus.py:299:16",
+        "services/events/bus.py:315:12",
+        "services/events/bus.py:352:12",
+        "services/events/bus.py:364:12",
+        "services/events/bus.py:377:16",
+        "services/events/bus.py:380:16",
+        "services/events/bus.py:421:16",
+        "services/events/bus.py:450:16",
+        "services/events/bus.py:458:16",
+        "services/events/cli.py:168:12",
+        "services/events/cli.py:197:12",
         "services/events/fork_detector.py:133:12",
         "services/events/fork_detector.py:36:8",
         "services/events/fork_detector.py:59:8",
@@ -106,7 +106,7 @@
       "operation_ref": "scheduled_module:services.ingestion.anomaly_detector",
       "statically_reachable_sql_site_count": 36,
       "statically_reachable_sql_site_ids": [
-        "services/events/bus.py:87:16",
+        "services/events/bus.py:88:16",
         "services/events/notification_outbox.py:179:12",
         "services/events/notification_outbox.py:194:12",
         "services/events/notification_outbox.py:214:16",
@@ -137,10 +137,10 @@
         "services/ingestion/anomaly_detector.py:910:24",
         "services/ingestion/anomaly_detector.py:936:28",
         "services/ingestion/base.py:157:12",
-        "services/ingestion/ml_anomaly_detector.py:213:4",
-        "services/ingestion/ml_anomaly_detector.py:248:4",
-        "services/ingestion/ml_anomaly_detector.py:489:4",
-        "services/ingestion/ml_anomaly_detector.py:563:8",
+        "services/ingestion/ml_anomaly_detector.py:214:4",
+        "services/ingestion/ml_anomaly_detector.py:249:4",
+        "services/ingestion/ml_anomaly_detector.py:490:4",
+        "services/ingestion/ml_anomaly_detector.py:564:8",
         "services/ingestion/mqtt_actuator.py:104:4"
       ]
     },
@@ -465,10 +465,10 @@
         "services/metrics/cli.py:152:16",
         "services/metrics/cli.py:177:20",
         "services/metrics/cli.py:79:21",
-        "services/metrics/engine.py:116:4",
-        "services/metrics/engine.py:177:8",
-        "services/metrics/engine.py:46:8",
-        "services/metrics/engine.py:74:8"
+        "services/metrics/engine.py:117:4",
+        "services/metrics/engine.py:180:8",
+        "services/metrics/engine.py:47:8",
+        "services/metrics/engine.py:75:8"
       ]
     },
     {
@@ -490,7 +490,7 @@
       "operation_ref": "event_handler:services.cache.events.handle_crisp_scored",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/cache/cache.py:178:16",
+        "services/cache/cache.py:179:16",
         "services/cache/events.py:86:12",
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
@@ -504,7 +504,7 @@
       "operation_ref": "event_handler:services.cache.events.handle_harvest_recorded",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/cache/cache.py:178:16",
+        "services/cache/cache.py:179:16",
         "services/cache/events.py:86:12",
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
@@ -518,7 +518,7 @@
       "operation_ref": "event_handler:services.cache.events.handle_metric_computed",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/cache/cache.py:178:16",
+        "services/cache/cache.py:179:16",
         "services/cache/events.py:86:12",
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
@@ -532,7 +532,7 @@
       "operation_ref": "event_handler:services.cache.events.handle_sensor_reading",
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
-        "services/cache/cache.py:178:16",
+        "services/cache/cache.py:179:16",
         "services/cache/events.py:86:12",
         "services/common/tenant_context.py:110:8",
         "services/common/tenant_context.py:160:8",
@@ -1308,9 +1308,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/cache/cache.py:51:16",
+      "id": "services/cache/cache.py:52:16",
       "source": "services/cache/cache.py",
-      "line": 51,
+      "line": 52,
       "scope": "ComputationCache.get",
       "method": "execute",
       "expression_kind": "literal",
@@ -1330,9 +1330,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/cache/cache.py:67:20",
+      "id": "services/cache/cache.py:68:20",
       "source": "services/cache/cache.py",
-      "line": 67,
+      "line": 68,
       "scope": "ComputationCache.get",
       "method": "execute",
       "expression_kind": "literal",
@@ -1352,9 +1352,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/cache/cache.py:76:16",
+      "id": "services/cache/cache.py:77:16",
       "source": "services/cache/cache.py",
-      "line": 76,
+      "line": 77,
       "scope": "ComputationCache.get",
       "method": "execute",
       "expression_kind": "literal",
@@ -1374,9 +1374,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/cache/cache.py:119:16",
+      "id": "services/cache/cache.py:120:16",
       "source": "services/cache/cache.py",
-      "line": 119,
+      "line": 120,
       "scope": "ComputationCache.set",
       "method": "execute",
       "expression_kind": "literal",
@@ -1397,9 +1397,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/cache/cache.py:178:16",
+      "id": "services/cache/cache.py:179:16",
       "source": "services/cache/cache.py",
-      "line": 178,
+      "line": 179,
       "scope": "ComputationCache.invalidate",
       "method": "execute",
       "expression_kind": "fstring",
@@ -1424,9 +1424,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/cache/cache.py:202:16",
+      "id": "services/cache/cache.py:203:16",
       "source": "services/cache/cache.py",
-      "line": 202,
+      "line": 203,
       "scope": "ComputationCache.cleanup_expired",
       "method": "execute",
       "expression_kind": "literal",
@@ -1446,9 +1446,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/cache/cache.py:223:16",
+      "id": "services/cache/cache.py:224:16",
       "source": "services/cache/cache.py",
-      "line": 223,
+      "line": 224,
       "scope": "ComputationCache.stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -1468,9 +1468,9 @@
       "review_status": "function_not_reached_by_any_static_worker_root"
     },
     {
-      "id": "services/cache/cache.py:238:16",
+      "id": "services/cache/cache.py:239:16",
       "source": "services/cache/cache.py",
-      "line": 238,
+      "line": 239,
       "scope": "ComputationCache.stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -2471,9 +2471,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:87:16",
+      "id": "services/events/bus.py:88:16",
       "source": "services/events/bus.py",
-      "line": 87,
+      "line": 88,
       "scope": "EventBus.publish",
       "method": "execute",
       "expression_kind": "literal",
@@ -2496,9 +2496,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:106:12",
+      "id": "services/events/bus.py:107:12",
       "source": "services/events/bus.py",
-      "line": 106,
+      "line": 107,
       "scope": "EventBus._claim",
       "method": "execute",
       "expression_kind": "literal",
@@ -2523,9 +2523,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:156:12",
+      "id": "services/events/bus.py:157:12",
       "source": "services/events/bus.py",
-      "line": 156,
+      "line": 157,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2549,9 +2549,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:175:16",
+      "id": "services/events/bus.py:176:16",
       "source": "services/events/bus.py",
-      "line": 175,
+      "line": 176,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2574,9 +2574,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:187:16",
+      "id": "services/events/bus.py:188:16",
       "source": "services/events/bus.py",
-      "line": 187,
+      "line": 188,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2600,9 +2600,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:203:16",
+      "id": "services/events/bus.py:204:16",
       "source": "services/events/bus.py",
-      "line": 203,
+      "line": 204,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2625,9 +2625,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:208:16",
+      "id": "services/events/bus.py:209:16",
       "source": "services/events/bus.py",
-      "line": 208,
+      "line": 209,
       "scope": "EventBus._process_event",
       "method": "execute",
       "expression_kind": "literal",
@@ -2650,9 +2650,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:274:12",
+      "id": "services/events/bus.py:275:12",
       "source": "services/events/bus.py",
-      "line": 274,
+      "line": 275,
       "scope": "EventBus._complete",
       "method": "execute",
       "expression_kind": "literal",
@@ -2675,9 +2675,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:289:12",
+      "id": "services/events/bus.py:290:12",
       "source": "services/events/bus.py",
-      "line": 289,
+      "line": 290,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2700,9 +2700,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:298:16",
+      "id": "services/events/bus.py:299:16",
       "source": "services/events/bus.py",
-      "line": 298,
+      "line": 299,
       "scope": "EventBus._retry_or_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2727,9 +2727,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:314:12",
+      "id": "services/events/bus.py:315:12",
       "source": "services/events/bus.py",
-      "line": 314,
+      "line": 315,
       "scope": "EventBus.replay_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2756,9 +2756,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:351:12",
+      "id": "services/events/bus.py:352:12",
       "source": "services/events/bus.py",
-      "line": 351,
+      "line": 352,
       "scope": "EventBus.dispose_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -2781,9 +2781,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:363:12",
+      "id": "services/events/bus.py:364:12",
       "source": "services/events/bus.py",
-      "line": 363,
+      "line": 364,
       "scope": "EventBus.get_stats",
       "method": "execute",
       "expression_kind": "literal",
@@ -2806,9 +2806,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:376:16",
+      "id": "services/events/bus.py:377:16",
       "source": "services/events/bus.py",
-      "line": 376,
+      "line": 377,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2829,9 +2829,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:379:16",
+      "id": "services/events/bus.py:380:16",
       "source": "services/events/bus.py",
-      "line": 379,
+      "line": 380,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2854,9 +2854,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:420:16",
+      "id": "services/events/bus.py:421:16",
       "source": "services/events/bus.py",
-      "line": 420,
+      "line": 421,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2883,9 +2883,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:449:16",
+      "id": "services/events/bus.py:450:16",
       "source": "services/events/bus.py",
-      "line": 449,
+      "line": 450,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2908,9 +2908,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/bus.py:457:16",
+      "id": "services/events/bus.py:458:16",
       "source": "services/events/bus.py",
-      "line": 457,
+      "line": 458,
       "scope": "EventBus.cleanup_old_events",
       "method": "execute",
       "expression_kind": "literal",
@@ -2933,9 +2933,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:163:12",
+      "id": "services/events/cli.py:168:12",
       "source": "services/events/cli.py",
-      "line": 163,
+      "line": 168,
       "scope": "cmd_list_handlers",
       "method": "execute",
       "expression_kind": "literal",
@@ -2954,9 +2954,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/events/cli.py:192:12",
+      "id": "services/events/cli.py:197:12",
       "source": "services/events/cli.py",
-      "line": 192,
+      "line": 197,
       "scope": "cmd_list_dead_letter",
       "method": "execute",
       "expression_kind": "literal",
@@ -6019,9 +6019,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:213:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:214:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 213,
+      "line": 214,
       "scope": "_query_sensor_timeseries",
       "method": "execute",
       "expression_kind": "literal",
@@ -6041,9 +6041,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:248:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:249:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 248,
+      "line": 249,
       "scope": "_query_all_sensors_timeseries",
       "method": "execute",
       "expression_kind": "literal",
@@ -6063,9 +6063,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:489:4",
+      "id": "services/ingestion/ml_anomaly_detector.py:490:4",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 489,
+      "line": 490,
       "scope": "run_ml_check",
       "method": "execute",
       "expression_kind": "composed_or_variable",
@@ -6083,9 +6083,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/ml_anomaly_detector.py:563:8",
+      "id": "services/ingestion/ml_anomaly_detector.py:564:8",
       "source": "services/ingestion/ml_anomaly_detector.py",
-      "line": 563,
+      "line": 564,
       "scope": "save_models",
       "method": "execute",
       "expression_kind": "literal",
@@ -7696,9 +7696,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/engine.py:46:8",
+      "id": "services/metrics/engine.py:47:8",
       "source": "services/metrics/engine.py",
-      "line": 46,
+      "line": 47,
       "scope": "compute_metric",
       "method": "execute",
       "expression_kind": "literal",
@@ -7717,9 +7717,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/engine.py:74:8",
+      "id": "services/metrics/engine.py:75:8",
       "source": "services/metrics/engine.py",
-      "line": 74,
+      "line": 75,
       "scope": "compute_metric",
       "method": "execute",
       "expression_kind": "literal",
@@ -7738,9 +7738,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/engine.py:116:4",
+      "id": "services/metrics/engine.py:117:4",
       "source": "services/metrics/engine.py",
-      "line": 116,
+      "line": 117,
       "scope": "compute_all",
       "method": "execute",
       "expression_kind": "literal",
@@ -7759,9 +7759,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/metrics/engine.py:177:8",
+      "id": "services/metrics/engine.py:180:8",
       "source": "services/metrics/engine.py",
-      "line": 177,
+      "line": 180,
       "scope": "verify_metric_value",
       "method": "execute",
       "expression_kind": "literal",

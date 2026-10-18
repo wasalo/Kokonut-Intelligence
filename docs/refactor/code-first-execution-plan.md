@@ -2,7 +2,7 @@
 
 **Updated:** 17 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Latest pushed batch — 17 October 2026:** PR #68 is at `ebeddb45`; CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 passed on `ebeddb45`, and CI #432 was in progress at last check. The pushed correction refreshes five worker inventories and removes line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests pass, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The pushed batch also contains the refreshed report source/query/helper inventories that fixed CI #430. The pushed worker-status output containment redacts historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reports only a bounded remote exception class and closes the channel; its 29 focused checks pass with Ruff and compilation on mocked boundaries. Local follow-up commits and pending edits now harden security, federation, EventBus, scheduler, stream, cache, graph/RDF, metric-event, raster-metadata, and sandbox failure logging. The current checklist is 513 complete / 19 open. The wider branch retains the reported limitations for provider parity, tenant authorization/RLS, physical Raspberry Pi, release certification, and production cutover.
+**Latest pushed batch — 17 October 2026:** PR #68 is at `ebeddb45`; CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 and CI #432 passed on `ebeddb45`. The pushed correction refreshes five worker inventories and removes line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests pass, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The pushed batch also contains the refreshed report source/query/helper inventories that fixed CI #430. The pushed worker-status output containment redacts historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reports only a bounded remote exception class and closes the channel; its 29 focused checks pass with Ruff and compilation on mocked boundaries. Local follow-up commits and pending edits now harden security, federation, EventBus, scheduler, stream, cache, graph/RDF, metric-event, raster-metadata, sandbox, and ML retraining failure logging. The current checklist is 514 complete / 19 open. The accumulated local batch requires its own hosted CI and Security runs after push. The wider branch retains the reported limitations for provider parity, tenant authorization/RLS, physical Raspberry Pi, release certification, and production cutover.
 
 **Implementation batch pushed — 17 October 2026:** Impact Office status reads, sandbox run history, and agent action audit records now redact persisted diagnostics while retaining failure presence and run/action identity. Gateway audit database and local-journal failure logs retain only exception classes while preserving fallback behavior; Gateway internal errors log only the exception class and return the generic 500. PostgreSQL, ClickHouse, and Directus health probes also log only exception classes and preserve generic status results. The worker-history changes pass 34 focused checks; agent-audit/safety checks report 11 passed and nine database-dependent skips; Gateway audit has nine passing checks, the route/auth slice has 34, and health/driver-registry checks have 33. Ruff and compilation pass. The schedule ownership guide matches all 17 generated JobSpecs, including the `eas_legacy` compatibility fallback. Candidate migrations 417–419 were already present in the 423-migration pre-433 baseline; the isolated notification feature remains disabled pending its encrypted credential. No database, worker, sandbox execution, schedule, provider, or local journal was accessed in that pushed batch. The checklist at that point was 502 complete / 20 open; named transport, tenant, and live worker acceptance remain open.
 
@@ -313,7 +313,7 @@ eight focused inventory suites pass 50 tests
 
 **Previous pushed functional batch — 17 October 2026:** Scheduled current-weather ingestion now uses the dedicated default-off `services.ingestion.weather_worker`; migration 427 adds signed location lookup and bounded atomic observation/audit/outbox/receipt storage. Commit `b41f4068` is on the remote feature branch. Its 178 focused tests and nine disposable PostgreSQL 16 checks pass; the candidate remains through migration 403 and the feature/grants are not deployed.
 
-**Current code-first batch — 17 October 2026:** The native Market Data JobSpec now routes through a default-off isolated World Bank worker, while the manual CLI, seed path, and legacy persisted-task entrypoint remain available. Migration 430 adds a dedicated login boundary and bounded price/audit function; runtime-role provisioning keeps the login disabled until its distinct encrypted password is supplied. The 199 focused worker/market/scheduler tests, Ruff, compilation, generated inventories, and six disposable PostgreSQL 16 forced-RLS checks pass. No live provider, candidate or legacy database, or persisted schedule was accessed. The checklist remains 435 checked / 21 open; the 66-row matrix remains 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. The candidate remains through migration 403; migration 430 and worker credentials are not deployed, and the feature remains off. Provider parity, schedule ownership, and CAP-040/047 acceptance remain open ([migration](../../schemas/postgres/430_isolated_market_data_worker.sql); [evidence](builds/2026-10-17-recovery/market-data-worker-disposable.json)).
+**Previous code-first batch — 17 October 2026:** The native Market Data JobSpec now routes through a default-off isolated World Bank worker, while the manual CLI, seed path, and legacy persisted-task entrypoint remain available. Migration 430 adds a dedicated login boundary and bounded price/audit function; runtime-role provisioning keeps the login disabled until its distinct encrypted password is supplied. The 199 focused worker/market/scheduler tests, Ruff, compilation, generated inventories, and six disposable PostgreSQL 16 forced-RLS checks pass. No live provider, candidate or legacy database, or persisted schedule was accessed. At that point the checklist had 435 checked / 21 open items; the 66-row matrix had 54 baseline-retained, 7 deployed, and 5 prepared, with zero accepted MAN-CAP checks. Provider parity, schedule ownership, and CAP-040/047 acceptance remain open ([migration](../../schemas/postgres/430_isolated_market_data_worker.sql); [evidence](builds/2026-10-17-recovery/market-data-worker-disposable.json)).
 
 **Previous local code-first follow-on — 17 October 2026:** Scheduled sensor pulls compare persisted registry values with an immutable source-controlled name/type/module/class mapping before importing; the built-in `sensor_csv` scheduled reader additionally confines paths beneath a configured root, rejects traversal and symlinks, and uses `O_NOFOLLOW` descriptor opens. Compose mounts that root read-only and lets operators select the host input directory. Manual driver operations remain unchanged. The focused sensor schedule/CLI/command-contract/worker-map suite passes 179 tests; Ruff, compilation, generated inventories, three Compose profile config checks, and the capability-matrix check pass. Tests use synthetic temporary files; no configured input, database, driver instance, provider, or schedule was accessed ([allowlist evidence](builds/2026-10-17-recovery/scheduled-sensor-driver-code-allowlist.json); [contract](sensor-driver-scheduled-contract.md); [path evidence](builds/2026-10-17-recovery/scheduled-sensor-csv-path-confinement.json)).
 
@@ -360,7 +360,27 @@ MAN-CAP checks open until each has its own retained evidence.
 
 ## Current accounting
 
-The current local outbox batch gives canonical ingestion failures a typed
+The latest local security-hardening batch is ten commits ahead of the pushed PR
+head, with the ML model error-redaction follow-on in the working tree. Across
+these slices, raw exception messages, model paths, identifiers, and child output
+are replaced with bounded summaries while rollback, retry, and fallback
+behavior remain intact. Each slice has focused regression evidence in
+`docs/refactor/batches.md`; the newest ML/model-security/retraining/import suite
+passes 57 tests and regenerated worker-import closure checks pass. The latest
+pushed head is `ebeddb45`: Security #156 and CI #432 passed. The local batch is
+not covered by those runs and needs fresh hosted checks after the batch push.
+
+The live candidate ledger now confirms 424 applied schema migration IDs through
+migration 433, six applied seed-ledger entries, and zero pending or failed
+rows. A read-only Docker inventory confirms the candidate app, PostgreSQL, and
+Metabase are healthy and the proxy is running; the database is published only
+on `127.0.0.1:5433`, and the legacy `kokonut-intelligence` containers are
+stopped. This supersedes earlier snapshots that described migration 403 as
+current. The recorded rollout left application-table RLS disabled and EAS roles
+NOLOGIN; worker credentials, grants, providers, and schedules remain gated. No
+containers or database state were changed during this verification.
+
+A recent local outbox batch gives canonical ingestion failures a typed
 `OutboxEnqueueError` and rolls back or propagates it through weather, RPC,
 remote-sensing provider dispatch, subgraph/EAS, and Gnosis transaction owners.
 Nine producer helpers now have paired failure and connection-free fallback
@@ -371,10 +391,10 @@ acceptance ([evidence](builds/2026-10-16-recovery/ingestion-outbox-failure-atomi
 The climate scheduled path now has a default-off signed worker and migration
 429's bounded source-specific location lookup and summary/audit functions. Its
 156 focused checks, Ruff, compilation, worker inventory refresh, and nine
-forced-RLS disposable PostgreSQL checks pass. Migration 429 is not on the
-candidate (still at 403); no worker credential, location grant, provider, or
-schedule was activated. See the current batch summary and retained evidence
-above.
+forced-RLS disposable PostgreSQL checks pass. Migration 429 is present in the
+last recorded candidate schema through migration 433; no climate worker
+credential, location grant, provider, or schedule was activated. See the
+current batch summary and retained evidence above.
 
 - The Gnosis indexer now commits each block range with its event projections,
   outbox intents, and status checkpoint. Migration 423 adds new-event receipts:
@@ -422,7 +442,7 @@ above.
   and diff checks pass. No provider or database was contacted, so live delivery
   and PostgreSQL transaction acceptance remain
   open ([evidence](builds/2026-10-16-recovery/weather-forecast-atomic-projection.json)).
-- The execution checklist has **435 checked and 21 open items (456 total)**,
+- The execution checklist now has **514 checked and 19 open items (533 total)**,
   counting nested implementation subtasks. The open items cover live provider
   setup, digests, browser/runtime acceptance, tenant and Directus boundaries,
   populated report parity, policy activation, external delivery,
@@ -434,7 +454,7 @@ above.
   retain farm-activity grants, while 14 unrelated curated permissions remain.
   Unknown custom policy rows are preserved. The candidate and legacy databases
   were not touched. This adds no accepted capability: the matrix remains 66
-  rows (55 baseline-retained, 7 deployed, 4 prepared), with zero accepted
+  rows (54 baseline-retained, 7 deployed, 5 prepared), with zero accepted
   MAN-CAP checks.
 - Since the previous `8c7a053` accounting, commit `a1f45da` added the native
   Gateway farm-activity API and migration 404, with 13 focused service/HTTP/
@@ -459,9 +479,10 @@ above.
   a simulated chain-tip change. The same disposable check verifies PostgreSQL
   restart reconnect and lease reclaim against the real cursor table. A fresh
   encrypted candidate checkpoint was restore-rehearsed before migration 403
-  was applied; the candidate now has 394 applied schemas and zero pending,
-  health 200, and protected-route 401. Its app image was not rebuilt, the policy
-  table is empty, and RLS remains off. These synthetic rows and stubbed chain
+  was applied; at that historical checkpoint the candidate had 394 applied
+  schemas and zero pending, health 200, and protected-route 401. A later rollout
+  advanced the candidate through migration 433. The application policy table
+  was empty at the earlier checkpoint and RLS remains off. These synthetic rows and stubbed chain
   behavior use no seed, live RPC, or provider calls. Other event types, real
   chain reorgs, ARM64 hardware behavior, and live KGP RPC/event processing remain
   unverified. This batch is now pushed as `8c7a053`; CI #337 and Security #61
@@ -534,17 +555,20 @@ above.
   replay/fail-closed check pass. Pinned-image Field Note own/cross reads pass
   through the loaded tenant hook. Field Worker `farm_activity` permissions are
   hidden by the unlicensed Directus custom-permission boundary, so that API
-  slice remains denied; license versus Gateway-only operational access is an
-  open product decision. Role/field/relationship and hook-dispatch parity
+  slice remains denied. The owner selected Gateway operations while keeping
+  Directus optional; Gateway farm-activity operations are now the selected
+  direction. Directus role/field/relationship and hook-dispatch parity
   remain open. This slice is included in the latest pushed head ([evidence](builds/2026-10-15-recovery/directus-org-location-permission-contract.json)).
-- The capability matrix contains 66 capabilities: 55 baseline-retained, 7
-  deployed, and 4 prepared. None of the 66 named MAN-CAP checks is accepted.
-- The local candidate has 394 applied schemas through migration 403, six applied
-  seed ledger entries, 115 pending source migrations (all are unselected seeds),
-  zero failed ledger rows, and application-table RLS is disabled. Migration 403's
-  governance policy table is empty; its app image was not rebuilt. The five
-  owner-approved reference catalogs and migrations 401–402 are applied; other
-  seed files remain held. It still uses the `kokonut` superuser because a separate
+- The capability matrix contains 66 capabilities: 54 baseline-retained, 7
+  deployed, and 5 prepared. None of the 66 named MAN-CAP checks is accepted.
+- The live local candidate ledger has 424 applied schemas through migration
+  433, six applied seed-ledger entries, zero pending rows, and zero failed
+  rows. The candidate app, PostgreSQL, and Metabase report healthy, with the
+  proxy running; the database host binding is loopback-only on port 5433.
+  Earlier rollout evidence records health 200 and anonymous protected-route
+  access 401. Application-table RLS is
+  disabled. The five owner-approved reference catalogs and migrations 401–402
+  are applied; 115 other seed files remain held. It still uses the `kokonut` superuser because a separate
   runtime credential is not provisioned. The seed approval does not authorize
   RLS or production import.
 - The owner selected self-hosted ZITADEL, organization/location authorization,
@@ -1292,3 +1316,5 @@ gated even when its migration and disposable acceptance are complete.
 **Current local raster-metadata logging slice — 17 October 2026:** raster metadata reads now log only bounded exception classes, with no private paths or tracebacks. Generic metadata read errors and file/dependency behavior remain unchanged. Two mocked failure regressions pass inside a 21-test raster suite with Ruff, compilation, and diff checks. Checklist: 512 complete / 19 open; the 66-row capability matrix is unchanged ([evidence](builds/2026-10-17-recovery/raster-metadata-error-redaction.json)).
 
 **Current local sandbox logging slice — 17 October 2026:** environment, run-history, resource-monitor, and isolation database failures now log bounded exception classes only. Creation rollback/re-raise, write fallbacks, and empty/None read results remain unchanged; persisted run diagnostics remain redacted. Eight mocked database-failure regressions pass within a 36-test sandbox suite with Ruff, compilation, and diff checks. Checklist: 513 complete / 19 open; the 66-row capability matrix is unchanged ([evidence](builds/2026-10-17-recovery/sandbox-database-error-redaction.json)).
+
+**Current local ML logging slice — 17 October 2026:** Prophet fit/save/load and scheduled retraining failures now log bounded exception classes only, with no raw error text, model names, sensor identifiers, or local artifact paths. Existing fallback results, independent save attempts, artifact skipping, and descriptor cleanup remain intact. The 57-test ML/model-security/retraining/import suite passes with Ruff, compilation, diff checks, and regenerated worker-import closure validation. No provider or database was accessed. Checklist: 514 complete / 19 open; capability classifications are unchanged ([evidence](builds/2026-10-17-recovery/ml-anomaly-model-error-redaction.json)).

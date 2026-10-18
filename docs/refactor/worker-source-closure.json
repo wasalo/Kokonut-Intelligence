@@ -179,6 +179,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.worker_environment",
@@ -200,6 +201,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
@@ -311,30 +313,36 @@
         {
           "source": "services/events/bus.py",
           "line": 13,
-          "target": "services.common.logging",
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
           "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 15,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 18,
+          "line": 19,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 62,
+          "line": 63,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 370,
+          "line": 371,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -347,180 +355,186 @@
         {
           "source": "services/events/cli.py",
           "line": 27,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 28,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 33,
+          "line": 34,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 51,
+          "line": 52,
           "target": "services.core.features",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 67,
+          "line": 68,
           "target": "services.events.backend",
-          "kind": "from"
-        },
-        {
-          "source": "services/events/cli.py",
-          "line": 72,
-          "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
           "line": 73,
+          "target": "services.common.database",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/cli.py",
+          "line": 74,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 121,
+          "line": 126,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 135,
+          "line": 140,
           "target": "services.events.retention",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 143,
+          "line": 148,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 158,
+          "line": 163,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 187,
+          "line": 192,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 219,
+          "line": 224,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 231,
+          "line": 236,
           "target": "services.events.backend",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 245,
+          "line": 250,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 246,
+          "line": 251,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 255,
+          "line": 260,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 256,
+          "line": 261,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 265,
+          "line": 270,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 266,
+          "line": 271,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 275,
+          "line": 280,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 276,
+          "line": 281,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 287,
+          "line": 292,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 288,
+          "line": 293,
           "target": "services.events.notification_outbox",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 431,
+          "line": 436,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 439,
+          "line": 444,
           "target": "services.events.fork_detector",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 451,
+          "line": 456,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 463,
+          "line": 468,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 472,
+          "line": 477,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 481,
+          "line": 486,
           "target": "services.events.insight_transfer",
           "kind": "from"
         },
         {
           "source": "services/events/cli.py",
-          "line": 492,
+          "line": 497,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -571,7 +585,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 45,
+          "line": 46,
           "kind": "dynamic module expression"
         }
       ]
@@ -684,6 +698,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.tenant_context",
@@ -708,6 +723,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
@@ -803,30 +819,36 @@
         {
           "source": "services/events/bus.py",
           "line": 13,
-          "target": "services.common.logging",
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
           "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 15,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 18,
+          "line": 19,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 62,
+          "line": 63,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 370,
+          "line": 371,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -971,6 +993,12 @@
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
           "line": 26,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 27,
           "target": "services.common.logging",
           "kind": "from"
         },
@@ -1009,7 +1037,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 45,
+          "line": 46,
           "kind": "dynamic module expression"
         }
       ]
@@ -3546,30 +3574,36 @@
         {
           "source": "services/events/bus.py",
           "line": 13,
-          "target": "services.common.logging",
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
           "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 15,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 18,
+          "line": 19,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 62,
+          "line": 63,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 370,
+          "line": 371,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -3714,7 +3748,7 @@
         },
         {
           "source": "services/events/bus.py",
-          "line": 45,
+          "line": 46,
           "kind": "dynamic module expression"
         }
       ]
@@ -4860,6 +4894,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.worker_environment",
@@ -4900,6 +4935,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/worker_environment.py",
@@ -5006,30 +5042,36 @@
         {
           "source": "services/events/bus.py",
           "line": 13,
-          "target": "services.common.logging",
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
           "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 15,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 18,
+          "line": 19,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 62,
+          "line": 63,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 370,
+          "line": 371,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -5251,19 +5293,25 @@
         },
         {
           "source": "services/metrics/engine.py",
-          "line": 15,
-          "target": "services.metrics.calculators",
+          "line": 14,
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/metrics/engine.py",
-          "line": 16,
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/metrics/engine.py",
-          "line": 27,
+          "line": 17,
+          "target": "services.metrics.calculators",
+          "kind": "from"
+        },
+        {
+          "source": "services/metrics/engine.py",
+          "line": 28,
           "target": "services.events.bus",
           "kind": "from"
         }
@@ -5272,7 +5320,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 45,
+          "line": 46,
           "kind": "dynamic module expression"
         }
       ]
@@ -5416,6 +5464,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.logging",
         "services.common.tenant_context",
         "services.common.worker_database",
@@ -5431,6 +5480,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
@@ -5454,12 +5504,18 @@
         {
           "source": "services/cache/cache.py",
           "line": 14,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/cache.py",
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/cache/cache.py",
-          "line": 28,
+          "line": 29,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5565,6 +5621,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.logging",
         "services.common.tenant_context",
         "services.common.worker_database",
@@ -5580,6 +5637,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
@@ -5603,12 +5661,18 @@
         {
           "source": "services/cache/cache.py",
           "line": 14,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/cache.py",
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/cache/cache.py",
-          "line": 28,
+          "line": 29,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5714,6 +5778,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.logging",
         "services.common.tenant_context",
         "services.common.worker_database",
@@ -5729,6 +5794,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
@@ -5752,12 +5818,18 @@
         {
           "source": "services/cache/cache.py",
           "line": 14,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/cache.py",
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/cache/cache.py",
-          "line": 28,
+          "line": 29,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -5863,6 +5935,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.logging",
         "services.common.tenant_context",
         "services.common.worker_database",
@@ -5878,6 +5951,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
         "services/common/worker_database.py",
@@ -5901,12 +5975,18 @@
         {
           "source": "services/cache/cache.py",
           "line": 14,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/cache/cache.py",
+          "line": 15,
           "target": "services.common.logging",
           "kind": "from"
         },
         {
           "source": "services/cache/cache.py",
-          "line": 28,
+          "line": 29,
           "target": "services.common.database",
           "kind": "from"
         },
@@ -6311,6 +6391,7 @@
         "services.common.database",
         "services.common.db",
         "services.common.env",
+        "services.common.errors",
         "services.common.http",
         "services.common.logging",
         "services.common.tenant_context",
@@ -6335,6 +6416,7 @@
         "services/common/database.py",
         "services/common/db.py",
         "services/common/env.py",
+        "services/common/errors.py",
         "services/common/http.py",
         "services/common/logging.py",
         "services/common/tenant_context.py",
@@ -6430,30 +6512,36 @@
         {
           "source": "services/events/bus.py",
           "line": 13,
-          "target": "services.common.logging",
+          "target": "services.common.errors",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
           "line": 14,
+          "target": "services.common.logging",
+          "kind": "from"
+        },
+        {
+          "source": "services/events/bus.py",
+          "line": 15,
           "target": "services.common.worker_environment",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 18,
+          "line": 19,
           "target": "services.security.execution_allowlist",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 62,
+          "line": 63,
           "target": "services.common.database",
           "kind": "from"
         },
         {
           "source": "services/events/bus.py",
-          "line": 370,
+          "line": 371,
           "target": "services.events.retention",
           "kind": "from"
         },
@@ -6598,6 +6686,12 @@
         {
           "source": "services/ingestion/ml_anomaly_detector.py",
           "line": 26,
+          "target": "services.common.errors",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/ml_anomaly_detector.py",
+          "line": 27,
           "target": "services.common.logging",
           "kind": "from"
         },
@@ -6636,7 +6730,7 @@
       "dynamic_import_sites": [
         {
           "source": "services/events/bus.py",
-          "line": 45,
+          "line": 46,
           "kind": "dynamic module expression"
         }
       ]

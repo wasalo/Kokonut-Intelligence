@@ -7,7 +7,7 @@ report-source, report-query-scope, and report-helper-scope inventories were
 stale. The three generated JSON artifacts are refreshed and each exact CI
 freshness command now passes locally. No report runtime code or parity
 conclusion changed; the full CI suite did not run after the fast-fail
-failure. The refreshed batch was pushed at `09db43b2dd9f4d63425d94ac07017763433e73f9`; CI #431 then failed eight stale worker-inventory/source-contract checks after 5,851 tests passed. The five generated maps and a line-number-coupled regression were corrected and pushed as `ebeddb45`; Security #156 passed and CI #432 is in progress. Security #155 passed on the preceding head
+failure. The refreshed batch was pushed at `09db43b2dd9f4d63425d94ac07017763433e73f9`; CI #431 then failed eight stale worker-inventory/source-contract checks after 5,851 tests passed. The five generated maps and a line-number-coupled regression were corrected and pushed as `ebeddb45`; Security #156 and CI #432 passed. Security #155 passed on the preceding head
 ([evidence](builds/2026-10-17-recovery/ci-430-report-inventory-refresh.json)).
 
 ### Notification worker candidate migration status — 17 October 2026
@@ -8390,7 +8390,7 @@ regression now checks statement kinds by source file. All 30 focused worker
 inventory tests pass, as do Ruff, Python compilation, the five generated-map
 checks, capability-matrix validation, and `git diff --check`. No database,
 worker, provider, or schedule was used. The fix was pushed as `ebeddb45`; CI
-#432 is in progress and Security #156 passed. The checklist is 504 complete / 19 open, and
+#432 and Security #156 passed on `ebeddb45`. The checklist was 504 complete / 19 open at that checkpoint, and
 capability matrix classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/ci-431-worker-inventory-fix.json`.
 
@@ -8484,3 +8484,16 @@ sandbox suite with Ruff, compilation, and diff checks. No database/provider was
 contacted. The checklist is 513 complete / 19 open; capability classifications
 are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sandbox-database-error-redaction.json`.
+
+### ML anomaly-model failure log redaction — 17 October 2026
+
+Prophet fit, model-save, Prophet/Isolation Forest artifact-load, and scheduled
+retraining failures now log bounded exception classes without exception
+messages, model names, sensor identifiers, or artifact paths. Fit fallback,
+independent save attempts, artifact skipping, and descriptor cleanup remain
+unchanged. The focused ML/model-security/retraining/import suite passes 57
+tests; Ruff, compilation,
+diff checks, and the regenerated worker-import closure pass. All failures were
+synthetic; no database or model provider was accessed. The checklist is 514
+complete / 19 open; capability classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/ml-anomaly-model-error-redaction.json`.
