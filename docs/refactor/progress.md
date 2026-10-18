@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Carbon credit ledger SDK read methods — 18 October 2026
+
+Python and TypeScript clients now expose typed read groups for
+`carbon_credit`, `credit_adjustment`, `credit_retirement`, and `credit_transfer`.
+Each provides `list`, `get`, and a location-filtered list; the explicit location
+filter takes precedence over a conflicting caller filter while other query
+options are preserved. These groups have no create, update, or delete methods,
+so ledger lifecycle actions remain in reviewed platform services. README method
+tables and the CAP-020 matrix note now describe this boundary. Ninety-six
+focused Python SDK/schema/method tests and 46 JavaScript tests pass, along with
+TypeScript build, Ruff, schema guard, capability validation, and diff checks.
+Checks were offline and used fakes; no database, provider, or API was contacted.
+CAP-020 and MAN-CAP acceptance remain unchanged ([evidence](builds/2026-10-18-recovery/sdk-credit-ledger-read-methods.json)).
+Checklist: 616 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### Carbon credit ledger SDK schema parity — 18 October 2026
 
 Python and TypeScript now model the canonical `carbon_credit`,

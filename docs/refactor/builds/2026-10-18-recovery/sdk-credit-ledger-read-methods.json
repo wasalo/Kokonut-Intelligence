@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-18",
+  "scope": "Read-only Python and TypeScript SDK methods for carbon-credit ledger collections.",
+  "collections": [
+    "carbon_credit",
+    "credit_adjustment",
+    "credit_retirement",
+    "credit_transfer"
+  ],
+  "contract": {
+    "methods": ["list", "get", "list_by_location/listByLocation"],
+    "location_filter": "The explicit location_id filter overrides a conflicting caller-supplied location filter while preserving other query options.",
+    "writes": "No create, update, or delete helper is exposed by these method groups."
+  },
+  "verification": {
+    "python": "96 passed: tests/test_sdk.py, tests/test_sdk_method_parity.py, tests/test_sdk_schema_parity.py",
+    "javascript": "46 passed",
+    "typescript_build": "passed",
+    "ruff": "passed for changed Python SDK and tests",
+    "python_compilation": "passed",
+    "schema_guard": "passed: 74 models, 1555 columns, 1456 scalar types, 10 PostGIS types, 86 JSONB shapes, 23 enum fields, and 50 CHECK-literal fields per SDK",
+    "capability_matrix": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "diff_check": "passed"
+  },
+  "boundary": "These collection methods read stored records only. They do not authorize users independently, perform credit custody operations, or change MAN-CAP-020 acceptance.",
+  "external_access": "All checks were offline and used mocked client calls. No database, provider, API, credentials, candidate, legacy service, or seed data was used."
+}

@@ -69,7 +69,7 @@ def _typescript_parameter_is_optional(parameter: str) -> bool:
 def _typescript_method_signatures() -> dict[str, dict[str, set[tuple[bool, ...]]]]:
     source = (ROOT / "sdk/javascript/src/methods.ts").read_text(encoding="utf-8")
     declarations = re.finditer(
-        r"export interface (?P<name>[A-Za-z_]\w*Methods)"
+        r"export interface (?P<name>[A-Za-z_]\w*Methods)(?:\s*<[^>{}]*>)?"
         r"(?P<extends>\s+extends\s+GenericMethods)?\s*\{",
         source,
     )

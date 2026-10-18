@@ -75,6 +75,11 @@ const harvest = await client.harvestEvents.create({
 // Query unpaid sales
 const unpaid = await client.salesEvents.listUnpaid();
 
+// Read governed carbon-credit ledger records for one location
+const credits = await client.carbonCredits.listByLocation('location-uuid');
+const retirements = await client.creditRetirements.listByLocation('location-uuid');
+// Ledger helpers expose reads only; reviewed services own lifecycle changes.
+
 // Aggregate records through Directus
 const harvestCounts = await client.aggregate('harvest_event', {
   aggregate: { count: '*' },
@@ -156,8 +161,15 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `reports` | `report_snapshot` | `listByType` |
 | `exports` | `export_log` | `createExport` (Python-parity method); existing `create` remains available |
 | `noi` | `noi_snapshot` | `listByCropCycle` |
+| `carbonCredits` | `carbon_credit` | `listByLocation` |
+| `creditAdjustments` | `credit_adjustment` | `listByLocation` |
+| `creditRetirements` | `credit_retirement` | `listByLocation` |
+| `creditTransfers` | `credit_transfer` | `listByLocation` |
 
-All groups inherit `GenericMethods`: `list`, `get`, `create`, `createMany`, `update`, `delete`.
+Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
+`createMany`, `update`, `delete`. Credit-ledger groups are read-only and expose
+only `list`, `get`, and `listByLocation`; governed lifecycle changes remain in
+reviewed platform services.
 
 ## Examples
 

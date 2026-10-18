@@ -159,6 +159,7 @@ export type {
 
 export type {
   GenericMethods,
+  CreditLedgerReadMethods,
   LocationMethods,
   FarmMethods,
   PlotMethods,

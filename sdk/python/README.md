@@ -89,6 +89,11 @@ harvest = client.harvest_events.create({
 # Query unpaid sales
 unpaid = client.sales_events.list_unpaid()
 
+# Read governed carbon-credit ledger records for one location
+credits = client.carbon_credits.list_by_location("location-uuid")
+retirements = client.credit_retirements.list_by_location("location-uuid")
+# Ledger helpers expose reads only; reviewed services own lifecycle changes.
+
 # Aggregate query
 counts = client.aggregate(
     "harvest_event",
@@ -143,8 +148,15 @@ except KokonutError as e:
 | `reports` | `report_snapshot` | `list_by_type` |
 | `exports` | `export_log` | `create_export` |
 | `noi` | `noi_snapshot` | `list_by_crop_cycle` |
+| `carbon_credits` | `carbon_credit` | `list_by_location` |
+| `credit_adjustments` | `credit_adjustment` | `list_by_location` |
+| `credit_retirements` | `credit_retirement` | `list_by_location` |
+| `credit_transfers` | `credit_transfer` | `list_by_location` |
 
-All groups inherit `GenericMethods`: `list`, `get`, `create`, `create_many`, `update`, `delete`.
+Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
+`create_many`, `update`, `delete`. Credit-ledger groups are read-only and expose
+only `list`, `get`, and `list_by_location`; governed lifecycle changes remain in
+reviewed platform services.
 
 ## Examples
 

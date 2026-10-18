@@ -1420,6 +1420,43 @@ def test_location_scoped_operational_methods_force_scope_and_preserve_options():
     ]
 
 
+def test_credit_ledger_methods_are_typed_location_scoped_reads_only():
+    from kokonut import KokonutClient
+    from kokonut.types import ListOptions
+
+    client = KokonutClient("http://localhost:8055")
+    client.list_items = Mock(return_value=[])
+    client.get_item = Mock(return_value={"id": "credit-1"})
+    collections = [
+        (client.carbon_credits, "carbon_credit"),
+        (client.credit_adjustments, "credit_adjustment"),
+        (client.credit_retirements, "credit_retirement"),
+        (client.credit_transfers, "credit_transfer"),
+    ]
+    options = ListOptions(
+        filter={"location_id": {"_eq": "other"}, "status": {"_eq": "verified"}},
+        sort=["created_at"],
+        fields=["id", "location_id"],
+        limit=20,
+    )
+
+    for methods, collection in collections:
+        assert methods.list(options) == []
+        client.list_items.assert_called_with(collection, options)
+        assert methods.get("credit-1", ["id"]) == {"id": "credit-1"}
+        client.get_item.assert_called_with(collection, "credit-1", ["id"])
+        assert methods.list_by_location("location-1", options) == []
+        _, scoped_options = client.list_items.call_args.args
+        assert scoped_options.filter == {
+            "location_id": {"_eq": "location-1"},
+            "status": {"_eq": "verified"},
+        }
+        assert scoped_options.sort == ["created_at"]
+        assert scoped_options.fields == ["id", "location_id"]
+        assert scoped_options.limit == 20
+        assert not any(hasattr(methods, name) for name in ("create", "update", "delete"))
+
+
 def test_kokonut_methods_import():
     from kokonut.methods import FarmMethods, HarvestEventMethods, LocationMethods
 

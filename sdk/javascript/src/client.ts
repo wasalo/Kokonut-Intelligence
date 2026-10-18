@@ -14,8 +14,13 @@ import type { AuthenticationData } from '@directus/sdk';
 import { normalizeDirectusError } from './errors.js';
 import type {
   ListOptions,
+  CarbonCredit,
+  CreditAdjustment,
+  CreditRetirement,
+  CreditTransfer,
 } from './types.js';
 import {
+  buildCreditLedgerReadMethods,
   buildLocationMethods,
   buildFarmMethods,
   buildPlotMethods,
@@ -34,6 +39,7 @@ import {
   buildNoiMethods,
 } from './methods.js';
 import type {
+  CreditLedgerReadMethods,
   LocationMethods,
   FarmMethods,
   PlotMethods,
@@ -87,6 +93,10 @@ export class KokonutClient {
   reports: ReportMethods;
   exports: ExportMethods;
   noi: NoiMethods;
+  carbonCredits: CreditLedgerReadMethods<CarbonCredit>;
+  creditAdjustments: CreditLedgerReadMethods<CreditAdjustment>;
+  creditRetirements: CreditLedgerReadMethods<CreditRetirement>;
+  creditTransfers: CreditLedgerReadMethods<CreditTransfer>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -110,6 +120,10 @@ export class KokonutClient {
     this.reports = buildReportMethods(this);
     this.exports = buildExportMethods(this);
     this.noi = buildNoiMethods(this);
+    this.carbonCredits = buildCreditLedgerReadMethods<CarbonCredit>(this, 'carbon_credit');
+    this.creditAdjustments = buildCreditLedgerReadMethods<CreditAdjustment>(this, 'credit_adjustment');
+    this.creditRetirements = buildCreditLedgerReadMethods<CreditRetirement>(this, 'credit_retirement');
+    this.creditTransfers = buildCreditLedgerReadMethods<CreditTransfer>(this, 'credit_transfer');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {

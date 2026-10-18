@@ -113,6 +113,10 @@ describe('KokonutClient', () => {
     expect(client.reports).toBeDefined();
     expect(client.exports).toBeDefined();
     expect(client.noi).toBeDefined();
+    expect(client.carbonCredits).toBeDefined();
+    expect(client.creditAdjustments).toBeDefined();
+    expect(client.creditRetirements).toBeDefined();
+    expect(client.creditTransfers).toBeDefined();
   });
 
   it('returns Directus login fields while preserving normalized token aliases', async () => {
@@ -261,6 +265,37 @@ describe('KokonutClient', () => {
     expect(loss.evidence_hashes).toEqual(['sha256:loss']);
     expect(labor.total_cost).toBe(48);
     expect(note.tags).toEqual(['test']);
+  });
+
+  it('provides read-only location-scoped methods for carbon-credit ledger records', async () => {
+    const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
+    const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'credit-1' } as any);
+    const groups = [
+      [client.carbonCredits, 'carbon_credit'],
+      [client.creditAdjustments, 'credit_adjustment'],
+      [client.creditRetirements, 'credit_retirement'],
+      [client.creditTransfers, 'credit_transfer'],
+    ] as const;
+    const options = {
+      limit: 20,
+      fields: ['id', 'location_id'],
+      filter: { location_id: { _eq: 'other-location' }, status: { _eq: 'verified' } },
+    };
+
+    for (const [methods, collection] of groups) {
+      await methods.list(options);
+      expect(listItems).toHaveBeenLastCalledWith(collection, options);
+      await methods.get('credit-1', ['id']);
+      expect(getItem).toHaveBeenLastCalledWith(collection, 'credit-1', ['id']);
+      await methods.listByLocation('location-1', options);
+      expect(listItems).toHaveBeenLastCalledWith(collection, {
+        ...options,
+        filter: { location_id: { _eq: 'location-1' }, status: { _eq: 'verified' } },
+      });
+      expect('create' in methods).toBe(false);
+      expect('update' in methods).toBe(false);
+      expect('delete' in methods).toBe(false);
+    }
   });
 
   it('preserves exact non-page-aligned offsets for Directus', async () => {

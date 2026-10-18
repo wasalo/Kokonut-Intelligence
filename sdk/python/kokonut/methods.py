@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar
 
 from .types import (
     AttestationRecord,
+    CarbonCredit,
+    CreditAdjustment,
+    CreditRetirement,
+    CreditTransfer,
     CropCycle,
     ExpenseEvent,
     ExportLog,
@@ -24,6 +28,11 @@ from .types import (
 
 if TYPE_CHECKING:
     from .client import KokonutClient
+
+
+CreditLedgerRecord = TypeVar(
+    "CreditLedgerRecord", CarbonCredit, CreditAdjustment, CreditRetirement, CreditTransfer
+)
 
 
 def _to_dataclass(data: Dict[str, Any], cls: Any) -> Any:
@@ -80,6 +89,28 @@ class GenericMethods:
 
     def delete(self, item_id: str) -> None:
         self._client.delete_item(self._collection, item_id)
+
+
+class CreditLedgerReadMethods(Generic[CreditLedgerRecord]):
+    """Location-scoped read methods; governed ledger changes use reviewed services."""
+
+    def __init__(self, client: KokonutClient, collection: str) -> None:
+        self._client = client
+        self._collection = collection
+
+    def list(self, options: Optional[ListOptions] = None) -> List[CreditLedgerRecord]:
+        return self._client.list_items(self._collection, options)
+
+    def get(self, item_id: str, fields: Optional[List[str]] = None) -> CreditLedgerRecord:
+        return self._client.get_item(self._collection, item_id, fields)
+
+    def list_by_location(
+        self, location_id: str, options: Optional[ListOptions] = None
+    ) -> List[CreditLedgerRecord]:
+        return self._client.list_items(
+            self._collection,
+            _list_options_with_filter(options, {"location_id": {"_eq": location_id}}),
+        )
 
 
 class LocationMethods(GenericMethods):

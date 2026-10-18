@@ -17,6 +17,10 @@ import type {
   ExportFormat,
   NoiSnapshot,
   ListOptions,
+  CarbonCredit,
+  CreditAdjustment,
+  CreditRetirement,
+  CreditTransfer,
 } from './types.js';
 
 export interface GenericMethods {
@@ -28,6 +32,12 @@ export interface GenericMethods {
   delete(id: string): Promise<void>;
 }
 
+export interface CreditLedgerReadMethods<T> {
+  list(options?: ListOptions): Promise<T[]>;
+  get(id: string, fields?: string[]): Promise<T>;
+  listByLocation(locationId: string, options?: ListOptions): Promise<T[]>;
+}
+
 function createGenericMethods(client: any, collection: string): GenericMethods {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options),
@@ -36,6 +46,21 @@ function createGenericMethods(client: any, collection: string): GenericMethods {
     createMany: (data: Record<string, any>[]) => client.createItems(collection, data),
     update: (id: string, data: Record<string, any>) => client.updateItem(collection, id, data),
     delete: (id: string) => client.deleteItem(collection, id),
+  };
+}
+
+export function buildCreditLedgerReadMethods<T>(
+  client: any,
+  collection: string,
+): CreditLedgerReadMethods<T> {
+  return {
+    list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
+    get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,
+    listByLocation: (locationId: string, options?: ListOptions) =>
+      client.listItems(collection, {
+        ...options,
+        filter: { ...options?.filter, location_id: { _eq: locationId } },
+      }) as Promise<T[]>,
   };
 }
 
