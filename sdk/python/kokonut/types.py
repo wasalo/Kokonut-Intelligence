@@ -1861,6 +1861,31 @@ class ExportLog:
 
 
 @dataclass
+class CashFlowSnapshot:
+    """Stored cash-flow summary; this record does not calculate or reconcile balances."""
+
+    id: str
+    location_id: str
+    period_start: str
+    period_end: str
+    total_revenue: Optional[float] = None
+    capital_inflows: Optional[float] = None
+    grants_received: Optional[float] = None
+    total_inflows: Optional[float] = None
+    total_operating_expenses: Optional[float] = None
+    total_capex: Optional[float] = None
+    loan_repayments: Optional[float] = None
+    public_goods_allocation: Optional[float] = None
+    total_outflows: Optional[float] = None
+    net_cash_flow: Optional[float] = None
+    running_balance: Optional[float] = None
+    calculation_version: Optional[str] = None
+    calculated_at: Optional[str] = None
+    inputs: Optional[JSONObject] = None
+    created_by: Optional[str] = None
+
+
+@dataclass
 class NoiSnapshot:
     id: str
     crop_cycle_id: str

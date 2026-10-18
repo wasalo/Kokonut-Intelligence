@@ -111,6 +111,7 @@ export type {
   ExpenseEvent,
   ExpenseCategory,
   CapitalSource,
+  CashFlowSnapshot,
   FinancialTransaction,
   ForecastOutput,
   ForecastScenario,

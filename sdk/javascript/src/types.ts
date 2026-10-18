@@ -1722,6 +1722,29 @@ export interface WorkflowState {
   notes?: string;
 }
 
+/** Stored cash-flow summary; this record does not calculate or reconcile balances. */
+export interface CashFlowSnapshot {
+  id: string;
+  location_id: string;
+  period_start: string;
+  period_end: string;
+  total_revenue?: number | null;
+  capital_inflows?: number | null;
+  grants_received?: number | null;
+  total_inflows?: number | null;
+  total_operating_expenses?: number | null;
+  total_capex?: number | null;
+  loan_repayments?: number | null;
+  public_goods_allocation?: number | null;
+  total_outflows?: number | null;
+  net_cash_flow?: number | null;
+  running_balance?: number | null;
+  calculation_version?: string | null;
+  calculated_at?: string | null;
+  inputs?: JSONObject | null;
+  created_by?: string | null;
+}
+
 export interface NoiSnapshot {
   id: string;
   crop_cycle_id: string;

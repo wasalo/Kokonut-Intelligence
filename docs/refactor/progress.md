@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### SDK cash-flow snapshot parity — 18 October 2026
+
+Python and TypeScript now expose stored `cash_flow_snapshot` rows, including
+period totals, net flow and running balance, calculation-version attribution,
+and a JSON object preserving inputs. The guard covers 67 models, 1,400
+canonical columns, 1,309 scalar types, 10 PostGIS shapes, 78 JSONB shapes, 22
+enum fields, and 43 standalone SQL CHECK literals. Seventy-two focused Python
+SDK/schema/method-parity tests and 29 JavaScript tests pass; TypeScript build,
+Ruff, compilation, schema guard, capability-matrix validation, and diff checks
+pass. This is a stored record only; it does not calculate, reconcile, or verify
+financial amounts. No database, provider, or network was contacted; capability
+classifications and MAN-CAP acceptance are unchanged
+([evidence](builds/2026-10-18-recovery/sdk-cash-flow-snapshot-parity.json)).
+
 ### SDK Crop reference parity — 18 October 2026
 
 Python and TypeScript now model the canonical `crop` reference row, including

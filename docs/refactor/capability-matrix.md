@@ -11,6 +11,11 @@ and the fast-fail CI workflow. This verifies all 66 IDs, row shape, named manual
 checks, status labels, and referenced source/test paths. It does not evaluate
 capability behavior or mark any MAN-CAP check accepted.
 
+**Cash-flow SDK contract note — 18 October 2026:** Python and TypeScript expose
+stored period summaries and input provenance. The SDK does not calculate,
+reconcile, or verify the figures and changes no MAN-CAP classification
+([evidence](builds/2026-10-18-recovery/sdk-cash-flow-snapshot-parity.json)).
+
 **Crop SDK contract note — 18 October 2026:** Python and TypeScript expose the
 canonical crop reference row and migration-added schema version. Expected-yield
 fields are stored values only; this does not calculate or verify a yield and

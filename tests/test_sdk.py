@@ -156,6 +156,26 @@ def test_crop_model_preserves_reference_metadata_and_schema_version():
     assert crop.schema_version == "common-data-schema-v1"
 
 
+def test_cash_flow_snapshot_preserves_inputs_without_claiming_calculation():
+    from kokonut import CashFlowSnapshot
+
+    snapshot = CashFlowSnapshot(
+        id="cash-flow-1",
+        location_id="location-1",
+        period_start="2026-01-01",
+        period_end="2026-03-31",
+        total_inflows=12000.0,
+        total_outflows=8500.0,
+        net_cash_flow=3500.0,
+        running_balance=7200.0,
+        calculation_version="1.0",
+        inputs={"currency": "USD", "source_snapshot": "quarterly-close"},
+    )
+
+    assert snapshot.net_cash_flow == 3500.0
+    assert snapshot.inputs == {"currency": "USD", "source_snapshot": "quarterly-close"}
+
+
 def test_organization_member_type_is_descriptive_not_an_access_grant():
     from kokonut import OrganizationMember, OrganizationMembershipType
 

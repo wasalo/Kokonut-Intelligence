@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 586 checklist items complete and 19
-open (605 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 587 checklist items complete and 19
+open (606 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1291,6 +1291,7 @@ reporting views.
 - [x] Add Python and TypeScript `FarmTask` stored-record models for scoped task planning, costs, metadata, and source lineage, with exact category/priority/status aliases from the SQL CHECK constraints. The guard covers 62 models, 1,338 canonical columns, 1,252 scalar types, 10 PostGIS shapes, 76 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals. Sixty-nine Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. This model does not assign, schedule, or complete work and does not cover task dependency/weekly-plan relations ([evidence](builds/2026-10-18-recovery/sdk-farm-task-parity.json)).
 - [x] Add Python and TypeScript models for `farm_task_dependency`, `farm_task_framework_step`, and `farm_task_weekly_plan`, preserving composite identifiers and nullable Baserow source identity fields from migration 361. The guard covers 65 models, 1,368 canonical columns, 1,279 scalar types, 10 PostGIS shapes, 76 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals. Seventy Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. These records do not evaluate prerequisite readiness or execute task/framework/weekly-plan workflows ([evidence](builds/2026-10-18-recovery/sdk-farm-task-relations-parity.json)).
 - [x] Add Python and TypeScript `Crop` reference records, including metadata and the migration-017 `schema_version`. The guard covers 66 models, 1,381 canonical columns, 1,291 scalar types, 10 PostGIS shapes, 77 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals. Seventy-one Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. Stored expected yields are reference data only; this does not calculate or verify yield ([evidence](builds/2026-10-18-recovery/sdk-crop-parity.json)).
+- [x] Add Python and TypeScript `CashFlowSnapshot` records for stored period inflows, outflows, balances, calculation version, and JSON input provenance. The guard covers 67 models, 1,400 canonical columns, 1,309 scalar types, 10 PostGIS shapes, 78 JSONB shapes, 22 enum fields, and 43 standalone CHECK literals. Seventy-two Python SDK/guard tests and 29 JavaScript tests pass; TypeScript build, Ruff, compilation, schema guard, matrix validation, and diff checks pass. This record does not calculate, reconcile, or verify financial amounts ([evidence](builds/2026-10-18-recovery/sdk-cash-flow-snapshot-parity.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented
