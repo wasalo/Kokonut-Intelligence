@@ -843,7 +843,7 @@ def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution()
 
 
 def test_time_series_forecast_and_accuracy_types_preserve_stored_values():
-    from kokonut import ForecastAccuracy, TimeSeriesForecast
+    from kokonut import ForecastAccuracy, TimeSeriesForecast, VariogramModel
 
     forecast = TimeSeriesForecast(
         id="forecast-1",
@@ -875,6 +875,20 @@ def test_time_series_forecast_and_accuracy_types_preserve_stored_values():
     assert forecast.model_type == "arima"
     assert accuracy.error_abs == 0.5
     assert accuracy.is_within_ci is None
+
+    variogram = VariogramModel(
+        id="variogram-1",
+        property_key="soil_carbon",
+        model_type="matern",
+        sill=1.5,
+        range=30.0,
+        nugget=0.1,
+        fitted_at="2026-10-18T00:00:00Z",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    assert variogram.model_type == "matern"
+    assert variogram.location_id is None
+    assert variogram.partial_sill is None
 
 
 def test_demand_forecast_type_keeps_estimate_provenance_and_review_state():
@@ -1437,6 +1451,9 @@ def test_location_read_methods_are_typed_location_scoped_reads_only():
         (client.financial_transactions, "financial_transaction"),
         (client.cash_flow_snapshots, "cash_flow_snapshot"),
         (client.weather_observations, "weather_observation"),
+        (client.sensor_devices, "sensor_device"),
+        (client.sensor_alerts, "sensor_alert"),
+        (client.variogram_models, "variogram_model"),
         (client.soil_samples, "soil_sample"),
         (client.soil_carbon_measurements, "soil_carbon_measurement"),
         (client.environmental_baselines, "environmental_baseline"),

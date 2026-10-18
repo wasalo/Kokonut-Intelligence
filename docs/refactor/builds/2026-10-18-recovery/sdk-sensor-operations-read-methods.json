@@ -1,0 +1,47 @@
+{
+  "record_type": "sdk_sensor_operations_read_methods",
+  "recorded_at": "2026-10-18",
+  "scope": "Add typed read-only Python and JavaScript accessors for location-scoped sensor device inventory and sensor alert history.",
+  "collections": {
+    "sensor_device": {
+      "location_field": "location_id",
+      "source": "schemas/postgres/011_sensor_registry.sql",
+      "location_required": true
+    },
+    "sensor_alert": {
+      "location_field": "location_id",
+      "source": "schemas/postgres/011_sensor_registry.sql plus migration 406",
+      "location_required": false,
+      "null_location_rows_returned_by_scoped_method": false
+    }
+  },
+  "contract": {
+    "python_groups": ["sensor_devices", "sensor_alerts"],
+    "javascript_groups": ["sensorDevices", "sensorAlerts"],
+    "methods_per_group": ["list", "get", "list_by_location/listByLocation"],
+    "location_filter_overrides_conflicting_caller_filter": true,
+    "other_list_options_preserved": true,
+    "create_update_delete_exposed": false,
+    "device_registration_or_alert_lifecycle_actions_exposed": false,
+    "actuation_exposed": false,
+    "authorization_enforced_by_sdk": false
+  },
+  "verification": {
+    "python_sdk_schema_and_method_tests": "98 passed",
+    "javascript_sdk_tests": "48 passed",
+    "typescript_build": "passed",
+    "ruff": "passed on touched Python files",
+    "python_compilation": "passed",
+    "sdk_schema_parity_guard": "passed: 74 models, 1555 canonical columns, 1456 scalar types, 10 PostGIS types, 86 JSONB shapes, 23 enum fields, 50 CHECK-literal fields per SDK",
+    "capability_matrix_validator": "passed: 66 rows; 54 baseline-retained, 7 deployed, 5 prepared",
+    "git_diff_check": "passed"
+  },
+  "isolation": {
+    "network": "not used",
+    "database": "not used",
+    "provider": "not used",
+    "credentials": "not used",
+    "candidate_or_legacy_services": "not accessed"
+  },
+  "capability_status": "No MAN-CAP classification or acceptance status changed."
+}

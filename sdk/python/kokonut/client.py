@@ -55,6 +55,8 @@ from .types import (
     Protocol,
     RemoteSensingObservation,
     SeasonalDecomposition,
+    SensorAlert,
+    SensorDevice,
     SensorType,
     SoilCarbonMeasurement,
     SoilSample,
@@ -64,6 +66,7 @@ from .types import (
     TrendEstimate,
     TrendSmoothing,
     ValueFlowEvent,
+    VariogramModel,
     WeatherObservation,
 )
 
@@ -126,6 +129,12 @@ class KokonutClient:
         self.labor_events = LaborEventMethods(self)
         self.field_notes = FieldNoteMethods(self)
         self.sensor_readings = SensorReadingMethods(self)
+        self.sensor_devices: LocationReadMethods[SensorDevice] = LocationReadMethods(
+            self, "sensor_device"
+        )
+        self.sensor_alerts: LocationReadMethods[SensorAlert] = LocationReadMethods(
+            self, "sensor_alert"
+        )
         self.wallet_profiles = WalletProfileMethods(self)
         self.attestations = AttestationMethods(self)
         self.reports = ReportMethods(self)
@@ -182,6 +191,9 @@ class KokonutClient:
         )
         self.forecast_accuracies: ForecastAccuracyReadMethods[ForecastAccuracy] = (
             ForecastAccuracyReadMethods(self)
+        )
+        self.variogram_models: LocationReadMethods[VariogramModel] = LocationReadMethods(
+            self, "variogram_model"
         )
         self.demand_forecasts: LocationReadMethods[DemandForecast] = LocationReadMethods(
             self, "demand_forecast"

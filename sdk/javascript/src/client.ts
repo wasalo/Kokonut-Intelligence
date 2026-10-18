@@ -42,6 +42,8 @@ import type {
   RemoteSensingObservation,
   SeasonalDecomposition,
   SensorType,
+  SensorDevice,
+  SensorAlert,
   SoilCarbonMeasurement,
   SoilSample,
   SpeciesObservation,
@@ -50,6 +52,7 @@ import type {
   TrendEstimate,
   TrendSmoothing,
   ValueFlowEvent,
+  VariogramModel,
   WeatherObservation,
 } from './types.js';
 import {
@@ -125,6 +128,8 @@ export class KokonutClient {
   laborEvents: LaborEventMethods;
   fieldNotes: FieldNoteMethods;
   sensorReadings: SensorReadingMethods;
+  sensorDevices: LocationReadMethods<SensorDevice>;
+  sensorAlerts: LocationReadMethods<SensorAlert>;
   walletProfiles: WalletProfileMethods;
   attestations: AttestationMethods;
   reports: ReportMethods;
@@ -148,6 +153,7 @@ export class KokonutClient {
   forecastOutputs: LocationReadMethods<ForecastOutput>;
   timeSeriesForecasts: LocationReadMethods<TimeSeriesForecast>;
   forecastAccuracies: ForecastAccuracyReadMethods<ForecastAccuracy>;
+  variogramModels: LocationReadMethods<VariogramModel>;
   demandForecasts: LocationReadMethods<DemandForecast>;
   marketSizeEstimates: LocationReadMethods<MarketSizeEstimate>;
   priceObservations: LocationReadMethods<PriceObservation>;
@@ -185,6 +191,8 @@ export class KokonutClient {
     this.laborEvents = buildLaborEventMethods(this);
     this.fieldNotes = buildFieldNoteMethods(this);
     this.sensorReadings = buildSensorReadingMethods(this);
+    this.sensorDevices = buildLocationReadMethods<SensorDevice>(this, 'sensor_device');
+    this.sensorAlerts = buildLocationReadMethods<SensorAlert>(this, 'sensor_alert');
     this.walletProfiles = buildWalletProfileMethods(this);
     this.attestations = buildAttestationMethods(this);
     this.reports = buildReportMethods(this);
@@ -208,6 +216,7 @@ export class KokonutClient {
     this.forecastOutputs = buildLocationReadMethods<ForecastOutput>(this, 'forecast_output');
     this.timeSeriesForecasts = buildLocationReadMethods<TimeSeriesForecast>(this, 'time_series_forecast');
     this.forecastAccuracies = buildForecastAccuracyReadMethods<ForecastAccuracy>(this);
+    this.variogramModels = buildLocationReadMethods<VariogramModel>(this, 'variogram_model');
     this.demandForecasts = buildLocationReadMethods<DemandForecast>(this, 'demand_forecast');
     this.marketSizeEstimates = buildLocationReadMethods<MarketSizeEstimate>(this, 'market_size_estimate');
     this.priceObservations = buildLocationReadMethods<PriceObservation>(this, 'price_observation');

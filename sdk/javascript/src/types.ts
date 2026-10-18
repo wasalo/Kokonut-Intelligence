@@ -20,6 +20,7 @@ export type ActuationStatus = 'pending' | 'sent' | 'acknowledged' | 'executed' |
 export type AttestationVerdict = 'pending' | 'approved' | 'rejected' | 'needs_info';
 export type TimeSeriesForecastModelType = 'arima' | 'exponential_smoothing' | 'prophet' | 'naive' | 'seasonal_naive';
 export type TimeSeriesForecastStatus = 'active' | 'superseded' | 'expired';
+export type VariogramModelType = 'spherical' | 'exponential' | 'gaussian' | 'matern';
 export type DemandForecastType = 'time_series' | 'buyer_pipeline' | 'seasonal_decomposition' | 'hybrid';
 export type DemandForecastStatus = 'draft' | 'submitted' | 'verified' | 'published';
 export type MarketScope = 'local' | 'regional' | 'national' | 'international';
@@ -1183,6 +1184,26 @@ export interface TimeSeriesForecast {
   training_points: number;
   forecast_at: string;
   status: TimeSeriesForecastStatus;
+  metadata?: JSONObject | null;
+  created_at: string;
+}
+
+/** Stored fitted variogram parameters; this record does not fit a model. */
+export interface VariogramModel {
+  id: string;
+  location_id?: string | null;
+  property_key: string;
+  model_type: VariogramModelType;
+  sill: number;
+  range: number;
+  nugget: number;
+  partial_sill?: number | null;
+  lag_distance?: number | null;
+  lag_tolerance?: number | null;
+  bandwidth?: number | null;
+  n_pairs?: number | null;
+  r_squared?: number | null;
+  fitted_at: string;
   metadata?: JSONObject | null;
   created_at: string;
 }

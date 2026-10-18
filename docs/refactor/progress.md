@@ -1,5 +1,33 @@
 # Kokonut Kernel implementation progress
 
+### Stored variogram SDK reads — 18 October 2026
+
+Python and JavaScript now expose schema-aligned `VariogramModel` read types and
+location-scoped `variogram_models` / `variogramModels` accessors. The model type
+matches the four canonical SQL literals; the parity guard now checks its
+nullable location and metadata fields, numeric fields, columns, and exact
+`model_type` values. Ninety-eight Python SDK/schema/method tests and 48
+JavaScript tests pass with TypeScript build, Ruff, compilation, schema and
+capability guards, and diff checks. This returns stored fits only; it does not
+fit or validate a variogram. Checklist: 627 complete / 19 open; capability
+matrix remains 66 rows, 54 baseline-retained, 7 deployed, 5 prepared
+([evidence](builds/2026-10-18-recovery/sdk-variogram-read-methods.json)).
+
+### Location-scoped sensor SDK reads — 18 October 2026
+
+Python and JavaScript now expose read-only `sensor_devices` / `sensorDevices`
+and `sensor_alerts` / `sensorAlerts` groups with `list`, `get`, and
+location-filtered reads. Device inventory is location-owned in the base schema;
+alert location lineage was added in migration 406, and the scoped accessor
+excludes rows whose legacy location remains null. Required location filters
+override conflicting caller filters while preserving other query options. No
+registration, acknowledgement, resolution, or actuation methods are exposed;
+Directus/API policy remains the authorization boundary. Ninety-eight Python
+SDK/schema/method tests and 48 JavaScript tests pass with the TypeScript build,
+Ruff, Python compilation, schema/capability guards, and diff checks. Checklist:
+626 complete / 19 open; capability matrix remains 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared ([evidence](builds/2026-10-18-recovery/sdk-sensor-operations-read-methods.json)).
+
 ### Forecast-accuracy SDK reads — 18 October 2026
 
 Python and JavaScript now expose read-only access to stored `forecast_accuracy`

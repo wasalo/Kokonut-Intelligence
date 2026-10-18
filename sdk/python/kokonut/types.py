@@ -33,6 +33,7 @@ TimeSeriesForecastModelType = Literal[
     "arima", "exponential_smoothing", "prophet", "naive", "seasonal_naive"
 ]
 TimeSeriesForecastStatus = Literal["active", "superseded", "expired"]
+VariogramModelType = Literal["spherical", "exponential", "gaussian", "matern"]
 DemandForecastType = Literal[
     "time_series", "buyer_pipeline", "seasonal_decomposition", "hybrid"
 ]
@@ -871,6 +872,28 @@ class TimeSeriesForecast:
     status: TimeSeriesForecastStatus
     created_at: str
     model_type: TimeSeriesForecastModelType = "arima"
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class VariogramModel:
+    """Stored fitted variogram parameters; this record does not fit a model."""
+
+    id: str
+    property_key: str
+    model_type: VariogramModelType
+    sill: float
+    range: float
+    nugget: float
+    fitted_at: str
+    created_at: str
+    location_id: Optional[str] = None
+    partial_sill: Optional[float] = None
+    lag_distance: Optional[float] = None
+    lag_tolerance: Optional[float] = None
+    bandwidth: Optional[float] = None
+    n_pairs: Optional[int] = None
+    r_squared: Optional[float] = None
     metadata: Optional[JSONObject] = None
 
 

@@ -83,6 +83,10 @@ tasks = client.farm_tasks.list_by_location("location-uuid")
 accuracy = client.forecast_accuracies.list_by_forecast("forecast-uuid")
 # This returns persisted comparisons; it does not calculate or verify accuracy.
 
+# Read stored fitted variogram parameters for one location
+variograms = client.variogram_models.list_by_location("location-uuid")
+# This reads fitted output; it does not fit or validate a variogram.
+
 # Create a harvest event
 harvest = client.harvest_events.create({
     "crop_cycle_id": "cycle-uuid",
@@ -111,6 +115,11 @@ cash_flows = client.cash_flow_snapshots.list_by_location("location-uuid")
 soil_samples = client.soil_samples.list_by_location("location-uuid")
 claims = client.mrv_claims.list_by_location("location-uuid")
 # These reads do not ingest, calculate, verify, or attest records.
+
+# Read registered sensor inventory and alert history for one location
+devices = client.sensor_devices.list_by_location("location-uuid")
+alerts = client.sensor_alerts.list_by_location("location-uuid")
+# These reads do not register devices, acknowledge/resolve alerts, or actuate equipment.
 
 # Read stored metrics and forecast results for one location
 metric_values = client.metric_values.list_by_location("location-uuid")
@@ -190,6 +199,8 @@ except KokonutError as e:
 | `financial_transactions` | `financial_transaction` | `list_by_location` |
 | `cash_flow_snapshots` | `cash_flow_snapshot` | `list_by_location` |
 | `weather_observations` | `weather_observation` | `list_by_location` |
+| `sensor_devices` | `sensor_device` | `list_by_location` |
+| `sensor_alerts` | `sensor_alert` | `list_by_location` |
 | `soil_samples` | `soil_sample` | `list_by_location` |
 | `soil_carbon_measurements` | `soil_carbon_measurement` | `list_by_location` |
 | `environmental_baselines` | `environmental_baseline` | `list_by_location` |
@@ -216,6 +227,7 @@ except KokonutError as e:
 | `infrastructure_assets` | `infrastructure_asset` | `list_by_location` |
 | `farm_tasks` | `farm_task` | `list_by_location` (read-only) |
 | `forecast_accuracies` | `forecast_accuracy` | `list_by_forecast` (read-only) |
+| `variogram_models` | `variogram_model` | `list_by_location` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensor_types` | `sensor_type` | — (read-only list/detail) |

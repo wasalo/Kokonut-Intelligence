@@ -69,6 +69,10 @@ const tasks = await client.farmTasks.listByLocation('location-uuid');
 const accuracy = await client.forecastAccuracies.listByForecast('forecast-uuid');
 // This returns persisted comparisons; it does not calculate or verify accuracy.
 
+// Read stored fitted variogram parameters for one location
+const variograms = await client.variogramModels.listByLocation('location-uuid');
+// This reads fitted output; it does not fit or validate a variogram.
+
 // Create a harvest event
 const harvest = await client.harvestEvents.create({
   crop_cycle_id: 'cycle-uuid',
@@ -97,6 +101,11 @@ const cashFlows = await client.cashFlowSnapshots.listByLocation('location-uuid')
 const soilSamples = await client.soilSamples.listByLocation('location-uuid');
 const claims = await client.mrvClaims.listByLocation('location-uuid');
 // These reads do not ingest, calculate, verify, or attest records.
+
+// Read registered sensor inventory and alert history for one location
+const devices = await client.sensorDevices.listByLocation('location-uuid');
+const alerts = await client.sensorAlerts.listByLocation('location-uuid');
+// These reads do not register devices, acknowledge/resolve alerts, or actuate equipment.
 
 // Read stored metrics and forecast results for one location
 const metricValues = await client.metricValues.listByLocation('location-uuid');
@@ -203,6 +212,8 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `financialTransactions` | `financial_transaction` | `listByLocation` |
 | `cashFlowSnapshots` | `cash_flow_snapshot` | `listByLocation` |
 | `weatherObservations` | `weather_observation` | `listByLocation` |
+| `sensorDevices` | `sensor_device` | `listByLocation` |
+| `sensorAlerts` | `sensor_alert` | `listByLocation` |
 | `soilSamples` | `soil_sample` | `listByLocation` |
 | `soilCarbonMeasurements` | `soil_carbon_measurement` | `listByLocation` |
 | `environmentalBaselines` | `environmental_baseline` | `listByLocation` |
@@ -229,6 +240,7 @@ const offsetResults = await client.locations.list({ offset: 40, limit: 20 });
 | `infrastructureAssets` | `infrastructure_asset` | `listByLocation` |
 | `farmTasks` | `farm_task` | `listByLocation` (read-only) |
 | `forecastAccuracies` | `forecast_accuracy` | `listByForecast` (read-only) |
+| `variogramModels` | `variogram_model` | `listByLocation` (read-only) |
 | `crops` | `crop` | — (read-only list/detail) |
 | `protocols` | `protocol` | — (read-only list/detail) |
 | `sensorTypes` | `sensor_type` | — (read-only list/detail) |
