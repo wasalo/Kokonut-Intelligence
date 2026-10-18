@@ -1,5 +1,12 @@
 export { KokonutClient } from './client.js';
 export type { KokonutAggregationOptions, KokonutClientOptions, KokonutLoginResult } from './client.js';
+export {
+  AuthenticationError,
+  ForbiddenError,
+  KokonutError,
+  NotFoundError,
+  ValidationError,
+} from './errors.js';
 export { KokonutPublicApiClient, PublicApiError } from './public-api.js';
 export type {
   PublicApiClientOptions,

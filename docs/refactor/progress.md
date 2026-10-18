@@ -9551,3 +9551,17 @@ cases. The combined Python SDK/schema/method suite passes 94 tests; Ruff and
 compilation pass. These synthetic responses do not prove live Directus behavior
 or authorization. Checklist: 601 complete / 19 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-python-error-envelope-parity.json`.
+
+### Cross-language SDK HTTP error parity — 18 October 2026
+
+The JavaScript wrapper now normalizes the pinned Directus SDK's error objects
+into the same exported `ValidationError`, `AuthenticationError`,
+`ForbiddenError`, `NotFoundError`, and `KokonutError` classes as Python. The
+classes retain `statusCode` and response context; native transport errors
+without an HTTP response remain unchanged. Five status cases pass, and a
+stubbed-fetch regression drives a real pinned-SDK 403 response through the
+wrapper. Vitest passes 45 tests and the TypeScript build passes; the focused
+Python SDK/schema/method suite remains at 94 tests with Ruff and compilation
+passing. No live API, network, database, provider, or credential was used.
+Checklist: 602 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-error-normalization-parity.json`.

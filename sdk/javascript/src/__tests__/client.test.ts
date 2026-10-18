@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { KokonutClient } from '../client.js';
+import {
+  AuthenticationError,
+  ForbiddenError,
+  KokonutError,
+  NotFoundError,
+  ValidationError,
+} from '../errors.js';
 import type {
   CropCycle,
   ExpenseEvent,
@@ -119,6 +126,41 @@ describe('KokonutClient', () => {
       token: 'test-token',
       refreshToken: 'test-refresh',
     });
+  });
+
+  it.each([
+    { status: 400, ErrorType: ValidationError },
+    { status: 401, ErrorType: AuthenticationError },
+    { status: 403, ErrorType: ForbiddenError },
+    { status: 404, ErrorType: NotFoundError },
+    { status: 422, ErrorType: KokonutError },
+  ])('normalizes Directus HTTP $status errors to the Python SDK contract', async ({ status, ErrorType }) => {
+    const directus = (client as any).directus as {
+      request: (command: unknown) => Promise<unknown>;
+    };
+    vi.spyOn(directus, 'request').mockRejectedValueOnce({
+      errors: [{ message: 'synthetic Directus failure' }],
+      response: { status },
+    });
+
+    const error = await client.getItem('location', 'missing').catch((result) => result);
+
+    expect(error).toBeInstanceOf(ErrorType);
+    expect(error).toMatchObject({
+      message: 'synthetic Directus failure',
+      statusCode: status,
+      response: { status },
+    });
+  });
+
+  it('preserves native network errors without an HTTP response', async () => {
+    const directus = (client as any).directus as {
+      request: (command: unknown) => Promise<unknown>;
+    };
+    vi.spyOn(directus, 'request').mockRejectedValueOnce(new TypeError('network unavailable'));
+
+    await expect(client.getItem('location', 'location-1'))
+      .rejects.toThrow(new TypeError('network unavailable'));
   });
 
   it('should have list methods on all groups', () => {

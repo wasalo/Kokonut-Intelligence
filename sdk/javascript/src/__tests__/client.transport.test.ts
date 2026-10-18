@@ -17,6 +17,13 @@ describe('KokonutClient REST transport boundary', () => {
         body: typeof init?.body === 'string' ? init.body : null,
       });
 
+      if (url.pathname === '/items/denied') {
+        return new Response(JSON.stringify({ errors: [{ message: 'synthetic scope denial' }] }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       if (method === 'DELETE') return new Response(null, { status: 204 });
 
       let data: unknown;
@@ -44,6 +51,7 @@ describe('KokonutClient REST transport boundary', () => {
     vi.stubGlobal('fetch', fetchStub);
 
     const { KokonutClient } = await import('../client.js');
+    const { ForbiddenError } = await import('../errors.js');
     const client = new KokonutClient('https://directus.invalid');
     const rows = await client.listItems('harvest_event', {
       search: 'coconut',
@@ -66,6 +74,12 @@ describe('KokonutClient REST transport boundary', () => {
     const createdBatch = await client.createItems('farm', [{ name: 'Synthetic Farm' }]);
     const updated = await client.updateItem('location', 'location-1', { country: 'DO' });
     await client.deleteItem('location', 'location-1');
+    const denied = client.listItems('denied');
+    await expect(denied).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(denied).rejects.toMatchObject({
+      message: 'synthetic scope denial',
+      statusCode: 403,
+    });
 
     expect(rows).toEqual([{ id: 'event-1' }]);
     expect(grouped).toEqual([{ location_id: 'location-1', count: { '*': 2 } }]);
@@ -73,7 +87,7 @@ describe('KokonutClient REST transport boundary', () => {
     expect(created).toEqual({ id: 'location-2', name: 'Synthetic Location' });
     expect(createdBatch).toEqual([{ id: 'farm-1', name: 'Synthetic Farm' }]);
     expect(updated).toEqual({ id: 'location-1', country: 'DO' });
-    expect(fetchStub).toHaveBeenCalledTimes(7);
+    expect(fetchStub).toHaveBeenCalledTimes(8);
     expect(requests.map((request) => request.method)).toEqual([
       'GET',
       'GET',
@@ -82,6 +96,7 @@ describe('KokonutClient REST transport boundary', () => {
       'POST',
       'PATCH',
       'DELETE',
+      'GET',
     ]);
 
     const listUrl = new URL(requests[0]!.url);

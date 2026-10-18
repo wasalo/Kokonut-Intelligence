@@ -11,6 +11,7 @@ import {
   aggregate as aggregateItems,
 } from '@directus/sdk';
 import type { AuthenticationData } from '@directus/sdk';
+import { normalizeDirectusError } from './errors.js';
 import type {
   ListOptions,
 } from './types.js';
@@ -113,7 +114,7 @@ export class KokonutClient {
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {
     await this.ready;
-    const result = await this.directus.login(email, password);
+    const result = await this.run(() => this.directus.login(email, password));
     const token = result.access_token ?? '';
     const refreshToken = result.refresh_token ?? '';
     await this.directus.setToken(token);
@@ -132,7 +133,6 @@ export class KokonutClient {
   }
 
   async listItems(collection: string, options?: ListOptions): Promise<any[]> {
-    await this.ready;
     const query: Record<string, any> = { ...(options ?? {}) };
 
     for (const key of ['filter', 'sort', 'fields', 'limit', 'offset', 'page', 'meta']) {
@@ -153,39 +153,46 @@ export class KokonutClient {
     }
     if (options?.meta !== undefined) query.meta = options.meta;
 
-    return this.directus.request(readItems(collection, query));
+    return this.execute(() => this.directus.request(readItems(collection, query)));
   }
 
   async getItem(collection: string, id: string, fields?: string[]): Promise<any> {
-    await this.ready;
     const query: Record<string, any> = {};
     if (fields) query.fields = fields;
 
-    return this.directus.request(readItem(collection, id, query));
+    return this.execute(() => this.directus.request(readItem(collection, id, query)));
   }
 
   async createItem(collection: string, data: Record<string, any>): Promise<any> {
-    await this.ready;
-    return this.directus.request(createItem(collection, data));
+    return this.execute(() => this.directus.request(createItem(collection, data)));
   }
 
   async createItems(collection: string, data: Record<string, any>[]): Promise<any[]> {
-    await this.ready;
-    return this.directus.request(createItems(collection, data));
+    return this.execute(() => this.directus.request(createItems(collection, data)));
   }
 
   async updateItem(collection: string, id: string, data: Record<string, any>): Promise<any> {
-    await this.ready;
-    return this.directus.request(updateItem(collection, id, data));
+    return this.execute(() => this.directus.request(updateItem(collection, id, data)));
   }
 
   async deleteItem(collection: string, id: string): Promise<void> {
-    await this.ready;
-    await this.directus.request(deleteItem(collection, id));
+    await this.execute(() => this.directus.request(deleteItem(collection, id)));
   }
 
   async aggregate(collection: string, options: KokonutAggregationOptions): Promise<any[]> {
+    return this.execute(() => this.directus.request(aggregateItems(collection, options)));
+  }
+
+  private async execute<T>(operation: () => Promise<T>): Promise<T> {
     await this.ready;
-    return this.directus.request(aggregateItems(collection, options));
+    return this.run(operation);
+  }
+
+  private async run<T>(operation: () => Promise<T>): Promise<T> {
+    try {
+      return await operation();
+    } catch (error) {
+      throw normalizeDirectusError(error);
+    }
   }
 }

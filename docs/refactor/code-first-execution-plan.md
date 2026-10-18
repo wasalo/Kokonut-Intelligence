@@ -2,7 +2,7 @@
 
 **Updated:** 18 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Current checkpoint — 18 October 2026:** PR #68 is on `feat/mobile-offline-acceptance`; latest pushed head: `6a598d84`. The native SDKs align specialized query operators, logout cleanup, export projections and create signatures, login response fields, generic aggregate queries, arbitrary Directus list-query parameters, and generic CRUD transport. Python aggregation follows the pinned SDK's collection route and top-level array encoding; malformed error envelopes now fall back safely while known status codes map to documented exceptions. The SDK schema guard covers 70 models, 1,438 columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone SQL CHECK literals. The focused SDK/schema/method suite passes 94 Python tests and 39 JavaScript tests; TypeScript build, targeted Ruff, compilation, capability-matrix validation, and diff checks pass. A package-wide Ruff scan still reports 39 findings in untouched generated/example files. These offline checks do not establish live API behavior, authorization, tenant scope, domain writes, provider execution, or MAN-CAP acceptance. The matrix remains 54 baseline-retained, 7 deployed, and 5 prepared. Checklist: 601 complete / 19 open. Tenant/RLS, provider parity, physical Raspberry Pi, production recovery, release certification, and cutover remain open.
+**Current checkpoint — 18 October 2026:** PR #68 continues on `feat/mobile-offline-acceptance`; the local SDK follow-up closes Python/TypeScript Directus error normalization parity. The native SDKs align specialized query operators, logout cleanup, export projections and create signatures, login response fields, generic aggregate queries, arbitrary Directus list-query parameters, generic CRUD transport, and stable HTTP error classes. Both SDKs map 400/401/403/404 to matching named exceptions; malformed Python envelopes fall back safely, and TypeScript preserves native network failures without an HTTP response. The SDK schema guard covers 70 models, 1,438 columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone SQL CHECK literals. The focused SDK/schema/method suite passes 94 Python tests and 45 JavaScript tests; TypeScript build, targeted Ruff, compilation, capability-matrix validation, and diff checks pass. A package-wide Ruff scan still reports 39 findings in untouched generated/example files. These offline checks do not establish live API behavior, authorization, tenant scope, domain writes, provider execution, or MAN-CAP acceptance. The matrix remains 54 baseline-retained, 7 deployed, and 5 prepared. Checklist: 602 complete / 19 open. Tenant/RLS, provider parity, physical Raspberry Pi, production recovery, release certification, and cutover remain open.
 
 **Historical branch checkpoint — 17 October 2026:** PR #68 was at `efdd05b5`; CI #433 was in progress and Security #157 passed. CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 and CI #432 passed on `ebeddb45`. The pushed correction refreshed five worker inventories and removed line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests passed, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The batch also refreshed report source/query/helper inventories that fixed CI #430. Worker-status output containment redacted historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reported only a bounded remote exception class and closed the channel. At that historical checkpoint, the checklist was 517 complete / 19 open; these counts are superseded by [batches.md](batches.md).
 
@@ -1385,7 +1385,7 @@ handling, and exercises the pinned SDK's list-query transport with stubbed
 fetch. Python aggregate requests match its collection route and top-level
 array encoding. The Python SDK now maps common HTTP errors to stable exception
 classes and safely handles malformed error envelopes. Focused validation passes
-94 Python SDK/schema/method tests, 39 JavaScript tests, TypeScript build,
+94 Python SDK/schema/method tests, 45 JavaScript tests, TypeScript build,
 compilation, targeted Ruff, matrix validation, and diff checks. This is offline
 API-shape evidence, not live Directus or authorization acceptance. The checklist
 is 601 complete / 19 open; see
@@ -1399,3 +1399,10 @@ to documented exception classes. Ten focused regressions pass alongside the
 94-test SDK/schema/method suite, Ruff, and compilation. This remains synthetic
 error-response coverage, not live API or authorization acceptance
 ([evidence](builds/2026-10-18-recovery/sdk-python-error-envelope-parity.json)).
+
+The TypeScript SDK now normalizes the pinned client's HTTP error envelope into
+the same named classes as Python, including response status/context. A real
+SDK 403 response through stubbed fetch and five mapped status cases pass; the
+cross-language contract is documented in the JavaScript README. This remains
+offline behavior and does not establish live authorization or tenant scope
+([evidence](builds/2026-10-18-recovery/sdk-error-normalization-parity.json)).

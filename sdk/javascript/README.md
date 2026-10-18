@@ -95,6 +95,40 @@ const { token, refreshToken } = await client.login('user@example.com', 'password
 await client.logout();
 ```
 
+## Error handling
+
+The Directus client maps HTTP 400, 401, 403, and 404 responses to stable SDK
+errors. Other HTTP failures use `KokonutError`; network failures without an HTTP
+response remain native transport errors.
+
+```typescript
+import {
+  AuthenticationError,
+  ForbiddenError,
+  KokonutError,
+  NotFoundError,
+  ValidationError,
+} from '@kokonut-intelligence/sdk';
+
+try {
+  await client.locations.get('missing-location');
+} catch (error) {
+  if (error instanceof NotFoundError) {
+    console.error('Location not found');
+  } else if (error instanceof AuthenticationError) {
+    console.error('Please log in');
+  } else if (error instanceof ForbiddenError) {
+    console.error('Permission denied');
+  } else if (error instanceof ValidationError) {
+    console.error(`Invalid input: ${error.message}`);
+  } else if (error instanceof KokonutError) {
+    console.error(`API error ${error.statusCode}: ${error.message}`);
+  } else {
+    throw error;
+  }
+}
+```
+
 ## Pagination
 
 ```typescript

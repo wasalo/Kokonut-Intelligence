@@ -65,6 +65,14 @@ fall back to response text or the HTTP status. Synthetic checks do not
 establish live API error behavior, authorization, tenant scope, or MAN-CAP
 acceptance ([evidence](builds/2026-10-18-recovery/sdk-python-error-envelope-parity.json)).
 
+**Cross-language SDK error parity note — 18 October 2026:** TypeScript now
+normalizes the pinned Directus SDK's HTTP error envelopes into the same named
+exception classes as Python, retains HTTP status and response context, and
+leaves response-less network errors native. Stubbed transport checks verify the
+real SDK 403 path; this does not establish live API behavior, authorization,
+tenant scope, or MAN-CAP acceptance
+([evidence](builds/2026-10-18-recovery/sdk-error-normalization-parity.json)).
+
 **SDK export creation signature note — 18 October 2026:** TypeScript accepts the
 existing request object, export type plus options, and the positional field
 order supported by Python. These forms create the same pending export payload;
