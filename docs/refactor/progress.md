@@ -8403,3 +8403,13 @@ Gateway audit tests pass with Ruff, Python compilation, and `git diff --check`;
 database failures were mocked. The checklist is 504 complete / 19 open, and
 the capability matrix is unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/security-audit-error-redaction.json`.
+
+Federation node registration/updates, data share/query operations, and sync
+now log database exception classes without raw messages or tracebacks. Caller-
+provided sync error detail is omitted from logs as well. Rollback, return
+fallbacks, and re-raised submission errors are unchanged. Thirteen new mocked
+failure cases pass alongside existing federation coverage (40 total), with
+Ruff, compilation, and diff checks. No database or provider was contacted.
+The checklist is 505 complete / 19 open and capability matrix classifications
+are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/federation-error-redaction.json`.

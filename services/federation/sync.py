@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Optional
-
+from services.common.errors import safe_exception_class
 from services.common.logging import get_logger
 
 logger = get_logger("federation.sync")
@@ -46,8 +44,8 @@ class SyncEngine:
                     }
                     for r in cur.fetchall()
                 ]
-        except Exception:
-            logger.exception("Failed to get nodes due for sync")
+        except Exception as exc:
+            logger.error("Failed to get nodes due for sync (%s)", safe_exception_class(exc))
             return []
 
     def record_sync(self, node_name: str, success: bool, records_synced: int = 0, error: str | None = None) -> None:
@@ -65,12 +63,13 @@ class SyncEngine:
                         (node_name,),
                     )
                 else:
-                    logger.warning("Sync failed for %s: %s", node_name, error)
+                    # The caller-provided error can contain remote URLs or credentials.
+                    logger.warning("Sync failed for %s", node_name)
             conn.commit()
             logger.info("Sync recorded for %s: success=%s records=%d", node_name, success, records_synced)
-        except Exception:
+        except Exception as exc:
             conn.rollback()
-            logger.exception("Failed to record sync")
+            logger.error("Failed to record federation sync (%s)", safe_exception_class(exc))
 
     def aggregate_regional(
         self,
