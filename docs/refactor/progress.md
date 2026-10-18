@@ -8660,3 +8660,14 @@ build, and diff checks pass with local fixtures only; no database or network
 was contacted. Checklist: 534 complete / 19 open. Capability classifications
 are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/sdk-sensor-registry-schema-parity.json`.
+
+### SDK schema-parity source guard — 17 October 2026
+
+Added `scripts/check-sdk-schema-parity.py`, an offline check that compares
+canonical column names for 12 operational tables with their Python dataclasses
+and TypeScript interfaces. It checks 256 column names per SDK and currently
+passes; Ruff and Python compilation also pass. The guard detects omitted
+fields, not incorrect types/nullability or runtime projection, tenant, or
+authorization behavior. Checklist: 535 complete / 19 open. Capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/sdk-schema-parity-guard.json`.
