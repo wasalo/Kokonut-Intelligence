@@ -7,7 +7,6 @@ import requests
 
 from .methods import (
     AttestationMethods,
-    CreditLedgerReadMethods,
     CropCycleMethods,
     ExpenseEventMethods,
     ExportMethods,
@@ -16,6 +15,7 @@ from .methods import (
     HarvestEventMethods,
     LaborEventMethods,
     LocationMethods,
+    LocationReadMethods,
     LossEventMethods,
     NoiMethods,
     PlotMethods,
@@ -24,7 +24,15 @@ from .methods import (
     SensorReadingMethods,
     WalletProfileMethods,
 )
-from .types import CarbonCredit, CreditAdjustment, CreditRetirement, CreditTransfer, ListOptions
+from .types import (
+    CarbonCredit,
+    CashFlowSnapshot,
+    CreditAdjustment,
+    CreditRetirement,
+    CreditTransfer,
+    FinancialTransaction,
+    ListOptions,
+)
 
 
 class KokonutError(Exception):
@@ -90,17 +98,23 @@ class KokonutClient:
         self.reports = ReportMethods(self)
         self.exports = ExportMethods(self)
         self.noi = NoiMethods(self)
-        self.carbon_credits: CreditLedgerReadMethods[CarbonCredit] = CreditLedgerReadMethods(
+        self.carbon_credits: LocationReadMethods[CarbonCredit] = LocationReadMethods(
             self, "carbon_credit"
         )
-        self.credit_adjustments: CreditLedgerReadMethods[CreditAdjustment] = CreditLedgerReadMethods(
+        self.credit_adjustments: LocationReadMethods[CreditAdjustment] = LocationReadMethods(
             self, "credit_adjustment"
         )
-        self.credit_retirements: CreditLedgerReadMethods[CreditRetirement] = CreditLedgerReadMethods(
+        self.credit_retirements: LocationReadMethods[CreditRetirement] = LocationReadMethods(
             self, "credit_retirement"
         )
-        self.credit_transfers: CreditLedgerReadMethods[CreditTransfer] = CreditLedgerReadMethods(
+        self.credit_transfers: LocationReadMethods[CreditTransfer] = LocationReadMethods(
             self, "credit_transfer"
+        )
+        self.financial_transactions: LocationReadMethods[FinancialTransaction] = LocationReadMethods(
+            self, "financial_transaction"
+        )
+        self.cash_flow_snapshots: LocationReadMethods[CashFlowSnapshot] = LocationReadMethods(
+            self, "cash_flow_snapshot"
         )
 
     # -- Auth ------------------------------------------------------------------

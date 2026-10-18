@@ -20,6 +20,8 @@ def test_kokonut_client_import():
     assert client.locations is not None
     assert client.farms is not None
     assert client.harvest_events is not None
+    assert client.financial_transactions is not None
+    assert client.cash_flow_snapshots is not None
     assert client.loss_events is not None
     assert client.labor_events is not None
     assert client.field_notes is not None
@@ -1420,7 +1422,7 @@ def test_location_scoped_operational_methods_force_scope_and_preserve_options():
     ]
 
 
-def test_credit_ledger_methods_are_typed_location_scoped_reads_only():
+def test_location_read_methods_are_typed_location_scoped_reads_only():
     from kokonut import KokonutClient
     from kokonut.types import ListOptions
 
@@ -1432,6 +1434,8 @@ def test_credit_ledger_methods_are_typed_location_scoped_reads_only():
         (client.credit_adjustments, "credit_adjustment"),
         (client.credit_retirements, "credit_retirement"),
         (client.credit_transfers, "credit_transfer"),
+        (client.financial_transactions, "financial_transaction"),
+        (client.cash_flow_snapshots, "cash_flow_snapshot"),
     ]
     options = ListOptions(
         filter={"location_id": {"_eq": "other"}, "status": {"_eq": "verified"}},

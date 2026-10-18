@@ -1,5 +1,21 @@
 # Kokonut Kernel implementation progress
 
+### Finance SDK location-scoped reads — 18 October 2026
+
+Python and TypeScript clients now expose typed, read-only location-scoped
+accessors for the stored `financial_transaction` and `cash_flow_snapshot`
+collections. The shared helper preserves ordinary list options, forces its
+requested location over any caller-supplied conflicting filter, and exposes no
+create, update, or delete methods. The SDK READMEs and CAP-031 note document
+that these methods neither initiate transactions nor calculate or reconcile
+balances. Ninety-six focused Python SDK/schema/method tests and 46 JavaScript
+tests pass, along with TypeScript build, Ruff, Python compilation, schema guard,
+capability validation, and diff checks. Checks were offline and used mocked
+client calls. CAP-031 and MAN-CAP acceptance remain unchanged
+([evidence](builds/2026-10-18-recovery/sdk-finance-read-methods.json)).
+Checklist: 617 complete / 19 open; matrix: 66 rows, 54 baseline-retained,
+7 deployed, 5 prepared.
+
 ### Carbon credit ledger SDK read methods — 18 October 2026
 
 Python and TypeScript clients now expose typed read groups for

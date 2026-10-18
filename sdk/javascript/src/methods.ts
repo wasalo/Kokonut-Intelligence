@@ -17,10 +17,6 @@ import type {
   ExportFormat,
   NoiSnapshot,
   ListOptions,
-  CarbonCredit,
-  CreditAdjustment,
-  CreditRetirement,
-  CreditTransfer,
 } from './types.js';
 
 export interface GenericMethods {
@@ -32,7 +28,7 @@ export interface GenericMethods {
   delete(id: string): Promise<void>;
 }
 
-export interface CreditLedgerReadMethods<T> {
+export interface LocationReadMethods<T> {
   list(options?: ListOptions): Promise<T[]>;
   get(id: string, fields?: string[]): Promise<T>;
   listByLocation(locationId: string, options?: ListOptions): Promise<T[]>;
@@ -49,10 +45,10 @@ function createGenericMethods(client: any, collection: string): GenericMethods {
   };
 }
 
-export function buildCreditLedgerReadMethods<T>(
+export function buildLocationReadMethods<T>(
   client: any,
   collection: string,
-): CreditLedgerReadMethods<T> {
+): LocationReadMethods<T> {
   return {
     list: (options?: ListOptions) => client.listItems(collection, options) as Promise<T[]>,
     get: (id: string, fields?: string[]) => client.getItem(collection, id, fields) as Promise<T>,

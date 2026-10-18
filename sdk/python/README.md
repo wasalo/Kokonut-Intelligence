@@ -94,6 +94,11 @@ credits = client.carbon_credits.list_by_location("location-uuid")
 retirements = client.credit_retirements.list_by_location("location-uuid")
 # Ledger helpers expose reads only; reviewed services own lifecycle changes.
 
+# Read recorded finance facts and stored cash-flow summaries
+transactions = client.financial_transactions.list_by_location("location-uuid")
+cash_flows = client.cash_flow_snapshots.list_by_location("location-uuid")
+# These reads do not initiate transactions or calculate/reconcile balances.
+
 # Aggregate query
 counts = client.aggregate(
     "harvest_event",
@@ -152,11 +157,13 @@ except KokonutError as e:
 | `credit_adjustments` | `credit_adjustment` | `list_by_location` |
 | `credit_retirements` | `credit_retirement` | `list_by_location` |
 | `credit_transfers` | `credit_transfer` | `list_by_location` |
+| `financial_transactions` | `financial_transaction` | `list_by_location` |
+| `cash_flow_snapshots` | `cash_flow_snapshot` | `list_by_location` |
 
 Standard collection groups inherit `GenericMethods`: `list`, `get`, `create`,
-`create_many`, `update`, `delete`. Credit-ledger groups are read-only and expose
-only `list`, `get`, and `list_by_location`; governed lifecycle changes remain in
-reviewed platform services.
+`create_many`, `update`, `delete`. The credit-ledger and finance groups are
+read-only and expose only `list`, `get`, and `list_by_location`; governed
+lifecycle changes remain in reviewed platform services.
 
 ## Examples
 

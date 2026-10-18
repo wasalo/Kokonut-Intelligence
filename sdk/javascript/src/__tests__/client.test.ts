@@ -117,6 +117,8 @@ describe('KokonutClient', () => {
     expect(client.creditAdjustments).toBeDefined();
     expect(client.creditRetirements).toBeDefined();
     expect(client.creditTransfers).toBeDefined();
+    expect(client.financialTransactions).toBeDefined();
+    expect(client.cashFlowSnapshots).toBeDefined();
   });
 
   it('returns Directus login fields while preserving normalized token aliases', async () => {
@@ -267,7 +269,7 @@ describe('KokonutClient', () => {
     expect(note.tags).toEqual(['test']);
   });
 
-  it('provides read-only location-scoped methods for carbon-credit ledger records', async () => {
+  it('provides read-only location-scoped methods for financial and credit ledger records', async () => {
     const listItems = vi.spyOn(client, 'listItems').mockResolvedValue([]);
     const getItem = vi.spyOn(client, 'getItem').mockResolvedValue({ id: 'credit-1' } as any);
     const groups = [
@@ -275,6 +277,8 @@ describe('KokonutClient', () => {
       [client.creditAdjustments, 'credit_adjustment'],
       [client.creditRetirements, 'credit_retirement'],
       [client.creditTransfers, 'credit_transfer'],
+      [client.financialTransactions, 'financial_transaction'],
+      [client.cashFlowSnapshots, 'cash_flow_snapshot'],
     ] as const;
     const options = {
       limit: 20,

@@ -18,9 +18,11 @@ import type {
   CreditAdjustment,
   CreditRetirement,
   CreditTransfer,
+  CashFlowSnapshot,
+  FinancialTransaction,
 } from './types.js';
 import {
-  buildCreditLedgerReadMethods,
+  buildLocationReadMethods,
   buildLocationMethods,
   buildFarmMethods,
   buildPlotMethods,
@@ -39,7 +41,7 @@ import {
   buildNoiMethods,
 } from './methods.js';
 import type {
-  CreditLedgerReadMethods,
+  LocationReadMethods,
   LocationMethods,
   FarmMethods,
   PlotMethods,
@@ -93,10 +95,12 @@ export class KokonutClient {
   reports: ReportMethods;
   exports: ExportMethods;
   noi: NoiMethods;
-  carbonCredits: CreditLedgerReadMethods<CarbonCredit>;
-  creditAdjustments: CreditLedgerReadMethods<CreditAdjustment>;
-  creditRetirements: CreditLedgerReadMethods<CreditRetirement>;
-  creditTransfers: CreditLedgerReadMethods<CreditTransfer>;
+  carbonCredits: LocationReadMethods<CarbonCredit>;
+  creditAdjustments: LocationReadMethods<CreditAdjustment>;
+  creditRetirements: LocationReadMethods<CreditRetirement>;
+  creditTransfers: LocationReadMethods<CreditTransfer>;
+  financialTransactions: LocationReadMethods<FinancialTransaction>;
+  cashFlowSnapshots: LocationReadMethods<CashFlowSnapshot>;
 
   constructor(baseUrl: string, options?: KokonutClientOptions) {
     this.directus = createDirectus(baseUrl).with(rest()).with(authentication());
@@ -120,10 +124,12 @@ export class KokonutClient {
     this.reports = buildReportMethods(this);
     this.exports = buildExportMethods(this);
     this.noi = buildNoiMethods(this);
-    this.carbonCredits = buildCreditLedgerReadMethods<CarbonCredit>(this, 'carbon_credit');
-    this.creditAdjustments = buildCreditLedgerReadMethods<CreditAdjustment>(this, 'credit_adjustment');
-    this.creditRetirements = buildCreditLedgerReadMethods<CreditRetirement>(this, 'credit_retirement');
-    this.creditTransfers = buildCreditLedgerReadMethods<CreditTransfer>(this, 'credit_transfer');
+    this.carbonCredits = buildLocationReadMethods<CarbonCredit>(this, 'carbon_credit');
+    this.creditAdjustments = buildLocationReadMethods<CreditAdjustment>(this, 'credit_adjustment');
+    this.creditRetirements = buildLocationReadMethods<CreditRetirement>(this, 'credit_retirement');
+    this.creditTransfers = buildLocationReadMethods<CreditTransfer>(this, 'credit_transfer');
+    this.financialTransactions = buildLocationReadMethods<FinancialTransaction>(this, 'financial_transaction');
+    this.cashFlowSnapshots = buildLocationReadMethods<CashFlowSnapshot>(this, 'cash_flow_snapshot');
   }
 
   async login(email: string, password: string): Promise<KokonutLoginResult> {
