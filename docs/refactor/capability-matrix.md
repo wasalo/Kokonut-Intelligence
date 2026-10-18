@@ -1738,11 +1738,12 @@ unassessed. The 6 D / 4 P / 56 B / 0 accepted counts do not change.
 The 18 October SDK contract work adds PostGIS geometry, recursive JSONB, enum,
 and organization record types to the Python/TypeScript schema guard. It now
 checks 21 models and 493 canonical columns, including 25 JSONB shapes, 7
-PostGIS shapes, 16 enum fields, and 5 SQL `CHECK`-literal fields. This
+PostGIS shapes, 16 enum fields, and 5 auto-discovered SQL `CHECK`-literal fields. This
 is source-level SDK typing evidence only; it does not close the broader SDK,
 authorization, Directus projection, or tenant-isolation gates
 ([organization evidence](builds/2026-10-18-recovery/sdk-organization-schema-parity.json);
-[literal evidence](builds/2026-10-18-recovery/sdk-checked-literal-parity.json)).
+[literal evidence](builds/2026-10-18-recovery/sdk-checked-literal-parity.json);
+[auto-discovery evidence](builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json)).
 See the [JavaScript ledger](progress.md#phase-7-javascript-sdk-package-preflight--11-october-2026)
 and [Python import ledger](progress.md#phase-7-python-sdk-isolated-wheel-import-check--11-october-2026).
 

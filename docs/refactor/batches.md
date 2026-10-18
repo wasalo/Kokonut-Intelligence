@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 549 checklist items complete and 19
-open (568 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 550 checklist items complete and 19
+open (569 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1254,6 +1254,7 @@ reporting views.
 - [x] Align Python and TypeScript SDK literal types with the seven PostgreSQL enum types referenced by 16 constraints in the mapped models, and extend the source guard to read enum definitions plus table-column cast checks across ordered schema files. The guard now checks 16 enum fields in addition to 473 columns, 442 scalar families, seven PostGIS subtypes, and 24 JSONB contracts. Twenty-nine Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, capability-matrix validation, and diff checks pass offline ([evidence](builds/2026-10-18-recovery/sdk-enum-schema-parity.json)). This verifies declared enum values only; it does not prove runtime data validity or Directus projections.
 - [x] Add Python and TypeScript `Organization` SDK types for the canonical organization table. Extend the offline guard to verify its 20 columns, JSONB metadata shape, nullability, and exact type/status literal unions against SQL `CHECK` constraints. Thirty-two focused Python checks, 29 JavaScript tests, TypeScript build, Ruff, schema guard, matrix validation, and diff checks pass with local fixtures; no database or network was contacted. Organization membership records do not establish tenant ownership or authorization ([evidence](builds/2026-10-18-recovery/sdk-organization-schema-parity.json)).
 - [x] Type the other SQL-checked text fields already mapped in the SDK: `AlertRule.actuator_type`, `SensorAlert.actuation_status`, and `AttestationRecord.verdict`. The guard now compares all five registered literal fields to base-table or migration `CHECK` values. Thirty-two focused Python tests, 29 JavaScript tests, TypeScript build, Ruff, schema guard, and diff checks pass without database or network access ([evidence](builds/2026-10-18-recovery/sdk-checked-literal-parity.json)).
+- [x] Make SQL `CHECK (field IN (...))` literal discovery automatic across every mapped SDK table, so new mapped constraints are checked without updating a second field allowlist. Regression coverage confirms the discovered field set equals the five current SQL text constraints. Thirty-two Python tests, 29 JavaScript tests, TypeScript build, Ruff, schema guard, and diff checks pass locally ([evidence](builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json)).
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

@@ -118,6 +118,20 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
     typescript_types = SCHEMA_GUARD.typescript_model_field_types(
         ROOT / "sdk" / "javascript" / "src" / "types.ts"
     )
+    discovered = set()
+    for model, (schema_file, table) in SCHEMA_GUARD.MODEL_TABLES.items():
+        sql_types = SCHEMA_GUARD.table_column_types(
+            ROOT / "schemas" / "postgres" / schema_file, table
+        )
+        discovered.update(
+            (model, column)
+            for column in SCHEMA_GUARD.table_check_literals(
+                ROOT / "schemas" / "postgres" / schema_file, table
+            )
+            if SCHEMA_GUARD.sql_type_family(sql_types.get(column, "")) == "string"
+        )
+    assert discovered == set(expected)
+
     for (model, column), expected_values in expected.items():
         schema_file, table = SCHEMA_GUARD.MODEL_TABLES[model]
         sql_values = SCHEMA_GUARD.table_check_literals(

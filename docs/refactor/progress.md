@@ -8837,3 +8837,15 @@ tests, 29 JavaScript tests, TypeScript build, Ruff, the schema guard, and
 checks five SQL `CHECK` literal fields across the 21 mapped models. Checklist:
 549 complete / 19 open. Capability classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-checked-literal-parity.json`.
+
+### SDK SQL CHECK literal auto-discovery — 18 October 2026
+
+The offline schema guard now discovers simple text `CHECK (column IN (...))`
+contracts for every mapped SDK table rather than relying on a second hard-coded
+field list. It checks every discovered allowed-value set against both SDKs and
+currently finds five fields. Migration source reads are cached per source root
+for this scan. Thirty-two focused Python SDK/guard tests, 29 JavaScript tests,
+TypeScript build, Ruff, compilation, schema guard, and diff checks pass without
+database or network access. Checklist: 550 complete / 19 open. Capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-check-literal-autodiscovery.json`.
