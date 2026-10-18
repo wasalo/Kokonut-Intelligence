@@ -23,6 +23,10 @@ ActuationStatus = Literal[
     "pending", "sent", "acknowledged", "executed", "failed", "requires_approval"
 ]
 AttestationVerdict = Literal["pending", "approved", "rejected", "needs_info"]
+TimeSeriesForecastModelType = Literal[
+    "arima", "exponential_smoothing", "prophet", "naive", "seasonal_naive"
+]
+TimeSeriesForecastStatus = Literal["active", "superseded", "expired"]
 
 GeoJSONPosition = List[float]
 
@@ -615,6 +619,43 @@ class DashboardDataset:
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     updated_by: Optional[str] = None
+
+
+@dataclass
+class TimeSeriesForecast:
+    """Stored forecast series and model inputs; this record does not compute forecasts."""
+
+    id: str
+    metric_key: str
+    location_id: str
+    model_params: JSONObject
+    forecast_values: List[JSONValue]
+    prediction_intervals: JSONObject
+    forecast_horizon: int
+    time_unit: str
+    training_points: int
+    forecast_at: str
+    status: TimeSeriesForecastStatus
+    created_at: str
+    model_type: TimeSeriesForecastModelType = "arima"
+    metadata: Optional[JSONObject] = None
+
+
+@dataclass
+class ForecastAccuracy:
+    """Stored forecast-versus-observation measurements; does not compute accuracy."""
+
+    id: str
+    forecast_id: str
+    actual_timestamp: str
+    predicted_value: float
+    actual_value: float
+    error_abs: float
+    error_squared: float
+    computed_at: str
+    created_at: str
+    error_pct: Optional[float] = None
+    is_within_ci: Optional[bool] = None
 
 
 @dataclass

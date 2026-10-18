@@ -31,6 +31,8 @@ MODEL_TABLES = {
     "ForecastScenario": ("007_modeled_outputs.sql", "forecast_scenario"),
     "ForecastOutput": ("007_modeled_outputs.sql", "forecast_output"),
     "DashboardDataset": ("007_modeled_outputs.sql", "dashboard_dataset"),
+    "TimeSeriesForecast": ("131_trend_analysis.sql", "time_series_forecast"),
+    "ForecastAccuracy": ("131_trend_analysis.sql", "forecast_accuracy"),
     "NoiSnapshot": ("004_finance.sql", "noi_snapshot"),
     "LossEvent": ("003_operations.sql", "loss_event"),
     "LaborEvent": ("003_operations.sql", "labor_event"),
@@ -84,6 +86,10 @@ JSONB_MODEL_SHAPES = {
     ("ForecastScenario", "growth_assumptions"): "json_object",
     ("ForecastOutput", "inputs"): "json_object",
     ("DashboardDataset", "metadata"): "json_object",
+    ("TimeSeriesForecast", "model_params"): "json_object",
+    ("TimeSeriesForecast", "forecast_values"): "json_value_array",
+    ("TimeSeriesForecast", "prediction_intervals"): "json_object",
+    ("TimeSeriesForecast", "metadata"): "json_object",
 }
 
 
@@ -411,6 +417,7 @@ def python_type_matches_family(
         "geojson_polygon": {"GeoJSONPolygon"},
         "json_object": {"JSONObject"},
         "json_object_array": {"List[JSONObject]", "list[JSONObject]"},
+        "json_value_array": {"List[JSONValue]", "list[JSONValue]"},
     }
     return normalized in compatible.get(family, set())
 
@@ -438,6 +445,7 @@ def typescript_type_matches_family(
         "geojson_polygon": "GeoJSONPolygon",
         "json_object": "JSONObject",
         "json_object_array": "JSONObject[]",
+        "json_value_array": "JSONValue[]",
     }.get(family)
     return normalized == expected
 

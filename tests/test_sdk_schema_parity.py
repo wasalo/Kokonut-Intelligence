@@ -140,6 +140,10 @@ def test_sdk_literal_contracts_match_exact_sql_check_values():
         ("AttestationRecord", "verdict"): (
             "pending", "approved", "rejected", "needs_info"
         ),
+        ("TimeSeriesForecast", "model_type"): (
+            "arima", "exponential_smoothing", "prophet", "naive", "seasonal_naive"
+        ),
+        ("TimeSeriesForecast", "status"): ("active", "superseded", "expired"),
     }
     python_aliases = SCHEMA_GUARD.python_literal_aliases(
         ROOT / "sdk" / "python" / "kokonut" / "types.py"
@@ -272,7 +276,7 @@ def test_sdk_jsonb_fields_match_declared_object_or_object_array_contracts():
             assert SCHEMA_GUARD.typescript_type_matches_family(
                 typescript_types[model][column], family
             ), f"TypeScript {model}.{column} does not match {family}"
-    assert checked == 37
+    assert checked == 41
     assert SCHEMA_GUARD.JSONB_MODEL_SHAPES[("ReportSnapshot", "negative_findings")] == (
         "json_object_array"
     )

@@ -3358,3 +3358,18 @@ checks pass. The model does not execute SQL or trigger refresh jobs. No
 capability status or MAN-CAP acceptance changed. Checklist: 563 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/sdk-dashboard-dataset-parity.json`.
+
+### Time-series forecast SDK model parity — 18 October 2026
+
+Python and TypeScript now model stored time-series forecasts and accuracy
+records, including constrained model/status literals, model inputs, forecast
+values and intervals, and observed-versus-predicted measurements. Recursive
+`JSONValue[]` typing covers the forecast value array without imposing an
+object-only shape. The schema guard checks 37 models and 725 columns,
+including 675 scalar types, seven PostGIS shapes, 41 JSONB shapes, 20 enum
+fields, and ten standalone SQL CHECK literals. Forty-eight focused Python
+SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, compilation,
+guard, matrix validation, and diff checks pass. The types do not calculate
+forecasts or accuracy; capability status and MAN-CAP acceptance are unchanged.
+Checklist: 564 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/sdk-time-series-forecast-parity.json`.

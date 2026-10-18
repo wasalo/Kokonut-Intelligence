@@ -16,6 +16,8 @@ export type OrganizationMemberStatus = 'active' | 'inactive' | 'suspended';
 export type ActuatorType = 'irrigation' | 'pest_control' | 'fertilization' | 'notification' | 'custom';
 export type ActuationStatus = 'pending' | 'sent' | 'acknowledged' | 'executed' | 'failed' | 'requires_approval';
 export type AttestationVerdict = 'pending' | 'approved' | 'rejected' | 'needs_info';
+export type TimeSeriesForecastModelType = 'arima' | 'exponential_smoothing' | 'prophet' | 'naive' | 'seasonal_naive';
+export type TimeSeriesForecastStatus = 'active' | 'superseded' | 'expired';
 
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
@@ -700,6 +702,39 @@ export interface DashboardDataset {
   created_at?: string | null;
   updated_at?: string | null;
   updated_by?: string | null;
+}
+
+/** Stored forecast series and model inputs; this record does not compute forecasts. */
+export interface TimeSeriesForecast {
+  id: string;
+  metric_key: string;
+  location_id: string;
+  model_type: TimeSeriesForecastModelType;
+  model_params: JSONObject;
+  forecast_values: JSONValue[];
+  prediction_intervals: JSONObject;
+  forecast_horizon: number;
+  time_unit: string;
+  training_points: number;
+  forecast_at: string;
+  status: TimeSeriesForecastStatus;
+  metadata?: JSONObject | null;
+  created_at: string;
+}
+
+/** Stored forecast-versus-observation measurements; does not compute accuracy. */
+export interface ForecastAccuracy {
+  id: string;
+  forecast_id: string;
+  actual_timestamp: string;
+  predicted_value: number;
+  actual_value: number;
+  error_abs: number;
+  error_squared: number;
+  error_pct?: number | null;
+  is_within_ci?: boolean | null;
+  computed_at: string;
+  created_at: string;
 }
 
 export interface SensorAlert {

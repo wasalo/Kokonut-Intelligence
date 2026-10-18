@@ -306,6 +306,41 @@ def test_dashboard_dataset_type_keeps_query_definition_separate_from_execution()
     assert dataset.metadata["audience"] == "community"
 
 
+def test_time_series_forecast_and_accuracy_types_preserve_stored_values():
+    from kokonut import ForecastAccuracy, TimeSeriesForecast
+
+    forecast = TimeSeriesForecast(
+        id="forecast-1",
+        metric_key="soil_moisture",
+        location_id="location-1",
+        model_params={"order": [1, 0, 1]},
+        forecast_values=[12.5, 13.0],
+        prediction_intervals={"confidence": 0.95, "points": []},
+        forecast_horizon=2,
+        time_unit="day",
+        training_points=30,
+        forecast_at="2026-10-18T00:00:00Z",
+        status="active",
+        created_at="2026-10-18T00:00:00Z",
+    )
+    accuracy = ForecastAccuracy(
+        id="accuracy-1",
+        forecast_id=forecast.id,
+        actual_timestamp="2026-10-19T00:00:00Z",
+        predicted_value=12.5,
+        actual_value=12.0,
+        error_abs=0.5,
+        error_squared=0.25,
+        computed_at="2026-10-19T00:00:00Z",
+        created_at="2026-10-19T00:00:00Z",
+    )
+
+    assert forecast.forecast_values == [12.5, 13.0]
+    assert forecast.model_type == "arima"
+    assert accuracy.error_abs == 0.5
+    assert accuracy.is_within_ci is None
+
+
 def test_list_options_preserve_exact_non_page_aligned_offset():
     from kokonut.types import ListOptions
 
