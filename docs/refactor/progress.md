@@ -24,8 +24,9 @@ migration 434 introduced the no-login
 `kokonut_financial_projection_owner` role without listing it in the
 database-only restore prerequisites. The role is now included in
 `scripts/kernel-restore-role-prerequisites.sql`; the focused test file passes
-2 tests. The fix was pushed as `89290f09`; Security #208 passed and CI #484 is
-in progress. Candidate migration 434 remains unapplied.
+2 tests. The CI #483 fix was pushed as `89290f09`; Security #208 passed. The
+latest source-contract batch was pushed as `6c53e0fe`; Security #209 passed
+and CI #485 is in progress. Candidate migration 434 remains unapplied.
 
 ### Directus API fixture aligned to Gateway-owned farm activity — 18 October 2026
 
@@ -37,9 +38,10 @@ permissions. It now expects Directus to deny own- and cross-location activity
 reads and writes even when the synthetic operator has matching tenant grants;
 the fixture also verifies no source rows changed. Supported Field Note reads
 still verify own-location visibility and cross-location hiding. Seven focused
-source/fixture tests pass with Ruff, and the script compiles. This corrects the tested
-contract but is not a new pinned-runtime run or broader Directus parity
-acceptance ([evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
+source/fixture tests pass with Ruff, and the script compiles. Commit `6c53e0fe`
+was pushed to PR #68; Security #209 passed and CI #485 is in progress. This
+corrects the tested contract but is not a new pinned-runtime run or broader
+Directus parity acceptance ([evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
 
 ### Native financial-events outbox projection — 18 October 2026
 

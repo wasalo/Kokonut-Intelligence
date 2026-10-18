@@ -3705,3 +3705,7 @@ database-only restore-role prerequisites; it is now listed and the focused
 role inventory regression passes 2 tests. No capability classification changes. Checklist: 605 complete / 19
 open. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/financial-events-outbox-disposable.json`.
+
+### Directus farm-activity source-contract update — 18 October 2026
+
+The optional Directus fixture now enforces the owner-selected Gateway boundary: synthetic location grants do not authorize farm-activity API reads or writes, and Field Note reads remain location-scoped. Seven focused source/fixture checks, Ruff, compilation, and the matrix validator pass. Commit `6c53e0fe` is pushed to PR #68; Security #209 passed and CI #485 is in progress. No capability classification changed, and this is not fresh pinned-runtime acceptance or broader Directus parity evidence ([source evidence](builds/2026-10-18-recovery/directus-gateway-only-source-contract.json)).
