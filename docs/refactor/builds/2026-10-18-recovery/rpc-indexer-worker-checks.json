@@ -16,7 +16,8 @@
     "git_diff_check": "passed",
     "provider_boundaries": "passed: 17 vendor import sites",
     "python_compileall": "passed",
-    "wei_to_eth_precision": "passed: PostgreSQL-compatible half-up rounding and exact numeric JSON encoding",
+    "rpc_snapshot_consistency": "passed: one chain block and timestamp is used for every wallet in a run; anchor failure stores no partial snapshots",
+    "wei_to_eth_precision": "passed: PostgreSQL-compatible half-up rounding, exact numeric JSON encoding, and matching canonical payload digest",
     "ruff": "passed"
   },
   "date": "2026-10-18",
@@ -24,7 +25,7 @@
   "focused_suite": {
     "command": "python3 -m pytest tests/test_rpc_worker.py tests/test_worker_environment.py tests/test_worker_database.py tests/test_core_jobs_contract.py tests/test_scheduled_command_contracts.py tests/test_rpc_indexer_contract.py tests/test_rpc_indexer_recovery.py tests/test_runtime_role_boundary.py tests/test_worker_operation_map.py -q",
     "result": "passed",
-    "tests_passed": 274
+    "tests_passed": 276
   },
   "inventory": {
     "allowlisted_modules": 25,

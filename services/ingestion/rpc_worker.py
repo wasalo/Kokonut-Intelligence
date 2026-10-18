@@ -36,9 +36,11 @@ class RPCWorkerIncompleteError(RuntimeError):
 
 
 def _hash_payload(value: Any) -> str:
-    return hashlib.sha256(
-        json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode()
-    ).hexdigest()
+    if isinstance(value, dict) and isinstance(value.get("value"), Decimal):
+        encoded = _snapshot_record_json(value)
+    else:
+        encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str)
+    return hashlib.sha256(encoded.encode()).hexdigest()
 
 
 def _snapshot_record_json(record: dict[str, Any]) -> str:
@@ -175,35 +177,39 @@ def ingest(chain: str) -> dict[str, Any]:
             wallets = cursor.fetchall()
         connection.commit()
         wallet_count = len(wallets)
-        endpoint = endpoints[chain]
-        provider = Web3.HTTPProvider(endpoint, request_kwargs={"timeout": 20})
-        web3 = Web3(provider)
+        if wallets:
+            endpoint = endpoints[chain]
+            provider = Web3.HTTPProvider(endpoint, request_kwargs={"timeout": 20})
+            web3 = Web3(provider)
+            block_number = int(web3.eth.block_number)
+            block_timestamp = int(web3.eth.get_block(block_number)["timestamp"])
 
-        for wallet_id, wallet_address, label in wallets:
-            try:
-                checksum_address = Web3.to_checksum_address(wallet_address)
-                block_number = int(web3.eth.block_number)
-                balance_wei = int(web3.eth.get_balance(checksum_address, block_identifier=block_number))
-                block = web3.eth.get_block(block_number)
-                block_timestamp = int(block["timestamp"])
-                record, payload_hash = _snapshot_record(
-                    wallet_id=str(wallet_id),
-                    chain=chain,
-                    address=checksum_address,
-                    block_number=block_number,
-                    block_timestamp=block_timestamp,
-                    balance_wei=balance_wei,
-                )
-                if _record_snapshot(connection, chain, record, payload_hash):
-                    inserted_count += 1
-                last_block = max(block_number, last_block or block_number)
-            except RPCWorkerPersistenceError:
-                raise
-            except Exception as exc:
-                connection.rollback()
-                errors.append(
-                    f"{str(wallet_id)[:8]}: RPC request failed ({type(exc).__name__})"
-                )
+            for wallet_id, wallet_address, label in wallets:
+                try:
+                    checksum_address = Web3.to_checksum_address(wallet_address)
+                    balance_wei = int(
+                        web3.eth.get_balance(
+                            checksum_address, block_identifier=block_number
+                        )
+                    )
+                    record, payload_hash = _snapshot_record(
+                        wallet_id=str(wallet_id),
+                        chain=chain,
+                        address=checksum_address,
+                        block_number=block_number,
+                        block_timestamp=block_timestamp,
+                        balance_wei=balance_wei,
+                    )
+                    if _record_snapshot(connection, chain, record, payload_hash):
+                        inserted_count += 1
+                    last_block = max(block_number, last_block or block_number)
+                except RPCWorkerPersistenceError:
+                    raise
+                except Exception as exc:
+                    connection.rollback()
+                    errors.append(
+                        f"{str(wallet_id)[:8]}: RPC request failed ({type(exc).__name__})"
+                    )
 
         status = "error" if errors else "healthy"
         safe_error = "; ".join(errors[:3])[:500] if errors else None

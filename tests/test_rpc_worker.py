@@ -1,5 +1,6 @@
 """Isolated RPC wallet snapshot worker contracts use mocked providers and DB."""
 
+import hashlib
 import json
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
@@ -67,7 +68,9 @@ def test_snapshot_identity_and_payload_are_deterministic_for_the_same_block():
     assert record["tx_hash"].startswith("0x")
     assert len(record["tx_hash"]) == 66
     assert record["value"] == Decimal("1.23456789")
-    assert payload_hash == rpc_worker._hash_payload(record)
+    assert payload_hash == hashlib.sha256(
+        rpc_worker._snapshot_record_json(record).encode()
+    ).hexdigest()
 
 
 def test_balance_rounding_matches_postgres_numeric_half_up():
@@ -134,6 +137,68 @@ def test_isolated_worker_commits_each_snapshot_with_its_outbox_and_status():
     }
     assert connection.commit.call_count == 5
     connection.rollback.assert_not_called()
+    connection.close.assert_called_once_with()
+
+
+def test_isolated_worker_anchors_all_wallets_to_one_block():
+    second_wallet_id = "22222222-2222-4222-8222-222222222222"
+    second_address = "0x" + "c" * 40
+    connection, cursor = _connection(
+        ((_WALLET_ID, _ADDRESS, "Treasury"), (second_wallet_id, second_address, "Reserve"))
+    )
+    web3 = _provider()
+    with (
+        patch.object(rpc_worker, "get_worker_db", return_value=connection),
+        patch.object(
+            rpc_worker,
+            "configured_rpc_endpoints",
+            return_value={"celo": "https://rpc.example"},
+        ),
+        patch.object(rpc_worker, "Web3", _web3_class(web3)),
+    ):
+        result = rpc_worker.ingest("celo")
+
+    web3.eth.get_block.assert_called_once_with(100)
+    assert web3.eth.get_balance.call_args_list == [
+        ((_ADDRESS,), {"block_identifier": 100}),
+        ((second_address,), {"block_identifier": 100}),
+    ]
+    stored_payloads = [
+        json.loads(call.args[1][2])
+        for call in cursor.execute.call_args_list
+        if "store_rpc_indexer_snapshot" in call.args[0]
+    ]
+    assert [record["block_number"] for record in stored_payloads] == [100, 100]
+    assert stored_payloads[0]["block_timestamp"] == stored_payloads[1]["block_timestamp"]
+    assert result["wallets"] == 2
+    assert result["last_block"] == 100
+
+
+def test_block_anchor_failure_stores_no_partial_wallet_snapshots():
+    connection, cursor = _connection()
+    web3 = _provider()
+    web3.eth.get_block.side_effect = RuntimeError("provider response contained private details")
+    with (
+        patch.object(rpc_worker, "get_worker_db", return_value=connection),
+        patch.object(
+            rpc_worker,
+            "configured_rpc_endpoints",
+            return_value={"celo": "https://rpc.example"},
+        ),
+        patch.object(rpc_worker, "Web3", _web3_class(web3)),
+        pytest.raises(RuntimeError, match=r"RPC indexing failed \(RuntimeError\)") as error,
+    ):
+        rpc_worker.ingest("celo")
+
+    statements = [call.args[0] for call in cursor.execute.call_args_list]
+    assert not any("store_rpc_indexer_snapshot" in statement for statement in statements)
+    finish_call = next(
+        call for call in cursor.execute.call_args_list if "finish_rpc_indexer_chain" in call.args[0]
+    )
+    assert finish_call.args[1][1] == "error"
+    assert finish_call.args[1][2] == "RPC worker failed (RuntimeError)"
+    assert "private details" not in str(error.value)
+    web3.eth.get_balance.assert_not_called()
     connection.close.assert_called_once_with()
 
 

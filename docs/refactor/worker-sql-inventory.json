@@ -5008,9 +5008,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_worker.py:101:12",
+      "id": "services/ingestion/rpc_worker.py:103:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 101,
+      "line": 103,
       "column": 12,
       "scope": "_record_snapshot",
       "method": "execute",
@@ -5023,9 +5023,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_worker.py:135:12",
+      "id": "services/ingestion/rpc_worker.py:137:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 135,
+      "line": 137,
       "column": 12,
       "scope": "_finish_chain",
       "method": "execute",
@@ -5038,9 +5038,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_worker.py:164:12",
+      "id": "services/ingestion/rpc_worker.py:166:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 164,
+      "line": 166,
       "column": 12,
       "scope": "ingest",
       "method": "execute",
@@ -5053,9 +5053,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_worker.py:171:12",
+      "id": "services/ingestion/rpc_worker.py:173:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 171,
+      "line": 173,
       "column": 12,
       "scope": "ingest",
       "method": "execute",
@@ -5070,9 +5070,9 @@
       ]
     },
     {
-      "id": "services/ingestion/rpc_worker.py:264:20",
+      "id": "services/ingestion/rpc_worker.py:270:20",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 264,
+      "line": 270,
       "column": 20,
       "scope": "ingest",
       "method": "execute",

@@ -1,20 +1,22 @@
 # Kokonut Kernel implementation progress
 
-### RPC wei-to-ETH decimal precision follow-up — 18 October 2026
+### RPC snapshot precision and block-consistency follow-up — 18 October 2026
 
 The isolated RPC worker now converts integer wei to `NUMERIC(18,8)` with
 `Decimal` and PostgreSQL-compatible half-up rounding. The JSON passed to the
-bounded migration function retains the balance as an exact number, avoiding
-binary-float loss for both the half-unit boundary and large balances. The
-focused nine-suite worker boundary set passes 274 tests; the RPC worker/legacy
-slice passes 13 tests, Ruff and Python compilation pass, and generated worker
-and runtime inventories were refreshed. A network-disabled PostgreSQL 16
-replay confirms migration 436 stores `0.00000001` exactly under forced RLS.
+bounded migration function retains the balance as an exact number, and the
+payload digest hashes those same numeric JSON bytes. Each non-empty run reads
+one block height and timestamp and uses them for every wallet, preventing a
+single portfolio snapshot from mixing chain states. The focused nine-suite
+worker boundary set passes 276 tests; the RPC worker/legacy slice plus new
+block-consistency checks pass, Ruff and Python compilation pass, and generated
+worker/runtime inventories were refreshed. Network-disabled PostgreSQL 16
+acceptance confirms migration 436 stores `0.00000001` exactly under forced RLS.
 No provider, candidate, or legacy database was contacted. This follow-up is
 local and not yet pushed; the candidate remains at migration 435
 ([checks](builds/2026-10-18-recovery/rpc-indexer-worker-checks.json);
 [database evidence](builds/2026-10-18-recovery/rpc-indexer-worker-disposable.json)).
-Checklist: 611 complete / 19 open; matrix classifications remain 54
+Checklist: 612 complete / 19 open; matrix classifications remain 54
 baseline-retained, 7 deployed, and 5 prepared.
 
 ### ARM64 RPC worker image smoke and pushed worker batch — 18 October 2026
