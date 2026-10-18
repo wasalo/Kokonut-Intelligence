@@ -1,0 +1,17 @@
+{
+  "scope": "best-effort metric_computed event publication",
+  "date": "2026-10-17",
+  "database_or_provider_used": false,
+  "verification": {
+    "focused_tests": "python3 -m pytest tests/test_metric_event_error_redaction.py -q",
+    "focused_test_result": "1 passed",
+    "ruff": "passed",
+    "py_compile": "passed",
+    "git_diff_check": "passed"
+  },
+  "behavior_preserved": [
+    "metric event publication remains best-effort",
+    "publication failure does not interrupt successful metric computation"
+  ],
+  "redaction": "event publication failures omit the exception message, traceback, and location identifier; only bounded exception class is logged"
+}

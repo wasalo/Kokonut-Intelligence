@@ -8459,3 +8459,11 @@ suite with Ruff, compilation, and diff checks using mocks. No database or
 provider was contacted. The checklist is 510 complete / 19 open; capability
 classifications are unchanged. Evidence:
 `docs/refactor/builds/2026-10-17-recovery/graph-rdf-error-redaction.json`.
+
+Best-effort `metric_computed` publication now logs only the bounded exception
+class, without raw provider/database details or the location identifier. The
+metric result path still continues after event publication failure. One focused
+mocked check passes with Ruff, compilation, and diff checks. No database or
+provider was contacted. The checklist is 511 complete / 19 open; capability
+classifications are unchanged. Evidence:
+`docs/refactor/builds/2026-10-17-recovery/metric-event-error-redaction.json`.
