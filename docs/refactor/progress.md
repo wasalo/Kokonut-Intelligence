@@ -9716,3 +9716,23 @@ does not close browser-through-proxy, live OIDC/device authentication, or
 external ingress acceptance. Checklist: 607 complete / 19 open; capability
 classifications unchanged. Evidence:
 `docs/refactor/builds/2026-10-18-recovery/mobile-upload-success-cors.json`.
+
+
+### Candidate migration 435 rollout — 18 October 2026
+
+A fresh age-encrypted checkpoint of the local candidate was restored into a
+network-disabled PostgreSQL 16 container using a `template0` target. The 431-row
+migration-ledger fingerprint, extension versions, and 1,396 public relations
+matched the candidate; the scratch container was removed after the comparison.
+The ordered migration runner then applied only
+`schema:435_financial_projection_conflict_guard.sql`. The candidate has 426
+applied schema entries, six previously applied seed entries, zero non-applied
+ledger rows, and zero pending schema migrations. The existing app, database,
+Metabase, and proxy remain healthy/running; `/health` returned 200 and the
+anonymous operator review queue returned 401. No seed SQL, legacy stack, app
+image, Metabase, or proxy was changed. The encrypted checkpoint remains outside
+the repository. This does not close financial update/delete reconciliation,
+historical backfill, ClickHouse delivery, populated reporting parity, tenant
+RLS, production recovery, physical Raspberry Pi, or named MAN-CAP gates.
+Checklist: 608 complete / 19 open. Evidence:
+`docs/refactor/builds/2026-10-18-recovery/candidate-migration-435-rollout.json`.
