@@ -6,20 +6,21 @@ The isolated and legacy RPC paths now convert integer wei to `NUMERIC(18,8)` wit
 `Decimal` and PostgreSQL-compatible half-up rounding. The JSON passed to the
 bounded migration function retains the balance as an exact number, and the
 payload digest hashes those same numeric JSON bytes. Each non-empty run reads
-one requested block height and timestamp and uses them for every wallet, then
-rechecks that block's hash before persistence. A changed hash rejects the run
-without wallet snapshots. RPC reads are not pinned to the hash, and recovery
-after a later reorganization remains open. The legacy path also keeps its transaction parser,
+one requested block height and timestamp per chain for every wallet. The isolated
+worker buffers observations and rejects a changed hash before storing snapshots;
+the legacy CLI rolls back its transaction if that hash changes before commit.
+Neither path pins balance reads to a hash or recovers later reorganizations. The
+legacy path also keeps its transaction parser,
 PostgreSQL input, and ClickHouse row values in exact decimal form rather than
 using binary floats. The combined nine-suite worker/legacy boundary set passes
-282 tests; Ruff and Python compilation pass, and generated worker/runtime
+284 tests; Ruff and Python compilation pass, and generated worker/runtime
 inventories were refreshed. Network-disabled PostgreSQL 16 acceptance confirms
 migration 436 stores `0.00000001` exactly under forced RLS.
 No provider, candidate, or legacy database was contacted. This follow-up is
 local and not yet pushed; the candidate remains at migration 435
 ([checks](builds/2026-10-18-recovery/rpc-indexer-worker-checks.json);
 [database evidence](builds/2026-10-18-recovery/rpc-indexer-worker-disposable.json)).
-Checklist: 613 complete / 19 open; matrix classifications remain 54
+Checklist: 614 complete / 19 open; matrix classifications remain 54
 baseline-retained, 7 deployed, and 5 prepared.
 
 ### ARM64 RPC worker image smoke and pushed worker batch — 18 October 2026

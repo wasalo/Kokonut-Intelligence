@@ -3771,15 +3771,16 @@ reuse, malformed/conflicting snapshot rejection, exact eight-decimal numeric
 storage, and direct-table denial. The legacy CLI now row-locks and checks
 duplicate content instead of using `ON CONFLICT (tx_hash)`, which the base
 schema cannot support because its index is non-unique. The focused
-worker/legacy boundary suite passes 282 tests with Ruff and compilation. Both
+worker/legacy boundary suite passes 284 tests with Ruff and compilation. Both
 balance paths now use decimal half-up rounding; the legacy ClickHouse row
-builder preserves a decimal instead of converting through a binary float. The
-isolated worker hashes the exact numeric JSON sent to PostgreSQL and anchors
-each run to one requested block height and timestamp, preventing ordinary chain
-advancement from mixing heights. Before persistence it re-reads the selected
-block hash and rejects snapshots if the hash changed during the run. RPC reads
-are not pinned to that hash, and recovery after a later reorganization is not
-established. The candidate remains at
+builder preserves a decimal instead of converting through a binary float. Both
+paths anchor each chain run to one block height and timestamp. The isolated
+worker hashes the exact numeric JSON sent to PostgreSQL, buffers wallet
+observations, and rejects a changed block hash before storing snapshots. The
+legacy CLI queries every wallet at the selected height and rolls back the
+transaction if the block hash changes before commit. These checks do not pin
+RPC reads to a block hash or establish recovery after a later reorganization.
+The candidate remains at
 migration 435;
 no worker credential, provider, schedule, or feature was activated. This only
 preserves point-in-time balance snapshots; transaction-history scanning,
@@ -3797,6 +3798,7 @@ physical Raspberry Pi acceptance remains open
 ([ARM64 evidence](builds/2026-10-18-recovery/arm64-rpc-worker-image-smoke.json)).
 Wei-to-ETH conversion now uses decimal half-up rounding in both the isolated
 and manual RPC paths. Exact numeric JSON, payload hash parity, one-block
-snapshot reads, changed-hash rejection, and decimal ClickHouse payload preparation are covered by 282
-focused tests; disposable PostgreSQL confirms exact precision. This changes source correctness evidence only, not capability
+snapshot reads, changed-hash rejection in both paths, and decimal ClickHouse
+payload preparation are covered by 284 focused tests; disposable PostgreSQL
+confirms exact precision. This changes source correctness evidence only, not capability
 classification or MAN-CAP status.

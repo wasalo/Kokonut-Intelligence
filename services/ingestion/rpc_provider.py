@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Mapping
+from typing import Any, Mapping
 from urllib.parse import urlsplit
 
 RPC_ENDPOINT_ENV = "KOKONUT_RPC_INDEXER_RPC_ENDPOINTS"
@@ -23,6 +23,37 @@ DEFAULT_RPC_ENDPOINTS = {
     "gnosis": "https://rpc.gnosischain.com",
 }
 RPC_CLI_CHAINS = tuple(DEFAULT_RPC_ENDPOINTS)
+_HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
+
+
+def normalize_rpc_block_hash(block: Any) -> str:
+    """Return a canonical 32-byte block hash or reject an incomplete response."""
+    try:
+        value = block["hash"]
+    except (KeyError, TypeError):
+        raise ValueError("RPC block hash is missing") from None
+    if isinstance(value, (bytes, bytearray)):
+        value = bytes(value).hex()
+    elif isinstance(value, str):
+        value = value.removeprefix("0x")
+    else:
+        raise ValueError("RPC block hash is invalid")
+    if len(value) != 64 or any(character not in _HEX_DIGITS for character in value):
+        raise ValueError("RPC block hash is invalid")
+    return "0x" + value.lower()
+
+
+def fetch_rpc_block_anchor(web3: Any) -> tuple[int, int, str]:
+    """Capture a provider's current block number, timestamp, and hash."""
+    try:
+        block_number = int(web3.eth.block_number)
+        block = web3.eth.get_block(block_number)
+        block_timestamp = int(block["timestamp"])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("RPC block anchor is invalid") from None
+    if block_number < 0 or block_timestamp < 0:
+        raise ValueError("RPC block anchor is invalid")
+    return block_number, block_timestamp, normalize_rpc_block_hash(block)
 
 
 def _validate_endpoint(chain: str, endpoint: object) -> str:

@@ -332,13 +332,13 @@
         "services/ingestion/clickhouse_outbox.py:53:12",
         "services/ingestion/rpc_indexer.py:100:12",
         "services/ingestion/rpc_indexer.py:105:12",
-        "services/ingestion/rpc_indexer.py:161:8",
-        "services/ingestion/rpc_indexer.py:199:8",
-        "services/ingestion/rpc_indexer.py:304:16",
-        "services/ingestion/rpc_indexer.py:317:16",
-        "services/ingestion/rpc_indexer.py:346:20",
-        "services/ingestion/rpc_indexer.py:356:20",
-        "services/ingestion/rpc_indexer.py:357:20"
+        "services/ingestion/rpc_indexer.py:169:8",
+        "services/ingestion/rpc_indexer.py:207:8",
+        "services/ingestion/rpc_indexer.py:312:16",
+        "services/ingestion/rpc_indexer.py:328:16",
+        "services/ingestion/rpc_indexer.py:362:20",
+        "services/ingestion/rpc_indexer.py:372:20",
+        "services/ingestion/rpc_indexer.py:373:20"
       ]
     },
     {
@@ -348,11 +348,11 @@
       "statically_reachable_sql_site_count": 6,
       "statically_reachable_sql_site_ids": [
         "services/common/worker_database.py:114:12",
-        "services/ingestion/rpc_worker.py:121:12",
-        "services/ingestion/rpc_worker.py:155:12",
-        "services/ingestion/rpc_worker.py:184:12",
-        "services/ingestion/rpc_worker.py:191:12",
-        "services/ingestion/rpc_worker.py:299:20"
+        "services/ingestion/rpc_worker.py:108:12",
+        "services/ingestion/rpc_worker.py:142:12",
+        "services/ingestion/rpc_worker.py:171:12",
+        "services/ingestion/rpc_worker.py:178:12",
+        "services/ingestion/rpc_worker.py:283:20"
       ]
     },
     {
@@ -6448,9 +6448,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:161:8",
+      "id": "services/ingestion/rpc_indexer.py:169:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 161,
+      "line": 169,
       "scope": "insert_activity",
       "method": "execute",
       "expression_kind": "literal",
@@ -6469,9 +6469,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:199:8",
+      "id": "services/ingestion/rpc_indexer.py:207:8",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 199,
+      "line": 207,
       "scope": "insert_activity",
       "method": "execute",
       "expression_kind": "literal",
@@ -6490,9 +6490,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:304:16",
+      "id": "services/ingestion/rpc_indexer.py:312:16",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 304,
+      "line": 312,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6509,9 +6509,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:317:16",
+      "id": "services/ingestion/rpc_indexer.py:328:16",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 317,
+      "line": 328,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6528,9 +6528,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:346:20",
+      "id": "services/ingestion/rpc_indexer.py:362:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 346,
+      "line": 362,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6547,9 +6547,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:356:20",
+      "id": "services/ingestion/rpc_indexer.py:372:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 356,
+      "line": 372,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6566,9 +6566,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_indexer.py:357:20",
+      "id": "services/ingestion/rpc_indexer.py:373:20",
       "source": "services/ingestion/rpc_indexer.py",
-      "line": 357,
+      "line": 373,
       "scope": "run",
       "method": "execute",
       "expression_kind": "literal",
@@ -6585,9 +6585,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:121:12",
+      "id": "services/ingestion/rpc_worker.py:108:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 121,
+      "line": 108,
       "scope": "_record_snapshot",
       "method": "execute",
       "expression_kind": "literal",
@@ -6604,9 +6604,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:155:12",
+      "id": "services/ingestion/rpc_worker.py:142:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 155,
+      "line": 142,
       "scope": "_finish_chain",
       "method": "execute",
       "expression_kind": "literal",
@@ -6623,9 +6623,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:184:12",
+      "id": "services/ingestion/rpc_worker.py:171:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 184,
+      "line": 171,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -6642,9 +6642,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:191:12",
+      "id": "services/ingestion/rpc_worker.py:178:12",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 191,
+      "line": 178,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",
@@ -6663,9 +6663,9 @@
       "review_status": "linked_to_operation"
     },
     {
-      "id": "services/ingestion/rpc_worker.py:299:20",
+      "id": "services/ingestion/rpc_worker.py:283:20",
       "source": "services/ingestion/rpc_worker.py",
-      "line": 299,
+      "line": 283,
       "scope": "ingest",
       "method": "execute",
       "expression_kind": "literal",

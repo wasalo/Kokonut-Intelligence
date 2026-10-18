@@ -3258,7 +3258,8 @@
         "services.ingestion.base",
         "services.ingestion.clickhouse_outbox",
         "services.ingestion.config",
-        "services.ingestion.rpc_indexer"
+        "services.ingestion.rpc_indexer",
+        "services.ingestion.rpc_provider"
       ],
       "source_files": [
         "services/common/cli.py",
@@ -3273,7 +3274,8 @@
         "services/ingestion/base.py",
         "services/ingestion/clickhouse_outbox.py",
         "services/ingestion/config.py",
-        "services/ingestion/rpc_indexer.py"
+        "services/ingestion/rpc_indexer.py",
+        "services/ingestion/rpc_provider.py"
       ],
       "local_import_edges": [
         {
@@ -3416,19 +3418,25 @@
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 30,
+          "line": 29,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 31,
+          "line": 30,
           "target": "services.ingestion.config",
           "kind": "from"
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 253,
+          "line": 31,
+          "target": "services.ingestion.rpc_provider",
+          "kind": "from"
+        },
+        {
+          "source": "services/ingestion/rpc_indexer.py",
+          "line": 261,
           "target": "services.ingestion.clickhouse_outbox",
           "kind": "from"
         }

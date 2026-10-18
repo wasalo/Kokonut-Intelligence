@@ -1,7 +1,7 @@
 """RPC wallet rows, projections, and chain status share one transaction."""
 
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -115,6 +115,70 @@ def test_legacy_rpc_run_passes_exact_decimal_balance_to_postgres_write():
     assert captured_records[0]["value"] == Decimal("0.00000001")
 
 
+def test_legacy_rpc_run_uses_one_block_anchor_for_all_wallets_on_chain():
+    connection = MagicMock()
+    status_calls = []
+    events = []
+    wallets = [_wallet("wallet-1"), _wallet("wallet-2")]
+    balances = []
+    web3 = MagicMock()
+
+    def capture_balance(_web3, _address, *, block_identifier=None):
+        balances.append(block_identifier)
+        return 10**18
+
+    patches = _rpc_patches(
+        connection,
+        wallets,
+        status_calls,
+        events,
+        balance_side_effect=capture_balance,
+        web3=web3,
+    )
+    with (
+        patches[0], patches[1], patches[2], patches[3], patches[4],
+        patches[5] as insert_activity,
+        patches[6], patches[7],
+    ):
+        rpc_indexer.run(chain="celo")
+
+    assert balances == [100, 100]
+    assert web3.eth.get_block.call_args_list == [call(100), call(100)]
+    records = [entry.args[1] for entry in insert_activity.call_args_list]
+    assert [record["block_number"] for record in records] == [100, 100]
+    assert records[0]["block_timestamp"] == records[1]["block_timestamp"]
+
+
+def test_legacy_rpc_run_rolls_back_all_rows_when_anchor_hash_changes():
+    connection = MagicMock()
+    status_calls = []
+    events = []
+    connection.rollback.side_effect = lambda: events.append(("rollback",))
+    connection.commit.side_effect = lambda: events.append(("commit",))
+    web3 = MagicMock()
+    web3.eth.get_block.side_effect = [
+        {"timestamp": 1_700_000_000, "hash": bytes.fromhex("ab" * 32)},
+        {"timestamp": 1_700_000_001, "hash": bytes.fromhex("cd" * 32)},
+    ]
+    patches = _rpc_patches(
+        connection, [_wallet()], status_calls, events, web3=web3
+    )
+    with (
+        patches[0], patches[1], patches[2], patches[3], patches[4], patches[5],
+        patches[6], patches[7],
+        pytest.raises(RuntimeError, match="RPC indexer failed \\(RuntimeError\\)"),
+    ):
+        rpc_indexer.run(chain="celo")
+
+    assert connection.rollback.call_count == 1
+    assert [event[0] for event in events] == ["rollback", "status", "commit"]
+    assert status_calls[-1] == (
+        ("celo", "rpc", None, "error", "RPC indexer failed (RuntimeError)"),
+        {"db": connection},
+    )
+    assert not any(event[0] == "outbox" for event in events)
+
+
 def test_legacy_rpc_activity_parser_uses_exact_wei_conversion():
     record = rpc_indexer.parse_activity(
         {
@@ -143,8 +207,22 @@ def test_legacy_rpc_clickhouse_payload_keeps_decimal_balance():
     assert values[0][6] == Decimal("9000000000.12345678")
 
 
-def _rpc_patches(connection, wallets, status_calls, events, *, balance_side_effect=None,
-                 outbox_side_effect=None):
+def _rpc_patches(
+    connection,
+    wallets,
+    status_calls,
+    events,
+    *,
+    balance_side_effect=None,
+    outbox_side_effect=None,
+    web3=None,
+):
+    web3 = web3 or MagicMock()
+    web3.eth.block_number = 100
+    web3.eth.get_block.return_value = {
+        "timestamp": 1_700_000_000,
+        "hash": bytes.fromhex("ab" * 32),
+    }
     status = MagicMock(
         side_effect=lambda *args, **kwargs: (
             status_calls.append((args, kwargs)),
@@ -163,7 +241,7 @@ def _rpc_patches(connection, wallets, status_calls, events, *, balance_side_effe
     return (
         patch("services.ingestion.rpc_indexer.get_db", return_value=connection),
         patch("services.ingestion.rpc_indexer.get_wallets", return_value=wallets),
-        patch("services.ingestion.rpc_indexer.get_web3", return_value=object()),
+        patch("services.ingestion.rpc_indexer.get_web3", return_value=web3),
         patch("services.ingestion.rpc_indexer.fetch_latest_block", return_value=100),
         patch(
             "services.ingestion.rpc_indexer.fetch_balance",
@@ -209,10 +287,14 @@ def test_rpc_partial_wallet_failure_marks_chain_error_on_same_transaction():
     logger = MagicMock()
     patches = _rpc_patches(
         connection,
-        [_wallet("wallet-1"), _wallet("wallet-2")],
+        [_wallet("wallet-1"), _wallet("wallet-2"), _wallet("wallet-3")],
         status_calls,
         events,
-        balance_side_effect=[10**18, RuntimeError(f"https://rpc.example/?token={secret}")],
+        balance_side_effect=[
+            10**18,
+            RuntimeError(f"https://rpc.example/?token={secret}"),
+            2 * 10**18,
+        ],
     )
 
     with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7], patch.object(rpc_indexer, "logger", logger):
@@ -229,7 +311,7 @@ def test_rpc_partial_wallet_failure_marks_chain_error_on_same_transaction():
         for call in connection.cursor.return_value.__enter__.return_value.execute.call_args_list
     ]
     assert savepoint_statements.count("ROLLBACK TO SAVEPOINT rpc_wallet_activity") == 1
-    assert savepoint_statements.count("RELEASE SAVEPOINT rpc_wallet_activity") == 2
+    assert savepoint_statements.count("RELEASE SAVEPOINT rpc_wallet_activity") == 3
     connection.rollback.assert_not_called()
     connection.close.assert_called_once_with()
 

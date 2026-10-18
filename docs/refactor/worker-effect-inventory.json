@@ -5,13 +5,13 @@
   "scope": "High-confidence direct call patterns found inside the current static worker function-reachability graph. The operation graph conservatively includes some CLI branches that runtime command contracts reject. A listed call is a review candidate, not proof it executes; absence is not proof of no effect. The EventBus handler trace is source-only; runtime callback execution and persisted handler dispatch, arbitrary dynamic dispatch, provider internals, database-side effects, and unmodeled imports are not established. This is not an authorization, idempotency, or least-privilege policy.",
   "summary": {
     "operation_roots": 32,
-    "candidate_effect_sites": 40,
-    "operation_site_memberships": 50,
+    "candidate_effect_sites": 42,
+    "operation_site_memberships": 53,
     "unique_sites_by_category": {
       "dynamic_import": 1,
       "email_delivery": 6,
       "evm_client_setup": 5,
-      "evm_rpc": 6,
+      "evm_rpc": 8,
       "filesystem": 8,
       "http": 13,
       "process": 1
@@ -20,7 +20,7 @@
       "dynamic_import": 2,
       "email_delivery": 6,
       "evm_client_setup": 5,
-      "evm_rpc": 6,
+      "evm_rpc": 9,
       "filesystem": 8,
       "http": 22,
       "process": 1
@@ -453,15 +453,36 @@
         },
         {
           "source": "services/ingestion/rpc_indexer.py",
-          "line": 113,
+          "line": 115,
           "function": "services.ingestion.rpc_indexer:fetch_balance",
           "category": "evm_rpc",
           "call": "w3.eth.get_balance"
+        },
+        {
+          "source": "services/ingestion/rpc_indexer.py",
+          "line": 116,
+          "function": "services.ingestion.rpc_indexer:fetch_balance",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_balance"
+        },
+        {
+          "source": "services/ingestion/rpc_indexer.py",
+          "line": 379,
+          "function": "services.ingestion.rpc_indexer:run",
+          "category": "evm_rpc",
+          "call": "w3.eth.get_block"
+        },
+        {
+          "source": "services/ingestion/rpc_provider.py",
+          "line": 50,
+          "function": "services.ingestion.rpc_provider:fetch_rpc_block_anchor",
+          "category": "evm_rpc",
+          "call": "web3.eth.get_block"
         }
       ],
       "category_counts": {
         "evm_client_setup": 1,
-        "evm_rpc": 1
+        "evm_rpc": 4
       }
     },
     {
@@ -469,29 +490,29 @@
       "name": "services.ingestion.rpc_worker",
       "candidate_effect_sites": [
         {
+          "source": "services/ingestion/rpc_provider.py",
+          "line": 50,
+          "function": "services.ingestion.rpc_provider:fetch_rpc_block_anchor",
+          "category": "evm_rpc",
+          "call": "web3.eth.get_block"
+        },
+        {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 200,
+          "line": 187,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_client_setup",
           "call": "web3.Web3.HTTPProvider"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 203,
-          "function": "services.ingestion.rpc_worker:ingest",
-          "category": "evm_rpc",
-          "call": "web3.eth.get_block"
-        },
-        {
-          "source": "services/ingestion/rpc_worker.py",
-          "line": 212,
+          "line": 196,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_rpc",
           "call": "web3.eth.get_balance"
         },
         {
           "source": "services/ingestion/rpc_worker.py",
-          "line": 234,
+          "line": 218,
           "function": "services.ingestion.rpc_worker:ingest",
           "category": "evm_rpc",
           "call": "web3.eth.get_block"

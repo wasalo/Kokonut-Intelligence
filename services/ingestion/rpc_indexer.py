@@ -24,11 +24,11 @@ from .base import (
     get_db,
     hash_payload,
     insert_clickhouse_rows,
-    now_utc,
     update_indexer_status,
 )
 from .clickhouse_outbox import OutboxEnqueueError
 from .config import CHAIN_RPC_MAP
+from .rpc_provider import fetch_rpc_block_anchor, normalize_rpc_block_hash
 
 logger = get_logger("ingestion.rpc")
 _ACTIVITY_VALUE_QUANTUM = Decimal("0.00000001")
@@ -108,14 +108,22 @@ def get_wallets(db, chain: str = None) -> list:
         return cur.fetchall()
 
 
-def fetch_balance(w3: Web3, address: str) -> int:
-    """Fetch current ETH balance in wei."""
-    return w3.eth.get_balance(Web3.to_checksum_address(address))
+def fetch_balance(w3: Web3, address: str, block_identifier=None) -> int:
+    """Fetch an ETH balance in wei, optionally at one selected block."""
+    checksum = Web3.to_checksum_address(address)
+    if block_identifier is None:
+        return w3.eth.get_balance(checksum)
+    return w3.eth.get_balance(checksum, block_identifier=block_identifier)
 
 
 def fetch_latest_block(w3: Web3) -> int:
     """Get latest block number."""
     return w3.eth.block_number
+
+
+def fetch_block_anchor(w3: Web3) -> tuple[int, int, str]:
+    """Capture one block number, timestamp, and hash for a chain run."""
+    return fetch_rpc_block_anchor(w3)
 
 
 def parse_activity(tx: dict, wallet_id: str, chain: str) -> dict:
@@ -308,29 +316,37 @@ def run(chain: str = None, wallet_address: str = None):
 
         logger.info("Indexing %d wallets...", len(wallets))
         all_records = []
+        anchors = {}
         observed_blocks = {}
         failed_chains = {}
 
         for wallet_id, address, w_chain, role, label in wallets:
             attempted_chains.add(w_chain)
+            if w_chain in failed_chains and w_chain not in anchors:
+                continue
             with db.cursor() as cur:
                 cur.execute("SAVEPOINT rpc_wallet_activity")
             try:
-                w3 = get_web3(w_chain)
+                if w_chain not in anchors:
+                    w3 = get_web3(w_chain)
+                    anchors[w_chain] = (w3, *fetch_block_anchor(w3))
+                w3, current_block, block_timestamp, _block_hash = anchors[w_chain]
                 checksum = Web3.to_checksum_address(address)
 
-                current_block = fetch_latest_block(w3)
-                balance_wei = fetch_balance(w3, checksum)
+                balance_wei = fetch_balance(
+                    w3, checksum, block_identifier=current_block
+                )
                 balance_eth = _wei_to_eth(balance_wei)
 
                 # Record a summary activity event
-                timestamp = now_utc()
                 record = {
                     "wallet_id": wallet_id,
                     "chain": w_chain,
                     "tx_hash": f"balance-check-{w_chain}-{str(wallet_id)}-{current_block}",
                     "block_number": current_block,
-                    "block_timestamp": timestamp,
+                    "block_timestamp": datetime.fromtimestamp(
+                        block_timestamp, tz=timezone.utc
+                    ).isoformat(),
                     "from_address": "",
                     "to_address": checksum,
                     "value": balance_eth,
@@ -358,6 +374,10 @@ def run(chain: str = None, wallet_address: str = None):
                 failure = f"RPC wallet request failed ({type(e).__name__})"
                 failed_chains[w_chain] = failure
                 logger.error("  ✗ %s failed (%s)", label or address[:10], type(e).__name__)
+
+        for w_chain, (w3, block_number, _timestamp, block_hash) in anchors.items():
+            if normalize_rpc_block_hash(w3.eth.get_block(block_number)) != block_hash:
+                raise RuntimeError("RPC block changed during wallet snapshot run")
 
         # Keep each chain's status in the same transaction as its wallet rows
         # and any ClickHouse outbox intent. A partial chain failure is never
