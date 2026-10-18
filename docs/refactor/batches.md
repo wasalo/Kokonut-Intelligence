@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 597 checklist items complete and 19
-open (610 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 598 checklist items complete and 19
+open (617 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1233,6 +1233,7 @@ reporting views.
 - [x] Preserve the full Directus login response shape in TypeScript while keeping existing `token`/`refreshToken` aliases. Synthetic offline tests verify access, refresh, and expiry fields in both SDKs; 81 Python SDK/schema/method tests, 35 JavaScript tests, TypeScript build, Ruff, and diff checks pass ([evidence](builds/2026-10-18-recovery/sdk-login-response-parity.json)).
 - [x] Add the missing generic Directus aggregate query to the TypeScript client, using the pinned SDK command and documenting its options. Python SDK/schema/method tests pass 82 tests; JavaScript passes 36 tests; TypeScript build, Ruff, capability matrix, and diff checks pass with mocked clients ([evidence](builds/2026-10-18-recovery/sdk-generic-aggregate-parity.json)).
 - [x] Preserve arbitrary Directus list-query parameters in the TypeScript SDK, matching Python's `list_items(..., **kwargs)` behavior while retaining the canonical filter/sort/field/meta and `offset`-before-`page` rules. Python SDK/schema/method tests pass 83 tests; JavaScript passes 37 tests; TypeScript build, compilation, capability matrix, targeted Ruff, and diff checks pass with mocked clients ([evidence](builds/2026-10-18-recovery/sdk-list-query-parameter-parity.json)).
+- [x] Verify generic Python/TypeScript SDK reads, single and bulk creates, updates, and deletes against matching Directus routes/commands and response-data behavior. Python SDK/schema/method tests pass 84 tests; JavaScript passes 38 tests; TypeScript build, compilation, capability matrix, targeted Ruff, and diff checks pass with mocked clients ([evidence](builds/2026-10-18-recovery/sdk-generic-crud-contract.json)).
 - [x] Document the operator identity, scope, audit, browser session, and rollback boundary ([contract](kernel-operations-console.md)).
 - [x] Select OIDC and implement the optional Gateway login/session/CSRF adapter, explicit identity and location-grant storage, local provisioning CLI, and principal-only browser shell ([implementation](kernel-operations-console.md)).
 - [ ] Configure the owner-selected self-hosted ZITADEL provider, then verify login/session/logout, grant provisioning, scope denials, enrollment-code delivery/revocation, audit attribution, and browser queue/detail behavior. The opt-in Compose/Caddy profile and isolated database role are source-checked by 25 current planner/Compose tests; no provider or credentials were configured. The identity hostname and secret values remain open; Kokonut's Gateway sessions and org/location grants remain the authorization authority ([deployment plan](zitadel-provider.md)).

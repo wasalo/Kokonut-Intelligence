@@ -1473,6 +1473,55 @@ def test_list_items_preserves_extra_directus_query_parameters_without_network_ca
     )
 
 
+def test_generic_crud_helpers_use_directus_item_routes_and_unwrap_data_without_network_calls():
+    from unittest.mock import call
+
+    from kokonut import KokonutClient
+
+    client = KokonutClient("http://localhost:8055")
+
+    def response(data):
+        result = Mock()
+        result.ok = True
+        result.json.return_value = {"data": data}
+        return result
+
+    detail = {"id": "location-1", "name": "Synthetic Location"}
+    created = {"id": "location-2", "name": "Synthetic Location"}
+    created_batch = [{"id": "farm-1", "name": "Synthetic Farm"}]
+    updated = {"id": "location-1", "country": "DO"}
+    client.session.get = Mock(return_value=response(detail))
+    client.session.post = Mock(side_effect=[response(created), response(created_batch)])
+    client.session.patch = Mock(return_value=response(updated))
+    client.session.delete = Mock(return_value=response(None))
+
+    assert client.get_item("location", "location-1", ["id", "name"]) == detail
+    assert client.create_item(
+        "location", {"name": "Synthetic Location", "slug": "synthetic-location"}
+    ) == created
+    assert client.create_items("farm", [{"name": "Synthetic Farm"}]) == created_batch
+    assert client.update_item("location", "location-1", {"country": "DO"}) == updated
+    assert client.delete_item("location", "location-1") is None
+
+    client.session.get.assert_called_once_with(
+        "http://localhost:8055/items/location/location-1",
+        params={"fields": "id,name"},
+    )
+    assert client.session.post.call_args_list == [
+        call(
+            "http://localhost:8055/items/location",
+            json={"name": "Synthetic Location", "slug": "synthetic-location"},
+        ),
+        call("http://localhost:8055/items/farm", json=[{"name": "Synthetic Farm"}]),
+    ]
+    client.session.patch.assert_called_once_with(
+        "http://localhost:8055/items/location/location-1", json={"country": "DO"}
+    )
+    client.session.delete.assert_called_once_with(
+        "http://localhost:8055/items/location/location-1"
+    )
+
+
 def test_export_create_many_delegates_to_directus_batch_without_network_calls():
     from kokonut import KokonutClient
 

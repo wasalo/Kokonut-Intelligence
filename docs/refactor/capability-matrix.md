@@ -48,6 +48,13 @@ while retaining explicit pagination precedence. Caller-supplied query options
 do not establish authorization or tenant scope; MAN-CAP acceptance is unchanged
 ([evidence](builds/2026-10-18-recovery/sdk-list-query-parameter-parity.json)).
 
+**SDK generic CRUD contract note — 18 October 2026:** offline tests now check
+Python Directus item URLs, body/query fields and data-envelope unwrapping against
+the matching TypeScript SDK commands for detail reads, single/bulk creates,
+updates, and deletes. These request-shape checks do not establish live API,
+authorization, tenant scope, or MAN-CAP acceptance
+([evidence](builds/2026-10-18-recovery/sdk-generic-crud-contract.json)).
+
 **SDK export creation signature note — 18 October 2026:** TypeScript accepts the
 existing request object, export type plus options, and the positional field
 order supported by Python. These forms create the same pending export payload;

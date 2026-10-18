@@ -28,11 +28,21 @@ vi.mock('@directus/sdk', () => {
   const mockRequest = vi.fn();
   const mockReadItems = vi.fn((collection: string, query: Record<string, any>) => ({ collection, query }));
   const mockAggregate = vi.fn((collection: string, options: Record<string, any>) => ({ collection, options }));
-  const mockReadItem = vi.fn(() => ({}));
-  const mockCreateItem = vi.fn(() => ({}));
-  const mockCreateItems = vi.fn(() => ({}));
-  const mockUpdateItem = vi.fn(() => ({}));
-  const mockDeleteItem = vi.fn(() => ({}));
+  const mockReadItem = vi.fn(
+    (collection: string, id: string, query: Record<string, any>) => ({ collection, id, query }),
+  );
+  const mockCreateItem = vi.fn(
+    (collection: string, data: Record<string, any>) => ({ collection, data }),
+  );
+  const mockCreateItems = vi.fn(
+    (collection: string, data: Record<string, any>[]) => ({ collection, data }),
+  );
+  const mockUpdateItem = vi.fn(
+    (collection: string, id: string, data: Record<string, any>) => ({ collection, id, data }),
+  );
+  const mockDeleteItem = vi.fn(
+    (collection: string, id: string) => ({ collection, id }),
+  );
   const mockSetToken = vi.fn(() => Promise.resolve());
   const mockLogin = vi.fn(() => ({
     access_token: 'test-token',
@@ -62,6 +72,11 @@ vi.mock('@directus/sdk', () => {
     rest: vi.fn(() => ({})),
     authentication: vi.fn(() => ({})),
     readItems: mockReadItems,
+    readItem: mockReadItem,
+    createItem: mockCreateItem,
+    createItems: mockCreateItems,
+    updateItem: mockUpdateItem,
+    deleteItem: mockDeleteItem,
     aggregate: mockAggregate,
   };
 });
@@ -236,6 +251,27 @@ describe('KokonutClient', () => {
         offset: 10,
       },
     });
+  });
+
+  it('routes generic CRUD helpers through matching Directus item commands', async () => {
+    const request = (client as any).directus.request;
+    const createPayload = { name: 'Synthetic Location', slug: 'synthetic-location' };
+    const batchPayload = [{ name: 'Synthetic Farm' }];
+    const patchPayload = { country: 'DO' };
+
+    await client.getItem('location', 'location-1', ['id', 'name']);
+    await client.createItem('location', createPayload);
+    await client.createItems('farm', batchPayload);
+    await client.updateItem('location', 'location-1', patchPayload);
+    await client.deleteItem('location', 'location-1');
+
+    expect(request.mock.calls).toEqual([
+      [{ collection: 'location', id: 'location-1', query: { fields: ['id', 'name'] } }],
+      [{ collection: 'location', data: createPayload }],
+      [{ collection: 'farm', data: batchPayload }],
+      [{ collection: 'location', id: 'location-1', data: patchPayload }],
+      [{ collection: 'location', id: 'location-1' }],
+    ]);
   });
 
   it('supports the same generic Directus aggregation queries as Python', async () => {

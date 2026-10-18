@@ -2,7 +2,7 @@
 
 **Updated:** 18 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
-**Current checkpoint — 18 October 2026:** PR #68 is on `feat/mobile-offline-acceptance`; latest pushed SDK implementation commits: `b5b25bdc` (`FarmActivity`), `61c342eb` (`FarmTask`), `4ce24d58` (task relationship records), `fbdad237` (`Crop`), `fcff5aea` (`CashFlowSnapshot`), `c43b6efc` (`InfrastructureAsset`), `7502f075` (`Protocol`), `741ee0a2` (`AttestationSchema`), `63d4bcfe` (explicit query-filter parity), and `3f2ed056` (local logout cleanup). The export-projection parity follow-up is pushed as `ac8654f4`, and export-creation call forms were aligned in pushed commit `39f7d74f`. The signature inventory now compares argument requiredness and optionality across inherited methods and overloads. The Directus login-response parity fix was pushed in `abd52387`. The current local SDK slice adds the generic TypeScript aggregate command already available in Python and exports its option type. Python and TypeScript cover stored farm operations, task associations, crop references, cash-flow snapshots, infrastructure inventory, the Web3 protocol catalog, and EAS schema definitions. FarmTask includes exact category/priority/status CHECK literals; Crop preserves its schema version and JSON metadata; InfrastructureAsset status matches the constrained enum while condition remains free-form as in SQL; Protocol and AttestationSchema are passive stored catalog types. Native SDK specialized filters now use equivalent explicit `_eq`/`_in` expressions, both clients clear local auth after remote logout failure, export-record reads accept the same optional field projection, export creation supports the Python argument forms in TypeScript, login returns the Directus fields in both SDKs, and generic aggregate queries are available in both. The schema guard recognizes public-qualified `ALTER TABLE` statements, UUID arrays, and typed JSON shapes; it covers 70 models, 1,438 columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone SQL CHECK literals. Eighty-two focused Python SDK/schema/method-parity tests and 36 JavaScript tests pass; TypeScript build, targeted Ruff, compilation, schema guard, capability-matrix validation, and diff checks pass. The method inventory checks names, inherited generic surfaces, and required/optional argument shapes but not types or runtime behavior. These stored records do not establish farm-operation writes, lifecycle, tenant, Directus, scheduling, or task-engine behavior; SDK models do not calculate yield or cash flow, assess equipment, query providers, verify/submit attestations, run anomaly detection, or approve/send/execute commands. Checklist: 596 complete / 19 open (615 total). Tenant/RLS, provider parity, physical Raspberry Pi, release certification, and production cutover gates remain open.
+**Current checkpoint — 18 October 2026:** PR #68 is on `feat/mobile-offline-acceptance`; latest pushed head: `24a337cf`. The native SDKs align specialized query operators, logout cleanup, export projections and create signatures, login response fields, generic aggregate queries, and arbitrary Directus list-query parameters. Local follow-up tests cover generic Directus CRUD route/command shapes across Python and TypeScript. The SDK schema guard covers 70 models, 1,438 columns, 1,345 scalar types, 10 PostGIS shapes, 80 JSONB shapes, 23 enum fields, and 43 standalone SQL CHECK literals. The current focused SDK/schema/method suite passes 84 Python tests and 38 JavaScript tests; TypeScript build, targeted Ruff, compilation, capability-matrix validation, and diff checks pass. A package-wide Ruff scan still reports 39 findings in untouched generated/example files. Request-shape checks and stored SDK models do not establish live API behavior, authorization, tenant scope, domain writes, provider execution, or MAN-CAP acceptance. The matrix remains 54 baseline-retained, 7 deployed, and 5 prepared. Checklist: 598 complete / 19 open. Tenant/RLS, provider parity, physical Raspberry Pi, production recovery, release certification, and cutover remain open.
 
 **Historical branch checkpoint — 17 October 2026:** PR #68 was at `efdd05b5`; CI #433 was in progress and Security #157 passed. CI #431 failed eight generated worker-inventory freshness/source-contract checks on the preceding head after 5,851 tests passed. Security #156 and CI #432 passed on `ebeddb45`. The pushed correction refreshed five worker inventories and removed line-number coupling from the SQL statement-kind regression; all 30 focused inventory tests passed, with all five generated checks, Ruff, Python compilation, and capability-matrix validation passing locally. The batch also refreshed report source/query/helper inventories that fixed CI #430. Worker-status output containment redacted historical scheduler, EventBus, MQTT delivery, and ClickHouse outbox dead-letter errors. The optional gRPC health adapter reported only a bounded remote exception class and closed the channel. At that historical checkpoint, the checklist was 517 complete / 19 open; these counts are superseded by [batches.md](batches.md).
 
@@ -1295,11 +1295,10 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related changes in local commits and push reviewable batches, as
-requested. The latest pushed head is `efdd05b5` on PR #68; Security #157 passed
-and CI #433 is in progress. The local unpushed batch now includes retention-policy inventories,
-refreshed worker/runtime SQL counts, SDK export and query parity, sandbox input
-validation, and bounded failure-diagnostic follow-ups. Keep these local until
-the next reviewable batch push; continue independent code-first work meanwhile.
+requested. The latest pushed head is `24a337cf` on PR #68. Generic CRUD
+contract tests and evidence are part of the next local batch; continue
+independent code-first work while its checks run. Review hosted CI and
+Security results for the current head before release decisions.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.
 
@@ -1375,3 +1374,16 @@ is now 545
 complete / 19 open;
 capability classifications remain unchanged. These commits remain local for
 the next batch push.
+
+
+### SDK list-query and CRUD parity continuation — 18 October 2026
+
+Pushed `24a337cf` preserves generic Directus list-query options in the
+TypeScript SDK and records 597 complete / 19 open. The next local slice
+adds mocked contract coverage for generic Python/TypeScript detail reads,
+single and bulk creates, updates, deletes, and response-envelope handling.
+Current focused validation passes 84 Python SDK/schema/method tests, 38
+JavaScript tests, TypeScript build, compilation, targeted Ruff, matrix
+validation, and diff checks. This is offline API-shape evidence, not live
+Directus or authorization acceptance. The checklist is 598 complete / 19
+open; see [evidence](builds/2026-10-18-recovery/sdk-generic-crud-contract.json).
