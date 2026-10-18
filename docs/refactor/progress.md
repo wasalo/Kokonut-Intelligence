@@ -13,6 +13,18 @@ allows arbitrary JSON values and those field contracts cannot safely be
 inferred from the column type alone
 ([evidence](builds/2026-10-18-recovery/sdk-postgis-shape-parity.json)).
 
+### SDK JSONB shape contracts — 18 October 2026
+
+Both SDKs now export recursive JSON value/object types. The schema guard has
+an explicit object or object-array contract for each of the 24 JSONB fields in
+its 20-model inventory; `ReportSnapshot.negative_findings` is the only
+object-array field, consistent with its report builder. Twenty-seven Python
+SDK/guard tests and 29 JavaScript tests pass. The TypeScript build, schema
+guard, Ruff, capability-matrix validation, and diff check pass. This makes
+client payload types accurately JSON-shaped, but it does not add database
+constraints or runtime payload validation
+([evidence](builds/2026-10-18-recovery/sdk-jsonb-shape-parity.json)).
+
 ### CI #430 report-inventory freshness fix — 17 October 2026
 
 CI #430 on pushed commit `9742905` stopped in the fast-fail gate because the

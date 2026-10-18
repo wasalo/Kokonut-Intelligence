@@ -1,3 +1,7 @@
+export type JSONScalar = string | number | boolean | null;
+export type JSONValue = JSONScalar | JSONValue[] | { [key: string]: JSONValue };
+export type JSONObject = { [key: string]: JSONValue };
+
 export type GeoJSONPosition = [longitude: number, latitude: number, altitude?: number];
 
 export interface GeoJSONPoint {
@@ -30,7 +34,7 @@ export interface Location {
   baseline_asset_value?: number | null;
   baseline_cash_flow?: number | null;
   baseline_cost?: number | null;
-  baseline_assumptions?: Record<string, unknown> | null;
+  baseline_assumptions?: JSONObject | null;
   baseline_source?: string | null;
   baseline_date?: string | null;
   baseline_recorded_at?: string | null;
@@ -41,7 +45,7 @@ export interface Location {
   organization_id?: string | null;
   schema_version?: string | null;
   status?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
   created_by?: string | null;
@@ -66,12 +70,12 @@ export interface Farm {
   credits_registries?: string[] | null;
   data_privacy_status?: string | null;
   data_privacy_standard?: string | null;
-  data_privacy_criteria?: Record<string, unknown> | null;
+  data_privacy_criteria?: JSONObject | null;
   farm_type?: string | null;
   total_area?: number | null;
   area_unit?: string | null;
   status?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
   created_by?: string | null;
@@ -97,7 +101,7 @@ export interface Plot {
   slope_pct?: number | null;
   aspect?: string | null;
   status?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
   created_by?: string | null;
@@ -128,7 +132,7 @@ export interface CropCycle {
   area_unit?: string | null;
   status?: string | null;
   failure_reason?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   schema_version?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
@@ -160,7 +164,7 @@ export interface HarvestEvent {
   schema_version?: string | null;
   source_system?: string | null;
   source_id?: string | null;
-  source_raw?: Record<string, unknown> | null;
+  source_raw?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
   created_by?: string | null;
@@ -198,7 +202,7 @@ export interface SalesEvent {
   schema_version?: string | null;
   source_system?: string | null;
   source_id?: string | null;
-  source_raw?: Record<string, unknown> | null;
+  source_raw?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
   created_by?: string | null;
@@ -242,7 +246,7 @@ export interface ExpenseEvent {
   schema_version?: string | null;
   source_system?: string | null;
   source_id?: string | null;
-  source_raw?: Record<string, unknown> | null;
+  source_raw?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
   created_by?: string | null;
@@ -274,7 +278,7 @@ export interface LossEvent {
   schema_version?: string | null;
   source_system?: string | null;
   source_id?: string | null;
-  source_raw?: Record<string, unknown> | null;
+  source_raw?: JSONObject | null;
   created_at?: string | null;
   created_by?: string | null;
   updated_at?: string | null;
@@ -302,7 +306,7 @@ export interface LaborEvent {
   rejection_reason?: string | null;
   source_system?: string | null;
   source_id?: string | null;
-  source_raw?: Record<string, unknown> | null;
+  source_raw?: JSONObject | null;
   created_at?: string | null;
   created_by?: string | null;
   updated_at?: string | null;
@@ -328,7 +332,7 @@ export interface FieldNote {
   schema_version?: string | null;
   source_system?: string | null;
   source_id?: string | null;
-  source_raw?: Record<string, unknown> | null;
+  source_raw?: JSONObject | null;
   created_at?: string | null;
   created_by?: string | null;
   updated_at?: string | null;
@@ -346,11 +350,11 @@ export interface SensorReading {
   value: number;
   unit: string;
   quality?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   source_system?: string | null;
   source_id?: string | null;
-  source_raw?: Record<string, unknown> | null;
+  source_raw?: JSONObject | null;
   schema_version?: string | null;
 }
 
@@ -384,7 +388,7 @@ export interface SensorDevice {
   longitude?: number | null;
   elevation_m?: number | null;
   point_geometry?: GeoJSONPoint | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
   created_by?: string | null;
@@ -409,7 +413,7 @@ export interface AlertRule {
   actuator_command?: string | null;
   actuator_topic?: string | null;
   human_approval_required?: boolean | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -429,10 +433,10 @@ export interface SensorAlert {
   acknowledged_by?: string | null;
   resolved_at?: string | null;
   claim_id?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   actuation_sent?: boolean | null;
-  actuation_response?: Record<string, unknown> | null;
+  actuation_response?: JSONObject | null;
   actuation_status?: string | null;
 }
 
@@ -448,7 +452,7 @@ export interface WalletProfile {
   is_active?: boolean | null;
   first_seen_date?: string | null;
   last_active_date?: string | null;
-  metadata?: Record<string, unknown> | null;
+  metadata?: JSONObject | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -456,7 +460,7 @@ export interface WalletProfile {
 export interface AttestationRecord {
   id: string;
   schema_id: string;
-  claim_data: Record<string, unknown>;
+  claim_data: JSONObject;
   attestation_uid?: string | null;
   claim_type?: string | null;
   subject_id?: string | null;
@@ -490,7 +494,7 @@ export interface AttestationRecord {
 export interface ReportSnapshot {
   id: string;
   report_name: string;
-  report_data: Record<string, unknown>;
+  report_data: JSONObject;
   report_type?: string | null;
   location_id?: string | null;
   period_start?: string | null;
@@ -508,7 +512,7 @@ export interface ReportSnapshot {
   frozen_by?: string | null;
   public_interest_summary?: string | null;
   uncertainty_notes?: string | null;
-  negative_findings?: unknown[] | null;
+  negative_findings?: JSONObject[] | null;
   affected_community_voice?: string | null;
   expires_at?: string | null;
 }
@@ -520,7 +524,7 @@ export interface ExportLog {
   export_type: string;
   user_id?: string | null;
   target_table?: string | null;
-  filters?: Record<string, unknown> | null;
+  filters?: JSONObject | null;
   row_count?: number | null;
   file_size_bytes?: number | null;
   file_url?: string | null;
@@ -572,6 +576,6 @@ export interface NoiSnapshot {
   loss_rate_pct?: number | null;
   calculation_version?: string | null;
   calculated_at?: string | null;
-  inputs?: Record<string, unknown> | null;
+  inputs?: JSONObject | null;
   created_by?: string | null;
 }

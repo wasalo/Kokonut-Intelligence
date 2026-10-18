@@ -366,13 +366,13 @@ describe('KokonutClient', () => {
       created_by: 'operator-1',
       frozen: true,
       public_interest_summary: 'Public summary',
-      negative_findings: ['finding-1'],
+      negative_findings: [{ finding: 'finding-1' }],
       expires_at: '2027-10-17T00:00:00Z',
     };
 
     expect(report.report_name).toBe('Quarterly farm report');
     expect(report.frozen).toBe(true);
-    expect(report.negative_findings).toEqual(['finding-1']);
+    expect(report.negative_findings).toEqual([{ finding: 'finding-1' }]);
   });
 
   it('types harvest evidence and source lineage from the canonical schema', () => {

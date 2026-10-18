@@ -303,13 +303,13 @@ def test_report_snapshot_type_exposes_location_freeze_and_public_fields():
         created_by="operator-1",
         frozen=True,
         public_interest_summary="Public summary",
-        negative_findings=["finding-1"],
+        negative_findings=[{"finding": "finding-1"}],
         expires_at="2027-10-17T00:00:00Z",
     )
 
     assert report.report_name == "Quarterly farm report"
     assert report.frozen is True
-    assert report.negative_findings == ["finding-1"]
+    assert report.negative_findings == [{"finding": "finding-1"}]
 
 
 def test_export_log_type_exposes_canonical_export_table_fields():

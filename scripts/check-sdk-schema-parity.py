@@ -30,6 +30,32 @@ MODEL_TABLES = {
     "ReportSnapshot": ("007_modeled_outputs.sql", "report_snapshot"),
     "ExportLog": ("008_governance.sql", "export_log"),
 }
+JSONB_MODEL_SHAPES = {
+    ("Location", "baseline_assumptions"): "json_object",
+    ("Location", "metadata"): "json_object",
+    ("Farm", "metadata"): "json_object",
+    ("Farm", "data_privacy_criteria"): "json_object",
+    ("Plot", "metadata"): "json_object",
+    ("CropCycle", "metadata"): "json_object",
+    ("HarvestEvent", "source_raw"): "json_object",
+    ("SalesEvent", "source_raw"): "json_object",
+    ("ExpenseEvent", "source_raw"): "json_object",
+    ("NoiSnapshot", "inputs"): "json_object",
+    ("LossEvent", "source_raw"): "json_object",
+    ("LaborEvent", "source_raw"): "json_object",
+    ("FieldNote", "source_raw"): "json_object",
+    ("SensorReading", "metadata"): "json_object",
+    ("SensorReading", "source_raw"): "json_object",
+    ("SensorDevice", "metadata"): "json_object",
+    ("AlertRule", "metadata"): "json_object",
+    ("SensorAlert", "metadata"): "json_object",
+    ("SensorAlert", "actuation_response"): "json_object",
+    ("WalletProfile", "metadata"): "json_object",
+    ("AttestationRecord", "claim_data"): "json_object",
+    ("ReportSnapshot", "report_data"): "json_object",
+    ("ReportSnapshot", "negative_findings"): "json_object_array",
+    ("ExportLog", "filters"): "json_object",
+}
 
 
 def table_columns(path: Path, table: str) -> set[str]:
@@ -201,6 +227,8 @@ def table_column_types(path: Path, table: str) -> dict[str, str]:
 
 def sql_type_family(sql_type: str) -> str | None:
     normalized = sql_type.upper()
+    if normalized == "JSONB":
+        return "jsonb"
     if normalized == "UUID" or normalized in {
         "TEXT",
         "DATE",
@@ -241,6 +269,8 @@ def python_type_matches_family(annotation: str, family: str) -> bool:
         "string_array": {"List[str]", "list[str]"},
         "geojson_point": {"GeoJSONPoint"},
         "geojson_polygon": {"GeoJSONPolygon"},
+        "json_object": {"JSONObject"},
+        "json_object_array": {"List[JSONObject]", "list[JSONObject]"},
     }
     return normalized in compatible.get(family, set())
 
@@ -260,6 +290,8 @@ def typescript_type_matches_family(field_type: str, family: str) -> bool:
         "string_array": "string[]",
         "geojson_point": "GeoJSONPoint",
         "geojson_polygon": "GeoJSONPolygon",
+        "json_object": "JSONObject",
+        "json_object_array": "JSONObject[]",
     }.get(family)
     return normalized == expected
 
@@ -326,6 +358,7 @@ def main() -> int:
     checked_columns = 0
     checked_scalar_types = 0
     checked_spatial_types = 0
+    checked_json_shapes = 0
 
     for model, (schema_file, table) in MODEL_TABLES.items():
         columns = table_columns(schema_dir / schema_file, table)
@@ -368,12 +401,19 @@ def main() -> int:
             family = sql_type_family(sql_type)
             if family is None:
                 continue
+            if family == "jsonb":
+                family = JSONB_MODEL_SHAPES.get((model, column))
+                if family is None:
+                    failures.append(f"No JSONB SDK shape contract registered for {model}.{column}")
+                    continue
             python_type = python_field_types.get(model, {}).get(column)
             typescript_type = typescript_field_types.get(model, {}).get(column)
             if python_type is None or typescript_type is None:
                 continue
             if family.startswith("geojson_"):
                 checked_spatial_types += 1
+            elif family.startswith("json_"):
+                checked_json_shapes += 1
             else:
                 checked_scalar_types += 1
             if not python_type_matches_family(python_type, family):
@@ -394,8 +434,9 @@ def main() -> int:
 
     print(
         f"SDK schema parity passed ({len(MODEL_TABLES)} models, "
-        f"{checked_columns} canonical columns, {checked_scalar_types} scalar types, and "
-        f"{checked_spatial_types} PostGIS types checked per SDK)"
+        f"{checked_columns} canonical columns, {checked_scalar_types} scalar types, "
+        f"{checked_spatial_types} PostGIS types, and {checked_json_shapes} JSONB shapes "
+        "checked per SDK)"
     )
     return 0
 

@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (18 October 2026):** 545 checklist items complete and 19
-open (564 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
+**Current snapshot (18 October 2026):** 546 checklist items complete and 19
+open (565 total). The [capability matrix](capability-matrix.md) has 66 validated rows: 54
 baseline-retained, 7 deployed, and 5 prepared. Named MAN-CAP acceptance remains
 separate; none is marked accepted.
 
@@ -1249,7 +1249,8 @@ reporting views.
 - [x] Enforce TypeScript nullability for SQL-nullable fields in the SDK schema guard and fix `AlertRule.threshold_value_max`. The 20-model/473-column guard, 21 Python tests, 29 JavaScript tests, TypeScript build, Ruff, capability matrix, and diff checks pass ([evidence](builds/2026-10-17-recovery/sdk-typescript-nullability-guard.json)).
 - [x] Extend the SDK schema guard to require Python `Optional` annotations for nullable SQL columns too. All 20 models pass the Python and TypeScript nullability checks; SDK tests, TypeScript build, Ruff, capability-matrix validation, and diff checks pass ([evidence](builds/2026-10-17-recovery/sdk-python-nullability-guard.json)).
 - [x] Validate Python and TypeScript scalar field families against mapped PostgreSQL SQL types, including additive and type-alteration migrations. The guard checks 442 scalar types across 20 models; four parser/type-family regressions, 21 SDK tests, 29 JavaScript tests, TypeScript build, Ruff, matrix validation, and diff checks pass ([evidence](builds/2026-10-17-recovery/sdk-scalar-type-parity-guard.json)). JSONB semantic shapes and PostGIS values were tracked separately.
-- [x] Type the SDK's schema-constrained PostGIS columns as GeoJSON `Point` or `Polygon` in Python and TypeScript, export the shared shapes, and extend the offline schema guard to validate all seven spatial columns. Five schema-guard tests, 29 JavaScript tests, TypeScript build, Ruff, Python compilation, and the 20-model/473-column schema guard pass without database or network access ([evidence](builds/2026-10-18-recovery/sdk-postgis-shape-parity.json)). JSONB remains open because its SQL type permits arbitrary JSON and semantic object/array contracts require a separate field-level audit.
+- [x] Type the SDK's schema-constrained PostGIS columns as GeoJSON `Point` or `Polygon` in Python and TypeScript, export the shared shapes, and extend the offline schema guard to validate all seven spatial columns. Five schema-guard tests, 29 JavaScript tests, TypeScript build, Ruff, Python compilation, and the 20-model/473-column schema guard pass without database or network access ([evidence](builds/2026-10-18-recovery/sdk-postgis-shape-parity.json)). The SQL type still permits broader shapes in other columns; this source guard follows each mapped geometry subtype.
+- [x] Add recursive JSON value/object SDK aliases and declare object versus object-array contracts for all 24 mapped JSONB fields in Python and TypeScript. The offline schema guard verifies each field shape separately from SQL nullability and columns; it reports 20 models, 473 columns, 442 scalar types, seven PostGIS subtypes, and 24 JSONB contracts. Twenty-seven Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, capability-matrix validation, and diff checks pass offline ([evidence](builds/2026-10-18-recovery/sdk-jsonb-shape-parity.json)). These are SDK contracts, not PostgreSQL JSONB constraints or runtime payload validation.
 - [ ] With verification authorization, exercise transport and Directus parity gates.
 
 Gate: each optional adapter can be enabled/disabled independently with documented

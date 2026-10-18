@@ -3137,3 +3137,15 @@ only; it does not establish Directus projection behavior, GIS validity, or
 tenant authorization. JSONB semantic contracts remain under separate audit.
 Capability classifications and MAN-CAP acceptance do not change
 ([evidence](builds/2026-10-18-recovery/sdk-postgis-shape-parity.json)).
+
+### SDK JSONB contract types — 18 October 2026
+
+The Python and TypeScript SDKs now expose recursive JSON value/object aliases,
+and the source guard records the current semantic shape of all 24 JSONB fields
+in the mapped models. Twenty-three fields are typed as JSON objects and
+`ReportSnapshot.negative_findings` as an array of JSON objects. Twenty-seven
+Python SDK/guard tests, 29 JavaScript tests, TypeScript build, Ruff, guard, and
+matrix validation pass. These contracts describe the SDK surface; PostgreSQL
+JSONB remains unrestricted and no runtime payload validator was added. This
+does not establish Directus projection behavior or change capability/MAN-CAP
+classifications ([evidence](builds/2026-10-18-recovery/sdk-jsonb-shape-parity.json)).

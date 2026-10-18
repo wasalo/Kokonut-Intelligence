@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
+
+JSONScalar = Union[str, int, float, bool, None]
+JSONValue = Union[JSONScalar, List["JSONValue"], Dict[str, "JSONValue"]]
+JSONObject = Dict[str, JSONValue]
 
 GeoJSONPosition = List[float]
 
@@ -72,7 +76,7 @@ class Location:
     baseline_asset_value: Optional[float] = None
     baseline_cash_flow: Optional[float] = None
     baseline_cost: Optional[float] = None
-    baseline_assumptions: Optional[Dict[str, Any]] = None
+    baseline_assumptions: Optional[JSONObject] = None
     baseline_source: Optional[str] = None
     baseline_date: Optional[str] = None
     baseline_recorded_at: Optional[str] = None
@@ -83,7 +87,7 @@ class Location:
     organization_id: Optional[str] = None
     schema_version: Optional[str] = None
     status: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
@@ -109,12 +113,12 @@ class Farm:
     credits_registries: Optional[List[str]] = None
     data_privacy_status: Optional[str] = None
     data_privacy_standard: Optional[str] = None
-    data_privacy_criteria: Optional[Dict[str, Any]] = None
+    data_privacy_criteria: Optional[JSONObject] = None
     farm_type: Optional[str] = None
     total_area: Optional[float] = None
     area_unit: Optional[str] = None
     status: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
@@ -141,7 +145,7 @@ class Plot:
     slope_pct: Optional[float] = None
     aspect: Optional[str] = None
     status: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
@@ -173,7 +177,7 @@ class CropCycle:
     area_unit: Optional[str] = None
     status: Optional[str] = None
     failure_reason: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     schema_version: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -206,7 +210,7 @@ class HarvestEvent:
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
-    source_raw: Optional[Dict[str, Any]] = None
+    source_raw: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
@@ -245,7 +249,7 @@ class SalesEvent:
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
-    source_raw: Optional[Dict[str, Any]] = None
+    source_raw: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
@@ -290,7 +294,7 @@ class ExpenseEvent:
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
-    source_raw: Optional[Dict[str, Any]] = None
+    source_raw: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
@@ -323,7 +327,7 @@ class LossEvent:
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
-    source_raw: Optional[Dict[str, Any]] = None
+    source_raw: Optional[JSONObject] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_at: Optional[str] = None
@@ -352,7 +356,7 @@ class LaborEvent:
     rejection_reason: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
-    source_raw: Optional[Dict[str, Any]] = None
+    source_raw: Optional[JSONObject] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_at: Optional[str] = None
@@ -379,7 +383,7 @@ class FieldNote:
     schema_version: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
-    source_raw: Optional[Dict[str, Any]] = None
+    source_raw: Optional[JSONObject] = None
     created_at: Optional[str] = None
     created_by: Optional[str] = None
     updated_at: Optional[str] = None
@@ -398,11 +402,11 @@ class SensorReading:
     sensor_type: Optional[str] = None
     reading_time: Optional[str] = None
     quality: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     source_system: Optional[str] = None
     source_id: Optional[str] = None
-    source_raw: Optional[Dict[str, Any]] = None
+    source_raw: Optional[JSONObject] = None
     schema_version: Optional[str] = None
 
 
@@ -438,7 +442,7 @@ class SensorDevice:
     longitude: Optional[float] = None
     elevation_m: Optional[float] = None
     point_geometry: Optional[GeoJSONPoint] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
     created_by: Optional[str] = None
@@ -464,7 +468,7 @@ class AlertRule:
     actuator_command: Optional[str] = None
     actuator_topic: Optional[str] = None
     human_approval_required: Optional[bool] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -485,10 +489,10 @@ class SensorAlert:
     acknowledged_by: Optional[str] = None
     resolved_at: Optional[str] = None
     claim_id: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     actuation_sent: Optional[bool] = None
-    actuation_response: Optional[Dict[str, Any]] = None
+    actuation_response: Optional[JSONObject] = None
     actuation_status: Optional[str] = None
 
 
@@ -505,7 +509,7 @@ class WalletProfile:
     is_active: Optional[bool] = None
     first_seen_date: Optional[str] = None
     last_active_date: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[JSONObject] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -514,7 +518,7 @@ class WalletProfile:
 class AttestationRecord:
     id: str
     schema_id: str
-    claim_data: Dict[str, Any]
+    claim_data: JSONObject
     attestation_uid: Optional[str] = None
     claim_type: Optional[str] = None
     subject_id: Optional[str] = None
@@ -548,7 +552,7 @@ class AttestationRecord:
 class ReportSnapshot:
     id: str
     report_name: str
-    report_data: Dict[str, Any]
+    report_data: JSONObject
     report_type: Optional[str] = None
     location_id: Optional[str] = None
     period_start: Optional[str] = None
@@ -561,7 +565,7 @@ class ReportSnapshot:
     frozen_by: Optional[str] = None
     public_interest_summary: Optional[str] = None
     uncertainty_notes: Optional[str] = None
-    negative_findings: Optional[List[Any]] = None
+    negative_findings: Optional[List[JSONObject]] = None
     affected_community_voice: Optional[str] = None
     expires_at: Optional[str] = None
     created_at: Optional[str] = None
@@ -577,7 +581,7 @@ class ExportLog:
     entity_ids: Optional[List[str]] = None
     user_id: Optional[str] = None
     target_table: Optional[str] = None
-    filters: Optional[Dict[str, Any]] = None
+    filters: Optional[JSONObject] = None
     row_count: Optional[int] = None
     file_size_bytes: Optional[int] = None
     file_url: Optional[str] = None
@@ -603,5 +607,5 @@ class NoiSnapshot:
     loss_rate_pct: Optional[float] = None
     calculation_version: Optional[str] = None
     calculated_at: Optional[str] = None
-    inputs: Optional[Dict[str, Any]] = None
+    inputs: Optional[JSONObject] = None
     created_by: Optional[str] = None
