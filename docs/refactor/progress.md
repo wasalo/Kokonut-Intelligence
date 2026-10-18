@@ -1,5 +1,19 @@
 # Kokonut Kernel implementation progress
 
+### Private Data Stream response cache policy — 18 October 2026
+
+Private Data Stream post/search, attachment metadata, stored-attestation, and
+draft responses now use `Cache-Control: no-store`, including validation and
+tenant-denial responses. The existing response projections still omit storage
+URLs, Directus IDs, arbitrary metadata, and private evidence locators. The
+54-test Gateway Data Stream/auth/route-inventory suite passes, with Ruff,
+compilation, capability validation, and diff checks; all identities, database
+queries, and rows were mocked. CAP-022 is prepared, not accepted: signed
+attachment-byte delivery, live EAS validity, populated output parity, actual
+key provisioning, and domain RLS remain open. Checklist: 638 complete / 19
+open; matrix: 47 baseline-retained, 7 deployed, 12 prepared
+([evidence](builds/2026-10-18-recovery/gateway-data-stream-no-store.json)).
+
 ### Native credit-custody summary — 18 October 2026
 
 The OIDC operator API now exposes an aggregate credit-custody summary at

@@ -100,7 +100,20 @@ def get_route_policy(method: str, path: str) -> dict:
 
 def _internal_error(exc: Exception, message: str = "Gateway request failed"):
     logger.error("%s (%s)", message, safe_exception_class(exc))
-    return JSONResponse(status_code=500, content={"error": message})
+    return JSONResponse(
+        status_code=500,
+        content={"error": message},
+        headers={"Cache-Control": "no-store"},
+    )
+
+
+def _private_response(content: dict, status_code: int = 200):
+    """Build a non-cacheable response for authenticated private resources."""
+    return JSONResponse(
+        status_code=status_code,
+        content=content,
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 def _public_response(model, payload: dict):
@@ -326,7 +339,7 @@ async def get_public_analytics_summary_v1(location_id: str):
 
 @router.get("/data-stream/posts")
 async def list_data_stream_posts(request: Request):
-    """List or search tenant-scoped Data Stream posts."""
+        """List or search tenant-scoped Data Stream posts without caching content."""
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -348,20 +361,20 @@ async def list_data_stream_posts(request: Request):
             limit=limit,
             offset=offset,
         )
-        return {"data": rows}
+        return _private_response({"data": rows})
     except ValueError as exc:
-        return JSONResponse(status_code=400, content={"error": str(exc)})
+        return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
         from services.common.tenant_context import TenantContextDenied
 
         if isinstance(exc, TenantContextDenied):
-            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
         return _internal_error(exc)
 
 
 @router.get("/data-stream/posts/{post_id}/files")
 async def list_data_stream_post_files(post_id: str, request: Request):
-    """List safe, tenant-scoped metadata for a post's attachments."""
+    """List safe, tenant-scoped attachment metadata without caching it."""
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -373,20 +386,20 @@ async def list_data_stream_post_files(post_id: str, request: Request):
             request.query_params.get("location_id"),
             request.state.gateway_authorization,
         )
-        return {"data": rows}
+        return _private_response({"data": rows})
     except ValueError as exc:
-        return JSONResponse(status_code=400, content={"error": str(exc)})
+        return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
         from services.common.tenant_context import TenantContextDenied
 
         if isinstance(exc, TenantContextDenied):
-            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
         return _internal_error(exc)
 
 
 @router.get("/data-stream/posts/{post_id}/attestation")
 async def get_data_stream_post_attestation(post_id: str, request: Request):
-    """Read the stored attestation record; this endpoint does not query the chain."""
+    """Read stored attestation metadata without caching or querying the chain."""
     from starlette.concurrency import run_in_threadpool
 
     try:
@@ -399,15 +412,15 @@ async def get_data_stream_post_attestation(post_id: str, request: Request):
             request.state.gateway_authorization,
         )
         if row is None:
-            return JSONResponse(status_code=404, content={"error": "Data Stream post not found"})
-        return {"data": row}
+            return _private_response({"error": "Data Stream post not found"}, status_code=404)
+        return _private_response({"data": row})
     except ValueError as exc:
-        return JSONResponse(status_code=400, content={"error": str(exc)})
+        return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
         from services.common.tenant_context import TenantContextDenied
 
         if isinstance(exc, TenantContextDenied):
-            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
         return _internal_error(exc)
 
 
@@ -425,14 +438,14 @@ async def create_data_stream_post(request: Request):
             body,
             request.state.gateway_authorization,
         )
-        return JSONResponse(content={"post_id": result["id"]}, status_code=201)
+        return _private_response({"post_id": result["id"]}, status_code=201)
     except ValueError as exc:
-        return JSONResponse(status_code=400, content={"error": str(exc)})
+        return _private_response({"error": str(exc)}, status_code=400)
     except Exception as exc:
         from services.common.tenant_context import TenantContextDenied
 
         if isinstance(exc, TenantContextDenied):
-            return JSONResponse(status_code=403, content={"error": "Tenant access denied"})
+            return _private_response({"error": "Tenant access denied"}, status_code=403)
         return _internal_error(exc)
 
 

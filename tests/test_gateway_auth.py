@@ -272,6 +272,7 @@ def test_authenticated_write_passes_verified_middleware_context(monkeypatch):
 
     assert response.status_code == 201
     assert response.json() == {"post_id": "post-1"}
+    assert response.headers["cache-control"] == "no-store"
     assert create_post.call_args.args[0]["created_by"] == "spoofed-actor"
     assert create_post.call_args.args[1] == {
         "resource": "data_stream_post",
@@ -308,6 +309,7 @@ def test_data_stream_post_search_requires_location_read_scope(monkeypatch):
 
     assert response.status_code == 200
     assert response.json() == {"data": [{"id": "post-1", "location_id": location_id}]}
+    assert response.headers["cache-control"] == "no-store"
     assert list_posts.call_count == 1
     assert list_posts.call_args.args == (
         location_id,
@@ -321,6 +323,7 @@ def test_data_stream_post_search_requires_location_read_scope(monkeypatch):
     )
     assert list_posts.call_args.kwargs["query_text"] == "soil cover"
     assert denied.status_code == 403
+    assert denied.headers["cache-control"] == "no-store"
 
 
 def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkeypatch):
@@ -360,8 +363,10 @@ def test_data_stream_file_and_attestation_routes_use_separate_read_scopes(monkey
 
     assert files.status_code == 200
     assert files.json() == {"data": [{"id": "file-1", "file_name": "field-note.jpg"}]}
+    assert files.headers["cache-control"] == "no-store"
     assert proof.status_code == 200
     assert proof.json() == {"data": {"post_id": post_id, "request_status": "confirmed"}}
+    assert proof.headers["cache-control"] == "no-store"
     assert list_files.call_args.args[1] == location_id
     assert list_files.call_args.args[2]["resource"] == "data_stream_file"
     assert read_attestation.call_args.args[1] == location_id
