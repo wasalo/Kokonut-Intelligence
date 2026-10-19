@@ -1,3 +1,16 @@
+### CAP-027 reviewer console source implementation — 19 October 2026
+
+The operator console now shows the Delphi recommendation review panel only to
+operators with an exact `delphi:review` grant for a location. The queue is
+loaded with no-store requests; approval is hidden when the database reports
+blockers, creator self-review is blocked, and rejection uses only allowlisted
+reason codes. Decisions use CSRF protection and stable request IDs across
+identical retries. Five focused console contract checks pass, including Node.js
+parsing of the inline JavaScript. Live OIDC/browser acceptance, broader Delphi
+parity, ACL/RLS, and owner acceptance remain open. Checklist: 667 complete / 19
+open; capability counts remain
+42 baseline-retained, 7 deployed, and 17 prepared ([contract](delphi-consultation-kernel-contract.md); [console](../../apps/operator-console/index.html)).
+
 ### CAP-027 recommendation review acceptance — 19 October 2026
 
 Migration 450 now passes the corrected disposable PostgreSQL 16 acceptance: it
@@ -7,9 +20,8 @@ immutable audit, and runtime/Directus direct-table denial. The non-login
 function owner receives only `UPDATE(id)` to lock the related study row. The 119
 focused CAP-027 Gateway, route-policy, Delphi, and migration checks pass. The
 candidate and legacy databases were not touched; migration 450 remains
-unapplied there. CAP-027 remains prepared, with live OIDC/browser behavior, the
-reviewer console, broader lifecycle and populated parity, universal ACL/RLS,
-and owner acceptance still open. Checklist: 665 complete / 19 open; capability
+unapplied there. CAP-027 remains prepared, with live OIDC/browser behavior, broader lifecycle and populated parity,
+universal ACL/RLS, and owner acceptance still open. Checklist: 667 complete / 19 open; capability
 counts remain 42 baseline-retained, 7 deployed, and 17 prepared ([contract](delphi-consultation-kernel-contract.md); [migration](../../schemas/postgres/450_location_scoped_delphi_recommendation_review.sql); [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json)).
 
 # Kokonut Kernel implementation progress
@@ -257,7 +269,7 @@ including JavaScript syntax and static console/route contract checks. Ruff,
 compilation, capability validation, runtime SQL inventory, and diff checks pass.
 No browser session or candidate/legacy database was used. CAP-024 remains
 prepared, not accepted; operator/person binding and the least-privilege
-candidate runtime login remain rollout requirements ([console](../../apps/operator-console/index.html);
+candidate runtime login remain rollout requirements ([console](../../../apps/operator-console/index.html);
 [tests](../../tests/test_operator_console_governance_assignment_proposals.py); [evidence](builds/2026-10-18-recovery/governance-assignment-console-contract.json)).
 
 ### CAP-024 operator nomination readback — 18 October 2026
@@ -10743,8 +10755,8 @@ migration 450 disposable PostgreSQL acceptance applies and replays migrations
 gates, retries, immutable audit, and runtime/Directus direct-table denial. The
 row-lock correction grants only `UPDATE(id)` to the non-login function owner.
 Candidate and legacy databases were not modified; migration 450 is not rolled
-out. CAP-027 stays prepared (`P`), not accepted. Checklist: 665 complete / 19
+out. CAP-027 stays prepared (`P`), not accepted. Checklist: 667 complete / 19
 open; the 66-row matrix remains 42 baseline-retained, 7 deployed, and 17
-prepared. Live OIDC/browser use, reviewer console, full Delphi lifecycle parity,
+prepared. Live OIDC/browser use, full Delphi lifecycle parity,
 populated parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance
 remain open. Evidence: [contract](delphi-consultation-kernel-contract.md), [focused tests](../tests/test_gateway_delphi_recommendation_review.py), and [disposable migration evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json).

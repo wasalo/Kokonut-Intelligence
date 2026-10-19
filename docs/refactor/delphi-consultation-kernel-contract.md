@@ -67,6 +67,16 @@ the view does not expose recommendation text. This Kernel route adds no separate
 publish action or publication surface. This approval behavior must be included
 in human review acceptance.
 
+The operator console shows this panel only when the signed-in session includes
+an exact `delphi:review` grant for the selected location. It loads the draft
+text through no-store requests, displays database blockers, hides approval when
+the queue says review is not ready, and withholds both decisions for the
+creator's own draft. Decisions use CSRF protection and only the database's
+allowlisted reason codes. A browser-generated request UUID is retained for an
+identical retry. Five focused console contract checks pass, including Node.js
+parsing of the inline application script. The console has not been accepted
+through live OIDC/browser use.
+
 ## Database boundary and limitations
 
 Migration 449 creates a non-login, non-inheriting read-function owner with only
@@ -97,6 +107,8 @@ the PostgreSQL row-lock privilege requirement; migration 450 now grants only
 `UPDATE(id)` to the non-login function owner for locking the study row. The
 corrected run passes. Candidate and legacy databases remain untouched, and
 migration 450 has not been rolled out there.
+The five focused console contract and inline JavaScript syntax checks also pass
+([console tests](../../tests/test_operator_console_delphi_recommendation_review.py)).
 
 Before migration 449 or 450 is applied, roll back by removing the routes,
 services, route policies, and migrations from the proposed deployment. After

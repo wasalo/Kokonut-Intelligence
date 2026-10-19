@@ -110,6 +110,23 @@
             <pre id="report-data"></pre>
           </section>
         </section>
+        <section id="delphi-recommendation-review" hidden aria-labelledby="delphi-recommendation-review-heading">
+          <h2 id="delphi-recommendation-review-heading">Delphi recommendation review</h2>
+          <p class="muted">Review facilitator recommendation drafts for locations explicitly granted to your account. Approval requires a separate reviewer, a recorded diversity assessment, and completed minority-report review. This records an approval decision only; it does not publish the recommendation.</p>
+          <div class="toolbar">
+            <label for="delphi-recommendation-review-location">Granted location</label>
+            <select id="delphi-recommendation-review-location"></select>
+            <button id="delphi-recommendation-review-refresh" type="button">Refresh review queue</button>
+          </div>
+          <p id="delphi-recommendation-review-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Study</th><th>Readiness</th><th>Created</th><th>Decision</th></tr></thead>
+              <tbody id="delphi-recommendation-review-rows"></tbody>
+            </table>
+          </div>
+          <button id="delphi-recommendation-review-more" class="secondary" type="button" hidden>Load more drafts</button>
+        </section>
         <section id="governance-tension-review" hidden aria-labelledby="governance-tension-review-heading">
           <h2 id="governance-tension-review-heading">Governance tension review</h2>
           <p class="muted">Review submitted and actively managed tensions at locations explicitly granted to your account. Reporter identities, evidence payloads, and private event notes are omitted. This panel does not triage, assign, resolve, verify, or approve tensions.</p>
@@ -541,7 +558,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, farm activity, enrollment, or role-assignment review locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, farm activity, enrollment, Delphi review, or role-assignment review locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -557,6 +574,15 @@
       const queueStatus = document.querySelector("#queue-status");
       const detail = document.querySelector("#report-detail");
       const reportData = document.querySelector("#report-data");
+      const delphiRecommendationReview = document.querySelector("#delphi-recommendation-review");
+      const delphiRecommendationReviewLocation = document.querySelector("#delphi-recommendation-review-location");
+      const delphiRecommendationReviewStatus = document.querySelector("#delphi-recommendation-review-status");
+      const delphiRecommendationReviewRows = document.querySelector("#delphi-recommendation-review-rows");
+      const delphiRecommendationReviewMore = document.querySelector("#delphi-recommendation-review-more");
+      let delphiRecommendationReviewLocations = new Set();
+      let delphiRecommendationReviewOffset = 0;
+      let delphiRecommendationReviewRequestVersion = 0;
+      let delphiRecommendationRequestIds = new Map();
       const governanceTensionReview = document.querySelector("#governance-tension-review");
       const governanceTensionLocation = document.querySelector("#governance-tension-location");
       const governanceTensionStatusFilter = document.querySelector("#governance-tension-status-filter");
@@ -770,6 +796,13 @@
           const reviewLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "report_snapshot_review" && scope.action === "read")
             .map((scope) => scope.location_id))];
+          const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
+          const delphiReviewLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "delphi" && scope.action === "review")
+            .map((scope) => scope.location_id)
+            .filter(validDelphiReviewLocation))];
+          delphiRecommendationReviewLocations = new Set(delphiReviewLocationIds);
           const governanceTensionLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "governance_tension" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -965,6 +998,17 @@
             await loadQueue();
             hasAuthorizedSurface = true;
           }
+          if (delphiReviewLocationIds.length) {
+            for (const locationId of delphiReviewLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              delphiRecommendationReviewLocation.append(option);
+            }
+            delphiRecommendationReview.hidden = false;
+            await loadDelphiRecommendationReviewQueue();
+            hasAuthorizedSurface = true;
+          }
           if (governanceTensionLocations.length) {
             for (const locationId of governanceTensionLocations) {
               const option = document.createElement("option");
@@ -1053,6 +1097,193 @@
           document.querySelector("#no-grants").hidden = hasAuthorizedSurface;
         } catch {
           status.textContent = "Operator session could not be checked. Retry after the service is available.";
+        }
+      }
+
+      async function loadDelphiRecommendationReviewQueue(append = false) {
+        const locationId = delphiRecommendationReviewLocation.value;
+        const requestVersion = ++delphiRecommendationReviewRequestVersion;
+        if (!append) {
+          delphiRecommendationReviewRows.replaceChildren();
+          delphiRecommendationReviewOffset = 0;
+        }
+        delphiRecommendationReviewMore.hidden = true;
+        if (!delphiRecommendationReviewLocations.has(locationId)) {
+          delphiRecommendationReviewStatus.textContent = "A location-scoped Delphi review grant is required.";
+          return;
+        }
+        delphiRecommendationReviewStatus.textContent = "Loading facilitator recommendation drafts…";
+        const params = new URLSearchParams({ limit: "50", offset: String(delphiRecommendationReviewOffset) });
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/recommendations?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== delphiRecommendationReviewRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi review grant is not valid.");
+          }
+          if (!response.ok) throw new Error("The Delphi recommendation review queue is unavailable.");
+          const result = await response.json();
+          const recommendations = Array.isArray(result.recommendations) ? result.recommendations : [];
+          for (const recommendation of recommendations) {
+            const row = document.createElement("tr");
+            const studyCell = document.createElement("td");
+            const studyTitleText = String(recommendation.study_title || "Untitled study");
+            const studyTitle = document.createElement("strong");
+            studyTitle.textContent = studyTitleText;
+            const studyStatus = document.createElement("p");
+            studyStatus.className = "muted";
+            studyStatus.textContent = `Study status: ${String(recommendation.study_status || "unknown")}`;
+            const draft = document.createElement("details");
+            const draftSummary = document.createElement("summary");
+            draftSummary.textContent = "Read facilitator draft";
+            const draftDescription = document.createElement("p");
+            draftDescription.textContent = String(recommendation.summary || "No summary provided.");
+            const draftText = document.createElement("p");
+            draftText.textContent = String(recommendation.recommendation_text || "No recommendation text provided.");
+            draft.append(draftSummary, draftDescription, draftText);
+            studyCell.append(studyTitle, studyStatus, draft);
+
+            const blockers = Array.isArray(recommendation.blocked_reasons)
+              ? recommendation.blocked_reasons.map((reason) => String(reason))
+              : [];
+            const readyForApproval = recommendation.review_ready === true && blockers.length === 0;
+            const readinessCell = document.createElement("td");
+            const readiness = document.createElement("strong");
+            readiness.textContent = readyForApproval ? "Ready for approval" : "Approval blocked";
+            readinessCell.append(readiness);
+            if (blockers.length) {
+              const blockerList = document.createElement("ul");
+              for (const reason of blockers) {
+                const item = document.createElement("li");
+                item.textContent = reason;
+                blockerList.append(item);
+              }
+              readinessCell.append(blockerList);
+            }
+
+            const createdCell = document.createElement("td");
+            createdCell.textContent = recommendation.created_at
+              ? new Date(recommendation.created_at).toLocaleString()
+              : "—";
+
+            const decisionCell = document.createElement("td");
+            const selfReviewBlocked = blockers.includes("self_review");
+            if (!selfReviewBlocked && readyForApproval) {
+              const approveButton = document.createElement("button");
+              approveButton.type = "button";
+              approveButton.textContent = "Approve draft";
+              approveButton.setAttribute("aria-label", `Approve facilitator draft for ${studyTitleText}`);
+              approveButton.addEventListener("click", () => submitDelphiRecommendationDecision(
+                recommendation, "approve", "approved_after_review", approveButton
+              ));
+              decisionCell.append(approveButton);
+            }
+            if (!selfReviewBlocked) {
+              const reasonCode = document.createElement("select");
+              reasonCode.setAttribute("aria-label", `Rejection reason code for ${studyTitleText}`);
+              for (const [value, label] of [
+                ["insufficient_evidence", "Insufficient evidence"],
+                ["privacy_concern", "Privacy concern"],
+                ["minority_report_open", "Minority report remains open"],
+                ["other", "Other review outcome"],
+              ]) {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = label;
+                reasonCode.append(option);
+              }
+              const rejectButton = document.createElement("button");
+              rejectButton.type = "button";
+              rejectButton.className = "secondary";
+              rejectButton.textContent = "Reject draft";
+              rejectButton.setAttribute("aria-label", `Reject facilitator draft for ${studyTitleText}`);
+              rejectButton.addEventListener("click", () => submitDelphiRecommendationDecision(
+                recommendation, "reject", reasonCode.value, rejectButton
+              ));
+              decisionCell.append(reasonCode, rejectButton);
+            } else {
+              const note = document.createElement("span");
+              note.textContent = "The facilitator cannot review their own draft.";
+              decisionCell.append(note);
+            }
+            row.append(studyCell, readinessCell, createdCell, decisionCell);
+            delphiRecommendationReviewRows.append(row);
+          }
+          delphiRecommendationReviewOffset += recommendations.length;
+          delphiRecommendationReviewMore.hidden = result.has_more !== true;
+          const count = delphiRecommendationReviewRows.rows.length;
+          delphiRecommendationReviewStatus.textContent = count
+            ? `${count} facilitator draft${count === 1 ? "" : "s"} loaded. Approval blockers are enforced by the database.`
+            : "No facilitator recommendation drafts are awaiting review for this location.";
+        } catch (error) {
+          if (requestVersion === delphiRecommendationReviewRequestVersion) {
+            delphiRecommendationReviewStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function submitDelphiRecommendationDecision(recommendation, decision, reasonCode, button) {
+        const locationId = delphiRecommendationReviewLocation.value;
+        if (!delphiRecommendationReviewLocations.has(locationId)) {
+          delphiRecommendationReviewStatus.textContent = "A location-scoped Delphi review grant is required.";
+          return;
+        }
+        if (decision === "approve" && (recommendation.review_ready !== true
+            || (Array.isArray(recommendation.blocked_reasons)
+              && recommendation.blocked_reasons.length > 0))) {
+          delphiRecommendationReviewStatus.textContent = "Approval is unavailable while review blockers remain.";
+          return;
+        }
+        if (Array.isArray(recommendation.blocked_reasons)
+            && recommendation.blocked_reasons.includes("self_review")) {
+          delphiRecommendationReviewStatus.textContent = "The facilitator cannot review their own draft.";
+          return;
+        }
+        const csrf = csrfToken();
+        const requestKey = [locationId, recommendation.recommendation_id, decision, reasonCode].join(":");
+        let requestId = delphiRecommendationRequestIds.get(requestKey);
+        if (!requestId) {
+          requestId = globalThis.crypto?.randomUUID?.();
+          if (requestId) delphiRecommendationRequestIds.set(requestKey, requestId);
+        }
+        if (!csrf || !requestId) {
+          delphiRecommendationReviewStatus.textContent = "Refresh in a secure browser session before recording a decision.";
+          return;
+        }
+        button.disabled = true;
+        delphiRecommendationReviewStatus.textContent = `Recording ${decision} decision…`;
+        try {
+          const response = await fetch(
+            `/operator/api/delphi/${encodeURIComponent(locationId)}/recommendations/${encodeURIComponent(recommendation.recommendation_id)}/decision`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ decision, request_id: requestId, reason_code: reasonCode }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-specific Delphi review grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error("The recommendation is no longer reviewable. Refresh the queue before continuing.");
+          }
+          if (!response.ok) throw new Error(result.error || `The ${decision} decision could not be recorded.`);
+          delphiRecommendationRequestIds.delete(requestKey);
+          await loadDelphiRecommendationReviewQueue();
+          delphiRecommendationReviewStatus.textContent = `The recommendation was ${result.status || (decision === "approve" ? "approved" : "rejected")}.`;
+        } catch (error) {
+          delphiRecommendationReviewStatus.textContent = error.message;
+        } finally {
+          button.disabled = false;
         }
       }
 
@@ -3579,6 +3810,9 @@
 
       document.querySelector("#refresh").addEventListener("click", loadQueue);
       locationSelect.addEventListener("change", loadQueue);
+      document.querySelector("#delphi-recommendation-review-refresh").addEventListener("click", () => loadDelphiRecommendationReviewQueue());
+      delphiRecommendationReviewLocation.addEventListener("change", () => loadDelphiRecommendationReviewQueue());
+      delphiRecommendationReviewMore.addEventListener("click", () => loadDelphiRecommendationReviewQueue(true));
       document.querySelector("#governance-tension-refresh").addEventListener("click", () => loadGovernanceTensionQueue());
       governanceTensionLocation.addEventListener("change", () => loadGovernanceTensionQueue());
       governanceTensionStatusFilter.addEventListener("change", () => loadGovernanceTensionQueue());
