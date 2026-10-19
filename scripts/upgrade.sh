@@ -18,6 +18,7 @@ CONFIRM=false
 SKIP_REFERENCE_SEEDS=false
 CHECKPOINT=""
 UPGRADE_ROW_CREATED=false
+UPGRADE_ROW_ID=""
 
 usage() {
     cat <<'EOF'
@@ -60,20 +61,36 @@ db_query() {
         -v ON_ERROR_STOP=1 -A -t "$@"
 }
 
-record_upgrade() {
-    local status="$1"
-    local backup_id="${2:-}"
-    local failure_reason="${3:-}"
+record_upgrade_started() {
+    local backup_id="$1"
     db_query \
         -v target_version="$TARGET_VERSION" \
         -v target_sha="$TARGET_SHA" \
         -v operator="$UPGRADE_OPERATOR" \
         -v backup_id="$backup_id" \
-        -v status="$status" \
-        -v failure_reason="$failure_reason" \
         -c "INSERT INTO platform_upgrade
             (target_version, target_git_sha, backup_id, status, operator, failure_reason)
-            VALUES (:'target_version', :'target_sha', NULLIF(:'backup_id', ''), :'status', :'operator', NULLIF(:'failure_reason', ''))"
+            VALUES (:'target_version', :'target_sha', NULLIF(:'backup_id', ''), 'started', :'operator', NULL)
+            RETURNING id"
+}
+
+finish_upgrade() {
+    local status="$1"
+    local failure_reason="${2:-}"
+    local updated_id
+    updated_id="$(db_query \
+        -v upgrade_id="$UPGRADE_ROW_ID" \
+        -v status="$status" \
+        -v failure_reason="$failure_reason" \
+        -c "UPDATE platform_upgrade
+            SET status = :'status', completed_at = NOW(),
+                failure_reason = NULLIF(:'failure_reason', '')
+            WHERE id = :'upgrade_id' AND status = 'started'
+            RETURNING id")"
+    if [ "$updated_id" != "$UPGRADE_ROW_ID" ]; then
+        echo "Could not update the active platform upgrade record." >&2
+        return 1
+    fi
 }
 
 latest_version() {
@@ -122,15 +139,23 @@ fi
 if [ -f "$PROJECT_DIR/schemas/postgres/351_platform_upgrade.sql" ]; then
     # The history table is created by the migration itself on first upgrade.
     if db_query -c "SELECT to_regclass('public.platform_upgrade')" | grep -q platform_upgrade; then
-        record_upgrade started "$CHECKPOINT"
+        UPGRADE_ROW_ID="$(record_upgrade_started "$CHECKPOINT")"
         UPGRADE_ROW_CREATED=true
     fi
 fi
 
 on_error() {
     local exit_code="$1"
+    if [ "$UPGRADE_ROW_CREATED" = "false" ] && \
+        db_query -c "SELECT to_regclass('public.platform_upgrade')" | grep -q platform_upgrade; then
+        # The migration may have created the history table before a later
+        # migration failed on a first-time upgrade.
+        if UPGRADE_ROW_ID="$(record_upgrade_started "$CHECKPOINT")"; then
+            UPGRADE_ROW_CREATED=true
+        fi
+    fi
     if [ "$UPGRADE_ROW_CREATED" = "true" ]; then
-        record_upgrade failed "$CHECKPOINT" "upgrade command failed with exit code $exit_code" || true
+        finish_upgrade failed "upgrade command failed with exit code $exit_code" || true
     fi
     echo "Upgrade failed; inspect logs and use rollback.sh with the checkpoint." >&2
     exit "$exit_code"
@@ -144,7 +169,7 @@ python3 -m services.migration migrate
 
 if [ "$UPGRADE_ROW_CREATED" = "false" ] && db_query -c "SELECT to_regclass('public.platform_upgrade')" | grep -q platform_upgrade; then
     # The history table may itself be introduced by this first upgrade.
-    record_upgrade started "$CHECKPOINT"
+    UPGRADE_ROW_ID="$(record_upgrade_started "$CHECKPOINT")"
     UPGRADE_ROW_CREATED=true
 fi
 
@@ -165,7 +190,7 @@ for attempt in $(seq 1 30); do
     fi
     if [ "$attempt" -eq 30 ]; then
         echo "Post-upgrade health verification failed." >&2
-        exit 1
+        on_error 1
     fi
     sleep 10
 done
@@ -173,10 +198,11 @@ done
 "$SCRIPT_DIR/verify-platform.sh"
 
 if db_query -c "SELECT to_regclass('public.platform_upgrade')" | grep -q platform_upgrade; then
-    db_query -v target_version="$TARGET_VERSION" -v target_sha="$TARGET_SHA" -v backup_id="$CHECKPOINT" \
-        -c "UPDATE platform_upgrade SET status = 'succeeded', completed_at = NOW(),
-            target_version = :'target_version', target_git_sha = :'target_sha'
-            WHERE id = (SELECT id FROM platform_upgrade WHERE status = 'started' ORDER BY started_at DESC LIMIT 1)"
+    if [ "$UPGRADE_ROW_CREATED" = "false" ]; then
+        UPGRADE_ROW_ID="$(record_upgrade_started "$CHECKPOINT")"
+        UPGRADE_ROW_CREATED=true
+    fi
+    finish_upgrade succeeded
 fi
 
 trap - ERR

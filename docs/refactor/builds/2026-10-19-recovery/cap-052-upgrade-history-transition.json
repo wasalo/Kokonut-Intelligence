@@ -1,0 +1,30 @@
+{
+  "capability": "CAP-052",
+  "title": "Upgrade history row transitions",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and focused checks pass; capability not accepted",
+  "changes": [
+    "Upgrade start captures the UUID returned by the platform_upgrade insert.",
+    "Success and failure update only that captured row while it is still started.",
+    "The error path no longer inserts a second failed row that leaves the partial unique started-row index occupied.",
+    "If a first-time migration creates platform_upgrade before a later step fails, the error handler creates and closes that run's row.",
+    "Post-upgrade health timeout explicitly invokes the failure transition instead of relying on the ERR trap for an exit builtin."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_upgrade.py -q",
+    "result": "14 passed",
+    "shell_syntax": "bash -n scripts/upgrade.sh: passed",
+    "specific_cases": [
+      "Static regression verifies the captured run ID is used for the started-to-terminal transition.",
+      "Failure and success paths transition the exact row and the old latest-started lookup is absent.",
+      "The health-timeout path calls the failure handler explicitly.",
+      "Backup tamper detection and rollback confirmation regressions pass."
+    ]
+  },
+  "scope_limits": [
+    "No candidate or legacy database was contacted and no upgrade or rollback was executed.",
+    "Live migration failure, backup restore, rollback, and release checksum parity remain unassessed.",
+    "CAP-052 remains unaccepted pending end-to-end upgrade and recovery parity plus MAN-CAP-052 review."
+  ]
+}

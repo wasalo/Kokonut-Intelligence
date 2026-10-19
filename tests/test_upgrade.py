@@ -45,6 +45,19 @@ def test_upgrade_does_not_pull_or_load_pilot_data_by_default():
     assert "113_pilot_organization.sql" not in seed_source
 
 
+def test_upgrade_transitions_the_exact_started_history_row():
+    source = (SCRIPTS / "upgrade.sh").read_text(encoding="utf-8")
+
+    assert "UPGRADE_ROW_ID=\"$(record_upgrade_started \"$CHECKPOINT\")\"" in source
+    assert "WHERE id = :'upgrade_id' AND status = 'started'" in source
+    assert "finish_upgrade failed \"upgrade command failed with exit code $exit_code\"" in source
+    assert "The migration may have created the history table before a later" in source
+    assert "finish_upgrade succeeded" in source
+    assert "Post-upgrade health verification failed." in source
+    assert 'on_error 1' in source
+    assert "ORDER BY started_at DESC LIMIT 1)" not in source
+
+
 def test_reference_only_seed_mode_skips_schema_bootstrap():
     source = (SCRIPTS / "seed.sh").read_text(encoding="utf-8")
 

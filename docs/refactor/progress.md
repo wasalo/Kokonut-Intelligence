@@ -11217,3 +11217,16 @@ rejection. Ruff and compilation pass. Legacy seeded fixtures, accepted
 tolerance, and broader tactical-model parity remain open. No database or
 governed state was touched. Checklist: 685 complete / 24 open; matrix
 classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-050-simulation-determinism.json).
+
+### CAP-052 platform upgrade history — 19 October 2026
+
+Upgrade runs capture their `platform_upgrade` UUID and update that exact row
+on success or failure. This prevents failed runs from leaving the partial
+unique `started` row active and prevents completion from updating a different
+concurrent run. The health-timeout branch explicitly uses the failure handler
+instead of relying on Bash `ERR` trap behavior for `exit`.
+
+Fourteen focused upgrade-script tests and `bash -n scripts/upgrade.sh` pass.
+No database or live upgrade/rollback was exercised. Backup restore and release
+checksum parity remain open. Checklist: 685 complete / 24 open; matrix
+classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-052-upgrade-history-transition.json).
