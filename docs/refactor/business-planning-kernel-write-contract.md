@@ -38,10 +38,16 @@ canvas DML from CLI or Directus roles. This keeps legacy create/edit workflows
 working while their authenticated replacements are built. It also means this
 slice does not establish universal canvas write isolation or RLS.
 
-The legacy one-click suggestion pipeline and thirteen-section status report
-remain separate. This route accepts a caller-composed draft; it is not a parity
-claim for generated suggestions, aggregate status, existing canvas edits, or
-version history.
+The legacy one-click suggestion helper now uses current schema fields and
+location-bound records, filters to verified/published business data, groups
+expenses by native currency, and includes feedback only when it is public,
+consented, and has at least five identified respondents. Its source queries are
+covered by focused offline tests. This helper is still a legacy CLI/service
+path: it is not called by the Kernel route and does not close the gap for a
+Gateway-native generated draft. The thirteen-section status report also remains
+separate. This route accepts a caller-composed draft; it is not a parity claim
+for generated suggestions, aggregate status, existing canvas edits, or version
+history.
 
 ## Verification boundary
 

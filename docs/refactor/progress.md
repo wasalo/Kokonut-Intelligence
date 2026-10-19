@@ -11,10 +11,17 @@ Gateway/auth/policy/migration/report selection passes 105 tests; disposable
 PostgreSQL 16 applies/replays migrations 457 and 463 and passes eight acceptance
 groups. Ruff, compilation, capability-matrix validation, and diff checks pass.
 Candidate and legacy databases are untouched; migration 463 is not rolled out.
-CAP-065 is prepared, not accepted. Generated one-click suggestions,
+The legacy one-click source helper now uses current schema fields and exact
+location filters, includes only verified/published business records, preserves
+native expense currencies, and suppresses non-public feedback; its five
+focused suggestion tests pass. Eight database-backed service tests skipped
+because local PostgreSQL is unavailable. This does not create a Gateway-native
+suggestion workflow or establish populated parity.
+
+CAP-065 is prepared, not accepted. Gateway-native generated suggestions,
 thirteen-section status, edit/version and populated-output parity, live
 OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain open. Checklist:
-686 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+687 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 See the [write contract](business-planning-kernel-write-contract.md),
 [Gateway tests](../tests/test_gateway_business_planning_writes.py), and
 [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-create-disposable.json).
