@@ -124,16 +124,23 @@ CREATE TABLE public.governance_tension_event (
 
 CREATE TABLE public.governance_circle (
     id UUID PRIMARY KEY,
+    circle_key TEXT,
+    name TEXT,
+    purpose TEXT,
     scope_type TEXT NOT NULL,
     scope_id UUID,
-    status TEXT NOT NULL
+    status TEXT NOT NULL,
+    created_by_party_id UUID REFERENCES public.party(id),
+    retired_at TIMESTAMPTZ
 );
 CREATE TABLE public.governance_role (
     id UUID PRIMARY KEY,
     circle_id UUID NOT NULL REFERENCES public.governance_circle(id),
     role_key TEXT NOT NULL DEFAULT 'test_role',
     name TEXT NOT NULL DEFAULT 'Test Role',
-    status TEXT NOT NULL
+    purpose TEXT,
+    status TEXT NOT NULL,
+    created_by_party_id UUID REFERENCES public.party(id)
 );
 CREATE TABLE public.governance_role_assignment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -153,6 +160,8 @@ CREATE TABLE public.governance_role_assignment (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     CHECK (status <> 'active' OR approved_by_party_id IS NOT NULL)
 );
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.governance_circle, public.governance_role
+    TO kokonut_runtime, kokonut_directus_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.governance_role_assignment
     TO kokonut_runtime, kokonut_directus_runtime;
 
@@ -176,7 +185,7 @@ INSERT INTO public.party VALUES
     ('a0000000-0000-4000-8000-000000000503', 'organization', 'Not a person', 'active'),
     ('a0000000-0000-4000-8000-000000000504', 'person', 'Retired Person', 'retired'),
     ('a0000000-0000-4000-8000-000000000505', 'person', 'Person Three', 'active');
-INSERT INTO public.governance_circle VALUES
+INSERT INTO public.governance_circle (id, scope_type, scope_id, status) VALUES
     ('a0000000-0000-4000-8000-000000000801', 'location', 'a0000000-0000-4000-8000-000000000201', 'active'),
     ('a0000000-0000-4000-8000-000000000802', 'network', NULL, 'active');
 INSERT INTO public.governance_role (id, circle_id, role_key, name, status) VALUES

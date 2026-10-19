@@ -23,6 +23,7 @@ _PARAMETER_SAMPLES = {
     "activity_id": "55555555-5555-4555-8555-555555555555",
     "tension_id": "66666666-6666-4666-8666-666666666666",
     "role_id": "77777777-7777-4777-8777-777777777777",
+    "circle_id": "77777777-7777-4777-8777-777777777777",
     "assignment_id": "88888888-8888-4888-8888-888888888888",
     "item_id": "99999999-9999-4999-8999-999999999999",
     "device_id": "collector-1",
@@ -101,6 +102,34 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777",
     ): _expected("governance_roles", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/circles/77777777-7777-4777-8777-777777777777/submit",
+    ): _expected("governance_roles", "submit", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/circles/77777777-7777-4777-8777-777777777777/activate",
+    ): _expected("governance_roles", "activate", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/circles/77777777-7777-4777-8777-777777777777/suspend",
+    ): _expected("governance_roles", "suspend", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777/submit",
+    ): _expected("governance_roles", "submit", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777/approve",
+    ): _expected("governance_roles", "approve", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777/activate",
+    ): _expected("governance_roles", "activate", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777/retire",
+    ): _expected("governance_roles", "retire", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777/assignments",
@@ -281,6 +310,16 @@ _EXPECTED_OPERATOR_POLICIES = {
         additional=(("mobile_collection_review", "read"),),
     ),
 }
+for _action in ("submit", "reject", "activate", "suspend", "retire"):
+    _EXPECTED_OPERATOR_POLICIES[(
+        "POST",
+        f"/operator/api/governance/{_LOCATION_ID}/circles/77777777-7777-4777-8777-777777777777/{_action}",
+    )] = _expected("governance_roles", _action, scoped=True, location_id=_LOCATION_ID)
+for _action in ("submit", "approve", "reject", "activate", "suspend", "retire"):
+    _EXPECTED_OPERATOR_POLICIES[(
+        "POST",
+        f"/operator/api/governance/{_LOCATION_ID}/roles/77777777-7777-4777-8777-777777777777/{_action}",
+    )] = _expected("governance_roles", _action, scoped=True, location_id=_LOCATION_ID)
 for _route_action, _policy_action in _TRANSITION_ACTIONS.items():
     _EXPECTED_OPERATOR_POLICIES[
         (

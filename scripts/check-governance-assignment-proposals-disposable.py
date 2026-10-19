@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise governance role nomination, review, and tactical actions on disposable PostgreSQL 16."""
+"""Exercise governance role nomination, review, definition lifecycle, and tactical actions on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/439_governance_role_assignment_proposal_readback.sql",
     ROOT / "schemas/postgres/440_governance_role_assignment_review.sql",
     ROOT / "schemas/postgres/441_governance_tactical_actions.sql",
+    ROOT / "schemas/postgres/442_governance_definition_lifecycle.sql",
 )
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json"
 
@@ -40,6 +41,8 @@ TACTICAL_CANCEL_ITEM = "a0000000-0000-4000-8000-000000000913"
 TACTICAL_ROLE_ITEM = "a0000000-0000-4000-8000-000000000914"
 TACTICAL_COMPLETED_SESSION_ITEM = "a0000000-0000-4000-8000-000000000915"
 TACTICAL_NETWORK_ROLE_ITEM = "a0000000-0000-4000-8000-000000000916"
+DEFINITION_CIRCLE = "a0000000-0000-4000-8000-000000000917"
+DEFINITION_ROLE = "a0000000-0000-4000-8000-000000000918"
 
 
 def run(command: list[str], *, input_text: str | None = None, check: bool = True):
@@ -101,7 +104,10 @@ def run_acceptance(container: str) -> list[str]:
     tactical_sql = MIGRATIONS[4].read_text()
     docker_sql(container, tactical_sql)
     docker_sql(container, tactical_sql)
-    checks.append("migrations 438–441 apply and replay transactionally after migration 437")
+    definition_sql = MIGRATIONS[5].read_text()
+    docker_sql(container, definition_sql)
+    docker_sql(container, definition_sql)
+    checks.append("migrations 438–442 apply and replay transactionally after migration 437")
 
     privilege = docker_sql(
         container,
@@ -338,6 +344,171 @@ def run_acceptance(container: str) -> list[str]:
                 '{OPERATOR_TWO}', '{PARTY_THREE}', 'test administrator', 'explicit test binding'
             ); RESET ROLE;""",
     )
+    docker_sql(
+        container,
+        f"""INSERT INTO public.operator_scope_grant (
+                id, operator_id, resource, action, location_id, organization_id, revoked_at
+            ) VALUES
+              ('a0000000-0000-4000-8000-000000000721', '{OPERATOR_ONE}', 'governance_roles', 'submit', '{LOCATION_ID}', '{ORG_ID}', NULL),
+              ('a0000000-0000-4000-8000-000000000722', '{OPERATOR_TWO}', 'governance_roles', 'activate', '{LOCATION_ID}', '{ORG_ID}', NULL),
+              ('a0000000-0000-4000-8000-000000000723', '{OPERATOR_TWO}', 'governance_roles', 'approve', '{LOCATION_ID}', '{ORG_ID}', NULL),
+              ('a0000000-0000-4000-8000-000000000724', '{OPERATOR_TWO}', 'governance_roles', 'suspend', '{LOCATION_ID}', '{ORG_ID}', NULL),
+              ('a0000000-0000-4000-8000-000000000725', '{OPERATOR_TWO}', 'governance_roles', 'retire', '{LOCATION_ID}', '{ORG_ID}', NULL),
+              ('a0000000-0000-4000-8000-000000000726', '{OPERATOR_ONE}', 'governance_roles', 'activate', '{LOCATION_ID}', '{ORG_ID}', NULL),
+              ('a0000000-0000-4000-8000-000000000727', '{OPERATOR_ONE}', 'governance_roles', 'approve', '{LOCATION_ID}', '{ORG_ID}', NULL);""",
+    )
+    docker_sql(
+        container,
+        f"""INSERT INTO public.governance_circle (
+                id, circle_key, name, purpose, scope_type, scope_id, status, created_by_party_id
+            ) VALUES (
+                '{DEFINITION_CIRCLE}', 'lifecycle-{DEFINITION_CIRCLE}', 'Lifecycle test circle',
+                'Test separate human lifecycle actions.', 'location', '{LOCATION_ID}', 'draft', '{PARTY_ONE}'
+            );
+            INSERT INTO public.governance_role (
+                id, circle_id, role_key, name, purpose, status, created_by_party_id
+            ) VALUES (
+                '{DEFINITION_ROLE}', '{DEFINITION_CIRCLE}', 'lifecycle-role', 'Lifecycle test role',
+                'Test definition transitions independently from assignments.', 'draft', '{PARTY_ONE}'
+            );""",
+    )
+
+    def definition_transition(operator_id, entity_type, entity_id, action, request_id, reason):
+        return runtime_call(
+            container,
+            operator_id,
+            f"""SELECT event_id::text || '|' || entity_type || '|' || entity_id::text || '|' ||
+                       action || '|' || prior_status || '|' || resulting_status || '|' || actor_party_id::text
+                  FROM kokonut_security.transition_governance_definition(
+                    '{LOCATION_ID}', '{entity_type}', '{entity_id}', '{request_id}',
+                    '{action}', '{reason.replace("'", "''")}'
+                  );""",
+        ).stdout.strip().splitlines()[-1]
+
+    circle_submit_id = str(uuid.uuid4())
+    circle_submitted = definition_transition(
+        OPERATOR_ONE, "circle", DEFINITION_CIRCLE, "submit", circle_submit_id,
+        "Circle purpose and location scope are ready for review.",
+    )
+    if not circle_submitted.endswith(f"|circle|{DEFINITION_CIRCLE}|submit|draft|submitted|{PARTY_ONE}"):
+        raise AssertionError(f"circle submission failed: {circle_submitted}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.transition_governance_definition(
+            '{LOCATION_ID}', 'circle', '{DEFINITION_CIRCLE}', '{uuid.uuid4()}',
+            'activate', 'Creator cannot activate its own circle.');"""),
+        "42501",
+        "reject creator self-activation of a governance circle",
+    )
+    circle_activated = definition_transition(
+        OPERATOR_TWO, "circle", DEFINITION_CIRCLE, "activate", str(uuid.uuid4()),
+        "Independent reviewer approved the circle mandate.",
+    )
+    if not circle_activated.endswith(f"|circle|{DEFINITION_CIRCLE}|activate|submitted|active|{PARTY_THREE}"):
+        raise AssertionError(f"circle activation failed: {circle_activated}")
+    role_submit_id = str(uuid.uuid4())
+    role_submitted = definition_transition(
+        OPERATOR_ONE, "role", DEFINITION_ROLE, "submit", role_submit_id,
+        "Role purpose is ready for governance review.",
+    )
+    if not role_submitted.endswith(f"|role|{DEFINITION_ROLE}|submit|draft|submitted|{PARTY_ONE}"):
+        raise AssertionError(f"role submission failed: {role_submitted}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.transition_governance_definition(
+            '{LOCATION_ID}', 'role', '{DEFINITION_ROLE}', '{uuid.uuid4()}',
+            'approve', 'Creator cannot approve its own role definition.');"""),
+        "42501",
+        "reject creator self-approval of governance role",
+    )
+    role_approve_id = str(uuid.uuid4())
+    role_approved = definition_transition(
+        OPERATOR_TWO, "role", DEFINITION_ROLE, "approve", role_approve_id,
+        "Independent reviewer approved the role definition.",
+    )
+    role_approved_retry = definition_transition(
+        OPERATOR_TWO, "role", DEFINITION_ROLE, "approve", role_approve_id,
+        "Independent reviewer approved the role definition.",
+    )
+    if role_approved != role_approved_retry or not role_approved.endswith(
+        f"|role|{DEFINITION_ROLE}|approve|submitted|approved|{PARTY_THREE}"
+    ):
+        raise AssertionError(f"role approval must be independently attributed and replay exactly: {role_approved}")
+    for action, prior, resulting in (("activate", "approved", "active"),
+                                    ("suspend", "active", "suspended"),
+                                    ("retire", "suspended", "retired")):
+        transition = definition_transition(
+            OPERATOR_TWO, "role", DEFINITION_ROLE, action, str(uuid.uuid4()),
+            f"Reviewed the role definition before {action}.",
+        )
+        if not transition.endswith(
+            f"|role|{DEFINITION_ROLE}|{action}|{prior}|{resulting}|{PARTY_THREE}"
+        ):
+            raise AssertionError(f"role {action} transition failed: {transition}")
+    for action, prior, resulting in (("suspend", "active", "suspended"),
+                                    ("retire", "suspended", "retired")):
+        transition = definition_transition(
+            OPERATOR_TWO, "circle", DEFINITION_CIRCLE, action, str(uuid.uuid4()),
+            f"Reviewed the circle mandate before {action}.",
+        )
+        if not transition.endswith(
+            f"|circle|{DEFINITION_CIRCLE}|{action}|{prior}|{resulting}|{PARTY_THREE}"
+        ):
+            raise AssertionError(f"circle {action} transition failed: {transition}")
+    collision = runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.transition_governance_definition(
+        '{LOCATION_ID}', 'role', '{DEFINITION_ROLE}', '{role_approve_id}',
+        'approve', 'Changed reason.');""")
+    assert_sqlstate(container, collision, "22023", "reject changed governance request-key replay")
+    state_and_count = docker_sql(
+        container,
+        f"""SELECT circle.status || '|' || (circle.retired_at IS NOT NULL)::text || '|' || role.status || '|' ||
+                   (SELECT count(*) FROM public.governance_definition_action_event
+                     WHERE entity_id IN ('{DEFINITION_CIRCLE}', '{DEFINITION_ROLE}'))
+              FROM public.governance_circle AS circle
+              JOIN public.governance_role AS role ON role.circle_id = circle.id
+             WHERE circle.id = '{DEFINITION_CIRCLE}';""",
+    ).stdout.strip()
+    if state_and_count != "retired|true|retired|9":
+        raise AssertionError(f"definition lifecycle state and action ledger diverged: {state_and_count}")
+    for database_role in ("kokonut_runtime", "kokonut_directus_runtime"):
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; UPDATE public.governance_role SET status = 'active' WHERE id = '{DEFINITION_ROLE}';",
+            "P0001",
+            f"direct {database_role} governance status update",
+        )
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; INSERT INTO public.governance_role (id, circle_id, role_key, name, status) VALUES ('{uuid.uuid4()}', '{DEFINITION_CIRCLE}', 'bypass-{uuid.uuid4().hex[:8]}', 'Bypass', 'active');",
+            "P0001",
+            f"direct {database_role} active governance role insertion",
+        )
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; SELECT * FROM public.governance_definition_action_event;",
+            "42501",
+            f"private definition action history read by {database_role}",
+        )
+    assert_sqlstate(
+        container,
+        f"UPDATE public.governance_definition_action_event SET reason = 'rewritten' WHERE entity_id = '{DEFINITION_CIRCLE}';",
+        "P0001",
+        "immutable governance definition action history",
+    )
+    definition_acl = docker_sql(
+        container,
+        """SELECT has_table_privilege('kokonut_governance_action_owner', 'public.governance_definition_action_event', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_governance_action_owner', 'public.governance_definition_action_event', 'UPDATE')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_definition_action_event', 'SELECT')
+                  AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_definition_action_event', 'SELECT')
+                  AND has_function_privilege('kokonut_runtime',
+                    'kokonut_security.transition_governance_definition(uuid,text,uuid,uuid,text,text)', 'EXECUTE')
+                  AND NOT has_function_privilege('kokonut_directus_runtime',
+                    'kokonut_security.transition_governance_definition(uuid,text,uuid,uuid,text,text)', 'EXECUTE');""",
+    ).stdout.strip()
+    if definition_acl != "t":
+        raise AssertionError(f"governance definition lifecycle ACL contract failed: {definition_acl}")
+    checks.append("circle/role definition transitions require exact signed location grants and independent human review, replay idempotently, block assignment conflicts, keep immutable actor history, and deny runtime/Directus direct status changes")
     first_page = runtime_call(
         container,
         OPERATOR_ONE,
@@ -653,7 +824,7 @@ def main() -> None:
             raise RuntimeError("disposable PostgreSQL did not become ready")
         checks = run_acceptance(container)
         evidence = {
-            "title": "Migrations 437-441 governance role assignment and tactical action acceptance",
+            "title": "Migrations 437-442 governance role assignment and lifecycle acceptance",
             "status": "passed",
             "checks": checks,
             "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",

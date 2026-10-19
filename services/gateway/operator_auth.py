@@ -531,6 +531,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_circle_action_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/circles/([0-9a-fA-F-]{36})/(submit|reject|activate|suspend|retire)",
+        path,
+    )
+    if governance_circle_action_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": governance_circle_action_match.group(3),
+            "public": False,
+            "location_id": governance_circle_action_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    governance_role_lifecycle_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/roles/([0-9a-fA-F-]{36})/(submit|approve|reject|activate|suspend|retire)",
+        path,
+    )
+    if governance_role_lifecycle_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": governance_role_lifecycle_match.group(3),
+            "public": False,
+            "location_id": governance_role_lifecycle_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_tactical_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-items", path
     )

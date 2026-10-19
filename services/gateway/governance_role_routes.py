@@ -22,6 +22,11 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         decide_governance_assignment,
         list_governance_assignment_reviews,
     )
+    from services.gateway.governance_definition_actions import (
+        GovernanceDefinitionActionConflict,
+        GovernanceDefinitionActionInvalid,
+        transition_governance_definition,
+    )
     from services.gateway.governance_operations import (
         GovernanceOperationsInvalid,
         get_location_governance_role_detail,
@@ -62,6 +67,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(status_code=409, content={"error": str(exc)}, headers=headers)
         if isinstance(exc, GovernanceTensionReviewNotFound):
             return JSONResponse(status_code=404, content={"error": str(exc)}, headers=headers)
+        if isinstance(exc, GovernanceDefinitionActionInvalid):
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        if isinstance(exc, GovernanceDefinitionActionConflict):
+            return JSONResponse(status_code=409, content={"error": str(exc)}, headers=headers)
         if isinstance(exc, psycopg2.Error):
             code = getattr(exc, "pgcode", None)
             if code == "42501":
@@ -74,6 +83,12 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 return JSONResponse(
                     status_code=400,
                     content={"error": "Governance tension request is invalid"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Governance definition was not found in this location"},
                     headers=headers,
                 )
             if code in {"23505", "40001", "55000"}:
@@ -512,6 +527,122 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+
+    async def governance_definition_action_route(
+        request: Request,
+        location_id: str,
+        entity_type: str,
+        entity_id: str,
+        action: str,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Governance lifecycle content must be valid JSON"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                transition_governance_definition,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                entity_type,
+                entity_id,
+                action,
+                payload,
+            )
+        except (
+            TenantContextDenied,
+            GovernanceDefinitionActionInvalid,
+            GovernanceDefinitionActionConflict,
+            psycopg2.Error,
+        ) as exc:
+            if isinstance(exc, (GovernanceDefinitionActionInvalid, GovernanceDefinitionActionConflict)):
+                status_code = 400 if isinstance(exc, GovernanceDefinitionActionInvalid) else 409
+                return JSONResponse(status_code=status_code, content={"error": str(exc)}, headers=headers)
+            if isinstance(exc, TenantContextDenied):
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "Tenant-qualified operator access is required"},
+                    headers=headers,
+                )
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current governance action grant and person binding are required"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Governance definition action is invalid"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Governance definition was not found in this location"},
+                    headers=headers,
+                )
+            if code in {"23505", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Governance definition action conflicts with current state"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_definitions").warning(
+                "Governance definition action unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance definition action unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    def circle_action_endpoint(action):
+        async def endpoint(request: Request, location_id: str, circle_id: str):
+            return await governance_definition_action_route(
+                request, location_id, "circle", circle_id, action
+            )
+
+        return endpoint
+
+    def role_action_endpoint(action):
+        async def endpoint(request: Request, location_id: str, role_id: str):
+            return await governance_definition_action_route(
+                request, location_id, "role", role_id, action
+            )
+
+        return endpoint
+
+    for circle_action in ("submit", "reject", "activate", "suspend", "retire"):
+        router.add_api_route(
+            f"/operator/api/governance/{{location_id}}/circles/{{circle_id}}/{circle_action}",
+            circle_action_endpoint(circle_action),
+            methods=["POST"],
+            name=f"transition_governance_circle_{circle_action}",
+        )
+
+    for role_action in ("submit", "approve", "reject", "activate", "suspend", "retire"):
+        router.add_api_route(
+            f"/operator/api/governance/{{location_id}}/roles/{{role_id}}/{role_action}",
+            role_action_endpoint(role_action),
+            methods=["POST"],
+            name=f"transition_governance_role_{role_action}",
+        )
 
     @router.get("/operator/api/governance/{location_id}/tactical-items")
     async def location_governance_tactical_items(

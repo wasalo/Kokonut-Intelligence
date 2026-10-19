@@ -1,5 +1,46 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 circle and role definition lifecycle — 18 October 2026
+
+Added migration 442 and exact-grant Gateway actions for location-scoped
+governance circles and role definitions. Circle transitions cover draft
+submission, review rejection, activation, suspension, and retirement; role
+transitions cover submission, independent approval/rejection, activation,
+suspension, and retirement. Each requires signed tenant context, an active
+person binding, a per-action location grant, a reason, and a request UUID.
+Creator self-review is rejected. Roles can activate only in active circles;
+proposed/active/suspended assignments block role suspension or retirement;
+circle retirement waits for child roles to be retired or rejected.
+
+Migration 442 records every accepted transition in an append-only private
+ledger and replays identical request content. A status trigger prevents
+runtime and Directus roles from changing definition status directly, even
+when legacy broad DML privileges exist. Privileged database administrators
+and seed/bootstrap execution remain administrative paths; they are outside
+the runtime role boundary and must stay restricted operationally.
+
+Twelve focused Gateway and route-policy checks pass. Disposable PostgreSQL 16
+applies and replays migrations 437–442 and verifies complete circle/role
+transitions, independent review, creator self-review denial, idempotent retry
+and changed-content rejection, direct status-write denial for runtime and
+Directus, and private append-only history. The 130-test focused CAP-024,
+route-policy, and migration set passes. Ruff, compilation, diff checks,
+capability validation, and the refreshed runtime SQL inventory pass (849
+service files / 4,107 execution sites). The candidate and legacy databases were not accessed; the candidate
+remains at migration 437 and its app still uses administrative `kokonut`, so
+migration 442 is not ready for rollout. No console controls or live OIDC
+actions were added. CAP-024 remains prepared, not accepted; Gateway create/edit
+parity, console controls, populated fixtures, RLS, live acceptance, and
+MAN-CAP-024 remain open. Before rollout, revert the routes and service if
+needed; after migration application, keep the additive schema and never edit
+or reverse an ordered migration ([contract](governance-definition-lifecycle-contract.md);
+[migration](../schemas/postgres/442_governance_definition_lifecycle.sql);
+[service](../services/gateway/governance_definition_actions.py);
+[tests](../tests/test_gateway_governance_definition_actions.py);
+[database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
+
+Checklist: 652 complete / 19 open; CAP-024 remains prepared and the matrix
+classification counts are unchanged.
 ### CAP-024 tactical item actions — 18 October 2026
 
 Added migration 441 and a bounded Gateway transition function for
