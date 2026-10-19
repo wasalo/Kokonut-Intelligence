@@ -47,3 +47,22 @@ def test_create_from_data_requires_entity():
         assert "exactly one" in str(exc)
     else:
         raise AssertionError("expected ValueError")
+
+
+def test_create_from_data_rejects_ambiguous_scope_before_database_reads():
+    conn = MagicMock()
+    with patch.object(bmc, "suggest") as mock_suggest, patch.object(bmc, "create") as mock_create:
+        try:
+            bmc.create_from_data(
+                conn,
+                location_id="location-1",
+                org_id="organization-1",
+            )
+        except ValueError as exc:
+            assert "exactly one" in str(exc)
+        else:
+            raise AssertionError("expected ValueError")
+
+    mock_suggest.assert_not_called()
+    mock_create.assert_not_called()
+    conn.rollback.assert_not_called()

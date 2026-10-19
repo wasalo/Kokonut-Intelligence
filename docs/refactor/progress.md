@@ -11412,3 +11412,14 @@ gRPC suites pass 44 tests with Ruff and compilation. No database or provider was
 used. TLS, real runtime-role and tenant scope, streaming behavior parity, and
 REST contract parity remain open. Checklist: 685 complete / 24 open; matrix
 classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-064-grpc-denial-cardinality.json).
+
+### CAP-065 BMC scope preflight — 19 October 2026
+
+One-click canvas creation now validates that exactly one organization or
+location is selected before it queries source data, rolls back, or inserts a
+canvas. The missing-scope and ambiguous-scope checks use mocked connections;
+seven BMC/status tests pass with Ruff and compilation. This does not provide a
+Gateway creation route, tenant authorization for the legacy service,
+organization-wide suggestion aggregation, or output parity. CAP-065 remains
+unprepared pending the Kernel path and MAN-CAP-065 review. Checklist: 685
+complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-065-bmc-scope-preflight.json).

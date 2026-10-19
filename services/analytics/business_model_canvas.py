@@ -10,14 +10,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import psycopg2
 import psycopg2.extras
 
-from services.common.database import get_db
 from services.common.cli import print_json
+from services.common.database import get_db
+
 # The 9 BMC building blocks in canonical order
 BMC_BLOCKS = [
     "key_partners", "key_activities", "key_resources",
@@ -93,8 +93,7 @@ def create_from_data(
     stakeholder_feedback) and writes a fully-populated draft canvas in a
     single call. Returns the created canvas plus the data sources used.
     """
-    if not location_id and not org_id:
-        raise ValueError("provide exactly one of org_id or location_id")
+    _entity(org_id, location_id)
     suggestion = suggest(conn, location_id) if location_id else {"blocks": {b: [] if b != "cost_structure" else {} for b in BMC_BLOCKS}, "generated_from": []}
     # suggest() runs several independent read queries; a failure in one can abort
     # the shared transaction, so clear any aborted-state before the write.
