@@ -382,6 +382,19 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    delphi_consultation_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies", path
+    )
+    if delphi_consultation_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "read",
+            "public": False,
+            "location_id": delphi_consultation_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     credit_custody_match = re.fullmatch(
         r"/operator/api/credit-custody/([0-9a-fA-F-]{36})/summary", path
     )
@@ -2389,6 +2402,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     from services.gateway.attestation_routes import register_attestation_routes
     from services.gateway.credit_custody_routes import register_credit_custody_routes
+    from services.gateway.delphi_consultation_routes import register_delphi_consultation_routes
     from services.gateway.ecocredit_routes import register_ecocredit_routes
     from services.gateway.emergency_response_routes import (
         register_emergency_response_routes,
@@ -2407,6 +2421,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_emergency_response_routes(router, provider, run_in_threadpool, psycopg2)
     register_attestation_routes(router, provider, run_in_threadpool, psycopg2)
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
+    register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_ecocredit_routes(router, provider, run_in_threadpool, psycopg2)
     register_true_cost_routes(router, provider, run_in_threadpool, psycopg2)
     register_governance_role_routes(router, provider, run_in_threadpool, psycopg2)

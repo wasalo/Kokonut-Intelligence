@@ -1,0 +1,69 @@
+"""OIDC route for location-scoped Delphi consultation summaries."""
+
+
+def register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2):
+    from fastapi.encoders import jsonable_encoder
+    from fastapi.responses import JSONResponse
+    from starlette.requests import Request
+
+    from services.common.tenant_context import TenantContextDenied
+    from services.gateway.delphi_consultation import (
+        DelphiConsultationInvalid,
+        list_location_delphi_consultations,
+    )
+
+    headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+
+    @router.get("/operator/api/delphi/{location_id}/studies")
+    async def list_delphi_consultations(
+        request: Request,
+        location_id: str,
+        limit: str = "50",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_delphi_consultations,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified Delphi access is required"},
+                headers=headers,
+            )
+        except DelphiConsultationInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location Delphi grant is required"},
+                    headers=headers,
+                )
+            if getattr(exc, "pgcode", None) == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Delphi consultation request is invalid"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.delphi_consultation").warning(
+                "Delphi consultation unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Delphi consultation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)

@@ -10678,3 +10678,30 @@ The combined CAP-025 identity, trust, privacy, route-policy, and migration regre
 Migration 448 and an exact-grant OIDC route now resolve an approved farmer-profile identity only inside its source location. `stakeholder_identity:resolve` is distinct from proposal and review grants. The function requires the signed location, current active source profile, latest unexpired personal/internal-use consent, active/non-private canonical party, and absence of a conflicting verified legacy source link. It returns only canonical party ID and review time; absent, pending, withdrawn, conflicted, and private mappings share a generic 404 response. The function is `STABLE`; the service uses a normal transaction because signed context locks active grants and ownership rows before the fixed SELECT.
 
 The focused resolver, trust, and route-policy checks pass 17 tests. Disposable PostgreSQL 16 applied migrations 446–448 and passed eight assertions for scoped resolution, distinct grant, location mismatch, pending and legacy-conflict suppression, consent withdrawal, private-party suppression, and direct-table denial. Candidate and legacy remain untouched; migration 448 is not rolled out. General trust evidence beyond identity, identity source types beyond farmer profiles, consent disposition after a completed review, live OIDC/browser and populated parity, RLS, and MAN-CAP-025 review remain open. CAP-025 remains prepared (`P`), not accepted. Checklist: 662 complete / 19 open; the matrix remains 66 rows (43 baseline-retained, 7 deployed, 16 prepared). Evidence: [contract](stakeholder-identity-kernel-contract.md), [migration](../schemas/postgres/448_location_scoped_identity_resolution.sql), [Gateway checks](../tests/test_gateway_stakeholder_identity_resolution.py), and [disposable acceptance](builds/2026-10-19-recovery/cap-025-identity-resolution-disposable.json).
+
+### CAP-027 privacy-aware Delphi consultation read — 19 October 2026
+
+Migration 449 adds a dedicated stable projection function and a no-store,
+location-scoped OIDC Gateway route for consultation summaries. The exact
+`delphi:read` grant and signed location context are checked before the function
+rechecks the active database grant. Aggregates are recomputed from contributions
+by panel members whose Delphi consent is currently granted; pending/withdrawn
+members are excluded. Participant counts and statistics are suppressed below
+`max(3, ceil(min_participants))`, and the response omits participant IDs,
+participant references, display tokens, contribution reasoning, metadata,
+recommendation drafts, and minority reports. Median, mean, IQR, population
+standard deviation, CV, weighted median, consensus flag, and bounded paging are
+covered. Human recommendation drafting/review is not added; this slice does not
+claim populated legacy parity, universal runtime ACL/RLS, or MAN-CAP-027
+acceptance.
+
+The focused Gateway, exact route-policy, and existing Delphi suites pass 66
+tests (99 including the 33 migration metadata checks); Ruff passes. The runtime
+SQL inventory is refreshed at 862 service files and 4,140 execution sites.
+Disposable PostgreSQL 16 applies and replays migration 449 and passes nine
+assertions covering location/grant enforcement, consent
+filtering, aggregation, small-group suppression, private-field omission,
+page bounds, and function privileges. Evidence records that candidate and
+legacy databases were not modified. Migration 449 is not rolled out. CAP-027 is
+prepared (`P`), not accepted; checklist is 663 complete / 19 open, and the
+matrix is 42 baseline-retained, 7 deployed, and 17 prepared. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/449_location_scoped_delphi_consultation_read.sql), and [disposable evidence](builds/2026-10-19-recovery/cap-027-delphi-consultation-disposable.json).
