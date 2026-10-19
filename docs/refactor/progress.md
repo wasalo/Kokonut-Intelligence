@@ -11230,3 +11230,19 @@ Fourteen focused upgrade-script tests and `bash -n scripts/upgrade.sh` pass.
 No database or live upgrade/rollback was exercised. Backup restore and release
 checksum parity remain open. Checklist: 685 complete / 24 open; matrix
 classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-052-upgrade-history-transition.json).
+
+### CAP-054 tree tracking area units and zero measurements — 19 October 2026
+
+Tree-density service code now reads the existing `plot.area` and `area_unit`
+columns, converts supported hectare/square-meter/acre values, and fails closed
+for unknown or non-positive area. Growth analytics preserve zero measurements
+and compute canopy averages independently of height availability. Forward
+migration 462 applies the unit rules to the public density view without
+editing applied migration 057.
+
+Twenty focused tree-tracking tests pass with Ruff and compilation. Migration
+462 applied twice on a network-isolated disposable PostGIS database and passed
+synthetic area-unit assertions; candidate and legacy databases are untouched.
+Silvi parity, populated fixtures, pest analytics, exports, and MAN-CAP-054
+remain open. Checklist: 685 complete / 24 open; matrix classifications
+unchanged. [Evidence](builds/2026-10-19-recovery/cap-054-tree-area-and-growth.json).

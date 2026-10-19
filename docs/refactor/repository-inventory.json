@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "0ddc0c728874e817f63970ddd56f7f5b2774c2fb",
+  "baseline_commit": "765d0769dec0df1ab21dda99ce54d0bd569666e4",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2172,7 +2172,8 @@
       "schemas/postgres/458_location_scoped_coordination_summary.sql",
       "schemas/postgres/459_location_scoped_solution_lifecycle_summary.sql",
       "schemas/postgres/460_location_scoped_sequential_decision_summary.sql",
-      "schemas/postgres/461_location_scoped_operating_pilot_summary.sql"
+      "schemas/postgres/461_location_scoped_operating_pilot_summary.sql",
+      "schemas/postgres/462_tree_density_area_units.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3586,6 +3587,7 @@
         "services/guilds/reputation.py"
       ],
       "test_references": [
+        "tests/test_guild_registry_projection.py",
         "tests/test_guild_services.py",
         "tests/test_kgp_service.py",
         "tests/test_kgp_worker_durability.py"
@@ -3722,6 +3724,7 @@
         "tests/test_capability_map.py",
         "tests/test_capacity_signals.py",
         "tests/test_channel_health.py",
+        "tests/test_cli.py",
         "tests/test_clickhouse_failure_injection.py",
         "tests/test_clickhouse_outbox.py",
         "tests/test_climate_data.py",
@@ -3777,6 +3780,7 @@
         "tests/test_ml_model_loading_security.py",
         "tests/test_mock_sensor_error_redaction.py",
         "tests/test_mqtt_actuator_error_redaction.py",
+        "tests/test_mqtt_delivery.py",
         "tests/test_mqtt_subscriber_error_redaction.py",
         "tests/test_objective_performance.py",
         "tests/test_odds_engine.py",
@@ -4842,6 +4846,7 @@
     "tests/test_grpc_health_error_redaction.py",
     "tests/test_grpc_optional_boundary.py",
     "tests/test_grpc_rpc_policy_inventory.py",
+    "tests/test_guild_registry_projection.py",
     "tests/test_guild_reorg.py",
     "tests/test_guild_services.py",
     "tests/test_harvest_manager_error_redaction.py",
@@ -4908,6 +4913,7 @@
     "tests/test_mobile_vault.py",
     "tests/test_mock_sensor_error_redaction.py",
     "tests/test_mqtt_actuator_error_redaction.py",
+    "tests/test_mqtt_delivery.py",
     "tests/test_mqtt_subscriber_error_redaction.py",
     "tests/test_network_trust.py",
     "tests/test_noi_snapshot_worker.py",

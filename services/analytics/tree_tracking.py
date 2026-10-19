@@ -10,6 +10,33 @@ from services.common.logging import get_logger
 logger = get_logger(__name__)
 
 
+def _plot_area_hectares(area: Any, area_unit: Any) -> float | None:
+    """Convert the plot's recorded area to hectares when the unit is known."""
+    if area is None:
+        return None
+    try:
+        area_value = float(area)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(area_value) or area_value <= 0:
+        return None
+
+    unit = str(area_unit or "").strip().lower()
+    factors = {
+        "hectare": 1.0,
+        "hectares": 1.0,
+        "ha": 1.0,
+        "square_meter": 1 / 10_000,
+        "square_meters": 1 / 10_000,
+        "m2": 1 / 10_000,
+        "sqm": 1 / 10_000,
+        "acre": 0.40468564224,
+        "acres": 0.40468564224,
+    }
+    factor = factors.get(unit)
+    return area_value * factor if factor is not None else None
+
+
 def compute_tree_density(conn, location_id: str) -> dict[str, Any]:
     """Compute tree density per hectare per plot and overall.
 
@@ -20,7 +47,7 @@ def compute_tree_density(conn, location_id: str) -> dict[str, Any]:
     # Per-plot density
     cur.execute(
         """
-        SELECT t.plot_id, p.name AS plot_name, p.area_ha,
+        SELECT t.plot_id, p.name AS plot_name, p.area, p.area_unit,
                COUNT(*) AS total_trees,
                COUNT(*) FILTER (WHERE t.status = 'alive') AS alive_trees,
                COUNT(*) FILTER (WHERE t.status = 'dead') AS dead_trees,
@@ -28,24 +55,24 @@ def compute_tree_density(conn, location_id: str) -> dict[str, Any]:
         FROM tree_record t
         JOIN plot p ON t.plot_id = p.id
         WHERE t.location_id = %s
-        GROUP BY t.plot_id, p.name, p.area_ha
+        GROUP BY t.plot_id, p.name, p.area, p.area_unit
         ORDER BY p.name
         """,
         (location_id,),
     )
     plots = []
     for row in cur.fetchall():
-        area_ha = float(row[2]) if row[2] else 0
-        alive = row[4] or 0
-        density = round(alive / area_ha, 2) if area_ha > 0 else 0
+        area_ha = _plot_area_hectares(row[2], row[3])
+        alive = row[5] or 0
+        density = round(alive / area_ha, 2) if area_ha is not None and area_ha > 0 else None
         plots.append({
             "plot_id": str(row[0]),
             "plot_name": row[1],
             "area_ha": area_ha,
-            "total_trees": row[3],
+            "total_trees": row[4],
             "alive_trees": alive,
-            "dead_trees": row[5] or 0,
-            "species_count": row[6],
+            "dead_trees": row[6] or 0,
+            "species_count": row[7],
             "trees_per_ha": density,
         })
 
@@ -80,8 +107,13 @@ def compute_tree_density(conn, location_id: str) -> dict[str, Any]:
 
     # Overall totals
     total_alive = sum(p["alive_trees"] for p in plots)
-    total_area = sum(p["area_ha"] for p in plots)
-    overall_density = round(total_alive / total_area, 2) if total_area > 0 else 0
+    areas_complete = all(p["area_ha"] is not None for p in plots)
+    total_area = sum(p["area_ha"] for p in plots if p["area_ha"] is not None)
+    overall_density = (
+        round(total_alive / total_area, 2)
+        if areas_complete and total_area > 0
+        else 0 if not plots else None
+    )
 
     cur.close()
 
@@ -89,14 +121,14 @@ def compute_tree_density(conn, location_id: str) -> dict[str, Any]:
         "location_id": location_id,
         "total_trees": sum(p["total_trees"] for p in plots),
         "total_alive": total_alive,
-        "total_area_ha": round(total_area, 4),
+        "total_area_ha": round(total_area, 4) if areas_complete else None,
         "overall_density_per_ha": overall_density,
         "total_species": len(species),
         "plots": plots,
         "species": species,
     }
 
-    logger.info("Tree density for %s: %d alive trees, %.2f trees/ha", location_id, total_alive, overall_density)
+    logger.info("Tree density for %s: %d alive trees, %s trees/ha", location_id, total_alive, overall_density)
     return result
 
 
@@ -153,10 +185,22 @@ def compute_growth_rate(conn, location_id: str) -> dict[str, Any]:
         days = (last[0] - first[0]).days
         years = days / 365.25 if days > 0 else 0
 
-        height_delta = (float(last[1]) - float(first[1])) if first[1] and last[1] else None
-        canopy_delta = (float(last[3]) - float(first[3])) if first[3] and last[3] else None
-        dbh_delta = (float(last[2]) - float(first[2])) if first[2] and last[2] else None
-        health_delta = (float(last[4]) - float(first[4])) if first[4] and last[4] else None
+        height_delta = (
+            float(last[1]) - float(first[1])
+            if first[1] is not None and last[1] is not None else None
+        )
+        canopy_delta = (
+            float(last[3]) - float(first[3])
+            if first[3] is not None and last[3] is not None else None
+        )
+        dbh_delta = (
+            float(last[2]) - float(first[2])
+            if first[2] is not None and last[2] is not None else None
+        )
+        health_delta = (
+            float(last[4]) - float(first[4])
+            if first[4] is not None and last[4] is not None else None
+        )
 
         height_rate = round(height_delta / years, 3) if height_delta is not None and years > 0 else None
         canopy_rate = round(canopy_delta / years, 3) if canopy_delta is not None and years > 0 else None
@@ -189,10 +233,14 @@ def compute_growth_rate(conn, location_id: str) -> dict[str, Any]:
         sum(g["height_growth_m_per_year"] for g in trees_with_growth) / len(trees_with_growth)
         if trees_with_growth else None
     )
+    canopy_rates = [
+        g["canopy_growth_m_per_year"]
+        for g in growth_data
+        if g["canopy_growth_m_per_year"] is not None
+    ]
     avg_canopy_rate = (
-        sum(g["canopy_growth_m_per_year"] for g in trees_with_growth if g["canopy_growth_m_per_year"] is not None)
-        / len([g for g in trees_with_growth if g["canopy_growth_m_per_year"] is not None])
-        if any(g["canopy_growth_m_per_year"] for g in trees_with_growth) else None
+        sum(canopy_rates) / len(canopy_rates)
+        if canopy_rates else None
     )
 
     cur.close()
