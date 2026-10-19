@@ -30,6 +30,8 @@ def extract_training_data(conn, location_id: Optional[str] = None) -> list[dict[
             scm.id AS sample_id,
             scm.location_id,
             scm.plot_id,
+            ST_Y(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary))) AS gps_latitude,
+            ST_X(COALESCE(plot_geom.center, ST_PointOnSurface(plot_geom.boundary))) AS gps_longitude,
             scm.measurement_date,
             scm.carbon_pct,
             scm.carbon_tonnes_per_ha,
@@ -53,6 +55,8 @@ def extract_training_data(conn, location_id: Optional[str] = None) -> list[dict[
             wo.temperature_c,
             wo.precipitation_mm
         FROM soil_carbon_measurement scm
+        LEFT JOIN plot plot_geom
+            ON plot_geom.id = scm.plot_id
         LEFT JOIN remote_sensing_observation rso
             ON rso.location_id = scm.location_id
             AND rso.plot_id = scm.plot_id
@@ -98,6 +102,8 @@ def extract_training_data(conn, location_id: Optional[str] = None) -> list[dict[
         "sample_id",
         "location_id",
         "plot_id",
+        "gps_latitude",
+        "gps_longitude",
         "measurement_date",
         "carbon_pct",
         "carbon_tonnes_per_ha",

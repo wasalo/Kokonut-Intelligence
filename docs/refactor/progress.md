@@ -11062,3 +11062,25 @@ Evidence: [preflight](builds/2026-10-19-recovery/cap-039-invalid-argument-prefli
 Added focused fake-connection tests for the QoS 1 durable receipt state machine. Eleven cases cover accepted/rejected terminal outcomes, duplicate suppression, exception-class-only retries, the fifth-attempt dead-letter transition, audited replay with a fresh budget, paired replay actor/reason validation, and oversized-payload rejection before database setup. The checks found a reason-only replay request that previously fell through as ordinary delivery; both actor and reason are now required together and must be nonempty. The combined MQTT delivery, subscriber-redaction, and IoT transport suite passes 59 tests.
 
 A disposable PostgreSQL 16/Mosquitto run applied migration 372 to fresh no-volume containers bound only to loopback. Twelve SQL assertions passed for receipt outcomes, bounded retries/dead-letter, replay/disposal audit and CLI output, concurrent delivery/operator behavior, source/receipt crash recovery, row-lock timeout, payload constraints, and private-list redaction. The real Paho subscriber was killed after a retryable receipt committed and before ACK; a replacement with the same persistent client ID received the broker `DUP=1` redelivery, accepted attempt two, wrote one synthetic source effect, and ACKed. A third connection received no repeat. Both containers were removed; candidate/legacy and providers were untouched. Ruff, compilation, capability-matrix validation, and diff checks pass. Actual sensor/outbox parity, replay after device-authorization changes, production TLS/ACL/HMAC, broker restart, and live provider/device acceptance remain open. Checklist: 683 complete / 24 open; matrix classifications unchanged. [Unit evidence](builds/2026-10-19-recovery/mqtt-delivery-state-machine.json); [PostgreSQL/Mosquitto evidence](builds/2026-10-19-recovery/mqtt-delivery-postgresql-mosquitto.json).
+
+
+### CAP-041 spatial training inputs and deterministic folds — 19 October 2026
+
+The SOC training query selected no coordinates even though residual kriging and
+spatial-block cross-validation require latitude and longitude. It now joins the
+plot geometry and returns the configured center, falling back to an interior
+point on the plot boundary, while retaining the location-scoped training
+predicate. A mocked-cursor regression checks query scope and maps both values
+into training records. The focused DSM module passes 22 tests with Ruff, Python
+compilation, and diff checks. A fresh no-volume PostgreSQL 16/PostGIS fixture
+executes the query and confirms configured-center coordinates, boundary
+fallback, and location filtering; candidate and legacy databases remain
+untouched. The geographic field-fold helper now uses seeded deterministic tie
+ordering and greedily balances sample counts without splitting fields; the tests
+prove repeatability for reversed input, one held-out fold per field, and equal
+fixture balance. The combined DSM/geostatistics/spectral suite passes 95
+tests. A synthetic spatial-block CV test consumes coordinate rows through
+multiple folds using the mean-baseline fallback; it does not train
+XGBoost. These changes repair inputs and repeatability only: fitted-model
+metrics, model-fixture parity, and MAN-CAP-041 acceptance remain open. Checklist:
+685 complete / 24 open; matrix classifications unchanged. [Coordinate evidence](builds/2026-10-19-recovery/cap-041-spatial-training-coordinates.json); [fold evidence](builds/2026-10-19-recovery/cap-041-geographic-fold-repeatability.json).

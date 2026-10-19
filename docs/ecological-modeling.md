@@ -235,7 +235,8 @@ from services.analytics.model_validation import (
 
 `compute_regression_metrics()` returns R², RMSE, MAE, ME, MEC, intercept, slope,
 and sample count. `geographic_cross_validation()` creates plot/field fold
-partitions with an unseeded shuffle; it does not train or evaluate a model.
+partitions with seeded, deterministic sample-balanced field grouping; it does
+not train or evaluate a model.
 `aggregate_to_field_level()` aggregates predicted and measured SOC by plot.
 
 These functions do not include the nonexistent imports
