@@ -11056,3 +11056,7 @@ focused CLI suite passes nine tests. Successful per-command output, provider
 and database behavior, and authorization parity remain open. Checklist:
 681 complete / 24 open; matrix: 32 baseline-retained, 7 deployed, 27 prepared.
 Evidence: [preflight](builds/2026-10-19-recovery/cap-039-invalid-argument-preflight.json).
+
+### CAP-040 MQTT durable delivery state machine — 19 October 2026
+
+Added focused fake-connection tests for the QoS 1 durable receipt state machine. Eleven cases cover accepted/rejected terminal outcomes, duplicate suppression, exception-class-only retries, the fifth-attempt dead-letter transition, audited replay with a fresh budget, paired replay actor/reason validation, and oversized-payload rejection before database setup. The new checks exposed a reason-only replay request that previously fell through as ordinary delivery; both actor and reason are now required together and must be nonempty. The combined MQTT delivery, subscriber-redaction, and IoT transport suite passes 59 tests; Ruff, Python compilation, capability-matrix validation, and diff checks pass. No PostgreSQL, MQTT broker, provider, candidate, or legacy service was contacted. SQL/lock behavior, concurrent replay/disposal, broker acknowledgement, process crash/reconnect, and live provider/device acceptance remain open. Checklist: 682 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/mqtt-delivery-state-machine.json).

@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-19",
+  "check": "CAP-040 MQTT durable delivery state machine",
+  "test_command": "python3 -m pytest tests/test_mqtt_delivery.py tests/test_mqtt_subscriber_error_redaction.py tests/test_iot_sensor_push.py -q",
+  "focused_mqtt_delivery_cases": 11,
+  "combined_tests": 59,
+  "result": "passed",
+  "coverage": [
+    "accepted and rejected receipt persistence",
+    "terminal duplicate suppression",
+    "exception-class-only failure records",
+    "bounded attempt count and fifth-attempt dead-letter transition",
+    "reviewed replay action and fresh attempt budget",
+    "actor and reason must be supplied together and be nonempty",
+    "oversized payload rejection before database setup"
+  ],
+  "execution_boundary": "Mocked in-memory connections only; no PostgreSQL, MQTT broker, provider, candidate, or legacy service was contacted.",
+  "limitations": [
+    "SQL transaction and lock behavior were not exercised.",
+    "Concurrent delivery, replay, and disposal were not exercised.",
+    "Broker QoS 1 acknowledgement and process-crash/reconnect recovery remain open.",
+    "Live provider and device acceptance remain open."
+  ]
+}

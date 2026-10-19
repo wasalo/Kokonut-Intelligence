@@ -33,6 +33,18 @@ loss; no separate lease worker or background replay dispatcher is introduced.
 Five-second lock waits bound lock acquisition, not SQL execution or processing.
 Long database operations can still block MQTT network-loop progress.
 
+## Source-level state-machine checks — 19 October 2026
+
+Eleven focused mocked checks cover accepted and rejected terminal outcomes,
+duplicate suppression, exception-class-only retry records, the fifth-attempt
+dead-letter transition, reviewed replay with a fresh attempt budget, paired
+actor/reason validation, and the payload size bound. The checks found and fixed
+a malformed replay case where a reason without an actor was silently treated
+as ordinary processing. Related MQTT/IoT redaction and transport contract
+checks pass 59 tests total. These use fake connections and do not verify SQL
+behavior, PostgreSQL concurrency, broker acknowledgement, or reconnect/replay
+after a process crash ([evidence](builds/2026-10-19-recovery/mqtt-delivery-state-machine.json)).
+
 ## Explicit recovery commands
 
 ```sh
