@@ -11400,3 +11400,15 @@ PostGIS recovery, populated spatial
 fixtures, geostory, thesaurus, and MAN-CAP-063 review remain open. No database
 or external service was used. Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-063-csw-xml-safety.json).
+
+### CAP-064 gRPC authorization denial cardinality — 19 October 2026
+
+The API-key interceptor now preserves the registered RPC cardinality when it
+rejects a call, including streaming methods. Four mocked regressions cover
+unary-unary, unary-stream, stream-unary, and stream-stream handlers; the enabled
+loopback test confirms an unauthenticated server-streaming request receives
+`UNAUTHENTICATED` before the service acquires a database connection. Six focused
+gRPC suites pass 44 tests with Ruff and compilation. No database or provider was
+used. TLS, real runtime-role and tenant scope, streaming behavior parity, and
+REST contract parity remain open. Checklist: 685 complete / 24 open; matrix
+classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-064-grpc-denial-cardinality.json).

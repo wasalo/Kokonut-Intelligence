@@ -178,6 +178,12 @@ def test_registered_server_enforces_api_key_and_scope_over_loopback(running_serv
     assert missing_key.value.code() == grpc.StatusCode.UNAUTHENTICATED
     assert database_factory.connections == []
 
+    denied_stream = data.StreamNewIRIs(service_pb2.StreamNewIRIsRequest(), timeout=3)
+    with pytest.raises(grpc.RpcError) as missing_stream_key:
+        next(denied_stream)
+    assert missing_stream_key.value.code() == grpc.StatusCode.UNAUTHENTICATED
+    assert database_factory.connections == [], "stream auth denial must precede service DB acquisition"
+
     with pytest.raises(grpc.RpcError) as missing_scope:
         data.GenerateIRI(
             service_pb2.GenerateIRIRequest(entity_type="location", entity_id="demo"),

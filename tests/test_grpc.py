@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import os
 import tempfile
 from unittest.mock import MagicMock, patch
@@ -22,7 +21,7 @@ class TestAPIKeyInterceptor:
         details.method = "grpc.health.v1.Health/Check"
         details.invocation_metadata = []
 
-        result = interceptor.intercept_service(continuation, details)
+        interceptor.intercept_service(continuation, details)
         continuation.assert_called_once_with(details)
 
     def test_exempt_methods_accept_wire_format_with_leading_slash(self):
@@ -40,7 +39,9 @@ class TestAPIKeyInterceptor:
     def test_missing_api_key_rejected(self):
         from services.grpc.auth import APIKeyInterceptor
         interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())
-        continuation = MagicMock()
+        continuation = MagicMock(
+            return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None)
+        )
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -48,6 +49,7 @@ class TestAPIKeyInterceptor:
 
         result = interceptor.intercept_service(continuation, details)
         assert result is not None
+        continuation.assert_called_once_with(details)
 
     def test_valid_api_key_passes(self):
         from services.grpc.auth import APIKeyInterceptor
@@ -58,14 +60,17 @@ class TestAPIKeyInterceptor:
         details.method = "grpc.health.v1.Health/Check"
         details.invocation_metadata = [("x-api-key", "test_key_12345")]
 
-        result = interceptor.intercept_service(continuation, details)
+        interceptor.intercept_service(continuation, details)
         continuation.assert_called_once_with(details)
 
     def test_expired_api_key_rejected(self):
+        from datetime import datetime, timedelta, timezone
+
         from services.grpc.auth import APIKeyInterceptor
-        from datetime import datetime, timezone, timedelta
         interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())
-        continuation = MagicMock()
+        continuation = MagicMock(
+            return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None)
+        )
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -91,13 +96,15 @@ class TestAPIKeyInterceptor:
 
         result = interceptor.intercept_service(continuation, details)
         assert result is not None
-        continuation.assert_not_called()
+        continuation.assert_called_once_with(details)
         mock_factory.release.assert_called_once_with(mock_conn)
 
     def test_deactivated_api_key_rejected(self):
         from services.grpc.auth import APIKeyInterceptor
         interceptor = APIKeyInterceptor(db_factory=lambda: MagicMock())
-        continuation = MagicMock()
+        continuation = MagicMock(
+            return_value=grpc.unary_unary_rpc_method_handler(lambda request, context: None)
+        )
 
         details = MagicMock()
         details.method = "ecocredit.v1.EcocreditService/Classes"
@@ -123,7 +130,7 @@ class TestAPIKeyInterceptor:
 
         result = interceptor.intercept_service(continuation, details)
         assert result is not None
-        continuation.assert_not_called()
+        continuation.assert_called_once_with(details)
         mock_factory.release.assert_called_once_with(mock_conn)
 
 
@@ -137,22 +144,24 @@ class TestLoggingInterceptor:
         details = MagicMock()
         details.method = "test/Method"
 
-        result = interceptor.intercept_service(continuation, details)
+        interceptor.intercept_service(continuation, details)
         continuation.assert_called_once_with(details)
 
 
 class TestHealthServicer:
     def test_check(self):
-        from services.grpc.health import HealthServicer
         from grpc_health.v1.health_pb2 import HealthCheckRequest, HealthCheckResponse
+
+        from services.grpc.health import HealthServicer
         servicer = HealthServicer()
         context = MagicMock()
         response = servicer.Check(HealthCheckRequest(), context)
         assert response.status == HealthCheckResponse.SERVING
 
     def test_watch_yields_serving_status(self):
-        from services.grpc.health import HealthServicer
         from grpc_health.v1.health_pb2 import HealthCheckRequest, HealthCheckResponse
+
+        from services.grpc.health import HealthServicer
         servicer = HealthServicer()
         context = MagicMock()
         context.is_active.return_value = False
@@ -164,8 +173,9 @@ class TestHealthServicer:
 
 class TestGrpcHealthCli:
     def test_health_uses_bounded_rpc_without_channel_ready_preflight(self):
-        from services.grpc import cli
         from grpc_health.v1 import health_pb2, health_pb2_grpc
+
+        from services.grpc import cli
 
         serving = health_pb2.HealthCheckResponse.SERVING
         with patch("grpc.insecure_channel") as insecure_channel:
@@ -184,7 +194,7 @@ class TestGrpcHealthCli:
 
 class TestRequireScope:
     def test_scope_check_passes_with_matching_scope(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -199,7 +209,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_passes_with_wildcard(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -214,7 +224,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_denies_wrong_scope(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -234,7 +244,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_denies_empty_scopes(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -253,7 +263,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_denies_no_auth(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set(None)
         try:
@@ -269,7 +279,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_two_part_scope(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
@@ -284,7 +294,7 @@ class TestRequireScope:
             grpc_auth_context.reset(token)
 
     def test_scope_check_wildcard_action(self):
-        from services.grpc.auth import require_scope, grpc_auth_context
+        from services.grpc.auth import grpc_auth_context, require_scope
 
         token = grpc_auth_context.set({
             "api_key_id": "key-1",
