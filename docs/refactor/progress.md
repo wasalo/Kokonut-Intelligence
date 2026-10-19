@@ -1,3 +1,22 @@
+### CAP-065 Gateway-generated BMC draft — 19 October 2026
+
+`POST /operator/api/business-planning/{location_id}/canvases/from-data` now
+builds a location-bound suggestion and creates its draft through the Kernel
+writer. Exact `business_planning:create`, OIDC/CSRF, and signed tenant context
+apply; the context is established before source queries, and reads plus the
+draft write share one connection and transaction. Callers cannot supply the
+generated blocks. Source categories are returned and stored as bounded tags,
+not represented as row-level evidence links. The focused Gateway, route-policy,
+and legacy suggestion selection passes 33 tests; eight database-backed legacy
+checks skip because localhost PostgreSQL is unavailable. Ruff, compilation,
+matrix validation, and diff checks pass; no database or migration was touched.
+The thirteen-section status, canvas edit/version routes, populated output
+parity, live OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain
+open. Checklist: 689 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, 28 prepared. [Contract](business-planning-kernel-write-contract.md),
+[tests](../tests/test_gateway_business_planning_writes.py), and
+[evidence](builds/2026-10-19-recovery/cap-065-gateway-generated-draft.json).
+
 ### CAP-066 unit-safe harvest report rollups — 19 October 2026
 
 Farm summaries now aggregate harvest totals and averages only when all rows

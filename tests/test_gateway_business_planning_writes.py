@@ -118,6 +118,103 @@ def test_create_uses_signed_location_context_and_bounded_draft_function():
     assert connection.closed
 
 
+def test_from_data_reads_suggestions_after_signed_context_on_same_connection():
+    connection = _Connection()
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        conn.operations.append(("context", kwargs))
+
+    def suggest(conn, location_id):
+        assert conn is connection
+        assert location_id == LOCATION_ID
+        conn.operations.append(("suggest", location_id))
+        return {
+            "blocks": {
+                "key_partners": [{"name": "Genesis Cooperative"}],
+                "value_propositions": [{"type": "soil health"}],
+            },
+            "generated_from": ["location_cooperative/supply_agreement"],
+        }
+
+    with patch.object(writes, "set_operator_tenant_context", set_context):
+        result = writes.create_location_business_model_canvas_from_data(
+            OPERATOR_ID,
+            LOCATION_ID,
+            _payload(description="Suggested from current location records"),
+            connection_factory=lambda: connection,
+            suggestion_factory=suggest,
+        )
+
+    context_index = next(i for i, operation in enumerate(connection.operations) if operation[0] == "context")
+    suggest_index = next(i for i, operation in enumerate(connection.operations) if operation[0] == "suggest")
+    create_index = next(
+        i for i, operation in enumerate(connection.operations)
+        if operation[0] == "execute" and "create_location_business_model_canvas" in operation[1]
+    )
+    assert context_index < suggest_index < create_index
+    assert result["status"] == "draft"
+    assert result["generated_from"] == ["location_cooperative/supply_agreement"]
+    assert result["populated_blocks"] == ["key_partners", "value_propositions"]
+    create_call = connection.operations[create_index]
+    assert create_call[2][2] == "Primary Canvas (auto)"
+    assert create_call[2][4] is None
+    assert create_call[2][5] == [
+        "auto-generated",
+        "suggested-from:location_cooperative/supply_agreement",
+    ]
+    assert '"Genesis Cooperative"' in create_call[2][6]
+    assert connection.commits == 1
+    assert connection.closed
+
+
+def test_from_data_rejects_caller_blocks_before_opening_database():
+    def forbidden_factory():
+        raise AssertionError("caller-composed blocks must not enter generated mode")
+
+    with pytest.raises(writes.BusinessPlanningWriteInvalid, match="cannot be supplied"):
+        writes.create_location_business_model_canvas_from_data(
+            OPERATOR_ID,
+            LOCATION_ID,
+            _payload(blocks={"key_partners": [{"name": "caller supplied"}]}),
+            connection_factory=forbidden_factory,
+        )
+
+
+def test_from_data_reserves_source_tags_before_opening_database():
+    def forbidden_factory():
+        raise AssertionError("tag capacity must be validated before suggestion reads")
+
+    with pytest.raises(writes.BusinessPlanningWriteInvalid, match="at most 10 base tags"):
+        writes.create_location_business_model_canvas_from_data(
+            OPERATOR_ID,
+            LOCATION_ID,
+            _payload(tags=[f"caller-{index}" for index in range(11)]),
+            connection_factory=forbidden_factory,
+        )
+
+
+def test_from_data_suggestion_failure_rolls_back_and_closes_connection():
+    connection = _Connection()
+
+    def fail_suggestion(_connection, _location_id):
+        raise RuntimeError("synthetic suggestion failure")
+
+    with patch.object(writes, "set_operator_tenant_context"):
+        with pytest.raises(RuntimeError, match="synthetic suggestion failure"):
+            writes.create_location_business_model_canvas_from_data(
+                OPERATOR_ID,
+                LOCATION_ID,
+                _payload(),
+                connection_factory=lambda: connection,
+                suggestion_factory=fail_suggestion,
+            )
+
+    assert connection.commits == 0
+    assert connection.rollbacks >= 1
+    assert connection.closed
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -211,6 +308,53 @@ def test_post_route_returns_created_or_replayed_status_and_no_store(
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["status"] == "draft"
+
+
+@pytest.mark.parametrize(("replayed", "expected_status"), [(False, 201), (True, 200)])
+def test_from_data_post_route_returns_created_or_replayed_status_and_no_store(
+    monkeypatch, replayed, expected_status
+):
+    from services.gateway.business_planning_routes import register_business_planning_routes
+
+    monkeypatch.setattr(
+        "services.gateway.business_planning_writes.create_location_business_model_canvas_from_data",
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID,
+            "canvas_id": REQUEST_ID,
+            "status": "draft",
+            "version": 1,
+            "created_at": "2026-10-19T00:00:00Z",
+            "replayed": replayed,
+            "generated_from": ["verified_farm_activity"],
+            "populated_blocks": ["key_activities"],
+        },
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_business_planning_routes(router, object(), run_in_threadpool, SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.post(
+            f"/operator/api/business-planning/{LOCATION_ID}/canvases/from-data",
+            json=_payload(description="Create a suggested draft"),
+        )
+
+    assert response.status_code == expected_status
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["generated_from"] == ["verified_farm_activity"]
 
 
 def test_post_route_rejects_non_object_json_without_calling_writer(monkeypatch):

@@ -580,10 +580,10 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
         }
 
     business_canvas_match = re.fullmatch(
-        r"/operator/api/business-planning/([0-9a-fA-F-]{36})/canvases", path
+        r"/operator/api/business-planning/([0-9a-fA-F-]{36})/canvases(/from-data)?", path
     )
     if business_canvas_match and enabled:
-        if method.upper() == "GET":
+        if method.upper() == "GET" and business_canvas_match.group(2) is None:
             return {
                 "resource": "business_planning",
                 "action": "read",

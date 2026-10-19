@@ -143,6 +143,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases",
     ): _expected("business_planning", "create", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases/from-data",
+    ): _expected("business_planning", "create", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/coordination/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("coordination", "read", scoped=True, location_id=_LOCATION_ID),
@@ -530,3 +534,18 @@ def test_unknown_operator_path_and_method_are_protected(tmp_path, monkeypatch):
 
     assert unknown.status_code == 401
     assert wrong_method.status_code == 401
+
+
+def test_business_canvas_from_data_policy_is_post_create_only():
+    path = f"/operator/api/business-planning/{_LOCATION_ID}/canvases/from-data"
+
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "business_planning",
+        "action": "create",
+        "public": False,
+        "location_id": _LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("GET", path, enabled=True) is None
+    assert auth_route_policy("PATCH", path, enabled=True) is None

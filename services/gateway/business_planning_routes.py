@@ -16,6 +16,7 @@ def register_business_planning_routes(router, provider, run_in_threadpool, psyco
     from services.gateway.business_planning_writes import (
         BusinessPlanningWriteInvalid,
         create_location_business_model_canvas,
+        create_location_business_model_canvas_from_data,
     )
 
     headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
@@ -68,11 +69,7 @@ def register_business_planning_routes(router, provider, run_in_threadpool, psyco
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 
-    @router.post("/operator/api/business-planning/{location_id}/canvases")
-    async def create_location_business_model_canvas_draft(
-        request: Request,
-        location_id: str,
-    ):
+    async def _create_canvas_response(request, location_id, writer):
         if provider is None:
             return JSONResponse(
                 status_code=404,
@@ -95,7 +92,7 @@ def register_business_planning_routes(router, provider, run_in_threadpool, psyco
             )
         try:
             result = await run_in_threadpool(
-                create_location_business_model_canvas,
+                writer,
                 request.state.operator_session.operator.operator_id,
                 location_id,
                 payload,
@@ -142,4 +139,22 @@ def register_business_planning_routes(router, provider, run_in_threadpool, psyco
             jsonable_encoder(result),
             status_code=200 if result["replayed"] else 201,
             headers=headers,
+        )
+
+    @router.post("/operator/api/business-planning/{location_id}/canvases")
+    async def create_location_business_model_canvas_draft(
+        request: Request,
+        location_id: str,
+    ):
+        return await _create_canvas_response(request, location_id, create_location_business_model_canvas)
+
+    @router.post("/operator/api/business-planning/{location_id}/canvases/from-data")
+    async def create_location_business_model_canvas_from_data_draft(
+        request: Request,
+        location_id: str,
+    ):
+        return await _create_canvas_response(
+            request,
+            location_id,
+            create_location_business_model_canvas_from_data,
         )
