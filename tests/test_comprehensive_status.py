@@ -71,6 +71,48 @@ def test_comprehensive_status_selected_location():
     assert report["selected_location_ids"] == ["a0000000-0000-0000-0000-000000000001"]
 
 
+def test_comprehensive_status_rollup_keeps_harvest_units_separate():
+    loc_rows = [
+        {"id": "a0000000-0000-0000-0000-000000000001", "name": "Adelphi"},
+        {"id": "b0000000-0000-0000-0000-000000000002", "name": "Other"},
+    ]
+    composed = [
+        {
+            "location_id": loc_rows[0]["id"],
+            "sections": {
+                "farm_summary": {
+                    "harvest_summary": {
+                        "total_quantity": None,
+                        "total_quantity_by_unit": {"kg": 120},
+                    }
+                }
+            },
+        },
+        {
+            "location_id": loc_rows[1]["id"],
+            "sections": {
+                "farm_summary": {
+                    "harvest_summary": {
+                        "total_quantity": None,
+                        "total_quantity_by_unit": {"tonnes": 1.5},
+                    }
+                }
+            },
+        },
+    ]
+    conn = MagicMock()
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "generate_foundational_wellbeing", return_value={"ok": True}), \
+         patch.object(state_module, "generate_stakeholder_outcomes", return_value={"ok": True}), \
+         patch.object(state_module, "generate_capital_accounting", return_value={"ok": True}):
+        report = rg.generate_comprehensive_status(conn, "all")
+
+    overview = report["ecosystem_overview"]
+    assert overview["total_harvest_quantity"] is None
+    assert overview["total_harvest_quantity_unit"] is None
+    assert overview["total_harvest_quantity_by_unit"] == {"kg": 120.0, "tonnes": 1.5}
+
+
 def test_comprehensive_status_isolates_section_errors():
     loc_rows = [
         {"id": "a0000000-0000-0000-0000-000000000001", "name": "Adelphi", "slug": "adelphi",

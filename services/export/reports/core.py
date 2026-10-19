@@ -50,18 +50,33 @@ def generate_farm_summary(conn, location_id: str, period_start: str = None, peri
     )
     crop_cycles = [dict(r) for r in cur.fetchall()]
 
-    # Harvest summary
+    # Harvest summary. Quantities from different units cannot be added or
+    # averaged; retain unit totals and expose scalar measures only for one unit.
     cur.execute(
         """
-        SELECT
-            COUNT(*) as total_harvests,
-            COALESCE(SUM(quantity), 0) as total_quantity,
-            COALESCE(AVG(quantity), 0) as avg_harvest_size,
-            COUNT(DISTINCT crop_cycle_id) as cycles_with_harvest
-        FROM harvest_event
-        WHERE location_id = %s
-        AND (%s::date IS NULL OR harvest_date >= %s::date)
-        AND (%s::date IS NULL OR harvest_date <= %s::date)
+        WITH filtered_harvest AS (
+            SELECT quantity, unit, crop_cycle_id
+            FROM harvest_event
+            WHERE location_id = %s
+              AND (%s::date IS NULL OR harvest_date >= %s::date)
+              AND (%s::date IS NULL OR harvest_date <= %s::date)
+        ), unit_totals AS (
+            SELECT unit, SUM(quantity) AS total_quantity
+            FROM filtered_harvest
+            GROUP BY unit
+        )
+        SELECT COUNT(*) AS total_harvests,
+               CASE WHEN COUNT(DISTINCT unit) <= 1
+                    THEN COALESCE(SUM(quantity), 0) END AS total_quantity,
+               CASE WHEN COUNT(DISTINCT unit) <= 1
+                    THEN COALESCE(AVG(quantity), 0) END AS avg_harvest_size,
+               COUNT(DISTINCT crop_cycle_id) AS cycles_with_harvest,
+               CASE WHEN COUNT(DISTINCT unit) = 1 THEN MIN(unit) END AS quantity_unit,
+               COALESCE(
+                   (SELECT jsonb_object_agg(unit, total_quantity) FROM unit_totals),
+                   '{}'::JSONB
+               ) AS total_quantity_by_unit
+        FROM filtered_harvest
     """,
         (location_id, period_start, period_start, period_end, period_end),
     )

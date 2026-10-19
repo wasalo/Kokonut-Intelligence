@@ -1,7 +1,7 @@
 """State-of-Kokonut and network-level report generators."""
 
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import psycopg2
 import psycopg2.extras
@@ -37,6 +37,47 @@ def _report_error_summary(operation: str, exc: Exception) -> str:
     if not name.isascii() or not name.isidentifier() or len(name) > 64:
         name = "Exception"
     return f"{operation} failed ({name})"
+
+
+def _harvest_quantity_overview(entries):
+    """Aggregate harvest quantities without combining unlike units."""
+    totals = {}
+    for entry in entries:
+        summary = entry.get("sections", {}).get("farm_summary", {})
+        harvest = summary.get("harvest_summary", {}) if isinstance(summary, dict) else {}
+        by_unit = harvest.get("total_quantity_by_unit")
+        if isinstance(by_unit, dict):
+            quantities = by_unit.items()
+        else:
+            unit = harvest.get("quantity_unit")
+            quantity = harvest.get("total_quantity")
+            quantities = [(unit, quantity)] if isinstance(unit, str) and quantity is not None else []
+        for unit, quantity in quantities:
+            if not isinstance(unit, str) or not unit.strip() or quantity is None:
+                continue
+            try:
+                amount = Decimal(str(quantity))
+            except (InvalidOperation, TypeError, ValueError):
+                continue
+            if amount.is_finite():
+                totals[unit] = totals.get(unit, Decimal(0)) + amount
+
+    by_unit = {unit: round(float(amount), 2) for unit, amount in sorted(totals.items())}
+    if len(totals) == 1:
+        unit, amount = next(iter(totals.items()))
+        total_quantity = round(float(amount), 2)
+        quantity_unit = unit
+    elif not totals:
+        total_quantity = 0.0
+        quantity_unit = None
+    else:
+        total_quantity = None
+        quantity_unit = None
+    return {
+        "total_harvest_quantity": total_quantity,
+        "total_harvest_quantity_unit": quantity_unit,
+        "total_harvest_quantity_by_unit": by_unit,
+    }
 
 
 def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
@@ -204,7 +245,6 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
     # Lightweight ecosystem rollups from composed sections.
     total_revenue = 0.0
     total_expenses = 0.0
-    total_harvest = 0.0
     locations_with_data = 0
     for entry in composed:
         fs = entry.get("sections", {}).get("farm_summary")
@@ -215,12 +255,7 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
                 total_expenses += float(fs["financial_summary"].get("total_expenses") or 0)
             except (TypeError, ValueError):
                 pass
-        hs = entry.get("sections", {}).get("farm_summary")
-        if isinstance(hs, dict) and "harvest_summary" in hs:
-            try:
-                total_harvest += float(hs["harvest_summary"].get("total_quantity") or 0)
-            except (TypeError, ValueError):
-                pass
+    harvest_overview = _harvest_quantity_overview(composed)
 
     return {
         "report_type": "state_of_kokonut",
@@ -234,7 +269,7 @@ def generate_state_of_kokonut(conn, location_id: str = None, period_start: str =
             "total_revenue_usd": round(total_revenue, 2),
             "total_expenses_usd": round(total_expenses, 2),
             "net_income_usd": round(total_revenue - total_expenses, 2),
-            "total_harvest_quantity": round(total_harvest, 2),
+            **harvest_overview,
         },
         "actor_view": actors,
         "locations": composed,
@@ -352,7 +387,6 @@ def generate_comprehensive_status(
     # Network-wide rollup from composed financial/environmental summaries.
     total_revenue = 0.0
     total_expenses = 0.0
-    total_harvest = 0.0
     locations_with_data = 0
     for entry in extended:
         fs = entry.get("sections", {}).get("farm_summary")
@@ -363,12 +397,7 @@ def generate_comprehensive_status(
                 total_expenses += float(fs["financial_summary"].get("total_expenses") or 0)
             except (TypeError, ValueError):
                 pass
-        hs = entry.get("sections", {}).get("farm_summary")
-        if isinstance(hs, dict) and "harvest_summary" in hs:
-            try:
-                total_harvest += float(hs["harvest_summary"].get("total_quantity") or 0)
-            except (TypeError, ValueError):
-                pass
+    harvest_overview = _harvest_quantity_overview(extended)
 
     return {
         "report_type": "comprehensive_status",
@@ -382,7 +411,7 @@ def generate_comprehensive_status(
             "total_revenue_usd": round(total_revenue, 2),
             "total_expenses_usd": round(total_expenses, 2),
             "net_income_usd": round(total_revenue - total_expenses, 2),
-            "total_harvest_quantity": round(total_harvest, 2),
+            **harvest_overview,
         },
         "locations": extended,
         "limitations": [

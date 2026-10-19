@@ -11,8 +11,16 @@ LOCATION_ID = "11111111-1111-4111-8111-111111111111"
 
 
 class FarmSummaryCursor:
-    def __init__(self, activity_rows):
+    def __init__(self, activity_rows, harvest_summary=None):
         self.activity_rows = activity_rows
+        self.harvest_summary = harvest_summary or {
+            "total_harvests": 0,
+            "total_quantity": 0,
+            "avg_harvest_size": 0,
+            "cycles_with_harvest": 0,
+            "quantity_unit": None,
+            "total_quantity_by_unit": {},
+        }
         self.rows = []
         self.one = None
         self.statements = []
@@ -29,12 +37,7 @@ class FarmSummaryCursor:
         elif "FROM crop_cycle cc" in statement:
             self.rows = []
         elif "FROM harvest_event" in statement:
-            self.one = {
-                "total_harvests": 0,
-                "total_quantity": 0,
-                "avg_harvest_size": 0,
-                "cycles_with_harvest": 0,
-            }
+            self.one = self.harvest_summary
         elif "FROM financial_transaction" in statement:
             self.one = {"total_revenue": 0, "total_expenses": 0, "net_income": 0}
         elif "FROM expense_event" in statement:
@@ -57,8 +60,8 @@ class FarmSummaryCursor:
 
 
 class FarmSummaryConnection:
-    def __init__(self, activity_rows):
-        self.cursor_instance = FarmSummaryCursor(activity_rows)
+    def __init__(self, activity_rows, harvest_summary=None):
+        self.cursor_instance = FarmSummaryCursor(activity_rows, harvest_summary)
         self.snapshot_cursor = SnapshotCursor()
         self.cursor_calls = 0
         self.committed = False
@@ -161,6 +164,33 @@ def test_farm_summary_returns_zeroes_when_no_activity_is_published():
         "reported_labor_hours_unit": "hours",
         "by_activity_type": [],
     }
+
+
+def test_farm_harvest_summary_keeps_mixed_units_separate():
+    connection = FarmSummaryConnection(
+        [],
+        {
+            "total_harvests": 3,
+            "total_quantity": None,
+            "avg_harvest_size": None,
+            "cycles_with_harvest": 2,
+            "quantity_unit": None,
+            "total_quantity_by_unit": {"kg": 120, "tonnes": 1.5},
+        },
+    )
+
+    report = generate_farm_summary(connection, LOCATION_ID)
+
+    harvest = report["harvest_summary"]
+    assert harvest["total_quantity"] is None
+    assert harvest["avg_harvest_size"] is None
+    assert harvest["quantity_unit"] is None
+    assert harvest["total_quantity_by_unit"] == {"kg": 120, "tonnes": 1.5}
+    query = next(
+        sql for sql, _params in connection.cursor_instance.statements if "FROM harvest_event" in sql
+    )
+    assert "COUNT(DISTINCT unit) <= 1" in query
+    assert "jsonb_object_agg(unit, total_quantity)" in query
 
 
 def test_farm_activity_summary_is_stored_as_an_unfrozen_hashed_draft():

@@ -44,7 +44,11 @@ def _fake_section(financial_total_revenue=0.0, financial_total_expenses=0.0, har
                 "total_revenue": financial_total_revenue,
                 "total_expenses": financial_total_expenses,
             },
-            "harvest_summary": {"total_quantity": harvest_qty},
+            "harvest_summary": {
+                "total_quantity": harvest_qty,
+                "quantity_unit": "kg",
+                "total_quantity_by_unit": {"kg": harvest_qty},
+            },
         }
     }
 
@@ -76,9 +80,37 @@ def test_composes_all_locations_and_rolls_up():
     assert ov["total_expenses_usd"] == 60.0
     assert ov["net_income_usd"] == 90.0
     assert ov["total_harvest_quantity"] == 8.0
+    assert ov["total_harvest_quantity_unit"] == "kg"
+    assert ov["total_harvest_quantity_by_unit"] == {"kg": 8.0}
     assert report["actor_view"]["total_raised"] == 815000.0
     assert len(report["locations"]) == 2
     assert "limitations" in report
+
+
+def test_network_harvest_rollup_does_not_mix_units():
+    loc_rows = [
+        {"id": "a0000000-0000-0000-0000-000000000001", "name": "Adelphi"},
+        {"id": "b0000000-0000-0000-0000-000000000002", "name": "Other"},
+    ]
+    composed = [
+        {
+            "location_id": loc_rows[0]["id"],
+            "sections": {"farm_summary": {"harvest_summary": {"total_quantity": None, "total_quantity_by_unit": {"kg": 120}}}},
+        },
+        {
+            "location_id": loc_rows[1]["id"],
+            "sections": {"farm_summary": {"harvest_summary": {"total_quantity": None, "total_quantity_by_unit": {"tonnes": 1.5}}}},
+        },
+    ]
+    conn = MagicMock()
+    with patch.object(state_module, "_state_of_kokonut_locations", return_value=(loc_rows, composed)), \
+         patch.object(state_module, "_state_of_kokonut_actors", return_value={"total_raised": 0.0}):
+        report = rg.generate_state_of_kokonut(conn, "all")
+
+    overview = report["ecosystem_overview"]
+    assert overview["total_harvest_quantity"] is None
+    assert overview["total_harvest_quantity_unit"] is None
+    assert overview["total_harvest_quantity_by_unit"] == {"kg": 120.0, "tonnes": 1.5}
 
 
 def test_composes_selected_locations_from_comma_list():

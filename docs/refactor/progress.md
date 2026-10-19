@@ -1,3 +1,15 @@
+### CAP-066 unit-safe harvest report rollups — 19 October 2026
+
+Farm summaries now aggregate harvest totals and averages only when all rows
+share one unit; mixed-unit results expose `total_quantity_by_unit` and return
+null for the ambiguous scalar fields. State of Kokonut and comprehensive
+network totals merge only like units, retaining a legacy scalar for a single
+unit. Seventeen focused farm-summary/report tests pass with Ruff and
+compilation. All data was mocked or synthetic; no database was touched.
+Populated output parity, tenant scope, live OIDC/browser, and MAN-CAP-066 review
+remain open. Checklist: 688 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, 28 prepared. [Evidence](builds/2026-10-19-recovery/cap-066-harvest-unit-rollups.json).
+
 ### CAP-065 first Gateway business canvas draft creation — 19 October 2026
 
 `POST /operator/api/business-planning/{location_id}/canvases` now creates a
@@ -21,7 +33,7 @@ suggestion workflow or establish populated parity.
 CAP-065 is prepared, not accepted. Gateway-native generated suggestions,
 thirteen-section status, edit/version and populated-output parity, live
 OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain open. Checklist:
-687 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+688 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 See the [write contract](business-planning-kernel-write-contract.md),
 [Gateway tests](../tests/test_gateway_business_planning_writes.py), and
 [disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-create-disposable.json).
