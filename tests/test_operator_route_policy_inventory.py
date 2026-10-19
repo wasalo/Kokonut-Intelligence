@@ -29,6 +29,7 @@ _PARAMETER_SAMPLES = {
     "item_id": "99999999-9999-4999-8999-999999999999",
     "session_id": "99999999-9999-4999-8999-999999999998",
     "device_id": "collector-1",
+    "plan_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
 }
 _TRANSITION_ACTIONS = {
     "submit": "submit",
@@ -80,6 +81,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/emergency-response/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("emergency_response", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/threatcasting/11111111-1111-4111-8111-111111111111/backcast-plans",
+    ): _expected("threatcasting", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/threatcasting/11111111-1111-4111-8111-111111111111/backcast-plans/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    ): _expected("threatcasting", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/summary",

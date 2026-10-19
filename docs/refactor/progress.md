@@ -10632,3 +10632,28 @@ and 5 prepared. Evidence:
 ### CAP-024 circle and role lifecycle console — 18 October 2026
 
 The operator console now lists all location-scoped governance circles, including circles without roles, and displays role definitions across draft, submitted, approved, active, suspended, rejected, and retired states. Lifecycle controls appear only for the signed session's exact action/location grant. Each action is confirmed with a required reason and is sent with same-origin credentials, CSRF protection, and an idempotency UUID that remains stable for an unchanged retry. The console relies on Gateway/database checks for active person binding, creator/reviewer separation, current state, assignment resolution, and immutable audit history. The 107-test focused CAP-024 Gateway, route-policy, and console suite passes (5 skipped); Ruff, Python compilation, JavaScript syntax, capability validation, runtime SQL inventory (849 service files / 4,107 execution sites), and diff checks pass. No migration was applied; candidate and legacy databases and live OIDC/browser sessions were not accessed. Candidate remains at migration 437 with its administrative `kokonut` runtime identity, so migrations 438–442 remain unrolled-out and CAP-024 remains prepared, not accepted. The next gates are candidate least-privilege runtime migration, authenticated browser acceptance, creation/edit parity, broader tactical parity, populated parity, domain-table RLS, and MAN-CAP-024 review. Checklist: 653 complete / 19 open; classifications remain 45 baseline-retained, 7 deployed, 14 prepared. Evidence: `docs/refactor/builds/2026-10-18-recovery/governance-definition-console.json`.
+### CAP-026 Kernel threatcasting read path — 19 October 2026
+
+The first CAP-026 Kernel path now exposes backcast-plan list and detail reads
+through the OIDC Gateway. Both routes require the exact location-scoped
+`threatcasting:read` grant; the service establishes signed tenant context on
+the same read-only transaction before explicit location-qualified SQL. Pages
+are capped at 100 plans and details at 500 milestones. The projection includes
+plan/narrative labels, milestone state, dependencies, and entered completion
+evidence while excluding arbitrary metadata and full scenario stories. Every
+response is no-store and marks `advisory_only: true`; no publication, execution,
+or write route exists. Existing domain/database checks enforce acyclic,
+same-plan dependencies.
+
+The focused Gateway, route-policy, threatcasting, and backcasting suite passes
+146 tests; Ruff passes. No migration, database, provider, browser identity, or
+candidate service was used. This establishes only a synthetic code path: live
+OIDC/browser behavior, populated output/evidence parity, least-privilege
+runtime ACLs, table RLS, and named MAN-CAP-026 acceptance remain open. The
+capability matrix now classifies CAP-026 as prepared (`P`), not accepted. The
+owner selected CAP-025's identity policy: canonical party identities remain
+network-wide; resolution cases and trust evidence must be location-scoped,
+independently reviewed, and exclude raw feedback from resolution payloads.
+Checklist: 659 complete / 19 open. Matrix: 44 baseline-retained, 7 deployed,
+15 prepared. See [CAP-026 contract](threatcasting-kernel-read-contract.md) and
+[focused checks](../tests/test_gateway_threatcasting_reads.py).

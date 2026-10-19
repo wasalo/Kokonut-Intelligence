@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 852,
-    "execution_sites": 4119,
+    "source_files": 854,
+    "execution_sites": 4125,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 329,
-    "sites_without_worker_operation_refs": 3790,
+    "sites_without_worker_operation_refs": 3796,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
@@ -15,16 +15,16 @@
       "RELEASE": 8,
       "ROLLBACK": 6,
       "SAVEPOINT": 5,
-      "SELECT": 2599,
-      "SET": 122,
+      "SELECT": 2602,
+      "SET": 125,
       "UNKNOWN": 191,
       "UPDATE": 442,
       "WITH": 25
     },
     "statement_groups": {
-      "read_candidate": 2599,
+      "read_candidate": 2602,
       "schema_change": 1,
-      "transaction_or_session": 141,
+      "transaction_or_session": 144,
       "unknown_requires_manual_review": 191,
       "with_requires_manual_review": 25,
       "write_candidate": 1162
@@ -33,10 +33,10 @@
       "composed": 16,
       "composed_or_variable": 262,
       "fstring": 274,
-      "literal": 3567
+      "literal": 3573
     },
-    "relation_candidates": 1073,
-    "sites_without_relation_candidates": 541,
+    "relation_candidates": 1077,
+    "sites_without_relation_candidates": 544,
     "service_packages": 67
   },
   "service_packages": {
@@ -363,17 +363,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 50,
-      "execution_sites": 266,
+      "source_files": 52,
+      "execution_sites": 272,
       "statement_groups": {
-        "read_candidate": 120,
-        "transaction_or_session": 91,
+        "read_candidate": 123,
+        "transaction_or_session": 94,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 35
       },
-      "candidate_relation_names": 72,
-      "sites_without_relation_candidates": 121,
+      "candidate_relation_names": 76,
+      "sites_without_relation_candidates": 124,
       "non_literal_sites": 10,
       "sites_with_worker_operation_refs": 0
     },
@@ -1482,6 +1482,7 @@
     "provenance_event": {"execution_site_count": 9,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/analytics/traceability.py"]},
     "pub": {"execution_site_count": 7,"statement_kinds": ["WITH"],"statement_groups": ["with_requires_manual_review"],"source_files": ["services/analytics/value_stream.py","services/metrics/calculators/first_time_through_yield.py","services/metrics/calculators/governed_lead_time.py","services/metrics/calculators/rework_rate.py","services/systems/process_control.py"]},
     "public.api_key": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/gateway/api_key_provisioning.py"]},
+    "public.backcast_plan": {"execution_site_count": 3,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/threatcasting_reads.py"]},
     "public.crisp_risk_assessment": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/crisp/public_api.py"]},
     "public.farm_activity_operator_event": {"execution_site_count": 1,"statement_kinds": ["UNKNOWN"],"statement_groups": ["unknown_requires_manual_review"],"source_files": ["services/migration/runtime_role.py"]},
     "public.gnosis_event_log_receipt": {"execution_site_count": 2,"statement_kinds": ["INSERT","SELECT"],"statement_groups": ["read_candidate","write_candidate"],"source_files": ["services/ingestion/gnosis_indexer.py"]},
@@ -1497,6 +1498,9 @@
     "public.kernel_metabase_role_probe": {"execution_site_count": 1,"statement_kinds": ["CREATE"],"statement_groups": ["schema_change"],"source_files": ["services/migration/metabase_role.py"]},
     "public.operator_session": {"execution_site_count": 1,"statement_kinds": ["UNKNOWN"],"statement_groups": ["unknown_requires_manual_review"],"source_files": ["services/migration/runtime_role.py"]},
     "public.schema_migration": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/core/schema_readiness.py"]},
+    "public.threat": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/threatcasting_reads.py"]},
+    "public.threat_backcast_plan": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/threatcasting_reads.py"]},
+    "public.threat_narrative": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/threatcasting_reads.py"]},
     "public.v_public_attestation_summary": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/public_summary.py"]},
     "public.v_public_farm_summary": {"execution_site_count": 2,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/public_summary.py","services/crisp/public_api.py"]},
     "public.v_public_metric_summary": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/analytics/public_summary.py"]},
@@ -4589,6 +4593,12 @@
     {"id": "services/gateway/rate_limit_cli.py:17:8","source": "services/gateway/rate_limit_cli.py","line": 17,"column": 8,"scope": "cleanup_idle_buckets","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/rate_limit_cli.py:18:8","source": "services/gateway/rate_limit_cli.py","line": 18,"column": 8,"scope": "cleanup_idle_buckets","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "533631607e3f7cfccfec5c163f787a0d14ddf3a4e3e49ce74a3ea398393a39cc","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/rate_limit_cli.py:19:14","source": "services/gateway/rate_limit_cli.py","line": 19,"column": 14,"scope": "cleanup_idle_buckets","method": "execute","expression_kind": "literal","statement_kind": "WITH","candidate_relations": ["SKIP","deleted","gateway_rate_bucket"],"static_sql_sha256": "9314b8d5e2b9672b2d476ba275454527586381781ac016011cbf29b72d2af320","operation_refs": [],"statement_group": "with_requires_manual_review"},
+    {"id": "services/gateway/threatcasting_reads.py:63:12","source": "services/gateway/threatcasting_reads.py","line": 63,"column": 12,"scope": "_open_readonly","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/threatcasting_reads.py:64:12","source": "services/gateway/threatcasting_reads.py","line": 64,"column": 12,"scope": "_open_readonly","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/threatcasting_reads.py:65:12","source": "services/gateway/threatcasting_reads.py","line": 65,"column": 12,"scope": "_open_readonly","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/threatcasting_reads.py:107:12","source": "services/gateway/threatcasting_reads.py","line": 107,"column": 12,"scope": "list_location_backcast_plans","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.backcast_plan","public.threat","public.threat_backcast_plan","public.threat_narrative"],"static_sql_sha256": "0dc124680ac26c1ae2ff9913db043f9935db6250dc27df7c1b6f07a7b264e5fc","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/threatcasting_reads.py:182:12","source": "services/gateway/threatcasting_reads.py","line": 182,"column": 12,"scope": "get_location_backcast_plan","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.backcast_plan","public.threat","public.threat_narrative"],"static_sql_sha256": "abfdbafba044933fa708864d501fb49e2ca1f5c146c522a90976a33d8b07e44f","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/threatcasting_reads.py:204:12","source": "services/gateway/threatcasting_reads.py","line": 204,"column": 12,"scope": "get_location_backcast_plan","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["public.backcast_plan","public.threat_backcast_plan"],"static_sql_sha256": "770998592cfa7bf33127a6e866b883c12988a201296f0edf95a7565a94e43b69","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/true_cost.py:49:12","source": "services/gateway/true_cost.py","line": 49,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/true_cost.py:50:12","source": "services/gateway/true_cost.py","line": 50,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/true_cost.py:51:12","source": "services/gateway/true_cost.py","line": 51,"column": 12,"scope": "get_true_cost_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
