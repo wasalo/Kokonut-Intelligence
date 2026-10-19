@@ -1,3 +1,23 @@
+### CAP-029 first competitive landscape Kernel read projection — 19 October 2026
+
+The Gateway now exposes a bounded, location-scoped competitive landscape
+summary under exact `competitive_landscape:read` and signed tenant context.
+Migration 453 rechecks scope in PostgreSQL and uses a dedicated non-login
+reader role. The response contains metadata and aggregate actor/threat, Five
+Forces, signal, verified advantage, and outcome signals; identities, narrative,
+evidence, source references, statements, and individual outcome values remain
+excluded. The focused Gateway and exact route-policy selection passes 16 tests;
+the combined Gateway, policy, migration-metadata, and legacy parity selection
+passes 56 tests with two skips. Disposable PostgreSQL 16 applies/replays migration 453 and passes seven
+aggregate, scope, grant, pagination, output, and privilege assertions.
+Candidate and legacy are untouched; migration 453 is not rolled out. CAP-029
+remains prepared: complete report/dashboard and workflow parity, populated
+reference comparison, live OIDC/browser acceptance, universal ACL/RLS, and
+MAN-CAP-029 owner review remain open. Checklist: 670 complete / 19 open;
+classifications: 40 baseline-retained, 7 deployed, 19 prepared ([contract](competitive-landscape-kernel-read-contract.md);
+[migration](../schemas/postgres/453_location_scoped_competitive_landscape_read.sql);
+[evidence](builds/2026-10-19-recovery/cap-029-competitive-landscape-disposable.json)).
+
 ### CAP-028 first strategy Kernel read projection — 19 October 2026
 
 The Gateway now exposes bounded location strategy plan metadata and aggregate

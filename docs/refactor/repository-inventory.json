@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "868a3a64867d6880fe3bcfe5aec61d64af583f5a",
+  "baseline_commit": "61fd674f853dd62d6342cdefa1587cecfcae5cd8",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -939,6 +939,66 @@
       "source": "services/gateway/app.py"
     },
     {
+      "line": 12,
+      "method": "GET",
+      "path": "/operator/api/attestations/{location_id}",
+      "source": "services/gateway/attestation_routes.py"
+    },
+    {
+      "line": 17,
+      "method": "GET",
+      "path": "/operator/api/competitive-landscape/{location_id}/summaries",
+      "source": "services/gateway/competitive_landscape_routes.py"
+    },
+    {
+      "line": 12,
+      "method": "GET",
+      "path": "/operator/api/credit-custody/{location_id}/summary",
+      "source": "services/gateway/credit_custody_routes.py"
+    },
+    {
+      "line": 17,
+      "method": "GET",
+      "path": "/operator/api/delphi/{location_id}/studies",
+      "source": "services/gateway/delphi_consultation_routes.py"
+    },
+    {
+      "line": 51,
+      "method": "GET",
+      "path": "/operator/api/delphi/{location_id}/draft-studies",
+      "source": "services/gateway/delphi_recommendation_draft_routes.py"
+    },
+    {
+      "line": 84,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts",
+      "source": "services/gateway/delphi_recommendation_draft_routes.py"
+    },
+    {
+      "line": 51,
+      "method": "GET",
+      "path": "/operator/api/delphi/{location_id}/recommendations",
+      "source": "services/gateway/delphi_recommendation_review_routes.py"
+    },
+    {
+      "line": 84,
+      "method": "POST",
+      "path": "/operator/api/delphi/{location_id}/recommendations/{recommendation_id}/decision",
+      "source": "services/gateway/delphi_recommendation_review_routes.py"
+    },
+    {
+      "line": 12,
+      "method": "GET",
+      "path": "/operator/api/ecocredits/{location_id}/batches",
+      "source": "services/gateway/ecocredit_routes.py"
+    },
+    {
+      "line": 12,
+      "method": "GET",
+      "path": "/operator/api/emergency-response/{location_id}/summary",
+      "source": "services/gateway/emergency_response_routes.py"
+    },
+    {
       "line": 74,
       "method": "GET",
       "path": "/operator/api/farm-activity-records",
@@ -981,268 +1041,478 @@
       "source": "services/gateway/farm_activity_routes.py"
     },
     {
-      "line": 806,
+      "line": 128,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/summary",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 169,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/roles",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 214,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/roles/{role_id}",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 261,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/circles/{circle_id}",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 308,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/assignment-proposals",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 368,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/assignment-review-queue",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 502,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/approve",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 512,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/reject",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 522,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/roles/{role_id}/assignments",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 829,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/tactical-items",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 872,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/tactical-sessions",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 915,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/tactical-sessions",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1064,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/tactical-items",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1068,
+      "method": "PATCH",
+      "path": "/operator/api/governance/{location_id}/tactical-items/{item_id}",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1072,
+      "method": "PATCH",
+      "path": "/operator/api/governance/{location_id}/tactical-sessions/{session_id}",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1149,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/tactical-items/{item_id}/start",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1153,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/tactical-items/{item_id}/dispose",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1157,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/tactical-items/{item_id}/cancel",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1161,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/tensions",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1194,
+      "method": "GET",
+      "path": "/operator/api/governance/{location_id}/tensions/{tension_id}",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1221,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/tensions",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1249,
+      "method": "POST",
+      "path": "/operator/api/governance/{location_id}/tensions/{tension_id}/submit",
+      "source": "services/gateway/governance_role_routes.py"
+    },
+    {
+      "line": 1302,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 821,
+      "line": 1317,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 830,
+      "line": 1326,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 888,
+      "line": 1384,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 916,
+      "line": 1412,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 956,
+      "line": 1452,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1007,
+      "line": 1503,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1047,
+      "line": 1543,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1100,
+      "line": 1596,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1160,
+      "line": 1656,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1215,
+      "line": 1711,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1259,
+      "line": 1755,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1320,
+      "line": 1816,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1403,
+      "line": 1899,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1496,
+      "line": 1992,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1544,
+      "line": 2040,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1596,
+      "line": 2092,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1654,
+      "line": 2150,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1708,
+      "line": 2204,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1797,
+      "line": 2293,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1817,
+      "line": 2313,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1837,
+      "line": 2333,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1873,
+      "line": 2369,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1901,
+      "line": 2397,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1929,
+      "line": 2425,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 1972,
+      "line": 2468,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 125,
+      "line": 142,
       "method": "GET",
       "path": "/locations",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 141,
+      "line": 158,
       "method": "GET",
       "path": "/locations/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 166,
+      "line": 183,
       "method": "GET",
       "path": "/v1/locations",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 185,
+      "line": 202,
       "method": "GET",
       "path": "/v1/locations/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 213,
+      "line": 230,
       "method": "GET",
       "path": "/metrics/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 247,
+      "line": 264,
       "method": "GET",
       "path": "/crisp/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 271,
+      "line": 288,
       "method": "GET",
       "path": "/analytics/{location_id}/summary",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 295,
+      "line": 312,
       "method": "GET",
       "path": "/v1/metrics/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 305,
+      "line": 322,
       "method": "GET",
       "path": "/v1/crisp/{location_id}",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 316,
+      "line": 333,
       "method": "GET",
       "path": "/v1/analytics/{location_id}/summary",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 327,
+      "line": 344,
       "method": "GET",
       "path": "/data-stream/posts",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 362,
+      "line": 379,
       "method": "GET",
       "path": "/data-stream/posts/{post_id}/files",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 387,
+      "line": 404,
       "method": "GET",
       "path": "/data-stream/posts/{post_id}/attestation",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 414,
+      "line": 431,
       "method": "POST",
       "path": "/data-stream/post",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 439,
+      "line": 456,
       "method": "GET",
       "path": "/iri/resolve",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 463,
+      "line": 480,
       "method": "GET",
       "path": "/federation/nodes",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 475,
+      "line": 492,
       "method": "GET",
       "path": "/drivers",
       "source": "services/gateway/router.py"
     },
     {
-      "line": 487,
+      "line": 504,
       "method": "GET",
       "path": "/health/services",
       "source": "services/gateway/router.py"
+    },
+    {
+      "line": 515,
+      "method": "GET",
+      "path": "/v1/governance/baal/config",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 529,
+      "method": "GET",
+      "path": "/v1/governance/baal/proposals",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 547,
+      "method": "GET",
+      "path": "/v1/governance/baal/proposals/{proposal_id}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 561,
+      "method": "GET",
+      "path": "/v1/governance/baal/members/{wallet}",
+      "source": "services/gateway/router.py"
+    },
+    {
+      "line": 17,
+      "method": "GET",
+      "path": "/operator/api/stakeholder-identity/{location_id}/resolve/{source_profile_id}",
+      "source": "services/gateway/stakeholder_identity_resolution_routes.py"
+    },
+    {
+      "line": 61,
+      "method": "GET",
+      "path": "/operator/api/stakeholder-identity/{location_id}/cases",
+      "source": "services/gateway/stakeholder_identity_routes.py"
+    },
+    {
+      "line": 84,
+      "method": "POST",
+      "path": "/operator/api/stakeholder-identity/{location_id}/cases",
+      "source": "services/gateway/stakeholder_identity_routes.py"
+    },
+    {
+      "line": 118,
+      "method": "POST",
+      "path": "/operator/api/stakeholder-identity/{location_id}/cases/{case_id}/decision",
+      "source": "services/gateway/stakeholder_identity_routes.py"
+    },
+    {
+      "line": 17,
+      "method": "GET",
+      "path": "/operator/api/stakeholder-trust/{location_id}/parties/{party_id}/identity-evidence",
+      "source": "services/gateway/stakeholder_trust_routes.py"
+    },
+    {
+      "line": 17,
+      "method": "GET",
+      "path": "/operator/api/strategy/{location_id}/plans",
+      "source": "services/gateway/strategy_routes.py"
+    },
+    {
+      "line": 37,
+      "method": "GET",
+      "path": "/operator/api/threatcasting/{location_id}/backcast-plans",
+      "source": "services/gateway/threatcasting_routes.py"
+    },
+    {
+      "line": 70,
+      "method": "GET",
+      "path": "/operator/api/threatcasting/{location_id}/backcast-plans/{plan_id}",
+      "source": "services/gateway/threatcasting_routes.py"
+    },
+    {
+      "line": 12,
+      "method": "GET",
+      "path": "/operator/api/true-cost/{location_id}/summary",
+      "source": "services/gateway/true_cost_routes.py"
     },
     {
       "line": 264,
@@ -1829,7 +2099,24 @@
       "schemas/postgres/433_isolated_eas_indexer.sql",
       "schemas/postgres/434_financial_events_clickhouse_outbox.sql",
       "schemas/postgres/435_financial_projection_conflict_guard.sql",
-      "schemas/postgres/436_isolated_rpc_indexer.sql"
+      "schemas/postgres/436_isolated_rpc_indexer.sql",
+      "schemas/postgres/437_governance_operator_binding_and_actions.sql",
+      "schemas/postgres/438_governance_role_assignment_proposals.sql",
+      "schemas/postgres/439_governance_role_assignment_proposal_readback.sql",
+      "schemas/postgres/440_governance_role_assignment_review.sql",
+      "schemas/postgres/441_governance_tactical_actions.sql",
+      "schemas/postgres/442_governance_definition_lifecycle.sql",
+      "schemas/postgres/443_governance_definition_mutations.sql",
+      "schemas/postgres/444_governance_tactical_session_creation.sql",
+      "schemas/postgres/445_governance_tactical_content_mutations.sql",
+      "schemas/postgres/446_location_scoped_stakeholder_identity_review.sql",
+      "schemas/postgres/447_location_scoped_identity_trust_projection.sql",
+      "schemas/postgres/448_location_scoped_identity_resolution.sql",
+      "schemas/postgres/449_location_scoped_delphi_consultation_read.sql",
+      "schemas/postgres/450_location_scoped_delphi_recommendation_review.sql",
+      "schemas/postgres/451_location_scoped_delphi_recommendation_drafts.sql",
+      "schemas/postgres/452_location_scoped_strategy_plan_read.sql",
+      "schemas/postgres/453_location_scoped_competitive_landscape_read.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2274,6 +2561,7 @@
         "tests/test_governance_links.py",
         "tests/test_governance_proposals.py",
         "tests/test_governance_role_authority.py",
+        "tests/test_governance_role_authority_unit.py",
         "tests/test_governance_roles.py",
         "tests/test_governance_tactical.py",
         "tests/test_governance_tensions.py",
@@ -2486,9 +2774,31 @@
         "tests/test_common_logging.py",
         "tests/test_farm_activity_records.py",
         "tests/test_farm_activity_routes.py",
+        "tests/test_gateway_attestations.py",
         "tests/test_gateway_auth.py",
+        "tests/test_gateway_competitive_landscape_reads.py",
+        "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_data_stream.py",
+        "tests/test_gateway_delphi_consultation.py",
+        "tests/test_gateway_delphi_recommendation_drafts.py",
+        "tests/test_gateway_delphi_recommendation_review.py",
+        "tests/test_gateway_ecocredits.py",
+        "tests/test_gateway_emergency_response.py",
+        "tests/test_gateway_governance_assignment_proposal_reads.py",
+        "tests/test_gateway_governance_assignment_proposals.py",
+        "tests/test_gateway_governance_assignment_review.py",
+        "tests/test_gateway_governance_definition_actions.py",
+        "tests/test_gateway_governance_definition_mutations.py",
+        "tests/test_gateway_governance_operations.py",
+        "tests/test_gateway_governance_roles.py",
+        "tests/test_gateway_governance_tactical_actions.py",
+        "tests/test_gateway_governance_tactical_mutations.py",
+        "tests/test_gateway_governance_tactical_session_mutations.py",
+        "tests/test_gateway_governance_tension_actions.py",
         "tests/test_gateway_public_locations.py",
+        "tests/test_gateway_strategy_reads.py",
+        "tests/test_gateway_threatcasting_reads.py",
+        "tests/test_gateway_true_cost.py",
         "tests/test_harvest_manager_error_redaction.py",
         "tests/test_kernel_runtime_supervisor.py",
         "tests/test_mobile_api.py",
@@ -2967,17 +3277,47 @@
         "services/gateway/__init__.py",
         "services/gateway/api_key_provisioning.py",
         "services/gateway/app.py",
+        "services/gateway/attestation_routes.py",
+        "services/gateway/attestations.py",
         "services/gateway/audit.py",
         "services/gateway/audit_spool.py",
         "services/gateway/audit_spool_cli.py",
         "services/gateway/auth.py",
         "services/gateway/cli.py",
+        "services/gateway/competitive_landscape_reads.py",
+        "services/gateway/competitive_landscape_routes.py",
+        "services/gateway/credit_custody.py",
+        "services/gateway/credit_custody_routes.py",
         "services/gateway/data_stream.py",
+        "services/gateway/delphi_consultation.py",
+        "services/gateway/delphi_consultation_routes.py",
+        "services/gateway/delphi_recommendation_draft_routes.py",
+        "services/gateway/delphi_recommendation_drafts.py",
+        "services/gateway/delphi_recommendation_review.py",
+        "services/gateway/delphi_recommendation_review_routes.py",
+        "services/gateway/ecocredit_routes.py",
+        "services/gateway/ecocredits.py",
+        "services/gateway/emergency_response.py",
+        "services/gateway/emergency_response_routes.py",
         "services/gateway/farm_activity_lifecycle.py",
         "services/gateway/farm_activity_records.py",
         "services/gateway/farm_activity_roles.py",
         "services/gateway/farm_activity_routes.py",
         "services/gateway/farm_activity_workflow.py",
+        "services/gateway/governance.py",
+        "services/gateway/governance_assignment_proposal_reads.py",
+        "services/gateway/governance_assignment_proposals.py",
+        "services/gateway/governance_assignment_review.py",
+        "services/gateway/governance_definition_actions.py",
+        "services/gateway/governance_definition_mutations.py",
+        "services/gateway/governance_operations.py",
+        "services/gateway/governance_role_routes.py",
+        "services/gateway/governance_roles.py",
+        "services/gateway/governance_tactical_actions.py",
+        "services/gateway/governance_tactical_mutations.py",
+        "services/gateway/governance_tactical_session_mutations.py",
+        "services/gateway/governance_tension_actions.py",
+        "services/gateway/governance_tension_review.py",
         "services/gateway/locations.py",
         "services/gateway/operator_auth.py",
         "services/gateway/operator_cli.py",
@@ -2989,7 +3329,19 @@
         "services/gateway/rate_limit_backend.py",
         "services/gateway/rate_limit_cli.py",
         "services/gateway/rate_limiter.py",
-        "services/gateway/router.py"
+        "services/gateway/router.py",
+        "services/gateway/stakeholder_identity.py",
+        "services/gateway/stakeholder_identity_resolution.py",
+        "services/gateway/stakeholder_identity_resolution_routes.py",
+        "services/gateway/stakeholder_identity_routes.py",
+        "services/gateway/stakeholder_trust.py",
+        "services/gateway/stakeholder_trust_routes.py",
+        "services/gateway/strategy_reads.py",
+        "services/gateway/strategy_routes.py",
+        "services/gateway/threatcasting_reads.py",
+        "services/gateway/threatcasting_routes.py",
+        "services/gateway/true_cost.py",
+        "services/gateway/true_cost_routes.py"
       ],
       "test_references": [
         "tests/test_farm_activity_lifecycle.py",
@@ -2998,15 +3350,42 @@
         "tests/test_farm_activity_routes.py",
         "tests/test_farm_activity_workflow.py",
         "tests/test_gateway_api_key_provisioning.py",
+        "tests/test_gateway_attestations.py",
         "tests/test_gateway_audit.py",
         "tests/test_gateway_auth.py",
+        "tests/test_gateway_competitive_landscape_reads.py",
+        "tests/test_gateway_credit_custody.py",
         "tests/test_gateway_data_stream.py",
+        "tests/test_gateway_delphi_consultation.py",
+        "tests/test_gateway_delphi_recommendation_drafts.py",
+        "tests/test_gateway_delphi_recommendation_review.py",
+        "tests/test_gateway_ecocredits.py",
+        "tests/test_gateway_emergency_response.py",
+        "tests/test_gateway_governance.py",
+        "tests/test_gateway_governance_assignment_proposal_reads.py",
+        "tests/test_gateway_governance_assignment_proposals.py",
+        "tests/test_gateway_governance_assignment_review.py",
+        "tests/test_gateway_governance_definition_actions.py",
+        "tests/test_gateway_governance_definition_mutations.py",
+        "tests/test_gateway_governance_operations.py",
+        "tests/test_gateway_governance_roles.py",
+        "tests/test_gateway_governance_tactical_actions.py",
+        "tests/test_gateway_governance_tactical_mutations.py",
+        "tests/test_gateway_governance_tactical_session_mutations.py",
+        "tests/test_gateway_governance_tension_actions.py",
+        "tests/test_gateway_governance_tension_review.py",
         "tests/test_gateway_internal_error_redaction.py",
         "tests/test_gateway_lifespan.py",
         "tests/test_gateway_public_iri.py",
         "tests/test_gateway_public_locations.py",
         "tests/test_gateway_public_metrics.py",
         "tests/test_gateway_route_policy_inventory.py",
+        "tests/test_gateway_stakeholder_identity.py",
+        "tests/test_gateway_stakeholder_identity_resolution.py",
+        "tests/test_gateway_stakeholder_trust.py",
+        "tests/test_gateway_strategy_reads.py",
+        "tests/test_gateway_threatcasting_reads.py",
+        "tests/test_gateway_true_cost.py",
         "tests/test_mobile_api.py",
         "tests/test_operator_auth.py",
         "tests/test_operator_auth_session_db_boundary.py",
@@ -3056,6 +3435,7 @@
         "services/governance/registry.py"
       ],
       "test_references": [
+        "tests/test_gateway_governance.py",
         "tests/test_governance_framework.py"
       ]
     },
@@ -4304,15 +4684,42 @@
     "tests/test_fortune500.py",
     "tests/test_gap_closures.py",
     "tests/test_gateway_api_key_provisioning.py",
+    "tests/test_gateway_attestations.py",
     "tests/test_gateway_audit.py",
     "tests/test_gateway_auth.py",
+    "tests/test_gateway_competitive_landscape_reads.py",
+    "tests/test_gateway_credit_custody.py",
     "tests/test_gateway_data_stream.py",
+    "tests/test_gateway_delphi_consultation.py",
+    "tests/test_gateway_delphi_recommendation_drafts.py",
+    "tests/test_gateway_delphi_recommendation_review.py",
+    "tests/test_gateway_ecocredits.py",
+    "tests/test_gateway_emergency_response.py",
+    "tests/test_gateway_governance.py",
+    "tests/test_gateway_governance_assignment_proposal_reads.py",
+    "tests/test_gateway_governance_assignment_proposals.py",
+    "tests/test_gateway_governance_assignment_review.py",
+    "tests/test_gateway_governance_definition_actions.py",
+    "tests/test_gateway_governance_definition_mutations.py",
+    "tests/test_gateway_governance_operations.py",
+    "tests/test_gateway_governance_roles.py",
+    "tests/test_gateway_governance_tactical_actions.py",
+    "tests/test_gateway_governance_tactical_mutations.py",
+    "tests/test_gateway_governance_tactical_session_mutations.py",
+    "tests/test_gateway_governance_tension_actions.py",
+    "tests/test_gateway_governance_tension_review.py",
     "tests/test_gateway_internal_error_redaction.py",
     "tests/test_gateway_lifespan.py",
     "tests/test_gateway_public_iri.py",
     "tests/test_gateway_public_locations.py",
     "tests/test_gateway_public_metrics.py",
     "tests/test_gateway_route_policy_inventory.py",
+    "tests/test_gateway_stakeholder_identity.py",
+    "tests/test_gateway_stakeholder_identity_resolution.py",
+    "tests/test_gateway_stakeholder_trust.py",
+    "tests/test_gateway_strategy_reads.py",
+    "tests/test_gateway_threatcasting_reads.py",
+    "tests/test_gateway_true_cost.py",
     "tests/test_gee_climate_error_redaction.py",
     "tests/test_geospatial_import_error_redaction.py",
     "tests/test_geostatistics.py",
@@ -4325,6 +4732,7 @@
     "tests/test_governance_links.py",
     "tests/test_governance_proposals.py",
     "tests/test_governance_role_authority.py",
+    "tests/test_governance_role_authority_unit.py",
     "tests/test_governance_roles.py",
     "tests/test_governance_tactical.py",
     "tests/test_governance_tensions.py",
@@ -4417,7 +4825,12 @@
     "tests/test_operating_support.py",
     "tests/test_operator_auth.py",
     "tests/test_operator_auth_session_db_boundary.py",
+    "tests/test_operator_console_delphi_recommendation_drafts.py",
+    "tests/test_operator_console_delphi_recommendation_review.py",
     "tests/test_operator_console_farm_activity.py",
+    "tests/test_operator_console_governance_assignment_proposals.py",
+    "tests/test_operator_console_governance_tactical_sessions.py",
+    "tests/test_operator_console_governance_tensions.py",
     "tests/test_operator_console_mobile_disposition.py",
     "tests/test_operator_mobile_review.py",
     "tests/test_operator_oidc_provider_contract.py",

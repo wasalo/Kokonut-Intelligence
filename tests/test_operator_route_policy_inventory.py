@@ -120,6 +120,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("strategy", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/competitive-landscape/11111111-1111-4111-8111-111111111111/summaries",
+    ): _expected("competitive_landscape", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/stakeholder-identity/11111111-1111-4111-8111-111111111111/cases",
     ): _expected("stakeholder_identity", "review", scoped=True, location_id=_LOCATION_ID),
     (
