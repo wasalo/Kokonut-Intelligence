@@ -3,7 +3,7 @@
 **Updated:** 19 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Current local slice — 19 October 2026:** CAP-040 has durable MQTT receipts and a disposable Mosquitto/Paho crash-redelivery check; its commits through `834187e8` are pushed to PR #68. CAP-041 restores SOC training coordinates, adds deterministic sample-balanced field folds, and exercises synthetic spatial-block CV; 22 focused DSM tests, 95 DSM/geostatistics/spectral tests, and disposable PostgreSQL/PostGIS checks pass. CAP-042 now projects Guild Registry metadata, steward, and status into a reorg-cleared chain-owned metadata subobject; a disposable run replayed all 452 schemas and checked ten synthetic events, duplicate replay, reorg rebuild, database restart, and lease reclaim, with 14 focused tests passing. CAP-043 fixes repeat credit issuance serial collisions with an appended UUPS-safe counter and legacy serial-zero fallback; the proxy suite passes 17 tests, the issuance fuzz case passes 1,000 runs, and all 67 Foundry tests pass. CAP-041/042 implementation commits and the CAP-043 slice remain local for the next push batch. Candidate and legacy databases and deployed contracts are untouched. CAP-040/041/042/043 remain unaccepted; sensor/outbox and model fixture parity, production MQTT security/provider behavior, fitted-model geographic metrics, live-chain behavior, credit ledger/custody parity, owner decisions, and named MAN-CAP acceptance remain open. Checklist: 685 complete / 24 open; matrix: 32 baseline-retained, 7 deployed, 27 prepared. Evidence: [MQTT recovery](builds/2026-10-19-recovery/mqtt-delivery-postgresql-mosquitto.json), [CAP-041 coordinates](builds/2026-10-19-recovery/cap-041-spatial-training-coordinates.json), [CAP-041 folds](builds/2026-10-19-recovery/cap-041-geographic-fold-repeatability.json), [CAP-042 registry projection](builds/2026-10-19-recovery/cap-042-guild-registry-projection-reorg.json), and [CAP-043 serial identity](builds/2026-10-19-recovery/cap-043-credit-serial-identity.json).
+**Current local slice — 19 October 2026:** CAP-040 has durable MQTT receipts and a disposable Mosquitto/Paho crash-redelivery check; its commits through `834187e8` are pushed to PR #68. CAP-041 restores SOC training coordinates, adds deterministic sample-balanced field folds, and exercises synthetic spatial-block CV; 22 focused DSM tests, 95 DSM/geostatistics/spectral tests, and disposable PostgreSQL/PostGIS checks pass. CAP-042 projects Guild Registry metadata, steward, and status into a reorg-cleared chain-owned metadata subobject; its disposable run replayed all 452 schemas and checked ten synthetic events, duplicate replay, reorg rebuild, database restart, and lease reclaim, with 14 focused tests passing. CAP-043 fixes repeat credit issuance serial collisions with an appended UUPS-safe counter and legacy serial-zero fallback; its proxy suite passes 17 tests, the issuance fuzz case passes 1,000 runs, and all 67 Foundry tests pass. CAP-041/042/043 were pushed together to PR #68 at `d947b77f`. CAP-044 lets authorized updaters refresh expired oracle feeds and adds explicit freshness-checked reads; its 13-test suite and a 256-case freshness fuzz test pass. CAP-045 makes malformed proof shapes and unsupported direction flags return false; its 10-test suite and a 256-case invalid-flag fuzz test pass. CAP-046 rejects zero-address initial resolver attesters and verifies EAS-only callback gates with synthetic calls; its 12-test suite passes. The complete Foundry suite passes 81 tests across seven suites. CAP-044/045/046 remain local for the next push batch. Candidate and legacy databases and deployed contracts are untouched. CAP-040/041/042/043/044/045/046 remain unaccepted; sensor/outbox and model fixture parity, production MQTT security/provider behavior, fitted-model geographic metrics, live-chain behavior, credit ledger/custody parity, oracle service consumption/consensus, disclosure leaf/consumer parity, live EAS/schema behavior, owner decisions, and named MAN-CAP acceptance remain open. Checklist: 685 complete / 24 open; matrix: 32 baseline-retained, 7 deployed, 27 prepared. Evidence: [MQTT recovery](builds/2026-10-19-recovery/mqtt-delivery-postgresql-mosquitto.json), [CAP-041 coordinates](builds/2026-10-19-recovery/cap-041-spatial-training-coordinates.json), [CAP-041 folds](builds/2026-10-19-recovery/cap-041-geographic-fold-repeatability.json), [CAP-042 registry projection](builds/2026-10-19-recovery/cap-042-guild-registry-projection-reorg.json), [CAP-043 serial identity](builds/2026-10-19-recovery/cap-043-credit-serial-identity.json), [CAP-044 oracle freshness](builds/2026-10-19-recovery/cap-044-oracle-freshness.json), and [CAP-045 proof shape](builds/2026-10-19-recovery/cap-045-proof-shape.json), and [CAP-046 resolver gates](builds/2026-10-19-recovery/cap-046-resolver-gates.json).
 
 **Previous local slice — 19 October 2026:** CAP-036 adds `GET /operator/api/sequential-evidence/{location_id}/summary` under exact `sequential_evidence:read` and signed tenant context. Migration 460 returns aggregate hypothesis lifecycle, evidence-quality, posterior-update, applied-event, and latest threshold-action counts only for exact location-scoped strategy plans, threats, and explicitly location-linked solutions. It excludes statements, event IDs, source references, values, likelihoods, probabilities, and identities; ledger writes and calculations are unchanged. The focused Gateway, route-policy, migration-metadata, and legacy decision selection passes 53 tests with two database-dependent skips; disposable PostgreSQL 16 applies/replays migration 460 and passes six scope, lineage, privacy, and privilege assertions. Candidate and legacy databases are untouched; CAP-036 remains prepared pending ordered item-level reads, remaining source lineage, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-036 owner review. Checklist at that checkpoint: 677 complete / 21 open; matrix: 34 baseline-retained, 7 deployed, 25 prepared. Evidence: [CAP-036 contract](sequential-decision-kernel-read-contract.md) and [CAP-036 acceptance](builds/2026-10-19-recovery/cap-036-sequential-decision-disposable.json).
 
@@ -1566,6 +1566,52 @@ acceptance.
 
 Status: implemented locally and verified; CAP-043 remains baseline-retained,
 not accepted. See [serial identity evidence](builds/2026-10-19-recovery/cap-043-credit-serial-identity.json).
+
+### CAP-044 oracle freshness and stale-feed recovery — 19 October 2026
+
+The update path rejected an authorized refresh when the previously stored
+price had exceeded `maxAge`, while the contract accepts no source timestamp
+that could be independently checked at update time. Age enforcement now lives
+on explicit `isFresh` and `getFreshPrice` reads: a missing or expired value
+fails closed, the exact `maxAge` boundary remains fresh, and zero `maxAge`
+continues to disable expiry. Existing `getPrice` remains available for
+backward-compatible raw reads. An authorized updater can refresh a stale feed,
+after which the new block timestamp makes it fresh again.
+
+The oracle suite passes 13 tests, including 256 fuzz cases, and the complete
+Foundry suite passes all 73 tests. No service consumes the new freshness API
+yet, so this contract repair does not establish source timestamp validation,
+feed consensus, service parity, or MAN-CAP-044 acceptance. No deployed contract
+or chain was touched. See [oracle freshness evidence](builds/2026-10-19-recovery/cap-044-oracle-freshness.json).
+
+### CAP-045 selective disclosure proof shape — 19 October 2026
+
+The verifier indexed `proofFlags` once per proof element without checking the
+array lengths, allowing malformed input to panic. It also treated every
+nonzero flag as the same direction. Verification now returns `false` unless
+proof and flag lengths match and every direction is exactly `0` or `1`, while
+keeping the existing boolean API and root-only storage behavior.
+
+The focused suite passes 10 tests, including 256 fuzz cases for unsupported
+flags; all 77 Foundry tests pass across seven suites. The contract retains
+attestation roots, not disclosed claim data. Leaf construction, consuming-app
+integration, and MAN-CAP-045 review remain open. No deployed contract or chain
+was touched. See [proof-shape evidence](builds/2026-10-19-recovery/cap-045-proof-shape.json).
+
+### CAP-046 resolver attester configuration and EAS gates — 19 October 2026
+
+The constructor accepted a zero address in `initialAttesters`, unlike the
+runtime `addAttester` method. It now rejects that invalid configuration. The
+resolver tests also exercise inherited EAS-only callbacks through a synthetic
+caller: configured attesters pass both attestation and revocation, unapproved
+attesters fail, direct non-EAS calls revert, and removal immediately blocks
+both operations under the current allowlist policy.
+
+The resolver suite passes 12 tests, including its 256-run attester fuzz case;
+the complete Foundry suite passes 81 tests across seven suites. This does not
+verify a real EAS deployment, schema registration, or whether removed
+attesters should retain revocation rights. CAP-046 remains unaccepted. No live
+chain was contacted. See [resolver evidence](builds/2026-10-19-recovery/cap-046-resolver-gates.json).
 
 ### CAP-027 facilitator recommendation review — 19 October 2026
 

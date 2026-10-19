@@ -79,6 +79,84 @@ contract KokonutPriceOracleTest is Test {
         assertTrue(oracle.feedExists(FEED_KEY));
     }
 
+    function testFreshPriceRejectsExpiredFeedButUpdaterCanRefreshIt() public {
+        vm.startPrank(updater);
+        oracle.setMaxAge(FEED_KEY, 100);
+        oracle.updatePrice(FEED_KEY, 250000, "world-bank", ATTESTATION_UID, 95);
+        vm.stopPrank();
+
+        KokonutPriceOracle.PriceFeed memory original = oracle.getPrice(FEED_KEY);
+        vm.warp(original.timestamp + 101);
+
+        assertFalse(oracle.isFresh(FEED_KEY));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                KokonutPriceOracle.StaleTimestamp.selector, FEED_KEY, original.timestamp, block.timestamp
+            )
+        );
+        oracle.getFreshPrice(FEED_KEY);
+
+        vm.prank(updater);
+        oracle.updatePrice(FEED_KEY, 260000, "world-bank", keccak256("att-002"), 97);
+
+        KokonutPriceOracle.PriceFeed memory refreshed = oracle.getFreshPrice(FEED_KEY);
+        assertEq(refreshed.price, 260000);
+        assertEq(refreshed.updateCount, 2);
+        assertTrue(oracle.isFresh(FEED_KEY));
+    }
+
+    function testFreshnessIncludesExactMaxAgeBoundary() public {
+        vm.startPrank(updater);
+        oracle.setMaxAge(FEED_KEY, 100);
+        oracle.updatePrice(FEED_KEY, 250000, "world-bank", ATTESTATION_UID, 95);
+        vm.stopPrank();
+
+        uint256 timestamp = oracle.getPrice(FEED_KEY).timestamp;
+        vm.warp(timestamp + 100);
+        assertTrue(oracle.isFresh(FEED_KEY));
+
+        vm.warp(timestamp + 101);
+        assertFalse(oracle.isFresh(FEED_KEY));
+    }
+
+    function testFreshPriceRejectsMissingFeed() public {
+        assertFalse(oracle.isFresh(FEED_KEY));
+        vm.expectRevert(
+            abi.encodeWithSelector(KokonutPriceOracle.StaleTimestamp.selector, FEED_KEY, 0, block.timestamp)
+        );
+        oracle.getFreshPrice(FEED_KEY);
+    }
+
+    function testZeroMaxAgeDisablesExpiry() public {
+        vm.prank(updater);
+        oracle.updatePrice(FEED_KEY, 250000, "world-bank", ATTESTATION_UID, 95);
+
+        uint256 timestamp = oracle.getPrice(FEED_KEY).timestamp;
+        vm.warp(timestamp + 400 days);
+        assertTrue(oracle.isFresh(FEED_KEY));
+        assertEq(oracle.getFreshPrice(FEED_KEY).price, 250000);
+    }
+
+    function testMaxAgeCanOnlyBeConfiguredByUpdater() public {
+        vm.prank(makeAddr("unauthorized"));
+        vm.expectRevert();
+        oracle.setMaxAge(FEED_KEY, 100);
+    }
+
+    function testFuzz_FreshnessExpiresAtConfiguredAge(uint32 maxAgeInput, uint32 elapsedInput) public {
+        uint32 maxAgeSeconds = uint32(bound(maxAgeInput, 1, 365 days));
+        uint32 elapsedSeconds = uint32(bound(elapsedInput, 0, uint256(maxAgeSeconds) + 1));
+
+        vm.startPrank(updater);
+        oracle.setMaxAge(FEED_KEY, maxAgeSeconds);
+        oracle.updatePrice(FEED_KEY, 250000, "world-bank", ATTESTATION_UID, 95);
+        vm.stopPrank();
+
+        uint256 timestamp = oracle.getPrice(FEED_KEY).timestamp;
+        vm.warp(timestamp + elapsedSeconds);
+        assertEq(oracle.isFresh(FEED_KEY), elapsedSeconds <= maxAgeSeconds);
+    }
+
     function testPause() public {
         vm.prank(pauser);
         oracle.pause();

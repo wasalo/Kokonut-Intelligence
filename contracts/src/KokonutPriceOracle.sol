@@ -88,14 +88,6 @@ contract KokonutPriceOracle is Initializable, AccessControlUpgradeable, Pausable
         }
 
         PriceFeed storage feed = feeds[feedKey];
-        if (feed.timestamp > 0) {
-            uint256 age = block.timestamp - feed.timestamp;
-            uint256 maxFeedAge = maxAge[feedKey];
-            if (maxFeedAge > 0 && age > maxFeedAge) {
-                revert StaleTimestamp(feedKey, feed.timestamp, block.timestamp);
-            }
-        }
-
         feed.price = price;
         feed.timestamp = block.timestamp;
         feed.source = source;
@@ -121,6 +113,26 @@ contract KokonutPriceOracle is Initializable, AccessControlUpgradeable, Pausable
 
     function getPrice(bytes32 feedKey) external view returns (PriceFeed memory) {
         return feeds[feedKey];
+    }
+
+    /// @notice Whether a feed has a value that is within its configured age.
+    /// @dev A zero maxAge disables expiry. Updates always timestamp at the current block,
+    ///      so age applies to reads and must never prevent replacing a stale value.
+    function isFresh(bytes32 feedKey) public view returns (bool) {
+        uint256 lastUpdate = feeds[feedKey].timestamp;
+        if (lastUpdate == 0 || block.timestamp < lastUpdate) return false;
+
+        uint256 maxFeedAge = maxAge[feedKey];
+        return maxFeedAge == 0 || block.timestamp - lastUpdate <= maxFeedAge;
+    }
+
+    /// @notice Return the feed only while it satisfies its configured freshness policy.
+    function getFreshPrice(bytes32 feedKey) external view returns (PriceFeed memory) {
+        PriceFeed memory feed = feeds[feedKey];
+        if (!isFresh(feedKey)) {
+            revert StaleTimestamp(feedKey, feed.timestamp, block.timestamp);
+        }
+        return feed;
     }
 
     function getPriceHistory(bytes32 feedKey, uint256 count) external view returns (PriceHistoryEntry[] memory) {

@@ -11123,3 +11123,51 @@ deployed proxy was used. CAP-043 remains B/prepared: this repairs serial
 identity only; database-ledger parity, deployed proxy compatibility, issuer and
 burner custody, pause/retirement policy, and MAN-CAP-043 review remain open.
 Checklist: 685 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-043-credit-serial-identity.json).
+
+### CAP-044 oracle freshness and stale-feed recovery — 19 October 2026
+
+The oracle's `updatePrice` rejected an authorized updater whenever the
+previously stored value exceeded `maxAge`, which made a stale feed impossible
+to refresh. Since updates do not carry a source timestamp, the contract now
+applies age policy on explicit `isFresh`/`getFreshPrice` reads. Missing and
+expired feeds fail closed through the guarded read, the configured age boundary
+is inclusive, and `maxAge == 0` keeps expiry disabled. Existing `getPrice`
+preserves its raw-read behavior for compatibility. An authorized updater can
+replace an expired value and restore freshness.
+
+The focused oracle suite passes 13 tests, including a 256-case freshness fuzz
+test; all 73 Foundry tests pass. This is only a contract-level recovery fix:
+the ingestion service does not yet consume the guarded read, and source-time
+validation, feed consensus, parity, and MAN-CAP-044 review remain open. No
+deployed contract or chain was used. Checklist: 685 complete / 24 open; matrix
+classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-044-oracle-freshness.json).
+
+### CAP-045 selective disclosure proof shape — 19 October 2026
+
+`verifyProof` previously indexed direction flags without confirming one flag
+per proof element, and every nonzero value selected the same branch. Malformed
+array lengths and unsupported flag values now return `false` rather than
+reverting with an out-of-bounds panic or being accepted as arbitrary direction
+encodings. Valid `0`/`1` ordering and the boolean API remain unchanged; only
+attestation roots are stored on-chain.
+
+The focused suite passes 10 tests, including 256 fuzz cases covering invalid
+flag values. The full Foundry run passes 77 tests across seven suites. Leaf
+construction and consumer parity have not been validated, so CAP-045 remains
+B/prepared and unaccepted. No deployed contract or chain was used. Checklist:
+685 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-045-proof-shape.json).
+
+### CAP-046 resolver attester configuration and EAS gates — 19 October 2026
+
+The constructor accepted zero as an initial allowed attester even though the
+runtime allowlist method rejects it. Constructor validation now matches
+`addAttester`. Synthetic callback regressions confirm only the configured EAS
+caller can invoke resolver methods, and the current allowlist gates both
+attestation and revocation for active, unapproved, and removed attesters.
+
+The resolver suite passes 12 tests, including the 256-run add/remove fuzz
+test. All 81 Foundry tests pass across seven suites. Real EAS/schema
+registration and the policy for revocations from removed attesters remain
+unassessed; no chain was contacted. CAP-046 remains B/prepared and unaccepted.
+Checklist: 685 complete / 24 open; matrix classifications unchanged.
+[Evidence](builds/2026-10-19-recovery/cap-046-resolver-gates.json).
