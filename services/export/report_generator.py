@@ -18,6 +18,7 @@ Usage:
 
 import argparse
 import uuid
+from datetime import date
 
 from .reports import (  # noqa: F401 (re-exported public report API)
     REPORT_GENERATORS,
@@ -193,8 +194,36 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
     if args.type and args.location_id and len(args.location_id) > 1:
         if args.type not in MULTI_LOCATION_REPORTS:
             parser.error(f"multiple --location-id values are not supported for report type {args.type}")
+
+    if args.location_id:
+        try:
+            args.location_id = [str(uuid.UUID(value)) for value in args.location_id]
+        except (AttributeError, TypeError, ValueError):
+            parser.error("--location-id values must be valid UUIDs")
         if len(set(args.location_id)) != len(args.location_id):
             parser.error("--location-id values must be unique")
+
+    parsed_periods = {}
+    for option, value in (
+        ("--period-start", args.period_start),
+        ("--period-end", args.period_end),
+    ):
+        if value is None:
+            continue
+        try:
+            parsed = date.fromisoformat(value)
+        except (TypeError, ValueError):
+            parser.error(f"{option} must be a valid date in YYYY-MM-DD format")
+        if parsed.isoformat() != value:
+            parser.error(f"{option} must be a valid date in YYYY-MM-DD format")
+        parsed_periods[option] = parsed
+
+    if (
+        "--period-start" in parsed_periods
+        and "--period-end" in parsed_periods
+        and parsed_periods["--period-start"] > parsed_periods["--period-end"]
+    ):
+        parser.error("--period-start cannot be after --period-end")
 
     if args.list or args.verify:
         return

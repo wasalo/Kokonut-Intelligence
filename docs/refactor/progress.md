@@ -11437,14 +11437,15 @@ complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-
 
 ### Report generator scope preflight — 19 October 2026
 
-The report CLI now checks requested location cardinality against the report
-generator contract before opening PostgreSQL. Single-report `--all` is rejected
-for types without an aggregate scope; repeated location IDs are limited to the
-five generators that implement selected-location aggregation; automatic runs
-accept one location or explicit `--all`; repeated listing no longer silently
-uses only the first ID; duplicate aggregate IDs fail closed. The 22 focused CLI
-tests pass with Ruff and compilation, and a sentinel confirms rejected scope
-does not call the database opener. Automatic `--all` remains failure-tolerant
-for generators that do not implement the literal aggregate scope. Populated
-report parity, authorization, tenant isolation, and owner review remain open
+The report CLI now checks scope and input shape against the generator contract
+before opening PostgreSQL. Single-report `--all` is rejected for types without
+an aggregate scope; repeated location IDs are limited to the five generators
+that implement selected-location aggregation; automatic runs accept one
+location or explicit `--all`; repeated listing no longer silently uses only
+the first ID; UUIDs are canonicalized before duplicate checks; malformed or
+reversed dates fail preflight. The focused CLI, error-redaction, and read-only
+selection passes 40 tests with Ruff and compilation. A sentinel confirms
+rejected scope does not call the database opener. Automatic `--all` remains
+failure-tolerant for generators that do not implement the literal aggregate
+scope. Populated report parity, authorization, tenant isolation, and owner review remain open
 ([evidence](builds/2026-10-19-recovery/report-generator-location-scope-preflight.json)).

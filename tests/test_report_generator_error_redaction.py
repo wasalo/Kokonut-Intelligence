@@ -25,7 +25,9 @@ def test_auto_report_persists_bounded_failure_and_continues(monkeypatch, capsys)
         lambda *_args: (_ for _ in ()).throw(RuntimeError(SECRET)),
     )
     monkeypatch.setattr(
-        sys, "argv", ["report_generator", "--auto", "--location-id", "location-1"]
+        sys,
+        "argv",
+        ["report_generator", "--auto", "--location-id", "11111111-1111-4111-8111-111111111111"],
     )
 
     with pytest.raises(SystemExit) as error:
@@ -57,7 +59,13 @@ def test_single_report_failure_does_not_print_or_raise_raw_exception(monkeypatch
     monkeypatch.setattr(
         sys,
         "argv",
-        ["report_generator", "--type", "farm_summary", "--location-id", "location-1"],
+        [
+            "report_generator",
+            "--type",
+            "farm_summary",
+            "--location-id",
+            "11111111-1111-4111-8111-111111111111",
+        ],
     )
 
     with pytest.raises(RuntimeError, match=r"report generation failed \(ValueError\)") as error:

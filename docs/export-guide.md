@@ -271,7 +271,9 @@ is no all-or-nothing transaction across the report set.
 location. A single `--type` request accepts `--all` only for report types that
 implement that aggregate scope. Repeatable location IDs are supported only by
 the aggregate generators listed below; other report types reject multiple IDs
-before opening PostgreSQL. `--list` accepts at most one location. `--auto`
+before opening PostgreSQL. Each location ID must be a valid UUID and is
+normalized before query and snapshot scope construction. `--list` accepts at
+most one location. `--auto`
 accepts one location or explicit `--all`, because it invokes report types with
 different scope contracts.
 
@@ -287,9 +289,10 @@ that do not implement that scope may fail independently; successful reports
 can still be stored. Use per-location `--auto --location-id UUID` when a
 complete location-oriented report set is needed.
 
-Period arguments are forwarded to each generator. Some generators apply dates,
-some use them to select a reporting year, and some ignore them. There is no
-generic report-level date filtering contract.
+Period arguments must be valid `YYYY-MM-DD` dates, and the start cannot follow
+the end. They are forwarded to each generator; some apply dates, some use them
+to select a reporting year, and some ignore them. There is no generic
+report-level date filtering contract.
 
 `--list` returns at most 20 snapshots and provides limited metadata. It does not
 offer generic report-type, period, status, or hash-prefix filters.
