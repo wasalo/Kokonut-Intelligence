@@ -11171,3 +11171,19 @@ registration and the policy for revocations from removed attesters remain
 unassessed; no chain was contacted. CAP-046 remains B/prepared and unaccepted.
 Checklist: 685 complete / 24 open; matrix classifications unchanged.
 [Evidence](builds/2026-10-19-recovery/cap-046-resolver-gates.json).
+
+### CAP-048 strategic reserve preempt semantics — 19 October 2026
+
+For falling `lt`/`lte` metrics, the prior percentage calculation placed the
+preempt threshold below the hard threshold, so the advisory fired only after
+the breach. No normal baseline exists in the current reserve schema to
+calculate an earlier point. The evaluator now reports `baseline_required` and
+does not issue that preempt proposal. Rising `gt`/`gte` metrics keep their
+zero-baseline preempt rule only for positive thresholds and percentages in
+`(0, 1)`; invalid percentages and unsupported operators fail closed. Hard
+trigger calculations and release proposals are unchanged.
+
+The focused `test_good_offense.py` and `test_strategic_reserve.py` selection
+passes 22 tests; Ruff and compilation pass. No database writes or reserve
+releases occurred. Populated parity and MAN-CAP-048 remain open. Checklist:
+685 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-048-preempt-trigger-semantics.json).
