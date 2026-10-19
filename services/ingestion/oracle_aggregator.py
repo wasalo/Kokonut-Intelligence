@@ -10,13 +10,76 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
+from math import isfinite
 from statistics import median, stdev
 from typing import Any, Dict, List, Optional
 
 from ..common.logging import get_logger
 
 logger = get_logger("ingestion.oracle_aggregator")
+
+
+def _validated_source_readings(
+    readings: List[PriceReading],
+) -> tuple[List[PriceReading], List[str], int]:
+    """Return valid unique-source readings and rejected source diagnostics."""
+    by_source: Dict[str, List[PriceReading]] = {}
+    rejected_sources: List[str] = []
+    rejected_count = 0
+
+    for reading in readings:
+        source = reading.source.strip() if isinstance(reading.source, str) else ""
+        timestamp = reading.timestamp
+        if isinstance(reading.price, bool) or isinstance(reading.confidence, bool):
+            rejected_count += 1
+            if source:
+                rejected_sources.append(source)
+            continue
+        try:
+            price = float(reading.price)
+            confidence = float(reading.confidence)
+            timestamp_valid = (
+                isinstance(timestamp, datetime)
+                and timestamp.tzinfo is not None
+                and timestamp.utcoffset() is not None
+            )
+        except (TypeError, ValueError, OverflowError):
+            timestamp_valid = False
+            price = confidence = float("nan")
+
+        if (
+            not source
+            or not timestamp_valid
+            or not isfinite(price)
+            or price <= 0
+            or not isfinite(confidence)
+            or not 0 <= confidence <= 1
+        ):
+            rejected_count += 1
+            if source:
+                rejected_sources.append(source)
+            continue
+
+        normalized = PriceReading(
+            source=source,
+            price=price,
+            timestamp=timestamp,
+            confidence=confidence,
+            metadata=reading.metadata,
+        )
+        by_source.setdefault(source.casefold(), []).append(normalized)
+
+    eligible: List[PriceReading] = []
+    for source_key in sorted(by_source):
+        candidates = by_source[source_key]
+        if len(candidates) == 1:
+            eligible.append(candidates[0])
+            continue
+        rejected_sources.append(min(candidate.source for candidate in candidates))
+        rejected_count += len(candidates)
+
+    return eligible, sorted(set(rejected_sources), key=str.casefold), rejected_count
 
 
 @dataclass
@@ -69,6 +132,19 @@ def median_consensus(
     if not readings:
         return None
 
+    if isinstance(max_deviation_pct, bool):
+        return None
+    try:
+        max_deviation_pct = float(max_deviation_pct)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not isfinite(max_deviation_pct) or max_deviation_pct < 0:
+        return None
+
+    readings, rejected_sources, rejected_count = _validated_source_readings(readings)
+    if not readings:
+        return None
+
     prices = [r.price for r in readings]
     med = median(prices)
 
@@ -111,11 +187,14 @@ def median_consensus(
             deviation_pct=dev_pct,
             aggregation_method="median_consensus",
             sources_used=[r.source for r in inliers],
-            sources_rejected=[r.source for r in outliers],
+            sources_rejected=sorted(
+                set(rejected_sources + [r.source for r in outliers]), key=str.casefold
+            ),
             metadata={
                 "inlier_count": len(inliers),
                 "outlier_count": len(outliers),
                 "max_deviation_pct": max_deviation_pct,
+                "invalid_or_duplicate_reading_count": rejected_count,
             },
         )
     else:
@@ -130,10 +209,11 @@ def median_consensus(
             deviation_pct=round(stdev(prices) / med * 100, 4) if len(prices) > 1 else 0.0,
             aggregation_method="median_consensus",
             sources_used=[r.source for r in readings],
-            sources_rejected=[],
+            sources_rejected=rejected_sources,
             metadata={
                 "warning": "high_deviation",
                 "all_sources_disagree": True,
+                "invalid_or_duplicate_reading_count": rejected_count,
             },
         )
 
@@ -146,6 +226,13 @@ def weighted_average_consensus(
 
     Weight = source confidence (0-1).
     """
+    if not readings:
+        return None
+
+    readings, rejected_sources, rejected_count = _validated_source_readings(readings)
+    zero_weight_sources = [reading.source for reading in readings if reading.confidence == 0]
+    rejected_sources = sorted(set(rejected_sources + zero_weight_sources), key=str.casefold)
+    readings = [reading for reading in readings if reading.confidence > 0]
     if not readings:
         return None
 
@@ -169,8 +256,12 @@ def weighted_average_consensus(
         deviation_pct=dev_pct,
         aggregation_method="weighted_average",
         sources_used=[r.source for r in readings],
-        sources_rejected=[],
-        metadata={"total_weight": round(total_weight, 4)},
+        sources_rejected=rejected_sources,
+        metadata={
+            "total_weight": round(total_weight, 4),
+            "invalid_or_duplicate_reading_count": rejected_count,
+            "zero_weight_source_count": len(zero_weight_sources),
+        },
     )
 
 

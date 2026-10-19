@@ -1,0 +1,29 @@
+{
+  "capability": "CAP-055",
+  "title": "Oracle consensus input validation",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and focused checks pass; capability not accepted",
+  "changes": [
+    "Median and weighted consensus reject non-finite/non-positive prices, out-of-range or non-finite confidence, missing source identities, and naive timestamps.",
+    "Source identity comparison trims whitespace and ignores case; readings from duplicate source identities are excluded rather than counted as independent feeds.",
+    "Median deviation thresholds must be finite and non-negative; weighted consensus excludes and reports zero-weight sources."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_oracle_infrastructure.py -q",
+    "result": "38 passed",
+    "ruff": "python3 -m ruff check services/ingestion/oracle_aggregator.py tests/test_oracle_infrastructure.py: passed",
+    "compilation": "python3 -m compileall -q services/ingestion/oracle_aggregator.py: passed",
+    "specific_cases": [
+      "Non-finite and negative prices and naive timestamps are excluded.",
+      "Duplicate source names differing by case or whitespace are not counted as independent providers.",
+      "Invalid median thresholds fail closed.",
+      "Invalid-confidence and zero-weight entries do not distort weighted prices."
+    ]
+  },
+  "scope_limits": [
+    "No live price provider, database, blockchain, MQTT broker, or actuator was contacted.",
+    "Physical actuation remains unaccepted: the current low-level MQTT publisher is not linked to the persisted approval state, and operator authorization, delivery idempotency, and device acknowledgment still need a safe contract.",
+    "Feed freshness, reference-price parity, consensus tolerances, on-chain behavior, and MAN-CAP-055 review remain open."
+  ]
+}

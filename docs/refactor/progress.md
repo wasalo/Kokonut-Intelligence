@@ -11246,3 +11246,18 @@ synthetic area-unit assertions; candidate and legacy databases are untouched.
 Silvi parity, populated fixtures, pest analytics, exports, and MAN-CAP-054
 remain open. Checklist: 685 complete / 24 open; matrix classifications
 unchanged. [Evidence](builds/2026-10-19-recovery/cap-054-tree-area-and-growth.json).
+
+### CAP-055 oracle consensus input validation — 19 October 2026
+
+Oracle price consensus now rejects non-finite/non-positive prices, invalid
+confidence, missing sources, and naive timestamps. Duplicate source identities
+are normalized and excluded from consensus; median deviation thresholds fail
+closed, and weighted consensus excludes zero-weight inputs. This prevents
+invalid or duplicated provider observations from inflating source confidence.
+
+Thirty-eight focused oracle-infrastructure tests pass with Ruff and
+compilation. No live provider or database, chain, MQTT broker, or actuator was
+used. The low-level MQTT publisher is not bound to durable approval state;
+operator authorization, delivery idempotency, and device acknowledgment remain
+open with provider parity and MAN-CAP-055. Checklist: 685 complete / 24 open;
+matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-055-oracle-input-validation.json).
