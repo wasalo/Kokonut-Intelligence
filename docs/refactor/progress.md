@@ -11105,3 +11105,21 @@ databases remain untouched. CAP-042 stays B/prepared: other event types,
 live-chain behavior, candidate app rebuild/parity, broader protocol parity,
 and MAN-CAP-042 review remain open. Checklist: 685 complete / 24 open; matrix
 classifications unchanged. [Disposable evidence](builds/2026-10-19-recovery/cap-042-guild-registry-projection-reorg.json).
+
+### CAP-043 credit issuance serial identity — 19 October 2026
+
+The issuance path read its batch/vintage serial from `totalIssued` using a
+series hash, but only ever incremented `totalIssued` by token ID. Repeated
+issuance to one recipient therefore collided at serial zero and reverted. The
+contract now appends a dedicated batch/vintage counter after the existing
+storage slots, preserves the existing ABI, and checks for a legacy serial-zero
+record when an upgraded proxy's new counter is still empty. The zero batch
+sentinel is rejected. ERC-1967 proxy tests cover repeated `issue`, repeated
+`batchIssue`, the uninitialized-counter upgrade case, and per-token supply
+preservation; the focused suite passes 17 tests, the 1,000-run fuzz case passes,
+and the full Solidity suite passes 67 tests. `forge inspect` confirms existing
+slots 0–4 remain unchanged and the new mapping occupies slot 5. No RPC or
+deployed proxy was used. CAP-043 remains B/prepared: this repairs serial
+identity only; database-ledger parity, deployed proxy compatibility, issuer and
+burner custody, pause/retirement policy, and MAN-CAP-043 review remain open.
+Checklist: 685 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-043-credit-serial-identity.json).

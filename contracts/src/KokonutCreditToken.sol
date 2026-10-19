@@ -45,6 +45,9 @@ contract KokonutCreditToken is
     mapping(uint256 tokenId => uint256) public totalRetired;
     mapping(bytes32 batchId => bool) public batchExists;
     mapping(uint256 tokenId => bool) public isRetired;
+    // Appended for UUPS layout compatibility. Old proxies have serial-zero
+    // records but an empty counter, so _issue also skips a legacy collision.
+    mapping(bytes32 batchVintageKey => uint256) private _nextSerialNumber;
 
     event CreditIssued(
         uint256 indexed tokenId,
@@ -108,15 +111,26 @@ contract KokonutCreditToken is
         string calldata methodology,
         bytes32 evidenceHash
     ) internal {
+        if (batchId == bytes32(0)) revert InvalidCreditData();
         if (recipient == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
 
-        uint256 serialNumber = totalIssued[uint256(keccak256(abi.encode(batchId, vintageYear)))];
+        bytes32 batchVintageKey = keccak256(abi.encode(batchId, vintageYear));
+        uint256 serialNumber = _nextSerialNumber[batchVintageKey];
         bytes32 tokenId = keccak256(abi.encode(batchId, vintageYear, recipient, serialNumber));
 
         if (_credits[uint256(tokenId)].batchId != bytes32(0)) {
-            revert CreditAlreadyIssued(batchId, serialNumber);
+            // A proxy upgraded from the original implementation can have a
+            // serial-zero record while this appended counter is still zero.
+            if (serialNumber == type(uint256).max) revert CreditAlreadyIssued(batchId, serialNumber);
+            serialNumber++;
+            tokenId = keccak256(abi.encode(batchId, vintageYear, recipient, serialNumber));
+            if (_credits[uint256(tokenId)].batchId != bytes32(0)) {
+                revert CreditAlreadyIssued(batchId, serialNumber);
+            }
         }
+        if (serialNumber == type(uint256).max) revert CreditAlreadyIssued(batchId, serialNumber);
+        _nextSerialNumber[batchVintageKey] = serialNumber + 1;
 
         _credits[uint256(tokenId)] = CreditRecord({
             batchId: batchId,
