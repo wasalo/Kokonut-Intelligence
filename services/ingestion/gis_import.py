@@ -9,11 +9,13 @@ Supported formats:
     - GeoJSON FeatureCollection / Feature (Polygon, MultiPolygon)
     - CSV with lat/lon columns (generates point geometries)
     - CSV with WKT geometry column
+    - KML Placemark Polygon and MultiGeometry polygon boundaries
 
 Usage:
     python3 -m services.ingestion.gis_import --file boundaries.geojson --target location
     python3 -m services.ingestion.gis_import --file coords.csv --target plot
     python3 -m services.ingestion.gis_import --file boundaries.csv --target farm
+    python3 -m services.ingestion.gis_import --file boundaries.kml --target location
 """
 
 import argparse
@@ -21,6 +23,8 @@ import csv
 import json
 import math
 import sys
+
+from defusedxml import ElementTree as SafeET
 
 from ..common.logging import get_logger
 from .base import get_db, hash_payload, log_ingestion
@@ -160,6 +164,110 @@ def parse_geojson(filepath: str) -> list:
             "coordinates": coords,
             "properties": props,
         })
+
+    return records
+
+
+def _local_xml_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def _direct_child_text(element, child_name: str) -> str | None:
+    for child in element:
+        if _local_xml_name(child.tag) == child_name:
+            return (child.text or "").strip()
+    return None
+
+
+def _kml_coordinates(text: str | None) -> list[tuple[float, float]]:
+    if not text:
+        raise ValueError("LinearRing has no coordinates")
+
+    positions = []
+    for coordinate in text.split():
+        parts = coordinate.split(",")
+        if len(parts) < 2:
+            raise ValueError("KML coordinate must contain longitude and latitude")
+        try:
+            positions.append((float(parts[0]), float(parts[1])))
+        except ValueError as exc:
+            raise ValueError("KML coordinate contains a non-numeric value") from exc
+    return positions
+
+
+def _kml_polygon_rings(polygon) -> list[list[tuple[float, float]]]:
+    rings = []
+    for boundary in polygon:
+        boundary_name = _local_xml_name(boundary.tag)
+        if boundary_name not in {"outerBoundaryIs", "innerBoundaryIs"}:
+            continue
+        linear_ring = next(
+            (element for element in boundary.iter() if _local_xml_name(element.tag) == "LinearRing"),
+            None,
+        )
+        if linear_ring is None:
+            raise ValueError("KML boundary is missing a LinearRing")
+        coordinate_element = next(
+            (element for element in linear_ring if _local_xml_name(element.tag) == "coordinates"),
+            None,
+        )
+        coordinates = _kml_coordinates(
+            coordinate_element.text if coordinate_element is not None else None
+        )
+        rings.append(_normalize_ring(coordinates))
+
+    if not rings:
+        raise ValueError("KML Polygon has no boundary rings")
+    return rings
+
+
+def parse_kml(filepath: str) -> list:
+    """Parse KML Placemark polygons into the shared GIS-import record shape."""
+    root = SafeET.parse(filepath).getroot()
+    placemarks = [element for element in root.iter() if _local_xml_name(element.tag) == "Placemark"]
+    records = []
+
+    for index, placemark in enumerate(placemarks, start=1):
+        properties = {}
+        for element in placemark.iter():
+            tag_name = _local_xml_name(element.tag)
+            if tag_name == "Data" and element.get("name"):
+                value = _direct_child_text(element, "value")
+                if value is not None:
+                    properties[element.get("name")] = value
+            elif tag_name == "SimpleData" and element.get("name"):
+                properties[element.get("name")] = (element.text or "").strip()
+
+        polygon_coordinates = []
+        try:
+            for element in placemark.iter():
+                if _local_xml_name(element.tag) == "Polygon":
+                    polygon_coordinates.append(_kml_polygon_rings(element))
+            if not polygon_coordinates:
+                logger.warning("  Skipping KML Placemark %d: no Polygon geometry", index)
+                continue
+            if len(polygon_coordinates) == 1:
+                geometry_type = "Polygon"
+                coordinates = _normalize_polygon_rings(polygon_coordinates[0])
+            else:
+                geometry_type = "MultiPolygon"
+                coordinates = _normalize_multipolygon_rings(polygon_coordinates)
+        except ValueError as exc:
+            logger.warning("  Skipping KML Placemark %d: invalid coordinates (%s)", index, exc)
+            continue
+
+        name = _direct_child_text(placemark, "name") or properties.get("name") or f"import-{index}"
+        slug = properties.get("slug") or name.lower().replace(" ", "-")
+        properties.setdefault("name", name)
+        records.append(
+            {
+                "slug": slug,
+                "name": name,
+                "geom_type": geometry_type,
+                "coordinates": coordinates,
+                "properties": properties,
+            }
+        )
 
     return records
 
@@ -337,10 +445,12 @@ def run(file_path: str, target: str = "location"):
         logger.error("Invalid target: %s. Must be one of: %s", target, ", ".join(VALID_TARGETS))
         sys.exit(1)
 
-    if file_path.endswith(".geojson") or file_path.endswith(".json"):
+    if file_path.lower().endswith((".geojson", ".json")):
         records = parse_geojson(file_path)
-    elif file_path.endswith(".csv"):
+    elif file_path.lower().endswith(".csv"):
         records = parse_csv_boundaries(file_path)
+    elif file_path.lower().endswith(".kml"):
+        records = parse_kml(file_path)
     else:
         logger.error("Unsupported file format: %s", file_path)
         sys.exit(1)
@@ -454,7 +564,7 @@ def run(file_path: str, target: str = "location"):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GIS boundary data ingestion")
-    parser.add_argument("--file", required=True, help="Path to GeoJSON or CSV file")
+    parser.add_argument("--file", required=True, help="Path to GeoJSON, CSV, or KML file")
     parser.add_argument(
         "--target",
         default="location",

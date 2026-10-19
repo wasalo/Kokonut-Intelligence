@@ -24,6 +24,7 @@ from services.ingestion.gis_import import (
     build_polygon_wkt,
     parse_csv_boundaries,
     parse_geojson,
+    parse_kml,
     validate_boundary_wkt,
 )
 
@@ -140,6 +141,51 @@ def test_parse_geojson_skips_unclosed_or_out_of_range_rings():
     assert [record["slug"] for record in records] == ["valid-ring"]
 
 
+def test_parse_kml_preserves_polygon_holes_multipolygons_and_extended_data(tmp_path):
+    source = tmp_path / "farm.KML"
+    source.write_text(
+        '''<?xml version="1.0" encoding="UTF-8"?>
+        <kml xmlns="http://www.opengis.net/kml/2.2"><Document><Placemark>
+          <name>Farm Boundary</name>
+          <ExtendedData><Data name="slug"><value>farm-boundary</value></Data></ExtendedData>
+          <MultiGeometry>
+            <Polygon>
+              <outerBoundaryIs><LinearRing><coordinates>0,0,50 4,0,50 4,4,50 0,4,50 0,0,50</coordinates></LinearRing></outerBoundaryIs>
+              <innerBoundaryIs><LinearRing><coordinates>1,1,0 1,2,0 2,2,0 2,1,0 1,1,0</coordinates></LinearRing></innerBoundaryIs>
+            </Polygon>
+            <Polygon>
+              <outerBoundaryIs><LinearRing><coordinates>10,10 11,10 11,11 10,11 10,10</coordinates></LinearRing></outerBoundaryIs>
+            </Polygon>
+          </MultiGeometry>
+        </Placemark></Document></kml>''',
+        encoding="utf-8",
+    )
+
+    records = parse_kml(str(source))
+
+    assert len(records) == 1
+    assert records[0]["slug"] == "farm-boundary"
+    assert records[0]["geom_type"] == "MultiPolygon"
+    assert records[0]["properties"]["name"] == "Farm Boundary"
+    wkt = build_multipolygon_wkt(records[0]["coordinates"])
+    assert "(1 1, 1 2, 2 2, 2 1, 1 1)" in wkt
+    assert "(10 10, 11 10, 11 11, 10 11, 10 10)" in wkt
+
+
+def test_parse_kml_rejects_entity_declarations(tmp_path):
+    from defusedxml.common import EntitiesForbidden
+
+    source = tmp_path / "unsafe.kml"
+    source.write_text(
+        '''<!DOCTYPE kml [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>
+        <kml xmlns="http://www.opengis.net/kml/2.2"><Placemark><name>&xxe;</name></Placemark></kml>''',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(EntitiesForbidden):
+        parse_kml(str(source))
+
+
 def test_import_preflight_rejects_invalid_target_before_database_access(monkeypatch):
     monkeypatch.setattr(gis_import, "get_db", lambda: pytest.fail("database must remain closed"))
 
@@ -151,7 +197,7 @@ def test_import_preflight_rejects_unsupported_format_before_database_access(monk
     monkeypatch.setattr(gis_import, "get_db", lambda: pytest.fail("database must remain closed"))
 
     with pytest.raises(SystemExit):
-        gis_import.run("boundaries.kml", target="location")
+        gis_import.run("boundaries.shp", target="location")
 
 
 def test_import_parse_error_occurs_before_database_access(monkeypatch, tmp_path):

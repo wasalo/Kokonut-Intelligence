@@ -11,11 +11,12 @@
     "Map coordinates are parsed as finite WGS84 values with legal latitude/longitude ranges; zero-valued coordinates are retained.",
     "GIS boundary parsing validates finite WGS84 positions, ring closure, and a bounded coordinate count before WKT generation; Polygon and MultiPolygon builders preserve every interior ring.",
     "GIS import validates target, file format, and source records before opening PostgreSQL; empty or malformed source inputs do not acquire a database connection.",
-    "Focused tests parse both serializer outputs, verify markup-shaped input remains text, protect the map popup/coordinate contract, and exercise boundary validation/serialization."
+    "GIS import supports KML Placemark Polygon and MultiGeometry polygon boundaries, preserves interior rings and ExtendedData fields, and parses with defusedxml to reject entity declarations.",
+    "Focused tests parse both serializer outputs, verify markup-shaped input remains text, protect the map popup/coordinate contract, and exercise GeoJSON/CSV/KML validation and serialization."
   ],
   "verification": {
     "command": "python3 -m pytest tests/test_csw_serializer.py tests/test_map_viewer_contract.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_legacy_geo_import_error_redaction.py -q",
-    "result": "34 passed, including 2 CSW serializer and 2 map viewer contract tests",
+    "result": "36 passed, including CSW serializer, map viewer, GeoJSON/CSV/KML, and import-redaction checks",
     "ruff": "python3 -m ruff check on changed CSW, GIS import, and focused test files: passed",
     "compilation": "python3 -m compileall -q on changed CSW, GIS import, and focused test files: passed",
     "javascript": "Extracted Leaflet inline script passes node --check.",
@@ -23,6 +24,6 @@
   },
   "scope_limits": [
     "This work does not add a CSW HTTP endpoint, catalog query implementation, or establish ISO 19115 semantic/output parity against a GeoNode reference fixture.",
-    "The map still fetches the legacy Directus path; a tenant-scoped Gateway map API and layer authorization are not implemented. PostGIS apply/recovery and populated spatial fixture parity were not exercised. KML/raster parity, geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
+    "The map still fetches the legacy Directus path; a tenant-scoped Gateway map API and layer authorization are not implemented. KML styling, altitude preservation, raster GroundOverlay ingestion, PostGIS apply/recovery, and populated spatial fixture parity were not exercised. Geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
   ]
 }
