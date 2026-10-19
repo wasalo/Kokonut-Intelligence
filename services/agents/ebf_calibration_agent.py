@@ -9,10 +9,12 @@ import argparse
 from typing import Any
 
 from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
+from services.agents.tasks import validate_output, validate_task_capabilities
 from services.common.cli import print_json
 
+
 def draft_calibration_memo(session_id: str) -> dict[str, Any]:
+    validate_task_capabilities("ebf_calibration_memo")
     assert_agent_action_allowed("create", "ebf_calibration_decision", {"decision_status": "draft"})
     output = {
         "memo": {

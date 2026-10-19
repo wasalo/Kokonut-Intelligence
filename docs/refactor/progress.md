@@ -11000,3 +11000,27 @@ Evidence: [contract](operating-pilot-kernel-read-contract.md),
 [migration](../schemas/postgres/461_location_scoped_operating_pilot_summary.sql),
 [Gateway checks](../tests/test_gateway_operating_pilot_reads.py), and
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-disposable.json).
+
+### CAP-038 first agent safety Kernel contract — 19 October 2026
+
+The shared agent policy now denies `verify`, `publish`, `attest`, on-chain
+submission, delete, bulk update, and financial write actions before any
+collection-specific draft exception. Task write declarations are checked
+against an explicit collection/status allowlist before shared and standalone
+agent tasks open a database connection; callers receive defensive copies of
+task definitions. The optional Directus action-log schema and hook now classify
+`verify` as high risk. The safety documentation clarifies that
+`requires_human_approval` is metadata rather than an authorization grant.
+
+The focused Python safety/task/base/logging set passes 31 tests with nine
+database-dependent skips. The Directus safety/schema selection passes 22 tests,
+and Ruff, Python compilation, extension build, capability validation, and diff
+checks pass. No database, model provider, or candidate/legacy service was used.
+CAP-038 is prepared (`P`), not accepted. Authenticated agent runtime identities,
+database least privilege, Directus runtime-role parity, populated task/provider
+parity, a separate human approval workflow, runtime recovery, and MAN-CAP-038
+owner acceptance remain open. Migration 350's `app.agent_id` update trigger is
+not a database-authenticated identity boundary and does not protect inserts.
+Checklist: 679 complete / 23 open; matrix: 32 baseline-retained, 7 deployed,
+27 prepared. Evidence: [contract](agent-ecosystem-kernel-contract.md),
+[source checks](builds/2026-10-19-recovery/cap-038-agent-safety-source.json).

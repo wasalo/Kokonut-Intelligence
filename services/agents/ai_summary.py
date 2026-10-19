@@ -16,16 +16,14 @@ Usage:
 
 import argparse
 import hashlib
-import json
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 import psycopg2
 import psycopg2.extras
 
 from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
+from services.agents.tasks import validate_output, validate_task_capabilities
 from services.common.database import get_db
 
 
@@ -87,8 +85,8 @@ def generate_operations_summary(conn, location_id: str) -> dict:
     cur.close()
 
     lines = [
-        f"## Operations Summary (Last 90 Days)",
-        f"",
+        "## Operations Summary (Last 90 Days)",
+        "",
         f"**Harvests:** {harvests['count']} events, {harvests['total_kg']:.1f} kg total",
         f"**Sales:** {sales['count']} transactions, ${sales['total_usd']:,.2f} revenue",
         f"**Active Cycles:** {cycles['count']} crop cycles in progress",
@@ -141,8 +139,8 @@ def generate_financial_summary(conn, location_id: str) -> dict:
     total_expenses = sum(e["total"] for e in expenses)
 
     lines = [
-        f"## Financial Summary",
-        f"",
+        "## Financial Summary",
+        "",
         f"**Total Revenue:** ${total_revenue:,.2f}",
     ]
 
@@ -151,7 +149,7 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         for r in revenue_by_crop:
             lines.append(f"  - {r['crop_name']}: ${r['revenue']:,.2f}")
 
-    lines.append(f"")
+    lines.append("")
     lines.append(f"**Total Expenses:** ${total_expenses:,.2f}")
 
     if expenses:
@@ -159,7 +157,7 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         for e in expenses[:3]:
             lines.append(f"  - {e['category']}: ${e['total']:,.2f}")
 
-    lines.append(f"")
+    lines.append("")
     lines.append(f"**Net Operating Income:** ${noi['total_noi']:,.2f}")
     lines.append(f"**Average Operating Margin:** {noi['avg_margin']:.1f}%")
 
@@ -207,7 +205,7 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
 
     cur.close()
 
-    lines = [f"## Environmental Summary", f""]
+    lines = ["## Environmental Summary", ""]
 
     if carbon:
         lines.append(f"**Soil Carbon:** {carbon['carbon_tonnes_per_ha']:.2f} tonnes/ha (measured {carbon['measurement_date']})")
@@ -261,6 +259,7 @@ GENERATORS["combined"] = generate_combined
 def store_summary(conn, location_id: str, summary_type: str, content: str,
                   source_tables: list, model_version: str = "rules-v1") -> str:
     """Store AI summary in the database as a draft."""
+    validate_task_capabilities("ai_summary_synthesis")
     assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
     cur = conn.cursor()
     summary_id = str(uuid.uuid4())
@@ -297,6 +296,7 @@ def list_summaries(conn, location_id: str = None):
 
 def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool = False) -> dict[str, Any]:
     """Generate and optionally store an AI summary with safety checks."""
+    validate_task_capabilities("ai_summary_synthesis")
     assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
     conn = get_pg()
     try:

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+from copy import deepcopy
 from typing import Any
 
 TASK_CATALOGUE: dict[str, dict[str, Any]] = {
@@ -303,17 +305,67 @@ TASK_CATALOGUE: dict[str, dict[str, Any]] = {
     },
 }
 
+AGENT_TASK_WRITE_CAPABILITIES = frozenset(
+    {
+        "agent_task:draft",
+        "agent_task:submitted",
+        "ai_summary:draft",
+        "ai_summary:submitted",
+        "ebf_calibration_decision:draft",
+        "ebf_score:draft",
+        "ebf_scorecard:draft",
+        "delphi_recommendation:draft",
+        "coordination_alliance:draft",
+    }
+)
+
+
+def _task_definition(task_key: str) -> dict[str, Any]:
+    if task_key not in TASK_CATALOGUE:
+        raise KeyError(f"Unknown agent task: {task_key}")
+    return TASK_CATALOGUE[task_key]
+
+
+def validate_task_capabilities(task_key: str) -> None:
+    """Fail closed unless every declared task write remains a draft or submission."""
+    task = _task_definition(task_key)
+    if task.get("high_risk") is not False:
+        raise ValueError(f"Agent task {task_key} cannot declare high-risk execution")
+
+    writes = task.get("writes")
+    if not isinstance(writes, list):
+        raise ValueError(f"Agent task {task_key} must declare writes as a list")
+
+    from services.agents.safety import assess_agent_action
+
+    for target in writes:
+        if not isinstance(target, str) or target.count(":") != 1:
+            raise ValueError(f"Agent task {task_key} has an invalid write capability")
+        collection, status = target.split(":", 1)
+        if (
+            not re.fullmatch(r"[a-z][a-z0-9_]*", collection)
+            or target not in AGENT_TASK_WRITE_CAPABILITIES
+        ):
+            raise ValueError(f"Agent task {task_key} declares an unapproved write capability")
+        if status not in {"draft", "submitted"}:
+            raise ValueError(f"Agent task {task_key} may write drafts or submissions only")
+        status_field = "review_status" if collection == "agent_task" else "status"
+        decision = assess_agent_action("create", collection, {status_field: status})
+        if not decision.allowed:
+            raise ValueError(f"Agent task {task_key} has a blocked write capability: {decision.reason}")
+
 
 def list_tasks() -> list[str]:
     """Return supported task keys in stable order."""
+    for task_key in TASK_CATALOGUE:
+        validate_task_capabilities(task_key)
     return sorted(TASK_CATALOGUE.keys())
 
 
 def get_task(task_key: str) -> dict[str, Any]:
     """Return one task definition."""
-    if task_key not in TASK_CATALOGUE:
-        raise KeyError(f"Unknown agent task: {task_key}")
-    return TASK_CATALOGUE[task_key]
+    validate_task_capabilities(task_key)
+    return deepcopy(_task_definition(task_key))
 
 
 def output_schema(task_key: str) -> dict[str, Any]:

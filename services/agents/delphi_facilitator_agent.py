@@ -12,7 +12,7 @@ import argparse
 from typing import Any, Dict, List, Optional
 
 from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
+from services.agents.tasks import validate_output, validate_task_capabilities
 from services.common.cli import print_json
 from services.delphi.facilitator import Facilitator
 
@@ -66,6 +66,7 @@ def draft_recommendation(
     facilitator: Optional[Facilitator] = None,
 ) -> Dict[str, Any]:
     """Draft a recommendation. Agents cannot publish — status stays 'draft'."""
+    validate_task_capabilities("delphi_facilitation")
     assert_agent_action_allowed("create", "delphi_recommendation", {"status": "draft"})
     fac = facilitator or Facilitator()
     rec = fac.draft_recommendation(
@@ -84,6 +85,7 @@ def run_delphi_facilitation(
     facilitator: Optional[Facilitator] = None,
 ) -> Dict[str, Any]:
     """Run the facilitator: summarize (and optionally draft a recommendation)."""
+    validate_task_capabilities("delphi_facilitation")
     fac = facilitator or Facilitator()
     summary = summarize_study(study_id, fac)
     output: Dict[str, Any] = {"summary": summary}

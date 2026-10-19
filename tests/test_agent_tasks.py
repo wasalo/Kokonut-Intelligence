@@ -1,9 +1,17 @@
 """Agent task catalogue tests."""
 
+import pytest
+
 from services.agents.cids_agent import run_cids_export
 from services.agents.feedback_agent import synthesize_feedback
 from services.agents.safety import assess_agent_action
-from services.agents.tasks import get_task, list_tasks, validate_output
+from services.agents.tasks import (
+    TASK_CATALOGUE,
+    get_task,
+    list_tasks,
+    validate_output,
+    validate_task_capabilities,
+)
 
 
 def test_task_catalogue_contains_green_paper_agents() -> None:
@@ -28,6 +36,61 @@ def test_task_catalogue_contains_green_paper_agents() -> None:
 def test_output_validation_checks_required_fields() -> None:
     errors = validate_output("cids_export", {"graph_count": 1})
     assert "Missing required output field: document" in errors
+
+
+def test_every_catalogue_write_is_draft_or_submission_only() -> None:
+    for task_key in list_tasks():
+        task = get_task(task_key)
+        assert task["high_risk"] is False
+        for target in task["writes"]:
+            collection, status = target.split(":", 1)
+            assert status in {"draft", "submitted"}
+            assert assess_agent_action("create", collection, {"status": status}).allowed
+
+
+def test_task_definitions_are_returned_as_copies() -> None:
+    task = get_task("ai_summary_synthesis")
+    task["writes"].append("ai_summary:published")
+    assert get_task("ai_summary_synthesis")["writes"] == ["ai_summary:draft"]
+
+
+def test_unsafe_catalogue_write_fails_before_agent_database_access(monkeypatch) -> None:
+    import services.agents.base as agent_base
+
+    calls = []
+
+    class ProbeAgent(agent_base.SynthesisAgent):
+        task_key = "ai_summary_synthesis"
+        summary_type = "probe"
+        read_collection = "ai_summary"
+
+        def synthesize(self, conn, location_id=None):
+            calls.append("synthesize")
+            return {"synthesis": "unused"}
+
+    def unexpected_database_access():
+        calls.append("database")
+        raise AssertionError("unsafe catalogue must be rejected before database access")
+
+    monkeypatch.setattr(agent_base, "get_db", unexpected_database_access)
+    original_writes = TASK_CATALOGUE["ai_summary_synthesis"]["writes"]
+    monkeypatch.setitem(
+        TASK_CATALOGUE,
+        "ai_summary_synthesis",
+        {**TASK_CATALOGUE["ai_summary_synthesis"], "writes": ["ai_summary:published"]},
+    )
+    with pytest.raises(ValueError, match="unapproved write capability"):
+        ProbeAgent().run("00000000-0000-0000-0000-000000000001")
+    assert calls == []
+    assert original_writes == ["ai_summary:draft"]
+
+
+def test_task_catalogue_rejects_unknown_write_targets(monkeypatch) -> None:
+    task = dict(TASK_CATALOGUE["ai_summary_synthesis"])
+    task["writes"] = ["unreviewed_collection:draft"]
+    monkeypatch.setitem(TASK_CATALOGUE, "unreviewed_task", task)
+    with pytest.raises(ValueError, match="unapproved write capability"):
+        validate_task_capabilities("unreviewed_task")
 
 
 def test_cids_agent_output_with_monkeypatch(monkeypatch) -> None:

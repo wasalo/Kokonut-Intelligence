@@ -9,10 +9,12 @@ import argparse
 from typing import Any
 
 from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output
+from services.agents.tasks import validate_output, validate_task_capabilities
 from services.common.cli import print_json
 
+
 def draft_scorecard(location_id: str, period_start: str, period_end: str) -> dict[str, Any]:
+    validate_task_capabilities("ebf_scorecard_draft")
     assert_agent_action_allowed("create", "ebf_scorecard", {"status": "draft", "evidence_maturity_level": 1})
     output = {
         "scorecard": {

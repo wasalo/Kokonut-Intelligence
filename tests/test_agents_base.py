@@ -38,7 +38,7 @@ class _FakeConn:
 
 
 class _DummyAgent(SynthesisAgent):
-    task_key = "dummy_synthesis"
+    task_key = "ai_summary_synthesis"
     summary_type = "dummy"
     read_collection = "dummy_record"
     model_version = "dummy-agent-v1"

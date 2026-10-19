@@ -1,0 +1,45 @@
+{
+  "capability": "CAP-038",
+  "date": "2026-10-19",
+  "scope": "agent safety policy and task-catalogue source checks",
+  "result": "passed",
+  "checks": [
+    {
+      "command": "python3 -m pytest tests/test_agent_safety.py tests/test_agent_tasks.py tests/test_agents_base.py tests/test_agent_action_log_redaction.py -q",
+      "result": "31 passed, 9 skipped",
+      "notes": "Database-dependent checks were skipped because PostgreSQL was unavailable; no database session or data mutation occurred."
+    },
+    {
+      "command": "npm test -- src/agent-safety.test.ts src/schemas.test.ts",
+      "result": "22 passed"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed",
+      "notes": "Directus extension bundle and TypeScript type check."
+    },
+    {
+      "command": "ruff check <touched Python source and test files>",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m py_compile <touched agent modules>",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-capability-matrix.py",
+      "result": "passed",
+      "notes": "66 rows; 32 baseline-retained, 7 deployed, 27 prepared."
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "external_state_touched": false,
+  "limitations": [
+    "No candidate or legacy database, model provider, authenticated runtime identity, or Directus server was used.",
+    "Migration 350's app.agent_id trigger remains update-only and is not an authenticated database identity boundary.",
+    "Database least privilege, live Directus runtime-role parity, populated task/provider parity, a separate human approval workflow, and MAN-CAP-038 acceptance remain open."
+  ]
+}

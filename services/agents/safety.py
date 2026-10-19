@@ -21,6 +21,7 @@ def set_agent_context(conn, agent_id: str) -> None:
     conn.execute(conn.text("SET LOCAL app.agent_id = :agent_id"), {"agent_id": agent_id})
 
 HIGH_RISK_ACTIONS = {
+    "verify",
     "publish",
     "attest",
     "onchain_submit",
@@ -268,8 +269,25 @@ def payload_hash(payload: Optional[dict[str, Any]]) -> Optional[str]:
 
 def assess_agent_action(action: str, collection: str, payload: Optional[dict[str, Any]] = None) -> SafetyDecision:
     """Assess whether an agent action is allowed before writing."""
-    payload = payload or {}
+    if not isinstance(action, str) or not action.strip():
+        return SafetyDecision(False, True, True, "agent action must be a non-empty string")
+    if not isinstance(collection, str) or not collection.strip():
+        return SafetyDecision(False, True, True, "agent collection must be a non-empty string")
+    if payload is None:
+        payload = {}
+    elif not isinstance(payload, dict):
+        return SafetyDecision(False, True, True, "agent action payload must be an object")
+
+    action = action.strip().lower()
+    collection = collection.strip().lower()
     high_risk = action in HIGH_RISK_ACTIONS
+    if high_risk:
+        return SafetyDecision(
+            False,
+            True,
+            True,
+            f"agents cannot execute {action}; create or submit a draft for independent human review",
+        )
 
     if collection == "coordination_alliance" and action == "create" and payload.get("status", "draft") == "draft":
         return SafetyDecision(True, False, False, "agents may create draft coordination alliance options only")
@@ -317,9 +335,6 @@ def assess_agent_action(action: str, collection: str, payload: Optional[dict[str
         status = payload.get("status") or payload.get("policy_status") or payload.get("protocol_status") or payload.get("implementation_status") or payload.get("experiment_status")
         if status and status not in AGENT_ALLOWED_REVIEW_STATUSES:
             return SafetyDecision(False, True, True, f"agents cannot verify or publish {collection} records")
-
-    if action == "status_change_to_published":
-        return SafetyDecision(False, True, True, "agents cannot publish records directly")
 
     return SafetyDecision(True, high_risk, high_risk, "allowed")
 

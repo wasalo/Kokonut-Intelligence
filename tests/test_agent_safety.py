@@ -6,6 +6,7 @@ import pytest
 
 from services.agents.safety import (
     GOVERNED_COLLECTIONS,
+    HIGH_RISK_ACTIONS,
     assert_agent_action_allowed,
     assess_agent_action,
     payload_hash,
@@ -26,10 +27,28 @@ def test_blocks_agent_publish_status() -> None:
 
 
 def test_high_risk_action_requires_human_approval() -> None:
-    decision = assert_agent_action_allowed("attest", "attestation_request", {})
-    assert decision.allowed is True
+    decision = assess_agent_action("attest", "attestation_request", {})
+    assert decision.allowed is False
     assert decision.high_risk is True
     assert decision.requires_human_approval is True
+    with pytest.raises(ValueError, match="cannot execute attest"):
+        assert_agent_action_allowed("attest", "attestation_request", {})
+
+
+def test_every_high_risk_action_is_denied_before_execution() -> None:
+    assert "verify" in HIGH_RISK_ACTIONS
+    for action in HIGH_RISK_ACTIONS:
+        decision = assess_agent_action(action, "unrestricted_collection", {})
+        assert decision.allowed is False, action
+        assert decision.high_risk is True, action
+        assert decision.requires_human_approval is True, action
+
+
+def test_agent_action_input_is_normalized_and_invalid_input_fails_closed() -> None:
+    assert assess_agent_action(" VERIFY ", "agent_task", {}).allowed is False
+    assert assess_agent_action(" ", "agent_task", {}).allowed is False
+    assert assess_agent_action("read", "agent_task", "not-an-object").allowed is False
+    assert assess_agent_action("create", " STAKEHOLDER_CONSENT ", {}).allowed is False
 
 
 def test_modeled_decision_outputs_are_governed() -> None:

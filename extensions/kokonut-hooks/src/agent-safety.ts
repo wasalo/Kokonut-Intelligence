@@ -1,4 +1,5 @@
 const HIGH_RISK_ACTIONS = new Set([
+  'verify',
   'publish',
   'attest',
   'onchain_submit',
