@@ -11376,3 +11376,15 @@ PostgreSQL duplicate-origin rollback/concurrency, expiry-policy enforcement and
 cleanup, expiry propagation to other entities, populated settlement parity,
 and MAN-CAP-062 remain open. Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-062-fee-distribution-settlement.json).
+
+### CAP-063 CSW XML integrity — 19 October 2026
+
+The retained ISO 19115 and CSW record serializers now escape metadata values
+before emitting XML, replace XML 1.0 forbidden controls, and declare `gmd` and
+`gco` in CSW record responses. Two focused serializer tests cover markup
+injection and invalid control characters. Together with the GIS import tests,
+the 15-test selection passes with Ruff and compilation. No database or
+external service was used. A CSW endpoint, catalog query and
+ISO 19115 fixture parity, GIS/KML/raster import parity, map/geostory behavior,
+thesaurus integration, and MAN-CAP-063 review remain open. Checklist: 685
+complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-063-csw-xml-safety.json).

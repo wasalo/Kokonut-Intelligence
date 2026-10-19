@@ -1,0 +1,23 @@
+{
+  "capability": "CAP-063",
+  "title": "GeoNode CSW metadata XML integrity",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "focused CSW serializer integrity checks pass; capability not accepted",
+  "changes": [
+    "ISO 19115 metadata values are escaped as XML text before serialization, preventing caller-supplied values from breaking document structure or injecting elements; characters forbidden by XML 1.0 are replaced with U+FFFD.",
+    "CSW record responses declare the gmd and gco namespaces used by their child elements.",
+    "Focused tests parse both serializer outputs and verify markup-shaped input remains text."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_csw_serializer.py tests/test_gis_import.py -q",
+    "result": "15 passed, including 2 CSW serializer integrity tests",
+    "ruff": "python3 -m ruff check services/csw/serializer.py tests/test_csw_serializer.py: passed",
+    "compilation": "python3 -m compileall -q services/csw/serializer.py tests/test_csw_serializer.py: passed",
+    "database_or_provider": "None used"
+  },
+  "scope_limits": [
+    "This work does not add a CSW HTTP endpoint, catalog query implementation, or establish ISO 19115 semantic/output parity against a GeoNode reference fixture.",
+    "GIS/KML/raster ingestion parity, map and geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
+  ]
+}
