@@ -1,12 +1,13 @@
 """Tests for the Revenue Model + Cost Structure service."""
 
-import json
+import math
+from unittest.mock import MagicMock
 
-import pytest
 import psycopg2
+import pytest
 
-from services.ingestion.base import get_db
 from services.analytics import revenue_model
+from services.ingestion.base import get_db
 
 
 def _db():
@@ -135,6 +136,23 @@ def test_break_even_invalid_price():
             revenue_model.create_break_even(conn, loc, 10000, 2.0, 0)
     finally:
         conn.close()
+
+
+def test_break_even_rejects_invalid_numbers_before_database_access():
+    invalid_cases = [
+        (math.nan, 2.0, 5.0),
+        (100.0, math.inf, 5.0),
+        (100.0, 2.0, math.nan),
+        (-1.0, 2.0, 5.0),
+        (100.0, -1.0, 5.0),
+        (100.0, 2.0, 0.0),
+    ]
+
+    for fixed, variable, price in invalid_cases:
+        conn = MagicMock()
+        with pytest.raises(ValueError):
+            revenue_model.create_break_even(conn, "location-1", fixed, variable, price)
+        conn.cursor.assert_not_called()
 
 
 def test_break_even_negative_margin():

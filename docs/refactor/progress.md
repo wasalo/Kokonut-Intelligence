@@ -11261,3 +11261,34 @@ used. The low-level MQTT publisher is not bound to durable approval state;
 operator authorization, delivery idempotency, and device acknowledgment remain
 open with provider parity and MAN-CAP-055. Checklist: 685 complete / 24 open;
 matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-055-oracle-input-validation.json).
+
+### CAP-056 channel plan scope and secret redaction — 19 October 2026
+
+Channel delivery plans now filter preferences by location and requested
+segment, omit channels without an active configuration, and return no default
+channels when explicit preferences point only at inactive configurations.
+Channel listing and delivery-plan output recursively redact credential-shaped
+configuration values.
+
+Six mocked checks pass with Ruff and compilation, including default-plan secret
+redaction and invalid break-even input rejection before database access. No
+database or provider was contacted.
+Legacy channel config writes can still persist inline credentials in JSONB.
+SOPS-backed secret references, provider delivery, tenant authorization,
+financial parity, and MAN-CAP-056 remain open. Checklist:
+685 complete / 24 open; matrix classifications unchanged.
+[Evidence](builds/2026-10-19-recovery/cap-056-channel-plan-secrets.json).
+
+### CAP-057 environmental scan and PESTEL source repairs — 19 October 2026
+
+Environmental scan communication now includes findings collected during the
+same run, along with retained findings from steps whose queries returned no
+new evidence. PESTEL factor creation requires an existing analysis, binds the
+factor location to the analysis location, and validates finite impact and
+likelihood values against schema ranges before writing.
+
+Eleven focused mocked checks pass with Ruff and compilation. No database or
+external provider was contacted. Regional readiness, segment results,
+reference fixtures, populated parity, tenant authorization, and MAN-CAP-057
+remain open. Checklist: 685 complete / 24 open; matrix classifications
+unchanged. [Evidence](builds/2026-10-19-recovery/cap-057-environmental-scan-scope.json).
