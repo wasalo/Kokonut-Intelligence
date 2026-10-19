@@ -11043,3 +11043,16 @@ remain open. No database or provider was used. Checklist:
 680 complete / 24 open; matrix: 32 baseline-retained, 7 deployed, 27 prepared.
 Evidence: [contract](unified-cli-kernel-contract.md) and
 [source checks](builds/2026-10-19-recovery/cap-039-unified-cli-source.json).
+
+### CAP-039 invalid-argument preflight — 19 October 2026
+
+The mounted CLI sweep sent a deliberately invalid non-help option through all
+37 legacy argparse groups with an unavailable SOPS key and closed loopback
+PostgreSQL port. All 37 returned argparse usage/error output and exit code 2
+before secret or database setup. The sweep found that the ingestion wrapper
+treated an unknown top-level option as successful help; it now reports a
+standard argparse error while preserving no-argument help and `--list`. The
+focused CLI suite passes nine tests. Successful per-command output, provider
+and database behavior, and authorization parity remain open. Checklist:
+681 complete / 24 open; matrix: 32 baseline-retained, 7 deployed, 27 prepared.
+Evidence: [preflight](builds/2026-10-19-recovery/cap-039-invalid-argument-preflight.json).

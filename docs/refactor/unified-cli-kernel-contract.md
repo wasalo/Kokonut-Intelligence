@@ -35,6 +35,14 @@ invokes actual parser help for all 37 mounted argparse groups with an
 intentionally unavailable SOPS key; every parser exits successfully without
 attempting secret decryption.
 
+A second subprocess sweep sends an invalid non-help option through all 37
+mounted parsers with an unavailable SOPS key and a closed loopback PostgreSQL
+port. Every group rejects it with argparse usage/error output and exit code 2
+before secret decryption or database connection. The ingestion wrapper now
+rejects unknown top-level arguments instead of printing help and returning
+success; no-argument help and `--list` remain available. See the
+[preflight evidence](builds/2026-10-19-recovery/cap-039-invalid-argument-preflight.json).
+
 The legacy module imports are intentionally lazy. CAP-038 moved agent audit
 database imports behind the explicit audit-write call so task listing does not
 decrypt secrets. `services.common.db` also skips secret loading when an explicit
@@ -43,9 +51,10 @@ This source slice does not invoke databases or providers.
 
 ## Remaining parity gates
 
-The adapter and help checks do not prove each legacy module's non-help parser
-arguments, database/provider operation, or output parity. Those remain to be
-exercised per command in isolated groups. Module-specific commands should
-declare whether they require a database, provider, or operator authorization.
-The unified CLI does not itself grant authorization to a legacy command.
-MAN-CAP-039 remains open until those checks and operator review are complete.
+The invalid-option preflight proves rejection behavior only. It does not prove
+successful module-specific non-help arguments, output parity, database/provider
+operation, or operator authorization. Those remain to be exercised per command
+in isolated groups. Module-specific commands should declare whether they
+require a database, provider, or operator authorization. The unified CLI does
+not itself grant authorization to a legacy command. MAN-CAP-039 remains open
+until those checks and operator review are complete.

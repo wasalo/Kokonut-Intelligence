@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="tool")
 
     for name, info in TOOLS.items():
-        p = sub.add_parser(name, help=info["help"])
+        sub.add_parser(name, help=info["help"])
 
     if argv is None:
         argv = sys.argv[1:]
@@ -124,6 +124,8 @@ def main(argv: list[str] | None = None) -> None:
     # Parse the tool name and forward remaining args
     args, remaining = parser.parse_known_args(argv)
     if not args.tool:
+        if remaining:
+            parser.error(f"unrecognized arguments: {' '.join(remaining)}")
         parser.print_help()
         return
 

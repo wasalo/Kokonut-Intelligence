@@ -6,9 +6,11 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
+import pytest
 from typer.testing import CliRunner
 
 import services.cli as unified_cli
+from services.ingestion import cli as ingestion_cli
 
 CLI_COMMANDS = [
     # forecast CLI
@@ -132,6 +134,33 @@ def test_legacy_argparse_help_uses_separator_and_stays_offline() -> None:
     assert result.exit_code == 0, result.output
     assert "Kokonut agent task catalogue" in result.output
     assert "SOPS decryption failed" not in result.output
+
+
+def test_ingestion_cli_preserves_help_and_list_commands(capsys) -> None:
+    ingestion_cli.main([])
+    help_output = capsys.readouterr().out
+    assert "Kokonut ingestion pipelines" in help_output
+
+    ingestion_cli.main(["--list"])
+    list_output = capsys.readouterr().out
+    assert "sensor_ingester" in list_output
+
+
+def test_ingestion_cli_rejects_unknown_top_level_argument(capsys) -> None:
+    with pytest.raises(SystemExit) as exc_info:
+        ingestion_cli.main(["--__codex_invalid_argument__"])
+
+    assert exc_info.value.code == 2
+    assert "unrecognized arguments: --__codex_invalid_argument__" in capsys.readouterr().err
+
+
+def test_unified_ingestion_cli_rejects_unknown_top_level_argument() -> None:
+    result = CliRunner().invoke(
+        unified_cli.app,
+        ["ingestion", "--", "--__codex_invalid_argument__"],
+    )
+    assert result.exit_code == 2
+    assert "unrecognized arguments: --__codex_invalid_argument__" in result.output
 
 
 def run_cli_tests():
