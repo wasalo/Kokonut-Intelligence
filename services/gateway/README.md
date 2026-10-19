@@ -76,6 +76,23 @@ each nested list capped at 100. All three projections are rendered as text in
 the console. They expose no mutation or approval action; the
 underlying governance tables do not yet have domain-table RLS.
 
+Role nominations use
+`POST /operator/api/governance/{location_id}/roles/{role_id}/assignments`
+with the separate location-scoped `governance_roles:create` grant. The request
+requires a caller-generated `request_id`, active nominee party UUID,
+assignment type, and an optional mandate (required for delegates). A signed
+operator context and active operator/person binding attribute the request.
+The bounded database function creates only a `proposed` assignment and writes
+an immutable idempotency/attribution record; it cannot activate, approve, end,
+or reject an assignment. Direct assignment-table writes are revoked from the
+runtime and Directus roles. A distinct human approval route is not implemented
+yet, so proposals remain pending for a future reviewed approval flow.
+These ACLs protect only those non-superuser roles. The local candidate app
+currently connects as the administrative `kokonut` login, so its database
+session can bypass these grants; migration 438 has not been applied to that
+candidate. Do not treat the route or this migration as a database isolation
+boundary until the candidate is switched to its least-privilege runtime role.
+
 Governance tension intake is available at `POST
 /operator/api/governance/{location_id}/tensions` with a caller-generated UUID
 `request_id`, title, description, supported tension type, severity, and urgency.
@@ -84,7 +101,7 @@ The same operator may submit its own draft through `POST
 require exact `governance_tension:create` or `governance_tension:submit`
 location grants, OIDC/CSRF, and signed tenant context. Submission only moves a
 report from draft to submitted; the Gateway does not expose triage, verification,
-publication, role assignment, or governance approval actions.
+publication, tension disposition, or governance approval actions.
 
 An administrator maps OIDC operators to governance people using explicit UUIDs
 with `python3 -m services.cli operator identity party bind|revoke|list`. This

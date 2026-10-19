@@ -122,6 +122,34 @@ CREATE TABLE public.governance_tension_event (
     created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
 );
 
+CREATE TABLE public.governance_circle (
+    id UUID PRIMARY KEY,
+    scope_type TEXT NOT NULL,
+    scope_id UUID,
+    status TEXT NOT NULL
+);
+CREATE TABLE public.governance_role (
+    id UUID PRIMARY KEY,
+    circle_id UUID NOT NULL REFERENCES public.governance_circle(id),
+    status TEXT NOT NULL
+);
+CREATE TABLE public.governance_role_assignment (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    role_id UUID NOT NULL REFERENCES public.governance_role(id),
+    party_id UUID NOT NULL REFERENCES public.party(id),
+    assignment_type TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'proposed',
+    assigned_by_party_id UUID REFERENCES public.party(id),
+    approved_by_party_id UUID REFERENCES public.party(id),
+    mandate TEXT,
+    effective_from TIMESTAMPTZ,
+    review_due_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    CHECK (status <> 'active' OR approved_by_party_id IS NOT NULL)
+);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.governance_role_assignment
+    TO kokonut_runtime, kokonut_directus_runtime;
+
 INSERT INTO public.organization VALUES
     ('a0000000-0000-4000-8000-000000000101', 'active');
 INSERT INTO public.location VALUES
@@ -139,7 +167,14 @@ INSERT INTO public.operator_identity VALUES
 INSERT INTO public.party VALUES
     ('a0000000-0000-4000-8000-000000000501', 'person', 'Person One', 'active'),
     ('a0000000-0000-4000-8000-000000000502', 'person', 'Person Two', 'active'),
-    ('a0000000-0000-4000-8000-000000000503', 'organization', 'Not a person', 'active');
+    ('a0000000-0000-4000-8000-000000000503', 'organization', 'Not a person', 'active'),
+    ('a0000000-0000-4000-8000-000000000504', 'person', 'Retired Person', 'retired');
+INSERT INTO public.governance_circle VALUES
+    ('a0000000-0000-4000-8000-000000000801', 'location', 'a0000000-0000-4000-8000-000000000201', 'active'),
+    ('a0000000-0000-4000-8000-000000000802', 'network', NULL, 'active');
+INSERT INTO public.governance_role VALUES
+    ('a0000000-0000-4000-8000-000000000811', 'a0000000-0000-4000-8000-000000000801', 'active'),
+    ('a0000000-0000-4000-8000-000000000812', 'a0000000-0000-4000-8000-000000000802', 'active');
 INSERT INTO public.operator_organization_membership VALUES
     ('a0000000-0000-4000-8000-000000000601',
      'a0000000-0000-4000-8000-000000000401',
@@ -151,6 +186,7 @@ INSERT INTO public.operator_organization_membership VALUES
      'a0000000-0000-4000-8000-000000000403',
      'a0000000-0000-4000-8000-000000000101', NULL);
 INSERT INTO public.operator_scope_grant VALUES
+    ('a0000000-0000-4000-8000-000000000700', 'a0000000-0000-4000-8000-000000000401', 'governance_roles', 'create', 'a0000000-0000-4000-8000-000000000201', 'a0000000-0000-4000-8000-000000000101', NULL),
     ('a0000000-0000-4000-8000-000000000701', 'a0000000-0000-4000-8000-000000000401', 'governance_tension', 'create', 'a0000000-0000-4000-8000-000000000201', 'a0000000-0000-4000-8000-000000000101', NULL),
     ('a0000000-0000-4000-8000-000000000702', 'a0000000-0000-4000-8000-000000000401', 'governance_tension', 'submit', 'a0000000-0000-4000-8000-000000000201', 'a0000000-0000-4000-8000-000000000101', NULL),
     ('a0000000-0000-4000-8000-000000000703', 'a0000000-0000-4000-8000-000000000402', 'governance_tension', 'submit', 'a0000000-0000-4000-8000-000000000201', 'a0000000-0000-4000-8000-000000000101', NULL),

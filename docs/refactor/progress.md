@@ -1,5 +1,31 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 proposal-only role assignment creation — 18 October 2026
+
+Added `POST /operator/api/governance/{location_id}/roles/{role_id}/assignments`
+under the exact location-scoped `governance_roles:create` grant. Migration 438
+requires signed location context plus an explicit active operator/person-party
+binding, validates an active nominee and active location role, and creates only
+a `proposed` assignment with no approver or effective date. Request IDs are
+idempotent per operator; the immutable ledger records the nominated party,
+role, request actor, and input. The Gateway function cannot activate or approve
+the assignment. Direct assignment writes and request-ledger reads are revoked
+from runtime and Directus roles while assignment reads remain available.
+
+The 148-test focused Gateway, migration, auth, and route-policy slice passes with Ruff, Python
+compilation, capability validation, refreshed runtime SQL inventory, and diff
+checks. Disposable PostgreSQL 16 applied and replayed migration 438 and passed
+the signed-context, exact-grant, binding, role/party scope, delegate mandate,
+idempotency, immutable-history, and direct-write ACL checks. Candidate and
+legacy databases were not accessed; the candidate remains through migration
+437 and its app still connects as administrative `kokonut`, which bypasses the runtime-role ACLs. No approval/rejection/end route or console nomination form is exposed yet.
+The prior CLI's direct assignment writes will fail under the narrowed runtime
+role; replacing them requires the separately authorized Gateway review flow.
+CAP-024 stays prepared, not accepted, and its matrix classification is
+unchanged ([migration](../schemas/postgres/438_governance_role_assignment_proposals.sql);
+[runner](../scripts/check-governance-assignment-proposals-disposable.py);
+[evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
+
 ### CAP-024 role detail read — 18 October 2026
 
 Added `GET /operator/api/governance/{location_id}/roles/{role_id}` under the

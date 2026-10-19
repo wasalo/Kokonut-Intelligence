@@ -1,0 +1,14 @@
+{
+  "title": "Migration 438 tenant-scoped governance role assignment proposals",
+  "status": "passed",
+  "checks": [
+    "migration 438 applies and replays transactionally after migration 437",
+    "runtime retains assignment reads and bounded proposal execution but loses direct table writes and ledger access",
+    "active bound operator creates an attributed location role nomination; exact retry returns the same proposed row without activation",
+    "signed tenant context, exact location grant, active party binding, and request-content identity are enforced",
+    "role location, nominee active state, and delegate mandate are validated before writing",
+    "runtime cannot bypass the bounded write function, activate/delete assignments, inspect the private request ledger, or rewrite request history"
+  ],
+  "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",
+  "elapsed_seconds": 11.17
+}
