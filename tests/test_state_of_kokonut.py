@@ -8,11 +8,20 @@ stubbed to validate the aggregation logic.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from services.export import report_generator as rg
 from services.export.reports import common as reports_common
 from services.export.reports import state as state_module
+
+
+def _actor_view_connection(result_sets):
+    connection = MagicMock()
+    cursor = MagicMock()
+    cursor.fetchall.side_effect = result_sets
+    connection.cursor.return_value = cursor
+    return connection, cursor
 
 
 def test_registered():
@@ -124,3 +133,56 @@ def test_isolates_failing_section():
     assert "error" in entry["sections"]["crop_noi"]
     # A working section is still present.
     assert "farm_summary" in entry["sections"]
+
+
+def test_actor_rollups_preserve_currency_dimensions():
+    connection, cursor = _actor_view_connection(
+        [
+            [
+                {"currency": "USD", "total_raised": Decimal("100.25")},
+                {"currency": "USDC", "total_raised": Decimal("80.50")},
+            ],
+            [
+                {"source_type": "grant", "currency": "USD", "total_raised": Decimal("100.25")},
+                {"source_type": "grant", "currency": "USDC", "total_raised": Decimal("80.50")},
+            ],
+            [
+                {
+                    "actor_type": "dao",
+                    "decision_status": "executed",
+                    "token": "USDC",
+                    "count": 1,
+                    "amount": Decimal("80.50"),
+                }
+            ],
+            [],
+        ]
+    )
+
+    result = state_module._state_of_kokonut_actors(connection, None, None)
+
+    assert result["total_raised"] is None
+    assert result["total_raised_currency"] is None
+    assert result["total_raised_by_currency"] == {
+        "USD": Decimal("100.25"),
+        "USDC": Decimal("80.50"),
+    }
+    assert result["by_source"][0]["currency"] == "USD"
+    assert result["by_source"][1]["currency"] == "USDC"
+    assert result["participation"][0]["token"] == "USDC"
+    source_query = cursor.execute.call_args_list[1].args[0]
+    participation_query = cursor.execute.call_args_list[2].args[0]
+    assert "GROUP BY fr.source_type, fr.currency" in source_query
+    assert "GROUP BY pf.actor_type, pf.decision_status, pf.token" in participation_query
+
+
+def test_actor_total_keeps_legacy_scalar_for_one_currency():
+    connection, _cursor = _actor_view_connection(
+        [[{"currency": "USD", "total_raised": Decimal("12.345") }], [], [], []]
+    )
+
+    result = state_module._state_of_kokonut_actors(connection, None, None)
+
+    assert result["total_raised"] == 12.35
+    assert result["total_raised_currency"] == "USD"
+    assert result["total_raised_by_currency"] == {"USD": Decimal("12.345")}

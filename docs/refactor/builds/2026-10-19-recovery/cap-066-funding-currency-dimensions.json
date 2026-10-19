@@ -1,0 +1,23 @@
+{
+  "capability": "CAP-066",
+  "title": "State of Kokonut funding currency dimensions",
+  "date": "2026-10-19",
+  "classification": "P",
+  "status": "Focused report currency checks pass; full output parity remains open",
+  "changes": [
+    "Funding source totals now group by currency instead of combining unlike denominations.",
+    "Project participation summaries preserve the token denomination in both output and grouping.",
+    "The aggregate total_raised remains numeric when there is zero or one denomination; for mixed currencies it is null and total_raised_by_currency preserves exact decimal totals. A single-currency total also reports total_raised_currency."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_state_of_kokonut.py tests/test_state_of_kokonut_graphs.py -q",
+    "result": "14 passed",
+    "ruff": "python3 -m ruff check services/export/reports/state.py tests/test_state_of_kokonut.py: passed",
+    "compilation": "python3 -m compileall -q services/export/reports/state.py tests/test_state_of_kokonut.py: passed",
+    "database_or_provider": "None used; synthetic cursor rows include USD and USDC and assert that no cross-currency total is produced."
+  },
+  "scope_limits": [
+    "No FX conversion or peg assumption is applied; currency values remain separate.",
+    "This source-level fix does not verify populated report fixtures, report authorization/tenant scope, OIDC/browser behavior, or MAN-CAP-066 owner acceptance."
+  ]
+}

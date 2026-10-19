@@ -11423,3 +11423,14 @@ Gateway creation route, tenant authorization for the legacy service,
 organization-wide suggestion aggregation, or output parity. CAP-065 remains
 unprepared pending the Kernel path and MAN-CAP-065 review. Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-065-bmc-scope-preflight.json).
+
+### CAP-066 State of Kokonut currency-safe rollups — 19 October 2026
+
+The report now groups funding source totals by currency and retains the token
+denomination in project participation summaries. It returns `total_raised`
+only when a single currency is present; mixed currencies are represented in
+`total_raised_by_currency` without applying an FX or stablecoin-peg assumption.
+Fourteen focused report and graph tests pass with Ruff and compilation using
+synthetic USD/USDC rows. Populated output parity, authorization/tenant scope,
+OIDC/browser behavior, and MAN-CAP-066 review remain open. Checklist: 685
+complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-066-funding-currency-dimensions.json).

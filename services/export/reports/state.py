@@ -1,6 +1,7 @@
 """State-of-Kokonut and network-level report generators."""
 
 from datetime import datetime, timezone
+from decimal import Decimal
 
 import psycopg2
 import psycopg2.extras
@@ -112,11 +113,12 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
 
     cur.execute(
         f"""
-        SELECT fr.source_type, COALESCE(SUM(fr.raised_amount), 0) AS total_raised
+        SELECT fr.source_type, fr.currency,
+               COALESCE(SUM(fr.raised_amount), 0) AS total_raised
         FROM funding_round fr
         WHERE 1=1 {period_filter}
-        GROUP BY fr.source_type
-        ORDER BY total_raised DESC
+        GROUP BY fr.source_type, fr.currency
+        ORDER BY total_raised DESC, fr.source_type, fr.currency
         """,
         params,
     )
@@ -124,13 +126,13 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
 
     cur.execute(
         f"""
-        SELECT pf.actor_type, pf.decision_status,
+        SELECT pf.actor_type, pf.decision_status, pf.token,
                COUNT(*) AS count, COALESCE(SUM(pf.amount), 0) AS amount
         FROM project_funding pf
         JOIN funding_round fr ON fr.id = pf.funding_round_id
         WHERE 1=1 {period_filter}
-        GROUP BY pf.actor_type, pf.decision_status
-        ORDER BY pf.actor_type, pf.decision_status
+        GROUP BY pf.actor_type, pf.decision_status, pf.token
+        ORDER BY pf.actor_type, pf.decision_status, pf.token
         """,
         params,
     )
@@ -149,14 +151,34 @@ def _state_of_kokonut_actors(conn, period_start, period_end):
     )
     rounds = [dict(r) for r in cur.fetchall()]
 
-    total_raised = sum(float(r.get("total_raised") or 0) for r in by_actor)
+    total_raised_by_currency = {}
+    for row in by_actor:
+        currency = str(row.get("currency") or "UNSPECIFIED")
+        amount = Decimal(str(row.get("total_raised") or 0))
+        total_raised_by_currency[currency] = (
+            total_raised_by_currency.get(currency, Decimal(0)) + amount
+        )
+
+    if len(total_raised_by_currency) == 1:
+        total_raised_currency, amount = next(iter(total_raised_by_currency.items()))
+        total_raised = round(float(amount), 2)
+    elif not total_raised_by_currency:
+        total_raised_currency = None
+        total_raised = 0.0
+    else:
+        total_raised_currency = None
+        total_raised = None
+
+    totals_by_currency = dict(sorted(total_raised_by_currency.items()))
     cur.close()
     return {
         "by_actor": _serialize_rows(by_actor),
         "by_source": _serialize_rows(by_source),
         "participation": _serialize_rows(participation),
         "rounds": _serialize_rows(rounds),
-        "total_raised": round(total_raised, 2),
+        "total_raised": total_raised,
+        "total_raised_currency": total_raised_currency,
+        "total_raised_by_currency": totals_by_currency,
     }
 
 
