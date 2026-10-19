@@ -23,6 +23,11 @@ authorize an agent operation. Human review must happen through an independently
 authorized workflow. No model/provider call or human-approval endpoint is added
 by this slice.
 
+Policy-only task listing and validation do not import the database-backed
+action logger. Audit persistence is imported only when a caller explicitly
+records an action, so the task catalogue and unified `agents list` command can
+run without decrypting `.env.sops`.
+
 ## Existing safety behavior retained
 
 - Draft creation continues for the write targets declared by the task catalogue.

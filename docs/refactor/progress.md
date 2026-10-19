@@ -11024,3 +11024,22 @@ not a database-authenticated identity boundary and does not protect inserts.
 Checklist: 679 complete / 23 open; matrix: 32 baseline-retained, 7 deployed,
 27 prepared. Evidence: [contract](agent-ecosystem-kernel-contract.md),
 [source checks](builds/2026-10-19-recovery/cap-038-agent-safety-source.json).
+
+### CAP-039 unified CLI forwarding contract — 19 October 2026
+
+`tests/test_cli.py` now enumerates all entries in `services.cli._MOUNTED` and
+checks that root help lists them, each wrapper presents help, and each adapter
+forwards synthetic options/arguments while restoring `sys.argv`. A subprocess
+sweep passed actual argparse help for all 37 mounted groups with an unavailable
+SOPS key. The agent catalogue list also runs offline. This found and fixed
+eager secret loading on help paths: agent audit logging is imported only when
+written, and shared database configuration skips secret loading for explicit
+`-h` / `--help` invocations.
+
+The combined CLI/environment selection passes 23 tests. CAP-039 remains
+deployed (`D`), not accepted: non-help parser argument/output parity, database
+and provider behavior, native Typer command parity, and MAN-CAP-039 review
+remain open. No database or provider was used. Checklist:
+680 complete / 24 open; matrix: 32 baseline-retained, 7 deployed, 27 prepared.
+Evidence: [contract](unified-cli-kernel-contract.md) and
+[source checks](builds/2026-10-19-recovery/cap-039-unified-cli-source.json).

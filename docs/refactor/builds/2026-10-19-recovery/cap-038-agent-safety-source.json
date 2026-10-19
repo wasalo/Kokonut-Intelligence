@@ -10,6 +10,11 @@
       "notes": "Database-dependent checks were skipped because PostgreSQL was unavailable; no database session or data mutation occurred."
     },
     {
+      "command": "python3 -m services.cli agents list",
+      "result": "passed",
+      "notes": "The task catalogue loads without importing database logging or decrypting SOPS secrets."
+    },
+    {
       "command": "npm test -- src/agent-safety.test.ts src/schemas.test.ts",
       "result": "22 passed"
     },

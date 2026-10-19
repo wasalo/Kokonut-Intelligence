@@ -7,8 +7,6 @@ import json
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from services.agents.logging import log_agent_action
-
 
 def set_agent_context(conn, agent_id: str) -> None:
     """Set the agent ID for the current transaction, enabling DB-level safety checks.
@@ -358,6 +356,8 @@ def audit_agent_action(
     error_message: Optional[str] = None,
 ) -> str:
     """Assess and write an agent_action_log entry."""
+    from services.agents.logging import log_agent_action
+
     decision = assess_agent_action(action, collection, payload)
     return log_agent_action(
         agent_id=agent_id,
