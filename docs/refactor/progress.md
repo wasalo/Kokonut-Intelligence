@@ -1,3 +1,22 @@
+### CAP-032 first business architecture Kernel projection — 19 October 2026
+
+The read-only OIDC endpoint at
+`GET /operator/api/business-architecture/{location_id}/summary` now reads the
+latest approved mission/vision/values statement for the exact location and
+bounded capability/value-stream/strategy mappings from approved location
+roadmaps. The exact `business_architecture:read` grant and signed tenant context
+are checked in both Gateway and database functions. Descriptions, evidence,
+stakeholder identities, owners, rationale, and organization/network strategy
+links stay outside the projection. Focused Gateway, route-policy, and migration
+metadata checks pass (48 selected tests); migration 456 applies/replays on
+disposable PostgreSQL 16 and passes seven scope, approval, privacy, and
+role-boundary assertions.
+Candidate and legacy databases are untouched, and migration 456 is not rolled
+out. CAP-032 remains prepared pending populated-data parity, live OIDC/browser,
+broader ACL/RLS, and MAN-CAP-032 owner acceptance. Checklist: 673 complete / 19
+open; matrix: 38 baseline-retained, 7 deployed, 21 prepared. See [the read contract](business-architecture-kernel-read-contract.md)
+and [disposable evidence](builds/2026-10-19-recovery/cap-032-business-architecture-disposable.json).
+
 ### CAP-031 first planning budget Kernel projection — 19 October 2026
 
 The existing public location roll-up and read-only Python/TypeScript stored

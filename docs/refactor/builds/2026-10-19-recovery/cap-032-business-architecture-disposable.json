@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "456_location_scoped_business_architecture_read.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 456 applies and replays on disposable PostgreSQL 16",
+    "only approved roadmaps and non-retired requirements from the exact location are returned",
+    "only the latest approved exact-location mission statement is returned",
+    "cross-scope strategy links and private narratives/evidence are excluded",
+    "signed location context and exact business_architecture:read grant are enforced",
+    "runtime and Directus have no direct table or Directus function access",
+    "dedicated reader role is non-login, read-only, and has no party identity access"
+  ],
+  "assertions_passed": 7
+}
