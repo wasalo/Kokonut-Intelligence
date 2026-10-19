@@ -19,5 +19,5 @@
     "runtime cannot bypass the bounded write function, activate/delete assignments, inspect the private request ledger, or rewrite request history"
   ],
   "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",
-  "elapsed_seconds": 39.68
+  "elapsed_seconds": 40.7
 }

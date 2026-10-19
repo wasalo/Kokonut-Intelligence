@@ -1,5 +1,27 @@
 # Kokonut Kernel implementation progress
 
+### Candidate governance migrations 438–444 — 19 October 2026
+
+The candidate had seven pending schema migrations. The ordered, checksummed
+runner applied exactly migrations 438–444 with zero failures; schema-only plan
+now reports zero pending migrations. The six existing seed entries remain
+unchanged, and no seed SQL ran. The combined disposable PostgreSQL 16 acceptance
+passed apply/replay and governance scope, lifecycle, audit, retry, and privilege
+checks.
+
+Before rollout, an age-encrypted PostgreSQL checkpoint was retained outside the
+repository and restore-rehearsed in an offline `template0` database. The restored
+ledger fingerprint/count, all 1,397 pre-migration public relations, and all ten
+extension versions matched the candidate. The candidate app was rebuilt from
+commit `7ad161e` and only its container was recreated. It is healthy; `/health`
+returned 200 and the new assignment-proposal route returned 401 without
+credentials. Database, Metabase, and proxy were not recreated, and the legacy
+stack was not touched. The running candidate still uses the administrative
+`kokonut` role, so least-privilege behavior and CAP-024 acceptance remain open.
+Checklist: 657 complete / 19 open (676 total); capability counts remain 45
+baseline-retained, 7 deployed, and 14 prepared ([rollout evidence](builds/2026-10-19-recovery/candidate-migrations-438-444-rollout.json);
+[disposable acceptance](builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json)).
+
 ### CAP-024 tactical session creation — 19 October 2026
 
 Migration 444 adds a bounded Gateway creation path for tactical sessions. An
