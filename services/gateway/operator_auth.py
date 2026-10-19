@@ -503,6 +503,34 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_assignment_review_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/assignment-review-queue",
+        path,
+    )
+    if governance_assignment_review_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": "review",
+            "public": False,
+            "location_id": governance_assignment_review_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    governance_assignment_decision_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/roles/([0-9a-fA-F-]{36})/assignments/([0-9a-fA-F-]{36})/(approve|reject)",
+        path,
+    )
+    if governance_assignment_decision_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": governance_assignment_decision_match.group(4),
+            "public": False,
+            "location_id": governance_assignment_decision_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_tactical_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-items", path
     )

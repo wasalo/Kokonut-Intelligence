@@ -16,6 +16,12 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         GovernanceAssignmentInvalid,
         propose_governance_role_assignment,
     )
+    from services.gateway.governance_assignment_review import (
+        GovernanceAssignmentReviewConflict,
+        GovernanceAssignmentReviewInvalid,
+        decide_governance_assignment,
+        list_governance_assignment_reviews,
+    )
     from services.gateway.governance_operations import (
         GovernanceOperationsInvalid,
         get_location_governance_role_detail,
@@ -275,6 +281,160 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/governance/{location_id}/assignment-review-queue"
+    )
+    async def governance_assignment_review_queue(
+        request: Request,
+        location_id: str,
+        limit: str = "50",
+        cursor_created_at: str | None = None,
+        cursor_assignment_id: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_governance_assignment_reviews,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                cursor_created_at=cursor_created_at,
+                cursor_assignment_id=cursor_assignment_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceAssignmentReviewInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active governance role review grant and person binding are required"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Governance assignment review cursor is invalid"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance assignment review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance assignment review queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    async def decide_assignment_route(
+        request: Request,
+        location_id: str,
+        role_id: str,
+        assignment_id: str,
+        decision: str,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Assignment decision must be valid JSON"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                decide_governance_assignment,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                role_id,
+                assignment_id,
+                decision,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceAssignmentReviewInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except GovernanceAssignmentReviewConflict as exc:
+            return JSONResponse(status_code=409, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active governance role decision grant and independent person binding are required"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Governance assignment decision is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "23514", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Governance assignment has already changed or been decided"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance assignment decision unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance assignment decision unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/approve"
+    )
+    async def approve_governance_role_assignment_route(
+        request: Request, location_id: str, role_id: str, assignment_id: str
+    ):
+        return await decide_assignment_route(
+            request, location_id, role_id, assignment_id, "approve"
+        )
+
+    @router.post(
+        "/operator/api/governance/{location_id}/roles/{role_id}/assignments/{assignment_id}/reject"
+    )
+    async def reject_governance_role_assignment_route(
+        request: Request, location_id: str, role_id: str, assignment_id: str
+    ):
+        return await decide_assignment_route(
+            request, location_id, role_id, assignment_id, "reject"
+        )
 
     @router.post(
         "/operator/api/governance/{location_id}/roles/{role_id}/assignments",

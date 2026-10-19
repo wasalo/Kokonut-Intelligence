@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise governance role nomination and readback migrations on disposable PostgreSQL 16."""
+"""Exercise governance role nomination, readback, and review on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/437_governance_operator_binding_and_actions.sql",
     ROOT / "schemas/postgres/438_governance_role_assignment_proposals.sql",
     ROOT / "schemas/postgres/439_governance_role_assignment_proposal_readback.sql",
+    ROOT / "schemas/postgres/440_governance_role_assignment_review.sql",
 )
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json"
 
@@ -85,7 +86,10 @@ def run_acceptance(container: str) -> list[str]:
     readback_sql = MIGRATIONS[2].read_text()
     docker_sql(container, readback_sql)
     docker_sql(container, readback_sql)
-    checks.append("migrations 438 and 439 apply and replay transactionally after migration 437")
+    review_sql = MIGRATIONS[3].read_text()
+    docker_sql(container, review_sql)
+    docker_sql(container, review_sql)
+    checks.append("migrations 438–440 apply and replay transactionally after migration 437")
 
     privilege = docker_sql(
         container,
@@ -226,6 +230,164 @@ def run_acceptance(container: str) -> list[str]:
         raise AssertionError(f"readback projection contains nominee or mandate fields: {result_shape}")
     checks.append("read-only readback pages only the signed operator's nominations, rejects missing or mismatched scope, and omits nominee identity and mandate")
 
+    review_queue = runtime_call(
+        container,
+        OPERATOR_TWO,
+        f"""SELECT count(*)::text || '|' || string_agg(
+                   nominee_name || ':' || submitted_by_name || ':' || assignment_type || ':' || role_key,
+                   ',' ORDER BY created_at DESC, assignment_id DESC
+               )
+             FROM kokonut_security.list_governance_role_assignment_review_queue(
+                 '{LOCATION_ID}', 10, NULL, NULL
+             );""",
+    ).stdout.strip().splitlines()[-1]
+    if review_queue != "2|Person Two:Person One:primary:field_coordinator,Person Two:Person One:primary:field_coordinator":
+        raise AssertionError(f"review queue did not return the pending proposals with review detail: {review_queue}")
+    review_first_page = runtime_call(
+        container,
+        OPERATOR_TWO,
+        f"""SELECT assignment_id::text || '|' || created_at::text
+             FROM kokonut_security.list_governance_role_assignment_review_queue(
+                 '{LOCATION_ID}', 1, NULL, NULL
+             );""",
+    ).stdout.strip().splitlines()[-1]
+    review_first_id, review_first_created_at = review_first_page.split("|", 1)
+    review_next_page = runtime_call(
+        container,
+        OPERATOR_TWO,
+        f"""SELECT assignment_id::text
+             FROM kokonut_security.list_governance_role_assignment_review_queue(
+                 '{LOCATION_ID}', 1, '{review_first_created_at}', '{review_first_id}'
+             );""",
+    ).stdout.strip().splitlines()[-1]
+    if {review_first_id, review_next_page} != {assignment_id, second_assignment_id}:
+        raise AssertionError(f"review queue keyset paging skipped or repeated a proposal: {review_first_page}, {review_next_page}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.list_governance_role_assignment_review_queue(
+            '{LOCATION_ID}', 10, NULL, NULL);"""),
+        "42501",
+        "reject queue access without exact review grant",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.list_governance_role_assignment_review_queue(
+            '{LOCATION_ID}', 10, NULL, '{assignment_id}');"""),
+        "22023",
+        "reject incomplete review queue cursor",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.list_governance_role_assignment_review_queue(
+            '{LOCATION_ID}', 102, NULL, NULL);"""),
+        "22023",
+        "reject oversized review queue page",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.decide_governance_role_assignment(
+            '{LOCATION_ID}', '{ROLE_LOCATION}', '{assignment_id}', '{uuid.uuid4()}',
+            'approve', 'Self approval must be denied');"""),
+        "42501",
+        "reject self-approval even when proposer has an approve grant",
+    )
+    checks.append("review queue reveals nominee, submitter, role, and mandate only to a separately granted reviewer; keyset paging is bounded, and proposers cannot decide their own proposal")
+
+    def decide(operator_id: str, target_assignment: str, requested_decision: str, decision_request_id: str, reason: str):
+        escaped_reason = reason.replace("'", "''")
+        sql = f"""SELECT decision_id::text || '|' || assignment_id::text || '|' || decision || '|' ||
+                          assignment_status || '|' || reviewer_party_id::text
+                   FROM kokonut_security.decide_governance_role_assignment(
+                       '{LOCATION_ID}', '{ROLE_LOCATION}', '{target_assignment}',
+                       '{decision_request_id}', '{requested_decision}', '{escaped_reason}'
+                   );"""
+        return runtime_call(container, operator_id, sql).stdout.strip().splitlines()[-1]
+
+    approve_request_id = str(uuid.uuid4())
+    approved = decide(OPERATOR_TWO, assignment_id, "approve", approve_request_id, "Reviewed against the active location role")
+    approved_retry = decide(OPERATOR_TWO, assignment_id, "approve", approve_request_id, "Reviewed against the active location role")
+    if approved != approved_retry or not approved.endswith(f"|approve|active|{PARTY_THREE}"):
+        raise AssertionError(f"approval must commit and replay exactly: {approved} / {approved_retry}")
+    approved_state = docker_sql(
+        container,
+        f"""SELECT status || '|' || approved_by_party_id::text || '|' ||
+                          (effective_from IS NOT NULL)::text
+             FROM public.governance_role_assignment WHERE id = '{assignment_id}';""",
+    ).stdout.strip()
+    if approved_state != f"active|{PARTY_THREE}|true":
+        raise AssertionError(f"approval lifecycle transition was not atomic: {approved_state}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.decide_governance_role_assignment(
+            '{LOCATION_ID}', '{ROLE_LOCATION}', '{assignment_id}', '{uuid.uuid4()}',
+            'reject', 'Already approved');"""),
+        "55000",
+        "reject a second decision for an already approved proposal",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.decide_governance_role_assignment(
+            '{LOCATION_ID}', '{ROLE_LOCATION}', '{assignment_id}', '{approve_request_id}',
+            'approve', 'Different reason');"""),
+        "22023",
+        "reject idempotency key reuse with changed content",
+    )
+
+    reject_request_id = str(uuid.uuid4())
+    rejected = decide(OPERATOR_TWO, second_assignment_id, "reject", reject_request_id, "Mandate requires clarification")
+    rejected_retry = decide(OPERATOR_TWO, second_assignment_id, "reject", reject_request_id, "Mandate requires clarification")
+    if rejected != rejected_retry or not rejected.endswith(f"|reject|rejected|{PARTY_THREE}"):
+        raise AssertionError(f"rejection must commit and replay exactly: {rejected} / {rejected_retry}")
+    rejected_state = docker_sql(
+        container,
+        f"""SELECT status || '|' || COALESCE(approved_by_party_id::text, 'null') || '|' ||
+                          COALESCE(effective_from::text, 'null')
+             FROM public.governance_role_assignment WHERE id = '{second_assignment_id}';""",
+    ).stdout.strip()
+    if rejected_state != "rejected|null|null":
+        raise AssertionError(f"rejection must not populate approval fields: {rejected_state}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_THREE, f"""SELECT * FROM kokonut_security.decide_governance_role_assignment(
+            '{LOCATION_ID}', '{ROLE_LOCATION}', '{second_assignment_id}', '{uuid.uuid4()}',
+            'reject', 'No reject grant');"""),
+        "42501",
+        "reject decision without exact role action grant",
+    )
+    checks.append("independent approval and rejection atomically update lifecycle state, require exact action grants and reason, reject repeat decisions, and preserve exact idempotent retries")
+
+    decision_privileges = docker_sql(
+        container,
+        """SELECT has_table_privilege('kokonut_governance_action_owner', 'public.governance_role_assignment_decision', 'SELECT')
+              AND has_table_privilege('kokonut_governance_action_owner', 'public.governance_role_assignment_decision', 'INSERT')
+              AND NOT has_table_privilege('kokonut_governance_action_owner', 'public.governance_role_assignment_decision', 'UPDATE')
+              AND NOT has_table_privilege('kokonut_runtime', 'public.governance_role_assignment_decision', 'SELECT')
+              AND NOT has_table_privilege('kokonut_runtime', 'public.governance_role_assignment_decision', 'INSERT')
+              AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_role_assignment_decision', 'SELECT')
+              AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_role_assignment_decision', 'INSERT')
+              AND has_function_privilege('kokonut_runtime',
+                'kokonut_security.list_governance_role_assignment_review_queue(uuid,integer,timestamp with time zone,uuid)', 'EXECUTE')
+              AND has_function_privilege('kokonut_runtime',
+                'kokonut_security.decide_governance_role_assignment(uuid,uuid,uuid,uuid,text,text)', 'EXECUTE')
+              AND NOT has_function_privilege('kokonut_directus_runtime',
+                'kokonut_security.decide_governance_role_assignment(uuid,uuid,uuid,uuid,text,text)', 'EXECUTE');""",
+    ).stdout.strip()
+    if decision_privileges != "t":
+        raise AssertionError(f"governance decision ACL contract failed: {decision_privileges}")
+    for role_name in ("kokonut_runtime", "kokonut_directus_runtime"):
+        for command in ("SELECT * FROM public.governance_role_assignment_decision;",
+                        "INSERT INTO public.governance_role_assignment_decision(operator_id,decision_request_id,location_id,assignment_id,role_id,submitted_by_party_id,reviewer_party_id,decision,reason,result_status) VALUES ('%s','%s','%s','%s','%s','%s','%s','reject','x','rejected');" % (OPERATOR_TWO, uuid.uuid4(), LOCATION_ID, second_assignment_id, ROLE_LOCATION, PARTY_ONE, PARTY_THREE),
+                        "UPDATE public.governance_role_assignment_decision SET reason = 'changed' WHERE assignment_id = '%s';" % second_assignment_id,
+                        "DELETE FROM public.governance_role_assignment_decision WHERE assignment_id = '%s';" % second_assignment_id):
+            assert_sqlstate(container, f"SET ROLE {role_name}; {command}", "42501", f"{role_name} direct decision ledger access")
+    assert_sqlstate(
+        container,
+        f"UPDATE public.governance_role_assignment_decision SET reason = 'rewritten' WHERE assignment_id = '{assignment_id}';",
+        "P0001",
+        "append-only decision history",
+    )
+    checks.append("decision history is append-only and private to the bounded function owner; runtime and Directus cannot read or mutate it directly")
+
     assert_sqlstate(
         container,
         runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.propose_governance_role_assignment(
@@ -318,7 +480,7 @@ def main() -> None:
             raise RuntimeError("disposable PostgreSQL did not become ready")
         checks = run_acceptance(container)
         evidence = {
-            "title": "Migrations 438-439 tenant-scoped governance role assignment proposals and readback",
+            "title": "Migrations 438-440 tenant-scoped governance role assignment proposal, readback, and independent review",
             "status": "passed",
             "checks": checks,
             "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",

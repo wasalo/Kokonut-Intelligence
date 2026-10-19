@@ -25,9 +25,14 @@ def test_nomination_panel_is_exact_grant_gated_and_proposal_only():
     assert "governanceRoleCreateLocations.has(locationId)" in source
     assert 'id="governance-role-proposal-create" hidden' in source
     assert "remains proposed until a separate human review" in source
-    assert "cannot activate or approve an assignment" in source
+    assert "assignment decisions are handled in the separately authorized review queue below" in source
     assert "proposal.party_id" not in source
-    assert "proposal.mandate" not in source
+    history = _function(
+        source,
+        "async function loadGovernanceAssignmentProposalHistory(append = false)",
+        "async function loadGovernanceAssignmentReviewQueue(append = false)",
+    )
+    assert "proposal.mandate" not in history
 
 
 def test_nomination_submit_uses_csrf_and_proposal_only_gateway_route():
@@ -87,6 +92,73 @@ def test_nomination_controls_are_present_and_event_handlers_are_registered():
         assert f'id="{element_id}"' in source
     assert 'governanceRoleProposalForm.addEventListener("submit", submitGovernanceRoleProposal)' in source
     assert 'governanceRoleProposalMore.addEventListener(' in source
+
+
+def test_review_queue_has_independent_location_and_exact_action_grants():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'scope.resource === "governance_roles" && scope.action === "review"' in source
+    assert 'scope.resource === "governance_roles" && scope.action === "approve"' in source
+    assert 'scope.resource === "governance_roles" && scope.action === "reject"' in source
+    assert 'id="governance-role-assignment-review" hidden' in source
+    assert 'id="governance-role-review-location"' in source
+    assert "governanceRoleAssignmentReview.hidden = false" in source
+    assert "governanceRoleReviewLocations.has(locationId)" in source
+    assert "governanceRoleApproveLocations" in source
+    assert "governanceRoleRejectLocations" in source
+    assert "grantedLocations.has(locationId)" in source
+
+
+def test_review_queue_is_bounded_private_and_uses_safe_text_rendering():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadGovernanceAssignmentReviewQueue(append = false)",
+        "async function submitGovernanceAssignmentDecision(",
+    )
+    assert 'limit: "50"' in reader
+    assert '`/operator/api/governance/${encodeURIComponent(locationId)}/assignment-review-queue?${params}`' in reader
+    assert 'params.set("cursor_created_at", governanceRoleReviewNextCursor.created_at)' in reader
+    assert 'params.set("cursor_assignment_id", governanceRoleReviewNextCursor.assignment_id)' in reader
+    for field in ("nominee_name", "submitted_by_name", "role_name", "assignment_type", "mandate"):
+        assert f"proposal.{field}" in reader
+    assert "cell.textContent" in reader
+    assert "innerHTML" not in reader
+
+
+def test_decision_buttons_require_reasons_csrf_and_idempotency_uuid():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function submitGovernanceAssignmentDecision(",
+        "async function submitGovernanceRoleProposal(event)",
+    )
+    assert "governanceRoleReviewLocations.has(locationId)" in reader
+    assert "actionLocations.has(locationId)" in reader
+    assert "reasonInput.value.trim()" in reader
+    assert "globalThis.crypto?.randomUUID?.()" in source
+    assert "decision_request_id: requestId" in reader
+    assert '"X-CSRF-Token": csrf' in reader
+    assert 'method: "POST"' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "innerHTML" not in reader
+
+
+def test_review_queue_controls_have_unique_ids_and_registered_handlers():
+    source = CONSOLE.read_text(encoding="utf-8")
+    ids = re.findall(r'\bid="([^"]+)"', source)
+    duplicates = [element_id for element_id, count in Counter(ids).items() if count > 1]
+    assert not duplicates, f"Duplicate operator console IDs: {duplicates}"
+    for element_id in (
+        "governance-role-assignment-review",
+        "governance-role-review-location",
+        "governance-role-review-rows",
+        "governance-role-review-status",
+        "governance-role-review-more",
+    ):
+        assert f'id="{element_id}"' in source
+    assert 'loadGovernanceAssignmentReviewQueue();' in source
+    assert 'governanceRoleReviewMore.addEventListener(' in source
 
 
 def test_inline_javascript_parses_when_node_is_available():

@@ -1,5 +1,37 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 independent role-assignment review — 18 October 2026
+
+Added migration 440's private review queue and bounded decision functions, plus
+exact OIDC routes for `governance_roles:review`, `:approve`, and `:reject`. A
+reviewer needs an active person binding different from the proposer. Approval
+requires an active role and nominee; rejection records a reason without setting
+approver/effective-date fields. Both decisions commit immutable attribution
+and lifecycle state atomically and return the same result on an exact retry.
+The runtime and Directus roles cannot access the decision ledger directly.
+
+The operator console now shows a separate queue for review-grant locations,
+independent of the general role registry read grant. It renders nominee,
+submitter, and mandate details only for reviewers; approve and reject controls
+require their own additional grant, a reason, CSRF, and a browser-generated
+request UUID.
+
+The focused Gateway, route-policy, and console selection passes 43 tests. The
+disposable PostgreSQL 16 acceptance applies and replays migrations 438–440 and
+checks queue scope, self-review denial, approval/rejection transitions and exact
+retries, direct-table denial, and immutable decision history. Ruff, Python
+compilation, capability validation, and the runtime SQL inventory (847 service
+source files / 4,101 execution sites) pass. Candidate and legacy databases
+were not touched. The candidate remains at migration 437 and the app connects
+as administrative `kokonut`, so migration 440 is not ready for candidate
+rollout. No live OIDC, browser, or real nomination decision was exercised.
+CAP-024 remains prepared, not accepted; mutation parity, populated data, RLS,
+and MAN-CAP review remain open ([contract](governance-assignment-review-contract.md);
+[migration](../schemas/postgres/440_governance_role_assignment_review.sql);
+[tests](../tests/test_gateway_governance_assignment_review.py);
+[console evidence](builds/2026-10-18-recovery/governance-assignment-review-console.json);
+[database evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
+
 ### CAP-024 console nomination submission and history — 18 October 2026
 
 Connected proposal creation and own-status readback to the operations console.

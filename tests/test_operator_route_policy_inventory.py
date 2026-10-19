@@ -23,6 +23,7 @@ _PARAMETER_SAMPLES = {
     "activity_id": "55555555-5555-4555-8555-555555555555",
     "tension_id": "66666666-6666-4666-8666-666666666666",
     "role_id": "77777777-7777-4777-8777-777777777777",
+    "assignment_id": "88888888-8888-4888-8888-888888888888",
     "device_id": "collector-1",
 }
 _TRANSITION_ACTIONS = {
@@ -107,6 +108,18 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/assignment-proposals",
     ): _expected("governance_roles", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/assignment-review-queue",
+    ): _expected("governance_roles", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777/assignments/88888888-8888-4888-8888-888888888888/approve",
+    ): _expected("governance_roles", "approve", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777/assignments/88888888-8888-4888-8888-888888888888/reject",
+    ): _expected("governance_roles", "reject", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-items",

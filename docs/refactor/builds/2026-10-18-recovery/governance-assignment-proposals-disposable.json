@@ -1,15 +1,18 @@
 {
-  "title": "Migrations 438-439 tenant-scoped governance role assignment proposals and readback",
+  "title": "Migrations 438-440 tenant-scoped governance role assignment proposal, readback, and independent review",
   "status": "passed",
   "checks": [
-    "migrations 438 and 439 apply and replay transactionally after migration 437",
+    "migrations 438\u2013440 apply and replay transactionally after migration 437",
     "runtime retains assignment reads and bounded proposal execution but loses direct table writes and ledger access",
     "active bound operator creates an attributed location role nomination; exact retry returns the same proposed row without activation",
     "read-only readback pages only the signed operator's nominations, rejects missing or mismatched scope, and omits nominee identity and mandate",
+    "review queue reveals nominee, submitter, role, and mandate only to a separately granted reviewer; keyset paging is bounded, and proposers cannot decide their own proposal",
+    "independent approval and rejection atomically update lifecycle state, require exact action grants and reason, reject repeat decisions, and preserve exact idempotent retries",
+    "decision history is append-only and private to the bounded function owner; runtime and Directus cannot read or mutate it directly",
     "signed tenant context, exact location grant, active party binding, and request-content identity are enforced",
     "role location, nominee active state, and delegate mandate are validated before writing",
     "runtime cannot bypass the bounded write function, activate/delete assignments, inspect the private request ledger, or rewrite request history"
   ],
   "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",
-  "elapsed_seconds": 13.88
+  "elapsed_seconds": 40.82
 }
