@@ -47,9 +47,10 @@ def to_jsonld_document(
     context: dict = None,
 ) -> dict:
     """Convert entity data to a JSON-LD document."""
+    type_term = entity_type if ":" in entity_type else f"kokonut:{entity_type}"
     doc = {
         "@context": DEFAULT_CONTEXT if context is None else context,
-        "@type": f"kokonut:{entity_type}",
+        "@type": type_term,
     }
     if iri:
         doc["@id"] = iri

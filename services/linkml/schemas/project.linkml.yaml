@@ -1,7 +1,7 @@
 id: https://kokonut.network/linkml/project
 name: Project
 title: Kokonut Project
-version: "3.0.0"
+version: "3.1.0"
 description: >-
   Standardized metadata schema for farm/project definitions, aligned with
   Regen Network Framework Working Group ProjectInfo schema and schema.org.
@@ -22,6 +22,7 @@ default_range: string
 
 classes:
   Project:
+    class_uri: rfs:ProjectInfo
     description: A Kokonut farm project
     slots:
       - name

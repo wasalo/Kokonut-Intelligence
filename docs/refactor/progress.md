@@ -11330,3 +11330,16 @@ Fourteen focused checks pass with Ruff and compilation. Schema-derived
 contexts, class URI declarations, populated graph/export parity, downstream
 consumer compatibility, and MAN-CAP-060 review remain open. Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-060-jsonld-uri-roundtrip.json).
+
+### CAP-061 Regen claim and entity schema crosswalk — 19 October 2026
+
+Project, CreditClass, and ImpactClaim now declare Regen Framework class URIs.
+JSON-LD document generation preserves caller-supplied CURIE/IRI types. The
+ImpactClaim LinkML model distinguishes Regen claim type and verification
+status from Kokonut record kind and governance lifecycle; its values match the
+SQL checks. Six tautological enum-count checks were replaced with SQL/schema
+crosswalk assertions. The linked-data/schema suites pass 142 tests with Ruff,
+compilation, YAML parsing, and matrix validation. CreditBatch unit/market
+mapping, attestation parity, upstream version pinning, populated fixtures, and
+MAN-CAP-061 remain open. Checklist: 685 complete / 24 open; matrix
+classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-061-regen-schema-crosswalk.json).

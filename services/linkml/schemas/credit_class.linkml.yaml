@@ -1,7 +1,7 @@
 id: https://kokonut.network/linkml/credit_class
 name: CreditClass
 title: Kokonut Credit Class
-version: "3.0.0"
+version: "3.1.0"
 description: >-
   Standardized metadata schema for credit class definitions, aligned with
   Regen Network Framework Working Group CreditClassInfo schema and
@@ -23,6 +23,7 @@ default_range: string
 
 classes:
   CreditClass:
+    class_uri: rfs:CreditClassInfo
     description: A credit class defining methodology and protocol for ecological crediting
     slots:
       - name
