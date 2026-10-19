@@ -11361,12 +11361,18 @@ Data Stream post creation and updates now accept caller-supplied timezone-aware
 expiry timestamps, normalize them to UTC, and preserve them in the tenant-scoped
 Gateway create and read projection. This is metadata only and does not infer a
 retention window or perform deletion.
+The additive gRPC `CreateBatchRequest` now carries origin transaction ID,
+source, and contract; its service forwards those fields to the indexed batch
+creation path, and regenerated Python SDK protobufs include them.
 
 The focused credit-fee, marketplace, marketplace-integration, batch-manager,
-linked-data, Data Stream, and Gateway Data Stream selection passes 265 tests,
-one database-dependent skip, and 17 subtests. Ruff, compilation, and CLI help
-pass; no database or chain was used.
+linked-data, Data Stream, Gateway Data Stream, and gRPC selection passes 295
+tests, one database-dependent skip, and 17 subtests. Ruff, compilation, both
+CLI help commands, and generated-protobuf freshness pass. The gRPC loopback
+portion required host access for its ephemeral localhost listener. No database
+or chain was used. SDK protobuf generation now pins grpcio-tools 1.68.1 and
+protobuf 5.29.1, and the generator rejects incompatible ambient versions.
 PostgreSQL duplicate-origin rollback/concurrency, expiry-policy enforcement and
-cleanup, expiry propagation to other entities, gRPC origin inputs, populated
-settlement parity, and MAN-CAP-062 remain open. Checklist: 685
+cleanup, expiry propagation to other entities, populated settlement parity,
+and MAN-CAP-062 remain open. Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-062-fee-distribution-settlement.json).

@@ -8,6 +8,7 @@ import re
 import threading
 from concurrent import futures
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import grpc
 import pytest
@@ -69,6 +70,14 @@ class _DatabaseFactory:
                 "expires_at": None,
                 "scopes": ["ecocredit:class:read"],
                 "role_name": "ecocredit-reader",
+                "permissions": {},
+            },
+            hashlib.sha256(b"ecocredit-batch-writer").hexdigest(): {
+                "id": "ecocredit-batch-writer-id",
+                "is_active": True,
+                "expires_at": None,
+                "scopes": ["ecocredit:batch:write"],
+                "role_name": "ecocredit-batch-writer",
                 "permissions": {},
             },
         }
@@ -206,4 +215,42 @@ def test_registered_server_enforces_api_key_and_scope_over_loopback(running_serv
     assert classes.classes[0].id == "class-1"
     assert classes.classes[0].name == "Synthetic"
     assert len(database_factory.connections) == 5
+    assert database_factory.released == database_factory.connections
+
+
+def test_create_batch_rpc_forwards_origin_transaction_reference(running_server, monkeypatch):
+    from services.grpc.ecocredit.v1 import service_pb2 as ecocredit_service_pb2
+    from services.grpc.ecocredit.v1 import service_pb2_grpc as ecocredit_service_pb2_grpc
+
+    channel, database_factory, _services = running_server
+    create_batch = MagicMock(return_value={"id": "batch-1", "batch_code": "BATCH-1"})
+    monkeypatch.setattr("services.credit_class.batch_manager.create_batch", create_batch)
+    request = ecocredit_service_pb2.CreateBatchRequest(
+        credit_class_id="class-1",
+        location_id="location-1",
+        vintage_year=2026,
+        total_quantity=10,
+        origin_tx_id="0xorigin",
+        origin_tx_source="celo",
+        origin_tx_contract="0xcontract",
+    )
+
+    response = ecocredit_service_pb2_grpc.EcocreditServiceStub(channel).CreateBatch(
+        request,
+        metadata=(("x-api-key", "ecocredit-batch-writer"),),
+        timeout=3,
+    )
+
+    assert response.batch_id == "batch-1"
+    assert response.batch_code == "BATCH-1"
+    assert create_batch.call_args.kwargs == {
+        "credit_class_id": "class-1",
+        "location_id": "location-1",
+        "vintage_year": 2026,
+        "total_quantity": 10.0,
+        "unit": "tonneCO2e",
+        "origin_tx_id": "0xorigin",
+        "origin_tx_source": "celo",
+        "origin_tx_contract": "0xcontract",
+    }
     assert database_factory.released == database_factory.connections

@@ -304,6 +304,9 @@ class EcocreditServiceServicer:
                 vintage_year=request.vintage_year,
                 total_quantity=request.total_quantity,
                 unit=request.unit or "tonneCO2e",
+                origin_tx_id=request.origin_tx_id or None,
+                origin_tx_source=request.origin_tx_source or None,
+                origin_tx_contract=request.origin_tx_contract or None,
             )
             return ecocredit_service_pb2.CreateBatchResponse(
                 batch_id=result["id"], batch_code=result["batch_code"],
