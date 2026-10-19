@@ -11381,10 +11381,12 @@ complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-
 
 The retained ISO 19115 and CSW record serializers now escape metadata values
 before emitting XML, replace XML 1.0 forbidden controls, and declare `gmd` and
-`gco` in CSW record responses. Two focused serializer tests cover markup
-injection and invalid control characters. Together with the GIS import tests,
-the 15-test selection passes with Ruff and compilation. No database or
-external service was used. A CSW endpoint, catalog query and
-ISO 19115 fixture parity, GIS/KML/raster import parity, map/geostory behavior,
-thesaurus integration, and MAN-CAP-063 review remain open. Checklist: 685
+`gco` in CSW record responses. The Leaflet viewer builds farm popups with text
+nodes and validates finite WGS84 coordinates while preserving zero values. Two
+serializer and two viewer contract tests join the GIS import suite; 17 tests
+pass with Ruff, compilation, and JavaScript syntax. The map still uses its
+legacy Directus endpoint. A tenant-scoped Gateway map API, CSW endpoint,
+catalog/ISO 19115 fixtures, GIS/KML/raster parity, geostory, thesaurus, and
+MAN-CAP-063 review remain open. No database or external service was used.
+Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-063-csw-xml-safety.json).

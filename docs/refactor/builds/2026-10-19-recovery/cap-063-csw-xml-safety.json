@@ -7,17 +7,20 @@
   "changes": [
     "ISO 19115 metadata values are escaped as XML text before serialization, preventing caller-supplied values from breaking document structure or injecting elements; characters forbidden by XML 1.0 are replaced with U+FFFD.",
     "CSW record responses declare the gmd and gco namespaces used by their child elements.",
-    "Focused tests parse both serializer outputs and verify markup-shaped input remains text."
+    "The Leaflet map builds farm popups with DOM text nodes rather than interpolating database metadata into HTML.",
+    "Map coordinates are parsed as finite WGS84 values with legal latitude/longitude ranges; zero-valued coordinates are retained.",
+    "Focused tests parse both serializer outputs, verify markup-shaped input remains text, and protect the map popup/coordinate contract."
   ],
   "verification": {
-    "command": "python3 -m pytest tests/test_csw_serializer.py tests/test_gis_import.py -q",
-    "result": "15 passed, including 2 CSW serializer integrity tests",
-    "ruff": "python3 -m ruff check services/csw/serializer.py tests/test_csw_serializer.py: passed",
-    "compilation": "python3 -m compileall -q services/csw/serializer.py tests/test_csw_serializer.py: passed",
+    "command": "python3 -m pytest tests/test_csw_serializer.py tests/test_map_viewer_contract.py tests/test_gis_import.py -q",
+    "result": "17 passed, including 2 CSW serializer and 2 map viewer contract tests",
+    "ruff": "python3 -m ruff check services/csw/serializer.py tests/test_csw_serializer.py tests/test_map_viewer_contract.py: passed",
+    "compilation": "python3 -m compileall -q services/csw/serializer.py tests/test_csw_serializer.py tests/test_map_viewer_contract.py: passed",
+    "javascript": "Extracted Leaflet inline script passes node --check.",
     "database_or_provider": "None used"
   },
   "scope_limits": [
     "This work does not add a CSW HTTP endpoint, catalog query implementation, or establish ISO 19115 semantic/output parity against a GeoNode reference fixture.",
-    "GIS/KML/raster ingestion parity, map and geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
+    "The map still fetches the legacy Directus path; a tenant-scoped Gateway map API and layer authorization are not implemented. GIS/KML/raster ingestion parity, geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
   ]
 }

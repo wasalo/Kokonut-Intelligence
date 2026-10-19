@@ -43,14 +43,41 @@
 
         const farmIcon = L.divIcon({ className: 'farm-marker', html: '<div style="background:#009F4D;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>', iconSize: [12, 12] });
 
+        function parseCoordinate(value, minimum, maximum) {
+            if (value === null || value === undefined || String(value).trim() === '') {
+                return null;
+            }
+            const coordinate = Number(value);
+            return Number.isFinite(coordinate) && coordinate >= minimum && coordinate <= maximum
+                ? coordinate
+                : null;
+        }
+
+        function createFarmPopup(location) {
+            const popup = document.createElement('div');
+            const title = document.createElement('strong');
+            title.textContent = typeof location.name === 'string' ? location.name : '';
+            popup.appendChild(title);
+
+            if (typeof location.description === 'string' && location.description.length > 0) {
+                popup.appendChild(document.createElement('br'));
+                const description = document.createElement('span');
+                description.textContent = location.description;
+                popup.appendChild(description);
+            }
+            return popup;
+        }
+
         fetch('/directus/items/location?filter[status][eq]=active&fields=id,name,latitude,longitude,description')
             .then(r => r.json())
             .then(data => {
                 const layer = L.layerGroup();
                 (data.data || []).forEach(loc => {
-                    if (loc.latitude && loc.longitude) {
-                        L.marker([loc.latitude, loc.longitude], {icon: farmIcon})
-                            .bindPopup(`<b>${loc.name}</b><br>${loc.description || ''}`)
+                    const latitude = parseCoordinate(loc.latitude, -90, 90);
+                    const longitude = parseCoordinate(loc.longitude, -180, 180);
+                    if (latitude !== null && longitude !== null) {
+                        L.marker([latitude, longitude], {icon: farmIcon})
+                            .bindPopup(createFarmPopup(loc))
                             .addTo(layer);
                     }
                 });
