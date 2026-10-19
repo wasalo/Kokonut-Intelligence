@@ -618,6 +618,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    sequential_evidence_summary_match = re.fullmatch(
+        r"/operator/api/sequential-evidence/([0-9a-fA-F-]{36})/summary", path
+    )
+    if sequential_evidence_summary_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "sequential_evidence",
+            "action": "read",
+            "public": False,
+            "location_id": sequential_evidence_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_summary_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/summary", path
     )
@@ -2578,6 +2591,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.governance_role_routes import register_governance_role_routes
     from services.gateway.management_work_routes import register_management_work_routes
     from services.gateway.planning_budget_routes import register_planning_budget_routes
+    from services.gateway.sequential_decision_routes import (
+        register_sequential_decision_routes,
+    )
     from services.gateway.solution_lifecycle_routes import (
         register_solution_lifecycle_routes,
     )
@@ -2609,6 +2625,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_business_planning_routes(router, provider, run_in_threadpool, psycopg2)
     register_coordination_routes(router, provider, run_in_threadpool, psycopg2)
     register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2)
+    register_sequential_decision_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_trust_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_resolution_routes(

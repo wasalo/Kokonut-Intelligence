@@ -1,3 +1,23 @@
+### CAP-036 first sequential evidence Kernel summary — 19 October 2026
+
+`GET /operator/api/sequential-evidence/{location_id}/summary` returns aggregate
+hypothesis lifecycle, evidence-quality, posterior-update, applied-event, and
+latest threshold-action counts for exact location-scoped strategy plans,
+threats, and explicitly location-linked solutions. Migration 460 rechecks the
+signed `sequential_evidence:read` location grant using a dedicated non-login
+reader and exposes no statements, source references, raw values, likelihoods,
+probabilities, or identities. The focused Gateway, route-policy, migration
+metadata, and legacy decision selection passes 53 tests with two database-
+dependent skips. Disposable PostgreSQL 16 applies/replays migration 460 and
+passes six scope, lineage, privacy, and privilege assertions. Ruff and Python
+compilation pass. Candidate and legacy databases are untouched; migration 460 is
+not rolled out. CAP-036 is prepared, not accepted; ordered item-level reads,
+remaining subject lineage, populated parity, live OIDC/browser, broader ACL/RLS,
+recovery, and MAN-CAP-036 owner review remain open. Checklist: 677 complete / 21
+open; matrix: 34 baseline-retained, 7 deployed, 25 prepared. See [the read
+contract](sequential-decision-kernel-read-contract.md) and [disposable
+evidence](builds/2026-10-19-recovery/cap-036-sequential-decision-disposable.json).
+
 ### CAP-035 first solution lifecycle Kernel summary — 19 October 2026
 
 `GET /operator/api/solution-lifecycle/{location_id}/summary` returns aggregate
