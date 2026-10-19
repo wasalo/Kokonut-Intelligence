@@ -10966,3 +10966,37 @@ remains 42 baseline-retained, 7 deployed, and 17 prepared. CAP-027 stays
 prepared (`P`), not accepted: live OIDC/browser, full lifecycle and populated
 parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance remain
 open. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/451_location_scoped_delphi_recommendation_drafts.sql), and [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json).
+
+### CAP-037 first operating-pilot Kernel summary — 19 October 2026
+
+CAP-037 now has a protected aggregate read at
+`GET /operator/api/operating-pilot/{location_id}/summary`. Migration 461
+rechecks signed location context and the exact `operating_pilot:read` grant.
+The projection follows the actual legacy scope model: an active Adelphi
+`operating_pilot_scope.scope_id` identifies a farm, and the farm's active
+`location_id` must match the requested location. Capacity and demand are
+restricted to periods containing the database's current date. Capacity, learning,
+resource requests, and coaching use the matching farm scope; work items use
+their explicit location; competency is limited to active roles in that pilot's
+governance circle. The internal organization scope is excluded. Person-linked
+counts and capacity hours are suppressed below three distinct participants;
+identities, free text, evidence, and private/limited coaching never leave SQL.
+
+The focused Gateway, exact route-policy, and migration-metadata selection
+passes 45 tests with one database-dependent skip. Ruff, Python compilation,
+capability validation, and `git diff --check` pass. Disposable PostgreSQL 16
+applies and replays migration 461 and passes seven assertions for farm-to-
+location mapping, exact scope/grant behavior, aggregate parity, small-cohort
+suppression, private-field exclusion, and clean-role privilege boundaries.
+The fixture does not assess pre-existing deployed runtime or Directus table
+grants; universal direct-database least privilege and RLS remain open. No
+candidate or legacy database was changed, and migration 461 is not rolled out.
+CAP-037 is prepared (`P`), not accepted. The remaining gates include confirming
+the populated Adelphi farm/location association, item-level workflows and
+legacy output parity, audience/privacy review, live OIDC/browser behavior,
+recovery, broader ACL/RLS, and MAN-CAP-037 owner review. Checklist: 678
+complete / 22 open; matrix: 33 baseline-retained, 7 deployed, 26 prepared.
+Evidence: [contract](operating-pilot-kernel-read-contract.md),
+[migration](../schemas/postgres/461_location_scoped_operating_pilot_summary.sql),
+[Gateway checks](../tests/test_gateway_operating_pilot_reads.py), and
+[disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-disposable.json).
