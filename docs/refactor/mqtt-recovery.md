@@ -45,7 +45,7 @@ checks pass 59 tests total. These use fake connections and do not verify SQL
 behavior, PostgreSQL concurrency, broker acknowledgement, or reconnect/replay
 after a process crash ([evidence](builds/2026-10-19-recovery/mqtt-delivery-state-machine.json)).
 
-## Disposable PostgreSQL 16 receipt acceptance — 19 October 2026
+## Disposable PostgreSQL 16 and Mosquitto acceptance — 19 October 2026
 
 The migration-372 schema and delivery function were exercised against a fresh
 PostgreSQL 16 container with no volume and a loopback-only host binding. Twelve
@@ -55,17 +55,26 @@ action history with a fresh attempt budget, operator disposal and terminal CLI
 output, concurrent identical-delivery serialization, single-winner concurrent
 operator replay/disposal, source/receipt recovery after a child exits at the
 commit gap, row-lock timeout recovery, the database payload-size constraint,
-and private operator-list redaction. The container was removed afterward;
-candidate, legacy database, MQTT broker, and providers were not contacted
-([checker](../../scripts/check-mqtt-delivery-disposable.py);
-[evidence](builds/2026-10-19-recovery/mqtt-delivery-postgresql.json)).
+and private operator-list redaction. The fresh database container was removed
+afterward. A second phase exercised the real Paho subscriber callback against a
+disposable Mosquitto broker: a subscriber child exited after its failed receipt
+committed but before ACK, a replacement process using the same persistent client
+ID received the message with MQTT `DUP=1`, advanced the receipt to accepted on
+attempt two, committed one synthetic source effect, and ACKed only after receipt
+processing returned. A third connection proved the broker did not redeliver after
+that ACK. Both containers had no volumes and were bound to loopback; both were
+removed afterward. Candidate, legacy, providers, and production broker were
+untouched ([checker](../../scripts/check-mqtt-delivery-disposable.py);
+[evidence](builds/2026-10-19-recovery/mqtt-delivery-postgresql-mosquitto.json)).
 
-The child exits after its synthetic source insert commits and before the receipt
-transaction commits. Redelivery recognizes the existing source key and records
-accepted without duplicating the effect. This does not exercise actual sensor
-outbox data or restart a real subscriber/broker. Replay after device-authorization
-changes, production source parity, and broker acknowledgement/persistent-session
-recovery remain open.
+One synthetic child exits after its source insert commits and before the receipt
+transaction commits; redelivery recognizes the existing source key without
+duplicating the effect. The separate broker run exercises a real subscriber
+process crash after a retryable receipt and before ACK, persistent-session
+redelivery, and post-ACK suppression. The Mosquitto test listener used anonymous
+plaintext only on loopback. Neither test exercises actual sensor/outbox lineage,
+production TLS/ACL/device HMAC, broker restart/persistent-storage recovery, or
+replay after device-authorization changes.
 
 ## Explicit recovery commands
 
@@ -93,16 +102,17 @@ Kernel candidate; later candidate schema state is recorded in the subsequent
 rollout evidence. The legacy stack and production were not migrated by that
 update. The
 [subscriber image](mqtt-overlay.md#updated-subscriber-build) is a historical
-local build and has not been rebuilt from the current checkout or deployed. No
-production CLI invocation, MQTT broker start, real sensor ingestion, or broker
-runtime recovery check occurred during this source slice.
+local build and has not been rebuilt from the current checkout or deployed. A
+separate disposable Mosquitto/Paho acceptance now exercises broker delivery and
+subscriber process recovery; it does not deploy or contact the configured Kernel
+broker, real sensor, or production service.
 
 Pending acceptance: production sensor/outbox parity at the source/receipt
 crash boundary and reading-key parity; replay after device authorization
-changes; and real subscriber/broker acknowledgement, persistent-session,
-restart, and redelivery recovery. Timestamp canonicalization and existing
-duplicate keys need explicit parity checks. Storage-outage restart
-behavior, operator alerting, and dynamic retention remain unresolved;
+changes; production TLS/ACL/device-HMAC identity; and broker restart with its
+persistent storage. Timestamp canonicalization and existing duplicate keys need
+explicit parity checks. Storage-outage restart behavior, operator alerting, and
+dynamic retention remain unresolved;
 subscription readiness is implemented in [source](mqtt-readiness.md) but still
 awaits runtime checks. The processing budget is not a bound on every possible
 infrastructure restart. Static lint, provider/dependency gates, and diff checks
