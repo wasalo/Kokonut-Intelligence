@@ -139,14 +139,21 @@ def test_actor_rollups_preserve_currency_dimensions():
     connection, cursor = _actor_view_connection(
         [
             [
-                {"currency": "USD", "total_raised": Decimal("100.25")},
-                {"currency": "USDC", "total_raised": Decimal("80.50")},
+                {"actor_type": "network", "actor_name": "Kokonut", "currency": "USD", "total_raised": Decimal("100.25")},
+                {"actor_type": "network", "actor_name": "Kokonut", "currency": "USDC", "total_raised": Decimal("80.50")},
             ],
             [
                 {"source_type": "grant", "currency": "USD", "total_raised": Decimal("100.25")},
                 {"source_type": "grant", "currency": "USDC", "total_raised": Decimal("80.50")},
             ],
             [
+                {
+                    "actor_type": "dao",
+                    "decision_status": "executed",
+                    "token": "USD",
+                    "count": 2,
+                    "amount": Decimal("100.25"),
+                },
                 {
                     "actor_type": "dao",
                     "decision_status": "executed",
@@ -167,9 +174,13 @@ def test_actor_rollups_preserve_currency_dimensions():
         "USD": Decimal("100.25"),
         "USDC": Decimal("80.50"),
     }
+    assert [row["currency"] for row in result["by_actor"]] == ["USD", "USDC"]
     assert result["by_source"][0]["currency"] == "USD"
     assert result["by_source"][1]["currency"] == "USDC"
-    assert result["participation"][0]["token"] == "USDC"
+    assert [(row["token"], row["amount"]) for row in result["participation"]] == [
+        ("USD", Decimal("100.25")),
+        ("USDC", Decimal("80.50")),
+    ]
     source_query = cursor.execute.call_args_list[1].args[0]
     participation_query = cursor.execute.call_args_list[2].args[0]
     assert "GROUP BY fr.source_type, fr.currency" in source_query

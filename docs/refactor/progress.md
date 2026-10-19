@@ -1,3 +1,24 @@
+### CAP-065 first Gateway business canvas draft creation — 19 October 2026
+
+`POST /operator/api/business-planning/{location_id}/canvases` now creates a
+location-owned version-one draft under exact `business_planning:create`, OIDC,
+CSRF, and signed tenant context. Migration 463 repeats scope/grant checks in
+PostgreSQL and uses a non-login column-scoped role plus an append-only SHA-256
+request ledger for exact retries. The migration is additive: existing CLI and
+Directus canvas DML permissions remain unchanged until their workflows have
+Kernel replacements, so universal write isolation is still open. The focused
+Gateway/auth/policy/migration/report selection passes 105 tests; disposable
+PostgreSQL 16 applies/replays migrations 457 and 463 and passes eight acceptance
+groups. Ruff, compilation, capability-matrix validation, and diff checks pass.
+Candidate and legacy databases are untouched; migration 463 is not rolled out.
+CAP-065 is prepared, not accepted. Generated one-click suggestions,
+thirteen-section status, edit/version and populated-output parity, live
+OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain open. Checklist:
+686 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+See the [write contract](business-planning-kernel-write-contract.md),
+[Gateway tests](../tests/test_gateway_business_planning_writes.py), and
+[disposable evidence](builds/2026-10-19-recovery/cap-065-business-canvas-create-disposable.json).
+
 ### CAP-036 first sequential evidence Kernel summary — 19 October 2026
 
 `GET /operator/api/sequential-evidence/{location_id}/summary` returns aggregate

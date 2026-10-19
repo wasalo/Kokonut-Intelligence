@@ -139,6 +139,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases",
     ): _expected("business_planning", "read", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases",
+    ): _expected("business_planning", "create", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/coordination/11111111-1111-4111-8111-111111111111/summary",
     ): _expected("coordination", "read", scoped=True, location_id=_LOCATION_ID),

@@ -163,7 +163,14 @@ def test_route_policy_requires_exact_location_business_planning_read_grant():
         "scope_required": True,
         "operator_auth": True,
     }
-    assert auth_route_policy("POST", path, enabled=True) is None
+    assert auth_route_policy("POST", path, enabled=True) == {
+        "resource": "business_planning",
+        "action": "create",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
     assert auth_route_policy("GET", path + "/extra", enabled=True) is None
 
 

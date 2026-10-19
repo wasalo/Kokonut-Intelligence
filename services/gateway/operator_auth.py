@@ -582,15 +582,25 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     business_canvas_match = re.fullmatch(
         r"/operator/api/business-planning/([0-9a-fA-F-]{36})/canvases", path
     )
-    if business_canvas_match and method.upper() == "GET" and enabled:
-        return {
-            "resource": "business_planning",
-            "action": "read",
-            "public": False,
-            "location_id": business_canvas_match.group(1),
-            "scope_required": True,
-            "operator_auth": True,
-        }
+    if business_canvas_match and enabled:
+        if method.upper() == "GET":
+            return {
+                "resource": "business_planning",
+                "action": "read",
+                "public": False,
+                "location_id": business_canvas_match.group(1),
+                "scope_required": True,
+                "operator_auth": True,
+            }
+        if method.upper() == "POST":
+            return {
+                "resource": "business_planning",
+                "action": "create",
+                "public": False,
+                "location_id": business_canvas_match.group(1),
+                "scope_required": True,
+                "operator_auth": True,
+            }
 
     coordination_summary_match = re.fullmatch(
         r"/operator/api/coordination/([0-9a-fA-F-]{36})/summary", path
