@@ -23,9 +23,9 @@ def get_location_governance_summary(
 ) -> dict:
     """Return bounded governance counts for one authorized location.
 
-    Circle names and review state are included with role, assignment, authority,
-    tension, and tactical counts. Person identities and all free-text tension,
-    policy, session, and action content stay private.
+    Circle identifiers, names, and review state are included with role,
+    assignment, authority, tension, and tactical counts. Person identities and
+    all free-text tension, policy, session, and action content stay private.
     """
     try:
         operator_id = str(UUID(operator_id))
@@ -51,7 +51,7 @@ def get_location_governance_summary(
         with conn.cursor() as cur:
             cur.execute(
                 """
-                SELECT c.circle_key, c.name, c.status, c.review_due_at,
+                SELECT c.id, c.circle_key, c.name, c.status, c.review_due_at,
                        COUNT(DISTINCT r.id) FILTER (
                            WHERE r.status IN ('approved', 'active')
                        ) AS active_role_count,
@@ -132,15 +132,16 @@ def get_location_governance_summary(
             "location_id": location_id,
             "circles": [
                 {
-                    "circle_key": row[0],
-                    "name": row[1],
-                    "status": row[2],
-                    "review_due_at": row[3],
-                    "active_role_count": row[4] or 0,
-                    "overdue_role_review_count": row[5] or 0,
-                    "active_assignment_count": row[6] or 0,
-                    "proposed_assignment_count": row[7] or 0,
-                    "active_authority_domain_count": row[8] or 0,
+                    "id": row[0],
+                    "circle_key": row[1],
+                    "name": row[2],
+                    "status": row[3],
+                    "review_due_at": row[4],
+                    "active_role_count": row[5] or 0,
+                    "overdue_role_review_count": row[6] or 0,
+                    "active_assignment_count": row[7] or 0,
+                    "proposed_assignment_count": row[8] or 0,
+                    "active_authority_domain_count": row[9] or 0,
                 }
                 for row in circles
             ],

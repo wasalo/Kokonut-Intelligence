@@ -145,28 +145,50 @@
         </section>
         <section id="governance-role-registry" hidden aria-labelledby="governance-role-registry-heading">
           <h2 id="governance-role-registry-heading">Governance role registry</h2>
-          <p class="muted">Read location-scoped role purpose and current coverage. Party identities, policy text, and role metadata are omitted. Operators with the separate creation grant can submit a nomination; assignment decisions are handled in the separately authorized review queue below.</p>
+          <p class="muted">Read location-scoped roles, circles, and current coverage. Operators with the separate creation grant can submit a nomination; assignment decisions are handled in the separately authorized review queue below. Lifecycle actions require their own location grant, an active person binding, a reason, and a separate reviewer for approval, rejection, or activation where required.</p>
           <div class="toolbar">
             <label for="governance-role-location">Granted location</label>
             <select id="governance-role-location"></select>
             <label for="governance-role-status-filter">Role status</label>
             <select id="governance-role-status-filter">
-              <option value="">All reviewable roles</option>
+              <option value="">All lifecycle states</option>
+              <option value="draft">Draft</option>
               <option value="submitted">Submitted</option>
               <option value="approved">Approved</option>
               <option value="active">Active</option>
               <option value="suspended">Suspended</option>
+              <option value="rejected">Rejected</option>
+              <option value="retired">Retired</option>
             </select>
             <button id="governance-role-refresh" type="button">Refresh roles</button>
           </div>
           <p id="governance-role-status" class="muted" role="status" aria-live="polite"></p>
+          <h3>Governance circles</h3>
+          <p class="muted">Circle actions are available for the current location and exact lifecycle grants. Circle retirement is blocked until its roles and assignments are resolved.</p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Circle</th><th>Role</th><th>Purpose</th><th>Status</th><th>Current assignments</th><th>Accountabilities</th><th>Authority domains</th><th></th></tr></thead>
+              <thead><tr><th>Circle</th><th>Status</th><th>Roles</th><th>Active assignments</th><th>Actions</th></tr></thead>
+              <tbody id="governance-circle-queue"></tbody>
+            </table>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Circle</th><th>Role</th><th>Purpose</th><th>Status</th><th>Current assignments</th><th>Accountabilities</th><th>Authority domains</th><th>Actions</th></tr></thead>
               <tbody id="governance-role-queue"></tbody>
             </table>
           </div>
           <button id="governance-role-more" class="secondary" type="button" hidden>Load more roles</button>
+          <section id="governance-definition-action-panel" hidden aria-labelledby="governance-definition-action-heading">
+            <h3 id="governance-definition-action-heading">Governance lifecycle action</h3>
+            <p id="governance-definition-action-target" class="muted"></p>
+            <form id="governance-definition-action-form">
+              <label for="governance-definition-action-reason">Reason (required)</label>
+              <textarea id="governance-definition-action-reason" name="reason" maxlength="2000" required></textarea>
+              <button id="governance-definition-action-submit" type="submit">Record action</button>
+              <button id="governance-definition-action-cancel" class="secondary" type="button">Cancel</button>
+            </form>
+            <p id="governance-definition-action-status" class="muted" role="status" aria-live="polite"></p>
+          </section>
           <section id="governance-role-detail" hidden aria-labelledby="governance-role-detail-heading">
             <h3 id="governance-role-detail-heading">Role responsibilities and authority</h3>
             <dl id="governance-role-detail-fields"></dl>
@@ -476,6 +498,13 @@
       const governanceRoleStatus = document.querySelector("#governance-role-status");
       const governanceRoleQueue = document.querySelector("#governance-role-queue");
       const governanceRoleMore = document.querySelector("#governance-role-more");
+      const governanceCircleQueue = document.querySelector("#governance-circle-queue");
+      const governanceDefinitionActionPanel = document.querySelector("#governance-definition-action-panel");
+      const governanceDefinitionActionTarget = document.querySelector("#governance-definition-action-target");
+      const governanceDefinitionActionForm = document.querySelector("#governance-definition-action-form");
+      const governanceDefinitionActionReason = document.querySelector("#governance-definition-action-reason");
+      const governanceDefinitionActionSubmit = document.querySelector("#governance-definition-action-submit");
+      const governanceDefinitionActionStatus = document.querySelector("#governance-definition-action-status");
       const governanceRoleDetail = document.querySelector("#governance-role-detail");
       const governanceRoleDetailFields = document.querySelector("#governance-role-detail-fields");
       const governanceRoleDetailAccountabilities = document.querySelector("#governance-role-detail-accountabilities");
@@ -577,8 +606,10 @@
       let governanceTensionQueueRequestVersion = 0;
       let governanceTensionDetailRequestVersion = 0;
       let governanceRoleReadLocations = new Set();
+      let governanceRoleLifecycleLocations = new Map();
       let governanceRoleNextCursor = null;
       let governanceRoleRequestVersion = 0;
+      let governanceCircleRequestVersion = 0;
       let governanceRoleDetailRequestVersion = 0;
       let governanceRoleCreateLocations = new Set();
       let governanceRoleProposalNextCursor = null;
@@ -587,6 +618,7 @@
       let governanceRoleReviewLocations = new Set();
       let governanceRoleApproveLocations = new Set();
       let governanceRoleRejectLocations = new Set();
+      let pendingGovernanceDefinitionAction = null;
       let governanceRoleReviewNextCursor = null;
       let governanceRoleReviewRequestVersion = 0;
       let governanceTacticalReadLocations = new Set();
@@ -653,6 +685,16 @@
             .filter((locationId) => governanceRoleReadLocations.has(locationId)));
           const validGovernanceLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
+          governanceRoleLifecycleLocations = new Map(
+            ["submit", "approve", "reject", "activate", "suspend", "retire"].map((action) => [
+              action,
+              new Set((data.scopes || [])
+                .filter((scope) => scope.resource === "governance_roles" && scope.action === action)
+                .map((scope) => scope.location_id)
+                .filter((locationId) => validGovernanceLocation(locationId)
+                  && governanceRoleReadLocations.has(locationId)))
+            ])
+          );
           const governanceRoleReviewLocationIds = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "governance_roles" && scope.action === "review")
             .map((scope) => scope.location_id)
@@ -956,6 +998,116 @@
         }
       }
 
+      function availableGovernanceDefinitionActions(entityType, state) {
+        if (entityType === "circle") {
+          return {
+            draft: ["submit", "reject"],
+            submitted: ["activate", "reject"],
+            active: ["suspend", "retire"],
+            suspended: ["retire"]
+          }[state] || [];
+        }
+        return {
+          draft: ["submit", "reject"],
+          submitted: ["approve", "reject"],
+          approved: ["activate"],
+          active: ["suspend", "retire"],
+          suspended: ["retire"]
+        }[state] || [];
+      }
+
+      function appendGovernanceDefinitionActions(cell, entityType, entityId, state, label, locationId) {
+        const actions = availableGovernanceDefinitionActions(entityType, state)
+          .filter((action) => governanceRoleLifecycleLocations.get(action)?.has(locationId));
+        for (const action of actions) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "secondary";
+          button.textContent = action[0].toUpperCase() + action.slice(1);
+          button.addEventListener("click", () => openGovernanceDefinitionAction({
+            entityType,
+            entityId,
+            action,
+            label,
+            locationId
+          }));
+          cell.append(button);
+        }
+      }
+
+      function openGovernanceDefinitionAction(action) {
+        if (!governanceRoleReadLocations.has(action.locationId)
+            || !governanceRoleLifecycleLocations.get(action.action)?.has(action.locationId)) {
+          governanceDefinitionActionStatus.textContent = "A current exact location lifecycle grant is required.";
+          return;
+        }
+        pendingGovernanceDefinitionAction = action;
+        const label = action.action[0].toUpperCase() + action.action.slice(1);
+        governanceDefinitionActionTarget.textContent = `${action.entityType === "circle" ? "Circle" : "Role"}: ${action.label} · action: ${label}`;
+        governanceDefinitionActionReason.value = "";
+        governanceDefinitionActionStatus.textContent = "Approval, rejection, and activation are checked against the bound person identity by the server.";
+        governanceDefinitionActionPanel.hidden = false;
+        governanceDefinitionActionReason.focus();
+      }
+
+      async function loadGovernanceCircles(locationId) {
+        const requestVersion = ++governanceCircleRequestVersion;
+        governanceCircleQueue.replaceChildren();
+        try {
+          const response = await fetch(
+            `/operator/api/governance/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== governanceCircleRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-scoped governance read grant is not valid.");
+          }
+          if (!response.ok) throw new Error("The governance circle registry is unavailable.");
+          const result = await response.json();
+          if (requestVersion !== governanceCircleRequestVersion) return;
+          for (const circle of result.circles || []) {
+            const row = document.createElement("tr");
+            for (const value of [
+              `${circle.name} (${circle.circle_key})`,
+              circle.status,
+              String(circle.active_role_count),
+              String(circle.active_assignment_count)
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = String(value ?? "—");
+              row.append(cell);
+            }
+            const actions = document.createElement("td");
+            appendGovernanceDefinitionActions(
+              actions,
+              "circle",
+              circle.id,
+              circle.status,
+              `${circle.name} (${circle.circle_key})`,
+              locationId
+            );
+            row.append(actions);
+            governanceCircleQueue.append(row);
+          }
+          if (!governanceCircleQueue.rows.length) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 5;
+            cell.textContent = "No governance circles are available for this location.";
+            row.append(cell);
+            governanceCircleQueue.append(row);
+          }
+        } catch (error) {
+          if (requestVersion !== governanceCircleRequestVersion) return;
+          const row = document.createElement("tr");
+          const cell = document.createElement("td");
+          cell.colSpan = 5;
+          cell.textContent = error.message;
+          row.append(cell);
+          governanceCircleQueue.append(row);
+        }
+      }
+
       async function loadGovernanceRoles(append = false) {
         const locationId = governanceRoleLocation.value;
         const requestVersion = ++governanceRoleRequestVersion;
@@ -989,6 +1141,7 @@
           }
           if (!response.ok) throw new Error("The governance role registry is unavailable.");
           const result = await response.json();
+          if (requestVersion !== governanceRoleRequestVersion) return;
           for (const role of result.items || []) {
             const row = document.createElement("tr");
             const values = [
@@ -1005,14 +1158,22 @@
               cell.textContent = String(value ?? "—");
               row.append(cell);
             }
-            const detailCell = document.createElement("td");
+            const actionCell = document.createElement("td");
+            appendGovernanceDefinitionActions(
+              actionCell,
+              "role",
+              role.id,
+              role.status,
+              `${role.name} (${role.role_key})`,
+              locationId
+            );
             const detailButton = document.createElement("button");
             detailButton.type = "button";
             detailButton.className = "secondary";
             detailButton.textContent = "View details";
             detailButton.addEventListener("click", () => loadGovernanceRoleDetail(role.id));
-            detailCell.append(detailButton);
-            row.append(detailCell);
+            actionCell.append(detailButton);
+            row.append(actionCell);
             governanceRoleQueue.append(row);
           }
           governanceRoleNextCursor = result.next_cursor || null;
@@ -1020,7 +1181,8 @@
           const count = governanceRoleQueue.rows.length;
           governanceRoleStatus.textContent = count
             ? `${count} governance role${count === 1 ? "" : "s"} loaded.`
-            : "No reviewable governance roles are available for this location.";
+            : "No governance roles are available for this location.";
+          if (!append) await loadGovernanceCircles(locationId);
         } catch (error) {
           if (requestVersion === governanceRoleRequestVersion) governanceRoleStatus.textContent = error.message;
         }
@@ -1296,6 +1458,72 @@
           governanceRoleReviewStatus.textContent = error.message;
         } finally {
           button.disabled = false;
+        }
+      }
+
+      async function submitGovernanceDefinitionAction(event) {
+        event.preventDefault();
+        const action = pendingGovernanceDefinitionAction;
+        if (!action
+            || governanceRoleLocation.value !== action.locationId
+            || !governanceRoleReadLocations.has(action.locationId)
+            || !governanceRoleLifecycleLocations.get(action.action)?.has(action.locationId)) {
+          governanceDefinitionActionStatus.textContent = "Refresh the session and select an authorized location before recording this action.";
+          return;
+        }
+        const reason = governanceDefinitionActionReason.value.trim();
+        if (!reason || reason.length > 2000) {
+          governanceDefinitionActionStatus.textContent = "Enter a reason containing 1 to 2000 characters.";
+          governanceDefinitionActionReason.focus();
+          return;
+        }
+        const requestId = action.requestId || globalThis.crypto?.randomUUID?.();
+        if (!requestId) {
+          governanceDefinitionActionStatus.textContent = "A secure browser context is required to record this action.";
+          return;
+        }
+        action.requestId = requestId;
+        const csrf = csrfToken();
+        if (!csrf) {
+          governanceDefinitionActionStatus.textContent = "Refresh the session before recording an action.";
+          return;
+        }
+        const collection = action.entityType === "circle" ? "circles" : "roles";
+        const endpoint = `/operator/api/governance/${encodeURIComponent(action.locationId)}/${collection}/${encodeURIComponent(action.entityId)}/${encodeURIComponent(action.action)}`;
+        governanceDefinitionActionSubmit.disabled = true;
+        governanceDefinitionActionReason.disabled = true;
+        governanceDefinitionActionStatus.textContent = `Recording ${action.action} action…`;
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+              "Accept": "application/json",
+              "Content-Type": "application/json",
+              "X-CSRF-Token": csrf
+            },
+            body: JSON.stringify({ request_id: requestId, reason })
+          });
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session, person binding, or exact lifecycle grant is not valid.");
+          }
+          if (response.status === 409) {
+            throw new Error(result.error || "The definition changed or this transition is no longer available. Refresh and review its current state.");
+          }
+          if (!response.ok) throw new Error(result.error || "The governance lifecycle action could not be recorded.");
+          pendingGovernanceDefinitionAction = null;
+          governanceDefinitionActionPanel.hidden = true;
+          governanceDefinitionActionForm.reset();
+          governanceDefinitionActionStatus.textContent = "";
+          governanceRoleStatus.textContent = `${action.action[0].toUpperCase() + action.action.slice(1)} recorded. Refreshing the current lifecycle state…`;
+          await loadGovernanceRoles();
+        } catch (error) {
+          governanceDefinitionActionStatus.textContent = error.message;
+        } finally {
+          governanceDefinitionActionSubmit.disabled = false;
+          governanceDefinitionActionReason.disabled = false;
         }
       }
 
@@ -2531,7 +2759,12 @@
       document.querySelector("#governance-role-refresh").addEventListener("click", () => loadGovernanceRoles());
       governanceRoleLocation.addEventListener("change", () => {
         governanceRoleDetailRequestVersion += 1;
+        governanceCircleRequestVersion += 1;
         currentGovernanceRoleId = null;
+        pendingGovernanceDefinitionAction = null;
+        governanceDefinitionActionPanel.hidden = true;
+        governanceDefinitionActionForm.reset();
+        governanceDefinitionActionStatus.textContent = "";
         governanceRoleDetail.hidden = true;
         governanceRoleProposalCreate.hidden = true;
         governanceRoleDetailStatus.textContent = "";
@@ -2540,6 +2773,16 @@
       });
       governanceRoleStatusFilter.addEventListener("change", () => loadGovernanceRoles());
       governanceRoleMore.addEventListener("click", () => loadGovernanceRoles(true));
+      governanceDefinitionActionForm.addEventListener("submit", submitGovernanceDefinitionAction);
+      document.querySelector("#governance-definition-action-cancel").addEventListener("click", () => {
+        pendingGovernanceDefinitionAction = null;
+        governanceDefinitionActionPanel.hidden = true;
+        governanceDefinitionActionForm.reset();
+        governanceDefinitionActionStatus.textContent = "";
+      });
+      governanceDefinitionActionReason.addEventListener("input", () => {
+        if (pendingGovernanceDefinitionAction) pendingGovernanceDefinitionAction.requestId = null;
+      });
       document.querySelector("#governance-role-proposal-refresh").addEventListener(
         "click", () => loadGovernanceAssignmentProposalHistory()
       );

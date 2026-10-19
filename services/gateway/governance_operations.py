@@ -8,8 +8,8 @@ from uuid import UUID
 
 from services.common.tenant_context import set_operator_tenant_context
 
-_ROLE_STATUSES = ("submitted", "approved", "active", "suspended")
-_CIRCLE_STATUSES = ("submitted", "active", "suspended")
+_ROLE_STATUSES = ("draft", "submitted", "approved", "active", "suspended", "rejected", "retired")
+_CIRCLE_STATUSES = ("draft", "submitted", "active", "suspended", "rejected", "retired")
 _TACTICAL_STATUSES = ("open", "in_progress")
 _MAX_PAGE_SIZE = 100
 _MAX_DETAIL_ITEMS = 100

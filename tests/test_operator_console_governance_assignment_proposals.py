@@ -161,6 +161,33 @@ def test_review_queue_controls_have_unique_ids_and_registered_handlers():
     assert 'governanceRoleReviewMore.addEventListener(' in source
 
 
+def test_definition_lifecycle_controls_require_exact_grants_reason_csrf_and_idempotency():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="governance-circle-queue"' in source
+    assert 'id="governance-definition-action-form"' in source
+    assert 'id="governance-definition-action-reason"' in source
+    assert 'scope.resource === "governance_roles" && scope.action === action' in source
+    assert "governanceRoleLifecycleLocations.get(action)?.has(locationId)" in source
+    assert "appendGovernanceDefinitionActions(" in source
+    assert 'fetch(\n            `/operator/api/governance/${encodeURIComponent(locationId)}/summary`' in source
+    submit = _function(
+        source,
+        "async function submitGovernanceDefinitionAction(event)",
+        "async function submitGovernanceRoleProposal(event)",
+    )
+    assert "event.preventDefault()" in submit
+    assert "reason.length > 2000" in submit
+    assert "globalThis.crypto?.randomUUID?.()" in submit
+    assert "action.requestId = requestId" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert "JSON.stringify({ request_id: requestId, reason })" in submit
+    assert 'governanceDefinitionActionForm.addEventListener("submit", submitGovernanceDefinitionAction)' in source
+    assert "innerHTML" not in submit
+
+
 def test_tactical_actions_are_independently_grant_gated_and_use_csrf():
     source = CONSOLE.read_text(encoding="utf-8")
     for action in ("start", "dispose", "cancel"):

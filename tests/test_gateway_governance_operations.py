@@ -21,6 +21,15 @@ ITEM_ID = str(uuid4())
 CREATED_AT = datetime(2026, 10, 18, tzinfo=timezone.utc)
 
 
+def test_role_registry_covers_all_governance_lifecycle_states():
+    assert operations._ROLE_STATUSES == (
+        "draft", "submitted", "approved", "active", "suspended", "rejected", "retired"
+    )
+    assert operations._CIRCLE_STATUSES == (
+        "draft", "submitted", "active", "suspended", "rejected", "retired"
+    )
+
+
 class _Cursor:
     def __init__(self, connection):
         self.connection = connection
@@ -302,7 +311,7 @@ def test_tactical_queue_uses_its_own_scope_and_omits_party_and_private_dispositi
 @pytest.mark.parametrize(
     ("reader", "kwargs", "message"),
     [
-        (operations.list_location_governance_roles, {"status": "draft"}, "status is not available"),
+        (operations.list_location_governance_roles, {"status": "archived"}, "status is not available"),
         (operations.list_location_governance_roles, {"limit": "1e2"}, "limit must be an integer"),
         (operations.list_location_governance_tactical_items, {"limit": 101}, "limit must be an integer"),
         (operations.list_location_governance_tactical_items, {"cursor": "invalid"}, "Invalid cursor"),

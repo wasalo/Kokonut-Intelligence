@@ -16,6 +16,8 @@ from services.gateway.governance_roles import (  # noqa: E402
 )
 from services.gateway.operator_auth import auth_route_policy  # noqa: E402
 
+CIRCLE_ID = str(uuid4())
+
 
 def test_governance_summary_policy_requires_exact_location_read_scope():
     location_id = str(uuid4())
@@ -55,7 +57,7 @@ class _Cursor:
             self.single = (2, 4, 1, 3)
             self.connection.events.append("tactical")
         elif "FROM governance_circle c" in query:
-            self.rows = [("adelphi-stewardship", "Adelphi Stewardship", "active", None, 4, 1, 3, 1, 2)]
+            self.rows = [(CIRCLE_ID, "adelphi-stewardship", "Adelphi Stewardship", "active", None, 4, 1, 3, 1, 2)]
             self.connection.events.append("circles")
         elif "FROM governance_tension" in query:
             self.single = (5, 2, 1, 1)
@@ -118,6 +120,7 @@ def test_summary_sets_tenant_context_before_scoped_aggregate_queries():
     assert result == {
         "location_id": location_id,
         "circles": [{
+            "id": CIRCLE_ID,
             "circle_key": "adelphi-stewardship",
             "name": "Adelphi Stewardship",
             "status": "active",
