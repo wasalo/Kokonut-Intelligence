@@ -11305,3 +11305,18 @@ compilation. No database or provider was contacted. Order lifecycle/custody,
 concurrent reservation, cooperative order parity, populated fixtures, tenant
 authorization, and MAN-CAP-058 remain open. Checklist: 685 complete / 24 open;
 matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-058-marketplace-inputs.json).
+
+### CAP-059 Abundance validator and issuance guards — 19 October 2026
+
+Validator assignment now applies category expertise and the requested weighted
+threshold, records expertise independently from trust, and uses system
+randomness. Review writes require a selected and revealed validator in an
+active round under a selection-row lock. QV inputs are checked before SQL.
+Coin issuance requires a positive finite impact score and a validated or
+finalized periodic-impact row locked in the transaction.
+
+The Abundance protocol suite passes 66 mocked/schema checks with Ruff and
+compilation. No database or chain was used. Commit/reveal payload verification,
+category synonym/reference fixtures, chain custody, funding/distribution
+policy, populated parity, and MAN-CAP-059 remain open. Checklist: 685 complete
+/ 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-059-abundance-governance-guards.json).

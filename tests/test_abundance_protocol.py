@@ -1,6 +1,10 @@
 """Abundance Protocol tests."""
 
+import math
 from pathlib import Path
+from unittest.mock import MagicMock
+
+import pytest
 
 SCHEMAS = {
     "estimates": Path("schemas/postgres/086_abundance_estimates.sql"),
@@ -104,10 +108,17 @@ def test_validation_has_compensation():
     assert callable(assign_compensation)
 
 def test_qv_sqrt_weight():
-    import math
     from services.abundance.validation import cast_qv_vote
-    # sqrt(0.25) = 0.5
-    assert abs(math.sqrt(0.25) - 0.5) < 0.001
+
+    cursor = MagicMock()
+    cursor.fetchone.return_value = ("vote-1",)
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    cast_qv_vote(conn, "evaluator-1", "review-1", 0.25)
+
+    vote_params = cursor.execute.call_args.args[1]
+    assert vote_params[4] == 0.5
 
 
 # --- Phase 3: Periodic ---
@@ -136,7 +147,7 @@ def test_periodic_has_record():
     from services.abundance.periodic import record_realized_impact
     assert callable(record_realized_impact)
 
-def test_periodic_has_deviation():
+def test_periodic_service_has_deviation_calculation():
     from services.abundance.periodic import compute_impact_deviation
     assert callable(compute_impact_deviation)
 
@@ -216,3 +227,168 @@ def test_all_schemas_cover_11_gaps():
 
 def test_package_init_exists():
     assert Path("services/abundance/__init__.py").exists()
+
+
+# --- Governance and issuance guards ---
+
+def test_select_validators_applies_category_expertise_threshold():
+    from services.abundance.validation import select_validators
+
+    cursor = MagicMock()
+    cursor.fetchall.side_effect = [
+        [
+            {"category_id": "soil-id", "category_name": "Soil Health", "relative_impact_score": 5.0},
+            {"category_id": "water-id", "category_name": "Water Access", "relative_impact_score": 2.5},
+        ],
+        [
+            {
+                "id": "soil-evaluator",
+                "display_name": "Soil Expert",
+                "trust_score": 0.99,
+                "evaluator_type": "expert",
+                "domain_expertise": ["soil health"],
+            },
+            {
+                "id": "water-evaluator",
+                "display_name": "Water Expert",
+                "trust_score": 0.99,
+                "evaluator_type": "expert",
+                "domain_expertise": ["Water Access"],
+            },
+        ],
+    ]
+    cursor.fetchone.return_value = ("round-1",)
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    round_id = select_validators(conn, "estimate-1", tier=1, required_expertise=4.5, slot_count=1)
+
+    assert round_id == "round-1"
+    selection_params = cursor.execute.call_args_list[3].args[1]
+    assert selection_params[1] == "soil-evaluator"
+    assert selection_params[4] == 5.0
+    conn.commit.assert_called_once()
+
+
+def test_select_validators_fails_closed_when_no_evaluator_matches_expertise():
+    from services.abundance.validation import select_validators
+
+    cursor = MagicMock()
+    cursor.fetchall.side_effect = [
+        [{"category_id": "soil-id", "category_name": "Soil Health", "relative_impact_score": 5.0}],
+        [{"id": "water-evaluator", "trust_score": 0.99, "domain_expertise": ["Water Access"]}],
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    assert select_validators(conn, "estimate-1", tier=1, required_expertise=5.0) is None
+    assert cursor.execute.call_count == 2
+    conn.commit.assert_not_called()
+
+
+@pytest.mark.parametrize("tier,required,slots", [(0, 0, 1), (4, 0, 1), (1, -1, 1), (1, math.nan, 1), (1, 0, 0)])
+def test_select_validators_rejects_invalid_scope_before_database_access(tier, required, slots):
+    from services.abundance.validation import select_validators
+
+    conn = MagicMock()
+    with pytest.raises(ValueError):
+        select_validators(conn, "estimate-1", tier, required, slots)
+    conn.cursor.assert_not_called()
+
+def test_cast_review_rejects_unselected_validator_before_insert():
+    from services.abundance.validation import cast_review
+
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchone.return_value = None
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    with pytest.raises(ValueError, match="not selected and revealed"):
+        cast_review(conn, "evaluator-1", "round-1", 0.8, 5.0)
+
+    assert cursor.execute.call_count == 1
+    conn.commit.assert_not_called()
+    cursor.close.assert_called_once()
+
+
+def test_cast_review_uses_round_tier_for_selected_revealed_validator():
+    from services.abundance.validation import cast_review
+
+    cursor = MagicMock()
+    cursor.__enter__.return_value = cursor
+    cursor.fetchone.side_effect = [{"tier": 2}, ("review-1",)]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    review_id = cast_review(conn, "evaluator-1", "round-1", 0.8, 5.0)
+
+    assert review_id == "review-1"
+    guard_query = cursor.execute.call_args_list[0].args[0]
+    assert "vs.status = 'revealed'" in guard_query
+    assert "FOR UPDATE OF vs" in guard_query
+    insert_params = cursor.execute.call_args_list[1].args[1]
+    assert insert_params[2] == 2
+    conn.commit.assert_called_once()
+
+
+@pytest.mark.parametrize("weight", [0, -0.1, 1.01, math.nan, math.inf, -math.inf, True])
+def test_cast_qv_vote_rejects_invalid_weight_before_database_access(weight):
+    from services.abundance.validation import cast_qv_vote
+
+    conn = MagicMock()
+    with pytest.raises(ValueError, match="vote_weight"):
+        cast_qv_vote(conn, "evaluator-1", "review-1", weight)
+    conn.cursor.assert_not_called()
+
+
+def test_cast_qv_vote_rejects_unsupported_vote_type_before_database_access():
+    from services.abundance.validation import cast_qv_vote
+
+    conn = MagicMock()
+    with pytest.raises(ValueError, match="vote_type"):
+        cast_qv_vote(conn, "evaluator-1", "review-1", 0.5, vote_type="approve")
+    conn.cursor.assert_not_called()
+
+
+@pytest.mark.parametrize("impact", [0, -1, math.nan, math.inf, -math.inf, True])
+def test_issue_coins_rejects_invalid_impact_before_database_access(impact):
+    from services.abundance.economics import issue_coins
+
+    conn = MagicMock()
+    with pytest.raises(ValueError, match="impact_score"):
+        issue_coins(conn, "validation-1", impact, "0x1234")
+    conn.cursor.assert_not_called()
+
+
+def test_issue_coins_requires_validated_periodic_impact_before_insert():
+    from services.abundance.economics import issue_coins
+
+    cursor = MagicMock()
+    cursor.fetchone.return_value = ("collecting_data",)
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    with pytest.raises(ValueError, match="validated periodic impact"):
+        issue_coins(conn, "validation-1", 5.0, "0x1234")
+
+    assert cursor.execute.call_count == 1
+    assert "FOR UPDATE" in cursor.execute.call_args.args[0]
+    conn.commit.assert_not_called()
+    cursor.close.assert_called_once()
+
+
+def test_issue_coins_writes_only_after_periodic_validation_is_validated():
+    from services.abundance.economics import issue_coins
+
+    cursor = MagicMock()
+    cursor.fetchone.side_effect = [("validated",), ("event-1",)]
+    conn = MagicMock()
+    conn.cursor.return_value = cursor
+
+    event_id = issue_coins(conn, "validation-1", 5.0, "0x1234")
+
+    assert event_id == "event-1"
+    assert cursor.execute.call_count == 2
+    assert "INSERT INTO coin_inflation_event" in cursor.execute.call_args_list[1].args[0]
+    conn.commit.assert_called_once()
