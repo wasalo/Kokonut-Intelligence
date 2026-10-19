@@ -541,6 +541,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    stakeholder_identity_resolution_match = re.fullmatch(
+        r"/operator/api/stakeholder-identity/([0-9a-fA-F-]{36})/resolve/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if stakeholder_identity_resolution_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "stakeholder_identity",
+            "action": "resolve",
+            "public": False,
+            "location_id": stakeholder_identity_resolution_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     stakeholder_trust_match = re.fullmatch(
         r"/operator/api/stakeholder-trust/([0-9a-fA-F-]{36})/parties/([0-9a-fA-F-]{36})/identity-evidence",
         path,
@@ -2381,6 +2395,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     )
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
     from services.gateway.governance_role_routes import register_governance_role_routes
+    from services.gateway.stakeholder_identity_resolution_routes import (
+        register_stakeholder_identity_resolution_routes,
+    )
     from services.gateway.stakeholder_identity_routes import register_stakeholder_identity_routes
     from services.gateway.stakeholder_trust_routes import register_stakeholder_trust_routes
     from services.gateway.threatcasting_routes import register_threatcasting_routes
@@ -2396,4 +2413,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_threatcasting_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_trust_routes(router, provider, run_in_threadpool, psycopg2)
+    register_stakeholder_identity_resolution_routes(
+        router, provider, run_in_threadpool, psycopg2
+    )
     return router

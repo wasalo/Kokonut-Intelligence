@@ -32,6 +32,7 @@ _PARAMETER_SAMPLES = {
     "plan_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     "case_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
 }
 _TRANSITION_ACTIONS = {
     "submit": "submit",
@@ -107,6 +108,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/stakeholder-trust/11111111-1111-4111-8111-111111111111/parties/cccccccc-cccc-4ccc-8ccc-cccccccccccc/identity-evidence",
     ): _expected("stakeholder_trust", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/stakeholder-identity/11111111-1111-4111-8111-111111111111/resolve/dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    ): _expected("stakeholder_identity", "resolve", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/summary",

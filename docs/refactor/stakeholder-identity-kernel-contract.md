@@ -57,14 +57,28 @@ free-text summary, raw feedback, legacy trust row, or global reputation score
 is returned. This is reviewed identity evidence only; it does not claim to be
 a complete stakeholder trust profile.
 
+Migration `448_location_scoped_identity_resolution.sql` adds the first
+consumer resolver at `GET
+/operator/api/stakeholder-identity/{location_id}/resolve/{source_profile_id}`.
+It requires a separate exact `stakeholder_identity:resolve` grant; create or
+review access alone cannot resolve. The resolver returns only the canonical
+party UUID and approval time, and only while the approved case remains in the
+requested location, the farmer profile remains active, the latest
+personal/internal-use consent remains granted and unexpired, the canonical
+party remains active/non-private, and no conflicting verified legacy source
+link exists. An unavailable mapping returns the same not-found response for
+pending, absent, withdrawn, conflicted, or private mappings; the source UUID
+is never echoed in the response.
+
 ## Explicit exclusions and next work
 
 This is the first source type and review workflow, not full identity parity.
-There is no consumer resolver, merge operation, participant feedback access,
-general trust-evidence write path, delivery/payment/governance trust evidence,
-global trust score, or publication path. The scoped identity-evidence read is
-not a general trust profile. Existing global trust evidence and profile views
-are not exposed by the Kernel API. The new tables do not yet have forced RLS;
+There is no merge operation, participant feedback access, general
+trust-evidence write path, delivery/payment/governance trust evidence, global
+trust score, or publication path. The resolver and scoped identity-evidence
+read cover only reviewed farmer-profile identity cases; they are not a general
+trust profile or cross-location identity lookup. Existing global trust
+evidence and profile views are not exposed by the Kernel API. The new tables do not yet have forced RLS;
 runtime/directus ACLs and bounded signed functions are the current boundary.
 Live OIDC/browser checks, populated fixture parity, consent withdrawal
 disposition after a completed review, all remaining source types, and
@@ -72,22 +86,25 @@ MAN-CAP-025 acceptance remain open.
 
 ## Verification and rollback
 
-The Python service validates identifiers, enums, confidence, and keyset cursors
-before opening a connection. Mutations set signed scope and call one bounded
-database function in the same transaction. Focused tests cover exact Gateway
+The Python services validate identifiers, enums, confidence, and keyset cursors
+before opening a connection. They set signed scope and call bounded database
+functions in the same transaction; read projections use `STABLE` SQL functions
+and fixed parameterized `SELECT` statements. Focused tests cover exact Gateway
 policies, request shape, bounded pagination, transaction ordering, and the
 absence of raw feedback fields. A disposable PostgreSQL 16 fixture applies
 migration 446 and exercises location/grant checks under a synthetic tenant
 context, direct-table denial, independent review, decision retries/collisions,
 consent withdrawal concealment, and immutable decisions. A separate
-PostgreSQL 16 replay applies migrations 446 and 447, then verifies that the
-trust projection returns only approved identity evidence; missing grants and
+PostgreSQL 16 replay applies migrations 446–448, then verifies that the trust
+projection returns only approved identity evidence; missing grants and
 location mismatch deny access; direct runtime table reads remain denied; and
-withdrawn consent or a private canonical identity suppresses evidence. It
-never reads or writes the legacy global trust ledger. The existing
+withdrawn consent or a private canonical identity suppresses evidence. The
+resolution acceptance also proves distinct-grant enforcement, stale-consent
+and legacy-conflict suppression, and the minimal canonical-party response.
+Neither path reads the legacy global trust ledger. The existing
 tenant-context checks cover the actual OIDC-session signature path.
 
 To withdraw the feature before migration rollout, remove the Gateway
-registrations/policies and routes/services as one unit. Migrations 446 and 447
-are additive and checksummed; if applied, do not edit or reverse them. Keep
+registrations/policies and routes/services as one unit. Migrations 446–448 are
+additive and checksummed; if applied, do not edit or reverse them. Keep
 the ledgers, ACLs, and functions in place while removing only API registration.
