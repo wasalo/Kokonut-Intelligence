@@ -1,3 +1,17 @@
+### CAP-027 recommendation review acceptance — 19 October 2026
+
+Migration 450 now passes the corrected disposable PostgreSQL 16 acceptance: it
+applies and replays, then passes seven assertions covering location/grant scope,
+independent review, diversity and minority-report gates, exact request retries,
+immutable audit, and runtime/Directus direct-table denial. The non-login
+function owner receives only `UPDATE(id)` to lock the related study row. The 119
+focused CAP-027 Gateway, route-policy, Delphi, and migration checks pass. The
+candidate and legacy databases were not touched; migration 450 remains
+unapplied there. CAP-027 remains prepared, with live OIDC/browser behavior, the
+reviewer console, broader lifecycle and populated parity, universal ACL/RLS,
+and owner acceptance still open. Checklist: 665 complete / 19 open; capability
+counts remain 42 baseline-retained, 7 deployed, and 17 prepared ([contract](delphi-consultation-kernel-contract.md); [migration](../../schemas/postgres/450_location_scoped_delphi_recommendation_review.sql); [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json)).
+
 # Kokonut Kernel implementation progress
 
 ### CAP-024 tactical content implementation — 19 October 2026
@@ -10705,3 +10719,32 @@ page bounds, and function privileges. Evidence records that candidate and
 legacy databases were not modified. Migration 449 is not rolled out. CAP-027 is
 prepared (`P`), not accepted; checklist is 663 complete / 19 open, and the
 matrix is 42 baseline-retained, 7 deployed, and 17 prepared. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/449_location_scoped_delphi_consultation_read.sql), and [disposable evidence](builds/2026-10-19-recovery/cap-027-delphi-consultation-disposable.json).
+
+### CAP-027 human review for facilitator recommendations — 19 October 2026
+
+The Kernel now has an OIDC-protected location review queue and decision route
+for facilitator drafts. Exact `delphi:review` grants and signed tenant context
+are required for both endpoints. The queue returns bounded draft content for
+the assigned location and identifies self-review, missing diversity
+assessment, and pending minority-report blockers. Approval requires a
+non-creator reviewer, a recorded diversity assessment, and no draft/submitted
+minority report; rejection is allowed for a draft even if approval gates are
+incomplete. Decisions are draft-only, idempotent by operator/request/content,
+and recorded in a private append-only ledger using reason codes rather than
+free-text feedback. The existing approved status can expose aggregate
+consensus through the legacy public view when its separate verified/published
+farm registry condition holds; the recommendation text itself is not exposed by
+that view.
+
+The focused Gateway, route-policy, and migration metadata selection passes 119
+tests; Ruff, Python compilation, and requirement-group alignment pass. The
+migration 450 disposable PostgreSQL acceptance applies and replays migrations
+449–450 and passes seven assertions for scope, independent review, readiness
+gates, retries, immutable audit, and runtime/Directus direct-table denial. The
+row-lock correction grants only `UPDATE(id)` to the non-login function owner.
+Candidate and legacy databases were not modified; migration 450 is not rolled
+out. CAP-027 stays prepared (`P`), not accepted. Checklist: 665 complete / 19
+open; the 66-row matrix remains 42 baseline-retained, 7 deployed, and 17
+prepared. Live OIDC/browser use, reviewer console, full Delphi lifecycle parity,
+populated parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance
+remain open. Evidence: [contract](delphi-consultation-kernel-contract.md), [focused tests](../tests/test_gateway_delphi_recommendation_review.py), and [disposable migration evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json).

@@ -33,6 +33,7 @@ _PARAMETER_SAMPLES = {
     "case_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "recommendation_id": "99999999-9999-4999-8999-999999999997",
 }
 _TRANSITION_ACTIONS = {
     "submit": "submit",
@@ -66,6 +67,14 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/delphi/11111111-1111-4111-8111-111111111111/studies",
     ): _expected("delphi", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/recommendations",
+    ): _expected("delphi", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/delphi/11111111-1111-4111-8111-111111111111/recommendations/99999999-9999-4999-8999-999999999997/decision",
+    ): _expected("delphi", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/credit-custody/11111111-1111-4111-8111-111111111111/summary",
