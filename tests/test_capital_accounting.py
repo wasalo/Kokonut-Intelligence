@@ -7,6 +7,8 @@ advisory; the credit ledger may only be written as status='draft'.
 
 from __future__ import annotations
 
+import math
+from decimal import Decimal
 from unittest.mock import MagicMock
 
 from services.agents import safety
@@ -136,6 +138,77 @@ def test_propose_credit_creates_draft():
     # status was forced to draft in the SQL
     args, _ = cur.execute.call_args
     assert "draft" in args[0]
+
+
+def test_propose_credit_exact_idempotent_retry_returns_existing_credit():
+    location_id = "00000000-0000-0000-0000-000000000001"
+    existing_id = "00000000-0000-0000-0000-000000000002"
+    cur = MagicMock()
+    cur.fetchone.side_effect = [
+        None,
+        (
+            existing_id, "draft", location_id, None, "carbon_credit_surplus",
+            None, Decimal("50.000000"), "usd", "regenerative_investment", None,
+        ),
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    result = credit.propose_credit(
+        conn,
+        location_id,
+        "carbon_credit_surplus",
+        50.0,
+        idempotency_key="same-credit-request",
+    )
+
+    assert result == {
+        "id": existing_id,
+        "credit_status": "draft",
+        "idempotency_key": "same-credit-request",
+        "status": "duplicate",
+    }
+    assert cur.execute.call_count == 2
+
+
+def test_propose_credit_rejects_idempotency_key_payload_collision():
+    location_id = "00000000-0000-0000-0000-000000000001"
+    cur = MagicMock()
+    cur.fetchone.side_effect = [
+        None,
+        (
+            "00000000-0000-0000-0000-000000000002", "draft", location_id, None,
+            "carbon_credit_surplus", None, Decimal("50.000000"), "usd",
+            "regenerative_investment", None,
+        ),
+    ]
+    conn = MagicMock()
+    conn.cursor.return_value = cur
+
+    try:
+        credit.propose_credit(
+            conn,
+            location_id,
+            "carbon_credit_surplus",
+            51.0,
+            idempotency_key="same-credit-request",
+        )
+    except ValueError as exc:
+        assert "different credit request" in str(exc)
+    else:
+        raise AssertionError("conflicting idempotency request must be rejected")
+
+
+def test_propose_credit_rejects_nonfinite_and_nonpositive_amounts_before_database_access():
+    conn = MagicMock()
+    for amount in (0.0, -1.0, math.nan, math.inf, -math.inf):
+        try:
+            credit.propose_credit(conn, "L", "carbon_credit_surplus", amount)
+        except ValueError as exc:
+            assert "must be positive" in str(exc)
+        else:
+            raise AssertionError(f"invalid credit amount was accepted: {amount}")
+    conn.cursor.assert_not_called()
 
 
 def test_propose_credit_rejects_settled_payload():

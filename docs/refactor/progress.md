@@ -11187,3 +11187,18 @@ The focused `test_good_offense.py` and `test_strategic_reserve.py` selection
 passes 22 tests; Ruff and compilation pass. No database writes or reserve
 releases occurred. Populated parity and MAN-CAP-048 remain open. Checklist:
 685 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-048-preempt-trigger-semantics.json).
+
+### CAP-049 regenerative credit idempotency — 19 October 2026
+
+Draft-credit creation now rejects non-finite and non-positive amounts before
+database access. On an existing idempotency key it compares the original
+location, contributor, source, amount, unit, redemption purpose, and creator.
+Exact retries return the original ledger record; conflicting payload reuse
+raises an error rather than being reported as a harmless duplicate. Writes
+remain draft-only and the caller owns transaction commit/rollback.
+
+The focused capital-accounting suite passes 12 tests, including exact retry,
+conflicting retry, and invalid amount regressions; Ruff and compilation pass.
+No database was contacted. Ledger parity, custody and settlement behavior, and
+MAN-CAP-049 remain open. Checklist: 685 complete / 24 open; matrix
+classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-049-credit-idempotency.json).
