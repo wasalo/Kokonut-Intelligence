@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "452_location_scoped_strategy_plan_read.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 452 applies and replays on disposable PostgreSQL 16",
+    "only location strategy plans are returned under matching operator context and exact grant",
+    "bounded paging retains lifecycle, execution, allocation, review, cascade, and structural gate metadata",
+    "organization-wide and cross-location plans are not exposed to a location grant",
+    "reader role and SECURITY DEFINER function retain only the required read surface",
+    "runtime can execute the projection but direct table reads and Directus execution are denied"
+  ],
+  "assertions_passed": 6
+}

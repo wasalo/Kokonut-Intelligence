@@ -1,3 +1,24 @@
+### CAP-028 first strategy Kernel read projection — 19 October 2026
+
+The Gateway now exposes bounded location strategy plan metadata and aggregate
+execution signals under an exact `strategy:read` grant. Migration 452 verifies
+signed location context again in PostgreSQL and uses a dedicated non-login
+reader role. The projection retains plan lifecycle, cascade, structural gate,
+review, and allocation counts while excluding narrative, evidence, cost,
+identity, and parent organization plan details. The focused Gateway, route
+policy, and migration metadata selection passes 48 tests, including 13 direct
+projection checks. Disposable PostgreSQL 16 migration replay and six
+authorization/scope/lineage/privilege assertions pass. Ruff, compilation,
+capability validation, provider-boundary checks, and the runtime SQL inventory
+(868 service files / 4,154 execution sites) pass. No candidate or legacy
+database was changed, and migration 452 is not rolled out. CAP-028 remains
+prepared; complete allocation/cascade/consultation/execution parity, populated
+fixtures, live OIDC/browser acceptance, universal ACL/RLS, and owner review are
+open. Checklist: 669 complete / 19 open; classifications: 41 baseline-retained,
+7 deployed, 18 prepared ([contract](strategy-kernel-read-contract.md);
+[migration](../schemas/postgres/452_location_scoped_strategy_plan_read.sql);
+[evidence](builds/2026-10-19-recovery/cap-028-strategy-read-disposable.json)).
+
 ### CAP-027 reviewer console source implementation — 19 October 2026
 
 The operator console now shows the Delphi recommendation review panel only to
