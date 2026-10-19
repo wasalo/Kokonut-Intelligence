@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import os
 import queue
@@ -198,6 +199,9 @@ def _replay_schema_migrations(port: int, password: str) -> int:
     )
     try:
         with connection.cursor() as cursor:
+            # A fresh schema replay must provision locked optional identities
+            # before signed-worker migrations can safely revoke from them.
+            cursor.execute((ROOT / "scripts" / "bootstrap-optional-roles.sql").read_text())
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS schema_migration (
@@ -269,6 +273,7 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
 
     import psycopg2
     from eth_abi import encode
+    from web3 import Web3
 
     from services.guilds.indexer import EVENT_TOPICS, KGPIndexer
 
@@ -282,6 +287,8 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
     guild_key = "0x" + "b2" * 32
     policy_target = "0x7777777777777777777777777777777777777777"
     policy_selector = "0x1234abcd"
+    updated_steward = Web3.to_checksum_address("0x" + "e6" * 20)
+    registry_metadata_uri = "ipfs://synthetic-registry-metadata"
     block_hash = "0x" + "c3" * 32
 
     topics_by_name = {
@@ -312,6 +319,36 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             8,
             2,
             "d4",
+        ),
+        synthetic_log(
+            "GuildMetadataUpdated",
+            contract_addresses["registry"],
+            [bytes.fromhex(guild_id[2:])],
+            encode(["string"], [registry_metadata_uri]),
+            8,
+            3,
+            "db",
+        ),
+        synthetic_log(
+            "GuildStewardUpdated",
+            contract_addresses["registry"],
+            [
+                bytes.fromhex(guild_id[2:]),
+                bytes.fromhex("00" * 12 + updated_steward[2:]),
+            ],
+            b"",
+            8,
+            4,
+            "dc",
+        ),
+        synthetic_log(
+            "GuildStatusUpdated",
+            contract_addresses["registry"],
+            [bytes.fromhex(guild_id[2:])],
+            encode(["uint8"], [2]),
+            8,
+            5,
+            "dd",
         ),
         synthetic_log(
             "DomainCreated",
@@ -424,15 +461,19 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             cursor.execute(
                 """
                 SELECT guild.onchain_guild_id, guild.onchain_guild_key,
-                       guild.chain_projection, guild.source_chain_event_id::text,
-                       event.id::text, event.processing_status, event.processing_attempts
+                       guild.chain_projection,
+                       guild.metadata->'_kgp_registry'->>'name',
+                       guild.metadata->'_kgp_registry'->>'steward',
+                       guild.metadata->'_kgp_registry'->>'status',
+                       guild.metadata->'_kgp_registry'->>'metadata_uri',
+                       guild.source_chain_event_id::text, event.id::text,
+                       event.event_name, event.processing_status, event.processing_attempts
                 FROM kokonut_guild AS guild
                 JOIN kgp_chain_event AS event
-                  ON event.deployment_id = %s
-                 AND event.event_name = 'GuildCreated'
+                  ON event.id = guild.source_chain_event_id
                 WHERE guild.guild_key = %s
                 """,
-                (deployment_id, "synthetic-kgp-projection"),
+                ("synthetic-kgp-projection",),
             )
             guild_projection = cursor.fetchone()
             cursor.execute(
@@ -486,9 +527,18 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             next_block = cursor.fetchone()[0]
         if (
             not guild_projection
-            or guild_projection[:3] != (guild_id, guild_key, True)
-            or guild_projection[3] != guild_projection[4]
-            or guild_projection[5:] != ("processed", 0)
+            or guild_projection[:7]
+            != (
+                guild_id,
+                guild_key,
+                True,
+                "Synthetic KGP projection guild",
+                updated_steward,
+                "deprecated",
+                registry_metadata_uri,
+            )
+            or guild_projection[7] != guild_projection[8]
+            or guild_projection[9:] != ("GuildStatusUpdated", "processed", 0)
         ):
             raise RuntimeError(f"synthetic GuildCreated event did not project: {guild_projection!r}")
         if (
@@ -505,13 +555,16 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             or task_projection[5:] != ("processed", 0)
         ):
             raise RuntimeError(f"synthetic TaskCreated event did not project: {task_projection!r}")
-        if projected_count != 7 or next_block != 19:
+        if projected_count != 10 or next_block != 19:
             raise RuntimeError(
-                f"expected seven processed protocol events and cursor 19, got "
+                f"expected ten processed protocol events and cursor 19, got "
                 f"{projected_count} and {next_block}"
             )
         expected_events = [
             ("GuildCreated", "processed", 0),
+            ("GuildMetadataUpdated", "processed", 0),
+            ("GuildStewardUpdated", "processed", 0),
+            ("GuildStatusUpdated", "processed", 0),
             ("DomainCreated", "processed", 0),
             ("TaskCreated", "processed", 0),
             ("TargetPermissionUpdated", "processed", 0),
@@ -571,7 +624,7 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 (deployment_id,),
             )
             task_rows = cursor.fetchone()[0]
-        if duplicate_count != 0 or (event_rows, guild_rows, domain_rows, task_rows) != (7, 1, 1, 1):
+        if duplicate_count != 0 or (event_rows, guild_rows, domain_rows, task_rows) != (10, 1, 1, 1):
             raise RuntimeError(
                 "canonical log replay created duplicate chain/projection rows: "
                 f"processed={duplicate_count}, counts={(event_rows, guild_rows, domain_rows, task_rows)}"
@@ -605,7 +658,8 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
             )
             orphaned_events = cursor.fetchone()[0]
             cursor.execute(
-                "SELECT onchain_guild_id, onchain_guild_key, chain_projection, source_chain_event_id "
+                "SELECT onchain_guild_id, onchain_guild_key, chain_projection, source_chain_event_id, "
+                "metadata->'_kgp_registry' "
                 "FROM kokonut_guild WHERE guild_key = %s",
                 ("synthetic-kgp-projection",),
             )
@@ -628,12 +682,12 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 (deployment_id,),
             )
             policies_after_reorg = cursor.fetchone()[0]
-        if reorg_count != 0 or orphaned_events != 7:
+        if reorg_count != 0 or orphaned_events != 10:
             raise RuntimeError(
-                f"synthetic reorg did not orphan the expected seven events: "
+                f"synthetic reorg did not orphan the expected ten events: "
                 f"scan={reorg_count}, orphaned={orphaned_events}"
             )
-        if guild_after_reorg != (None, guild_key, False, None):
+        if guild_after_reorg != (None, guild_key, False, None, None):
             raise RuntimeError(f"guild identity binding was not retained across reorg: {guild_after_reorg!r}")
         if domains_after_reorg != 0 or tasks_after_reorg != 0 or policies_after_reorg != 0:
             raise RuntimeError(
@@ -682,8 +736,11 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 (deployment_id,),
             )
             recanonical_policy_rows = cursor.fetchall()
-        if reprojected_count != 7 or recanonical_events != [
+        if reprojected_count != 10 or recanonical_events != [
             ("GuildCreated", "processed", 0, True),
+            ("GuildMetadataUpdated", "processed", 0, True),
+            ("GuildStewardUpdated", "processed", 0, True),
+            ("GuildStatusUpdated", "processed", 0, True),
             ("DomainCreated", "processed", 0, True),
             ("TaskCreated", "processed", 0, True),
             ("TargetPermissionUpdated", "processed", 0, True),
@@ -697,6 +754,22 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
                 "replacement branch projections were not rebuilt: "
                 f"{(recanonical_guilds, recanonical_domains, recanonical_tasks)}"
             )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT metadata->'_kgp_registry' FROM kokonut_guild WHERE guild_key = %s",
+                ("synthetic-kgp-projection",),
+            )
+            registry_projection_after_replay = cursor.fetchone()[0]
+        if registry_projection_after_replay != {
+            "name": "Synthetic KGP projection guild",
+            "steward": updated_steward,
+            "status": "deprecated",
+            "metadata_uri": registry_metadata_uri,
+        }:
+            raise RuntimeError(
+                "replacement branch did not rebuild registry projection: "
+                f"{registry_projection_after_replay!r}"
+            )
         if len(recanonical_policy_rows) != 3:
             raise RuntimeError(
                 f"replacement branch governance policy was not rebuilt: {recanonical_policy_rows!r}"
@@ -708,6 +781,9 @@ def _exercise_protocol_projection(port: int, password: str, deployment_id: str) 
         return {
             "synthetic_events": [
                 "GuildCreated",
+                "GuildMetadataUpdated",
+                "GuildStewardUpdated",
+                "GuildStatusUpdated",
                 "DomainCreated",
                 "TaskCreated",
                 "TargetPermissionUpdated",
@@ -740,6 +816,11 @@ def main() -> int:
         "postgis/postgis:16-3.4@sha256:44126d872ac91993766c341e369c539e8196614321765d36a6f1bab0419a5fa5",
     )
     timeout = float(os.environ.get("KGP_RECONNECT_TIMEOUT", "45"))
+    subnet = ipaddress.ip_network(
+        os.environ.get("KGP_RECONNECT_DOCKER_SUBNET", "10.250.255.0/24"), strict=True
+    )
+    if subnet.version != 4 or subnet.prefixlen > 28:
+        raise ValueError("KGP_RECONNECT_DOCKER_SUBNET must be IPv4 with at least 16 addresses")
     project = f"kokonut-kgp-schema-{uuid.uuid4().hex[:8]}"
     port = _free_port()
     password = secrets.token_urlsafe(24)
@@ -764,6 +845,13 @@ def main() -> int:
         f"      POSTGRES_PASSWORD: {json.dumps(password)}\n"
         "    ports:\n"
         f"      - {json.dumps(f'127.0.0.1:{port}:5432')}\n"
+        "    networks:\n"
+        "      - isolated\n"
+        "networks:\n"
+        "  isolated:\n"
+        "    ipam:\n"
+        "      config:\n"
+        f"        - subnet: {json.dumps(str(subnet))}\n"
     )
     compose_handle.close()
     result: dict[str, object] = {
@@ -771,7 +859,7 @@ def main() -> int:
         "database_image": image,
         "database_port_binding": "127.0.0.1 only",
         "database_volume": False,
-        "database_network": "default bridge; outbound calls are not used",
+        "database_network": f"dedicated bridge subnet {subnet}; test makes no external calls",
         "schema_migration_mode": (
             "ordered validated repository schema sources; one transaction per file"
         ),
@@ -956,9 +1044,9 @@ def main() -> int:
                 "worker_id": worker_id,
                 "limitations": [
                     "All current ordered PostgreSQL schema migrations were applied, but the deployment, cursor, and prelinked guild rows are synthetic; no seed data or candidate/legacy database was used.",
-                    "Live Web3/RPC was not used. Seven synthetic guild/domain/task/governance logs were returned to the real indexer; block height and the replacement tip hash were stubbed.",
-                    "Canonical duplicate replay and a simulated seven-event reorg/reappearance were exercised. Governance target state included a permission update sequence, and the replacement branch rebuilt the current rows from source events.",
-                    "The PostgreSQL container had no volume and published only a loopback port. The default bridge permits egress, but this check makes no external provider or chain calls.",
+                    "Live Web3/RPC was not used. Ten synthetic registry/domain/task/governance logs were returned to the real indexer; block height and the replacement tip hash were stubbed.",
+                    "Canonical duplicate replay and a simulated ten-event reorg/reappearance were exercised, including guild registry metadata, steward, and status changes. Governance target state included a permission update sequence, and the replacement branch rebuilt current rows from source events.",
+                    "The PostgreSQL container had no volume, used a dedicated bridge subnet, and published only a loopback port. This check makes no external provider or chain calls.",
                 ],
             }
         )

@@ -56,3 +56,4 @@ def test_reorg_retains_stable_guild_key_anchor_for_replay() -> None:
 
     assert "onchain_guild_id = NULL" in guild_update
     assert "onchain_guild_key" not in guild_update
+    assert "metadata - '_kgp_registry'" in guild_update

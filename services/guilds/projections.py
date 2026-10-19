@@ -40,12 +40,86 @@ def project_protocol_event(cursor, deployment_id: str, event: dict[str, Any], so
             """
             UPDATE kokonut_guild
             SET onchain_guild_id = %s, onchain_guild_key = %s,
+                metadata = jsonb_set(
+                    CASE WHEN jsonb_typeof(metadata) = 'object'
+                         THEN metadata ELSE '{}'::jsonb END,
+                    '{_kgp_registry}',
+                    jsonb_build_object('name', %s::text, 'steward', %s::text,
+                                       'status', 'active'), TRUE),
                 chain_projection = TRUE, source_chain_event_id = %s,
                 orphaned_at = NULL, updated_at = NOW()
             WHERE onchain_guild_key = %s OR guild_key = %s
             """,
-            (event["guild_id"], event["guild_key"], source_chain_event_id, event["guild_key"], event.get("guild_key_name", "")),
+            (
+                event["guild_id"],
+                event["guild_key"],
+                event["name"],
+                event["steward"],
+                source_chain_event_id,
+                event["guild_key"],
+                event.get("guild_key_name", ""),
+            ),
         )
+        return cursor.rowcount == 1
+
+    if name in {"GuildMetadataUpdated", "GuildStewardUpdated", "GuildStatusUpdated"}:
+        guild_uuid = _guild_uuid(cursor, event["guild_id"])
+        if not guild_uuid:
+            return False
+
+        if name == "GuildMetadataUpdated":
+            cursor.execute(
+                """
+                UPDATE kokonut_guild
+                SET metadata = jsonb_set(
+                        CASE WHEN jsonb_typeof(metadata) = 'object'
+                             THEN metadata ELSE '{}'::jsonb END,
+                        '{_kgp_registry}',
+                        (CASE WHEN jsonb_typeof(metadata->'_kgp_registry') = 'object'
+                              THEN metadata->'_kgp_registry' ELSE '{}'::jsonb END)
+                            || jsonb_build_object('metadata_uri', %s::text), TRUE),
+                    chain_projection = TRUE, source_chain_event_id = %s,
+                    orphaned_at = NULL, updated_at = NOW()
+                WHERE id = %s
+                """,
+                (event["metadata_uri"], source_chain_event_id, guild_uuid),
+            )
+        elif name == "GuildStewardUpdated":
+            cursor.execute(
+                """
+                UPDATE kokonut_guild
+                SET metadata = jsonb_set(
+                        CASE WHEN jsonb_typeof(metadata) = 'object'
+                             THEN metadata ELSE '{}'::jsonb END,
+                        '{_kgp_registry}',
+                        (CASE WHEN jsonb_typeof(metadata->'_kgp_registry') = 'object'
+                              THEN metadata->'_kgp_registry' ELSE '{}'::jsonb END)
+                            || jsonb_build_object('steward', %s::text), TRUE),
+                    chain_projection = TRUE,
+                    source_chain_event_id = %s, orphaned_at = NULL,
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (event["steward"], source_chain_event_id, guild_uuid),
+            )
+        else:
+            cursor.execute(
+                """
+                UPDATE kokonut_guild
+                SET metadata = jsonb_set(
+                        CASE WHEN jsonb_typeof(metadata) = 'object'
+                             THEN metadata ELSE '{}'::jsonb END,
+                        '{_kgp_registry}',
+                        (CASE WHEN jsonb_typeof(metadata->'_kgp_registry') = 'object'
+                              THEN metadata->'_kgp_registry' ELSE '{}'::jsonb END)
+                            || jsonb_build_object('status', %s::text), TRUE),
+                    chain_projection = TRUE,
+                    source_chain_event_id = %s, orphaned_at = NULL,
+                    updated_at = NOW()
+                WHERE id = %s
+                """,
+                (_status(event["status"], ("active", "paused", "deprecated")), source_chain_event_id, guild_uuid),
+            )
         return cursor.rowcount == 1
 
     if name in {
@@ -300,6 +374,8 @@ def reset_chain_projections(cursor, deployment_id: str) -> None:
         """
         UPDATE kokonut_guild
         SET onchain_guild_id = NULL,
+            metadata = CASE WHEN jsonb_typeof(metadata) = 'object'
+                            THEN metadata - '_kgp_registry' ELSE '{}'::jsonb END,
             chain_projection = FALSE, source_chain_event_id = NULL, orphaned_at = NOW()
         WHERE source_chain_event_id IN (
             SELECT id FROM kgp_chain_event WHERE deployment_id = %s AND is_canonical = FALSE

@@ -11084,3 +11084,24 @@ multiple folds using the mean-baseline fallback; it does not train
 XGBoost. These changes repair inputs and repeatability only: fitted-model
 metrics, model-fixture parity, and MAN-CAP-041 acceptance remain open. Checklist:
 685 complete / 24 open; matrix classifications unchanged. [Coordinate evidence](builds/2026-10-19-recovery/cap-041-spatial-training-coordinates.json); [fold evidence](builds/2026-10-19-recovery/cap-041-geographic-fold-repeatability.json).
+
+### CAP-042 Guild Registry event projections — 19 October 2026
+
+The registry decoder already recognized guild metadata, steward, and status
+events, but the projector sent those events to the dead-letter path. It now
+projects the contract-owned values into the reserved
+`kokonut_guild.metadata._kgp_registry` JSON subobject and advances the source
+event link. Canonical `name`, `status`, and `steward_wallet` fields are left
+untouched. Reorg cleanup removes that subobject with the orphaned chain binding,
+and ordered replay reconstructs it from canonical events. The disposable
+acceptance applies all 452 ordered PostgreSQL schemas, projects ten synthetic
+registry/domain/task/governance logs, confirms source-event links and duplicate
+replay idempotency, then clears and rebuilds the values through a simulated
+ten-event reorg. The same run confirms PostgreSQL restart recovery and worker
+lease reclaim. Fourteen focused projection/reorg/worker tests and Ruff pass.
+The check uses a no-volume disposable database, a dedicated Docker subnet, a
+loopback-only host port, and no chain/provider calls; candidate and legacy
+databases remain untouched. CAP-042 stays B/prepared: other event types,
+live-chain behavior, candidate app rebuild/parity, broader protocol parity,
+and MAN-CAP-042 review remain open. Checklist: 685 complete / 24 open; matrix
+classifications unchanged. [Disposable evidence](builds/2026-10-19-recovery/cap-042-guild-registry-projection-reorg.json).
