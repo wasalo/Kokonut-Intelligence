@@ -1,3 +1,21 @@
+### CAP-034 first coordination governance Kernel summary — 19 October 2026
+
+`GET /operator/api/coordination/{location_id}/summary` now returns aggregate
+governance health only for exact location-scoped alliances under
+`coordination:read` and signed tenant context. Migration 458 counts lifecycle,
+overdue reviews, conflict/harm/appeal/remedy, minority-view, knowledge-exchange,
+learning-link, and metric-observation states. It exposes no parties, narratives,
+evidence, or metric values and does not mutate approval, consent, activation,
+or publication state. The focused Gateway, route-policy, and migration-metadata
+selection passes 42 tests; migration 458 applies/replays on disposable
+PostgreSQL 16 and passes six aggregate/scope/grant/privilege assertions.
+Candidate and legacy databases are untouched; migration 458 is not rolled out.
+CAP-034 remains prepared pending populated parity, live OIDC/browser,
+trigger/worker recovery, broader ACL/RLS, and MAN-CAP-034 owner acceptance.
+Checklist: 675 complete / 19 open; matrix: 36 baseline-retained, 7 deployed,
+23 prepared. See [the contract](coordination-kernel-read-contract.md) and
+[disposable evidence](builds/2026-10-19-recovery/cap-034-coordination-summary-disposable.json).
+
 ### CAP-033 first business model canvas Kernel read — 19 October 2026
 
 The read-only OIDC route at

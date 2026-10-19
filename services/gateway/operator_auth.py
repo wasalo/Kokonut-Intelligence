@@ -592,6 +592,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    coordination_summary_match = re.fullmatch(
+        r"/operator/api/coordination/([0-9a-fA-F-]{36})/summary", path
+    )
+    if coordination_summary_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "coordination",
+            "action": "read",
+            "public": False,
+            "location_id": coordination_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_summary_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/summary", path
     )
@@ -2535,6 +2548,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.competitive_landscape_routes import (
         register_competitive_landscape_routes,
     )
+    from services.gateway.coordination_routes import register_coordination_routes
     from services.gateway.credit_custody_routes import register_credit_custody_routes
     from services.gateway.delphi_consultation_routes import register_delphi_consultation_routes
     from services.gateway.delphi_recommendation_draft_routes import (
@@ -2577,6 +2591,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_planning_budget_routes(router, provider, run_in_threadpool, psycopg2)
     register_business_architecture_routes(router, provider, run_in_threadpool, psycopg2)
     register_business_planning_routes(router, provider, run_in_threadpool, psycopg2)
+    register_coordination_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_trust_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_resolution_routes(

@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "458_location_scoped_coordination_summary.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 458 applies and replays on disposable PostgreSQL 16",
+    "alliance states and overdue reviews include only exact location scope",
+    "conflict, harm, appeal, remedy, minority-view, exchange, and learning indicators match fixture",
+    "signed location context and exact coordination:read grant are enforced",
+    "runtime and Directus lack direct coordination table/function access",
+    "reader role is non-login, read-only, and has no party access"
+  ],
+  "assertions_passed": 6
+}
