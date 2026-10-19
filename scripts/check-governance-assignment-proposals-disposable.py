@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise governance role nomination, review, definition lifecycle, and tactical actions on disposable PostgreSQL 16."""
+"""Exercise governance role nomination, review, definition mutation/lifecycle, and tactical actions on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -21,8 +21,9 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/440_governance_role_assignment_review.sql",
     ROOT / "schemas/postgres/441_governance_tactical_actions.sql",
     ROOT / "schemas/postgres/442_governance_definition_lifecycle.sql",
+    ROOT / "schemas/postgres/443_governance_definition_mutations.sql",
 )
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-definition-mutations-disposable.json"
 
 ORG_ID = "a0000000-0000-4000-8000-000000000101"
 LOCATION_ID = "a0000000-0000-4000-8000-000000000201"
@@ -43,6 +44,8 @@ TACTICAL_COMPLETED_SESSION_ITEM = "a0000000-0000-4000-8000-000000000915"
 TACTICAL_NETWORK_ROLE_ITEM = "a0000000-0000-4000-8000-000000000916"
 DEFINITION_CIRCLE = "a0000000-0000-4000-8000-000000000917"
 DEFINITION_ROLE = "a0000000-0000-4000-8000-000000000918"
+MUTATION_PARENT_CIRCLE = "a0000000-0000-4000-8000-000000000801"
+NETWORK_CIRCLE = "a0000000-0000-4000-8000-000000000802"
 
 
 def run(command: list[str], *, input_text: str | None = None, check: bool = True):
@@ -107,7 +110,10 @@ def run_acceptance(container: str) -> list[str]:
     definition_sql = MIGRATIONS[5].read_text()
     docker_sql(container, definition_sql)
     docker_sql(container, definition_sql)
-    checks.append("migrations 438–442 apply and replay transactionally after migration 437")
+    mutation_sql = MIGRATIONS[6].read_text()
+    docker_sql(container, mutation_sql)
+    docker_sql(container, mutation_sql)
+    checks.append("migrations 438–443 apply and replay transactionally after migration 437")
 
     privilege = docker_sql(
         container,
@@ -474,13 +480,13 @@ def run_acceptance(container: str) -> list[str]:
         assert_sqlstate(
             container,
             f"SET ROLE {database_role}; UPDATE public.governance_role SET status = 'active' WHERE id = '{DEFINITION_ROLE}';",
-            "P0001",
+            "42501",
             f"direct {database_role} governance status update",
         )
         assert_sqlstate(
             container,
             f"SET ROLE {database_role}; INSERT INTO public.governance_role (id, circle_id, role_key, name, status) VALUES ('{uuid.uuid4()}', '{DEFINITION_CIRCLE}', 'bypass-{uuid.uuid4().hex[:8]}', 'Bypass', 'active');",
-            "P0001",
+            "42501",
             f"direct {database_role} active governance role insertion",
         )
         assert_sqlstate(
@@ -489,6 +495,20 @@ def run_acceptance(container: str) -> list[str]:
             "42501",
             f"private definition action history read by {database_role}",
         )
+    docker_sql(
+        container,
+        "GRANT UPDATE (status) ON TABLE public.governance_role TO kokonut_runtime;",
+    )
+    assert_sqlstate(
+        container,
+        f"SET ROLE kokonut_runtime; UPDATE public.governance_role SET status = 'active' WHERE id = '{DEFINITION_ROLE}';",
+        "P0001",
+        "governance lifecycle trigger blocks direct status update despite column grant",
+    )
+    docker_sql(
+        container,
+        "REVOKE UPDATE (status) ON TABLE public.governance_role FROM kokonut_runtime;",
+    )
     assert_sqlstate(
         container,
         f"UPDATE public.governance_definition_action_event SET reason = 'rewritten' WHERE entity_id = '{DEFINITION_CIRCLE}';",
@@ -509,6 +529,184 @@ def run_acceptance(container: str) -> list[str]:
     if definition_acl != "t":
         raise AssertionError(f"governance definition lifecycle ACL contract failed: {definition_acl}")
     checks.append("circle/role definition transitions require exact signed location grants and independent human review, replay idempotently, block assignment conflicts, keep immutable actor history, and deny runtime/Directus direct status changes")
+
+    # Draft-definition writes use a separate create/update grant and immutable
+    # mutation history. The fixture's active circle is used for the new role.
+    mutation_update_grant = "a0000000-0000-4000-8000-000000000720"
+    docker_sql(
+        container,
+        f"""INSERT INTO public.operator_scope_grant VALUES
+          ('{mutation_update_grant}', '{OPERATOR_ONE}', 'governance_roles', 'update', '{LOCATION_ID}', '{ORG_ID}', NULL);""",
+    )
+    circle_request = str(uuid.uuid4())
+    circle_key = f"cap024_{uuid.uuid4().hex[:10]}"
+    circle_payload = json.dumps({
+        "circle_key": circle_key,
+        "name": "Kernel Draft Circle",
+        "purpose": "Coordinate governed operations for the acceptance fixture.",
+        "description": "Synthetic acceptance record.",
+        "parent_circle_id": MUTATION_PARENT_CIRCLE,
+    }, separators=(",", ":"))
+    # Use the known active location circle as parent.
+    created_circle = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT entity_id::text || '|' || (result->>'status')
+             FROM kokonut_security.mutate_governance_definition(
+               '{LOCATION_ID}', 'circle', NULL, '{circle_request}', 'create',
+               '{circle_payload}'::jsonb, 'Create a synthetic location circle.');""",
+    ).stdout.strip().splitlines()[-1]
+    created_circle_id, created_circle_status = created_circle.split("|", 1)
+    if created_circle_status != "draft":
+        raise AssertionError(f"circle creation did not force draft state: {created_circle}")
+    circle_retry = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT entity_id::text FROM kokonut_security.mutate_governance_definition(
+               '{LOCATION_ID}', 'circle', NULL, '{circle_request}', 'create',
+               '{circle_payload}'::jsonb, 'Create a synthetic location circle.');""",
+    ).stdout.strip().splitlines()[-1]
+    if circle_retry != created_circle_id:
+        raise AssertionError("circle create retry did not return the original definition")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_definition(
+            '{LOCATION_ID}', 'circle', NULL, '{circle_request}', 'create',
+            '{circle_payload}'::jsonb, 'Changed retry reason.');"""),
+        "22023",
+        "reject changed governance definition request-key replay",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_definition(
+            '{LOCATION_ID}', 'circle', NULL, '{uuid.uuid4()}', 'create',
+            '{{"circle_key":"bad-parent","name":"Bad parent","purpose":"Bad scope", "parent_circle_id":"{NETWORK_CIRCLE}"}}'::jsonb,
+            'Reject a network parent.');"""),
+        "22023",
+        "reject a governance circle parent outside the selected location",
+    )
+    role_request = str(uuid.uuid4())
+    role_payload = json.dumps({
+        "circle_id": MUTATION_PARENT_CIRCLE,
+        "role_key": f"draft_role_{uuid.uuid4().hex[:8]}",
+        "name": "Kernel Draft Role",
+        "purpose": "Coordinate synthetic governed work.",
+    }, separators=(",", ":"))
+    created_role_id = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT entity_id::text FROM kokonut_security.mutate_governance_definition(
+               '{LOCATION_ID}', 'role', NULL, '{role_request}', 'create',
+               '{role_payload}'::jsonb, 'Create a synthetic location role.');""",
+    ).stdout.strip().splitlines()[-1]
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_definition(
+            '{LOCATION_ID}', 'role', NULL, '{uuid.uuid4()}', 'create',
+            '{{"circle_id":"{NETWORK_CIRCLE}","role_key":"bad_scope","name":"Bad scope","purpose":"Network role"}}'::jsonb,
+            'Reject a network circle.');"""),
+        "P0002",
+        "reject a governance role circle outside the selected location",
+    )
+    circle_update_request = str(uuid.uuid4())
+    circle_update_payload = json.dumps({"purpose": "Updated synthetic circle purpose."}, separators=(",", ":"))
+    updated_circle_id = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT entity_id::text FROM kokonut_security.mutate_governance_definition(
+               '{LOCATION_ID}', 'circle', '{created_circle_id}', '{circle_update_request}', 'update',
+               '{circle_update_payload}'::jsonb, 'Clarify the synthetic circle purpose.');""",
+    ).stdout.strip().splitlines()[-1]
+    circle_update_retry = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT entity_id::text FROM kokonut_security.mutate_governance_definition(
+               '{LOCATION_ID}', 'circle', '{created_circle_id}', '{circle_update_request}', 'update',
+               '{circle_update_payload}'::jsonb, 'Clarify the synthetic circle purpose.');""",
+    ).stdout.strip().splitlines()[-1]
+    role_update_request = str(uuid.uuid4())
+    role_update_payload = json.dumps({"name": "Updated Kernel Draft Role"}, separators=(",", ":"))
+    updated_role_id = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT entity_id::text FROM kokonut_security.mutate_governance_definition(
+               '{LOCATION_ID}', 'role', '{created_role_id}', '{role_update_request}', 'update',
+               '{role_update_payload}'::jsonb, 'Clarify the synthetic role name.');""",
+    ).stdout.strip().splitlines()[-1]
+    if updated_circle_id != created_circle_id or circle_update_retry != created_circle_id or updated_role_id != created_role_id:
+        raise AssertionError("draft edits changed their governance definition identity")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_definition(
+            '{LOCATION_ID}', 'circle', '{MUTATION_PARENT_CIRCLE}', '{uuid.uuid4()}', 'update',
+            '{{"name":"Cannot edit active circle"}}'::jsonb, 'Rejected active edit.');"""),
+        "55000",
+        "reject edit of an active governance circle",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.mutate_governance_definition(
+            '{LOCATION_ID}', 'circle', NULL, '{uuid.uuid4()}', 'create',
+            '{{"circle_key":"denied","name":"Denied","purpose":"Denied"}}'::jsonb,
+            'No create grant.');"""),
+        "42501",
+        "reject governance definition create without exact create grant",
+    )
+    ledger_count = docker_sql(
+        container,
+        f"""SELECT count(*) FROM public.governance_definition_mutation_event
+             WHERE entity_id IN ('{created_circle_id}', '{created_role_id}');""",
+    ).stdout.strip()
+    if ledger_count != "4":
+        raise AssertionError(f"expected four immutable create/edit events, got {ledger_count}")
+    mutation_acl = docker_sql(
+        container,
+        """SELECT has_table_privilege('kokonut_governance_action_owner',
+                    'public.governance_definition_mutation_event', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_governance_action_owner',
+                    'public.governance_definition_mutation_event', 'UPDATE')
+                  AND NOT has_table_privilege('kokonut_runtime',
+                    'public.governance_definition_mutation_event', 'SELECT')
+                  AND NOT has_table_privilege('kokonut_directus_runtime',
+                    'public.governance_definition_mutation_event', 'SELECT')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_circle', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_circle', 'UPDATE')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_role', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_role', 'UPDATE')
+                  AND has_function_privilege('kokonut_runtime',
+                    'kokonut_security.mutate_governance_definition(uuid,text,uuid,uuid,text,jsonb,text)', 'EXECUTE')
+                  AND NOT has_function_privilege('kokonut_directus_runtime',
+                    'kokonut_security.mutate_governance_definition(uuid,text,uuid,uuid,text,jsonb,text)', 'EXECUTE');""",
+    ).stdout.strip()
+    if mutation_acl != "t":
+        raise AssertionError(f"governance definition mutation ACL contract failed: {mutation_acl}")
+    for database_role in ("kokonut_runtime", "kokonut_directus_runtime"):
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; UPDATE public.governance_circle SET name = 'bypass' WHERE id = '{created_circle_id}';",
+            "42501",
+            f"direct {database_role} governance definition update",
+        )
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; INSERT INTO public.governance_circle (id, circle_key, name, purpose, scope_type, scope_id, status) VALUES ('{uuid.uuid4()}', 'bypass-{uuid.uuid4().hex[:8]}', 'Bypass', 'Bypass', 'location', '{LOCATION_ID}', 'draft');",
+            "42501",
+            f"direct {database_role} governance definition insert",
+        )
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; SELECT * FROM public.governance_definition_mutation_event;",
+            "42501",
+            f"private governance definition mutation history read by {database_role}",
+        )
+    assert_sqlstate(
+        container,
+        f"UPDATE public.governance_definition_mutation_event SET reason = 'rewritten' WHERE entity_id = '{created_circle_id}';",
+        "P0001",
+        "immutable governance definition mutation history",
+    )
+    checks.append("circle and role creation always yields draft records; exact create/update grants, same-location parents, draft-only edits, idempotent retries, private append-only before/after history, and runtime/Directus direct-write denial are enforced")
+
     first_page = runtime_call(
         container,
         OPERATOR_ONE,
@@ -824,7 +1022,7 @@ def main() -> None:
             raise RuntimeError("disposable PostgreSQL did not become ready")
         checks = run_acceptance(container)
         evidence = {
-            "title": "Migrations 437-442 governance role assignment and lifecycle acceptance",
+            "title": "Migrations 437-443 governance role assignment, definition mutation, and lifecycle acceptance",
             "status": "passed",
             "checks": checks,
             "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",

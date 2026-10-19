@@ -188,6 +188,66 @@ def test_definition_lifecycle_controls_require_exact_grants_reason_csrf_and_idem
     assert "innerHTML" not in submit
 
 
+def test_governance_definition_create_and_edit_controls_are_exact_grant_gated():
+    source = CONSOLE.read_text(encoding="utf-8")
+    for element_id in (
+        "governance-circle-create",
+        "governance-definition-role-create",
+        "governance-definition-editor",
+        "governance-definition-editor-form",
+        "governance-definition-editor-fields",
+        "governance-definition-editor-reason",
+    ):
+        assert f'id="{element_id}"' in source
+    assert 'scope.resource === "governance_roles" && scope.action === "create"' in source
+    assert 'scope.resource === "governance_roles" && scope.action === "update"' in source
+    assert "governanceRoleCreateLocations.has(locationId)" in source
+    assert "governanceRoleUpdateLocations.has(locationId)" in source
+    assert 'definition.status !== "draft"' in source
+    assert 'option.textContent = `${circle.name} (${circle.circle_key})`' in source
+
+
+def test_governance_definition_editor_posts_audited_create_and_patch_payloads():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submit = _function(
+        source,
+        "async function submitGovernanceDefinitionMutation(event)",
+        "function openGovernanceDefinitionAction(action)",
+    )
+    assert "event.preventDefault()" in submit
+    assert "globalThis.crypto?.randomUUID?.()" in submit
+    assert "governanceDefinitionMutationRetry" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'credentials: "same-origin"' in submit
+    assert 'cache: "no-store"' in submit
+    assert 'pending.action === "create" ? "POST" : "PATCH"' in submit
+    assert 'encodeURIComponent(pending.entityId)' in submit
+    assert 'body: JSON.stringify(payload)' in submit
+    assert "pending.initial?.[control.name]" in submit
+    assert "await loadGovernanceRoles()" in submit
+    assert 'governanceDefinitionEditorForm.addEventListener("submit", submitGovernanceDefinitionMutation)' in source
+    assert "innerHTML" not in submit
+
+
+def test_circle_editor_fetches_draft_fields_through_location_scoped_read_route():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadGovernanceCircleForEdit(locationId, circleId)",
+        "function openGovernanceDefinitionEditor(",
+    )
+    assert "governanceRoleReadLocations.has(locationId)" in reader
+    assert "governanceRoleUpdateLocations.has(locationId)" in reader
+    assert 'locationId !== governanceRoleLocation.value' in reader
+    assert "`/operator/api/governance/${encodeURIComponent(locationId)}/circles/${encodeURIComponent(circleId)}`" in reader
+    assert 'cache: "no-store"' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert "governanceDefinitionEditor.hidden = false" in reader
+    assert "governanceCircleEditRequestVersion" in reader
+    assert 'result.circle?.status !== "draft"' in reader
+    assert 'openGovernanceDefinitionEditor("circle", "update", circleId, result.circle)' in reader
+
+
 def test_tactical_actions_are_independently_grant_gated_and_use_csrf():
     source = CONSOLE.read_text(encoding="utf-8")
     for action in ("start", "dispose", "cancel"):
@@ -218,6 +278,26 @@ def test_tactical_action_forms_send_action_specific_payloads_and_refresh_queue()
     assert 'cache: "no-store"' in reader
     assert 'await loadGovernanceTacticalItems()' in reader
     assert 'form.innerHTML' not in reader
+
+
+def test_tactical_session_registry_uses_scoped_cursor_reads_and_text_rendering():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="governance-tactical-sessions"' in source
+    assert 'id="governance-tactical-sessions-more"' in source
+    reader = _function(
+        source,
+        "async function loadGovernanceTacticalSessions(append = false)",
+        "async function loadGovernanceTacticalItems(append = false)",
+    )
+    assert "governanceTacticalReadLocations.has(locationId)" in reader
+    assert '`/operator/api/governance/${encodeURIComponent(locationId)}/tactical-sessions?${params}`' in reader
+    assert 'params.set("cursor", governanceTacticalSessionNextCursor)' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "session.open_item_count" in reader
+    assert "session.overdue_item_count" in reader
+    assert "cell.textContent" in reader
+    assert "innerHTML" not in reader
 
 
 def test_inline_javascript_parses_when_node_is_available():

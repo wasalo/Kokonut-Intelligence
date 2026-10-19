@@ -11,6 +11,7 @@ from services.common.tenant_context import set_operator_tenant_context
 _ROLE_STATUSES = ("draft", "submitted", "approved", "active", "suspended", "rejected", "retired")
 _CIRCLE_STATUSES = ("draft", "submitted", "active", "suspended", "rejected", "retired")
 _TACTICAL_STATUSES = ("open", "in_progress")
+_TACTICAL_SESSION_STATUSES = ("planned", "active", "completed", "cancelled")
 _MAX_PAGE_SIZE = 100
 _MAX_DETAIL_ITEMS = 100
 
@@ -181,6 +182,103 @@ def list_location_governance_roles(
             conn.close()
 
 
+def list_location_governance_tactical_sessions(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: str | int = 50,
+    cursor: str | None = None,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List location-scoped tactical session summaries without private notes."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    page_size = _page_size(limit)
+    cursor_id = _normalize_uuid(cursor, "cursor") if cursor is not None else None
+    conn = _open_readonly(connection_factory or _connection_factory())
+    try:
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="governance_tactical",
+            action="read",
+        )
+        cursor_created_at = None
+        if cursor_id is not None:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """SELECT session.created_at
+                         FROM public.governance_tactical_session AS session
+                         JOIN public.governance_circle AS circle
+                           ON circle.id = session.circle_id
+                        WHERE session.id = %s::uuid
+                          AND session.status = ANY(%s::text[])
+                          AND circle.status = ANY(%s::text[])
+                          AND circle.scope_type = 'location'
+                          AND circle.scope_id = %s::uuid""",
+                    (cursor_id, list(_TACTICAL_SESSION_STATUSES), list(_CIRCLE_STATUSES), location_id),
+                )
+                row = cur.fetchone()
+            if row is None:
+                raise GovernanceOperationsInvalid(
+                    "cursor is not available in the requested location"
+                )
+            cursor_created_at = row[0]
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT session.id, session.session_type, session.title,
+                          session.scheduled_at, session.status, session.created_at,
+                          circle.circle_key, circle.name AS circle_name,
+                          COUNT(item.id) AS item_count,
+                          COUNT(item.id) FILTER (WHERE item.status IN ('open', 'in_progress'))
+                              AS open_item_count,
+                          COUNT(item.id) FILTER (WHERE item.status = 'disposed')
+                              AS disposed_item_count,
+                          COUNT(item.id) FILTER (
+                              WHERE item.status IN ('open', 'in_progress')
+                                AND item.due_at < NOW()
+                          ) AS overdue_item_count
+                     FROM public.governance_tactical_session AS session
+                     JOIN public.governance_circle AS circle
+                       ON circle.id = session.circle_id
+                     LEFT JOIN public.governance_tactical_item AS item
+                       ON item.session_id = session.id
+                    WHERE circle.scope_type = 'location'
+                      AND circle.scope_id = %s::uuid
+                      AND circle.status = ANY(%s::text[])
+                      AND session.status = ANY(%s::text[])
+                      AND (%s::timestamptz IS NULL OR
+                           (session.created_at, session.id) < (%s::timestamptz, %s::uuid))
+                    GROUP BY session.id, circle.id
+                    ORDER BY session.created_at DESC, session.id DESC
+                    LIMIT %s""",
+                (
+                    location_id,
+                    list(_CIRCLE_STATUSES),
+                    list(_TACTICAL_SESSION_STATUSES),
+                    cursor_created_at,
+                    cursor_created_at,
+                    cursor_id,
+                    page_size + 1,
+                ),
+            )
+            rows = [_mapping(cur, row) for row in cur.fetchall()]
+        has_more = len(rows) > page_size
+        items = rows[:page_size]
+        return {
+            "location_id": location_id,
+            "items": items,
+            "next_cursor": str(items[-1]["id"]) if has_more and items else None,
+        }
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
 def get_location_governance_role_detail(
     operator_id: str,
     location_id: str,
@@ -263,6 +361,50 @@ def get_location_governance_role_detail(
             "authority_domains": domain_rows[:_MAX_DETAIL_ITEMS],
             "authority_domains_truncated": len(domain_rows) > _MAX_DETAIL_ITEMS,
         }
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+def get_location_governance_circle_detail(
+    operator_id: str,
+    location_id: str,
+    circle_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict | None:
+    """Return the editable fields for one location-owned circle."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    circle_id = _normalize_uuid(circle_id, "circle")
+    conn = _open_readonly(connection_factory or _connection_factory())
+    try:
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="governance_roles",
+            action="read",
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT circle.id, circle.circle_key, circle.name,
+                          circle.purpose, circle.description,
+                          circle.parent_circle_id, circle.status
+                     FROM public.governance_circle AS circle
+                    WHERE circle.id = %s::uuid
+                      AND circle.scope_type = 'location'
+                      AND circle.scope_id = %s::uuid
+                      AND circle.status = ANY(%s::text[])""",
+                (circle_id, location_id, list(_CIRCLE_STATUSES)),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            circle = _mapping(cur, row)
+        return {"location_id": location_id, "circle": circle}
     finally:
         try:
             conn.rollback()

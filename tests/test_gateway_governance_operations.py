@@ -17,6 +17,7 @@ from services.gateway.app import create_app  # noqa: E402
 OPERATOR_ID = str(uuid4())
 LOCATION_ID = str(uuid4())
 ROLE_ID = str(uuid4())
+CIRCLE_ID = str(uuid4())
 ITEM_ID = str(uuid4())
 CREATED_AT = datetime(2026, 10, 18, tzinfo=timezone.utc)
 
@@ -77,6 +78,17 @@ class _Cursor:
                     "requires_human_approval",
                 )
             ]
+        elif (
+            "FROM public.governance_circle AS circle" in self.query
+            and "circle.description" in self.query
+        ):
+            self.description = [
+                SimpleNamespace(name=name)
+                for name in (
+                    "id", "circle_key", "name", "purpose", "description",
+                    "parent_circle_id", "status",
+                )
+            ]
         elif "FROM public.governance_tactical_item AS item" in self.query and "requested_next_action" in self.query:
             self.description = [
                 SimpleNamespace(name=name)
@@ -86,10 +98,23 @@ class _Cursor:
                     "session_status", "owner_role_key",
                 )
             ]
+        elif "FROM public.governance_tactical_session AS session" in self.query and "COUNT(item.id)" in self.query:
+            self.description = [
+                SimpleNamespace(name=name)
+                for name in (
+                    "id", "session_type", "title", "scheduled_at", "status", "created_at",
+                    "circle_key", "circle_name", "item_count", "open_item_count",
+                    "disposed_item_count", "overdue_item_count",
+                )
+            ]
 
     def fetchone(self):
         if "SELECT role.created_at" in self.query or "SELECT item.created_at" in self.query:
             return self.connection.cursor_timestamp
+        if "SELECT session.created_at" in self.query:
+            return self.connection.cursor_timestamp
+        if "FROM public.governance_circle AS circle" in self.query and "circle.description" in self.query:
+            return self.connection.circle_detail_row
         if "FROM public.governance_role AS role" in self.query and "COUNT(DISTINCT" not in self.query:
             return self.connection.role_detail_row
         return None
@@ -103,6 +128,8 @@ class _Cursor:
             return self.connection.domain_rows
         if "FROM public.governance_tactical_item AS item" in self.query and "requested_next_action" in self.query:
             return self.connection.tactical_rows
+        if "FROM public.governance_tactical_session AS session" in self.query and "COUNT(item.id)" in self.query:
+            return self.connection.tactical_session_rows
         return []
 
 
@@ -122,11 +149,19 @@ class _Connection:
             "active", CREATED_AT, None, None, CREATED_AT, "adelphi-stewardship",
             "Adelphi Stewardship", "active",
         )
+        self.circle_detail_row = (
+            CIRCLE_ID, "adelphi-stewardship", "Adelphi Stewardship",
+            "Coordinate farm stewardship.", "Location governance circle.", None, "draft",
+        )
         self.accountability_rows = [("Maintain seasonal field plans.", 2, True)]
         self.domain_rows = [("farm_operations", "field_plan", "location", "recommend", True)]
         self.tactical_rows = [(
             ITEM_ID, "Review the irrigation schedule.", 2, None, "open", CREATED_AT,
             "weekly_review", "Weekly review", CREATED_AT, "active", "steward",
+        )]
+        self.tactical_session_rows = [(
+            str(uuid4()), "weekly_review", "Weekly review", CREATED_AT, "planned",
+            CREATED_AT, "adelphi-stewardship", "Adelphi Stewardship", 3, 2, 1, 1,
         )]
         self.rolled_back = False
         self.closed = False
@@ -253,6 +288,60 @@ def test_role_detail_hides_unknown_or_cross_location_role(monkeypatch):
     assert connection.rolled_back and connection.closed
 
 
+def test_circle_detail_returns_edit_fields_only_after_signed_location_context(monkeypatch):
+    connection = _Connection()
+    contexts = []
+    monkeypatch.setattr(
+        operations,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: (
+            contexts.append((conn, kwargs)),
+            conn.operations.append(("context", kwargs)),
+        ),
+    )
+
+    result = operations.get_location_governance_circle_detail(
+        OPERATOR_ID, LOCATION_ID, CIRCLE_ID, connection_factory=lambda: connection
+    )
+
+    assert result == {
+        "location_id": LOCATION_ID,
+        "circle": {
+            "id": CIRCLE_ID,
+            "circle_key": "adelphi-stewardship",
+            "name": "Adelphi Stewardship",
+            "purpose": "Coordinate farm stewardship.",
+            "description": "Location governance circle.",
+            "parent_circle_id": None,
+            "status": "draft",
+        },
+    }
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "governance_roles",
+        "action": "read",
+    })]
+    sql_entry = next(item for item in connection.operations if item[0] == "sql" and "circle.description" in item[1])
+    context_index = next(i for i, item in enumerate(connection.operations) if item[0] == "context")
+    sql_index = connection.operations.index(sql_entry)
+    assert context_index < sql_index
+    assert "circle.scope_id = %s::uuid" in sql_entry[1]
+    assert "circle.status = ANY(%s::text[])" in sql_entry[1]
+    assert connection.rolled_back and connection.closed
+
+
+def test_circle_detail_hides_unknown_or_cross_location_circle(monkeypatch):
+    connection = _Connection()
+    connection.circle_detail_row = None
+    monkeypatch.setattr(operations, "set_operator_tenant_context", lambda *_args, **_kwargs: None)
+
+    assert operations.get_location_governance_circle_detail(
+        OPERATOR_ID, LOCATION_ID, CIRCLE_ID, connection_factory=lambda: connection
+    ) is None
+    assert connection.rolled_back and connection.closed
+
+
 def test_role_detail_caps_accountability_and_authority_domain_lists(monkeypatch):
     connection = _Connection()
     connection.accountability_rows = [
@@ -308,6 +397,43 @@ def test_tactical_queue_uses_its_own_scope_and_omits_party_and_private_dispositi
     assert connection.rolled_back and connection.closed
 
 
+def test_tactical_session_registry_is_location_scoped_and_aggregate_only(monkeypatch):
+    connection = _Connection()
+    contexts = []
+    monkeypatch.setattr(
+        operations,
+        "set_operator_tenant_context",
+        lambda conn, **kwargs: contexts.append((conn, kwargs)),
+    )
+
+    result = operations.list_location_governance_tactical_sessions(
+        OPERATOR_ID, LOCATION_ID, connection_factory=lambda: connection
+    )
+
+    session = result["items"][0]
+    assert session["title"] == "Weekly review"
+    assert session["open_item_count"] == 2
+    assert set(session) == {
+        "id", "session_type", "title", "scheduled_at", "status", "created_at",
+        "circle_key", "circle_name", "item_count", "open_item_count",
+        "disposed_item_count", "overdue_item_count",
+    }
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "governance_tactical",
+        "action": "read",
+    })]
+    sql = " ".join(item[1] for item in connection.operations if item[0] == "sql")
+    assert "SET TRANSACTION READ ONLY" in sql
+    assert "circle.scope_type = 'location'" in sql
+    assert "circle.scope_id = %s::uuid" in sql
+    assert "session.status = ANY(%s::text[])" in sql
+    for private_field in ("agenda_scope", "session.notes", "outcome_summary", "created_by_party_id"):
+        assert private_field not in sql
+    assert connection.rolled_back and connection.closed
+
+
 @pytest.mark.parametrize(
     ("reader", "kwargs", "message"),
     [
@@ -315,7 +441,10 @@ def test_tactical_queue_uses_its_own_scope_and_omits_party_and_private_dispositi
         (operations.list_location_governance_roles, {"limit": "1e2"}, "limit must be an integer"),
         (operations.list_location_governance_tactical_items, {"limit": 101}, "limit must be an integer"),
         (operations.list_location_governance_tactical_items, {"cursor": "invalid"}, "Invalid cursor"),
+        (operations.list_location_governance_tactical_sessions, {"limit": "1e2"}, "limit must be an integer"),
+        (operations.list_location_governance_tactical_sessions, {"cursor": "invalid"}, "Invalid cursor"),
         (operations.get_location_governance_role_detail, {"role_id": "invalid"}, "Invalid role identifier"),
+        (operations.get_location_governance_circle_detail, {"circle_id": "invalid"}, "Invalid circle identifier"),
     ],
 )
 def test_invalid_selectors_fail_before_connecting(reader, kwargs, message):
@@ -406,8 +535,16 @@ def test_role_and_tactical_routes_deny_missing_exact_grants_before_service(monke
         lambda *_args, **_kwargs: pytest.fail("missing role grant reached detail service"),
     )
     monkeypatch.setattr(
+        "services.gateway.governance_operations.get_location_governance_circle_detail",
+        lambda *_args, **_kwargs: pytest.fail("missing circle grant reached detail service"),
+    )
+    monkeypatch.setattr(
         "services.gateway.governance_operations.list_location_governance_tactical_items",
         lambda *_args, **_kwargs: pytest.fail("missing tactical grant reached data service"),
+    )
+    monkeypatch.setattr(
+        "services.gateway.governance_operations.list_location_governance_tactical_sessions",
+        lambda *_args, **_kwargs: pytest.fail("missing tactical grant reached session service"),
     )
     with TestClient(
         create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
@@ -416,11 +553,19 @@ def test_role_and_tactical_routes_deny_missing_exact_grants_before_service(monke
         role_detail_response = client.get(
             f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}"
         )
+        circle_detail_response = client.get(
+            f"/operator/api/governance/{LOCATION_ID}/circles/{CIRCLE_ID}"
+        )
         tactical_response = client.get(
             f"/operator/api/governance/{LOCATION_ID}/tactical-items"
         )
+        tactical_sessions_response = client.get(
+            f"/operator/api/governance/{LOCATION_ID}/tactical-sessions"
+        )
 
-    assert role_response.status_code == role_detail_response.status_code == tactical_response.status_code == 403
+    assert role_response.status_code == role_detail_response.status_code == circle_detail_response.status_code == tactical_response.status_code == tactical_sessions_response.status_code == 403
     assert role_response.headers["cache-control"] == "no-store"
     assert role_detail_response.headers["cache-control"] == "no-store"
+    assert circle_detail_response.headers["cache-control"] == "no-store"
     assert tactical_response.headers["cache-control"] == "no-store"
+    assert tactical_sessions_response.headers["cache-control"] == "no-store"

@@ -64,13 +64,18 @@ list. It omits assignee identities, role-policy text, evidence expectations,
 and arbitrary constraint metadata. A role outside the requested location or
 the reviewable role/circle states returns the same 404 response.
 
+The tactical session registry is available at `GET
+/operator/api/governance/{location_id}/tactical-sessions` with the exact
+`governance_tactical:read` grant. It returns location-scoped session state,
+circle labels, scheduled time, and bounded item counts; agenda text, notes,
+outcomes, and party identities are excluded. Signed tenant context, read-only
+transactions, and keyset pagination capped at 100 protect the projection.
 Open tactical work is available at `GET
-/operator/api/governance/{location_id}/tactical-items` with the separate exact
-`governance_tactical:read` grant. It returns bounded open/in-progress items,
-requested action, priority, due date, session summary, and owner role key, but
-omits party identities, session notes, agenda text, and disposition detail.
-Signed tenant context, read-only transactions, and keyset pagination capped at
-100 protect the read projection. The console renders it as text.
+/operator/api/governance/{location_id}/tactical-items` under the same exact
+grant. It returns bounded open/in-progress items, requested action, priority,
+due date, session summary, and owner role key, but omits party identities,
+session notes, agenda text, and disposition detail. The console renders both
+projections as text.
 
 Tactical item changes use three separate POST routes ending in `/{item_id}/start`,
 `/{item_id}/dispose`, or `/{item_id}/cancel`; each requires its own location
@@ -109,6 +114,23 @@ at `GET /operator/api/governance/{location_id}/assignment-proposals`. Migration
 439 enforces same-operator and same-location readback with bounded keyset
 pagination. The status projection excludes nominee identity and mandate; the
 console does not enumerate a people directory or provide decision controls.
+
+Governance circle and role definitions are created through
+`POST /operator/api/governance/{location_id}/circles` and
+`POST /operator/api/governance/{location_id}/roles` under
+`governance_roles:create`; both always create location-scoped drafts. `PATCH`
+on a specific circle or role uses `governance_roles:update` and accepts only
+descriptive fields while the definition remains draft. All writes require a
+reason, request UUID, signed tenant context, and active operator/person
+binding. Migration 443 stores immutable before/after history and blocks runtime
+and Directus direct writes. The editor loads circle fields from the no-store
+`GET /operator/api/governance/{location_id}/circles/{circle_id}` route, which
+requires both exact `governance_roles:read` and `:update` grants; aggregate
+summaries continue to exclude circle free text. Lifecycle review and activation
+remain separate routes and grants; accountabilities, authority domains, and
+policies are not part of this editor. The candidate still uses administrative
+`kokonut`; do not apply migrations 442–443 until its app uses the least-privilege
+runtime role.
 
 Governance tension intake is available at `POST
 /operator/api/governance/{location_id}/tensions` with a caller-generated UUID

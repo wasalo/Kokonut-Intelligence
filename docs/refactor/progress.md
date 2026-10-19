@@ -1,5 +1,61 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 tactical session registry — 18 October 2026
+
+The Gateway and operator console now include a location-scoped tactical session
+registry under the exact `governance_tactical:read` grant. The read-only query
+sets signed tenant context before SQL, filters sessions through location-owned
+circles, and provides bounded keyset paging. It exposes session and circle
+labels plus item, open, overdue, and disposed counts. Agenda text, session notes,
+outcomes, and party identities stay outside the projection. The console renders
+summaries as text and keeps the existing open-item actions separately gated.
+
+The focused Gateway, route-policy, and console selection passes 38 tests; Ruff,
+Python compilation, JavaScript syntax, capability validation, runtime SQL
+inventory (850 service files / 4,113 execution sites), and diff checks pass. No
+database, provider, candidate, or legacy service was accessed, and no migration
+was needed. Checklist: 655 complete / 19 open (674 total); capability counts
+remain 45 baseline-retained, 7 deployed, 14 prepared. CAP-024 remains prepared,
+not accepted; tactical create/edit parity, populated fixtures, least-privilege
+rollout, domain RLS, live OIDC/browser acceptance, and MAN-CAP-024 remain open
+([evidence](builds/2026-10-18-recovery/governance-tactical-session-registry.json)).
+
+
+### CAP-024 circle and role creation and draft edits — 18 October 2026
+
+Migration 443 and its bounded mutation function now create location-scoped
+governance circles and roles as drafts, and permit descriptive changes only
+while definitions remain draft. Exact `governance_roles:create` and `:update`
+grants, signed operator location context, active person binding, same-location
+circle/parent selection, cycle rejection, request replay/collision protection,
+and private append-only before/after attribution are enforced in PostgreSQL.
+Runtime and Directus lose direct definition writes; triggers reject bypasses
+even if broader legacy DML is restored. The Gateway exposes exact-policy
+POST/PATCH routes and a separate no-store circle detail read requiring exact location read and update grants so the summary
+projection continues to exclude free text. The console provides draft create
+and edit controls with CSRF and stable request IDs for unchanged retries.
+
+The focused CAP-024 Gateway, route-policy, and console selection passes 151
+tests (5 skipped); the ordered migration metadata suite passes another 33.
+Disposable PostgreSQL 16 applies and replays migrations
+437–443, verifying exact grants and scope, circle/role draft creation, draft-
+only updates, retries, private immutable history, and runtime/Directus direct
+write denial. Ruff, compilation, JavaScript syntax/console contracts,
+capability validation, runtime SQL inventory (850 service files / 4,111
+execution sites), and diff checks pass. Candidate remains at migration 437
+and still connects as administrative `kokonut`; no candidate or legacy
+database was touched and migration 443 was not rolled out. Work is local and
+uncommitted. Checklist: 654 complete / 19 open (673 total); matrix remains 45
+baseline-retained, 7 deployed, 14 prepared. CAP-024 stays prepared, not
+accepted. Live OIDC/browser acceptance, least-privilege candidate rollout,
+broader parity, populated fixtures, domain-table RLS, and MAN-CAP-024 remain
+open. Revert route/service/console code before rollout; if the ordered
+migration is applied later, retain its append-only history and guards rather
+than editing or reversing it ([contract](governance-definition-lifecycle-contract.md);
+[migration](../schemas/postgres/443_governance_definition_mutations.sql);
+[tests](../tests/test_gateway_governance_definition_mutations.py);
+[database evidence](builds/2026-10-18-recovery/governance-definition-mutations-disposable.json)).
+
 ### CAP-024 circle and role definition lifecycle — 18 October 2026
 
 Added migration 442 and exact-grant Gateway actions for location-scoped

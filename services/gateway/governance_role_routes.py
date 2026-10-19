@@ -27,11 +27,18 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         GovernanceDefinitionActionInvalid,
         transition_governance_definition,
     )
+    from services.gateway.governance_definition_mutations import (
+        GovernanceDefinitionMutationConflict,
+        GovernanceDefinitionMutationInvalid,
+        mutate_governance_definition,
+    )
     from services.gateway.governance_operations import (
         GovernanceOperationsInvalid,
+        get_location_governance_circle_detail,
         get_location_governance_role_detail,
         list_location_governance_roles,
         list_location_governance_tactical_items,
+        list_location_governance_tactical_sessions,
     )
     from services.gateway.governance_roles import get_location_governance_summary
     from services.gateway.governance_tactical_actions import (
@@ -238,6 +245,53 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(
                 status_code=404,
                 content={"error": "Governance role not found"},
+                headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/governance/{location_id}/circles/{circle_id}")
+    async def location_governance_circle_detail(
+        request: Request,
+        location_id: str,
+        circle_id: str,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_governance_circle_detail,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                circle_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceOperationsInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance circle detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance circle detail unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        if result is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Governance circle not found"},
                 headers=headers,
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
@@ -628,6 +682,125 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
 
         return endpoint
 
+    async def governance_definition_mutation_route(
+        request: Request,
+        location_id: str,
+        entity_type: str,
+        action: str,
+        entity_id: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Governance definition content must be valid JSON"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                mutate_governance_definition,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                entity_type,
+                action,
+                entity_id,
+                payload,
+            )
+        except (
+            TenantContextDenied,
+            GovernanceDefinitionMutationInvalid,
+            GovernanceDefinitionMutationConflict,
+            psycopg2.Error,
+        ) as exc:
+            if isinstance(exc, GovernanceDefinitionMutationInvalid):
+                return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+            if isinstance(exc, GovernanceDefinitionMutationConflict):
+                return JSONResponse(status_code=409, content={"error": str(exc)}, headers=headers)
+            if isinstance(exc, TenantContextDenied):
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "Tenant-qualified operator access is required"},
+                    headers=headers,
+                )
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current governance mutation grant and person binding are required"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Governance definition content is invalid"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Governance definition was not found in this location"},
+                    headers=headers,
+                )
+            if code in {"23505", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Governance definition is unavailable or changed state"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_definitions").warning(
+                "Governance definition mutation unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance definition mutation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=201 if action == "create" else 200,
+            headers=headers,
+        )
+
+    def create_definition_endpoint(entity_type):
+        async def endpoint(request: Request, location_id: str):
+            return await governance_definition_mutation_route(
+                request, location_id, entity_type, "create"
+            )
+
+        return endpoint
+
+    def update_definition_endpoint(entity_type):
+        async def endpoint(request: Request, location_id: str, definition_id: str):
+            return await governance_definition_mutation_route(
+                request, location_id, entity_type, "update", definition_id
+            )
+
+        return endpoint
+
+    for entity_type, route_name in (("circle", "circle"), ("role", "role")):
+        router.add_api_route(
+            f"/operator/api/governance/{{location_id}}/{route_name}s",
+            create_definition_endpoint(entity_type),
+            methods=["POST"],
+            name=f"create_governance_{route_name}",
+        )
+        router.add_api_route(
+            f"/operator/api/governance/{{location_id}}/{route_name}s/{{definition_id}}",
+            update_definition_endpoint(entity_type),
+            methods=["PATCH"],
+            name=f"update_governance_{route_name}",
+        )
+
     for circle_action in ("submit", "reject", "activate", "suspend", "retire"):
         router.add_api_route(
             f"/operator/api/governance/{{location_id}}/circles/{{circle_id}}/{circle_action}",
@@ -683,6 +856,49 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
             return JSONResponse(
                 status_code=503,
                 content={"error": "Governance tactical queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get("/operator/api/governance/{location_id}/tactical-sessions")
+    async def location_governance_tactical_sessions(
+        request: Request,
+        location_id: str,
+        limit: str = "50",
+        cursor: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_governance_tactical_sessions,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                cursor=cursor,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceOperationsInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_operations").warning(
+                "Governance tactical sessions unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance tactical sessions unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

@@ -531,6 +531,48 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_definition_create_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/(circles|roles)", path
+    )
+    if governance_definition_create_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": "create",
+            "public": False,
+            "location_id": governance_definition_create_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    governance_circle_detail_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/circles/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if governance_circle_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": "read",
+            "additional_scopes": [{"resource": "governance_roles", "action": "update"}],
+            "public": False,
+            "location_id": governance_circle_detail_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    governance_definition_update_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/(circles|roles)/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if governance_definition_update_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": "update",
+            "public": False,
+            "location_id": governance_definition_update_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_circle_action_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/circles/([0-9a-fA-F-]{36})/(submit|reject|activate|suspend|retire)",
         path,
@@ -568,6 +610,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "read",
             "public": False,
             "location_id": governance_tactical_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    governance_tactical_sessions_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-sessions", path
+    )
+    if governance_tactical_sessions_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "governance_tactical",
+            "action": "read",
+            "public": False,
+            "location_id": governance_tactical_sessions_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }

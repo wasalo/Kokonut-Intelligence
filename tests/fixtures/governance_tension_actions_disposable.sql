@@ -127,11 +127,16 @@ CREATE TABLE public.governance_circle (
     circle_key TEXT,
     name TEXT,
     purpose TEXT,
+    description TEXT,
+    parent_circle_id UUID REFERENCES public.governance_circle(id),
     scope_type TEXT NOT NULL,
     scope_id UUID,
     status TEXT NOT NULL,
     created_by_party_id UUID REFERENCES public.party(id),
-    retired_at TIMESTAMPTZ
+    retired_at TIMESTAMPTZ,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp()
 );
 CREATE TABLE public.governance_role (
     id UUID PRIMARY KEY,
@@ -140,7 +145,11 @@ CREATE TABLE public.governance_role (
     name TEXT NOT NULL DEFAULT 'Test Role',
     purpose TEXT,
     status TEXT NOT NULL,
-    created_by_party_id UUID REFERENCES public.party(id)
+    created_by_party_id UUID REFERENCES public.party(id),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    UNIQUE (circle_id, role_key)
 );
 CREATE TABLE public.governance_role_assignment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

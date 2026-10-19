@@ -24,6 +24,7 @@ _PARAMETER_SAMPLES = {
     "tension_id": "66666666-6666-4666-8666-666666666666",
     "role_id": "77777777-7777-4777-8777-777777777777",
     "circle_id": "77777777-7777-4777-8777-777777777777",
+    "definition_id": "77777777-7777-4777-8777-777777777777",
     "assignment_id": "88888888-8888-4888-8888-888888888888",
     "item_id": "99999999-9999-4999-8999-999999999999",
     "device_id": "collector-1",
@@ -99,6 +100,32 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles",
     ): _expected("governance_roles", "read", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/circles",
+    ): _expected("governance_roles", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles",
+    ): _expected("governance_roles", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/circles/77777777-7777-4777-8777-777777777777",
+    ): _expected(
+        "governance_roles",
+        "read",
+        scoped=True,
+        location_id=_LOCATION_ID,
+        additional=(("governance_roles", "update"),),
+    ),
+    (
+        "PATCH",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/circles/77777777-7777-4777-8777-777777777777",
+    ): _expected("governance_roles", "update", scoped=True, location_id=_LOCATION_ID),
+    (
+        "PATCH",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777",
+    ): _expected("governance_roles", "update", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/roles/77777777-7777-4777-8777-777777777777",
     ): _expected("governance_roles", "read", scoped=True, location_id=_LOCATION_ID),
@@ -153,6 +180,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     (
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-items",
+    ): _expected("governance_tactical", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-sessions",
     ): _expected("governance_tactical", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
