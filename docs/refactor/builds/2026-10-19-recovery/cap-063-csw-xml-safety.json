@@ -12,13 +12,14 @@
     "GIS boundary parsing validates finite WGS84 positions, ring closure, and a bounded coordinate count before WKT generation; Polygon and MultiPolygon builders preserve every interior ring.",
     "GIS import validates target, file format, and source records before opening PostgreSQL; empty or malformed source inputs do not acquire a database connection.",
     "GIS import supports KML Placemark Polygon and MultiGeometry polygon boundaries, preserves interior rings and ExtendedData fields, and parses with defusedxml to reject entity declarations.",
+    "Raster metadata maps known filename suffixes to the raster_metadata schema's format vocabulary and preserves unknown CRS as unknown instead of assuming EPSG:4326.",
     "Focused tests parse both serializer outputs, verify markup-shaped input remains text, protect the map popup/coordinate contract, and exercise GeoJSON/CSV/KML validation and serialization."
   ],
   "verification": {
     "command": "python3 -m pytest tests/test_csw_serializer.py tests/test_map_viewer_contract.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_legacy_geo_import_error_redaction.py tests/test_spatial_import.py tests/test_security_hardening.py tests/test_raster_metadata_error_redaction.py -q",
-    "result": "61 passed, including CSW serializer, map viewer, GeoJSON/CSV/KML, legacy spatial KML, security-hardening, raster error-redaction, and preflight checks",
-    "ruff": "python3 -m ruff check on changed CSW, GIS import, and focused test files: passed",
-    "compilation": "python3 -m compileall -q on changed CSW, GIS import, and focused test files: passed",
+    "result": "62 passed, including CSW serializer, map viewer, GeoJSON/CSV/KML, legacy spatial KML, security-hardening, raster metadata, and import-redaction checks",
+    "ruff": "python3 -m ruff check on changed CSW/GIS/raster metadata and focused test files: passed",
+    "compilation": "python3 -m compileall -q on changed CSW/GIS/raster metadata and focused test files: passed",
     "javascript": "Extracted Leaflet inline script passes node --check.",
     "database_or_provider": "None used; preflight tests assert PostgreSQL is not opened for invalid or empty source inputs."
   },

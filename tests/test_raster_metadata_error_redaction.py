@@ -36,3 +36,33 @@ def test_raster_open_failure_logs_only_exception_class(reader, message, tmp_path
     assert "credential=secret" not in caplog.text
     assert "RuntimeError" in caplog.text
     assert "Traceback" not in caplog.text
+
+
+def test_tif_metadata_matches_schema_format_and_does_not_infer_missing_crs(
+    tmp_path, monkeypatch
+):
+    source = tmp_path / "sample.TIF"
+    source.write_bytes(b"raster-fixture")
+
+    class FakeRaster:
+        bounds = SimpleNamespace(left=1, bottom=2, right=3, top=4)
+        transform = SimpleNamespace(a=0.25, e=-0.25)
+        crs = None
+        count = 1
+        descriptions = (None,)
+        dtypes = ("uint16",)
+        nodata = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setitem(sys.modules, "rasterio", SimpleNamespace(open=Mock(return_value=FakeRaster())))
+
+    result = import_raster_metadata(str(source), location_id="location-1")
+
+    assert result["status"] == "success"
+    assert result["metadata"]["file_format"] == "tiff"
+    assert result["metadata"]["crs"] is None

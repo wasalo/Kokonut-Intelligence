@@ -11390,10 +11390,12 @@ PostgreSQL access, and empty imports do not open a connection. KML Placemark
 Polygon and MultiGeometry boundaries now use defusedxml, retain holes and
 ExtendedData, and reject entity declarations. The CSW/GIS/map and import-
 redaction selection plus existing spatial-KML, security-hardening, and raster
-error-redaction checks passes 61 tests with Ruff, compilation, and JavaScript
+error-redaction checks passes 62 tests with Ruff, compilation, and JavaScript
 syntax. The map still uses its legacy Directus endpoint. A tenant-scoped
 Gateway map API, CSW endpoint, catalog/ISO 19115 fixtures, KML style/altitude,
-raster GroundOverlay/metadata persistence, PostGIS recovery, populated spatial
+raster GroundOverlay/metadata persistence remain open. Raster format mapping
+now aligns TIFF suffixes with the schema and leaves missing CRS unknown.
+PostGIS recovery, populated spatial
 fixtures, geostory, thesaurus, and MAN-CAP-063 review remain open. No database
 or external service was used. Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-063-csw-xml-safety.json).
