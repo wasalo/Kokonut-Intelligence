@@ -540,6 +540,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    management_summary_match = re.fullmatch(
+        r"/operator/api/management/([0-9a-fA-F-]{36})/summary", path
+    )
+    if management_summary_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "management_workflow",
+            "action": "read",
+            "public": False,
+            "location_id": management_summary_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_summary_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/summary", path
     )
@@ -2495,6 +2508,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     )
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
     from services.gateway.governance_role_routes import register_governance_role_routes
+    from services.gateway.management_work_routes import register_management_work_routes
     from services.gateway.stakeholder_identity_resolution_routes import (
         register_stakeholder_identity_resolution_routes,
     )
@@ -2517,6 +2531,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_threatcasting_routes(router, provider, run_in_threadpool, psycopg2)
     register_strategy_routes(router, provider, run_in_threadpool, psycopg2)
     register_competitive_landscape_routes(router, provider, run_in_threadpool, psycopg2)
+    register_management_work_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_trust_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_resolution_routes(

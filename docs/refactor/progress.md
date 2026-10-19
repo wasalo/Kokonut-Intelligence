@@ -1,3 +1,24 @@
+### CAP-030 first management workflow Kernel summary — 19 October 2026
+
+The Gateway now exposes a location-only workload summary under exact
+`management_workflow:read` and signed tenant context. Migration 454 rechecks
+scope in PostgreSQL and uses a dedicated non-login reader role. The projection
+returns lifecycle and open-priority counts, overdue/SLA totals, claim and
+escalation aggregates, and latest event time for work items whose location
+matches exactly. Task text, assignee/actor identities, claimants, estimated
+effort, notes, and escalation reasons are excluded. The focused Gateway,
+route-policy, and migration-metadata selection passes 42 tests. Disposable
+PostgreSQL 16 applies/replays migration 454 and passes seven scope, aggregate,
+privacy, and privilege assertions. Candidate and legacy are untouched;
+migration 454 is not rolled out. CAP-030 remains prepared: assignment,
+selection/claim review, lifecycle transition, dynamic SLA policy, escalation
+mutation and detailed audit parity, unscoped work-item review, populated
+fixtures, live OIDC/browser acceptance, universal ACL/RLS, and MAN-CAP-030
+owner review remain open. Checklist: 671 complete / 19 open; classifications:
+39 baseline-retained, 7 deployed, 20 prepared ([contract](management-work-kernel-read-contract.md);
+[migration](../schemas/postgres/454_location_scoped_management_work_summary.sql);
+[evidence](builds/2026-10-19-recovery/cap-030-management-work-summary-disposable.json)).
+
 ### CAP-029 first competitive landscape Kernel read projection — 19 October 2026
 
 The Gateway now exposes a bounded, location-scoped competitive landscape
