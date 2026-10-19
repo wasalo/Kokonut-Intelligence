@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 872,
-    "execution_sites": 4162,
+    "source_files": 874,
+    "execution_sites": 4166,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 329,
-    "sites_without_worker_operation_refs": 3833,
+    "sites_without_worker_operation_refs": 3837,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
@@ -15,16 +15,16 @@
       "RELEASE": 8,
       "ROLLBACK": 6,
       "SAVEPOINT": 5,
-      "SELECT": 2615,
-      "SET": 149,
+      "SELECT": 2616,
+      "SET": 152,
       "UNKNOWN": 191,
       "UPDATE": 442,
       "WITH": 25
     },
     "statement_groups": {
-      "read_candidate": 2615,
+      "read_candidate": 2616,
       "schema_change": 1,
-      "transaction_or_session": 168,
+      "transaction_or_session": 171,
       "unknown_requires_manual_review": 191,
       "with_requires_manual_review": 25,
       "write_candidate": 1162
@@ -33,10 +33,10 @@
       "composed": 16,
       "composed_or_variable": 262,
       "fstring": 274,
-      "literal": 3610
+      "literal": 3614
     },
-    "relation_candidates": 1090,
-    "sites_without_relation_candidates": 568,
+    "relation_candidates": 1091,
+    "sites_without_relation_candidates": 571,
     "service_packages": 67
   },
   "service_packages": {
@@ -363,17 +363,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 70,
-      "execution_sites": 309,
+      "source_files": 72,
+      "execution_sites": 313,
       "statement_groups": {
-        "read_candidate": 136,
-        "transaction_or_session": 118,
+        "read_candidate": 137,
+        "transaction_or_session": 121,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 35
       },
-      "candidate_relation_names": 89,
-      "sites_without_relation_candidates": 148,
+      "candidate_relation_names": 90,
+      "sites_without_relation_candidates": 151,
       "non_literal_sites": 10,
       "sites_with_worker_operation_refs": 0
     },
@@ -1272,6 +1272,7 @@
     "kokonut_security.decide_location_party_identity": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/stakeholder_identity.py"]},
     "kokonut_security.list_eas_indexer_recipients": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/ingestion/eas_worker.py"]},
     "kokonut_security.list_governance_role_assignment_review_queue": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/governance_assignment_review.py"]},
+    "kokonut_security.list_location_budget_summaries": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/planning_budget_reads.py"]},
     "kokonut_security.list_location_competitive_landscape_summaries": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/competitive_landscape_reads.py"]},
     "kokonut_security.list_location_delphi_consultations": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/delphi_consultation.py"]},
     "kokonut_security.list_location_delphi_draftable_studies": {"execution_site_count": 1,"statement_kinds": ["SELECT"],"statement_groups": ["read_candidate"],"source_files": ["services/gateway/delphi_recommendation_drafts.py"]},
@@ -4615,6 +4616,10 @@
     {"id": "services/gateway/operator_review.py:117:12","source": "services/gateway/operator_review.py","line": 117,"column": 12,"scope": "get_submitted_report","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "d9946d44ba3ecfd34d8e9419a4918e0cee4d99c52737f63b62043c82b60030e5","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/operator_review.py:118:12","source": "services/gateway/operator_review.py","line": 118,"column": 12,"scope": "get_submitted_report","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/operator_review.py:126:12","source": "services/gateway/operator_review.py","line": 126,"column": 12,"scope": "get_submitted_report","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["location","operator_scope_grant","report_snapshot"],"static_sql_sha256": "5b4baee63c9094611efb88daae9d2933d92ec49fa2e7366840a1f05a5272ed0b","operation_refs": [],"statement_group": "read_candidate"},
+    {"id": "services/gateway/planning_budget_reads.py:70:12","source": "services/gateway/planning_budget_reads.py","line": 70,"column": 12,"scope": "list_location_budget_summaries","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/planning_budget_reads.py:71:12","source": "services/gateway/planning_budget_reads.py","line": 71,"column": 12,"scope": "list_location_budget_summaries","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/planning_budget_reads.py:72:12","source": "services/gateway/planning_budget_reads.py","line": 72,"column": 12,"scope": "list_location_budget_summaries","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/planning_budget_reads.py:81:12","source": "services/gateway/planning_budget_reads.py","line": 81,"column": 12,"scope": "list_location_budget_summaries","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": ["kokonut_security.list_location_budget_summaries"],"static_sql_sha256": "a25b347a183a6ab8f63149b3d614a5efe25a55d706fe0e2e11a65bc216755d14","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/postgres_rate_limiter.py:20:12","source": "services/gateway/postgres_rate_limiter.py","line": 20,"column": 12,"scope": "PostgresRateLimiter._budget","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/postgres_rate_limiter.py:21:12","source": "services/gateway/postgres_rate_limiter.py","line": 21,"column": 12,"scope": "PostgresRateLimiter._budget","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "533631607e3f7cfccfec5c163f787a0d14ddf3a4e3e49ce74a3ea398393a39cc","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/postgres_rate_limiter.py:22:12","source": "services/gateway/postgres_rate_limiter.py","line": 22,"column": 12,"scope": "PostgresRateLimiter._budget","method": "execute","expression_kind": "literal","statement_kind": "INSERT","candidate_relations": ["gateway_rate_bucket"],"static_sql_sha256": "31bfce29910d690d239d48a60a5ae0e4acc70be8eeb265e1757e67c9359a3a57","operation_refs": [],"statement_group": "write_candidate"},

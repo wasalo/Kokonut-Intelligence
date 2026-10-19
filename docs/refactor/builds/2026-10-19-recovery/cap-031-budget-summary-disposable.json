@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "455_location_scoped_budget_summary.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 455 applies and replays on disposable PostgreSQL 16",
+    "only plans with location-assigned lines belonging to the location owner are returned",
+    "planned totals, verified same-currency expense totals, variance, foreign-currency count, and scenarios match fixture",
+    "organization-only lines and cross-organization/location plans are excluded",
+    "exact signed location context, planning_budget:read, and bounded paging are enforced",
+    "plan labels, categories, scenarios, and individual financial facts are excluded",
+    "runtime and Directus receive no direct table reads; the reader role is non-login and read-only"
+  ],
+  "assertions_passed": 7
+}

@@ -1,3 +1,25 @@
+### CAP-031 first planning budget Kernel projection — 19 October 2026
+
+The existing public location roll-up and read-only Python/TypeScript stored
+finance accessors remain deployed. The Gateway now also has a bounded internal
+budget read under exact `planning_budget:read` and signed tenant context.
+Migration 455 rechecks authorization and includes only plans owned by the
+location's current organization with budget lines explicitly assigned to that
+location. It returns plan lifecycle/currency/period, planned total, verified
+same-currency expense amount and variance, nonmatching-currency expense count,
+and scenario count. It excludes organization-only lines, labels, objectives,
+categories, assumptions, and transaction details. The focused Gateway,
+route-policy, and migration-metadata selection passes 49 tests. Disposable
+PostgreSQL 16 applies/replays migration 455 and passes seven lineage, currency,
+scope, privacy, and privilege assertions. Candidate and legacy are untouched;
+migration 455 is not rolled out. CAP-031 remains partial: lifecycle edits,
+revenue/cash flow, objectives/KPIs, portfolio allocation, S&OP, currency
+conversion, populated parity, live OIDC/browser, universal ACL/RLS, and
+MAN-CAP-031 owner review remain open. Checklist: 672 complete / 19 open;
+classifications: 39 baseline-retained, 7 deployed, 20 prepared ([contract](planning-budget-kernel-read-contract.md);
+[migration](../schemas/postgres/455_location_scoped_budget_summary.sql);
+[evidence](builds/2026-10-19-recovery/cap-031-budget-summary-disposable.json)).
+
 ### CAP-030 first management workflow Kernel summary — 19 October 2026
 
 The Gateway now exposes a location-only workload summary under exact
