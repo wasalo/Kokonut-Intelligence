@@ -1,5 +1,32 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 tactical session creation — 19 October 2026
+
+Migration 444 adds a bounded Gateway creation path for tactical sessions. An
+exact location `governance_tactical:create` grant, signed tenant context, and
+active operator/person binding are rechecked in PostgreSQL. Sessions can only
+be created in active circles belonging to that location; optional facilitator
+and recorder roles must be active in the same circle. The accepted content is
+draft-safe, and the database always assigns `planned` status. An immutable
+private ledger records the request UUID, content, reason, and actor. Exact
+retries return the prior session; changed reuse is rejected. Runtime and
+Directus direct inserts are revoked and trigger-guarded.
+
+The operator console exposes a CSRF-protected form only for the exact create
+grant and retains the same request UUID when retrying unchanged form values.
+Fifteen focused Gateway, route-policy, and console tests pass. The combined
+disposable PostgreSQL 16 suite successfully applies and replays migrations
+437–444 and checks scope, actor binding, same-circle role validation, planned
+status, immutable history, retry/collision behavior, and direct-write denial.
+Ruff, Python compilation, Node JavaScript syntax, and diff checks pass.
+Candidate and legacy databases were not accessed; migration 444 is not rolled
+out. Checklist: 656 complete / 19 open (675 total); capability counts remain
+45 baseline-retained, 7 deployed, 14 prepared. CAP-024 remains prepared, not
+accepted; item edit parity, populated fixtures, least-privilege rollout, tenant
+RLS, live OIDC/browser acceptance, and MAN-CAP-024 remain open
+([contract](governance-tactical-session-creation-contract.md); [migration](../schemas/postgres/444_governance_tactical_session_creation.sql);
+[tests](../tests/test_gateway_governance_tactical_session_mutations.py); [database evidence](builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json)).
+
 ### CAP-024 tactical session registry — 18 October 2026
 
 The Gateway and operator console now include a location-scoped tactical session
@@ -16,7 +43,7 @@ inventory (850 service files / 4,113 execution sites), and diff checks pass. No
 database, provider, candidate, or legacy service was accessed, and no migration
 was needed. Checklist: 655 complete / 19 open (674 total); capability counts
 remain 45 baseline-retained, 7 deployed, 14 prepared. CAP-024 remains prepared,
-not accepted; tactical create/edit parity, populated fixtures, least-privilege
+not accepted; tactical session/item editing parity, populated fixtures, least-privilege
 rollout, domain RLS, live OIDC/browser acceptance, and MAN-CAP-024 remain open
 ([evidence](builds/2026-10-18-recovery/governance-tactical-session-registry.json)).
 

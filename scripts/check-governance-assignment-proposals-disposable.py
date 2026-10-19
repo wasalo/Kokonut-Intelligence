@@ -22,8 +22,9 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/441_governance_tactical_actions.sql",
     ROOT / "schemas/postgres/442_governance_definition_lifecycle.sql",
     ROOT / "schemas/postgres/443_governance_definition_mutations.sql",
+    ROOT / "schemas/postgres/444_governance_tactical_session_creation.sql",
 )
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-definition-mutations-disposable.json"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json"
 
 ORG_ID = "a0000000-0000-4000-8000-000000000101"
 LOCATION_ID = "a0000000-0000-4000-8000-000000000201"
@@ -113,7 +114,10 @@ def run_acceptance(container: str) -> list[str]:
     mutation_sql = MIGRATIONS[6].read_text()
     docker_sql(container, mutation_sql)
     docker_sql(container, mutation_sql)
-    checks.append("migrations 438–443 apply and replay transactionally after migration 437")
+    session_creation_sql = MIGRATIONS[7].read_text()
+    docker_sql(container, session_creation_sql)
+    docker_sql(container, session_creation_sql)
+    checks.append("migrations 438–444 apply and replay transactionally after migration 437")
 
     privilege = docker_sql(
         container,
@@ -707,6 +711,192 @@ def run_acceptance(container: str) -> list[str]:
     )
     checks.append("circle and role creation always yields draft records; exact create/update grants, same-location parents, draft-only edits, idempotent retries, private append-only before/after history, and runtime/Directus direct-write denial are enforced")
 
+    docker_sql(
+        container,
+        f"""INSERT INTO public.operator_scope_grant VALUES
+          ('a0000000-0000-4000-8000-000000000716', '{OPERATOR_ONE}', 'governance_tactical', 'create', '{LOCATION_ID}', '{ORG_ID}', NULL),
+          ('a0000000-0000-4000-8000-000000000718', '{OPERATOR_THREE}', 'governance_tactical', 'create', '{LOCATION_ID}', '{ORG_ID}', NULL);""",
+    )
+    tactical_session_request = str(uuid.uuid4())
+    tactical_session_content = json.dumps({
+        "circle_id": MUTATION_PARENT_CIRCLE,
+        "session_type": "weekly_review",
+        "title": "Synthetic weekly review",
+        "scheduled_at": "2026-10-21T14:00:00+00:00",
+        "facilitator_role_id": ROLE_LOCATION,
+        "agenda_scope": "Review synthetic farm operations and actions.",
+    }, separators=(",", ":"))
+
+    def create_tactical_session(operator_id, request_id, content, reason):
+        content_sql = content.replace("'", "''")
+        reason_sql = reason.replace("'", "''")
+        return runtime_call(
+            container,
+            operator_id,
+            f"""SELECT event_id::text || '|' || session_id::text || '|' ||
+                       actor_party_id::text || '|' || status
+                  FROM kokonut_security.create_governance_tactical_session(
+                    '{LOCATION_ID}', '{request_id}', '{content_sql}'::jsonb, '{reason_sql}'
+                  );""",
+        ).stdout.strip().splitlines()[-1]
+
+    created_session = create_tactical_session(
+        OPERATOR_ONE,
+        tactical_session_request,
+        tactical_session_content,
+        "Schedule a synthetic tactical review.",
+    )
+    replayed_session = create_tactical_session(
+        OPERATOR_ONE,
+        tactical_session_request,
+        tactical_session_content,
+        "Schedule a synthetic tactical review.",
+    )
+    if created_session != replayed_session or not created_session.endswith(f"|{PARTY_ONE}|planned"):
+        raise AssertionError(f"tactical session retry did not replay exact planned result: {created_session} / {replayed_session}")
+    created_event_id, created_session_id, _, _ = created_session.split("|")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{tactical_session_request}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"Changed request"}}'::jsonb,
+            'Schedule a synthetic tactical review.');"""),
+        "22023",
+        "reject changed tactical session request-key replay",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"Cannot set state","status":"active"}}'::jsonb,
+            'Reject caller-selected lifecycle state.');"""),
+        "22023",
+        "reject caller-selected tactical session lifecycle state",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"Cannot set notes","notes":"Private content"}}'::jsonb,
+            'Reject caller-provided notes.');"""),
+        "22023",
+        "reject caller-provided tactical session notes",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"Timezone required","scheduled_at":"2026-10-21T14:00:00"}}'::jsonb,
+            'Reject ambiguous schedule.');"""),
+        "22023",
+        "reject timezone-less tactical session schedule",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"No exact grant"}}'::jsonb,
+            'Reject missing exact create grant.');"""),
+        "42501",
+        "reject tactical session creation without the exact create grant",
+    )
+    wrong_session_context = f"""SET ROLE kokonut_runtime;
+        SELECT set_config('test.tenant_id', '{ORG_ID}', FALSE);
+        SELECT set_config('test.location_id', 'a0000000-0000-4000-8000-000000000299', FALSE);
+        SELECT set_config('test.actor_id', '{OPERATOR_ONE}', FALSE);
+        SELECT set_config('test.actor_type', 'operator', FALSE);
+        SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"Wrong signed context"}}'::jsonb,
+            'Reject location mismatch.');"""
+    assert_sqlstate(
+        container,
+        wrong_session_context,
+        "42501",
+        "reject tactical session creation with mismatched signed location context",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{NETWORK_CIRCLE}","session_type":"weekly_review","title":"Wrong scope"}}'::jsonb,
+            'Reject a network circle.');"""),
+        "P0002",
+        "reject tactical session circle outside the location",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"Wrong role","facilitator_role_id":"{ROLE_NETWORK}"}}'::jsonb,
+            'Reject a role outside the selected circle.');"""),
+        "P0002",
+        "reject tactical session role outside the selected circle",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_THREE, f"""SELECT * FROM kokonut_security.create_governance_tactical_session(
+            '{LOCATION_ID}', '{uuid.uuid4()}',
+            '{{"circle_id":"{MUTATION_PARENT_CIRCLE}","session_type":"weekly_review","title":"Unbound actor"}}'::jsonb,
+            'Reject missing person binding.');"""),
+        "42501",
+        "reject tactical session creation without an active person binding",
+    )
+    session_row = docker_sql(
+        container,
+        f"""SELECT status || '|' || COALESCE(notes, '<null>') || '|' ||
+                   COALESCE(outcome_summary, '<null>') || '|' || created_by_party_id::text
+              FROM public.governance_tactical_session WHERE id = '{created_session_id}';""",
+    ).stdout.strip()
+    session_event_count = docker_sql(
+        container,
+        f"""SELECT count(*) FROM public.governance_tactical_session_creation_event
+             WHERE id = '{created_event_id}' AND session_id = '{created_session_id}';""",
+    ).stdout.strip()
+    if session_row != f"planned|<null>|<null>|{PARTY_ONE}" or session_event_count != "1":
+        raise AssertionError(f"tactical session draft/history boundary failed: {session_row}, events={session_event_count}")
+    session_acl = docker_sql(
+        container,
+        """SELECT NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_session', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_session', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_session_creation_event', 'SELECT')
+                  AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_session_creation_event', 'SELECT')
+                  AND has_function_privilege('kokonut_runtime',
+                    'kokonut_security.create_governance_tactical_session(uuid,uuid,jsonb,text)', 'EXECUTE')
+                  AND NOT has_function_privilege('kokonut_directus_runtime',
+                    'kokonut_security.create_governance_tactical_session(uuid,uuid,jsonb,text)', 'EXECUTE');""",
+    ).stdout.strip()
+    if session_acl != "t":
+        raise AssertionError(f"tactical session creation ACL contract failed: {session_acl}")
+    for database_role in ("kokonut_runtime", "kokonut_directus_runtime"):
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; INSERT INTO public.governance_tactical_session (id,circle_id,session_type,title,status) VALUES ('{uuid.uuid4()}','{MUTATION_PARENT_CIRCLE}','weekly_review','Bypass','planned');",
+            "42501",
+            f"direct {database_role} tactical session insert",
+        )
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; SELECT * FROM public.governance_tactical_session_creation_event;",
+            "42501",
+            f"private tactical session creation history read by {database_role}",
+        )
+        docker_sql(container, f"GRANT INSERT ON public.governance_tactical_session TO {database_role};")
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; INSERT INTO public.governance_tactical_session (id,circle_id,session_type,title,status) VALUES ('{uuid.uuid4()}','{MUTATION_PARENT_CIRCLE}','weekly_review','Trigger bypass','planned');",
+            "42501",
+            f"trigger guard for {database_role} tactical session insert",
+        )
+        docker_sql(container, f"REVOKE INSERT ON public.governance_tactical_session FROM {database_role};")
+    assert_sqlstate(
+        container,
+        f"UPDATE public.governance_tactical_session_creation_event SET reason = 'rewritten' WHERE id = '{created_event_id}';",
+        "P0001",
+        "immutable tactical session creation history",
+    )
+    checks.append("tactical session creation requires exact signed location scope and active person binding, accepts only draft-safe fields, validates active same-location circles/roles, replays exact request keys, records immutable actor/reason history, and denies runtime/Directus direct writes")
+
     first_page = runtime_call(
         container,
         OPERATOR_ONE,
@@ -1022,7 +1212,7 @@ def main() -> None:
             raise RuntimeError("disposable PostgreSQL did not become ready")
         checks = run_acceptance(container)
         evidence = {
-            "title": "Migrations 437-443 governance role assignment, definition mutation, and lifecycle acceptance",
+            "title": "Migrations 437-444 governance role assignment, definition mutation, lifecycle, and tactical session creation acceptance",
             "status": "passed",
             "checks": checks,
             "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",

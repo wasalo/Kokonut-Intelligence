@@ -2,8 +2,21 @@
 CREATE TABLE public.governance_tactical_session (
     id UUID PRIMARY KEY,
     circle_id UUID NOT NULL REFERENCES public.governance_circle(id),
+    session_type TEXT NOT NULL CHECK (session_type IN (
+        'weekly_review', 'stakeholder_health', 'relationship_review',
+        'risk_triage', 'governance_followup'
+    )),
+    title TEXT NOT NULL,
+    scheduled_at TIMESTAMPTZ,
+    facilitator_role_id UUID REFERENCES public.governance_role(id),
+    recorder_role_id UUID REFERENCES public.governance_role(id),
     status TEXT NOT NULL CHECK (status IN ('planned', 'active', 'completed', 'cancelled')),
+    agenda_scope TEXT,
+    notes TEXT,
     outcome_summary TEXT,
+    created_by_party_id UUID REFERENCES public.party(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     CHECK (status <> 'completed' OR NULLIF(BTRIM(outcome_summary), '') IS NOT NULL)
 );
 CREATE TABLE public.governance_tactical_item (
@@ -25,9 +38,11 @@ CREATE TABLE public.governance_tactical_item (
 );
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.governance_tactical_item
     TO kokonut_runtime, kokonut_directus_runtime;
-INSERT INTO public.governance_tactical_session VALUES
-    ('a0000000-0000-4000-8000-000000000901', 'a0000000-0000-4000-8000-000000000801', 'active', NULL),
-    ('a0000000-0000-4000-8000-000000000902', 'a0000000-0000-4000-8000-000000000801', 'completed', 'Synthetic session completed with actions still in progress.');
+INSERT INTO public.governance_tactical_session (
+    id, circle_id, session_type, title, status, outcome_summary
+) VALUES
+    ('a0000000-0000-4000-8000-000000000901', 'a0000000-0000-4000-8000-000000000801', 'weekly_review', 'Synthetic active session', 'active', NULL),
+    ('a0000000-0000-4000-8000-000000000902', 'a0000000-0000-4000-8000-000000000801', 'weekly_review', 'Synthetic completed session', 'completed', 'Synthetic session completed with actions still in progress.');
 INSERT INTO public.governance_role (id, circle_id, role_key, name, status) VALUES
     ('a0000000-0000-4000-8000-000000000813', 'a0000000-0000-4000-8000-000000000801', 'tactical_owner', 'Tactical Owner', 'active');
 INSERT INTO public.governance_role_assignment (

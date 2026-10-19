@@ -77,6 +77,16 @@ due date, session summary, and owner role key, but omits party identities,
 session notes, agenda text, and disposition detail. The console renders both
 projections as text.
 
+Scheduling a session uses `POST
+/operator/api/governance/{location_id}/tactical-sessions` with the exact
+`governance_tactical:create` grant and CSRF protection. The request supplies an
+active same-location circle UUID, supported session type, title, reason, and
+optional timezone-qualified schedule, same-circle active facilitator/recorder
+roles, and agenda scope. PostgreSQL always creates a `planned` session; notes,
+outcomes, status, actor identity, and timestamps cannot be supplied. Request-key
+retries are idempotent, and immutable actor/reason history commits with the
+session. Runtime and Directus direct inserts are revoked and guarded.
+
 Tactical item changes use three separate POST routes ending in `/{item_id}/start`,
 `/{item_id}/dispose`, or `/{item_id}/cancel`; each requires its own location
 grant (`governance_tactical:start`, `:dispose`, or `:cancel`), CSRF, signed
@@ -104,7 +114,7 @@ assignment. A distinct review queue and approve/reject routes require their
 own grants, active person binding, and a reviewer different from the proposer.
 Direct assignment-table writes are revoked from the runtime and Directus roles.
 The candidate still uses the administrative `kokonut` login and remains at
-migration 437; migrations 438–441 are not applied there. Do not treat these
+migration 437; migrations 438–444 are not applied there. Do not treat these
 ACLs as a database isolation boundary until the candidate is switched to its
 least-privilege runtime role.
 

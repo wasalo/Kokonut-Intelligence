@@ -617,10 +617,10 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     governance_tactical_sessions_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-sessions", path
     )
-    if governance_tactical_sessions_match and method.upper() == "GET" and enabled:
+    if governance_tactical_sessions_match and method.upper() in {"GET", "POST"} and enabled:
         return {
             "resource": "governance_tactical",
-            "action": "read",
+            "action": "create" if method.upper() == "POST" else "read",
             "public": False,
             "location_id": governance_tactical_sessions_match.group(1),
             "scope_required": True,

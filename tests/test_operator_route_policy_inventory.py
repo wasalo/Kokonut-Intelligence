@@ -187,6 +187,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("governance_tactical", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-sessions",
+    ): _expected("governance_tactical", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-items/99999999-9999-4999-8999-999999999999/start",
     ): _expected("governance_tactical", "start", scoped=True, location_id=_LOCATION_ID),
     (
