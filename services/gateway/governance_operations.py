@@ -12,6 +12,7 @@ _ROLE_STATUSES = ("submitted", "approved", "active", "suspended")
 _CIRCLE_STATUSES = ("submitted", "active", "suspended")
 _TACTICAL_STATUSES = ("open", "in_progress")
 _MAX_PAGE_SIZE = 100
+_MAX_DETAIL_ITEMS = 100
 
 
 class GovernanceOperationsInvalid(ValueError):
@@ -172,6 +173,95 @@ def list_location_governance_roles(
             "location_id": location_id,
             "items": items,
             "next_cursor": str(items[-1]["id"]) if has_more and items else None,
+        }
+    finally:
+        try:
+            conn.rollback()
+        finally:
+            conn.close()
+
+
+def get_location_governance_role_detail(
+    operator_id: str,
+    location_id: str,
+    role_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict | None:
+    """Return bounded role responsibilities and authority without person data."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    role_id = _normalize_uuid(role_id, "role")
+    conn = _open_readonly(connection_factory or _connection_factory())
+    try:
+        set_operator_tenant_context(
+            conn,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="governance_roles",
+            action="read",
+        )
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT role.id, role.role_key, role.name, role.purpose,
+                          role.status, role.effective_from, role.effective_until,
+                          role.review_due_at, role.created_at,
+                          circle.circle_key, circle.name AS circle_name,
+                          circle.status AS circle_status
+                     FROM public.governance_role AS role
+                     JOIN public.governance_circle AS circle
+                       ON circle.id = role.circle_id
+                    WHERE role.id = %s::uuid
+                      AND role.status = ANY(%s::text[])
+                      AND circle.status = ANY(%s::text[])
+                      AND circle.scope_type = 'location'
+                      AND circle.scope_id = %s::uuid""",
+                (role_id, list(_ROLE_STATUSES), list(_CIRCLE_STATUSES), location_id),
+            )
+            row = cur.fetchone()
+            if row is None:
+                return None
+            columns = (column.name for column in (cur.description or ()))
+            role = dict(zip(columns, row))
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT accountability.accountability,
+                          accountability.priority, accountability.required
+                     FROM public.governance_role_accountability AS accountability
+                    WHERE accountability.role_id = %s::uuid
+                      AND accountability.status = 'active'
+                    ORDER BY accountability.priority, accountability.accountability
+                    LIMIT %s""",
+                (role_id, _MAX_DETAIL_ITEMS + 1),
+            )
+            accountability_rows = [_mapping(cur, item) for item in cur.fetchall()]
+
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT domain.domain_type, domain.domain_key,
+                          domain.scope_type, domain.authority_level,
+                          domain.requires_human_approval
+                     FROM public.governance_role_domain AS domain
+                    WHERE domain.role_id = %s::uuid
+                      AND domain.status = 'active'
+                      AND ((domain.scope_type = 'location'
+                            AND domain.scope_id = %s::uuid)
+                           OR (domain.scope_type = 'network'
+                               AND domain.scope_id IS NULL))
+                    ORDER BY domain.scope_type, domain.domain_type, domain.domain_key
+                    LIMIT %s""",
+                (role_id, location_id, _MAX_DETAIL_ITEMS + 1),
+            )
+            domain_rows = [_mapping(cur, item) for item in cur.fetchall()]
+
+        return {
+            "location_id": location_id,
+            "role": role,
+            "accountabilities": accountability_rows[:_MAX_DETAIL_ITEMS],
+            "accountabilities_truncated": len(accountability_rows) > _MAX_DETAIL_ITEMS,
+            "authority_domains": domain_rows[:_MAX_DETAIL_ITEMS],
+            "authority_domains_truncated": len(domain_rows) > _MAX_DETAIL_ITEMS,
         }
     finally:
         try:

@@ -1,5 +1,29 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 role detail read — 18 October 2026
+
+Added `GET /operator/api/governance/{location_id}/roles/{role_id}` under the
+existing exact `governance_roles:read` grant. A role is visible only when both
+its role and circle are in reviewable states and the circle belongs to the
+requested location; missing, out-of-scope, and non-reviewable roles share a
+404. The read returns active accountability text and applicable authority
+domain keys, levels, scope types, and human-approval flags, with each nested
+list capped at 100. It omits assignee identities, role-policy text, evidence
+expectations, arbitrary constraints, and metadata. The console adds a
+text-only detail panel with no mutation controls.
+
+The 44-test focused Gateway/governance/console/route-policy suite passes, as do
+Ruff, compilation, capability validation, diff checks, and the refreshed
+runtime SQL inventory (844 service files / 4,087 execution sites). The three
+role-detail SELECT shapes executed as the candidate runtime role in an explicit
+read-only transaction with random unmatched IDs, confirming schema compatibility
+without returning data. The candidate app alone was rebuilt; health returned
+200 and anonymous detail returned 401 with `Cache-Control: no-store`. The
+candidate database, Metabase, proxy, and legacy stack were left intact. No
+migration or data write was made. CAP-024 remains prepared, not accepted:
+decision/approval records, role/tactical mutation parity, domain-table RLS,
+populated fixtures, and MAN-CAP-024 remain open ([evidence](builds/2026-10-18-recovery/governance-role-detail-read.json)).
+
 ### CAP-024 role registry and tactical queue reads — 18 October 2026
 
 Added the location-scoped, read-only role registry and open tactical-item

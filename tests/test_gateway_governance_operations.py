@@ -46,6 +46,28 @@ class _Cursor:
                     "current_assignment_count", "applicable_authority_domain_count",
                 )
             ]
+        elif "FROM public.governance_role AS role" in self.query:
+            self.description = [
+                SimpleNamespace(name=name)
+                for name in (
+                    "id", "role_key", "name", "purpose", "status", "effective_from",
+                    "effective_until", "review_due_at", "created_at", "circle_key",
+                    "circle_name", "circle_status",
+                )
+            ]
+        elif "FROM public.governance_role_accountability AS accountability" in self.query:
+            self.description = [
+                SimpleNamespace(name=name)
+                for name in ("accountability", "priority", "required")
+            ]
+        elif "FROM public.governance_role_domain AS domain" in self.query:
+            self.description = [
+                SimpleNamespace(name=name)
+                for name in (
+                    "domain_type", "domain_key", "scope_type", "authority_level",
+                    "requires_human_approval",
+                )
+            ]
         elif "FROM public.governance_tactical_item AS item" in self.query and "requested_next_action" in self.query:
             self.description = [
                 SimpleNamespace(name=name)
@@ -59,11 +81,17 @@ class _Cursor:
     def fetchone(self):
         if "SELECT role.created_at" in self.query or "SELECT item.created_at" in self.query:
             return self.connection.cursor_timestamp
+        if "FROM public.governance_role AS role" in self.query and "COUNT(DISTINCT" not in self.query:
+            return self.connection.role_detail_row
         return None
 
     def fetchall(self):
         if "FROM public.governance_role AS role" in self.query and "COUNT(DISTINCT" in self.query:
             return self.connection.role_rows
+        if "FROM public.governance_role_accountability AS accountability" in self.query:
+            return self.connection.accountability_rows
+        if "FROM public.governance_role_domain AS domain" in self.query:
+            return self.connection.domain_rows
         if "FROM public.governance_tactical_item AS item" in self.query and "requested_next_action" in self.query:
             return self.connection.tactical_rows
         return []
@@ -80,6 +108,13 @@ class _Connection:
             "active", CREATED_AT, None, None, CREATED_AT, "adelphi-stewardship",
             "Adelphi Stewardship", "active", 4, 1, 2,
         )]
+        self.role_detail_row = (
+            ROLE_ID, "steward", "Farm steward", "Coordinate location stewardship.",
+            "active", CREATED_AT, None, None, CREATED_AT, "adelphi-stewardship",
+            "Adelphi Stewardship", "active",
+        )
+        self.accountability_rows = [("Maintain seasonal field plans.", 2, True)]
+        self.domain_rows = [("farm_operations", "field_plan", "location", "recommend", True)]
         self.tactical_rows = [(
             ITEM_ID, "Review the irrigation schedule.", 2, None, "open", CREATED_AT,
             "weekly_review", "Weekly review", CREATED_AT, "active", "steward",
@@ -140,6 +175,97 @@ def test_role_registry_uses_signed_read_context_and_omits_party_and_policy_field
     assert connection.rolled_back and connection.closed
 
 
+def test_role_detail_returns_bounded_responsibilities_without_private_fields(monkeypatch):
+    connection = _Connection()
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        contexts.append((conn, kwargs))
+        conn.operations.append(("context", kwargs))
+
+    monkeypatch.setattr(
+        operations,
+        "set_operator_tenant_context",
+        set_context,
+    )
+
+    result = operations.get_location_governance_role_detail(
+        OPERATOR_ID, LOCATION_ID, ROLE_ID, connection_factory=lambda: connection
+    )
+
+    assert result["role"]["role_key"] == "steward"
+    assert result["accountabilities"] == [{
+        "accountability": "Maintain seasonal field plans.",
+        "priority": 2,
+        "required": True,
+    }]
+    assert result["authority_domains"] == [{
+        "domain_type": "farm_operations",
+        "domain_key": "field_plan",
+        "scope_type": "location",
+        "authority_level": "recommend",
+        "requires_human_approval": True,
+    }]
+    assert result["accountabilities_truncated"] is False
+    assert result["authority_domains_truncated"] is False
+    assert contexts == [(connection, {
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "governance_roles",
+        "action": "read",
+    })]
+    operations_log = connection.operations
+    context_index = next(i for i, item in enumerate(operations_log) if item[0] == "context")
+    query_indexes = [i for i, item in enumerate(operations_log) if item[0] == "sql" and item[1].startswith("SELECT")]
+    assert context_index < min(query_indexes)
+    sql = " ".join(item[1] for item in operations_log if item[0] == "sql")
+    assert "circle.scope_id = %s::uuid" in sql
+    for private_field in (
+        "party_id", "policy_text", "evidence_expectation", "constraints", "metadata",
+    ):
+        assert private_field not in sql
+    assert connection.rolled_back and connection.closed
+
+
+def test_role_detail_hides_unknown_or_cross_location_role(monkeypatch):
+    connection = _Connection()
+    connection.role_detail_row = None
+    monkeypatch.setattr(operations, "set_operator_tenant_context", lambda *_args, **_kwargs: None)
+
+    result = operations.get_location_governance_role_detail(
+        OPERATOR_ID, LOCATION_ID, ROLE_ID, connection_factory=lambda: connection
+    )
+
+    assert result is None
+    assert not any(
+        "governance_role_accountability" in item[1] or "governance_role_domain" in item[1]
+        for item in connection.operations if item[0] == "sql"
+    )
+    assert connection.rolled_back and connection.closed
+
+
+def test_role_detail_caps_accountability_and_authority_domain_lists(monkeypatch):
+    connection = _Connection()
+    connection.accountability_rows = [
+        (f"Accountability {index}", 3, True) for index in range(101)
+    ]
+    connection.domain_rows = [
+        ("farm_operations", f"domain_{index}", "location", "recommend", True)
+        for index in range(101)
+    ]
+    monkeypatch.setattr(operations, "set_operator_tenant_context", lambda *_args, **_kwargs: None)
+
+    result = operations.get_location_governance_role_detail(
+        OPERATOR_ID, LOCATION_ID, ROLE_ID, connection_factory=lambda: connection
+    )
+
+    assert len(result["accountabilities"]) == 100
+    assert result["accountabilities_truncated"] is True
+    assert len(result["authority_domains"]) == 100
+    assert result["authority_domains_truncated"] is True
+    assert connection.rolled_back and connection.closed
+
+
 def test_tactical_queue_uses_its_own_scope_and_omits_party_and_private_disposition(monkeypatch):
     connection = _Connection()
     contexts = []
@@ -180,6 +306,7 @@ def test_tactical_queue_uses_its_own_scope_and_omits_party_and_private_dispositi
         (operations.list_location_governance_roles, {"limit": "1e2"}, "limit must be an integer"),
         (operations.list_location_governance_tactical_items, {"limit": 101}, "limit must be an integer"),
         (operations.list_location_governance_tactical_items, {"cursor": "invalid"}, "Invalid cursor"),
+        (operations.get_location_governance_role_detail, {"role_id": "invalid"}, "Invalid role identifier"),
     ],
 )
 def test_invalid_selectors_fail_before_connecting(reader, kwargs, message):
@@ -266,6 +393,10 @@ def test_role_and_tactical_routes_deny_missing_exact_grants_before_service(monke
         lambda *_args, **_kwargs: pytest.fail("missing role grant reached data service"),
     )
     monkeypatch.setattr(
+        "services.gateway.governance_operations.get_location_governance_role_detail",
+        lambda *_args, **_kwargs: pytest.fail("missing role grant reached detail service"),
+    )
+    monkeypatch.setattr(
         "services.gateway.governance_operations.list_location_governance_tactical_items",
         lambda *_args, **_kwargs: pytest.fail("missing tactical grant reached data service"),
     )
@@ -273,10 +404,14 @@ def test_role_and_tactical_routes_deny_missing_exact_grants_before_service(monke
         create_app(), cookies={"kokonut_operator_session": "synthetic-session"}
     ) as client:
         role_response = client.get(f"/operator/api/governance/{LOCATION_ID}/roles")
+        role_detail_response = client.get(
+            f"/operator/api/governance/{LOCATION_ID}/roles/{ROLE_ID}"
+        )
         tactical_response = client.get(
             f"/operator/api/governance/{LOCATION_ID}/tactical-items"
         )
 
-    assert role_response.status_code == tactical_response.status_code == 403
+    assert role_response.status_code == role_detail_response.status_code == tactical_response.status_code == 403
     assert role_response.headers["cache-control"] == "no-store"
+    assert role_detail_response.headers["cache-control"] == "no-store"
     assert tactical_response.headers["cache-control"] == "no-store"

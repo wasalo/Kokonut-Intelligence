@@ -100,6 +100,11 @@ def test_role_and_tactical_panels_use_separate_read_grants_and_no_store():
         "async function loadGovernanceTacticalItems(append = false)",
         "async function loadGovernanceTensionDetail(tensionId)",
     )
+    role_detail_reader = _function(
+        source,
+        "async function loadGovernanceRoleDetail(roleId)",
+        "async function loadGovernanceTacticalItems(append = false)",
+    )
     assert '`/operator/api/governance/${encodeURIComponent(locationId)}/roles?${params}`' in role_reader
     assert '`/operator/api/governance/${encodeURIComponent(locationId)}/tactical-items?${params}`' in tactical_reader
     assert 'cache: "no-store"' in role_reader and 'cache: "no-store"' in tactical_reader
@@ -108,6 +113,11 @@ def test_role_and_tactical_panels_use_separate_read_grants_and_no_store():
     assert "innerHTML" not in role_reader and "innerHTML" not in tactical_reader
     assert "governance-role-registry" in source
     assert "governance-tactical-queue" in source
+    assert '`/operator/api/governance/${encodeURIComponent(locationId)}/roles/${encodeURIComponent(roleId)}`' in role_detail_reader
+    assert 'cache: "no-store"' in role_detail_reader
+    assert "textContent" in role_detail_reader and "innerHTML" not in role_detail_reader
+    assert "governance-role-detail-accountabilities" in source
+    assert "governance-role-detail-domains" in source
 
 
 def test_inline_javascript_parses_when_node_is_available():

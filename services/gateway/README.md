@@ -55,15 +55,25 @@ Location governance roles are available at `GET
 /operator/api/governance/{location_id}/roles` with the exact
 `governance_roles:read` grant. The bounded read-only registry returns role and
 circle labels, lifecycle dates, and aggregate accountability, assignment, and
-authority-domain counts; it omits party identities and policy text. Open
-tactical work is available at `GET
+authority-domain counts; it omits party identities and policy text. Role detail
+is available at `GET
+/operator/api/governance/{location_id}/roles/{role_id}` under the same grant.
+It returns active accountability descriptions and applicable authority-domain
+keys, levels, scope types, and human-approval flags, capped at 100 entries per
+list. It omits assignee identities, role-policy text, evidence expectations,
+and arbitrary constraint metadata. A role outside the requested location or
+the reviewable role/circle states returns the same 404 response.
+
+Open tactical work is available at `GET
 /operator/api/governance/{location_id}/tactical-items` with the separate exact
 `governance_tactical:read` grant. It returns bounded open/in-progress items,
 requested action, priority, due date, session summary, and owner role key, but
 omits party identities, session notes, agenda text, and disposition detail.
-Both routes establish signed tenant context before location-filtered SQL, use
-read-only transactions and keyset pagination capped at 100, and are rendered
-as text in the console. They expose no mutation or approval action; the
+The role registry and tactical queue use signed tenant context before
+location-filtered SQL, read-only transactions, and keyset pagination capped at
+100; role detail uses the same tenant context and read-only transaction with
+each nested list capped at 100. All three projections are rendered as text in
+the console. They expose no mutation or approval action; the
 underlying governance tables do not yet have domain-table RLS.
 
 Governance tension intake is available at `POST

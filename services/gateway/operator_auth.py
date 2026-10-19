@@ -461,6 +461,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_role_detail_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/roles/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if governance_role_detail_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "governance_roles",
+            "action": "read",
+            "public": False,
+            "location_id": governance_role_detail_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_tactical_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-items", path
     )

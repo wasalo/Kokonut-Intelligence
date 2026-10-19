@@ -162,11 +162,21 @@
           <p id="governance-role-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Circle</th><th>Role</th><th>Purpose</th><th>Status</th><th>Current assignments</th><th>Accountabilities</th><th>Authority domains</th></tr></thead>
+              <thead><tr><th>Circle</th><th>Role</th><th>Purpose</th><th>Status</th><th>Current assignments</th><th>Accountabilities</th><th>Authority domains</th><th></th></tr></thead>
               <tbody id="governance-role-queue"></tbody>
             </table>
           </div>
           <button id="governance-role-more" class="secondary" type="button" hidden>Load more roles</button>
+          <section id="governance-role-detail" hidden aria-labelledby="governance-role-detail-heading">
+            <h3 id="governance-role-detail-heading">Role responsibilities and authority</h3>
+            <dl id="governance-role-detail-fields"></dl>
+            <h4>Active accountabilities</h4>
+            <ul id="governance-role-detail-accountabilities"></ul>
+            <h4>Applicable authority domains</h4>
+            <ul id="governance-role-detail-domains"></ul>
+            <button id="governance-role-detail-close" class="secondary" type="button">Close role detail</button>
+            <p id="governance-role-detail-status" class="muted" role="status" aria-live="polite"></p>
+          </section>
         </section>
         <section id="governance-tactical-queue" hidden aria-labelledby="governance-tactical-queue-heading">
           <h2 id="governance-tactical-queue-heading">Open tactical actions</h2>
@@ -417,6 +427,11 @@
       const governanceRoleStatus = document.querySelector("#governance-role-status");
       const governanceRoleQueue = document.querySelector("#governance-role-queue");
       const governanceRoleMore = document.querySelector("#governance-role-more");
+      const governanceRoleDetail = document.querySelector("#governance-role-detail");
+      const governanceRoleDetailFields = document.querySelector("#governance-role-detail-fields");
+      const governanceRoleDetailAccountabilities = document.querySelector("#governance-role-detail-accountabilities");
+      const governanceRoleDetailDomains = document.querySelector("#governance-role-detail-domains");
+      const governanceRoleDetailStatus = document.querySelector("#governance-role-detail-status");
       const governanceTacticalQueue = document.querySelector("#governance-tactical-queue");
       const governanceTacticalLocation = document.querySelector("#governance-tactical-location");
       const governanceTacticalStatus = document.querySelector("#governance-tactical-status");
@@ -500,6 +515,7 @@
       let governanceRoleReadLocations = new Set();
       let governanceRoleNextCursor = null;
       let governanceRoleRequestVersion = 0;
+      let governanceRoleDetailRequestVersion = 0;
       let governanceTacticalReadLocations = new Set();
       let governanceTacticalNextCursor = null;
       let governanceTacticalRequestVersion = 0;
@@ -828,6 +844,12 @@
         if (!append) {
           governanceRoleQueue.replaceChildren();
           governanceRoleNextCursor = null;
+          governanceRoleDetailRequestVersion += 1;
+          governanceRoleDetail.hidden = true;
+          governanceRoleDetailFields.replaceChildren();
+          governanceRoleDetailAccountabilities.replaceChildren();
+          governanceRoleDetailDomains.replaceChildren();
+          governanceRoleDetailStatus.textContent = "";
         }
         governanceRoleMore.hidden = true;
         if (!governanceRoleReadLocations.has(locationId)) {
@@ -865,6 +887,14 @@
               cell.textContent = String(value ?? "—");
               row.append(cell);
             }
+            const detailCell = document.createElement("td");
+            const detailButton = document.createElement("button");
+            detailButton.type = "button";
+            detailButton.className = "secondary";
+            detailButton.textContent = "View details";
+            detailButton.addEventListener("click", () => loadGovernanceRoleDetail(role.id));
+            detailCell.append(detailButton);
+            row.append(detailCell);
             governanceRoleQueue.append(row);
           }
           governanceRoleNextCursor = result.next_cursor || null;
@@ -875,6 +905,71 @@
             : "No reviewable governance roles are available for this location.";
         } catch (error) {
           if (requestVersion === governanceRoleRequestVersion) governanceRoleStatus.textContent = error.message;
+        }
+      }
+
+      async function loadGovernanceRoleDetail(roleId) {
+        const locationId = governanceRoleLocation.value;
+        const requestVersion = ++governanceRoleDetailRequestVersion;
+        governanceRoleDetail.hidden = false;
+        governanceRoleDetailFields.replaceChildren();
+        governanceRoleDetailAccountabilities.replaceChildren();
+        governanceRoleDetailDomains.replaceChildren();
+        if (!governanceRoleReadLocations.has(locationId)) {
+          governanceRoleDetailStatus.textContent = "A separate location-scoped governance role read grant is required.";
+          return;
+        }
+        governanceRoleDetailStatus.textContent = "Loading role responsibilities and authority…";
+        try {
+          const response = await fetch(
+            `/operator/api/governance/${encodeURIComponent(locationId)}/roles/${encodeURIComponent(roleId)}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== governanceRoleDetailRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location-scoped role read grant is not valid.");
+          }
+          if (response.status === 404) throw new Error("This role is not available for the selected location.");
+          if (!response.ok) throw new Error("Governance role detail is unavailable.");
+          const result = await response.json();
+          const role = result.role || {};
+          for (const [label, value] of [
+            ["Circle", role.circle_name],
+            ["Role", `${role.name || "—"} (${role.role_key || "—"})`],
+            ["Purpose", role.purpose],
+            ["Status", role.status],
+            ["Effective from", role.effective_from],
+            ["Effective until", role.effective_until],
+            ["Review due", role.review_due_at],
+          ]) {
+            const term = document.createElement("dt");
+            term.textContent = label;
+            const description = document.createElement("dd");
+            description.textContent = String(value ?? "—");
+            governanceRoleDetailFields.append(term, description);
+          }
+          for (const accountability of result.accountabilities || []) {
+            const item = document.createElement("li");
+            item.textContent = `${accountability.required ? "Required" : "Optional"} · priority ${accountability.priority} · ${accountability.accountability}`;
+            governanceRoleDetailAccountabilities.append(item);
+          }
+          for (const domain of result.authority_domains || []) {
+            const item = document.createElement("li");
+            const approval = domain.requires_human_approval ? "human approval required" : "no additional approval flag";
+            item.textContent = `${domain.domain_type}.${domain.domain_key} · ${domain.authority_level} · ${domain.scope_type} · ${approval}`;
+            governanceRoleDetailDomains.append(item);
+          }
+          const accountabilities = governanceRoleDetailAccountabilities.children.length;
+          const domains = governanceRoleDetailDomains.children.length;
+          const truncation = result.accountabilities_truncated || result.authority_domains_truncated
+            ? " The displayed lists are capped at 100 items."
+            : "";
+          const accountabilityLabel = accountabilities === 1 ? "accountability" : "accountabilities";
+          governanceRoleDetailStatus.textContent = `${accountabilities} active ${accountabilityLabel} and ${domains} applicable authority domain${domains === 1 ? "" : "s"}.${truncation}`;
+        } catch (error) {
+          if (requestVersion === governanceRoleDetailRequestVersion) {
+            governanceRoleDetailStatus.textContent = error.message;
+          }
         }
       }
 
@@ -1909,6 +2004,14 @@
       governanceRoleLocation.addEventListener("change", () => loadGovernanceRoles());
       governanceRoleStatusFilter.addEventListener("change", () => loadGovernanceRoles());
       governanceRoleMore.addEventListener("click", () => loadGovernanceRoles(true));
+      document.querySelector("#governance-role-detail-close").addEventListener("click", () => {
+        governanceRoleDetailRequestVersion += 1;
+        governanceRoleDetail.hidden = true;
+        governanceRoleDetailFields.replaceChildren();
+        governanceRoleDetailAccountabilities.replaceChildren();
+        governanceRoleDetailDomains.replaceChildren();
+        governanceRoleDetailStatus.textContent = "";
+      });
       document.querySelector("#governance-tactical-refresh").addEventListener("click", () => loadGovernanceTacticalItems());
       governanceTacticalLocation.addEventListener("change", () => loadGovernanceTacticalItems());
       governanceTacticalMore.addEventListener("click", () => loadGovernanceTacticalItems(true));
