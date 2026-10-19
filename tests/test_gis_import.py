@@ -186,6 +186,55 @@ def test_parse_kml_rejects_entity_declarations(tmp_path):
         parse_kml(str(source))
 
 
+def test_kml_import_dispatches_to_location_boundary_writer(monkeypatch, tmp_path):
+    source = tmp_path / "location.KML"
+    source.write_text(
+        '''<kml xmlns="http://www.opengis.net/kml/2.2"><Placemark>
+          <name>Kernel Farm</name>
+          <Polygon><outerBoundaryIs><LinearRing><coordinates>
+            0,0 1,0 1,1 0,1 0,0
+          </coordinates></LinearRing></outerBoundaryIs></Polygon>
+        </Placemark></kml>''',
+        encoding="utf-8",
+    )
+
+    class FakeDatabase:
+        committed = False
+        closed = False
+
+        def commit(self):
+            self.committed = True
+
+        def close(self):
+            self.closed = True
+
+    database = FakeDatabase()
+    imported = []
+    monkeypatch.setattr(gis_import, "get_db", lambda: database)
+    monkeypatch.setattr(gis_import, "resolve_target_record", lambda *_args: "location-id")
+    monkeypatch.setattr(
+        gis_import,
+        "import_record",
+        lambda *args: imported.append(args) or True,
+    )
+    monkeypatch.setattr(gis_import, "log_ingestion", lambda **_kwargs: None)
+
+    gis_import.run(str(source), target="location")
+
+    assert database.committed is True
+    assert database.closed is True
+    assert imported == [
+        (
+            database,
+            "location-id",
+            "location",
+            "SRID=4326;POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))",
+            None,
+            None,
+        )
+    ]
+
+
 def test_import_preflight_rejects_invalid_target_before_database_access(monkeypatch):
     monkeypatch.setattr(gis_import, "get_db", lambda: pytest.fail("database must remain closed"))
 

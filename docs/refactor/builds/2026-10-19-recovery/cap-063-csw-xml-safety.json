@@ -15,8 +15,8 @@
     "Focused tests parse both serializer outputs, verify markup-shaped input remains text, protect the map popup/coordinate contract, and exercise GeoJSON/CSV/KML validation and serialization."
   ],
   "verification": {
-    "command": "python3 -m pytest tests/test_csw_serializer.py tests/test_map_viewer_contract.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_legacy_geo_import_error_redaction.py -q",
-    "result": "36 passed, including CSW serializer, map viewer, GeoJSON/CSV/KML, and import-redaction checks",
+    "command": "python3 -m pytest tests/test_csw_serializer.py tests/test_map_viewer_contract.py tests/test_gis_import.py tests/test_geospatial_import_error_redaction.py tests/test_legacy_geo_import_error_redaction.py tests/test_spatial_import.py tests/test_security_hardening.py tests/test_raster_metadata_error_redaction.py -q",
+    "result": "61 passed, including CSW serializer, map viewer, GeoJSON/CSV/KML, legacy spatial KML, security-hardening, raster error-redaction, and preflight checks",
     "ruff": "python3 -m ruff check on changed CSW, GIS import, and focused test files: passed",
     "compilation": "python3 -m compileall -q on changed CSW, GIS import, and focused test files: passed",
     "javascript": "Extracted Leaflet inline script passes node --check.",
@@ -24,6 +24,6 @@
   },
   "scope_limits": [
     "This work does not add a CSW HTTP endpoint, catalog query implementation, or establish ISO 19115 semantic/output parity against a GeoNode reference fixture.",
-    "The map still fetches the legacy Directus path; a tenant-scoped Gateway map API and layer authorization are not implemented. KML styling, altitude preservation, raster GroundOverlay ingestion, PostGIS apply/recovery, and populated spatial fixture parity were not exercised. Geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
+    "The map still fetches the legacy Directus path; a tenant-scoped Gateway map API and layer authorization are not implemented. KML styling, altitude preservation, raster GroundOverlay ingestion, raster metadata persistence, PostGIS apply/recovery, and populated spatial fixture parity were not exercised. Geostory runtime access, thesaurus integration, and MAN-CAP-063 owner acceptance remain open."
   ]
 }
