@@ -99,6 +99,7 @@ def test_gateway_post_sets_db_verified_context_before_insert(monkeypatch):
             "location_id": LOCATION_ID,
             "title": "Field observation",
             "content": "Observed soil cover.",
+            "expires_at": "2027-10-19T00:00:00Z",
             "created_by": "spoofed-user",
         },
         AUTHORIZATION,
@@ -125,6 +126,7 @@ def test_gateway_post_sets_db_verified_context_before_insert(monkeypatch):
             "title": "Field observation",
             "content": "Observed soil cover.",
             "created_by": ACTOR_ID,
+            "expires_at": "2027-10-19T00:00:00Z",
         },
     )
     assert events[-1] == "commit"

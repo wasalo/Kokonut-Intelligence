@@ -2,6 +2,7 @@
 
 import hashlib
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -102,6 +103,30 @@ class TestCreatePost:
         )
         assert result["id"] == POST_ID
 
+    def test_create_post_normalizes_explicit_expiry_to_utc(self):
+        from services.data_stream.post import create_post
+
+        conn = _fake_conn(rows={"id": POST_ID, "created_at": "2026-07-01"})
+        create_post(
+            conn,
+            location_id=LOCATION_ID,
+            title="Expiring post",
+            expires_at="2026-10-19T12:00:00-04:00",
+        )
+
+        params = conn.execute.call_args.args[1]
+        assert params["expires_at"] == datetime(2026, 10, 19, 16, tzinfo=timezone.utc)
+        assert "expires_at" in conn.execute.call_args.args[0]
+
+    @pytest.mark.parametrize("expires_at", ["2026-10-19T12:00:00", datetime(2026, 10, 19, 12)])
+    def test_create_post_rejects_timezone_naive_expiry_before_database(self, expires_at):
+        from services.data_stream.post import create_post
+
+        conn = _fake_conn()
+        with pytest.raises(ValueError, match="timezone"):
+            create_post(conn, location_id=LOCATION_ID, title="Naive expiry", expires_at=expires_at)
+        conn.execute.assert_not_called()
+
     def test_create_post_markdown_content(self):
         from services.data_stream.post import create_post
         conn = _fake_conn(rows={"id": POST_ID, "created_at": "2026-07-01"})
@@ -137,6 +162,19 @@ class TestUpdatePost:
         result = update_post(conn, POST_ID, title="Updated Title")
         assert result["id"] == POST_ID
         assert "title" in result["updated_fields"]
+
+    def test_update_post_can_set_or_clear_expiry(self):
+        from services.data_stream.post import update_post
+
+        conn = _fake_conn()
+        result = update_post(conn, POST_ID, expires_at="2026-10-19T12:00:00Z")
+        assert "expires_at" in result["updated_fields"]
+        assert conn.execute.call_args.args[1]["expires_at"] == datetime(
+            2026, 10, 19, 12, tzinfo=timezone.utc
+        )
+
+        update_post(conn, POST_ID, expires_at=None)
+        assert conn.execute.call_args.args[1]["expires_at"] is None
 
     def test_update_post_invalid_type(self):
         from services.data_stream.post import update_post

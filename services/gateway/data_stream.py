@@ -11,7 +11,7 @@ from services.common.tenant_context import TenantContextDenied
 _POST_READ_COLUMNS = """
     id, location_id, post_type, title, content, visibility, status,
     is_anchored, attestation_uid, chain, anchored_at, content_hash,
-    created_at, created_by
+    created_at, created_by, expires_at
 """
 _FILE_READ_COLUMNS = """
     file.id, file.post_id, file.file_name, file.file_description,
@@ -109,6 +109,7 @@ def create_gateway_data_stream_post(
             title=body.get("title", ""),
             content=body.get("content", ""),
             created_by=tenant.actor_id,
+            expires_at=body.get("expires_at"),
         )
 
 

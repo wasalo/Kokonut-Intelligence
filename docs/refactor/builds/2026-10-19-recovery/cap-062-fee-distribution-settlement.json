@@ -1,6 +1,6 @@
 {
   "capability": "CAP-062",
-  "title": "ARKIV origin indexing and marketplace fee settlement",
+  "title": "ARKIV expiry metadata, origin indexing, and marketplace fee settlement",
   "date": "2026-10-19",
   "classification": "B",
   "status": "focused source-level origin and fee settlement checks pass; capability not accepted",
@@ -10,19 +10,21 @@
     "Zero-fee transactions settle as a no-op instead of remaining indefinitely in the pending payout queue.",
     "Distribution validates positive finite amount, recipient, and denomination before reads; it locks the fee row, requires the recorded denomination, and uses exact decimal accounting without the previous 0.001 over-distribution allowance.",
     "Partial payouts leave the fee pending and distributed_at unset; status and distributed_at change only when the accumulated payout exactly equals total_fee.",
-    "Credit batch creation now accepts origin transaction ID/source/contract, requires ID and source together, persists the references to credit_batch, and inserts the class/transaction/source identity into the existing unique origin_tx_index within the caller-owned transaction. The CLI exposes these inputs."
+    "Credit batch creation now accepts origin transaction ID/source/contract, requires ID and source together, persists the references to credit_batch, and inserts the class/transaction/source identity into the existing unique origin_tx_index within the caller-owned transaction. The CLI exposes these inputs.",
+    "Data Stream create/update accepts an optional caller-supplied timezone-aware expires_at, normalizes it to UTC, and the tenant-scoped Gateway accepts the value and includes it in its fixed read projection. No retention period is inferred."
   ],
   "verification": {
-    "command": "python3 -m pytest tests/test_credit_fees.py tests/test_credit_batch_manager.py tests/test_linked_data.py tests/test_marketplace.py tests/test_marketplace_integration.py -q",
-    "result": "195 passed, 1 skipped, 17 subtests passed",
-    "ruff": "python3 -m ruff check services/credit_class/fees.py services/credit_class/batch_manager.py services/credit_class/cli.py tests/test_credit_fees.py tests/test_credit_batch_manager.py: passed",
-    "compilation": "python3 -m compileall -q services/credit_class/fees.py services/credit_class/batch_manager.py services/credit_class/cli.py tests/test_credit_fees.py tests/test_credit_batch_manager.py: passed",
-    "cli": "python3 -m services.credit_class.cli batch create --help: passed",
+    "command": "python3 -m pytest tests/test_credit_fees.py tests/test_credit_batch_manager.py tests/test_linked_data.py tests/test_marketplace.py tests/test_marketplace_integration.py tests/test_data_stream.py tests/test_gateway_data_stream.py -q",
+    "result": "265 passed, 1 skipped, 17 subtests passed",
+    "ruff": "python3 -m ruff check on changed credit-class, data-stream, Gateway, and focused test files: passed",
+    "compilation": "python3 -m compileall -q on changed credit-class, data-stream, Gateway, and focused test files: passed",
+    "cli": "Credit batch create and Data Stream post help commands: passed",
     "database_or_chain": "None used"
   },
   "scope_limits": [
     "The tests use mocked connections and do not prove PostgreSQL lock behavior under concurrent sessions.",
-    "Governed expires_at policy and cleanup behavior remain unimplemented; expiration remains metadata only.",
+    "Automatic retention-policy application and expiry cleanup are not connected to these timestamps; they remain metadata only.",
+    "Only Data Stream post write/read paths currently expose caller-supplied expiry. Expiry fields on impact claims, attestations, report snapshots, carbon credits, and retirements remain unintegrated.",
     "Mocks verify origin-index write parameters and error propagation, but no disposable PostgreSQL race/replay check proves duplicate-origin conflict rollback.",
     "The gRPC CreateBatchRequest does not yet expose origin transaction fields, although the CLI and service function do.",
     "Reference fixtures, external marketplace settlement, and MAN-CAP-062 owner acceptance remain open."

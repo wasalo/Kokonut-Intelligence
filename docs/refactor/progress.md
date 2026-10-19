@@ -11357,10 +11357,16 @@ Batch creation now accepts origin transaction ID, source, and optional contract.
 ID and source must be paired; the batch stores the supplied reference and adds
 the class/transaction/source identity to the existing unique origin index in
 the caller-owned transaction. Optional origin inputs are available in the CLI.
+Data Stream post creation and updates now accept caller-supplied timezone-aware
+expiry timestamps, normalize them to UTC, and preserve them in the tenant-scoped
+Gateway create and read projection. This is metadata only and does not infer a
+retention window or perform deletion.
 
 The focused credit-fee, marketplace, marketplace-integration, batch-manager,
-and linked-data selection passes 195 tests, one database-dependent skip, and 17
-subtests. Ruff, compilation, and CLI help pass; no database or chain was used.
-PostgreSQL duplicate-origin rollback/concurrency, expiry lifecycle/cleanup,
-gRPC origin inputs, populated settlement parity, and MAN-CAP-062 remain open. Checklist: 685
+linked-data, Data Stream, and Gateway Data Stream selection passes 265 tests,
+one database-dependent skip, and 17 subtests. Ruff, compilation, and CLI help
+pass; no database or chain was used.
+PostgreSQL duplicate-origin rollback/concurrency, expiry-policy enforcement and
+cleanup, expiry propagation to other entities, gRPC origin inputs, populated
+settlement parity, and MAN-CAP-062 remain open. Checklist: 685
 complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-062-fee-distribution-settlement.json).
