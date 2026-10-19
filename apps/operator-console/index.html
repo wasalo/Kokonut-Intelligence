@@ -145,7 +145,7 @@
         </section>
         <section id="governance-role-registry" hidden aria-labelledby="governance-role-registry-heading">
           <h2 id="governance-role-registry-heading">Governance role registry</h2>
-          <p class="muted">Read location-scoped role purpose and current coverage. Party identities, policy text, and role metadata are omitted. This panel cannot assign or approve a role.</p>
+          <p class="muted">Read location-scoped role purpose and current coverage. Party identities, policy text, and role metadata are omitted. Operators with the separate creation grant can submit a nomination; this panel cannot activate or approve an assignment.</p>
           <div class="toolbar">
             <label for="governance-role-location">Granted location</label>
             <select id="governance-role-location"></select>
@@ -174,8 +174,40 @@
             <ul id="governance-role-detail-accountabilities"></ul>
             <h4>Applicable authority domains</h4>
             <ul id="governance-role-detail-domains"></ul>
+            <section id="governance-role-proposal-create" hidden aria-labelledby="governance-role-proposal-create-heading">
+              <h4 id="governance-role-proposal-create-heading">Nominate a person for this role</h4>
+              <p class="muted">A nomination remains proposed until a separate human review. Enter the nominee’s active person record UUID; this console does not provide a people directory.</p>
+              <form id="governance-role-proposal-form">
+                <label for="governance-role-proposal-party">Person record UUID</label>
+                <input id="governance-role-proposal-party" name="party_id" type="text" inputmode="text" autocomplete="off" required pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" maxlength="36">
+                <label for="governance-role-proposal-type">Assignment type</label>
+                <select id="governance-role-proposal-type" name="assignment_type" required>
+                  <option value="primary">Primary</option>
+                  <option value="delegate">Delegate</option>
+                  <option value="representative">Representative</option>
+                  <option value="interim">Interim</option>
+                </select>
+                <label for="governance-role-proposal-mandate">Mandate (required for a delegate)</label>
+                <textarea id="governance-role-proposal-mandate" name="mandate" maxlength="2000"></textarea>
+                <button id="governance-role-proposal-submit" type="submit">Submit nomination</button>
+              </form>
+              <p id="governance-role-proposal-create-status" class="muted" role="status" aria-live="polite"></p>
+            </section>
             <button id="governance-role-detail-close" class="secondary" type="button">Close role detail</button>
             <p id="governance-role-detail-status" class="muted" role="status" aria-live="polite"></p>
+          </section>
+          <section id="governance-role-proposal-history" aria-labelledby="governance-role-proposal-history-heading">
+            <h3 id="governance-role-proposal-history-heading">My role nominations</h3>
+            <p class="muted">This list shows nomination status for requests made by your signed-in operator account. It does not show nominee identity or provide approval controls.</p>
+            <button id="governance-role-proposal-refresh" class="secondary" type="button">Refresh my nominations</button>
+            <p id="governance-role-proposal-history-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Request</th><th>Role</th><th>Type</th><th>Status</th><th>Submitted</th></tr></thead>
+                <tbody id="governance-role-proposal-history-rows"></tbody>
+              </table>
+            </div>
+            <button id="governance-role-proposal-more" class="secondary" type="button" hidden>Load more nominations</button>
           </section>
         </section>
         <section id="governance-tactical-queue" hidden aria-labelledby="governance-tactical-queue-heading">
@@ -432,6 +464,16 @@
       const governanceRoleDetailAccountabilities = document.querySelector("#governance-role-detail-accountabilities");
       const governanceRoleDetailDomains = document.querySelector("#governance-role-detail-domains");
       const governanceRoleDetailStatus = document.querySelector("#governance-role-detail-status");
+      const governanceRoleProposalCreate = document.querySelector("#governance-role-proposal-create");
+      const governanceRoleProposalForm = document.querySelector("#governance-role-proposal-form");
+      const governanceRoleProposalParty = document.querySelector("#governance-role-proposal-party");
+      const governanceRoleProposalType = document.querySelector("#governance-role-proposal-type");
+      const governanceRoleProposalMandate = document.querySelector("#governance-role-proposal-mandate");
+      const governanceRoleProposalSubmit = document.querySelector("#governance-role-proposal-submit");
+      const governanceRoleProposalCreateStatus = document.querySelector("#governance-role-proposal-create-status");
+      const governanceRoleProposalHistoryStatus = document.querySelector("#governance-role-proposal-history-status");
+      const governanceRoleProposalHistoryRows = document.querySelector("#governance-role-proposal-history-rows");
+      const governanceRoleProposalMore = document.querySelector("#governance-role-proposal-more");
       const governanceTacticalQueue = document.querySelector("#governance-tactical-queue");
       const governanceTacticalLocation = document.querySelector("#governance-tactical-location");
       const governanceTacticalStatus = document.querySelector("#governance-tactical-status");
@@ -516,6 +558,10 @@
       let governanceRoleNextCursor = null;
       let governanceRoleRequestVersion = 0;
       let governanceRoleDetailRequestVersion = 0;
+      let governanceRoleCreateLocations = new Set();
+      let governanceRoleProposalNextCursor = null;
+      let governanceRoleProposalRequestVersion = 0;
+      let currentGovernanceRoleId = null;
       let governanceTacticalReadLocations = new Set();
       let governanceTacticalNextCursor = null;
       let governanceTacticalRequestVersion = 0;
@@ -571,6 +617,10 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           governanceRoleReadLocations = new Set(governanceRoleLocations);
+          governanceRoleCreateLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "governance_roles" && scope.action === "create")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => governanceRoleReadLocations.has(locationId)));
           const governanceTacticalLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "governance_tactical" && scope.action === "read")
             .map((scope) => scope.location_id)
@@ -911,6 +961,9 @@
       async function loadGovernanceRoleDetail(roleId) {
         const locationId = governanceRoleLocation.value;
         const requestVersion = ++governanceRoleDetailRequestVersion;
+        currentGovernanceRoleId = roleId;
+        governanceRoleProposalCreate.hidden = true;
+        governanceRoleProposalCreateStatus.textContent = "";
         governanceRoleDetail.hidden = false;
         governanceRoleDetailFields.replaceChildren();
         governanceRoleDetailAccountabilities.replaceChildren();
@@ -966,10 +1019,134 @@
             : "";
           const accountabilityLabel = accountabilities === 1 ? "accountability" : "accountabilities";
           governanceRoleDetailStatus.textContent = `${accountabilities} active ${accountabilityLabel} and ${domains} applicable authority domain${domains === 1 ? "" : "s"}.${truncation}`;
+          governanceRoleProposalCreate.hidden = !governanceRoleCreateLocations.has(locationId);
         } catch (error) {
           if (requestVersion === governanceRoleDetailRequestVersion) {
             governanceRoleDetailStatus.textContent = error.message;
           }
+        }
+      }
+
+      async function loadGovernanceAssignmentProposalHistory(append = false) {
+        const locationId = governanceRoleLocation.value;
+        const requestVersion = ++governanceRoleProposalRequestVersion;
+        if (!append) {
+          governanceRoleProposalHistoryRows.replaceChildren();
+          governanceRoleProposalNextCursor = null;
+        }
+        governanceRoleProposalMore.hidden = true;
+        if (!governanceRoleReadLocations.has(locationId)) {
+          governanceRoleProposalHistoryStatus.textContent = "A location-scoped governance role read grant is required.";
+          return;
+        }
+        governanceRoleProposalHistoryStatus.textContent = "Loading your role nominations…";
+        const params = new URLSearchParams({ limit: "50" });
+        if (append && governanceRoleProposalNextCursor) {
+          params.set("cursor_created_at", governanceRoleProposalNextCursor.created_at);
+          params.set("cursor_assignment_id", governanceRoleProposalNextCursor.assignment_id);
+        }
+        try {
+          const response = await fetch(
+            `/operator/api/governance/${encodeURIComponent(locationId)}/assignment-proposals?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (requestVersion !== governanceRoleProposalRequestVersion) return;
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session, governance role read grant, or person binding is not valid.");
+          }
+          if (!response.ok) throw new Error("Your role nomination history is unavailable.");
+          const result = await response.json();
+          for (const proposal of result.items || []) {
+            const row = document.createElement("tr");
+            const values = [
+              proposal.request_id,
+              `${proposal.role_name || "—"} (${proposal.role_key || "—"})`,
+              proposal.assignment_type,
+              proposal.status,
+              proposal.created_at ? new Date(proposal.created_at).toLocaleString() : "—",
+            ];
+            for (const value of values) {
+              const cell = document.createElement("td");
+              cell.textContent = String(value ?? "—");
+              row.append(cell);
+            }
+            governanceRoleProposalHistoryRows.append(row);
+          }
+          governanceRoleProposalNextCursor = result.next_cursor || null;
+          governanceRoleProposalMore.hidden = !governanceRoleProposalNextCursor;
+          const count = governanceRoleProposalHistoryRows.rows.length;
+          governanceRoleProposalHistoryStatus.textContent = count
+            ? `${count} of your role nomination${count === 1 ? "" : "s"} loaded.`
+            : "No role nominations from your operator account were found for this location.";
+        } catch (error) {
+          if (requestVersion === governanceRoleProposalRequestVersion) {
+            governanceRoleProposalHistoryStatus.textContent = error.message;
+          }
+        }
+      }
+
+      async function submitGovernanceRoleProposal(event) {
+        event.preventDefault();
+        const locationId = governanceRoleLocation.value;
+        const roleId = currentGovernanceRoleId;
+        if (!roleId || !governanceRoleReadLocations.has(locationId)
+            || !governanceRoleCreateLocations.has(locationId)) {
+          governanceRoleProposalCreateStatus.textContent = "A location-scoped governance role creation grant is required.";
+          return;
+        }
+        const assignmentType = governanceRoleProposalType.value;
+        const mandate = governanceRoleProposalMandate.value.trim() || null;
+        if (assignmentType === "delegate" && mandate === null) {
+          governanceRoleProposalMandate.setCustomValidity("Delegates require a mandate.");
+          governanceRoleProposalMandate.reportValidity();
+          return;
+        }
+        governanceRoleProposalMandate.setCustomValidity("");
+        const csrf = csrfToken();
+        if (!csrf) {
+          governanceRoleProposalCreateStatus.textContent = "Refresh the session before submitting a nomination.";
+          return;
+        }
+        const requestId = globalThis.crypto?.randomUUID?.();
+        if (!requestId) {
+          governanceRoleProposalCreateStatus.textContent = "A secure browser context is required to submit a nomination.";
+          return;
+        }
+        governanceRoleProposalSubmit.disabled = true;
+        governanceRoleProposalCreateStatus.textContent = "Submitting a proposal-only nomination…";
+        try {
+          const response = await fetch(
+            `/operator/api/governance/${encodeURIComponent(locationId)}/roles/${encodeURIComponent(roleId)}/assignments`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({
+                request_id: requestId,
+                party_id: governanceRoleProposalParty.value.trim(),
+                assignment_type: assignmentType,
+                mandate,
+              }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session, governance role creation grant, or person binding is not valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The role nomination could not be submitted.");
+          governanceRoleProposalCreateStatus.textContent = `Nomination recorded as ${result.status}. Request ID: ${result.request_id || requestId}. It still requires separate human review.`;
+          governanceRoleProposalForm.reset();
+          governanceRoleProposalMandate.required = false;
+          await loadGovernanceAssignmentProposalHistory();
+        } catch (error) {
+          governanceRoleProposalCreateStatus.textContent = error.message;
+        } finally {
+          governanceRoleProposalSubmit.disabled = false;
         }
       }
 
@@ -2001,12 +2178,34 @@
       governanceTensionStatusFilter.addEventListener("change", () => loadGovernanceTensionQueue());
       governanceTensionMore.addEventListener("click", () => loadGovernanceTensionQueue(true));
       document.querySelector("#governance-role-refresh").addEventListener("click", () => loadGovernanceRoles());
-      governanceRoleLocation.addEventListener("change", () => loadGovernanceRoles());
+      governanceRoleLocation.addEventListener("change", () => {
+        governanceRoleDetailRequestVersion += 1;
+        currentGovernanceRoleId = null;
+        governanceRoleDetail.hidden = true;
+        governanceRoleProposalCreate.hidden = true;
+        governanceRoleDetailStatus.textContent = "";
+        loadGovernanceRoles();
+        loadGovernanceAssignmentProposalHistory();
+      });
       governanceRoleStatusFilter.addEventListener("change", () => loadGovernanceRoles());
       governanceRoleMore.addEventListener("click", () => loadGovernanceRoles(true));
+      document.querySelector("#governance-role-proposal-refresh").addEventListener(
+        "click", () => loadGovernanceAssignmentProposalHistory()
+      );
+      governanceRoleProposalMore.addEventListener(
+        "click", () => loadGovernanceAssignmentProposalHistory(true)
+      );
+      governanceRoleProposalType.addEventListener("change", () => {
+        governanceRoleProposalMandate.required = governanceRoleProposalType.value === "delegate";
+        governanceRoleProposalMandate.setCustomValidity("");
+      });
+      governanceRoleProposalForm.addEventListener("submit", submitGovernanceRoleProposal);
       document.querySelector("#governance-role-detail-close").addEventListener("click", () => {
         governanceRoleDetailRequestVersion += 1;
+        currentGovernanceRoleId = null;
         governanceRoleDetail.hidden = true;
+        governanceRoleProposalCreate.hidden = true;
+        governanceRoleProposalCreateStatus.textContent = "";
         governanceRoleDetailFields.replaceChildren();
         governanceRoleDetailAccountabilities.replaceChildren();
         governanceRoleDetailDomains.replaceChildren();

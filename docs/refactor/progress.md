@@ -1,5 +1,24 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 console nomination submission and history — 18 October 2026
+
+Connected proposal creation and own-status readback to the operations console.
+The form appears only for locations where the signed session has both role read
+and creation grants. It accepts an active person-party UUID, assignment type,
+and delegate mandate; POST includes the same-origin session and CSRF token. The
+response makes clear that the nomination remains proposed for separate human
+review. A separate bounded list shows only the operator's request ID, role,
+assignment type, status, and submission time. It does not display nominee
+identity or provide decision controls.
+
+The combined CAP-024 Gateway/auth/migration/console suite passes 167 tests,
+including JavaScript syntax and static console/route contract checks. Ruff,
+compilation, capability validation, runtime SQL inventory, and diff checks pass.
+No browser session or candidate/legacy database was used. CAP-024 remains
+prepared, not accepted; operator/person binding and the least-privilege
+candidate runtime login remain rollout requirements ([console](../../apps/operator-console/index.html);
+[tests](../../tests/test_operator_console_governance_assignment_proposals.py); [evidence](builds/2026-10-18-recovery/governance-assignment-console-contract.json)).
+
 ### CAP-024 operator nomination readback — 18 October 2026
 
 Added `GET /operator/api/governance/{location_id}/assignment-proposals` under
@@ -11,8 +30,8 @@ location scope in a bounded security-definer function, and uses a stable
 keyset cursor in a read-only transaction.
 
 The focused readback, proposal, and route-policy selection passes 21 tests; the
-combined CAP-024 Gateway, auth, migration, and route-policy suite passes 157
-tests. Ruff, compilation, capability validation, and SQL inventory checks pass.
+combined CAP-024 Gateway, auth, migration, console, and route-policy suite now
+passes 167 tests. Ruff, compilation, capability validation, and SQL inventory checks pass.
 Disposable PostgreSQL 16 applies and replays migrations 438–439,
 verifies exact operator ownership, cursor paging, read-only status, and omission
 of nominee identity and mandate. Candidate and legacy databases were not

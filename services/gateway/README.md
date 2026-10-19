@@ -93,6 +93,13 @@ session can bypass these grants; migration 438 has not been applied to that
 candidate. Do not treat the route or this migration as a database isolation
 boundary until the candidate is switched to its least-privilege runtime role.
 
+The operator console lets a separately authorized creator submit a nomination
+using an active person-party UUID and review the status of their own submissions
+at `GET /operator/api/governance/{location_id}/assignment-proposals`. Migration
+439 enforces same-operator and same-location readback with bounded keyset
+pagination. The status projection excludes nominee identity and mandate; the
+console does not enumerate a people directory or provide decision controls.
+
 Governance tension intake is available at `POST
 /operator/api/governance/{location_id}/tensions` with a caller-generated UUID
 `request_id`, title, description, supported tension type, severity, and urgency.
