@@ -3,11 +3,11 @@
   "generated_by": "scripts/runtime_sql_inventory.py",
   "scope": "Direct Python SQL execution calls in services/**/*.py, including API, worker, and CLI modules. Relation names are regex-derived candidates, not a parsed SQL AST. The scan cannot prove query reachability, ORM/extension/external effects, complete database access, required columns, or authorization. It is not a grant allowlist.",
   "summary": {
-    "source_files": 880,
-    "execution_sites": 4179,
+    "source_files": 882,
+    "execution_sites": 4183,
     "worker_operation_roots": 32,
     "sites_with_worker_operation_refs": 329,
-    "sites_without_worker_operation_refs": 3850,
+    "sites_without_worker_operation_refs": 3854,
     "statement_kinds": {
       "CREATE": 1,
       "DELETE": 47,
@@ -15,16 +15,16 @@
       "RELEASE": 8,
       "ROLLBACK": 6,
       "SAVEPOINT": 5,
-      "SELECT": 2620,
-      "SET": 161,
+      "SELECT": 2621,
+      "SET": 164,
       "UNKNOWN": 191,
       "UPDATE": 442,
       "WITH": 25
     },
     "statement_groups": {
-      "read_candidate": 2620,
+      "read_candidate": 2621,
       "schema_change": 1,
-      "transaction_or_session": 180,
+      "transaction_or_session": 183,
       "unknown_requires_manual_review": 191,
       "with_requires_manual_review": 25,
       "write_candidate": 1162
@@ -33,10 +33,10 @@
       "composed": 16,
       "composed_or_variable": 262,
       "fstring": 274,
-      "literal": 3627
+      "literal": 3631
     },
     "relation_candidates": 1095,
-    "sites_without_relation_candidates": 580,
+    "sites_without_relation_candidates": 584,
     "service_packages": 67
   },
   "service_packages": {
@@ -363,17 +363,17 @@
       "sites_with_worker_operation_refs": 0
     },
     "gateway": {
-      "source_files": 78,
-      "execution_sites": 326,
+      "source_files": 80,
+      "execution_sites": 330,
       "statement_groups": {
-        "read_candidate": 141,
-        "transaction_or_session": 130,
+        "read_candidate": 142,
+        "transaction_or_session": 133,
         "unknown_requires_manual_review": 18,
         "with_requires_manual_review": 2,
         "write_candidate": 35
       },
       "candidate_relation_names": 94,
-      "sites_without_relation_candidates": 160,
+      "sites_without_relation_candidates": 164,
       "non_literal_sites": 10,
       "sites_with_worker_operation_refs": 0
     },
@@ -4649,6 +4649,10 @@
     {"id": "services/gateway/rate_limit_cli.py:17:8","source": "services/gateway/rate_limit_cli.py","line": 17,"column": 8,"scope": "cleanup_idle_buckets","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/rate_limit_cli.py:18:8","source": "services/gateway/rate_limit_cli.py","line": 18,"column": 8,"scope": "cleanup_idle_buckets","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "533631607e3f7cfccfec5c163f787a0d14ddf3a4e3e49ce74a3ea398393a39cc","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/rate_limit_cli.py:19:14","source": "services/gateway/rate_limit_cli.py","line": 19,"column": 14,"scope": "cleanup_idle_buckets","method": "execute","expression_kind": "literal","statement_kind": "WITH","candidate_relations": ["SKIP","deleted","gateway_rate_bucket"],"static_sql_sha256": "9314b8d5e2b9672b2d476ba275454527586381781ac016011cbf29b72d2af320","operation_refs": [],"statement_group": "with_requires_manual_review"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:41:12","source": "services/gateway/solution_lifecycle_reads.py","line": 41,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:42:12","source": "services/gateway/solution_lifecycle_reads.py","line": 42,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:43:12","source": "services/gateway/solution_lifecycle_reads.py","line": 43,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},
+    {"id": "services/gateway/solution_lifecycle_reads.py:52:12","source": "services/gateway/solution_lifecycle_reads.py","line": 52,"column": 12,"scope": "get_location_solution_lifecycle_summary","method": "execute","expression_kind": "literal","statement_kind": "SELECT","candidate_relations": [],"static_sql_sha256": "a03c650427d994147d8dc59325157656ee6b8344d61b693742159652c49900e3","operation_refs": [],"statement_group": "read_candidate"},
     {"id": "services/gateway/stakeholder_identity.py:75:16","source": "services/gateway/stakeholder_identity.py","line": 75,"column": 16,"scope": "_open_connection","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "6c20e5345ee8028f61cc0541aeb60699e5cffa99c8f79ff7f8c62b0a8dad1837","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/stakeholder_identity.py:76:12","source": "services/gateway/stakeholder_identity.py","line": 76,"column": 12,"scope": "_open_connection","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "7346ddf58ceeb31a31fd4f44990faf92a5bf015f93c675513e2bc17e5c3619db","operation_refs": [],"statement_group": "transaction_or_session"},
     {"id": "services/gateway/stakeholder_identity.py:77:12","source": "services/gateway/stakeholder_identity.py","line": 77,"column": 12,"scope": "_open_connection","method": "execute","expression_kind": "literal","statement_kind": "SET","candidate_relations": [],"static_sql_sha256": "e7919abcde4ac704789f51f749423dc38cacd353c98fb8c089b4c0c316e4df9c","operation_refs": [],"statement_group": "transaction_or_session"},

@@ -1,3 +1,23 @@
+### CAP-035 first solution lifecycle Kernel summary — 19 October 2026
+
+`GET /operator/api/solution-lifecycle/{location_id}/summary` returns aggregate
+solution stages and gate/evaluation, experiment, funding-decision, adoption,
+scale, learning, and retirement state for solutions explicitly linked to one
+location. Migration 459 adds `location` as an allowed `solution_link` target
+and enforces signed `solution_lifecycle:read` context inside a dedicated
+non-login reader function. The response excludes identities, names, narratives,
+evidence, funding amounts, and raw payloads; lifecycle transitions and human
+approval requirements are unchanged. The focused Gateway, route-policy, and
+migration-metadata selection passes 44 tests. Disposable PostgreSQL 16 applies
+and replays migration 459 and passes six scope, aggregate, privacy, and privilege
+assertions. Ruff and Python compilation pass. Candidate and legacy databases are
+untouched; migration 459 is not rolled out. CAP-035 is prepared, not accepted;
+item-level workflows, populated parity, live OIDC/browser, broader ACL/RLS,
+recovery, and MAN-CAP-035 owner review remain open. Checklist: 676 complete / 20
+open; matrix: 35 baseline-retained, 7 deployed, 24 prepared. See [the read
+contract](solution-lifecycle-kernel-read-contract.md) and [disposable
+evidence](builds/2026-10-19-recovery/cap-035-solution-lifecycle-disposable.json).
+
 ### CAP-034 first coordination governance Kernel summary — 19 October 2026
 
 `GET /operator/api/coordination/{location_id}/summary` now returns aggregate
