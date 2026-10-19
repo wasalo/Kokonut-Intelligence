@@ -27,6 +27,7 @@ _PARAMETER_SAMPLES = {
     "definition_id": "77777777-7777-4777-8777-777777777777",
     "assignment_id": "88888888-8888-4888-8888-888888888888",
     "item_id": "99999999-9999-4999-8999-999999999999",
+    "session_id": "99999999-9999-4999-8999-999999999998",
     "device_id": "collector-1",
 }
 _TRANSITION_ACTIONS = {
@@ -181,6 +182,18 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-items",
     ): _expected("governance_tactical", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-items",
+    ): _expected("governance_tactical", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "PATCH",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-items/99999999-9999-4999-8999-999999999999",
+    ): _expected("governance_tactical", "update", scoped=True, location_id=_LOCATION_ID),
+    (
+        "PATCH",
+        "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-sessions/99999999-9999-4999-8999-999999999998",
+    ): _expected("governance_tactical", "update", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/tactical-sessions",

@@ -23,8 +23,9 @@ MIGRATIONS = (
     ROOT / "schemas/postgres/442_governance_definition_lifecycle.sql",
     ROOT / "schemas/postgres/443_governance_definition_mutations.sql",
     ROOT / "schemas/postgres/444_governance_tactical_session_creation.sql",
+    ROOT / "schemas/postgres/445_governance_tactical_content_mutations.sql",
 )
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/governance-tactical-session-creation-disposable.json"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/governance-tactical-content-mutations-disposable.json"
 
 ORG_ID = "a0000000-0000-4000-8000-000000000101"
 LOCATION_ID = "a0000000-0000-4000-8000-000000000201"
@@ -53,7 +54,13 @@ def run(command: list[str], *, input_text: str | None = None, check: bool = True
     result = subprocess.run(command, input=input_text, text=True, capture_output=True, check=False)
     if check and result.returncode:
         details = "\n".join(part for part in (result.stdout, result.stderr) if part)
-        raise RuntimeError(f"command failed ({result.returncode}): {' '.join(command)}\n{details}")
+        display_command = [
+            "POSTGRES_PASSWORD=<redacted>" if part.startswith("POSTGRES_PASSWORD=") else part
+            for part in command
+        ]
+        raise RuntimeError(
+            f"command failed ({result.returncode}): {' '.join(display_command)}\n{details}"
+        )
     return result
 
 
@@ -117,7 +124,10 @@ def run_acceptance(container: str) -> list[str]:
     session_creation_sql = MIGRATIONS[7].read_text()
     docker_sql(container, session_creation_sql)
     docker_sql(container, session_creation_sql)
-    checks.append("migrations 438–444 apply and replay transactionally after migration 437")
+    tactical_content_sql = MIGRATIONS[8].read_text()
+    docker_sql(container, tactical_content_sql)
+    docker_sql(container, tactical_content_sql)
+    checks.append("migrations 438–445 apply and replay transactionally after migration 437")
 
     privilege = docker_sql(
         container,
@@ -275,7 +285,7 @@ def run_acceptance(container: str) -> list[str]:
         """SELECT has_table_privilege('kokonut_governance_action_owner', 'public.governance_tactical_action_event', 'INSERT')
               AND NOT has_table_privilege('kokonut_governance_action_owner', 'public.governance_tactical_action_event', 'UPDATE')
               AND has_column_privilege('kokonut_governance_action_owner', 'public.governance_tactical_item', 'status', 'UPDATE')
-              AND NOT has_column_privilege('kokonut_governance_action_owner', 'public.governance_tactical_item', 'requested_next_action', 'UPDATE')
+              AND has_column_privilege('kokonut_governance_action_owner', 'public.governance_tactical_item', 'requested_next_action', 'UPDATE')
               AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_item', 'INSERT')
               AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_item', 'UPDATE')
               AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_item', 'DELETE')
@@ -897,6 +907,239 @@ def run_acceptance(container: str) -> list[str]:
     )
     checks.append("tactical session creation requires exact signed location scope and active person binding, accepts only draft-safe fields, validates active same-location circles/roles, replays exact request keys, records immutable actor/reason history, and denies runtime/Directus direct writes")
 
+    item_work = "a0000000-0000-4000-8000-000000000931"
+    item_decision = "a0000000-0000-4000-8000-000000000932"
+    item_tension = "a0000000-0000-4000-8000-000000000933"
+    foreign_location = "a0000000-0000-4000-8000-000000000299"
+    foreign_work = "a0000000-0000-4000-8000-000000000934"
+    content_update_grant = str(uuid.uuid4())
+    content_start_grant = str(uuid.uuid4())
+    content_start_retry_grant = str(uuid.uuid4())
+    docker_sql(
+        container,
+        f"""INSERT INTO public.operator_scope_grant VALUES
+          ('{content_update_grant}', '{OPERATOR_ONE}', 'governance_tactical', 'update', '{LOCATION_ID}', '{ORG_ID}', NULL),
+          ('{content_start_grant}', '{OPERATOR_ONE}', 'governance_tactical', 'start', '{LOCATION_ID}', '{ORG_ID}', NULL);
+        INSERT INTO public.location (id, organization_id, status)
+            VALUES ('{foreign_location}', NULL, 'active');
+        INSERT INTO public.work_item (id, location_id, status) VALUES
+            ('{item_work}', '{LOCATION_ID}', 'draft'),
+            ('{foreign_work}', '{foreign_location}', 'draft');
+        INSERT INTO public.stakeholder_decision (id, scope_type, scope_id, status) VALUES
+            ('{item_decision}', 'location', '{LOCATION_ID}', 'draft');
+        INSERT INTO public.governance_tension (
+            id, tension_key, title, description, tension_type, severity, urgency,
+            scope_type, scope_id, circle_id, status
+        ) VALUES (
+            '{item_tension}', 'synthetic-tactical-link', 'Synthetic tension',
+            'Synthetic location-scoped reference.', 'unclear_accountability', 2, 2,
+            'location', '{LOCATION_ID}', '{MUTATION_PARENT_CIRCLE}', 'submitted'
+        );""",
+    )
+
+    def mutate_tactical_content(operator_id, operation, target_id, request_id, content, reason):
+        target_sql = "NULL" if target_id is None else f"'{target_id}'"
+        content_sql = json.dumps(content, separators=(",", ":")).replace("'", "''")
+        reason_sql = reason.replace("'", "''")
+        return runtime_call(
+            container,
+            operator_id,
+            f"""SELECT event_id::text || '|' || operation || '|' ||
+                       COALESCE(session_id::text, '') || '|' || COALESCE(item_id::text, '')
+                  FROM kokonut_security.mutate_governance_tactical_content(
+                    '{LOCATION_ID}', '{operation}', {target_sql}, '{request_id}',
+                    '{content_sql}'::jsonb, '{reason_sql}'
+                  );""",
+        ).stdout.strip().splitlines()[-1]
+
+    item_create_request = str(uuid.uuid4())
+    item_create_content = {
+        "session_id": created_session_id,
+        "requested_next_action": "Review irrigation repair quotes.",
+        "priority": 4,
+        "due_at": "2026-10-25T12:00:00+00:00",
+        "tension_id": item_tension,
+        "work_item_id": item_work,
+        "decision_id": item_decision,
+        "owner_role_id": ROLE_LOCATION,
+        "owner_party_id": PARTY_ONE,
+    }
+    item_created = mutate_tactical_content(
+        OPERATOR_ONE, "create_item", None, item_create_request, item_create_content,
+        "Capture a location-owned follow-up action.",
+    )
+    item_created_retry = mutate_tactical_content(
+        OPERATOR_ONE, "create_item", None, item_create_request, item_create_content,
+        "Capture a location-owned follow-up action.",
+    )
+    if item_created != item_created_retry:
+        raise AssertionError("tactical item create did not replay the exact request")
+    item_event_id, _, item_session_id, created_item_id = item_created.split("|")
+    if item_session_id != created_session_id or not created_item_id:
+        raise AssertionError(f"tactical item was not attached to the selected session: {item_created}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_tactical_content(
+            '{LOCATION_ID}', 'create_item', NULL, '{item_create_request}',
+            '{{"session_id":"{created_session_id}","requested_next_action":"changed"}}'::jsonb,
+            'Capture a location-owned follow-up action.');"""),
+        "22023",
+        "reject changed tactical item create request replay",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_tactical_content(
+            '{LOCATION_ID}', 'create_item', NULL, '{uuid.uuid4()}',
+            '{{"session_id":"{created_session_id}","requested_next_action":"Cross-location work","work_item_id":"{foreign_work}"}}'::jsonb,
+            'Reject a cross-location work item.');"""),
+        "P0002",
+        "reject cross-location work-item linkage",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.mutate_governance_tactical_content(
+            '{LOCATION_ID}', 'create_item', NULL, '{uuid.uuid4()}',
+            '{{"session_id":"{created_session_id}","requested_next_action":"No create grant"}}'::jsonb,
+            'Reject missing create grant.');"""),
+        "42501",
+        "reject tactical item creation without its exact create grant",
+    )
+    item_state = docker_sql(
+        container,
+        f"""SELECT status || '|' || priority::text || '|' || requested_next_action || '|' ||
+                   owner_role_id::text || '|' || work_item_id::text || '|' || decision_id::text
+              FROM public.governance_tactical_item WHERE id = '{created_item_id}';""",
+    ).stdout.strip()
+    if item_state != f"open|4|Review irrigation repair quotes.|{ROLE_LOCATION}|{item_work}|{item_decision}":
+        raise AssertionError(f"tactical item did not preserve validated content: {item_state}")
+
+    item_update_request = str(uuid.uuid4())
+    item_update_content = {"requested_next_action": "Compare verified irrigation repair quotes.", "priority": 5}
+    item_updated = mutate_tactical_content(
+        OPERATOR_ONE, "update_item", created_item_id, item_update_request,
+        item_update_content, "Clarify the action and urgency.",
+    )
+    item_updated_retry = mutate_tactical_content(
+        OPERATOR_ONE, "update_item", created_item_id, item_update_request,
+        item_update_content, "Clarify the action and urgency.",
+    )
+    if item_updated != item_updated_retry:
+        raise AssertionError("tactical item update did not replay the exact request")
+    item_edit_audit = docker_sql(
+        container,
+        f"""SELECT operation || '|' || actor_party_id::text || '|' ||
+                   (prior_content->>'priority') || '|' || (requested_content->>'priority')
+              FROM public.governance_tactical_content_event
+             WHERE id = '{item_updated.split('|')[0]}';""",
+    ).stdout.strip()
+    if item_edit_audit != f"update_item|{PARTY_ONE}|4|5":
+        raise AssertionError(f"item edit before/after history is incomplete: {item_edit_audit}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.mutate_governance_tactical_content(
+            '{LOCATION_ID}', 'update_item', '{created_item_id}', '{uuid.uuid4()}',
+            '{{"priority":2}}'::jsonb, 'Reject missing update grant.');"""),
+        "42501",
+        "reject tactical item edit without exact update grant",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.transition_governance_tactical_item(
+            '{LOCATION_ID}', '{created_item_id}', '{uuid.uuid4()}', 'start',
+            'Start the assigned follow-up.');"""),
+        "42501",
+        "do not allow an update grant to substitute for the separate start grant",
+    )
+    docker_sql(
+        container,
+        f"""INSERT INTO public.operator_scope_grant VALUES
+          ('{content_start_retry_grant}', '{OPERATOR_ONE}', 'governance_tactical', 'start', '{LOCATION_ID}', '{ORG_ID}', NULL);""",
+    )
+    runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT * FROM kokonut_security.transition_governance_tactical_item(
+            '{LOCATION_ID}', '{created_item_id}', '{uuid.uuid4()}', 'start',
+            'Start the assigned follow-up.');""",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_tactical_content(
+            '{LOCATION_ID}', 'update_item', '{created_item_id}', '{uuid.uuid4()}',
+            '{{"priority":2}}'::jsonb, 'Reject edit after work started.');"""),
+        "55000",
+        "reject tactical item content edits after lifecycle start",
+    )
+
+    session_update_request = str(uuid.uuid4())
+    session_update_content = {"title": "Updated weekly review", "scheduled_at": "2026-10-22T10:00:00+00:00"}
+    session_updated = mutate_tactical_content(
+        OPERATOR_ONE, "update_session", created_session_id, session_update_request,
+        session_update_content, "Move the planned review and clarify its title.",
+    )
+    session_updated_retry = mutate_tactical_content(
+        OPERATOR_ONE, "update_session", created_session_id, session_update_request,
+        session_update_content, "Move the planned review and clarify its title.",
+    )
+    if session_updated != session_updated_retry:
+        raise AssertionError("planned tactical session edit did not replay the exact request")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.mutate_governance_tactical_content(
+            '{LOCATION_ID}', 'update_session', '{created_session_id}', '{uuid.uuid4()}',
+            '{{"status":"completed","outcome_summary":"Not approved through content update"}}'::jsonb,
+            'Reject lifecycle bypass.');"""),
+        "22023",
+        "reject caller-selected session lifecycle or outcome fields",
+    )
+    session_state = docker_sql(
+        container,
+        f"""SELECT status || '|' || title || '|' || created_by_party_id::text
+              FROM public.governance_tactical_session WHERE id = '{created_session_id}';""",
+    ).stdout.strip()
+    if session_state != f"planned|Updated weekly review|{PARTY_ONE}":
+        raise AssertionError(f"session edit changed governed state or creator: {session_state}")
+    content_acl = docker_sql(
+        container,
+        """SELECT has_table_privilege('kokonut_governance_action_owner', 'public.governance_tactical_content_event', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_governance_action_owner', 'public.governance_tactical_content_event', 'UPDATE')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_content_event', 'SELECT')
+                  AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_content_event', 'SELECT')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_item', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_item', 'INSERT')
+                  AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_session', 'UPDATE')
+                  AND has_column_privilege('kokonut_governance_action_owner',
+                    'public.work_item', 'id', 'UPDATE')
+                  AND NOT has_column_privilege('kokonut_governance_action_owner',
+                    'public.work_item', 'status', 'UPDATE')
+                  AND has_function_privilege('kokonut_runtime',
+                    'kokonut_security.mutate_governance_tactical_content(uuid,text,uuid,uuid,jsonb,text)', 'EXECUTE')
+                  AND NOT has_function_privilege('kokonut_directus_runtime',
+                    'kokonut_security.mutate_governance_tactical_content(uuid,text,uuid,uuid,jsonb,text)', 'EXECUTE');""",
+    ).stdout.strip()
+    if content_acl != "t":
+        raise AssertionError(f"tactical content ACL contract failed: {content_acl}")
+    for database_role in ("kokonut_runtime", "kokonut_directus_runtime"):
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; UPDATE public.governance_tactical_session SET title = 'bypass' WHERE id = '{created_session_id}';",
+            "42501",
+            f"direct {database_role} tactical session update",
+        )
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; SELECT * FROM public.governance_tactical_content_event;",
+            "42501",
+            f"private tactical content history read by {database_role}",
+        )
+    assert_sqlstate(
+        container,
+        f"UPDATE public.governance_tactical_content_event SET reason = 'rewritten' WHERE id = '{item_event_id}';",
+        "P0001",
+        "immutable tactical content history",
+    )
+    checks.append("tactical item creation and open-item/planned-session edits require signed exact grants, validate linked records in-location, replay only identical requests, preserve lifecycle/approval fields, and append private immutable before/after history")
+
     first_page = runtime_call(
         container,
         OPERATOR_ONE,
@@ -1212,7 +1455,7 @@ def main() -> None:
             raise RuntimeError("disposable PostgreSQL did not become ready")
         checks = run_acceptance(container)
         evidence = {
-            "title": "Migrations 437-444 governance role assignment, definition mutation, lifecycle, and tactical session creation acceptance",
+            "title": "Migrations 437-445 governance role assignment, definition lifecycle, and tactical content acceptance",
             "status": "passed",
             "checks": checks,
             "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",

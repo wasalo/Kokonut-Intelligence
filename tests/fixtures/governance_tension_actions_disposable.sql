@@ -151,6 +151,19 @@ CREATE TABLE public.governance_role (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     UNIQUE (circle_id, role_key)
 );
+ALTER TABLE public.governance_tension
+    ADD COLUMN circle_id UUID REFERENCES public.governance_circle(id);
+CREATE TABLE public.work_item (
+    id UUID PRIMARY KEY,
+    location_id UUID REFERENCES public.location(id),
+    status TEXT NOT NULL DEFAULT 'draft'
+);
+CREATE TABLE public.stakeholder_decision (
+    id UUID PRIMARY KEY,
+    scope_type TEXT NOT NULL,
+    scope_id UUID,
+    status TEXT NOT NULL DEFAULT 'draft'
+);
 CREATE TABLE public.governance_role_assignment (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_id UUID NOT NULL REFERENCES public.governance_role(id),

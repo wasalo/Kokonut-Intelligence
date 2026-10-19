@@ -62,3 +62,32 @@ def test_console_ids_are_unique_and_creation_form_is_wired():
         assert f'id="{element_id}"' in source
     assert 'governanceTacticalSessionCreateForm.addEventListener("submit", createGovernanceTacticalSession)' in source
     assert 'governanceTacticalSessionCreateForm.hidden = !governanceTacticalCreateLocations.has(governanceTacticalLocation.value)' in source
+
+
+def test_tactical_items_can_be_created_and_edited_under_separate_grants():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'id="governance-tactical-item-create-form"' in source
+    assert 'scope.resource === "governance_tactical" && scope.action === "update"' in source
+    assert "governanceTacticalCreateLocations.has(locationId)" in source
+    assert "governanceTacticalUpdateLocations.has(locationId)" in source
+    assert '`/operator/api/governance/${encodeURIComponent(governanceTacticalLocation.value)}/tactical-items`' in source
+    assert "/tactical-sessions/${encodeURIComponent(session.id)}" in source
+    assert "/tactical-items/${encodeURIComponent(item.id)}" in source
+    assert 'method: "PATCH"' in source
+    assert 'session.status === "planned"' in source
+    assert 'item.status === "open"' in source
+    assert "attachTacticalMutationForm" in source
+    assert 'cache: "no-store"' in source
+    assert '"X-CSRF-Token": csrf' in source
+    assert "retry unchanged to reuse request" in source
+    assert 'id="governance-tactical-item-create-status"' in source
+    for field in ("tension", "work", "decision"):
+        assert f'id="governance-tactical-item-{field}"' in source
+    assert 'if (value) content[field] = value;' in source
+    assert 'else if (editor.clear.checked) content[field] = null;' in source
+    assert 'session.status !== "cancelled"' in source
+    assert '"facilitator_role_id"' in source
+    assert '"recorder_role_id"' in source
+    assert 'session_type: typeField.value' in source
+    assert 'agenda_scope = agendaField.value.trim()' in source
+    assert 'Clear current agenda scope' in source

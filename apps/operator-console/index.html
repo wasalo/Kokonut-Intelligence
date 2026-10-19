@@ -278,7 +278,7 @@
           <p id="governance-tactical-session-status" class="muted" role="status" aria-live="polite"></p>
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Session</th><th>Circle</th><th>Scheduled</th><th>Status</th><th>Items</th><th>Open</th><th>Overdue</th><th>Disposed</th></tr></thead>
+              <thead><tr><th>Session</th><th>Circle</th><th>Scheduled</th><th>Status</th><th>Items</th><th>Open</th><th>Overdue</th><th>Disposed</th><th>Actions</th></tr></thead>
               <tbody id="governance-tactical-sessions"></tbody>
             </table>
           </div>
@@ -307,6 +307,32 @@
             <button id="governance-tactical-session-create-submit" type="submit">Create planned session</button>
           </form>
           <p id="governance-tactical-session-create-status" class="muted" role="status" aria-live="polite"></p>
+          <h3>Create a tactical action</h3>
+          <p class="muted">Actions start as open. Optional role, person, tension, work item, and decision links are validated against this location and session circle.</p>
+          <form id="governance-tactical-item-create-form" class="stacked-form" hidden>
+            <label for="governance-tactical-item-session">Session ID</label>
+            <input id="governance-tactical-item-session" name="session_id" type="text" required maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+            <label for="governance-tactical-item-action">Requested next action</label>
+            <textarea id="governance-tactical-item-action" name="requested_next_action" required maxlength="4000"></textarea>
+            <label for="governance-tactical-item-priority">Priority</label>
+            <select id="governance-tactical-item-priority" name="priority"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select>
+            <label for="governance-tactical-item-due">Due time</label>
+            <input id="governance-tactical-item-due" name="due_at" type="datetime-local">
+            <label for="governance-tactical-item-role">Owner role ID (optional)</label>
+            <input id="governance-tactical-item-role" name="owner_role_id" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+            <label for="governance-tactical-item-person">Owner person ID (optional)</label>
+            <input id="governance-tactical-item-person" name="owner_party_id" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+            <label for="governance-tactical-item-tension">Tension ID (optional)</label>
+            <input id="governance-tactical-item-tension" name="tension_id" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+            <label for="governance-tactical-item-work">Work item ID (optional)</label>
+            <input id="governance-tactical-item-work" name="work_item_id" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+            <label for="governance-tactical-item-decision">Stakeholder decision ID (optional)</label>
+            <input id="governance-tactical-item-decision" name="decision_id" type="text" maxlength="36" pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}" autocomplete="off">
+            <label for="governance-tactical-item-create-reason">Creation reason</label>
+            <textarea id="governance-tactical-item-create-reason" name="reason" required maxlength="2000"></textarea>
+            <button type="submit">Create open action</button>
+          </form>
+          <p id="governance-tactical-item-create-status" class="muted" role="status" aria-live="polite"></p>
           <h3>Open tactical actions</h3>
           <div class="table-wrap">
             <table>
@@ -595,6 +621,8 @@
       const governanceTacticalSessionsMore = document.querySelector("#governance-tactical-sessions-more");
       const governanceTacticalSessionCreateForm = document.querySelector("#governance-tactical-session-create-form");
       const governanceTacticalSessionCreateStatus = document.querySelector("#governance-tactical-session-create-status");
+      const governanceTacticalItemCreateForm = document.querySelector("#governance-tactical-item-create-form");
+      const governanceTacticalItemCreateStatus = document.querySelector("#governance-tactical-item-create-status");
       const fields = [["Name", "display_name"], ["Subject", "subject"], ["Issuer", "issuer"]];
       const farmActivity = document.querySelector("#farm-activity");
       const farmActivityLocation = document.querySelector("#farm-activity-location");
@@ -693,6 +721,7 @@
       let governanceRoleReviewRequestVersion = 0;
       let governanceTacticalReadLocations = new Set();
       let governanceTacticalCreateLocations = new Set();
+      let governanceTacticalUpdateLocations = new Set();
       let governanceTacticalStartLocations = new Set();
       let governanceTacticalDisposeLocations = new Set();
       let governanceTacticalCancelLocations = new Set();
@@ -802,6 +831,10 @@
           ])];
           governanceTacticalReadLocations = new Set(governanceTacticalReadLocationIds);
           governanceTacticalCreateLocations = new Set(governanceTacticalCreateLocationIds);
+          governanceTacticalUpdateLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "governance_tactical" && scope.action === "update")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => governanceTacticalReadLocations.has(locationId)));
           governanceTacticalStartLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "governance_tactical" && scope.action === "start")
             .map((scope) => scope.location_id)
@@ -976,6 +1009,7 @@
             }
             governanceTacticalQueue.hidden = false;
             governanceTacticalSessionCreateForm.hidden = !governanceTacticalCreateLocations.has(governanceTacticalLocation.value);
+            governanceTacticalItemCreateForm.hidden = !governanceTacticalCreateLocations.has(governanceTacticalLocation.value);
             await Promise.all([
               loadGovernanceTacticalSessions(),
               loadGovernanceTacticalItems(),
@@ -1973,7 +2007,140 @@
               cell.textContent = String(value ?? "—");
               row.append(cell);
             }
+            const actionsCell = document.createElement("td");
+            let editRow = null;
+            if (governanceTacticalCreateLocations.has(locationId) && session.status !== "cancelled") {
+              const addItemButton = document.createElement("button");
+              addItemButton.type = "button";
+              addItemButton.className = "secondary";
+              addItemButton.textContent = "Add action";
+              addItemButton.addEventListener("click", () => {
+                document.querySelector("#governance-tactical-item-session").value = session.id;
+                governanceTacticalItemCreateForm.hidden = false;
+                document.querySelector("#governance-tactical-item-action").focus();
+              });
+              actionsCell.append(addItemButton);
+            }
+            if (governanceTacticalUpdateLocations.has(locationId) && session.status === "planned") {
+              const editButton = document.createElement("button");
+              editButton.type = "button";
+              editButton.className = "secondary";
+              editButton.textContent = "Edit planned session";
+              editButton.setAttribute("aria-expanded", "false");
+              actionsCell.append(editButton);
+              editRow = document.createElement("tr");
+              editRow.hidden = true;
+              const editCell = document.createElement("td");
+              editCell.colSpan = 9;
+              const editForm = document.createElement("form");
+              editForm.className = "stacked-form";
+              const titleLabel = document.createElement("label");
+              titleLabel.textContent = "Session title";
+              const titleField = document.createElement("input");
+              titleField.type = "text";
+              titleField.required = true;
+              titleField.maxLength = 255;
+              titleField.value = session.title;
+              titleLabel.append(titleField);
+              const typeLabel = document.createElement("label");
+              typeLabel.textContent = "Session type";
+              const typeField = document.createElement("select");
+              for (const value of [
+                "weekly_review", "stakeholder_health", "relationship_review",
+                "risk_triage", "governance_followup",
+              ]) {
+                const option = document.createElement("option");
+                option.value = value;
+                option.textContent = value.replaceAll("_", " ");
+                option.selected = value === session.session_type;
+                typeField.append(option);
+              }
+              typeLabel.append(typeField);
+              const scheduledLabel = document.createElement("label");
+              scheduledLabel.textContent = "Scheduled time (blank clears it)";
+              const scheduledField = document.createElement("input");
+              scheduledField.type = "datetime-local";
+              scheduledField.value = localDateTimeValue(session.scheduled_at);
+              scheduledLabel.append(scheduledField);
+              const sessionRoleEditors = {};
+              for (const [field, title] of [
+                ["facilitator_role_id", "Facilitator role"],
+                ["recorder_role_id", "Recorder role"],
+              ]) {
+                const roleLabel = document.createElement("label");
+                roleLabel.textContent = `${title} ID (blank keeps the current role)`;
+                const roleField = document.createElement("input");
+                roleField.type = "text";
+                roleField.maxLength = 36;
+                roleField.pattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+                roleField.autocomplete = "off";
+                roleLabel.append(roleField);
+                const clearLabel = document.createElement("label");
+                const clearField = document.createElement("input");
+                clearField.type = "checkbox";
+                clearLabel.append(clearField, document.createTextNode(` Clear current ${title.toLowerCase()}`));
+                sessionRoleEditors[field] = { input: roleField, clear: clearField };
+                editForm.append(roleLabel, clearLabel);
+              }
+              const agendaLabel = document.createElement("label");
+              agendaLabel.textContent = "Agenda scope (blank keeps current text)";
+              const agendaField = document.createElement("textarea");
+              agendaField.maxLength = 10000;
+              agendaLabel.append(agendaField);
+              const clearAgendaLabel = document.createElement("label");
+              const clearAgendaField = document.createElement("input");
+              clearAgendaField.type = "checkbox";
+              clearAgendaLabel.append(clearAgendaField, document.createTextNode(" Clear current agenda scope"));
+              const reasonLabel = document.createElement("label");
+              reasonLabel.textContent = "Reason";
+              const reasonField = document.createElement("textarea");
+              reasonField.required = true;
+              reasonField.maxLength = 2000;
+              reasonLabel.append(reasonField);
+              const saveButton = document.createElement("button");
+              saveButton.type = "submit";
+              saveButton.textContent = "Save planned session";
+              const status = document.createElement("p");
+              status.className = "muted";
+              status.setAttribute("role", "status");
+              status.setAttribute("aria-live", "polite");
+              editForm.append(titleLabel, typeLabel, scheduledLabel, agendaLabel, clearAgendaLabel, reasonLabel, saveButton, status);
+              editCell.append(editForm);
+              editRow.append(editCell);
+              editButton.addEventListener("click", () => {
+                editRow.hidden = !editRow.hidden;
+                editButton.setAttribute("aria-expanded", String(!editRow.hidden));
+              });
+              attachTacticalMutationForm(editForm, {
+                endpoint: () => `/operator/api/governance/${encodeURIComponent(locationId)}/tactical-sessions/${encodeURIComponent(session.id)}`,
+                method: "PATCH",
+                buildContent: () => {
+                  const content = {
+                    reason: reasonField.value.trim(),
+                    title: titleField.value.trim(),
+                    session_type: typeField.value,
+                    scheduled_at: scheduledField.value ? new Date(scheduledField.value).toISOString() : null,
+                  };
+                  for (const [field, editor] of Object.entries(sessionRoleEditors)) {
+                    const value = editor.input.value.trim();
+                    if (value) content[field] = value;
+                    else if (editor.clear.checked) content[field] = null;
+                  }
+                  if (agendaField.value.trim()) content.agenda_scope = agendaField.value.trim();
+                  else if (clearAgendaField.checked) content.agenda_scope = null;
+                  return content;
+                },
+                status,
+                success: "Planned session updated.",
+                afterSave: async () => {
+                  editRow.hidden = true;
+                  await loadGovernanceTacticalSessions();
+                },
+              });
+            }
+            row.append(actionsCell);
             governanceTacticalSessions.append(row);
+            if (editRow) governanceTacticalSessions.append(editRow);
           }
           governanceTacticalSessionNextCursor = result.next_cursor || null;
           governanceTacticalSessionsMore.hidden = !governanceTacticalSessionNextCursor;
@@ -2054,6 +2221,98 @@
         }
       }
 
+      function localDateTimeValue(value) {
+        if (!value) return "";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      }
+
+      function attachTacticalMutationForm(form, { endpoint, method, buildContent, status, success, afterSave }) {
+        let pending = null;
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "The security token is unavailable. Reload the console and try again.";
+            return;
+          }
+          const content = buildContent();
+          const normalizedContent = JSON.stringify(content);
+          if (!pending || pending.content !== normalizedContent) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure request identifier is unavailable. Reload the console and try again.";
+              return;
+            }
+            pending = { requestId, content: normalizedContent };
+          }
+          const requestId = pending.requestId;
+          for (const control of form.elements) control.disabled = true;
+          status.textContent = "Saving tactical changes…";
+          try {
+            const response = await fetch(endpoint(), {
+              method,
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf,
+              },
+              body: JSON.stringify({ ...content, request_id: requestId }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location-scoped tactical grant is not valid.");
+            }
+            if (response.status === 409) {
+              throw new Error("The tactical record changed or is no longer editable.");
+            }
+            if (!response.ok) throw new Error(result.error || "The tactical change could not be saved.");
+            pending = null;
+            status.textContent = `${success} Request ID: ${requestId}.`;
+            await afterSave();
+          } catch (error) {
+            status.textContent = `${error.message} If the request may have completed, retry unchanged to reuse request ${requestId}.`;
+          } finally {
+            for (const control of form.elements) control.disabled = false;
+          }
+        });
+      }
+
+      attachTacticalMutationForm(governanceTacticalItemCreateForm, {
+        endpoint: () => `/operator/api/governance/${encodeURIComponent(governanceTacticalLocation.value)}/tactical-items`,
+        method: "POST",
+        buildContent: () => {
+          const dueAt = document.querySelector("#governance-tactical-item-due").value;
+          const ownerRole = document.querySelector("#governance-tactical-item-role").value.trim();
+          const ownerParty = document.querySelector("#governance-tactical-item-person").value.trim();
+          const tensionId = document.querySelector("#governance-tactical-item-tension").value.trim();
+          const workItemId = document.querySelector("#governance-tactical-item-work").value.trim();
+          const decisionId = document.querySelector("#governance-tactical-item-decision").value.trim();
+          const content = {
+            reason: document.querySelector("#governance-tactical-item-create-reason").value.trim(),
+            session_id: document.querySelector("#governance-tactical-item-session").value.trim(),
+            requested_next_action: document.querySelector("#governance-tactical-item-action").value.trim(),
+            priority: Number(document.querySelector("#governance-tactical-item-priority").value),
+          };
+          if (dueAt) content.due_at = new Date(dueAt).toISOString();
+          if (ownerRole) content.owner_role_id = ownerRole;
+          if (ownerParty) content.owner_party_id = ownerParty;
+          if (tensionId) content.tension_id = tensionId;
+          if (workItemId) content.work_item_id = workItemId;
+          if (decisionId) content.decision_id = decisionId;
+          return content;
+        },
+        status: governanceTacticalItemCreateStatus,
+        success: "Open tactical action created.",
+        afterSave: async () => {
+          governanceTacticalItemCreateForm.reset();
+          await Promise.all([loadGovernanceTacticalItems(), loadGovernanceTacticalSessions()]);
+        },
+      });
+
       async function loadGovernanceTacticalItems(append = false) {
         const locationId = governanceTacticalLocation.value;
         const requestVersion = ++governanceTacticalRequestVersion;
@@ -2106,6 +2365,7 @@
                 && governanceTacticalCancelLocations.has(locationId)) {
               actions.push("cancel");
             }
+            let editRow = null;
             if (actions.length) {
               const actionForm = document.createElement("form");
               actionForm.hidden = true;
@@ -2227,11 +2487,116 @@
                 buttons.append(button);
               }
               actionCell.append(buttons, actionForm);
-            } else {
-              actionCell.textContent = "—";
             }
+            if (item.status === "open" && governanceTacticalUpdateLocations.has(locationId)) {
+              const editButton = document.createElement("button");
+              editButton.type = "button";
+              editButton.className = "secondary";
+              editButton.textContent = "Edit open action";
+              editButton.setAttribute("aria-expanded", "false");
+              actionCell.append(editButton);
+              editRow = document.createElement("tr");
+              editRow.hidden = true;
+              const editCell = document.createElement("td");
+              editCell.colSpan = 7;
+              const editForm = document.createElement("form");
+              editForm.className = "stacked-form";
+              const actionLabel = document.createElement("label");
+              actionLabel.textContent = "Requested next action";
+              const actionField = document.createElement("textarea");
+              actionField.required = true;
+              actionField.maxLength = 4000;
+              actionField.value = item.requested_next_action;
+              actionLabel.append(actionField);
+              const priorityLabel = document.createElement("label");
+              priorityLabel.textContent = "Priority";
+              const priorityField = document.createElement("select");
+              for (let priority = 1; priority <= 5; priority += 1) {
+                const option = document.createElement("option");
+                option.value = String(priority);
+                option.textContent = String(priority);
+                option.selected = Number(item.priority) === priority;
+                priorityField.append(option);
+              }
+              priorityLabel.append(priorityField);
+              const dueLabel = document.createElement("label");
+              dueLabel.textContent = "Due time (blank clears it)";
+              const dueField = document.createElement("input");
+              dueField.type = "datetime-local";
+              dueField.value = localDateTimeValue(item.due_at);
+              dueLabel.append(dueField);
+              const linkEditors = {};
+              for (const [field, title] of [
+                ["owner_role_id", "Owner role"],
+                ["owner_party_id", "Owner person"],
+                ["tension_id", "Tension"],
+                ["work_item_id", "Work item"],
+                ["decision_id", "Stakeholder decision"],
+              ]) {
+                const linkLabel = document.createElement("label");
+                linkLabel.textContent = `${title} ID (blank keeps the current link)`;
+                const linkField = document.createElement("input");
+                linkField.type = "text";
+                linkField.maxLength = 36;
+                linkField.pattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
+                linkField.autocomplete = "off";
+                linkLabel.append(linkField);
+                const clearLabel = document.createElement("label");
+                const clearField = document.createElement("input");
+                clearField.type = "checkbox";
+                clearLabel.append(clearField, document.createTextNode(` Clear current ${title.toLowerCase()} link`));
+                linkEditors[field] = { input: linkField, clear: clearField };
+                editForm.append(linkLabel, clearLabel);
+              }
+              const reasonLabel = document.createElement("label");
+              reasonLabel.textContent = "Reason";
+              const reasonField = document.createElement("textarea");
+              reasonField.required = true;
+              reasonField.maxLength = 2000;
+              reasonLabel.append(reasonField);
+              const saveButton = document.createElement("button");
+              saveButton.type = "submit";
+              saveButton.textContent = "Save open action";
+              const status = document.createElement("p");
+              status.className = "muted";
+              status.setAttribute("role", "status");
+              status.setAttribute("aria-live", "polite");
+              editForm.append(actionLabel, priorityLabel, dueLabel, reasonLabel, saveButton, status);
+              editCell.append(editForm);
+              editRow.append(editCell);
+              editButton.addEventListener("click", () => {
+                editRow.hidden = !editRow.hidden;
+                editButton.setAttribute("aria-expanded", String(!editRow.hidden));
+              });
+              attachTacticalMutationForm(editForm, {
+                endpoint: () => `/operator/api/governance/${encodeURIComponent(locationId)}/tactical-items/${encodeURIComponent(item.id)}`,
+                method: "PATCH",
+                buildContent: () => {
+                  const content = {
+                    reason: reasonField.value.trim(),
+                    requested_next_action: actionField.value.trim(),
+                    priority: Number(priorityField.value),
+                    due_at: dueField.value ? new Date(dueField.value).toISOString() : null,
+                  };
+                  for (const [field, editor] of Object.entries(linkEditors)) {
+                    const value = editor.input.value.trim();
+                    if (value) content[field] = value;
+                    else if (editor.clear.checked) content[field] = null;
+                  }
+                  return content;
+                },
+                status,
+                success: "Open tactical action updated.",
+                afterSave: async () => {
+                  editRow.hidden = true;
+                  await loadGovernanceTacticalItems();
+                },
+              });
+            }
+            if (!actions.length && !editRow) actionCell.textContent = "—";
             row.append(actionCell);
             governanceTacticalItems.append(row);
+            if (editRow) governanceTacticalItems.append(editRow);
           }
           governanceTacticalNextCursor = result.next_cursor || null;
           governanceTacticalMore.hidden = !governanceTacticalNextCursor;
@@ -3302,6 +3667,7 @@
       });
       governanceTacticalLocation.addEventListener("change", () => {
         governanceTacticalSessionCreateForm.hidden = !governanceTacticalCreateLocations.has(governanceTacticalLocation.value);
+        governanceTacticalItemCreateForm.hidden = !governanceTacticalCreateLocations.has(governanceTacticalLocation.value);
         loadGovernanceTacticalSessions();
         loadGovernanceTacticalItems();
       });

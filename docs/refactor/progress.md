@@ -1,5 +1,26 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 tactical content implementation — 19 October 2026
+
+The code-level tactical mutation slice is ready for owner review. Migration 445
+and the Gateway add exact-grant creation of `open` tactical items plus content
+edits for open items and planned sessions. Signed tenant context, active person
+binding, same-location references, field allowlists, lifecycle separation,
+request idempotency, and private immutable before/after history are enforced in
+the bounded database function. The operator console exposes grant-gated,
+CSRF-protected, no-store forms. The focused mutation slice passes 19 tests; the broader CAP-024
+Gateway/route-policy/console set passes 182 tests with five skips; 33 migration
+metadata tests and disposable PostgreSQL 16 acceptance
+through migrations 437–445 pass; the disposable run checks retry/collision,
+scope, lifecycle, audit, row-lock privileges, and runtime/Directus ACLs.
+Ruff, compilation, JavaScript syntax, capability validation, runtime SQL
+inventory, and diff checks pass. Candidate remains at migration 444; no
+candidate or legacy database changed. CAP-024 is prepared for named owner
+review, not accepted. Open gates remain least-privilege candidate rollout,
+remaining report/populated-data parity, tenant RLS, live OIDC/browser behavior,
+and MAN-CAP-024. Checklist: 658 complete / 19 open (677 total); capability
+counts remain 45 baseline-retained, 7 deployed, and 14 prepared ([contract](governance-tactical-content-mutation-contract.md); [migration](../../schemas/postgres/445_governance_tactical_content_mutations.sql); [database evidence](builds/2026-10-19-recovery/governance-tactical-content-mutations-disposable.json)).
+
 ### Candidate governance migrations 438–444 — 19 October 2026
 
 The candidate had seven pending schema migrations. The ordered, checksummed

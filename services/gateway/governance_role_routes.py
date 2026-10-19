@@ -46,6 +46,11 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         GovernanceTacticalActionInvalid,
         transition_governance_tactical_item,
     )
+    from services.gateway.governance_tactical_mutations import (
+        GovernanceTacticalMutationConflict,
+        GovernanceTacticalMutationInvalid,
+        mutate_governance_tactical_content,
+    )
     from services.gateway.governance_tactical_session_mutations import (
         GovernanceTacticalSessionInvalid,
         create_governance_tactical_session,
@@ -976,6 +981,97 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), status_code=201, headers=headers)
+
+    async def mutate_tactical_content_route(
+        request: Request,
+        location_id: str,
+        operation: str,
+        target_id: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Tactical content must be valid JSON"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                mutate_governance_tactical_content,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                operation,
+                target_id,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceTacticalMutationInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except GovernanceTacticalMutationConflict as exc:
+            return JSONResponse(status_code=409, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active tactical content grant and person binding are required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "The linked session, role, person, or record is unavailable in this location"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Tactical content request is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "23514", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Tactical content conflicts with its current state"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tactical").warning(
+                "Governance tactical content mutation unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance tactical content mutation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        status_code = 201 if operation == "create_item" else 200
+        return JSONResponse(jsonable_encoder(result), status_code=status_code, headers=headers)
+
+    @router.post("/operator/api/governance/{location_id}/tactical-items", status_code=201)
+    async def create_governance_tactical_item(request: Request, location_id: str):
+        return await mutate_tactical_content_route(request, location_id, "create_item")
+
+    @router.patch("/operator/api/governance/{location_id}/tactical-items/{item_id}")
+    async def update_governance_tactical_item(request: Request, location_id: str, item_id: str):
+        return await mutate_tactical_content_route(request, location_id, "update_item", item_id)
+
+    @router.patch("/operator/api/governance/{location_id}/tactical-sessions/{session_id}")
+    async def update_governance_tactical_session(request: Request, location_id: str, session_id: str):
+        return await mutate_tactical_content_route(request, location_id, "update_session", session_id)
 
     async def transition_tactical_route(request: Request, location_id: str, item_id: str, action: str):
         headers = {"Cache-Control": "no-store", "Vary": "Cookie"}

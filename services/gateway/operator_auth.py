@@ -604,10 +604,10 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     governance_tactical_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-items", path
     )
-    if governance_tactical_match and method.upper() == "GET" and enabled:
+    if governance_tactical_match and method.upper() in {"GET", "POST"} and enabled:
         return {
             "resource": "governance_tactical",
-            "action": "read",
+            "action": "read" if method.upper() == "GET" else "create",
             "public": False,
             "location_id": governance_tactical_match.group(1),
             "scope_required": True,
@@ -623,6 +623,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "create" if method.upper() == "POST" else "read",
             "public": False,
             "location_id": governance_tactical_sessions_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    governance_tactical_content_update_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-(items|sessions)/([0-9a-fA-F-]{36})",
+        path,
+    )
+    if governance_tactical_content_update_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "governance_tactical",
+            "action": "update",
+            "public": False,
+            "location_id": governance_tactical_content_update_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }
