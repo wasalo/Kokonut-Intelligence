@@ -31,6 +31,7 @@ _PARAMETER_SAMPLES = {
     "device_id": "collector-1",
     "plan_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     "case_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
 }
 _TRANSITION_ACTIONS = {
     "submit": "submit",
@@ -102,6 +103,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/stakeholder-identity/11111111-1111-4111-8111-111111111111/cases/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/decision",
     ): _expected("stakeholder_identity", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/stakeholder-trust/11111111-1111-4111-8111-111111111111/parties/cccccccc-cccc-4ccc-8ccc-cccccccccccc/identity-evidence",
+    ): _expected("stakeholder_trust", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/governance/11111111-1111-4111-8111-111111111111/summary",

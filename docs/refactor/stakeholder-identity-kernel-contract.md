@@ -1,6 +1,6 @@
 # CAP-025 Kernel identity review contract
 
-Status: prepared first slice; not MAN-CAP-025 accepted.
+Status: prepared identity-review and scoped identity-trust slices; not MAN-CAP-025 accepted.
 
 ## Owner-selected boundary
 
@@ -42,12 +42,28 @@ all reads and writes; decision history is append-only. Approved mappings stay
 in the location-scoped ledger and are not copied into the legacy global
 `party_identifier` views.
 
+Migration `447_location_scoped_identity_trust_projection.sql` adds a read-only
+identity-trust projection derived only from those independently approved
+location cases. `GET
+/operator/api/stakeholder-trust/{location_id}/parties/{party_id}/identity-evidence`
+requires an exact `stakeholder_trust:read` grant and the same transaction-local
+signed location context. It returns a bounded page of structured identity
+evidence code, match method, confidence, and review time. The projection
+rechecks the active source profile, latest personal/internal-use consent, and
+the canonical party's active/non-private state on every read. Consent
+withdrawal, profile deactivation, or a private/inactive canonical party
+suppresses the evidence. No participant name or profile ID, reviewer ID,
+free-text summary, raw feedback, legacy trust row, or global reputation score
+is returned. This is reviewed identity evidence only; it does not claim to be
+a complete stakeholder trust profile.
+
 ## Explicit exclusions and next work
 
 This is the first source type and review workflow, not full identity parity.
 There is no consumer resolver, merge operation, participant feedback access,
-trust evidence write/read path, location-scoped trust profile, global trust
-score, or publication path. Existing global trust evidence and profile views
+general trust-evidence write path, delivery/payment/governance trust evidence,
+global trust score, or publication path. The scoped identity-evidence read is
+not a general trust profile. Existing global trust evidence and profile views
 are not exposed by the Kernel API. The new tables do not yet have forced RLS;
 runtime/directus ACLs and bounded signed functions are the current boundary.
 Live OIDC/browser checks, populated fixture parity, consent withdrawal
@@ -63,10 +79,15 @@ policies, request shape, bounded pagination, transaction ordering, and the
 absence of raw feedback fields. A disposable PostgreSQL 16 fixture applies
 migration 446 and exercises location/grant checks under a synthetic tenant
 context, direct-table denial, independent review, decision retries/collisions,
-consent withdrawal concealment, and immutable decisions. The existing
+consent withdrawal concealment, and immutable decisions. A separate
+PostgreSQL 16 replay applies migrations 446 and 447, then verifies that the
+trust projection returns only approved identity evidence; missing grants and
+location mismatch deny access; direct runtime table reads remain denied; and
+withdrawn consent or a private canonical identity suppresses evidence. It
+never reads or writes the legacy global trust ledger. The existing
 tenant-context checks cover the actual OIDC-session signature path.
 
 To withdraw the feature before migration rollout, remove the Gateway
-registration/policies and its route/service as one unit. Migration 446 is
-additive and checksummed; if applied, do not edit or reverse it. Keep the
-ledger, ACLs, and functions in place while removing only the API registration.
+registrations/policies and routes/services as one unit. Migrations 446 and 447
+are additive and checksummed; if applied, do not edit or reverse them. Keep
+the ledgers, ACLs, and functions in place while removing only API registration.
