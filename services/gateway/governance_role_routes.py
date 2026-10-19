@@ -7,6 +7,10 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
     from starlette.requests import Request
 
     from services.common.tenant_context import TenantContextDenied
+    from services.gateway.governance_assignment_proposal_reads import (
+        GovernanceAssignmentProposalReadInvalid,
+        list_own_governance_assignment_proposals,
+    )
     from services.gateway.governance_assignment_proposals import (
         GovernanceAssignmentConflict,
         GovernanceAssignmentInvalid,
@@ -209,6 +213,66 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 status_code=404,
                 content={"error": "Governance role not found"},
                 headers=headers,
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/governance/{location_id}/assignment-proposals"
+    )
+    async def own_governance_assignment_proposals(
+        request: Request,
+        location_id: str,
+        limit: str = "50",
+        cursor_created_at: str | None = None,
+        cursor_assignment_id: str | None = None,
+    ):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_own_governance_assignment_proposals,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                cursor_created_at=cursor_created_at,
+                cursor_assignment_id=cursor_assignment_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceAssignmentProposalReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active governance role read grant and person binding are required"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Governance role proposal cursor is invalid"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_roles").warning(
+                "Governance role proposal readback unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance role proposal readback unavailable"},
+                headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
 

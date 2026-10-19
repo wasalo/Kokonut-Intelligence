@@ -1,5 +1,27 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 operator nomination readback — 18 October 2026
+
+Added `GET /operator/api/governance/{location_id}/assignment-proposals` under
+the exact location-scoped `governance_roles:read` grant. Migration 439 exposes
+only the signed operator's own nominations, returning request/assignment/role
+identifiers, role label, assignment type, status, and creation time. It omits
+nominee identity and mandate, enforces active person binding and current
+location scope in a bounded security-definer function, and uses a stable
+keyset cursor in a read-only transaction.
+
+The focused readback, proposal, and route-policy selection passes 21 tests; the
+combined CAP-024 Gateway, auth, migration, and route-policy suite passes 157
+tests. Ruff, compilation, capability validation, and SQL inventory checks pass.
+Disposable PostgreSQL 16 applies and replays migrations 438–439,
+verifies exact operator ownership, cursor paging, read-only status, and omission
+of nominee identity and mandate. Candidate and legacy databases were not
+accessed; the candidate remains at migration 437 and the app uses administrative
+`kokonut`, so the runtime ACL is not an isolation boundary there. No approval
+or decision route is exposed; CAP-024 remains prepared, not accepted ([migration](../schemas/postgres/439_governance_role_assignment_proposal_readback.sql);
+[runner](../scripts/check-governance-assignment-proposals-disposable.py);
+[evidence](builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json)).
+
 ### CAP-024 proposal-only role assignment creation — 18 October 2026
 
 Added `POST /operator/api/governance/{location_id}/roles/{role_id}/assignments`

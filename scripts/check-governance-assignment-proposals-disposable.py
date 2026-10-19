@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise migration 438 role nomination functions on disposable PostgreSQL 16."""
+"""Exercise governance role nomination and readback migrations on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ FIXTURE = ROOT / "tests/fixtures/governance_tension_actions_disposable.sql"
 MIGRATIONS = (
     ROOT / "schemas/postgres/437_governance_operator_binding_and_actions.sql",
     ROOT / "schemas/postgres/438_governance_role_assignment_proposals.sql",
+    ROOT / "schemas/postgres/439_governance_role_assignment_proposal_readback.sql",
 )
 DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json"
 
@@ -27,6 +28,7 @@ OPERATOR_THREE = "a0000000-0000-4000-8000-000000000403"
 PARTY_ONE = "a0000000-0000-4000-8000-000000000501"
 PARTY_TWO = "a0000000-0000-4000-8000-000000000502"
 PARTY_RETIRED = "a0000000-0000-4000-8000-000000000504"
+PARTY_THREE = "a0000000-0000-4000-8000-000000000505"
 ROLE_LOCATION = "a0000000-0000-4000-8000-000000000811"
 ROLE_NETWORK = "a0000000-0000-4000-8000-000000000812"
 
@@ -80,7 +82,10 @@ def run_acceptance(container: str) -> list[str]:
     migration_sql = MIGRATIONS[1].read_text()
     docker_sql(container, migration_sql)
     docker_sql(container, migration_sql)
-    checks.append("migration 438 applies and replays transactionally after migration 437")
+    readback_sql = MIGRATIONS[2].read_text()
+    docker_sql(container, readback_sql)
+    docker_sql(container, readback_sql)
+    checks.append("migrations 438 and 439 apply and replay transactionally after migration 437")
 
     privilege = docker_sql(
         container,
@@ -96,7 +101,11 @@ def run_acceptance(container: str) -> list[str]:
            AND NOT has_table_privilege('kokonut_runtime', 'public.governance_role_assignment_request', 'INSERT')
            AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_role_assignment_request', 'SELECT')
            AND has_function_privilege('kokonut_runtime',
-             'kokonut_security.propose_governance_role_assignment(uuid,uuid,uuid,uuid,text,text)', 'EXECUTE');
+             'kokonut_security.propose_governance_role_assignment(uuid,uuid,uuid,uuid,text,text)', 'EXECUTE')
+           AND has_function_privilege('kokonut_runtime',
+             'kokonut_security.list_my_governance_role_assignment_proposals(uuid,integer,timestamp with time zone,uuid)', 'EXECUTE')
+           AND NOT has_function_privilege('kokonut_directus_runtime',
+             'kokonut_security.list_my_governance_role_assignment_proposals(uuid,integer,timestamp with time zone,uuid)', 'EXECUTE');
         """,
     ).stdout.strip()
     if privilege != "t":
@@ -134,6 +143,88 @@ def run_acceptance(container: str) -> list[str]:
     if state != f"proposed|null|null|{PARTY_ONE}|{PARTY_TWO}" or counts != "1|1":
         raise AssertionError(f"proposal must remain unapproved and create one ledger row: {state}, {counts}")
     checks.append("active bound operator creates an attributed location role nomination; exact retry returns the same proposed row without activation")
+
+    second_request_id = str(uuid.uuid4())
+    second_proposal_sql = f"""SELECT assignment_id::text || '|' || status
+        FROM kokonut_security.propose_governance_role_assignment(
+            '{LOCATION_ID}', '{second_request_id}', '{ROLE_LOCATION}', '{PARTY_TWO}', 'primary', NULL
+        );"""
+    second_created = runtime_call(container, OPERATOR_ONE, second_proposal_sql).stdout.strip().splitlines()[-1]
+    second_assignment_id, second_status = second_created.split("|")
+    if second_status != "proposed" or second_assignment_id == assignment_id:
+        raise AssertionError(f"second operator nomination was not created as a distinct proposal: {second_created}")
+
+    docker_sql(
+        container,
+        f"""SET ROLE kokonut_governance_identity_admin;
+            SELECT binding_id FROM kokonut_security.bind_operator_governance_party(
+                '{OPERATOR_TWO}', '{PARTY_THREE}', 'test administrator', 'explicit test binding'
+            ); RESET ROLE;""",
+    )
+    first_page = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT assignment_id::text || '|' || created_at::text
+             FROM kokonut_security.list_my_governance_role_assignment_proposals(
+                 '{LOCATION_ID}', 1, NULL, NULL
+             );""",
+    ).stdout.strip().splitlines()[-1]
+    first_assignment_id, first_created_at = first_page.split("|", 1)
+    next_page = runtime_call(
+        container,
+        OPERATOR_ONE,
+        f"""SELECT assignment_id::text
+             FROM kokonut_security.list_my_governance_role_assignment_proposals(
+                 '{LOCATION_ID}', 2, '{first_created_at}', '{first_assignment_id}'
+             );""",
+    ).stdout.strip().splitlines()[-1]
+    if first_assignment_id != second_assignment_id or next_page != assignment_id:
+        raise AssertionError(f"proposal readback keyset order is unstable: {first_page}, {next_page}")
+    other_operator_rows = runtime_call(
+        container,
+        OPERATOR_TWO,
+        f"""SELECT count(*) FROM kokonut_security.list_my_governance_role_assignment_proposals(
+                 '{LOCATION_ID}', 10, NULL, NULL
+             );""",
+    ).stdout.strip().splitlines()[-1]
+    if other_operator_rows != "0":
+        raise AssertionError(f"readback exposed another operator's proposal: {other_operator_rows}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_THREE, f"""SELECT * FROM kokonut_security.list_my_governance_role_assignment_proposals(
+            '{LOCATION_ID}', 10, NULL, NULL);"""),
+        "42501",
+        "reject operator without exact governance role read grant",
+    )
+    wrong_location_context = f"""SET ROLE kokonut_runtime;
+        SELECT set_config('test.tenant_id', '{ORG_ID}', FALSE);
+        SELECT set_config('test.location_id', 'a0000000-0000-4000-8000-000000000299', FALSE);
+        SELECT set_config('test.actor_id', '{OPERATOR_ONE}', FALSE);
+        SELECT set_config('test.actor_type', 'operator', FALSE);
+        SELECT * FROM kokonut_security.list_my_governance_role_assignment_proposals(
+            '{LOCATION_ID}', 10, NULL, NULL);"""
+    assert_sqlstate(
+        container,
+        wrong_location_context,
+        "42501",
+        "reject readback with mismatched signed location context",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.list_my_governance_role_assignment_proposals(
+            '{LOCATION_ID}', 10, NULL, '{assignment_id}');"""),
+        "22023",
+        "reject incomplete keyset cursor",
+    )
+    result_shape = docker_sql(
+        container,
+        """SELECT pg_get_function_result(
+              'kokonut_security.list_my_governance_role_assignment_proposals(uuid,integer,timestamptz,uuid)'::regprocedure
+            );""",
+    ).stdout
+    if "party_id" in result_shape or "mandate" in result_shape:
+        raise AssertionError(f"readback projection contains nominee or mandate fields: {result_shape}")
+    checks.append("read-only readback pages only the signed operator's nominations, rejects missing or mismatched scope, and omits nominee identity and mandate")
 
     assert_sqlstate(
         container,
@@ -227,7 +318,7 @@ def main() -> None:
             raise RuntimeError("disposable PostgreSQL did not become ready")
         checks = run_acceptance(container)
         evidence = {
-            "title": "Migration 438 tenant-scoped governance role assignment proposals",
+            "title": "Migrations 438-439 tenant-scoped governance role assignment proposals and readback",
             "status": "passed",
             "checks": checks,
             "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",
