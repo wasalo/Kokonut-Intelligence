@@ -1,0 +1,30 @@
+{
+  "capability": "CAP-062",
+  "title": "ARKIV origin indexing and marketplace fee settlement",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "focused source-level origin and fee settlement checks pass; capability not accepted",
+  "changes": [
+    "Marketplace fee collection validates transaction identity, denomination, and finite non-negative fee values before querying the database.",
+    "Fee values are normalized to the marketplace_fee NUMERIC(18,8) scale and rejected when they exceed its supported range.",
+    "Zero-fee transactions settle as a no-op instead of remaining indefinitely in the pending payout queue.",
+    "Distribution validates positive finite amount, recipient, and denomination before reads; it locks the fee row, requires the recorded denomination, and uses exact decimal accounting without the previous 0.001 over-distribution allowance.",
+    "Partial payouts leave the fee pending and distributed_at unset; status and distributed_at change only when the accumulated payout exactly equals total_fee.",
+    "Credit batch creation now accepts origin transaction ID/source/contract, requires ID and source together, persists the references to credit_batch, and inserts the class/transaction/source identity into the existing unique origin_tx_index within the caller-owned transaction. The CLI exposes these inputs."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_credit_fees.py tests/test_credit_batch_manager.py tests/test_linked_data.py tests/test_marketplace.py tests/test_marketplace_integration.py -q",
+    "result": "195 passed, 1 skipped, 17 subtests passed",
+    "ruff": "python3 -m ruff check services/credit_class/fees.py services/credit_class/batch_manager.py services/credit_class/cli.py tests/test_credit_fees.py tests/test_credit_batch_manager.py: passed",
+    "compilation": "python3 -m compileall -q services/credit_class/fees.py services/credit_class/batch_manager.py services/credit_class/cli.py tests/test_credit_fees.py tests/test_credit_batch_manager.py: passed",
+    "cli": "python3 -m services.credit_class.cli batch create --help: passed",
+    "database_or_chain": "None used"
+  },
+  "scope_limits": [
+    "The tests use mocked connections and do not prove PostgreSQL lock behavior under concurrent sessions.",
+    "Governed expires_at policy and cleanup behavior remain unimplemented; expiration remains metadata only.",
+    "Mocks verify origin-index write parameters and error propagation, but no disposable PostgreSQL race/replay check proves duplicate-origin conflict rollback.",
+    "The gRPC CreateBatchRequest does not yet expose origin transaction fields, although the CLI and service function do.",
+    "Reference fixtures, external marketplace settlement, and MAN-CAP-062 owner acceptance remain open."
+  ]
+}

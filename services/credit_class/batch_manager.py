@@ -49,7 +49,22 @@ def create_batch(
     evidence_maturity: int = 1,
     metadata: dict = None,
     created_by: str = None,
+    origin_tx_id: str = None,
+    origin_tx_source: str = None,
+    origin_tx_contract: str = None,
 ) -> dict:
+    origin_tx_id = _optional_origin_value(origin_tx_id, "origin_tx_id", max_length=255)
+    origin_tx_source = _optional_origin_value(origin_tx_source, "origin_tx_source", max_length=100)
+    origin_tx_contract = _optional_origin_value(
+        origin_tx_contract, "origin_tx_contract", max_length=42
+    )
+    if bool(origin_tx_id) != bool(origin_tx_source):
+        raise ValueError("origin_tx_id and origin_tx_source must be provided together")
+    if origin_tx_contract and not origin_tx_id:
+        raise ValueError("origin_tx_contract requires origin_tx_id and origin_tx_source")
+    if origin_tx_id and getattr(conn, "autocommit", False) is True:
+        raise ValueError("Origin transaction indexing requires a transactional connection")
+
     get_class_with_validation(conn, credit_class_id)
     batch_code = _generate_batch_code(conn, credit_class_id, location_id, vintage_year)
 
@@ -58,11 +73,11 @@ def create_batch(
             "INSERT INTO credit_batch "
             "(credit_class_id, location_id, batch_code, vintage_year, total_quantity, unit, "
             "monitoring_report_cid, verification_report_cid, evidence_maturity, metadata, "
-            "created_by, updated_by) "
+            "created_by, updated_by, origin_tx_id, origin_tx_source, origin_tx_contract) "
             "VALUES "
             "(:ccid, :lid, :bc, :vy, :tq, :u, "
             ":mrc, :vrc, :em, :metadata, "
-            ":cb, :cb) "
+            ":cb, :cb, :otxid, :otxsource, :otxcontract) "
             "RETURNING id"
         ),
         {
@@ -72,11 +87,44 @@ def create_batch(
             "em": evidence_maturity,
             "metadata": json.dumps(metadata) if metadata else "{}",
             "cb": created_by,
+            "otxid": origin_tx_id,
+            "otxsource": origin_tx_source,
+            "otxcontract": origin_tx_contract,
         },
     )
     record = result.mappings().first()
+    if origin_tx_id:
+        conn.execute(
+            conn.text(
+                "INSERT INTO origin_tx_index "
+                "(credit_class_id, origin_tx_id, origin_tx_source, credit_batch_id) "
+                "VALUES (:ccid, :otxid, :otxsource, :bid)"
+            ),
+            {
+                "ccid": credit_class_id,
+                "otxid": origin_tx_id,
+                "otxsource": origin_tx_source,
+                "bid": record["id"],
+            },
+        )
     logger.info("Created credit_batch %s: %s", record["id"], batch_code)
-    return {"id": str(record["id"]), "batch_code": batch_code}
+    return {
+        "id": str(record["id"]),
+        "batch_code": batch_code,
+        "origin_tx_id": origin_tx_id,
+        "origin_tx_source": origin_tx_source,
+    }
+
+
+def _optional_origin_value(value: str | None, field: str, *, max_length: int) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field} must be a non-empty string when provided")
+    normalized = value.strip()
+    if len(normalized) > max_length:
+        raise ValueError(f"{field} exceeds {max_length} characters")
+    return normalized
 
 
 def issue_batch(conn, batch_id: str, issuer_address: str) -> dict:
