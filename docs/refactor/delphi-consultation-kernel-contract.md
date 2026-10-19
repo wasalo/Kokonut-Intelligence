@@ -77,6 +77,34 @@ identical retry. Five focused console contract checks pass, including Node.js
 parsing of the inline application script. The console has not been accepted
 through live OIDC/browser use.
 
+## Facilitator draft creation
+
+`GET /operator/api/delphi/{location_id}/draft-studies?limit=50&offset=0`
+lists only open or closed studies at the requested location. It requires the
+distinct location-scoped `delphi:draft` grant and signed operator context.
+Study list pages are bounded to 50 rows and never include participant data.
+
+`POST
+/operator/api/delphi/{location_id}/studies/{study_id}/recommendation-drafts`
+accepts exactly `request_id`, `summary`, and `recommendation_text`. The
+request ID and study must be valid UUIDs; the summary is optional and bounded
+to 4,000 characters, and recommendation text is non-empty and bounded to
+20,000 characters. The database verifies that the study belongs to the signed
+location and is open or closed, then creates only a `draft` recommendation.
+The unique creator/request key is held in a private append-only ledger, so
+exact retries return the same recommendation and reuse with changed study or
+content is rejected. The ledger stores request identity and row references,
+not duplicate draft text. Creation does not approve, publish, or expose the
+draft through the public consensus view.
+Review remains a separate exact `delphi:review` grant and rejects creator
+self-review.
+
+The operator console lists draftable studies and provides a CSRF-protected,
+no-store form. Its retry key remains stable for identical content. On success
+the UI says that an independent decision is required and explicitly reports
+that nothing was published. The form appears only for a location with the
+`delphi:draft` grant; it does not grant review access.
+
 ## Database boundary and limitations
 
 Migration 449 creates a non-login, non-inheriting read-function owner with only
@@ -84,10 +112,14 @@ the table reads needed for the consultation projection. Migration 450 adds a
 separate non-login reviewer function owner, narrow recommendation update
 privileges, and a private immutable review ledger. Both migrations grant the
 Gateway runtime execute permission for bounded functions; Directus cannot call
-the review functions or read the review ledger. The existing shared runtime
-still has broader legacy DML on Delphi records, so these routes do not prove
-that direct legacy/CLI access cannot bypass the new review contract. Universal
-runtime ACL/RLS and Directus field/row parity remain open.
+the review functions or read the review ledger. Migration 451 adds a separate
+non-login draft-function owner with study/grant reads, column-limited draft
+inserts, and a private append-only request ledger. Runtime and Directus cannot
+read or write that ledger directly; only the Gateway runtime can invoke the
+bounded functions, and Directus is explicitly denied. The shared runtime still has broader legacy
+DML on Delphi records, so neither route family proves that direct legacy/CLI
+access cannot bypass the Kernel contracts. Universal runtime ACL/RLS and
+Directus field/row parity remain open.
 
 The consent filter relies on the existing Delphi panel `consent_status` field;
 it does not replace the platform's broader consent/retention policy. The
@@ -107,10 +139,22 @@ the PostgreSQL row-lock privilege requirement; migration 450 now grants only
 `UPDATE(id)` to the non-login function owner for locking the study row. The
 corrected run passes. Candidate and legacy databases remain untouched, and
 migration 450 has not been rolled out there.
-The five focused console contract and inline JavaScript syntax checks also pass
-([console tests](../../tests/test_operator_console_delphi_recommendation_review.py)).
+The five focused reviewer-console contract and inline JavaScript syntax checks
+also pass ([console tests](../../tests/test_operator_console_delphi_recommendation_review.py)).
+The new draft path passes 33 focused Gateway, exact route-policy, and console
+checks; the combined selected Delphi and migration regression set passes 91
+tests. Disposable PostgreSQL 16 applies and replays migrations 449–451, then
+passes ten assertions for signed location/grant scope, open/closed study
+filtering, exact request retries and collision rejection, draft-only state,
+request payload bounds, private append-only ledger behavior, read-only grant
+denial, runtime/Directus privilege boundaries, and the drafter owner's narrow
+`UPDATE(id)` row-lock grant ([draft tests](../../tests/test_gateway_delphi_recommendation_drafts.py), [console tests](../../tests/test_operator_console_delphi_recommendation_drafts.py), [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json)).
+Migration 451 is not rolled out to candidate or legacy. The CAP-027 draft
+source slice is implemented and verified, not accepted as a capability.
+Live OIDC/browser, broader Delphi parity, universal runtime ACL/RLS, and
+MAN-CAP-027 owner acceptance remain open.
 
-Before migration 449 or 450 is applied, roll back by removing the routes,
+Before migrations 449–451 are applied, roll back by removing the routes,
 services, route policies, and migrations from the proposed deployment. After
 application, retain additive functions, roles, and ledgers as ordered
 migrations; disable the routes to roll back application behavior. No candidate

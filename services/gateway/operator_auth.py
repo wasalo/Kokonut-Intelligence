@@ -382,6 +382,33 @@ def create_provider() -> OIDCOperatorProvider | None:
 
 def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
     """Return middleware policy only for the small, explicit OIDC endpoint set."""
+    delphi_draft_studies_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/draft-studies", path
+    )
+    if delphi_draft_studies_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "draft",
+            "public": False,
+            "location_id": delphi_draft_studies_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    delphi_recommendation_draft_match = re.fullmatch(
+        r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies/([0-9a-fA-F-]{36})/recommendation-drafts",
+        path,
+    )
+    if delphi_recommendation_draft_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "delphi",
+            "action": "draft",
+            "public": False,
+            "location_id": delphi_recommendation_draft_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     delphi_consultation_match = re.fullmatch(
         r"/operator/api/delphi/([0-9a-fA-F-]{36})/studies", path
     )
@@ -2427,6 +2454,9 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.attestation_routes import register_attestation_routes
     from services.gateway.credit_custody_routes import register_credit_custody_routes
     from services.gateway.delphi_consultation_routes import register_delphi_consultation_routes
+    from services.gateway.delphi_recommendation_draft_routes import (
+        register_delphi_recommendation_draft_routes,
+    )
     from services.gateway.delphi_recommendation_review_routes import (
         register_delphi_recommendation_review_routes,
     )
@@ -2450,6 +2480,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2)
+    register_delphi_recommendation_draft_routes(router, provider, run_in_threadpool, psycopg2)
     register_ecocredit_routes(router, provider, run_in_threadpool, psycopg2)
     register_true_cost_routes(router, provider, run_in_threadpool, psycopg2)
     register_governance_role_routes(router, provider, run_in_threadpool, psycopg2)

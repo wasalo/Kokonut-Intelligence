@@ -7117,7 +7117,7 @@ farm-summary, snapshot, and metric service functions passed against the migrated
 schema: two published activities produced 5.25 reported hours; a draft activity
 and private source marker were excluded; snapshot hash matched with
 `status=draft` and `frozen=false`; and `rework_rate_pct` persisted 50% with two
-source IDs and `verified=false`. The scratch volume and network were removed; candidate state remained unchanged. This closes full-schema parity for the selected report/metric slice. The expanded Batch 3 suite passes 91 tests and Ruff, including wrong-location query guards and an injected event-write failure that rolls back draft promotion using a unit database double. A disposable full-schema PostGIS check then made a real trigger reject the submitted workflow event during the transition service call: status remained `draft`, with no submitted workflow event or lifecycle transition committed. Two barrier-synchronized promotion calls for one synthetic capture produced one draft and one `draft_created` event; the second result used the same activity ID with `created=false`. Higher-contention stress, configured-provider OIDC, candidate rollout, and MAN-CAP-001 remain open.
+source IDs and `verified=false`. The scratch volume and network were removed; candidate state remained unchanged. This closes full-schema parity for the selected report/metric slice. The expanded Batch 3 suite passes 90 tests and Ruff, including wrong-location query guards and an injected event-write failure that rolls back draft promotion using a unit database double. A disposable full-schema PostGIS check then made a real trigger reject the submitted workflow event during the transition service call: status remained `draft`, with no submitted workflow event or lifecycle transition committed. Two barrier-synchronized promotion calls for one synthetic capture produced one draft and one `draft_created` event; the second result used the same activity ID with `created=false`. Higher-contention stress, configured-provider OIDC, candidate rollout, and MAN-CAP-001 remain open.
 Evidence: [report/metric acceptance](builds/2026-10-12-recovery/farm-activity-report-metric-contract.json);
 [Batch 3 checklist](batches.md); [workflow map](farm-activity-workflow-map.md).
 
@@ -10724,7 +10724,7 @@ acceptance.
 The focused Gateway, exact route-policy, and existing Delphi suites pass 66
 tests (99 including the 33 migration metadata checks); Ruff passes. The runtime
 SQL inventory is refreshed at 862 service files and 4,140 execution sites.
-Disposable PostgreSQL 16 applies and replays migration 449 and passes nine
+Disposable PostgreSQL 16 applies and replays migration 449 and passes ten
 assertions covering location/grant enforcement, consent
 filtering, aggregation, small-group suppression, private-field omission,
 page bounds, and function privileges. Evidence records that candidate and
@@ -10760,3 +10760,29 @@ open; the 66-row matrix remains 42 baseline-retained, 7 deployed, and 17
 prepared. Live OIDC/browser use, full Delphi lifecycle parity,
 populated parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance
 remain open. Evidence: [contract](delphi-consultation-kernel-contract.md), [focused tests](../tests/test_gateway_delphi_recommendation_review.py), and [disposable migration evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-review-disposable.json).
+
+### CAP-027 facilitator draft creation — 19 October 2026
+
+The facilitator draft path uses a distinct exact `delphi:draft` grant.
+Migration 451 defines bounded open/closed study listing, an append-only
+request-key ledger, and idempotent draft creation with bounded text. The
+Gateway sets signed tenant context before database calls; the console form is
+CSRF-protected and makes clear that saving a draft neither approves nor
+publishes it. The existing `delphi:review` grant remains a separate human
+decision boundary.
+
+The 33 focused Gateway, route-policy, and console tests pass; the combined
+selected Delphi and migration regression set passes 91 tests. Ruff, Python
+compilation, Node.js inline-script parsing, capability validation, runtime SQL
+inventory, provider-boundary checks, and `git diff --check` pass. Disposable
+PostgreSQL 16 applies and replays migrations 449–451 and passes ten
+assertions for scope, eligible studies, idempotent retries/collisions,
+draft-only state, bounds, append-only private history, runtime/Directus
+privileges, and the function owner's narrow `UPDATE(id)` study-row lock grant
+([evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json)).
+The candidate and legacy databases remain untouched; migration 451 is not
+rolled out. Checklist: 668 complete / 19 open. The 66-row capability matrix
+remains 42 baseline-retained, 7 deployed, and 17 prepared. CAP-027 stays
+prepared (`P`), not accepted: live OIDC/browser, full lifecycle and populated
+parity, universal runtime ACL/RLS, and MAN-CAP-027 owner acceptance remain
+open. See [contract](delphi-consultation-kernel-contract.md), [migration](../schemas/postgres/451_location_scoped_delphi_recommendation_drafts.sql), and [database evidence](builds/2026-10-19-recovery/cap-027-delphi-recommendation-drafts-disposable.json).
