@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "457_location_scoped_business_canvas_read.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 457 applies and replays on disposable PostgreSQL 16",
+    "only exact location/entity canvases are returned across lifecycle states",
+    "content blocks, governed lifecycle, and source reference are preserved",
+    "raw import blobs, internal metadata, and actor identities are excluded",
+    "signed location context and exact business_planning:read are enforced",
+    "runtime/Directus direct table and function boundaries are preserved",
+    "reader role is non-login, read-only, and has no party access"
+  ],
+  "assertions_passed": 7
+}

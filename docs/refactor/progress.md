@@ -1,3 +1,22 @@
+### CAP-033 first business model canvas Kernel read — 19 October 2026
+
+The read-only OIDC route at
+`GET /operator/api/business-planning/{location_id}/canvases` returns only rows
+whose entity and canonical location fields both match the granted location.
+Migration 457 preserves canvas lifecycle, nine content blocks, and source
+references while excluding raw import blobs, arbitrary metadata, creator/updater
+identities, and organization canvases. Exact `business_planning:read` and signed
+tenant context are checked by Gateway and database functions. The focused
+Gateway, route-policy, and migration-metadata selection passes 48 tests;
+disposable PostgreSQL 16 applies/replays migration 457 and passes seven content,
+lifecycle, scope, grant, and privilege assertions. Candidate and legacy
+databases are untouched, and migration 457 is not rolled out. CAP-033 remains
+prepared pending generated-pitch/business-plan parity, populated fixtures, live
+OIDC/browser, broader ACL/RLS, and MAN-CAP-033 owner acceptance. Checklist: 674
+complete / 19 open; matrix: 37 baseline-retained, 7 deployed, 22 prepared. See
+[the read contract](business-planning-kernel-read-contract.md) and
+[disposable evidence](builds/2026-10-19-recovery/cap-033-business-canvas-disposable.json).
+
 ### CAP-032 first business architecture Kernel projection — 19 October 2026
 
 The read-only OIDC endpoint at

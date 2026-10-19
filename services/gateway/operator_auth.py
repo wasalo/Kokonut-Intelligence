@@ -579,6 +579,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    business_canvas_match = re.fullmatch(
+        r"/operator/api/business-planning/([0-9a-fA-F-]{36})/canvases", path
+    )
+    if business_canvas_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "business_planning",
+            "action": "read",
+            "public": False,
+            "location_id": business_canvas_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_summary_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/summary", path
     )
@@ -2518,6 +2531,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
 
     from services.gateway.attestation_routes import register_attestation_routes
     from services.gateway.business_architecture_routes import register_business_architecture_routes
+    from services.gateway.business_planning_routes import register_business_planning_routes
     from services.gateway.competitive_landscape_routes import (
         register_competitive_landscape_routes,
     )
@@ -2562,6 +2576,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_management_work_routes(router, provider, run_in_threadpool, psycopg2)
     register_planning_budget_routes(router, provider, run_in_threadpool, psycopg2)
     register_business_architecture_routes(router, provider, run_in_threadpool, psycopg2)
+    register_business_planning_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_trust_routes(router, provider, run_in_threadpool, psycopg2)
     register_stakeholder_identity_resolution_routes(
