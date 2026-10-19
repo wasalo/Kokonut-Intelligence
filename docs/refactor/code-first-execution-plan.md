@@ -1533,3 +1533,8 @@ publication outside this read-only slice. The named MAN-CAP-014 calculation
 and output-parity gates remain open.
 
 Status: completed locally; offline evidence is recorded in [the batch result](builds/2026-10-18-recovery/sdk-crisp-stored-assessment-reads.json).
+
+
+### CAP-025 location-scoped identity review — 19 October 2026
+
+Start with a bounded identity workflow under the owner-selected network-identity/location-review model. Support only farmer profiles currently assigned to the requested location and only while the latest explicit personal/internal-use consent is granted and unexpired. Keep raw feedback and arbitrary free text outside proposal, review, and response payloads. Require a distinct OIDC operator for approval, make request-key retries exact, and store approved mappings only in the location-scoped ledger until consumer resolution has its own privacy contract. Exclude legacy global trust views. Trust evidence, additional sources, live OIDC/browser acceptance, RLS, populated parity, and MAN-CAP-025 owner review remain later gates. Contract: `stakeholder-identity-kernel-contract.md`.

@@ -518,6 +518,29 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    stakeholder_identity_match = re.fullmatch(
+        r"/operator/api/stakeholder-identity/([0-9a-fA-F-]{36})/cases(?:/([0-9a-fA-F-]{36})/decision)?",
+        path,
+    )
+    if stakeholder_identity_match and enabled:
+        location_id, case_id = stakeholder_identity_match.groups()
+        if method.upper() == "GET" and case_id is None:
+            action = "review"
+        elif method.upper() == "POST" and case_id is None:
+            action = "create"
+        elif method.upper() == "POST" and case_id is not None:
+            action = "review"
+        else:
+            return None
+        return {
+            "resource": "stakeholder_identity",
+            "action": action,
+            "public": False,
+            "location_id": location_id,
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_assignment_review_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/assignment-review-queue",
         path,
@@ -2344,6 +2367,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     )
     from services.gateway.farm_activity_routes import register_farm_activity_record_routes
     from services.gateway.governance_role_routes import register_governance_role_routes
+    from services.gateway.stakeholder_identity_routes import register_stakeholder_identity_routes
     from services.gateway.threatcasting_routes import register_threatcasting_routes
     from services.gateway.true_cost_routes import register_true_cost_routes
 
@@ -2355,4 +2379,5 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_true_cost_routes(router, provider, run_in_threadpool, psycopg2)
     register_governance_role_routes(router, provider, run_in_threadpool, psycopg2)
     register_threatcasting_routes(router, provider, run_in_threadpool, psycopg2)
+    register_stakeholder_identity_routes(router, provider, run_in_threadpool, psycopg2)
     return router
