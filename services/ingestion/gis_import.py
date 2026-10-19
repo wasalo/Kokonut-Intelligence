@@ -19,6 +19,7 @@ Usage:
 import argparse
 import csv
 import json
+import math
 import sys
 
 from ..common.logging import get_logger
@@ -34,6 +35,78 @@ _MAX_AREA_HA = 1000000.0
 _MIN_AREA_HA = 0.0001
 
 
+def _normalize_position(position: list | tuple) -> tuple[float, float]:
+    """Return a validated WGS84 longitude/latitude pair for a boundary ring."""
+    if not isinstance(position, (list, tuple)) or len(position) < 2:
+        raise ValueError("position must contain longitude and latitude")
+
+    longitude, latitude = position[:2]
+    if (
+        isinstance(longitude, bool)
+        or isinstance(latitude, bool)
+        or not isinstance(longitude, (int, float))
+        or not isinstance(latitude, (int, float))
+    ):
+        raise ValueError("longitude and latitude must be numeric")
+
+    longitude = float(longitude)
+    latitude = float(latitude)
+    if not math.isfinite(longitude) or not math.isfinite(latitude):
+        raise ValueError("longitude and latitude must be finite")
+    if not -180 <= longitude <= 180 or not -90 <= latitude <= 90:
+        raise ValueError("coordinate is outside WGS84 longitude/latitude bounds")
+    return longitude, latitude
+
+
+def _normalize_ring(ring: list | tuple) -> list[tuple[float, float]]:
+    if not isinstance(ring, (list, tuple)) or len(ring) < 4:
+        raise ValueError("linear ring must contain at least four positions")
+    if len(ring) > _MAX_COORDS:
+        raise ValueError("linear ring exceeds maximum coordinate count")
+
+    positions = [_normalize_position(position) for position in ring]
+    if positions[0] != positions[-1]:
+        raise ValueError("linear ring must be closed")
+    return positions
+
+
+def _normalize_polygon_rings(coordinates: list | tuple) -> list[list[tuple[float, float]]]:
+    if not isinstance(coordinates, (list, tuple)) or not coordinates:
+        raise ValueError("polygon must contain an exterior ring")
+
+    rings = []
+    coordinate_count = 0
+    for ring in coordinates:
+        normalized_ring = _normalize_ring(ring)
+        coordinate_count += len(normalized_ring)
+        if coordinate_count > _MAX_COORDS:
+            raise ValueError("polygon exceeds maximum coordinate count")
+        rings.append(normalized_ring)
+    return rings
+
+
+def _normalize_multipolygon_rings(
+    coordinates: list | tuple,
+) -> list[list[list[tuple[float, float]]]]:
+    if not isinstance(coordinates, (list, tuple)) or not coordinates:
+        raise ValueError("multipolygon must contain at least one polygon")
+
+    polygons = []
+    coordinate_count = 0
+    for polygon in coordinates:
+        rings = _normalize_polygon_rings(polygon)
+        coordinate_count += sum(len(ring) for ring in rings)
+        if coordinate_count > _MAX_COORDS:
+            raise ValueError("multipolygon exceeds maximum coordinate count")
+        polygons.append(rings)
+    return polygons
+
+
+def _ring_to_wkt(ring: list[tuple[float, float]]) -> str:
+    points = ", ".join(f"{longitude:g} {latitude:g}" for longitude, latitude in ring)
+    return f"({points})"
+
+
 def parse_geojson(filepath: str) -> list:
     """Parse a GeoJSON file and extract boundary records.
 
@@ -42,6 +115,9 @@ def parse_geojson(filepath: str) -> list:
     """
     with open(filepath, "r") as f:
         data = json.load(f)
+
+    if not isinstance(data, dict):
+        raise ValueError("GeoJSON root must be an object")
 
     features = []
     if data.get("type") == "FeatureCollection":
@@ -63,6 +139,15 @@ def parse_geojson(filepath: str) -> list:
 
         if not coords:
             logger.warning("  Skipping feature %d: empty coordinates", i + 1)
+            continue
+
+        try:
+            if geom_type == "Polygon":
+                _normalize_polygon_rings(coords)
+            else:
+                _normalize_multipolygon_rings(coords)
+        except ValueError as exc:
+            logger.warning("  Skipping feature %d: invalid coordinates (%s)", i + 1, exc)
             continue
 
         slug = props.get("slug") or props.get("name", f"import-{i + 1}").lower().replace(" ", "-")
@@ -108,10 +193,19 @@ def parse_csv_boundaries(filepath: str) -> list:
 
             lat = row.get("lat") or row.get("latitude")
             lon = row.get("lon") or row.get("longitude") or row.get("lng")
-            if lat and lon:
+            if (
+                lat is not None
+                and lon is not None
+                and str(lat).strip() != ""
+                and str(lon).strip() != ""
+            ):
                 try:
                     lat_f = float(lat)
                     lon_f = float(lon)
+                    if not math.isfinite(lat_f) or not math.isfinite(lon_f):
+                        raise ValueError("coordinates must be finite")
+                    if not -90 <= lat_f <= 90 or not -180 <= lon_f <= 180:
+                        raise ValueError("coordinates are outside WGS84 bounds")
                     wkt_point = f"SRID=4326;POINT({lon_f} {lat_f})"
                     records.append({
                         "slug": slug,
@@ -156,38 +250,30 @@ def validate_boundary_wkt(wkt: str) -> list:
 def build_polygon_wkt(coords: list) -> str:
     """Build PostGIS WKT for a Polygon from GeoJSON coordinate array.
 
-    GeoJSON Polygon coords: [[ [lon, lat], [lon, lat], ... ]]
-    PostGIS WKT: SRID=4326;POLYGON((lon lat, lon lat, ...))
+    GeoJSON Polygon coords contain an exterior ring followed by optional holes.
+    All rings are preserved in the generated PostGIS WKT.
     """
-    if not coords or not coords[0]:
+    if not coords or (len(coords) == 1 and not coords[0]):
         return ""
 
-    ring = coords[0]
-    points = ", ".join(f"{c[0]} {c[1]}" for c in ring)
-    return f"SRID=4326;POLYGON(({points}))"
+    rings = _normalize_polygon_rings(coords)
+    return f"SRID=4326;POLYGON({', '.join(_ring_to_wkt(ring) for ring in rings)})"
 
 
 def build_multipolygon_wkt(coords: list) -> str:
     """Build PostGIS WKT for a MultiPolygon from GeoJSON coordinate array.
 
-    GeoJSON MultiPolygon coords: [ [ [ [lon, lat], ... ] ], ... ]
-    PostGIS WKT: SRID=4326;MULTIPOLYGON(((lon lat, ...)), ((lon lat, ...)))
+    GeoJSON MultiPolygon coords contain polygons with exterior and optional
+    interior rings; all rings are preserved in the generated PostGIS WKT.
     """
     if not coords:
         return ""
 
-    polygons = []
-    for polygon_coords in coords:
-        if not polygon_coords or not polygon_coords[0]:
-            continue
-        ring = polygon_coords[0]
-        points = ", ".join(f"{c[0]} {c[1]}" for c in ring)
-        polygons.append(f"(({points}))")
-
-    if not polygons:
-        return ""
-
-    return f"SRID=4326;MULTIPOLYGON({', '.join(polygons)})"
+    polygons = _normalize_multipolygon_rings(coords)
+    polygon_wkts = [
+        f"({', '.join(_ring_to_wkt(ring) for ring in rings)})" for rings in polygons
+    ]
+    return f"SRID=4326;MULTIPOLYGON({', '.join(polygon_wkts)})"
 
 
 def compute_center(wkt: str) -> str:
@@ -251,19 +337,21 @@ def run(file_path: str, target: str = "location"):
         logger.error("Invalid target: %s. Must be one of: %s", target, ", ".join(VALID_TARGETS))
         sys.exit(1)
 
-    db = get_db()
-    success = 0
-    errors = 0
-
     if file_path.endswith(".geojson") or file_path.endswith(".json"):
         records = parse_geojson(file_path)
     elif file_path.endswith(".csv"):
         records = parse_csv_boundaries(file_path)
     else:
         logger.error("Unsupported file format: %s", file_path)
-        db.close()
         sys.exit(1)
 
+    if not records:
+        logger.info("No valid boundary records to import from %s", file_path)
+        return
+
+    db = get_db()
+    success = 0
+    errors = 0
     logger.info("Processing %d records from %s (target: %s)...", len(records), file_path, target)
 
     for i, rec in enumerate(records):
