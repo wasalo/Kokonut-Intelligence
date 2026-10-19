@@ -11202,3 +11202,18 @@ conflicting retry, and invalid amount regressions; Ruff and compilation pass.
 No database was contacted. Ledger parity, custody and settlement behavior, and
 MAN-CAP-049 remain open. Checklist: 685 complete / 24 open; matrix
 classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-049-credit-idempotency.json).
+
+### CAP-050 simulation draw ordering and failure isolation — 19 October 2026
+
+Monte Carlo draws now store samples and failures by draw index so parallel
+execution returns deterministic order for a fixed seed. Sampling and connection
+factory setup moved inside the per-draw recovery boundary; a failed DB open no
+longer aborts the ensemble. Non-finite metrics are recorded as isolated,
+redacted draw failures instead of contaminating the output distribution.
+
+The focused simulation suite passes 14 tests, including sequential/parallel
+sample parity, concurrent connection-factory failure, and non-finite metric
+rejection. Ruff and compilation pass. Legacy seeded fixtures, accepted
+tolerance, and broader tactical-model parity remain open. No database or
+governed state was touched. Checklist: 685 complete / 24 open; matrix
+classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-050-simulation-determinism.json).

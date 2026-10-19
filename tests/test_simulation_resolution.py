@@ -6,6 +6,9 @@ These are advisory-only analytical helpers; no governed state is touched.
 
 from __future__ import annotations
 
+import math
+import threading
+import time
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -50,6 +53,85 @@ def test_monte_carlo_seed_reproducible():
     b = monte_carlo(_fake_sim, base, sampler=sampler, metric="final_yield_kg_ha", n=200, seed=7)
     assert a["mean"] == b["mean"]
     assert a["samples"] == b["samples"]
+
+
+def test_monte_carlo_parallel_draws_preserve_seed_order():
+    def _delayed_sim(_conn, *, rainfall_multiplier):
+        time.sleep((1.0 - rainfall_multiplier) * 0.001)
+        if rainfall_multiplier > 0.9:
+            raise RuntimeError("private simulator detail")
+        return {"value": rainfall_multiplier}
+
+    params = {}
+    sampler = {"rainfall_multiplier": {"dist": "uniform", "low": 0.0, "high": 1.0}}
+    sequential = monte_carlo(
+        _delayed_sim, params, sampler=sampler, metric="value", n=100, seed=19, max_workers=1
+    )
+    parallel = monte_carlo(
+        _delayed_sim,
+        params,
+        sampler=sampler,
+        metric="value",
+        conn_factory=MagicMock(return_value=MagicMock()),
+        n=100,
+        seed=19,
+        max_workers=8,
+    )
+
+    assert sequential["samples"] == parallel["samples"]
+    assert sequential["failures"] == parallel["failures"]
+    assert parallel["failures"]
+    assert "private simulator detail" not in repr(parallel)
+
+
+def test_monte_carlo_isolates_connection_factory_failure():
+    state = {"count": 0, "failed_once": False}
+    lock = threading.Lock()
+
+    def _factory():
+        with lock:
+            state["count"] += 1
+            fail_this_call = not state["failed_once"]
+            state["failed_once"] = True
+        if fail_this_call:
+            raise ConnectionError("private database detail")
+        return MagicMock()
+
+    out = monte_carlo(
+        lambda _conn, **params: {"value": params["x"]},
+        {},
+        sampler={"x": {"dist": "uniform", "low": 0.0, "high": 1.0}},
+        metric="value",
+        conn_factory=_factory,
+        n=4,
+        seed=10,
+        max_workers=4,
+    )
+
+    assert state["count"] == 4
+    assert len(out["samples"]) == 3
+    assert len(out["failures"]) == 1
+    assert out["failures"][0]["draw"] in range(4)
+    assert out["failures"][0]["error"] == "simulation failed (ConnectionError)"
+    assert "private database detail" not in repr(out)
+
+
+def test_monte_carlo_rejects_nonfinite_metric_draws():
+    out = monte_carlo(
+        lambda *_args, **_kwargs: {"value": math.nan},
+        {},
+        sampler={},
+        metric="value",
+        n=2,
+        seed=2,
+    )
+
+    assert out["samples"] == []
+    assert out["mean"] is None
+    assert out["failures"] == [
+        {"draw": index, "error": "simulation failed (ValueError)"}
+        for index in range(2)
+    ]
 
 
 def test_monte_carlo_isolates_failing_draw():
