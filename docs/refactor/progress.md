@@ -11389,12 +11389,13 @@ rings in generated WKT. GIS target/file/source preflight now runs before
 PostgreSQL access, and empty imports do not open a connection. KML Placemark
 Polygon and MultiGeometry boundaries now use defusedxml, retain holes and
 ExtendedData, and reject entity declarations. The CSW/GIS/map and import-
-redaction selection plus existing spatial-KML, security-hardening, and raster
-error-redaction checks passes 62 tests with Ruff, compilation, and JavaScript
-syntax. The map still uses its legacy Directus endpoint. A tenant-scoped
+redaction selection plus existing spatial-KML, security-hardening, raster
+error-redaction, and CSW catalog checks passes 70 tests with Ruff, compilation,
+and JavaScript syntax. `GetRecord` enforces public visibility, catalog page
+sizes are bounded, and `GetRecords` counts the filtered public matches before
+pagination. The map still uses its legacy Directus endpoint. A tenant-scoped
 Gateway map API, CSW endpoint, catalog/ISO 19115 fixtures, KML style/altitude,
-raster GroundOverlay/metadata persistence remain open. Raster format mapping
-now aligns TIFF suffixes with the schema and leaves missing CRS unknown.
+raster GroundOverlay/metadata persistence remain open. Raster format mapping now aligns TIFF suffixes with the schema and leaves missing CRS unknown. CSW `GetRecord` shares the catalog search public-only filter, while invalid or oversized page sizes are rejected before SQL.
 PostGIS recovery, populated spatial
 fixtures, geostory, thesaurus, and MAN-CAP-063 review remain open. No database
 or external service was used. Checklist: 685

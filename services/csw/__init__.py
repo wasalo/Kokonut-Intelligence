@@ -2,12 +2,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Any
 
 from services.common.logging import get_logger
 
 logger = get_logger("csw")
+_MAX_RECORDS = 100
+
+
+def _validate_pagination(max_records: int, start_position: int) -> None:
+    if isinstance(max_records, bool) or not isinstance(max_records, int):
+        raise ValueError("max_records must be an integer")
+    if not 1 <= max_records <= _MAX_RECORDS:
+        raise ValueError(f"max_records must be between 1 and {_MAX_RECORDS}")
+    if isinstance(start_position, bool) or not isinstance(start_position, int):
+        raise ValueError("start_position must be an integer")
+    if start_position < 1:
+        raise ValueError("start_position must be at least 1")
 
 
 def get_capabilities() -> dict:
@@ -35,14 +46,30 @@ def get_records(
     max_records: int = 10,
     start_position: int = 1,
 ) -> dict:
+    _validate_pagination(max_records, start_position)
     conditions = ["dsp.status IN ('published', 'verified')", "dsp.visibility = 'public'"]
-    params: dict[str, Any] = {"limit": max_records, "offset": start_position - 1}
+    filter_params: dict[str, Any] = {}
 
     if query:
         conditions.append("(dsp.title ILIKE :q OR dsp.content ILIKE :q)")
-        params["q"] = f"%{query}%"
+        filter_params["q"] = f"%{query}%"
 
     where = " AND ".join(conditions)
+    matched = conn.execute(
+        conn.text(
+            "SELECT COUNT(*) "
+            "FROM data_stream_post dsp "
+            "JOIN location l ON l.id = dsp.location_id "
+            f"WHERE {where}"
+        ),
+        filter_params,
+    ).scalar_one()
+
+    params = {
+        **filter_params,
+        "limit": max_records,
+        "offset": start_position - 1,
+    }
     result = conn.execute(
         conn.text(
             f"SELECT dsp.*, l.name AS location_name "
@@ -70,7 +97,7 @@ def get_records(
 
     return {
         "searchResults": {
-            "numberOfRecordsMatched": len(records),
+            "numberOfRecordsMatched": matched,
             "numberOfRecordsReturned": len(records),
             "records": records,
         },
@@ -83,7 +110,9 @@ def get_record(conn, record_id: str) -> dict | None:
             "SELECT dsp.*, l.name AS location_name "
             "FROM data_stream_post dsp "
             "JOIN location l ON l.id = dsp.location_id "
-            "WHERE dsp.id = :rid AND dsp.status IN ('published', 'verified')"
+            "WHERE dsp.id = :rid "
+            "AND dsp.status IN ('published', 'verified') "
+            "AND dsp.visibility = 'public'"
         ),
         {"rid": record_id},
     ).mappings().first()
