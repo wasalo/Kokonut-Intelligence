@@ -544,6 +544,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    governance_tactical_action_match = re.fullmatch(
+        r"/operator/api/governance/([0-9a-fA-F-]{36})/tactical-items/([0-9a-fA-F-]{36})/(start|dispose|cancel)",
+        path,
+    )
+    if governance_tactical_action_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "governance_tactical",
+            "action": governance_tactical_action_match.group(3),
+            "public": False,
+            "location_id": governance_tactical_action_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     governance_tension_list_match = re.fullmatch(
         r"/operator/api/governance/([0-9a-fA-F-]{36})/tensions", path
     )

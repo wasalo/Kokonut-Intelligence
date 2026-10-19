@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise governance role nomination, readback, and review on disposable PostgreSQL 16."""
+"""Exercise governance role nomination, review, and tactical actions on disposable PostgreSQL 16."""
 
 from __future__ import annotations
 
@@ -13,13 +13,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/governance_tension_actions_disposable.sql"
+TACTICAL_FIXTURE = ROOT / "tests/fixtures/governance_tactical_actions_disposable.sql"
 MIGRATIONS = (
     ROOT / "schemas/postgres/437_governance_operator_binding_and_actions.sql",
     ROOT / "schemas/postgres/438_governance_role_assignment_proposals.sql",
     ROOT / "schemas/postgres/439_governance_role_assignment_proposal_readback.sql",
     ROOT / "schemas/postgres/440_governance_role_assignment_review.sql",
+    ROOT / "schemas/postgres/441_governance_tactical_actions.sql",
 )
-DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-assignment-proposals-disposable.json"
+DEFAULT_OUTPUT = ROOT / "docs/refactor/builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json"
 
 ORG_ID = "a0000000-0000-4000-8000-000000000101"
 LOCATION_ID = "a0000000-0000-4000-8000-000000000201"
@@ -32,6 +34,12 @@ PARTY_RETIRED = "a0000000-0000-4000-8000-000000000504"
 PARTY_THREE = "a0000000-0000-4000-8000-000000000505"
 ROLE_LOCATION = "a0000000-0000-4000-8000-000000000811"
 ROLE_NETWORK = "a0000000-0000-4000-8000-000000000812"
+TACTICAL_START_ITEM = "a0000000-0000-4000-8000-000000000911"
+TACTICAL_MISMATCH_ITEM = "a0000000-0000-4000-8000-000000000912"
+TACTICAL_CANCEL_ITEM = "a0000000-0000-4000-8000-000000000913"
+TACTICAL_ROLE_ITEM = "a0000000-0000-4000-8000-000000000914"
+TACTICAL_COMPLETED_SESSION_ITEM = "a0000000-0000-4000-8000-000000000915"
+TACTICAL_NETWORK_ROLE_ITEM = "a0000000-0000-4000-8000-000000000916"
 
 
 def run(command: list[str], *, input_text: str | None = None, check: bool = True):
@@ -89,7 +97,11 @@ def run_acceptance(container: str) -> list[str]:
     review_sql = MIGRATIONS[3].read_text()
     docker_sql(container, review_sql)
     docker_sql(container, review_sql)
-    checks.append("migrations 438–440 apply and replay transactionally after migration 437")
+    docker_sql(container, TACTICAL_FIXTURE.read_text())
+    tactical_sql = MIGRATIONS[4].read_text()
+    docker_sql(container, tactical_sql)
+    docker_sql(container, tactical_sql)
+    checks.append("migrations 438–441 apply and replay transactionally after migration 437")
 
     privilege = docker_sql(
         container,
@@ -123,6 +135,167 @@ def run_acceptance(container: str) -> list[str]:
                 '{OPERATOR_ONE}', '{PARTY_ONE}', 'test administrator', 'explicit test binding'
             ); RESET ROLE;""",
     )
+
+    docker_sql(
+        container,
+        f"""INSERT INTO public.operator_scope_grant VALUES
+          ('a0000000-0000-4000-8000-000000000713', '{OPERATOR_ONE}', 'governance_tactical', 'start', '{LOCATION_ID}', '{ORG_ID}', NULL),
+          ('a0000000-0000-4000-8000-000000000714', '{OPERATOR_ONE}', 'governance_tactical', 'dispose', '{LOCATION_ID}', '{ORG_ID}', NULL),
+          ('a0000000-0000-4000-8000-000000000715', '{OPERATOR_ONE}', 'governance_tactical', 'cancel', '{LOCATION_ID}', '{ORG_ID}', NULL);""",
+    )
+
+    def tactical_transition(operator_id, item_id, action, request_id, reason,
+                            disposition_type=None, disposition_summary=None):
+        disposition_type_sql = "NULL" if disposition_type is None else f"'{disposition_type}'"
+        summary_sql = "NULL" if disposition_summary is None else "'" + disposition_summary.replace("'", "''") + "'"
+        return runtime_call(
+            container,
+            operator_id,
+            f"""SELECT event_id::text || '|' || item_id::text || '|' || action || '|' ||
+                       prior_status || '|' || resulting_status || '|' || actor_party_id::text
+                  FROM kokonut_security.transition_governance_tactical_item(
+                    '{LOCATION_ID}', '{item_id}', '{request_id}', '{action}',
+                    '{reason.replace("'", "''")}', {disposition_type_sql}, {summary_sql}
+                  );""",
+        ).stdout.strip().splitlines()[-1]
+
+    start_request_id = str(uuid.uuid4())
+    started_item = tactical_transition(
+        OPERATOR_ONE, TACTICAL_START_ITEM, "start", start_request_id,
+        "Assigned steward began the action.",
+    )
+    started_retry = tactical_transition(
+        OPERATOR_ONE, TACTICAL_START_ITEM, "start", start_request_id,
+        "Assigned steward began the action.",
+    )
+    if started_item != started_retry or not started_item.endswith(
+        f"|{TACTICAL_START_ITEM}|start|open|in_progress|{PARTY_ONE}"
+    ):
+        raise AssertionError(f"start must transition once and replay exactly: {started_item} / {started_retry}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.transition_governance_tactical_item(
+            '{LOCATION_ID}', '{TACTICAL_START_ITEM}', '{start_request_id}', 'start',
+            'Changed retry reason', NULL, NULL);"""),
+        "22023",
+        "reject tactical action key reuse with changed content",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.transition_governance_tactical_item(
+            '{LOCATION_ID}', '{TACTICAL_MISMATCH_ITEM}', '{uuid.uuid4()}', 'start',
+            'Not the assigned person', NULL, NULL);"""),
+        "42501",
+        "reject start by a person who does not own the item",
+    )
+    dispose_request_id = str(uuid.uuid4())
+    disposed_item = tactical_transition(
+        OPERATOR_ONE, TACTICAL_START_ITEM, "dispose", dispose_request_id,
+        "Verified the follow-up was completed.", "next_action",
+        "The action is complete and documented.",
+    )
+    disposed_retry = tactical_transition(
+        OPERATOR_ONE, TACTICAL_START_ITEM, "dispose", dispose_request_id,
+        "Verified the follow-up was completed.", "next_action",
+        "The action is complete and documented.",
+    )
+    if disposed_item != disposed_retry or not disposed_item.endswith(
+        f"|{TACTICAL_START_ITEM}|dispose|in_progress|disposed|{PARTY_ONE}"
+    ):
+        raise AssertionError(f"dispose must transition once and replay exactly: {disposed_item} / {disposed_retry}")
+    cancel_request_id = str(uuid.uuid4())
+    cancelled_item = tactical_transition(
+        OPERATOR_ONE, TACTICAL_CANCEL_ITEM, "cancel", cancel_request_id,
+        "The planned action is no longer needed.",
+    )
+    if not cancelled_item.endswith(
+        f"|{TACTICAL_CANCEL_ITEM}|cancel|open|cancelled|{PARTY_ONE}"
+    ):
+        raise AssertionError(f"cancel lifecycle transition failed: {cancelled_item}")
+    role_start = tactical_transition(
+        OPERATOR_ONE, TACTICAL_ROLE_ITEM, "start", str(uuid.uuid4()),
+        "Current non-recused role holder began the action.",
+    )
+    if not role_start.endswith(
+        f"|{TACTICAL_ROLE_ITEM}|start|open|in_progress|{PARTY_ONE}"
+    ):
+        raise AssertionError(f"current role holder could not start assigned action: {role_start}")
+    completed_session_start = tactical_transition(
+        OPERATOR_ONE, TACTICAL_COMPLETED_SESSION_ITEM, "start", str(uuid.uuid4()),
+        "The follow-up continues after the meeting closed.",
+    )
+    if not completed_session_start.endswith(
+        f"|{TACTICAL_COMPLETED_SESSION_ITEM}|start|open|in_progress|{PARTY_ONE}"
+    ):
+        raise AssertionError(f"completed session incorrectly blocked its action: {completed_session_start}")
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_ONE, f"""SELECT * FROM kokonut_security.transition_governance_tactical_item(
+            '{LOCATION_ID}', '{TACTICAL_NETWORK_ROLE_ITEM}', '{uuid.uuid4()}', 'start',
+            'Network role is outside this location scope', NULL, NULL);"""),
+        "42501",
+        "reject network role ownership for a location tactical action",
+    )
+    assert_sqlstate(
+        container,
+        runtime_sql(OPERATOR_TWO, f"""SELECT * FROM kokonut_security.transition_governance_tactical_item(
+            '{LOCATION_ID}', '{TACTICAL_ROLE_ITEM}', '{uuid.uuid4()}', 'start',
+            'No exact action grant', NULL, NULL);"""),
+        "42501",
+        "reject tactical action without exact action grant",
+    )
+    tactical_state = docker_sql(
+        container,
+        f"""SELECT status || '|' || disposition_type || '|' || disposition_summary || '|' || disposed_by_party_id::text || '|' ||
+                       (SELECT count(*) FROM public.governance_tactical_action_event WHERE item_id = '{TACTICAL_START_ITEM}')
+              FROM public.governance_tactical_item WHERE id = '{TACTICAL_START_ITEM}';""",
+    ).stdout.strip()
+    if tactical_state != f"disposed|next_action|The action is complete and documented.|{PARTY_ONE}|2":
+        raise AssertionError(f"tactical lifecycle and immutable event rows diverged: {tactical_state}")
+    checks.append("start, dispose, and cancel enforce signed location action grants, direct or same-location role ownership, completed-session follow-up, required reasons, exact idempotent replay, and append-only actor history")
+
+    tactical_acl = docker_sql(
+        container,
+        """SELECT has_table_privilege('kokonut_governance_action_owner', 'public.governance_tactical_action_event', 'INSERT')
+              AND NOT has_table_privilege('kokonut_governance_action_owner', 'public.governance_tactical_action_event', 'UPDATE')
+              AND has_column_privilege('kokonut_governance_action_owner', 'public.governance_tactical_item', 'status', 'UPDATE')
+              AND NOT has_column_privilege('kokonut_governance_action_owner', 'public.governance_tactical_item', 'requested_next_action', 'UPDATE')
+              AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_item', 'INSERT')
+              AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_item', 'UPDATE')
+              AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_item', 'DELETE')
+              AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_item', 'INSERT')
+              AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_item', 'UPDATE')
+              AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_item', 'DELETE')
+              AND NOT has_table_privilege('kokonut_runtime', 'public.governance_tactical_action_event', 'SELECT')
+              AND NOT has_table_privilege('kokonut_directus_runtime', 'public.governance_tactical_action_event', 'SELECT')
+              AND has_function_privilege('kokonut_runtime',
+                'kokonut_security.transition_governance_tactical_item(uuid,uuid,uuid,text,text,text,text)', 'EXECUTE')
+              AND NOT has_function_privilege('kokonut_directus_runtime',
+                'kokonut_security.transition_governance_tactical_item(uuid,uuid,uuid,text,text,text,text)', 'EXECUTE');""",
+    ).stdout.strip()
+    if tactical_acl != "t":
+        raise AssertionError(f"tactical action ACL contract failed: {tactical_acl}")
+    for database_role in ("kokonut_runtime", "kokonut_directus_runtime"):
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; UPDATE public.governance_tactical_item SET status = 'disposed' WHERE id = '{TACTICAL_CANCEL_ITEM}';",
+            "42501",
+            f"direct {database_role} tactical lifecycle write",
+        )
+        assert_sqlstate(
+            container,
+            f"SET ROLE {database_role}; SELECT * FROM public.governance_tactical_action_event;",
+            "42501",
+            f"private action history read by {database_role}",
+        )
+    assert_sqlstate(
+        container,
+        f"UPDATE public.governance_tactical_action_event SET reason = 'rewritten' WHERE item_id = '{TACTICAL_START_ITEM}';",
+        "P0001",
+        "immutable tactical action event history",
+    )
+    checks.append("runtime and Directus roles cannot mutate tactical lifecycle rows or read/write the private action ledger; append-only history rejects edits")
+
     request_id = str(uuid.uuid4())
     proposal_sql = f"""SELECT assignment_id || '|' || role_id || '|' || assignment_type || '|' || status
         FROM kokonut_security.propose_governance_role_assignment(
@@ -480,7 +653,7 @@ def main() -> None:
             raise RuntimeError("disposable PostgreSQL did not become ready")
         checks = run_acceptance(container)
         evidence = {
-            "title": "Migrations 438-440 tenant-scoped governance role assignment proposal, readback, and independent review",
+            "title": "Migrations 437-441 governance role assignment and tactical action acceptance",
             "status": "passed",
             "checks": checks,
             "isolation": "Only a temporary PostgreSQL 16 container was used; candidate and legacy databases were not accessed.",

@@ -29,6 +29,11 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
         list_location_governance_tactical_items,
     )
     from services.gateway.governance_roles import get_location_governance_summary
+    from services.gateway.governance_tactical_actions import (
+        GovernanceTacticalActionConflict,
+        GovernanceTacticalActionInvalid,
+        transition_governance_tactical_item,
+    )
     from services.gateway.governance_tension_actions import (
         GovernanceTensionConflict,
         GovernanceTensionInvalid,
@@ -550,6 +555,91 @@ def register_governance_role_routes(router, provider, run_in_threadpool, psycopg
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    async def transition_tactical_route(request: Request, location_id: str, item_id: str, action: str):
+        headers = {"Cache-Control": "no-store", "Vary": "Cookie"}
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except (ValueError, UnicodeDecodeError):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Tactical action must be valid JSON"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                transition_governance_tactical_item,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                item_id,
+                action,
+                payload,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified operator access is required"},
+                headers=headers,
+            )
+        except GovernanceTacticalActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except GovernanceTacticalActionConflict as exc:
+            return JSONResponse(status_code=409, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active tactical action grant and person binding are required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Tactical item not found"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Tactical action request is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "23514", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Tactical item state has changed or this action conflicts"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.governance_tactical").warning(
+                "Governance tactical action unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Governance tactical action unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post("/operator/api/governance/{location_id}/tactical-items/{item_id}/start")
+    async def start_governance_tactical_item(request: Request, location_id: str, item_id: str):
+        return await transition_tactical_route(request, location_id, item_id, "start")
+
+    @router.post("/operator/api/governance/{location_id}/tactical-items/{item_id}/dispose")
+    async def dispose_governance_tactical_item(request: Request, location_id: str, item_id: str):
+        return await transition_tactical_route(request, location_id, item_id, "dispose")
+
+    @router.post("/operator/api/governance/{location_id}/tactical-items/{item_id}/cancel")
+    async def cancel_governance_tactical_item(request: Request, location_id: str, item_id: str):
+        return await transition_tactical_route(request, location_id, item_id, "cancel")
 
     @router.get("/operator/api/governance/{location_id}/tensions")
     async def location_governance_tensions(

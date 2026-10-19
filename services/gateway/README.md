@@ -69,12 +69,23 @@ Open tactical work is available at `GET
 `governance_tactical:read` grant. It returns bounded open/in-progress items,
 requested action, priority, due date, session summary, and owner role key, but
 omits party identities, session notes, agenda text, and disposition detail.
-The role registry and tactical queue use signed tenant context before
-location-filtered SQL, read-only transactions, and keyset pagination capped at
-100; role detail uses the same tenant context and read-only transaction with
-each nested list capped at 100. All three projections are rendered as text in
-the console. They expose no mutation or approval action; the
-underlying governance tables do not yet have domain-table RLS.
+Signed tenant context, read-only transactions, and keyset pagination capped at
+100 protect the read projection. The console renders it as text.
+
+Tactical item changes use three separate POST routes ending in `/{item_id}/start`,
+`/{item_id}/dispose`, or `/{item_id}/cancel`; each requires its own location
+grant (`governance_tactical:start`, `:dispose`, or `:cancel`), CSRF, signed
+operator context, an active operator/person binding, and a reason. Starting an
+item is limited to its assigned person or a current non-recused holder of its
+same-location owner role. Completed sessions may still have follow-up actions;
+cancelled sessions and inactive circles cannot be changed. Disposal is allowed
+only from `in_progress` and requires an allowed disposition type and outcome
+summary; cancellation is limited to open or in-progress work. Each transition
+and its immutable actor/reason/request ledger
+entry commit atomically. Exact retries replay; key reuse with changed content
+and stale lifecycle transitions conflict. Gateway and Directus runtime roles
+cannot directly mutate tactical items or read the private action ledger. These
+ACLs do not establish domain-table RLS for unrelated governance queries.
 
 Role nominations use
 `POST /operator/api/governance/{location_id}/roles/{role_id}/assignments`
@@ -83,15 +94,14 @@ requires a caller-generated `request_id`, active nominee party UUID,
 assignment type, and an optional mandate (required for delegates). A signed
 operator context and active operator/person binding attribute the request.
 The bounded database function creates only a `proposed` assignment and writes
-an immutable idempotency/attribution record; it cannot activate, approve, end,
-or reject an assignment. Direct assignment-table writes are revoked from the
-runtime and Directus roles. A distinct human approval route is not implemented
-yet, so proposals remain pending for a future reviewed approval flow.
-These ACLs protect only those non-superuser roles. The local candidate app
-currently connects as the administrative `kokonut` login, so its database
-session can bypass these grants; migration 438 has not been applied to that
-candidate. Do not treat the route or this migration as a database isolation
-boundary until the candidate is switched to its least-privilege runtime role.
+an immutable idempotency/attribution record; it cannot activate or reject an
+assignment. A distinct review queue and approve/reject routes require their
+own grants, active person binding, and a reviewer different from the proposer.
+Direct assignment-table writes are revoked from the runtime and Directus roles.
+The candidate still uses the administrative `kokonut` login and remains at
+migration 437; migrations 438–441 are not applied there. Do not treat these
+ACLs as a database isolation boundary until the candidate is switched to its
+least-privilege runtime role.
 
 The operator console lets a separately authorized creator submit a nomination
 using an active person-party UUID and review the status of their own submissions

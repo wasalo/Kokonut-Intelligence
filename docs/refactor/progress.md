@@ -1,5 +1,33 @@
 # Kokonut Kernel implementation progress
 
+### CAP-024 tactical item actions — 18 October 2026
+
+Added migration 441 and a bounded Gateway transition function for
+`open → in_progress`, `in_progress → disposed`, and open/in-progress
+cancellation. Each POST route has its own location-scoped tactical action
+grant, CSRF protection, signed tenant context, active person binding, reason,
+and request UUID. Starting is restricted to the assigned party or a current,
+non-recused same-location holder of the item's owner role. Completed-session follow-up remains actionable; cancelled sessions and inactive circles are blocked. Disposal requires an allowed
+disposition type and an outcome summary. State changes and their immutable
+actor/reason ledger entry commit together; same-content retries from the same
+active person binding replay. Runtime and Directus roles cannot directly write
+tactical items or read the private action ledger.
+
+The operator console now gates each action control on its separate action
+grant and uses safe text DOM updates, CSRF, and a generated idempotency key.
+The focused Gateway, route-policy, existing tactical-read, and console tests
+pass (31 tests). Disposable PostgreSQL 16 applied and replayed migrations
+437–441 and verified ownership, exact action grants, lifecycle transitions,
+changed-content rejection, same-content retries, append-only history, and
+runtime/Directus ACLs. Ruff, Python compilation, and diff checks pass. Candidate
+and legacy databases were not accessed; the candidate remains at migration
+437 and still uses the administrative `kokonut` login. Do not apply migration
+441 there until the least-privilege runtime login replaces that connection.
+No live OIDC/browser acceptance or real tactical action occurred; CAP-024 stays
+prepared pending live identity, populated parity, RLS, and MAN-CAP review
+([contract](governance-tactical-action-contract.md); [migration](../schemas/postgres/441_governance_tactical_actions.sql);
+[tests](../tests/test_gateway_governance_tactical_actions.py); [database evidence](builds/2026-10-18-recovery/governance-lifecycle-actions-disposable.json)).
+
 ### CAP-024 independent role-assignment review — 18 October 2026
 
 Added migration 440's private review queue and bounded decision functions, plus

@@ -161,6 +161,38 @@ def test_review_queue_controls_have_unique_ids_and_registered_handlers():
     assert 'governanceRoleReviewMore.addEventListener(' in source
 
 
+def test_tactical_actions_are_independently_grant_gated_and_use_csrf():
+    source = CONSOLE.read_text(encoding="utf-8")
+    for action in ("start", "dispose", "cancel"):
+        assert f'scope.resource === "governance_tactical" && scope.action === "{action}"' in source
+        assert f"governanceTactical{action.title()}Locations.has(locationId)" in source
+    assert 'id="governance-tactical-queue" hidden' in source
+    assert '"Confirm action"' in source
+    assert '"Reason"' in source
+    assert '"Outcome summary"' in source
+    assert '"X-CSRF-Token": csrf' in source
+    assert 'globalThis.crypto?.randomUUID?.()' in source
+    assert 'method: "POST"' in source
+    assert "innerHTML" not in source
+
+
+def test_tactical_action_forms_send_action_specific_payloads_and_refresh_queue():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadGovernanceTacticalItems(append = false)",
+        "async function loadGovernanceTensionDetail(tensionId)",
+    )
+    assert 'actionForm.dataset.action = action' in reader
+    assert 'payload.disposition_type = dispositionType.value' in reader
+    assert 'payload.disposition_summary = dispositionSummary.value.trim()' in reader
+    assert '`/operator/api/governance/${encodeURIComponent(locationId)}/tactical-items/${encodeURIComponent(item.id)}/${action}`' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert 'await loadGovernanceTacticalItems()' in reader
+    assert 'form.innerHTML' not in reader
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:
