@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-060",
+  "title": "Schema.org and GeoSPARQL JSON-LD namespace alignment",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "URI namespace repair and focused checks pass; capability not accepted",
+  "changes": [
+    "The default schema prefix now uses the exact http://schema.org/ namespace declared by the LinkML schemas, including the required trailing slash for correct term expansion.",
+    "The default GeoSPARQL prefix now uses the exact http://www.opengis.net/ont/geosparql# namespace declared by core.linkml.yaml.",
+    "JSON-LD document/graph creation and prefix helpers now preserve explicitly supplied empty contexts instead of silently substituting the default context."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_linkml_jsonld.py tests/test_linked_data.py::TestSchemaOrgAlignment -q",
+    "result": "14 passed",
+    "ruff": "python3 -m ruff check services/linkml/jsonld.py tests/test_linkml_jsonld.py: passed",
+    "compilation": "python3 -m compileall -q services/linkml/jsonld.py tests/test_linkml_jsonld.py: passed",
+    "capability_matrix": "python3 scripts/check-capability-matrix.py: 66 rows valid; 32 baseline-retained, 7 deployed, 27 prepared"
+  },
+  "scope_limits": [
+    "Checks compare the code context with checked-in YAML mappings and exercise local prefix round-trips; no external JSON-LD processor or network context was used.",
+    "Schema-derived contexts, class URI declarations, graph exports against populated/reference fixtures, RDF serialization parity, and downstream consumer compatibility remain open.",
+    "MAN-CAP-060 owner acceptance remains open."
+  ]
+}

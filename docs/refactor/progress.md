@@ -11320,3 +11320,13 @@ compilation. No database or chain was used. Commit/reveal payload verification,
 category synonym/reference fixtures, chain custody, funding/distribution
 policy, populated parity, and MAN-CAP-059 remain open. Checklist: 685 complete
 / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-059-abundance-governance-guards.json).
+
+### CAP-060 Schema.org and GeoSPARQL JSON-LD namespace repair — 19 October 2026
+
+JSON-LD `schema` and `geo` default prefixes now match the namespace IRIs in the
+LinkML YAML. This fixes malformed Schema.org term expansion and GeoSPARQL URI
+drift. Explicit empty contexts remain explicit for document and graph exports.
+Fourteen focused checks pass with Ruff and compilation. Schema-derived
+contexts, class URI declarations, populated graph/export parity, downstream
+consumer compatibility, and MAN-CAP-060 review remain open. Checklist: 685
+complete / 24 open; matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-060-jsonld-uri-roundtrip.json).
