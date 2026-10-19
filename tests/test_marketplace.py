@@ -3,28 +3,30 @@
 Tests for Digital Marketplace
 """
 
-import sys
 import os
+import sys
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import math
 import unittest
-from unittest.mock import MagicMock, patch, PropertyMock
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timezone
+from unittest.mock import MagicMock
 
 from services.analytics.marketplace import (
-    create_listing,
-    update_listing,
-    get_listing,
-    list_active_listings,
     create_buyer_profile,
-    record_price,
-    get_price_trends,
+    create_listing,
     create_order,
-    update_order_status,
-    track_shipment,
-    get_market_overview,
     create_price_alert,
     evaluate_listing,
+    get_listing,
+    get_market_overview,
+    get_price_trends,
+    list_active_listings,
+    record_price,
+    track_shipment,
+    update_listing,
+    update_order_status,
 )
 
 
@@ -50,19 +52,20 @@ class TestCreateListing(unittest.TestCase):
         self.assertEqual(result["status"], "published")
 
     def test_create_listing_calls_insert(self):
-        create_listing(self.conn, "loc-001", "maize", 500)
+        create_listing(self.conn, "loc-001", "maize", 500, price_per_unit=0.50)
         self.mock_cursor.execute.assert_called()
         self.conn.commit.assert_called_once()
 
     def test_create_listing_with_harvest_date(self):
         result = create_listing(
             self.conn, "loc-001", "maize", 500,
+            price_per_unit=0.50,
             harvest_date=date(2026, 7, 10),
         )
         self.assertEqual(result["harvest_date"], "2026-07-10")
 
     def test_create_listing_closes_cursor(self):
-        create_listing(self.conn, "loc-001", "maize", 500)
+        create_listing(self.conn, "loc-001", "maize", 500, price_per_unit=0.50)
         self.mock_cursor.close.assert_called_once()
 
 
@@ -90,6 +93,14 @@ class TestUpdateListing(unittest.TestCase):
     def test_update_listing_no_valid_fields(self):
         result = update_listing(self.conn, "listing-001", {"invalid_field": "value"})
         self.assertIn("error", result)
+
+    def test_update_listing_rejects_invalid_price_or_quantity_before_database_access(self):
+        for updates in ({"price_per_unit": 0}, {"price_per_unit": float("nan")}, {"quantity": -1}):
+            with self.subTest(updates=updates):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    update_listing(conn, "listing-001", updates)
+                conn.cursor.assert_not_called()
 
 
 class TestGetListing(unittest.TestCase):
@@ -194,6 +205,14 @@ class TestRecordPrice(unittest.TestCase):
         self.assertEqual(result["market_name"], "Adelphi Coop")
         self.assertEqual(result["price"], 0.55)
         self.assertEqual(result["quality_grade"], "A")
+
+    def test_record_price_persists_quality_grade(self):
+        record_price(
+            self.conn, "maize", "Adelphi Coop", 0.55, quality_grade="A",
+        )
+        query, params = self.mock_cursor.execute.call_args.args
+        self.assertIn("quality_grade", query)
+        self.assertEqual(params[9], "A")
 
     def test_record_price_completes(self):
         record_price(self.conn, "maize", "Market", 0.55)
@@ -373,13 +392,12 @@ class TestEvaluateListing(unittest.TestCase):
         self.mock_cursor = MagicMock()
         self.conn.cursor.return_value = self.mock_cursor
 
-        # evaluate_listing makes 2 fetchone + 1 fetchall calls
+        # Listing and crop resolution each make one fetchone call.
         self.descs = [
             [("id",), ("crop_name",), ("quantity",), ("unit",),
              ("price_per_unit",), ("quality_grade",), ("harvest_date",),
              ("location_id",)],
             [("price",), ("quality_grade",)],
-            None,  # yield fetchone
         ]
         self.desc_idx = [0]
         def update_desc(*args, **kwargs):
@@ -391,7 +409,7 @@ class TestEvaluateListing(unittest.TestCase):
         self.mock_cursor.fetchone.side_effect = [
             ("listing-001", "maize", 500, "kg", 0.50, "A",
              date(2026, 7, 10), "loc-001"),
-            (2500.0, 300.0),
+            ("crop-001",),
         ]
         self.mock_cursor.fetchall.return_value = [
             (0.50, "A"), (0.55, "A"), (0.60, "A"),
@@ -408,6 +426,48 @@ class TestEvaluateListing(unittest.TestCase):
         self.mock_cursor.fetchone.return_value = None
         result = evaluate_listing(self.conn, "bad-id")
         self.assertIn("error", result)
+
+
+class TestMarketplaceInputValidation(unittest.TestCase):
+
+    def setUp(self):
+        self.conn = MagicMock()
+
+    def test_create_listing_rejects_invalid_quantity_or_price_before_database_access(self):
+        for quantity, price in ((0, 0.5), (-1, 0.5), (math.nan, 0.5), (10, None), (10, math.inf)):
+            with self.subTest(quantity=quantity, price=price):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    create_listing(conn, "loc-1", "maize", quantity, price_per_unit=price)
+                conn.cursor.assert_not_called()
+
+    def test_record_price_rejects_invalid_price_before_database_access(self):
+        for price in (0, -1, math.nan, math.inf):
+            with self.subTest(price=price):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    record_price(conn, "maize", "Market", price)
+                conn.cursor.assert_not_called()
+
+    def test_create_order_rejects_invalid_values_before_database_access(self):
+        for quantity, price in ((0, None), (-1, None), (math.inf, None), (1, 0), (1, math.nan)):
+            with self.subTest(quantity=quantity, price=price):
+                conn = MagicMock()
+                with self.assertRaises(ValueError):
+                    create_order(conn, "listing-1", "buyer-1", quantity, offered_price=price)
+                conn.cursor.assert_not_called()
+
+    def test_create_order_rejects_missing_listing_price_without_inserting(self):
+        conn = MagicMock()
+        cursor = conn.cursor.return_value
+        cursor.fetchone.return_value = ("seller-1", "location-1", "kg", None)
+
+        with self.assertRaisesRegex(ValueError, "listing price_per_unit"):
+            create_order(conn, "listing-1", "buyer-1", 1)
+
+        self.assertEqual(cursor.execute.call_count, 1)
+        cursor.close.assert_called_once()
+        conn.commit.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -19,6 +19,7 @@ public `crop_name` API and resolves names to `crop_id` internally.
 """
 
 import json
+import math
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
@@ -33,6 +34,18 @@ ACTIVE_LISTING_WHERE = (
     "ml.status = 'published' AND ml.sold_at IS NULL "
     "AND (ml.expires_at IS NULL OR ml.expires_at > now())"
 )
+
+
+def _positive_market_value(name: str, value: float) -> float:
+    if isinstance(value, bool):
+        raise ValueError(f"{name} must be a finite positive number")
+    try:
+        amount = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} must be a finite positive number") from exc
+    if not math.isfinite(amount) or amount <= 0:
+        raise ValueError(f"{name} must be a finite positive number")
+    return amount
 
 
 def _resolve_crop_id(conn, crop_name: str) -> Optional[str]:
@@ -61,6 +74,8 @@ def create_listing(
     metadata: dict = None,
 ) -> dict:
     """Create a produce listing on the marketplace."""
+    quantity = _positive_market_value("quantity", quantity)
+    price_per_unit = _positive_market_value("price_per_unit", price_per_unit)
     crop_id = _resolve_crop_id(conn, crop_name)
     if not crop_id:
         raise ValueError(f"crop not found: {crop_name}")
@@ -89,7 +104,7 @@ def create_listing(
             datetime.now(timezone.utc),
         ),
     )
-    row = cur.fetchone()
+    cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -118,8 +133,6 @@ def update_listing(
     updates: dict,
 ) -> dict:
     """Update listing status, price, or other fields."""
-    cur = conn.cursor()
-
     allowed_fields = {
         "status", "price_per_unit", "quantity", "quality_grade",
         "description", "images", "image_urls", "metadata",
@@ -129,6 +142,8 @@ def update_listing(
     for key, value in updates.items():
         if key not in allowed_fields:
             continue
+        if key in ("price_per_unit", "quantity"):
+            value = _positive_market_value(key, value)
         if key in ("images", "image_urls"):
             set_clauses.append("image_urls = %s")
             params.append(value or [])
@@ -140,8 +155,9 @@ def update_listing(
             params.append(value)
 
     if not set_clauses:
-        cur.close()
         return {"error": "no valid fields to update"}
+
+    cur = conn.cursor()
 
     set_clauses.append("updated_at = %s")
     params.append(datetime.now(timezone.utc))
@@ -297,7 +313,7 @@ def create_buyer_profile(
             datetime.now(timezone.utc),
         ),
     )
-    row = cur.fetchone()
+    cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -328,6 +344,7 @@ def record_price(
     metadata: dict = None,
 ) -> dict:
     """Record a price observation from a market."""
+    price = _positive_market_value("price", price)
     crop_id = _resolve_crop_id(conn, crop_name)
     if not crop_id:
         raise ValueError(f"crop not found: {crop_name}")
@@ -339,19 +356,19 @@ def record_price(
         """
         INSERT INTO price_observation
             (id, crop_id, market_name, price_per_unit, price_date,
-             unit, currency, source, location_id, metadata, created_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
+             unit, currency, source, location_id, quality_grade, metadata, created_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s)
         RETURNING id
         """,
         (
             price_id, crop_id, market_name, price,
             datetime.now(timezone.utc).date(),
-            unit, currency, source, None,
+            unit, currency, source, None, quality_grade,
             json.dumps(metadata or {}),
             datetime.now(timezone.utc),
         ),
     )
-    row = cur.fetchone()
+    cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -453,6 +470,9 @@ def create_order(
     metadata: dict = None,
 ) -> dict:
     """Create a buy order for a listing."""
+    quantity = _positive_market_value("quantity", quantity)
+    if offered_price is not None:
+        offered_price = _positive_market_value("offered_price", offered_price)
     cur = conn.cursor()
     order_id = str(uuid.uuid4())
 
@@ -470,8 +490,12 @@ def create_order(
 
     seller_id, location_id, unit, list_price = listing
     if offered_price is None:
-        offered_price = float(list_price) if list_price else None
-    total_amount = round(offered_price * quantity, 2) if offered_price else None
+        try:
+            offered_price = _positive_market_value("listing price_per_unit", list_price)
+        except ValueError:
+            cur.close()
+            raise
+    total_amount = round(offered_price * quantity, 2)
 
     cur.execute(
         """
@@ -487,7 +511,7 @@ def create_order(
             datetime.now(timezone.utc),
         ),
     )
-    row = cur.fetchone()
+    cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -579,7 +603,7 @@ def track_shipment(
             json.dumps(shipment_meta), datetime.now(timezone.utc), datetime.now(timezone.utc),
         ),
     )
-    row = cur.fetchone()
+    cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -725,7 +749,7 @@ def create_price_alert(
             datetime.now(timezone.utc),
         ),
     )
-    row = cur.fetchone()
+    cur.fetchone()
     conn.commit()
     cur.close()
 
@@ -790,19 +814,6 @@ def evaluate_listing(conn, listing_id: str) -> dict:
     else:
         price_rows = []
 
-    # Fetch historical yield for this location/crop
-    cur.execute(
-        """
-        SELECT AVG(yield_amount), STDDEV(yield_amount)
-        FROM harvest_yield_observation
-        WHERE location_id = %s AND crop_name = %s
-          AND status IN ('verified', 'published')
-        """,
-        (listing["location_id"], listing["crop_name"]),
-    )
-    yield_row = cur.fetchone()
-    avg_yield = float(yield_row[0]) if yield_row and yield_row[0] else None
-    std_yield = float(yield_row[1]) if yield_row and yield_row[1] else None
     cur.close()
 
     # Quality score (0-100) based on grade and market comparison

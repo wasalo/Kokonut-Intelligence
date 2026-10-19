@@ -11292,3 +11292,16 @@ external provider was contacted. Regional readiness, segment results,
 reference fixtures, populated parity, tenant authorization, and MAN-CAP-057
 remain open. Checklist: 685 complete / 24 open; matrix classifications
 unchanged. [Evidence](builds/2026-10-19-recovery/cap-057-environmental-scan-scope.json).
+
+### CAP-058 marketplace numeric and price-grade contract — 19 October 2026
+
+Marketplace listing, order, and price-observation values now reject non-finite
+or non-positive quantities/prices before database writes. Listing edits apply
+the same guard. Price observations persist the supplied quality grade, and
+listing evaluation no longer issues an unused historical-yield query.
+
+The mocked marketplace unit suite passes 33 tests and 17 subtests with Ruff and
+compilation. No database or provider was contacted. Order lifecycle/custody,
+concurrent reservation, cooperative order parity, populated fixtures, tenant
+authorization, and MAN-CAP-058 remain open. Checklist: 685 complete / 24 open;
+matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-058-marketplace-inputs.json).

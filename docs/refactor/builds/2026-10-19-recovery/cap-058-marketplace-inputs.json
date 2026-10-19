@@ -1,0 +1,24 @@
+{
+  "capability": "CAP-058",
+  "title": "Marketplace input validation and price-grade persistence",
+  "date": "2026-10-19",
+  "classification": "B",
+  "status": "source repair and mocked unit checks pass; capability not accepted",
+  "changes": [
+    "Listing create/update, price observations, and order quantities/prices reject non-finite and non-positive numeric values before writes.",
+    "Price observations now persist the supplied quality_grade instead of returning an unpersisted value.",
+    "Listing creation requires a positive price, matching the canonical market_listing.price_per_unit NOT NULL schema contract.",
+    "Removed an unused historical-yield query from listing evaluation; the values were not included in its score or response."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_marketplace.py -q",
+    "result": "33 passed, 17 subtests passed",
+    "ruff": "python3 -m ruff check services/analytics/marketplace.py tests/test_marketplace.py: passed",
+    "compilation": "python3 -m compileall -q services/analytics/marketplace.py: passed"
+  },
+  "scope_limits": [
+    "The unit tests use mocked database connections; no database or external provider was contacted.",
+    "Market order lifecycle, account custody, concurrent inventory reservation, cooperative order behavior, external/populated parity, and tenant authorization remain unassessed.",
+    "MAN-CAP-058 owner acceptance remains open."
+  ]
+}
