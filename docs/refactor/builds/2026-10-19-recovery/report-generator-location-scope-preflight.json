@@ -1,0 +1,22 @@
+{
+  "date": "2026-10-19",
+  "scope": "Report generator CLI location-scope preflight",
+  "status": "Focused source checks pass; generated report parity remains open",
+  "changes": [
+    "Single-report --all is limited to report types that implement an aggregate scope.",
+    "Repeated location IDs are limited to Business Plan, Comprehensive Status, State of Kokonut, State of Kokonut Graphs, and Strategic Reserve.",
+    "Automatic batches reject multiple selected locations, and snapshot listing rejects more than one location instead of silently using only the first.",
+    "Repeated aggregate location IDs must be unique; invalid scopes fail before PostgreSQL is opened."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_report_generator_cli.py -q",
+    "result": "22 passed",
+    "ruff": "python3 -m ruff check services/export/report_generator.py tests/test_report_generator_cli.py: passed",
+    "compilation": "python3 -m compileall -q services/export/report_generator.py tests/test_report_generator_cli.py: passed",
+    "database_or_provider": "None used; a CLI regression replaces get_pg with a failure sentinel and confirms scope rejection happens first."
+  },
+  "scope_limits": [
+    "The report generator's --auto --all mode still attempts every registered generator with the literal all scope; generators without aggregate support can fail independently as documented.",
+    "This source-level contract does not establish populated report output parity, authorization, tenant isolation, or report-owner acceptance."
+  ]
+}

@@ -268,11 +268,24 @@ is no all-or-nothing transaction across the report set.
 ### Scope And Periods
 
 `--all` passes the literal scope value `all`; it does not centrally iterate every
-location. Only network-aware generators interpret that value correctly. Many
-location generators require a UUID and may fail with `all` or multiple IDs.
+location. A single `--type` request accepts `--all` only for report types that
+implement that aggregate scope. Repeatable location IDs are supported only by
+the aggregate generators listed below; other report types reject multiple IDs
+before opening PostgreSQL. `--list` accepts at most one location. `--auto`
+accepts one location or explicit `--all`, because it invokes report types with
+different scope contracts.
 
 Network-aware report types include State of Kokonut, DAO proposal history,
 State of Kokonut graphs, comprehensive status, and strategic reserve.
+Business Plan, Comprehensive Status, State of Kokonut, State of Kokonut Graphs,
+and Strategic Reserve support repeated selected locations. A report type not in
+these sets must be invoked with one location UUID or its documented network
+scope.
+
+`--auto --all` still attempts the full catalog with literal `all`. Generators
+that do not implement that scope may fail independently; successful reports
+can still be stored. Use per-location `--auto --location-id UUID` when a
+complete location-oriented report set is needed.
 
 Period arguments are forwarded to each generator. Some generators apply dates,
 some use them to select a reporting year, and some ignore them. There is no

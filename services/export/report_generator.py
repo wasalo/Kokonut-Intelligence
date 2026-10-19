@@ -136,19 +136,34 @@ NETWORK_LEVEL_REPORTS = frozenset(
     }
 )
 
+# These generators explicitly interpret a selected-location list or the
+# literal ``all`` scope. Other generators receive one location UUID only.
+MULTI_LOCATION_REPORTS = frozenset(
+    {
+        "business_plan",
+        "comprehensive_status",
+        "state_of_kokonut",
+        "state_of_kokonut_graphs",
+        "strategic_reserve",
+    }
+)
+ALL_LOCATION_REPORTS = NETWORK_LEVEL_REPORTS | {"business_plan"}
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Generate Kokonut report snapshots")
     parser.add_argument("--type", choices=list(REPORT_GENERATORS.keys()), help="Report type to generate")
     parser.add_argument(
-        "--location-id", action="append", help="Location UUID (repeatable; or use --all for every location)"
+        "--location-id",
+        action="append",
+        help="Location UUID (repeatable only for aggregate report types; or use --all when supported)",
     )
-    parser.add_argument("--all", action="store_true", help="Generate the report across ALL locations")
+    parser.add_argument("--all", action="store_true", help="Use the report type's supported all-location scope")
     parser.add_argument("--period-start", help="Report period start (YYYY-MM-DD)")
     parser.add_argument("--period-end", help="Report period end (YYYY-MM-DD)")
     parser.add_argument("--list", action="store_true", help="List existing snapshots")
     parser.add_argument("--verify", help="Verify a snapshot by hash")
-    parser.add_argument("--auto", action="store_true", help="Generate all report types for the location")
+    parser.add_argument("--auto", action="store_true", help="Attempt all report types for one location or --all")
     return parser
 
 
@@ -160,11 +175,26 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
     if args.list and (args.verify or args.type or args.auto or args.all or args.period_start or args.period_end):
         parser.error("--list may only be combined with --location-id")
 
+    if args.list and args.location_id and len(args.location_id) > 1:
+        parser.error("--list accepts at most one --location-id")
+
     if args.verify and (args.list or args.type or args.auto or args.all or args.location_id or args.period_start or args.period_end):
         parser.error("--verify cannot be combined with report generation or scope options")
 
     if args.all and args.location_id:
         parser.error("--all cannot be combined with --location-id")
+
+    if args.auto and args.location_id and len(args.location_id) > 1:
+        parser.error("--auto supports one --location-id or explicit --all, not multiple locations")
+
+    if args.type and args.all and args.type not in ALL_LOCATION_REPORTS:
+        parser.error(f"--all is not supported for report type {args.type}")
+
+    if args.type and args.location_id and len(args.location_id) > 1:
+        if args.type not in MULTI_LOCATION_REPORTS:
+            parser.error(f"multiple --location-id values are not supported for report type {args.type}")
+        if len(set(args.location_id)) != len(args.location_id):
+            parser.error("--location-id values must be unique")
 
     if args.list or args.verify:
         return
