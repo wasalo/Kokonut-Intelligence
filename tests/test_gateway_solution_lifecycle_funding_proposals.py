@@ -26,6 +26,13 @@ RESULT = {
     "created_at": "2026-10-20T12:00:00+00:00",
     "replayed": False,
 }
+SUBMISSION_RESULT = {
+    "funding_case_id": str(uuid4()),
+    "decision_status": "submitted",
+    "tranche_count": 1,
+    "submitted_at": "2026-10-20T12:00:00+00:00",
+    "replayed": False,
+}
 PROPOSAL = {
     "capital_stage": "pilot",
     "funding_instrument": "community_fund",
@@ -162,6 +169,50 @@ def test_invalid_funding_proposal_fails_before_database(changes, message):
         )
 
 
+def test_funding_submission_sets_exact_submit_context_and_commits():
+    connection = _Connection(SUBMISSION_RESULT)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(actions, "set_operator_tenant_context", set_context):
+        result = actions.submit_location_solution_funding(
+            OPERATOR_ID,
+            LOCATION_ID,
+            RESULT["funding_case_id"],
+            REQUEST_ID,
+            True,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "submit",
+    }]
+    query, params = connection.operations[-1]
+    assert "kokonut_security.submit_location_solution_funding" in query
+    assert params == (LOCATION_ID, RESULT["funding_case_id"], REQUEST_ID, True)
+    assert result == SUBMISSION_RESULT
+    assert connection.committed and connection.closed and not connection.rolled_back
+
+
+@pytest.mark.parametrize("acknowledged", [False, None, 1, "true"])
+def test_funding_submission_requires_literal_acknowledgement_before_database(acknowledged):
+    with pytest.raises(actions.SolutionLifecycleActionInvalid, match="acknowledgement"):
+        actions.submit_location_solution_funding(
+            OPERATOR_ID,
+            LOCATION_ID,
+            RESULT["funding_case_id"],
+            REQUEST_ID,
+            acknowledged,
+            connection_factory=lambda: pytest.fail("missing acknowledgement must fail before DB"),
+        )
+
+
 def test_funding_target_read_uses_same_connection_and_signed_read_context():
     row = {
         "solution_id": SOLUTION_ID,
@@ -195,6 +246,10 @@ def test_funding_target_read_uses_same_connection_and_signed_read_context():
 def test_funding_routes_have_exact_read_and_create_location_policies():
     target_path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/targets"
     proposal_path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/solutions/{SOLUTION_ID}/funding"
+    submission_path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/submit"
+    )
     assert auth_route_policy("GET", target_path, enabled=True) == {
         "resource": "solution_lifecycle", "action": "read", "public": False,
         "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
@@ -204,13 +259,23 @@ def test_funding_routes_have_exact_read_and_create_location_policies():
         "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
     }
     assert auth_route_policy("PATCH", proposal_path, enabled=True) is None
+    assert auth_route_policy("POST", submission_path, enabled=True) == {
+        "resource": "solution_lifecycle", "action": "submit", "public": False,
+        "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+    }
+    assert auth_route_policy("GET", submission_path, enabled=True) is None
 
 
-def _app(provider, monkeypatch, proposal_action):
+def _app(provider, monkeypatch, proposal_action, submission_action=None):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
     monkeypatch.setattr(reads, "list_location_solution_funding_targets", lambda *_a, **_k: {"solutions": []})
     monkeypatch.setattr(actions, "propose_location_solution_funding", proposal_action)
+    monkeypatch.setattr(
+        actions,
+        "submit_location_solution_funding",
+        submission_action or (lambda *_args, **_kwargs: SUBMISSION_RESULT),
+    )
     app = FastAPI()
     router = APIRouter()
 
@@ -258,3 +323,31 @@ def test_funding_proposal_tenant_denial_maps_to_forbidden(monkeypatch):
         response = client.post(path, json=BODY)
     assert response.status_code == 403
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_funding_submission_route_requires_exact_body_and_returns_no_store(monkeypatch):
+    submitted = []
+    app = _app(object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+               lambda *args: submitted.append(args) or SUBMISSION_RESULT)
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/submit"
+    )
+    with TestClient(app) as client:
+        response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
+        malformed = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True, "amount": 20})
+    assert response.status_code == 200
+    assert response.json() == SUBMISSION_RESULT
+    assert response.headers["cache-control"] == "no-store"
+    assert submitted == [(
+        OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"], REQUEST_ID, True
+    )]
+    assert malformed.status_code == 400

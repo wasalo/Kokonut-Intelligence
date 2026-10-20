@@ -79,15 +79,39 @@ is non-login and cannot update or delete proposal receipts or update/approve
 case and tranche rows. Runtime can call the bounded function but cannot read
 the private receipt; Directus cannot execute the proposal function.
 
+## Funding draft submission
+
+`POST /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/submit`
+requires a separate exact-location `solution_lifecycle:submit` grant and signed
+tenant context. The body contains only a UUID `request_id` and literal
+`acknowledged: true`; the database also requires an active human binding and a
+draft receipt created by the same operator and party at the same location.
+
+The function locks the exact location-origin solution and draft, verifies the
+case is still in `draft` with no submitter or approval attribution, and checks
+that every tranche remains `proposed`. It atomically changes only the case to
+`submitted`, records the active human submitter, and writes an immutable retry
+receipt. Exact retries return the original submission; request collisions,
+another operator's draft, duplicate submission, or a missing submit grant fail
+closed. Tranches remain proposed, and the action cannot approve the case,
+approve/release a tranche, create a release, or advance the solution stage.
+
+The dedicated non-login submitter role has only the reads and case columns
+needed for this transition. Runtime can execute the bounded function but cannot
+read its receipt; Directus cannot execute it. Submission is not independent
+approval; that remains a separate review action.
+
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration tests cover exact grants,
-active human context, strict request bounds, stable retries, and the draft-only
-state boundary. Disposable PostgreSQL 16 applies and replays migration 488 and
-checks location-origin targeting, create authorization, private receipts,
-tranche ceilings, atomic writes, and unchanged solution stage. The checker uses
-synthetic rows only; candidate and legacy databases are not involved.
+active human context, strict request bounds, stable retries, the draft-only
+state boundary, and separately authorized submission. Disposable PostgreSQL 16
+applies and replays migrations 488 and 489 and checks location-origin targeting,
+create/submit authorization, private receipts, tranche ceilings, atomic writes,
+state conflicts, and unchanged solution stage. The checker uses synthetic rows
+only; candidate and legacy databases are not involved.
 
-Before rollout, the route and UI can be disabled while retaining migration 488.
-After application, do not edit or reverse it; disable the route and use a
-separately reviewed forward migration if the schema objects must be removed.
+Before rollout, the routes and UI can be disabled while retaining migrations
+488 and 489. After application, do not edit or reverse them; disable the routes
+and use a separately reviewed forward migration if their schema objects must
+be removed.

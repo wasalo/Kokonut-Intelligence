@@ -242,7 +242,7 @@ def test_funding_targets_and_draft_submit_use_location_scope_csrf_and_stable_ret
     submit = _function(
         source,
         "async function submitSolutionLifecycleFundingProposal(",
-        "async function loadSolutionLifecycleFunding(",
+        "async function submitSolutionLifecycleFundingDraft(",
     )
     assert "/funding/targets?${params}" in targets
     assert 'credentials: "same-origin"' in targets and 'cache: "no-store"' in targets
@@ -256,6 +256,34 @@ def test_funding_targets_and_draft_submit_use_location_scope_csrf_and_stable_ret
     assert 'cache: "no-store"' in submit and 'credentials: "same-origin"' in submit
     assert "It has not been submitted or approved." in submit
     assert "innerHTML" not in targets + submit
+
+
+def test_funding_submission_is_separately_grant_gated_acknowledged_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    html = re.search(
+        r'<section id="solution-lifecycle-funding-submission".*?</section>',
+        source,
+        re.DOTALL,
+    )
+    assert html is not None
+    assert 'id="solution-lifecycle-funding-submission-acknowledgement"' in html.group()
+    assert "independent review" in html.group()
+    assert "does not approve the request" in html.group()
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleFundingDraft(",
+        "async function loadSolutionLifecycleFunding(",
+    )
+    assert 'scope.action === "submit"' in source
+    assert "solutionLifecycleSubmitLocations.has(pending.locationId)" in submit
+    assert "solutionLifecycleFundingSubmissionAcknowledge.checked" in submit
+    assert "/funding/${encodeURIComponent(pending.fundingCaseId)}/submit" in submit
+    assert "pending.requestId" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'cache: "no-store"' in submit and 'credentials: "same-origin"' in submit
+    assert "No funds were approved or released" in submit
+    assert "solutionLifecycleFundingSubmissionForm.addEventListener(\"submit\", submitSolutionLifecycleFundingDraft)" in source
+    assert "innerHTML" not in submit
 
 
 def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():

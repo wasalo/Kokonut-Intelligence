@@ -16,6 +16,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         propose_location_solution_retirement,
         record_location_solution_gate_evaluation,
         review_location_solution_experiment,
+        submit_location_solution_funding,
         transition_location_solution_gate,
     )
     from services.gateway.solution_lifecycle_reads import (
@@ -1338,6 +1339,83 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             status_code=200 if result.get("replayed") else 201,
             headers=headers,
         )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/submit"
+    )
+    async def submit_solution_funding(
+        request: Request, location_id: str, funding_case_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {"request_id", "acknowledged"}:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Solution funding submission fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                submit_location_solution_funding,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                funding_case_id,
+                payload["request_id"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle submit access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active human with a current location solution-lifecycle submit grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Funding draft was not found for this operator and location"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Solution funding submission is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Funding draft is no longer eligible for submission"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution funding submission unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution funding submission unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/gates")
     async def location_solution_lifecycle_gates(

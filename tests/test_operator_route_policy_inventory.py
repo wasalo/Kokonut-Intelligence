@@ -37,6 +37,7 @@ _PARAMETER_SAMPLES = {
     "solution_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "gate_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
     "experiment_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddf",
+    "funding_case_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed",
     "replication_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
@@ -221,6 +222,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/solutions/dddddddd-dddd-4ddd-8ddd-dddddddddddd/funding",
     ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/funding/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed/submit",
+    ): _expected("solution_lifecycle", "submit", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/adoption",

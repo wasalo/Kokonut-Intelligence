@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise location-scoped solution funding projections and draft proposals."""
+"""Exercise location-scoped solution funding projections, drafts, and submission."""
 
 from __future__ import annotations
 
@@ -15,7 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPERIMENT_CHECK = ROOT / "scripts/check-solution-lifecycle-experiments-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/468_location_scoped_solution_funding.sql"
 PROPOSAL_MIGRATION = ROOT / "schemas/postgres/488_location_solution_funding_proposals.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-proposal-disposable.json"
+SUBMISSION_MIGRATION = ROOT / "schemas/postgres/489_location_solution_funding_submission.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-submission-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_experiments_disposable", EXPERIMENT_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load disposable solution lifecycle fixtures")
@@ -135,6 +136,11 @@ VALUES (
     'a0000000-0000-4000-8000-000000000001',
     'b0000000-0000-4000-8000-000000000001',
     'solution_lifecycle', 'create', NULL, NULL
+), (
+    'a1000000-0000-4000-8000-000000000005',
+    'a0000000-0000-4000-8000-000000000001',
+    'b0000000-0000-4000-8000-000000000001',
+    'solution_lifecycle', 'submit', NULL, NULL
 );
 """
 
@@ -428,13 +434,158 @@ BEGIN
 END $$;
 """
 
+FUNDING_SUBMISSION_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE
+    draft record;
+    case_id uuid;
+    first_submission record;
+    replay record;
+    denied boolean := false;
+BEGIN
+    SELECT * INTO draft FROM kokonut_security.propose_location_solution_funding(
+        'b0000000-0000-4000-8000-000000000001',
+        'c0000000-0000-4000-8000-000000000001',
+        'ab000000-0000-4000-8000-000000000201',
+        'pilot', 'community_fund', 1000.00, 500.00, 1200.00, 'cUSD',
+        900.00, 1100.00, 100.00, 250.00, 'Synthetic draft only',
+        '[{"ref":"private:budget"}]'::jsonb,
+        '[{"amount":300.00,"milestone_conditions":{"step":"review"}},
+          {"amount":500.00,"milestone_conditions":{"step":"field-check"}}]'::jsonb
+    );
+    case_id := draft.funding_case_id;
+    IF case_id IS NULL OR NOT draft.replayed THEN
+        RAISE EXCEPTION 'fixture funding draft retry did not return its original case';
+    END IF;
+
+    SELECT * INTO first_submission
+      FROM kokonut_security.submit_location_solution_funding(
+        'b0000000-0000-4000-8000-000000000001', case_id,
+        'ab000000-0000-4000-8000-000000000301', TRUE
+      );
+    IF first_submission.funding_case_id <> case_id
+       OR first_submission.decision_status <> 'submitted'
+       OR first_submission.tranche_count <> 2
+       OR first_submission.submitted_at IS NULL
+       OR first_submission.replayed THEN
+        RAISE EXCEPTION 'funding submission response is invalid';
+    END IF;
+
+    SELECT * INTO replay
+      FROM kokonut_security.submit_location_solution_funding(
+        'b0000000-0000-4000-8000-000000000001', case_id,
+        'ab000000-0000-4000-8000-000000000301', TRUE
+      );
+    IF NOT replay.replayed OR replay.funding_case_id <> case_id
+       OR replay.submitted_at <> first_submission.submitted_at THEN
+        RAISE EXCEPTION 'exact funding submission retry did not return its receipt';
+    END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.submit_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001', case_id,
+            'ab000000-0000-4000-8000-000000000301', FALSE
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'submission accepted without explicit acknowledgement'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.submit_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001',
+            'f3000000-0000-4000-8000-000000000001',
+            'ab000000-0000-4000-8000-000000000301', TRUE
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'submission request id collision was not rejected'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.submit_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001', case_id,
+            'ab000000-0000-4000-8000-000000000302', TRUE
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'already submitted funding case accepted a second request id'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.submit_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001', case_id,
+            'ab000000-0000-4000-8000-000000000303', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'operator without a submit grant submitted a funding draft'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    denied := false;
+    BEGIN
+        PERFORM 1 FROM public.solution_funding_submission_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can read submission receipts directly'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+DECLARE
+    case_id uuid;
+    case_status text;
+    submitted_by uuid;
+    tranche_count integer;
+    proposed_tranche_count integer;
+    original_stage text;
+BEGIN
+    SELECT funding_case_id INTO case_id
+      FROM public.solution_funding_submission_receipt
+     WHERE request_id = 'ab000000-0000-4000-8000-000000000301';
+    SELECT decision_status, submitted_by_party_id
+      INTO case_status, submitted_by
+      FROM public.solution_funding_case WHERE id = case_id;
+    SELECT pg_catalog.count(*)::INTEGER,
+           pg_catalog.count(*) FILTER (WHERE status = 'proposed')::INTEGER
+      INTO tranche_count, proposed_tranche_count
+      FROM public.solution_funding_tranche WHERE funding_case_id = case_id;
+    SELECT current_stage INTO original_stage FROM public.solution
+     WHERE id = 'c0000000-0000-4000-8000-000000000001';
+    IF case_status <> 'submitted'
+       OR submitted_by <> 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+       OR tranche_count <> 2 OR proposed_tranche_count <> 2
+       OR original_stage <> 'testing'
+       OR (SELECT count(*) FROM public.solution_funding_submission_receipt
+           WHERE funding_case_id = case_id) <> 1
+       OR has_table_privilege('kokonut_solution_funding_submitter',
+          'public.solution_funding_submission_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_solution_funding_submitter',
+          'public.solution_funding_submission_receipt', 'DELETE')
+       OR has_table_privilege('kokonut_solution_funding_submitter',
+          'public.solution_funding_case', 'UPDATE')
+       OR has_table_privilege('kokonut_solution_funding_submitter',
+          'public.solution_funding_tranche', 'UPDATE')
+       OR has_table_privilege('kokonut_runtime',
+          'public.solution_funding_submission_receipt', 'SELECT')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.submit_location_solution_funding(uuid,uuid,uuid,boolean)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'submission state, stage, or role-boundary invariant failed';
+    END IF;
+END $$;
+"""
+
 
 def main() -> int:
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
     container = f"kokonut-solution-funding-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": PROPOSAL_MIGRATION.name,
+        "migration": SUBMISSION_MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -452,6 +603,10 @@ def main() -> int:
             "proposed tranche totals cannot exceed the request ceiling; empty tranches remain valid",
             "case and tranche statuses remain draft/proposed and lifecycle stage is unchanged",
             "runtime and Directus cannot read private funding receipts; proposer role cannot update/delete or approve/release",
+            "submission requires the exact location submit grant, the original active human proposer, and explicit acknowledgement",
+            "submission changes only draft to submitted and preserves proposed tranches and solution stage",
+            "submission request retries replay exactly; changed request reuse and duplicate submission fail closed",
+            "runtime and Directus cannot access submission receipts or the direct submitter role",
         ],
     }
     try:
@@ -478,10 +633,15 @@ def main() -> int:
         psql(docker, container, migration_488)
         psql(docker, container, migration_488)
         psql(docker, container, FUNDING_PROPOSAL_ACCEPTANCE)
+        migration_489 = SUBMISSION_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, migration_489)
+        psql(docker, container, migration_489)
+        psql(docker, container, FUNDING_SUBMISSION_ACCEPTANCE)
         evidence["result"] = "passed"
         evidence["assertions_passed"] = 9
         evidence["proposal_assertions_passed"] = 7
-        print("PASS: migrations 459/466/467/468/488 apply, migrations 468 and 488 replay, funding projections and draft proposal acceptances passed")
+        evidence["submission_assertions_passed"] = 7
+        print("PASS: migrations 459/466/467/468/488/489 apply, migrations 468/488/489 replay, funding projections, draft proposals, and submission acceptances passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"
