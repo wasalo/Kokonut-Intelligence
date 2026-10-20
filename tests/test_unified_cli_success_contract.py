@@ -999,3 +999,182 @@ def test_governance_cli_closes_connection_when_read_fails(
         sys.argv = original_argv
 
     assert connection.closed is True
+
+
+def test_database_backed_threatcasting_list_output_matches_and_closes_resources(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.threatcasting import cli as threatcasting_cli
+
+    columns = [("id",), ("threat_name",), ("threat_type",), ("is_active",)]
+    rows = [("synthetic-threat", "Drought", "climate", True)]
+    connections = []
+
+    class FakeCursor:
+        description = columns
+        query = ""
+        parameters = None
+        closed = False
+
+        def execute(self, query, parameters):
+            self.query = query
+            self.parameters = parameters
+
+        def fetchall(self):
+            return rows
+
+        def close(self):
+            self.closed = True
+
+    class FakeConnection:
+        closed = False
+
+        def __init__(self):
+            self.fake_cursor = FakeCursor()
+
+        def cursor(self):
+            return self.fake_cursor
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(threatcasting_cli, "_get_conn", make_connection)
+    arguments = [
+        "list-threats",
+        "--location-id",
+        "synthetic-location",
+        "--type",
+        "climate",
+    ]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.threatcasting.cli", *arguments]
+        threatcasting_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["threatcasting", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == {
+        "id": "synthetic-threat",
+        "threat_name": "Drought",
+        "threat_type": "climate",
+        "is_active": True,
+    }
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all(connection.fake_cursor.closed for connection in connections)
+    assert all("location_id = %s" in connection.fake_cursor.query for connection in connections)
+    assert all("threat_type = %s" in connection.fake_cursor.query for connection in connections)
+    assert all(
+        connection.fake_cursor.parameters == ["synthetic-location", "climate"]
+        for connection in connections
+    )
+    assert unified.stderr == ""
+
+
+def test_threatcasting_list_closes_cursor_and_connection_when_query_fails(monkeypatch) -> None:
+    from services.threatcasting import cli as threatcasting_cli
+
+    class FakeCursor:
+        closed = False
+
+        def execute(self, *_args):
+            raise RuntimeError("synthetic threat query failure")
+
+        def close(self):
+            self.closed = True
+
+    class FakeConnection:
+        closed = False
+
+        def __init__(self):
+            self.fake_cursor = FakeCursor()
+
+        def cursor(self):
+            return self.fake_cursor
+
+        def close(self):
+            self.closed = True
+
+    connection = FakeConnection()
+    monkeypatch.setattr(threatcasting_cli, "_get_conn", lambda: connection)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.threatcasting.cli", "list-threats"]
+        with pytest.raises(RuntimeError, match="synthetic threat query failure"):
+            threatcasting_cli.main()
+    finally:
+        sys.argv = original_argv
+
+    assert connection.fake_cursor.closed is True
+    assert connection.closed is True
+
+
+def test_database_backed_export_snapshot_list_matches_and_closes_connection(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.export import report_generator
+
+    location_id = "12345678-1234-5678-1234-567812345678"
+    snapshots = [{
+        "id": "synthetic-snapshot",
+        "report_type": "climate_impact",
+        "status": "draft",
+        "created_at": "2026-10-20",
+        "snapshot_hash": "a" * 64,
+    }]
+    calls = []
+    connections = []
+
+    class FakeConnection:
+        closed = False
+
+        def close(self):
+            self.closed = True
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def fake_list_snapshots(connection, requested_location_id):
+        calls.append((connection, requested_location_id))
+        return snapshots
+
+    monkeypatch.setattr(report_generator, "get_pg", make_connection)
+    monkeypatch.setattr(report_generator, "list_snapshots", fake_list_snapshots)
+    arguments = ["--list", "--location-id", location_id]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.export.report_generator", *arguments]
+        report_generator.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["export", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert "climate_impact" in unified.output
+    assert len(connections) == 2
+    assert calls == [(connections[0], location_id), (connections[1], location_id)]
+    assert all(connection.closed for connection in connections)
+    assert unified.stderr == ""

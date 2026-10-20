@@ -86,15 +86,17 @@ mounted unified command using the same arguments. It covers:
 | `analytics` | `--emission-factors` | PostgreSQL read through a context-managed connection; query is stubbed | JSON GHG emission-factor rows |
 | `crisp` | `--weights --location-id <synthetic-location>` | PostgreSQL read; connection and query are stubbed | JSON normalized location weights |
 | `delphi` | `list-studies` | PostgreSQL read; connection and cursor are stubbed | One JSON study row per line |
+| `threatcasting` | `list-threats --location-id <synthetic-location> --type climate` | PostgreSQL read; connection and cursor are stubbed | One JSON threat row per line |
+| `export` | `--list --location-id <synthetic-location-uuid>` | PostgreSQL read through report-snapshot service; query is stubbed | Formatted report-snapshot table |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Seven successful offline invocations and twenty-four PostgreSQL-backed
+real service. Seven successful offline invocations and twenty-six PostgreSQL-backed
 read invocations with stubbed query functions match their standalone output
-across 30 mounted groups (98 tests including the Delphi service suite, error-path cleanup, and the native Typer command-tree
+across 32 mounted groups (101 tests including the Delphi service suite, error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
@@ -105,10 +107,10 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 98-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 101-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The twenty-four database-backed success paths exercise their real parsers,
+The twenty-six database-backed success paths exercise their real parsers,
 forwarding, and JSON or text output paths from both entry points with synthetic results. The
 connection-taking commands use fake connections and prove they close them.
 The governance proposal, role, link, tactical, and tension read CLIs close their
@@ -116,13 +118,14 @@ connections after both successful and failing service calls. The stakeholder
 grievance, identity, representation, and trust read paths also close their
 connections on success. The forecast catalogue closes its connection after
 both successful and failing reads. CRISP weights likewise closes after success
-and failure; Delphi study listing closes its cursor and connection on both
-paths. The cases confirm parsed filters reach expected service calls; they do
-not claim database query behavior or authorization.
+and failure; Delphi study listing and Threatcasting threat listing close their
+cursors and connections on both paths. Export snapshot listing closes its
+connection on success. The cases confirm parsed filters reach expected
+service calls; they do not claim database query behavior or authorization.
 
 This closes successful output parity only for these seven offline command
-invocations across six mounted groups plus twenty-four stubbed database-backed
-paths. The other seven mounted groups still need command-specific success-path checks and
+invocations across six mounted groups plus twenty-six stubbed database-backed
+paths. The other five mounted groups still need command-specific success-path checks and
 database/provider classification. Privileged operator action boundaries and
 MAN-CAP-039 owner acceptance are also open.
 
