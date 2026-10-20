@@ -3,20 +3,20 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest CAP-038 implementation slice — 20 October 2026:** Migration 521 and
-the operator console now provide location-scoped human review for AI-summary
-drafts. OIDC sessions need the exact `ai_summary:review` location grant; the
-database rechecks signed transaction-bound scope. Approval verifies but never
-publishes, rejection is recorded separately, and reviewer decisions are
-append-only. The focused Gateway/route-policy/console/migration selection
-passes 67 tests; the broader 23-file CAP-038 regression selection passes 249
-tests with nine pre-existing PostgreSQL-dependent skips. Eight-group disposable PostgreSQL 16 apply/replay passes; Ruff, Python
-compilation, and inline JavaScript syntax checks pass. Candidate and legacy
-databases remain untouched, and migration 521 is not rolled out. Authenticated
-agent-run identity, reviewer-independence enforcement, linked source evidence,
-populated parity, live OIDC/browser behavior, recovery, and MAN-CAP-038 remain
+**Latest CAP-038 implementation slice — 20 October 2026:** Migrations 521–522
+now provide a location-scoped AI-summary review flow and an OIDC operator-
+requested draft endpoint. Draft requests bind to signed `ai_summary:draft`
+location scope, persist the requester, and return their saved result before
+regeneration on retry. Review blocks self-approval/rejection and marks legacy
+unattributed drafts as unapprovable; independent verification sets `verified`
+only and publication remains separate. The focused Gateway/route-policy/console/
+safety selection passes 51 tests, and disposable PostgreSQL 16 applies/replays
+521–522 with eight grouped checks. Ruff, Python compilation, and inline
+JavaScript syntax checks pass. Candidate and legacy remain untouched; migration
+522 is not rolled out. Existing CLI/background agent identity, linked evidence,
+populated parity, live OIDC/browser, runtime recovery, and MAN-CAP-038 remain
 open ([agent contract](agent-ecosystem-kernel-contract.md); [disposable
-evidence](builds/2026-10-20-recovery/cap-038-ai-summary-review-disposable.json)).
+evidence](builds/2026-10-20-recovery/cap-038-ai-summary-draft-disposable.json)).
 
 **Latest implementation slice — 20 October 2026:** The optional Directus
 weekly callback now identifies its real effect: a grouped read of verified,

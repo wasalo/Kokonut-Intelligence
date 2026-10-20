@@ -450,6 +450,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
         r"/operator/api/ai-summaries/([0-9a-fA-F-]{36})/reviews(?:/([0-9a-fA-F-]{36})/decision)?",
         path,
     )
+    ai_summary_draft_match = re.fullmatch(
+        r"/operator/api/ai-summaries/([0-9a-fA-F-]{36})/drafts",
+        path,
+    )
+    if ai_summary_draft_match and enabled and method.upper() == "POST":
+        return {
+            "resource": "ai_summary",
+            "action": "draft",
+            "public": False,
+            "location_id": ai_summary_draft_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
     if ai_summary_review_match and enabled:
         if method.upper() == "GET" and ai_summary_review_match.group(2) is None:
             return {
@@ -3748,6 +3761,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
                                samesite="strict")
         return response
 
+    from services.gateway.ai_summary_draft_routes import register_ai_summary_draft_routes
     from services.gateway.ai_summary_review_routes import register_ai_summary_review_routes
     from services.gateway.attestation_routes import register_attestation_routes
     from services.gateway.business_architecture_routes import register_business_architecture_routes
@@ -3800,6 +3814,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_credit_custody_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_consultation_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_review_routes(router, provider, run_in_threadpool, psycopg2)
+    register_ai_summary_draft_routes(router, provider, run_in_threadpool, psycopg2)
     register_ai_summary_review_routes(router, provider, run_in_threadpool, psycopg2)
     register_delphi_recommendation_draft_routes(router, provider, run_in_threadpool, psycopg2)
     register_ecocredit_routes(router, provider, run_in_threadpool, psycopg2)

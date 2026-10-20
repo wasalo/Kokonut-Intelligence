@@ -27,7 +27,8 @@ def test_panel_is_hidden_until_exact_review_scope_and_states_lifecycle_boundary(
     assert "aiSummaryReviewLocations.has(locationId)" in source
     assert "Approval moves a summary to verified" in panel
     assert "publication remains separate" in panel
-    assert "cannot prove that the reviewer is different" in panel
+    assert "New Gateway drafts record the requesting operator" in panel
+    assert "Legacy drafts without reliable requester attribution cannot be approved" in panel
     assert "innerHTML" not in panel
 
 
@@ -88,6 +89,47 @@ def test_controls_have_unique_ids_and_queue_events_are_wired():
         assert f'id="{element_id}"' in source
     assert 'aiSummaryReviewLocation.addEventListener("change", () => loadAiSummaryReviewQueue())' in source
     assert 'aiSummaryReviewMore.addEventListener("click", () => loadAiSummaryReviewQueue(true))' in source
+
+
+def test_draft_panel_requires_exact_draft_scope_and_explains_independent_review():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert 'scope.resource === "ai_summary" && scope.action === "draft"' in source
+    assert 'aiSummaryDraftLocations.has(locationId)' in source
+    assert 'id="ai-summary-draft-create" hidden' in source
+    assert "records you as the requester" in source
+    assert "another operator must review it" in source
+    assert "never publishes" in source
+
+
+def test_draft_submission_uses_csrf_no_store_stable_retry_id_and_safe_rendering():
+    source = CONSOLE.read_text(encoding="utf-8")
+    submitter = _function(
+        source,
+        "async function submitAiSummaryDraft()",
+        "async function loadGovernanceTensionQueue(",
+    )
+    assert 'aiSummaryDraftLocations.has(locationId)' in submitter
+    assert 'credentials: "same-origin"' in submitter
+    assert 'cache: "no-store"' in submitter
+    assert '"X-CSRF-Token": csrf' in submitter
+    assert "aiSummaryDraftRequestIds.get(requestKey)" in submitter
+    assert "aiSummaryDraftRequestIds.set(requestKey, requestId)" in submitter
+    assert "aiSummaryDraftRequestIds.delete(requestKey)" in submitter
+    assert "aiSummaryDraftContent.textContent" in submitter
+    assert "aiSummaryDraftSources.textContent" in submitter
+    assert "innerHTML" not in submitter
+    assert 'aiSummaryDraftSubmit.addEventListener("click", submitAiSummaryDraft)' in source
+
+
+def test_self_review_disables_both_decision_controls_and_legacy_can_only_be_rejected():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(
+        source,
+        "async function loadAiSummaryReviewQueue(append = false)",
+        "async function submitAiSummaryReviewDecision(",
+    )
+    assert 'approve.disabled = !ready' in reader
+    assert 'reject.disabled = blockers.includes("self_review")' in reader
 
 
 def test_inline_javascript_parses_when_node_is_available():

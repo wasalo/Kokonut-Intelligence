@@ -73,40 +73,50 @@ run without decrypting `.env.sops`.
   identity, and inserts are not covered. It is not treated as a least-privilege
   agent boundary.
 
-## Location-scoped human review slice
+## Location-scoped AI-summary draft and human-review slice
 
-Migration 521 adds a bounded Gateway review queue and decision action for
-location summaries. The route requires OIDC, the exact `ai_summary:review`
-location grant, and signed transaction-bound operator context. The console
-renders only granted locations, uses same-origin no-store reads, CSRF-protected
-decisions, and stable request IDs. Approval changes `draft` or `submitted` to
-`verified` only; it does not publish. Rejection remains available when content
-or source-table metadata blocks approval. An append-only private decision
-receipt and the existing lifecycle trigger record the human decision and actor.
-Runtime and Directus lose direct summary `UPDATE` and cannot read the review
-receipt table; normal agent draft inserts remain available.
+Migration 521 introduced the bounded location review queue and decision path.
+Migration 522 adds an OIDC `POST /operator/api/ai-summaries/{location_id}/drafts`
+operation under the exact `ai_summary:draft` grant and signed transaction-bound
+operator context. It runs the deterministic existing summary generator on the
+same location-scoped connection, records the authenticated operator in
+`ai_summary.created_by`, and stores an append-only request receipt. An exact
+request retry returns the saved draft before regenerating; a reused request ID
+for another location or summary type fails closed. Runtime and Directus cannot
+read or mutate the private receipt table or invoke its functions directly.
 
-This is a prepared first review surface, not proof of reviewer independence or
-complete evidence provenance. Existing agent writers leave `ai_summary.created_by`
-NULL and do not persist an authenticated run identity. Therefore the queue can
-neither establish who requested a draft nor reject same-requester review. The
-displayed `source_tables` are provenance hints, not linked source records; a
-reviewer must inspect underlying evidence before verifying. The Gateway and
-console disclose these limits. Do not treat the review endpoint as closing
-MAN-CAP-038 until authenticated agent-run attribution, reviewer-separation
-policy, source-record parity, and populated/live acceptance are addressed.
+The operator console exposes draft creation only for the exact draft scope,
+uses same-origin no-store requests, CSRF, stable request IDs, and safe text
+rendering. Review remains a separate exact `ai_summary:review` operation.
+PostgreSQL marks self-authored rows with a `self_review` blocker and refuses
+both approval and rejection by the requester. An independent reviewer may move
+a valid draft from `draft`/`submitted` to `verified`; publication remains
+separate. The agent safety constraint now permits `verified`/`published` for an
+attributed summary only when a different reviewer and review timestamp are
+recorded. Legacy drafts with `created_by IS NULL` are explicitly marked
+`creator_unattributed`, may be rejected, and may not be verified.
 
-Migration 521 has been applied and replayed on a new disposable PostgreSQL 16
-container only; candidate and legacy databases remain untouched. Eight grouped
-database acceptance checks pass. The focused Gateway, route-policy, console,
-and migration selection passes 67 tests; the broader 23-file CAP-038 selection
-passes 249 tests with nine pre-existing PostgreSQL-dependent skips. Ruff,
-Python compilation, and inline JavaScript syntax checks pass. See the
-[migration](../../schemas/postgres/521_location_scoped_ai_summary_review.sql),
-[Gateway tests](../../tests/test_gateway_ai_summary_review.py),
+This does not identify background/legacy agent runs: the existing CLI and other
+agent writers still use the shared database role and do not persist an
+authenticated requester. Their unattributed drafts remain approval-blocked.
+The displayed `source_tables` remain provenance hints rather than linked source
+records, so reviewers still need underlying evidence. These do not close
+MAN-CAP-038, which also requires authenticated provider/runtime identities,
+least-privilege access, Directus and populated task parity, linked evidence,
+live OIDC/browser acceptance, recovery, and owner acceptance.
+
+The focused Gateway, route-policy, console, and safety selection passes 51
+tests; Ruff, Python compilation, and JavaScript syntax checks pass. Disposable
+PostgreSQL 16 applies/replays migrations 521–522 on a network-disabled
+container and passes eight grouped draft/review, attribution, idempotency,
+self-review, legacy-blocker, lifecycle, and privilege checks. Candidate and
+legacy databases remain untouched; migration 522 is not rolled out. See the
+[migration 521](../../schemas/postgres/521_location_scoped_ai_summary_review.sql),
+[migration 522](../../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
+[draft Gateway tests](../../tests/test_gateway_ai_summary_draft.py),
+[review Gateway tests](../../tests/test_gateway_ai_summary_review.py),
 [console checks](../../tests/test_operator_console_ai_summary_review.py), and
-[source evidence](builds/2026-10-20-recovery/cap-038-ai-summary-review-source.json),
-[disposable evidence](builds/2026-10-20-recovery/cap-038-ai-summary-review-disposable.json).
+[disposable evidence](builds/2026-10-20-recovery/cap-038-ai-summary-draft-disposable.json).
 
 ## Verification and limits
 

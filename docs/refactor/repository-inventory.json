@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "e7bdea979ee91266c865b3303d7158ed30c607df",
+  "baseline_commit": "3e96cf8b68e971a8d71d41ac7e655867f6ce766b",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -891,6 +891,12 @@
   "format_version": 1,
   "http_routes": [
     {
+      "line": 19,
+      "method": "POST",
+      "path": "/operator/api/ai-summaries/{location_id}/drafts",
+      "source": "services/gateway/ai_summary_draft_routes.py"
+    },
+    {
       "line": 57,
       "method": "GET",
       "path": "/operator/api/ai-summaries/{location_id}/reviews",
@@ -1263,157 +1269,157 @@
       "source": "services/gateway/operating_pilot_routes.py"
     },
     {
-      "line": 2573,
+      "line": 2586,
       "method": "GET",
       "path": "/operator/",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2588,
+      "line": 2601,
       "method": "GET",
       "path": "/operator/auth/login",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2597,
+      "line": 2610,
       "method": "GET",
       "path": "/operator/auth/callback",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2655,
+      "line": 2668,
       "method": "GET",
       "path": "/operator/auth/session",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2683,
+      "line": 2696,
       "method": "GET",
       "path": "/operator/api/report-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2723,
+      "line": 2736,
       "method": "GET",
       "path": "/operator/api/report-review-queue/{report_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2774,
+      "line": 2787,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2814,
+      "line": 2827,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2867,
+      "line": 2880,
       "method": "GET",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/disposition-inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2927,
+      "line": 2940,
       "method": "POST",
       "path": "/operator/api/mobile-collection-review-queue/{collection_id}/events",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 2982,
+      "line": 2995,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3026,
+      "line": 3039,
       "method": "GET",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3087,
+      "line": 3100,
       "method": "POST",
       "path": "/operator/api/farm-activity-intake-queue/{collection_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3170,
+      "line": 3183,
       "method": "POST",
       "path": "/operator/api/farm-activities/{activity_id}/{action}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3263,
+      "line": 3276,
       "method": "GET",
       "path": "/operator/api/farm-activities",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3311,
+      "line": 3324,
       "method": "GET",
       "path": "/operator/api/farm-activities/published",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3363,
+      "line": 3376,
       "method": "GET",
       "path": "/operator/api/farm-activities/published/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3421,
+      "line": 3434,
       "method": "GET",
       "path": "/operator/api/farm-activities/{activity_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3475,
+      "line": 3488,
       "method": "PATCH",
       "path": "/operator/api/farm-activities/{activity_id}/draft",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3564,
+      "line": 3577,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3584,
+      "line": 3597,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/participants/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3604,
+      "line": 3617,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3640,
+      "line": 3653,
       "method": "DELETE",
       "path": "/operator/api/mobile/locations/{location_id}/enrollments/{enrollment_id}",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3668,
+      "line": 3681,
       "method": "POST",
       "path": "/operator/api/mobile/locations/{location_id}/devices/{device_id}/revoke",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3696,
+      "line": 3709,
       "method": "GET",
       "path": "/operator/api/mobile/locations/{location_id}/inventory",
       "source": "services/gateway/operator_auth.py"
     },
     {
-      "line": 3739,
+      "line": 3752,
       "method": "POST",
       "path": "/operator/auth/logout",
       "source": "services/gateway/operator_auth.py"
@@ -2778,7 +2784,8 @@
       "schemas/postgres/518_location_solution_adoption_program_review.sql",
       "schemas/postgres/519_location_solution_adoption_program_revision.sql",
       "schemas/postgres/520_location_solution_adoption_consent_events.sql",
-      "schemas/postgres/521_location_scoped_ai_summary_review.sql"
+      "schemas/postgres/521_location_scoped_ai_summary_review.sql",
+      "schemas/postgres/522_authenticated_ai_summary_drafts.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -3438,6 +3445,7 @@
         "tests/test_common_logging.py",
         "tests/test_farm_activity_records.py",
         "tests/test_farm_activity_routes.py",
+        "tests/test_gateway_ai_summary_draft.py",
         "tests/test_gateway_ai_summary_review.py",
         "tests/test_gateway_attestations.py",
         "tests/test_gateway_auth.py",
@@ -3984,6 +3992,8 @@
       ],
       "modules": [
         "services/gateway/__init__.py",
+        "services/gateway/ai_summary_draft.py",
+        "services/gateway/ai_summary_draft_routes.py",
         "services/gateway/ai_summary_review.py",
         "services/gateway/ai_summary_review_routes.py",
         "services/gateway/api_key_provisioning.py",
@@ -4083,6 +4093,7 @@
         "tests/test_farm_activity_role_templates.py",
         "tests/test_farm_activity_routes.py",
         "tests/test_farm_activity_workflow.py",
+        "tests/test_gateway_ai_summary_draft.py",
         "tests/test_gateway_ai_summary_review.py",
         "tests/test_gateway_api_key_provisioning.py",
         "tests/test_gateway_attestations.py",
@@ -5469,6 +5480,7 @@
     "tests/test_forecast_error_redaction.py",
     "tests/test_fortune500.py",
     "tests/test_gap_closures.py",
+    "tests/test_gateway_ai_summary_draft.py",
     "tests/test_gateway_ai_summary_review.py",
     "tests/test_gateway_api_key_provisioning.py",
     "tests/test_gateway_attestations.py",

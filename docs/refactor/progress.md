@@ -1,31 +1,33 @@
-### CAP-038 location-scoped AI-summary human review — 20 October 2026
+### CAP-038 authenticated AI-summary drafts and human review — 20 October 2026
 
-Migration 521 and the operator console add a prepared reviewer path for
-location-scoped AI-summary drafts. OIDC requests require the exact
-`ai_summary:review` location grant; the Gateway establishes signed transaction
-context and PostgreSQL rechecks it before returning bounded drafts or recording
-a decision. Approval moves a draft to `verified` only, rejection is separate,
-and append-only receipts plus the lifecycle trigger record the human actor.
-Runtime and Directus lose direct AI-summary updates and cannot read the private
-review history. The console is hidden without the exact grant, uses same-origin
-no-store reads, CSRF-protected writes, safe text rendering, and stable retry IDs.
+Migration 522 adds an OIDC `ai_summary:draft` route that uses the existing
+deterministic generator and records the authenticated requesting operator. A
+private immutable receipt provides idempotent retries, and retries return the
+stored result before regeneration. The console shows draft creation only for
+that exact location grant and reports that independent review is still needed.
+Migration 521's review queue now includes both attributed and legacy drafts:
+self-review is blocked for either decision, legacy unattributed summaries may
+be rejected but not verified, and a distinct reviewer may set `verified` only.
+The lifecycle constraint permits `verified` or later `published` for an
+attributed summary only when distinct reviewer identity and review time exist.
+Source-table names remain provenance hints rather than linked evidence.
 
-The focused Gateway, route-policy, console, and migration selection passes 67
-tests; the broader 23-file CAP-038 selection passes 249 tests with nine
-pre-existing PostgreSQL-dependent skips. Ruff, Python compilation, and inline
-JavaScript syntax checks pass.
-Disposable PostgreSQL 16 applies/replays migration 521 and passes eight grouped
-checks. Candidate and legacy databases remain untouched; migration 521 is not
-rolled out. Existing agent writers do not record authenticated run identity, so
-reviewer independence cannot be proven; table names are provenance hints, not
-linked source evidence. These limits, populated parity, live OIDC/browser,
-runtime recovery, and MAN-CAP-038 remain open. Checklist: 783 complete / 24
-open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
+The focused Gateway, route-policy, console, and agent-safety selection passes
+51 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass.
+Disposable PostgreSQL 16 applies/replays migrations 521–522 on a network-disabled
+container and passes eight grouped attribution, idempotency, self-review,
+legacy-blocker, lifecycle, and ACL checks. Candidate and legacy databases remain
+untouched; migration 522 is not rolled out. Existing CLI/background agent
+writers still do not identify their authenticated requester, and those drafts
+remain approval-blocked. Populated parity, live OIDC/browser behavior, runtime
+recovery, linked evidence, and MAN-CAP-038 remain open. Checklist: 784 complete /
+24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
 Evidence: [contract](agent-ecosystem-kernel-contract.md),
-[migration](../schemas/postgres/521_location_scoped_ai_summary_review.sql),
-[Gateway tests](../tests/test_gateway_ai_summary_review.py),
+[migration](../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
+[draft tests](../tests/test_gateway_ai_summary_draft.py),
+[review tests](../tests/test_gateway_ai_summary_review.py),
 [console tests](../tests/test_operator_console_ai_summary_review.py), and
-[disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-review-disposable.json).
+[disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-draft-disposable.json).
 
 ### CAP-035 consent-aware adoption event capture — 20 October 2026
 

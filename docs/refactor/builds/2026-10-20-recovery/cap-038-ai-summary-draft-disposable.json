@@ -1,0 +1,17 @@
+{
+  "result": "passed",
+  "migration": "522_authenticated_ai_summary_drafts.sql",
+  "database_target": "new disposable PostgreSQL 16 container, network disabled",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 521 baseline and migration 522 apply/replay on disposable PostgreSQL 16",
+    "exact signed draft scope attributes requester and location; private receipts stay inaccessible",
+    "same-intent request lookup/replay returns the original draft before regeneration and prevents duplicates",
+    "request ID reuse for another location/type fails closed",
+    "self-review approval and rejection are denied; queue reports self_review",
+    "legacy unattributed summaries are approval-blocked but remain rejectable",
+    "independent reviewer may verify only to verified, never published",
+    "runtime and Directus cannot bypass functions or read private receipt history"
+  ],
+  "assertions_passed": 8
+}

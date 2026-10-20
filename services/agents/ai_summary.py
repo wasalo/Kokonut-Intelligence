@@ -314,6 +314,33 @@ def list_summaries(conn, location_id: str = None):
     return rows
 
 
+def build_summary(conn, location_id: str, summary_type: str = "combined") -> dict[str, Any]:
+    """Build a deterministic summary on a caller-owned location-scoped connection."""
+    validate_task_capabilities("ai_summary_synthesis")
+    errors = validate_task_inputs(
+        "ai_summary_synthesis",
+        {"location_id": location_id, "summary_type": summary_type, "store": False},
+    )
+    if errors:
+        raise ValueError("; ".join(errors))
+    assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
+    if summary_type not in GENERATORS:
+        raise ValueError("Unsupported AI summary type")
+    if not _check_registry_backed(conn, location_id):
+        raise ValueError(f"Location {location_id} does not have a verified/published farm registry record")
+    result = GENERATORS[summary_type](conn, location_id)
+    summary = {
+        "content": result["content"],
+        "source_tables": result["source_tables"],
+        "summary_type": result["summary_type"],
+        "location_id": location_id,
+    }
+    errors = validate_output("ai_summary_synthesis", {"summary": summary})
+    if errors:
+        raise ValueError("; ".join(errors))
+    return summary
+
+
 def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool = False) -> dict[str, Any]:
     """Generate and optionally store an AI summary with safety checks."""
     validate_task_capabilities("ai_summary_synthesis")
@@ -326,25 +353,15 @@ def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool
     assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
     conn = get_pg()
     try:
-        if not _check_registry_backed(conn, location_id):
-            raise ValueError(f"Location {location_id} does not have a verified/published farm registry record")
-        generator = GENERATORS[summary_type]
-        result = generator(conn, location_id)
-        output: dict[str, Any] = {
-            "summary": {
-                "content": result["content"],
-                "source_tables": result["source_tables"],
-                "summary_type": result["summary_type"],
-                "location_id": location_id,
-            },
-        }
-        errors = validate_output("ai_summary_synthesis", output)
-        if errors:
-            raise ValueError("; ".join(errors))
+        summary = build_summary(conn, location_id, summary_type)
+        output: dict[str, Any] = {"summary": summary}
         if store:
             output["ai_summary_id"] = store_summary(
-                conn, location_id, result["summary_type"],
-                result["content"], result["source_tables"]
+                conn,
+                location_id,
+                summary["summary_type"],
+                summary["content"],
+                summary["source_tables"],
             )
     finally:
         conn.close()
