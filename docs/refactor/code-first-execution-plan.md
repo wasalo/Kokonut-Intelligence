@@ -1412,9 +1412,10 @@ physical acceptance record rather than revising emulation evidence.
 ## Push and release cadence
 
 Keep related changes in local commits and push reviewable batches, as
-requested. The latest pushed head is `6c53e0fe` on PR #68. Security #209 passed; CI
-#485 is in progress. The Directus source fixture correction is included in this
-head. Review hosted checks for the current head before release decisions.
+requested. The latest pushed head is
+`d200c72cee37819a2d01948d9bf48072b955d7b6` on PR #68. Security #282 passed;
+CI #558 is pending on this head. Review both required hosted checks for the
+current head before release decisions.
 Never push directly to `main`. Keep each candidate database rollout separately
 gated even when its migration and disposable acceptance are complete.
 

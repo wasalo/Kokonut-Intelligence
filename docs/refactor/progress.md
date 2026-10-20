@@ -13,6 +13,8 @@ remaining workflow and populated parity, live OIDC/browser, broader ACL/RLS,
 recovery, and owner acceptance. Checklist: 724 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
 [console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+The five-commit batch is pushed to PR #68 at `d200c72cee37819a2d01948d9bf48072b955d7b6`;
+Security #282 passed and CI #558 is pending.
 
 ### CAP-026 advisory backcast console read — 20 October 2026
 

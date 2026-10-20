@@ -2,19 +2,17 @@
 
 Phase 0 inventory, captured 9 October 2026.
 
-**Current status (17 October):** the local Kernel candidate has 423 numbered
-schema migrations applied through migration 432, with zero pending schema
-migrations. Migrations 404–432 were applied through the ordered checksummed
-runner after a fresh encrypted checkpoint and successful isolated restore
-rehearsal; the rollout was schema-only and applied no seeds. The candidate app
-image was not rebuilt, scheduled workers remain disabled, and no worker
-credentials, location grants, providers, or schedules were enabled. The local
-source changes correcting migrations 429 and 432 to use canonical
-`plot.boundary` are not yet committed or pushed. PR #68's latest pushed head is
-`cd70fa92`; hosted checks for the new local batch remain outstanding. The ARM64
-planner selects an isolated profile for minimal, edge, and standard, and
-current-source QEMU replay through migration 402 has passed. Physical Pi
-acceptance remains open. See [rollout evidence](builds/2026-10-17-recovery/candidate-migrations-404-432-rollout.json),
+**Current status (20 October):** the last recorded local Kernel candidate
+rollout applied 425 schema entries through migration 434, with no pending or
+failed entries at that checkpoint. It was a schema-only rollout following an
+encrypted checkpoint and restore rehearsal; no application-table RLS,
+worker credentials, location grants, providers, or schedules were enabled.
+Candidate state has not been rechecked during the current console batch. PR #68
+is on branch `feat/mobile-offline-acceptance` at pushed head
+`d200c72cee37819a2d01948d9bf48072b955d7b6`; Security #282 passed and CI #558 is
+pending. The current source builds for ARM64 and passes software-only QEMU
+checks; physical Pi and power-loss acceptance remain open. See
+[rollout evidence](builds/2026-10-18-recovery/candidate-migration-434-rollout.json),
 [the phase ledger](progress.md), and
 [capability progress](capability-matrix.md).
 The baseline sections below preserve historical observations, not current
@@ -24,10 +22,11 @@ phase-completion claims.
 
 Baseline commit: ad806f504bfef15cba41446d777cb22f6bd8fe6a.
 Implementation branch: feat/kernel-architecture-refactor, created from main.
-The initial worktree change was the requested root plan ignore rule.
-The root implementation plan remains a local, ignored file; these smaller
-execution records are kept in the repository for review. Implementation changes
-are committed locally; no implementation PR/merge or release CI is recorded.
+The initial worktree change was the requested root plan ignore rule. The root
+implementation plan remains a local, ignored file; these smaller execution
+records are kept in the repository for review. Implementation is under PR #68;
+the latest pushed head and hosted check state are recorded above. No merge or
+release is recorded.
 
 The local checkout replaces the cached browser snapshot used to write the plan.
 Regenerate static evidence with:
