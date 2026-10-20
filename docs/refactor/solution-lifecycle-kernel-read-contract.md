@@ -1,14 +1,16 @@
 # Solution lifecycle Kernel read contract
 
-**Status:** CAP-035 location-scoped summary, gate-item read, and experiment-status read slices prepared; not owner-accepted.
+**Status:** CAP-035 location-scoped summary, gate-item, experiment-status, funding-status, and adoption-status read slices prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
-`466_location_scoped_solution_gates.sql`, and
+`466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
-`468_location_scoped_solution_funding.sql`.
+`468_location_scoped_solution_funding.sql`, and
+`469_location_scoped_solution_adoption.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`, and
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
-`GET /operator/api/solution-lifecycle/{location_id}/funding`.
+`GET /operator/api/solution-lifecycle/{location_id}/funding`, and
+`GET /operator/api/solution-lifecycle/{location_id}/adoption`.
 **Authorization:** exact `solution_lifecycle:read` location grant plus signed
 operator tenant context, checked in both Gateway and PostgreSQL.
 
@@ -79,6 +81,8 @@ accept 1–50 rows with an offset up to 10,000, use stable case/tranche ordering
 and share the 256 KiB response cap. The route does not approve funding cases,
 approve or release tranches, or expose release execution.
 
+The adoption route returns a bounded page of programs whose target is the exact requested location and whose solution originates there or has an explicit location link. It includes solution/program identifiers and labels, lifecycle state, and timestamps. `consented_adopter_reference_count` is null unless at least five distinct, nonempty, case- and whitespace-normalized `adopter_ref` values have consent-checked events; repeated events carrying the same reference do not increase the threshold, and non-consented events are excluded. The count is an aggregate of source references, not a verified count of natural persons. Adopter references, cohort IDs, event type/time, fidelity, support needs, outcomes, evidence, and party identities are omitted from the response. The security-definer owner receives column access to the pseudonymous adopter reference solely for the distinct count; runtime and Directus cannot read the source tables. Pages use the same 1–50 limit, 10,000 offset ceiling, no-store response, and 256 KiB serialized response cap. This does not expose event detail or mutate adoption state.
+
 ## Database boundary
 
 The stable read function is owned by `kokonut_solution_reader`, a non-login,
@@ -87,18 +91,19 @@ the projection. The function rechecks actor type, signed location context, and
 the exact `solution_lifecycle:read` grant. Runtime can execute the bounded
 function but cannot select the solution tables directly; Directus has neither
 function nor table access. The reader has no identity-table access and no write
-privileges. Migrations 466–468 add bounded gate, experiment, and funding
+privileges. Migrations 466–469 add bounded gate, experiment, funding, and adoption
 functions under the same reader role and exact signed-location grant checks.
 
 ## Verification and remaining parity
 
-The summary, gate-read, and experiment-read source checks and their separate
+The summary, gate, experiment, funding, and adoption source checks and their
 disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/cap-035-solution-lifecycle-disposable.json` and
 `builds/2026-10-19-recovery/cap-035-solution-gates-disposable.json` and
 `builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json` and
-`builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json`. Candidate
-and legacy databases are untouched; migrations 459 and 466–468 have not been
+`builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json`, and
+`builds/2026-10-19-recovery/cap-035-solution-adoption-disposable.json`. Candidate
+and legacy databases are untouched; migrations 459 and 466–469 have not been
 rolled out. This is not parity acceptance. Remaining work includes
 item-level read and write workflows beyond status projections, gate and
 experiment evidence detail under reviewed grants,

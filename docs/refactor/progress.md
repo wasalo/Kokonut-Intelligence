@@ -11624,3 +11624,26 @@ workflows, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and
 MAN-CAP-035 review remain open. Checklist: 694 complete / 24 open; matrix
 classifications unchanged. [Contract](solution-lifecycle-kernel-read-contract.md);
 [evidence](builds/2026-10-19-recovery/cap-035-solution-gates-disposable.json).
+
+### CAP-035 location-scoped adoption-program status — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/adoption` under the
+exact location `solution_lifecycle:read` grant and signed tenant context.
+Migration 469 returns bounded location-targeted adoption-program status and
+only the count of distinct nonempty adopter references, normalized for case
+and surrounding whitespace, when at least five consent-checked references are
+present. Repeated/normalized duplicates, blank references, and non-consented
+events do not meet the threshold. Source references and event details never
+leave the bounded function; this is not a verified natural-person count. The 81-test Gateway, route-policy, and migration metadata
+selection passes. Disposable PostgreSQL 16 applies and replays migrations 459
+and 466–469 and passes seven grouped checks, including exact solution/program
+scope, distinct-adopter thresholding, existing aggregate-summary compatibility,
+and runtime/Directus boundaries. Ruff, compilation, capability validation,
+runtime SQL inventory, repository inventory, and diff checks pass. Candidate
+and legacy databases remain untouched; migration 469 is not rolled out.
+Detailed adoption event and write parity, populated fixtures, live OIDC/browser,
+broader ACL/RLS, recovery, and MAN-CAP-035 review remain open. CAP-035 remains
+prepared, not accepted. Checklist: 697 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, and 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/469_location_scoped_solution_adoption.sql);
+[disposable evidence](builds/2026-10-19-recovery/cap-035-solution-adoption-disposable.json).

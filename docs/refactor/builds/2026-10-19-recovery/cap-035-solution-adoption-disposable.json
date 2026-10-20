@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "469_location_scoped_solution_adoption.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459, 466, 467, 468, and 469 apply, and migration 469 replays",
+    "adoption programs are scoped by both solution lineage and exact location target",
+    "fewer than five distinct nonempty normalized consented adopter references are suppressed; repeated, blank, and non-consented events cannot bypass the threshold",
+    "participant/event detail is omitted from output and reader column privileges",
+    "page bounds, signed context, exact location grant, and read-only behavior are enforced",
+    "the migration-459 aggregate summary still runs with the narrowed program columns",
+    "runtime can call the bounded function but cannot read source tables; Directus cannot call it"
+  ],
+  "acceptance_groups_passed": 7
+}
