@@ -11691,3 +11691,26 @@ complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
 [Contract](solution-lifecycle-kernel-read-contract.md);
 [migration](../schemas/postgres/471_location_scoped_solution_replications.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-replications-disposable.json).
+
+### CAP-035 location-scoped reviewed-replication learning status — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/learning` under the
+exact location `solution_lifecycle:read` grant and signed tenant context.
+Migration 472 returns learning status only when the source replication has a
+human review, targets the exact location, and belongs to a solution originated
+in or explicitly linked to that location. The response includes lesson type,
+confidence and transferability bands, decision status, and timestamp while
+omitting lesson content, recommendations, affected assumptions/metrics,
+evidence, source IDs, versions, and identities. The 108-test Gateway,
+route-policy, and migration metadata selection passes. Disposable PostgreSQL
+16 applies/replays migrations 459 and 466–472 and passes eight grouped checks
+for lineage, reviewed-source gating, grant and page denials, redaction, legacy
+summary compatibility, and runtime/Directus boundaries. Ruff and compilation
+pass. Candidate and legacy databases remain untouched; migration 472 is not
+rolled out. Learning writes/review, retirement workflows, populated parity,
+live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner review
+remain open. CAP-035 remains prepared, not accepted. Checklist: 700 complete /
+24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
+[Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/472_location_scoped_solution_learning.sql);
+[disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-disposable.json).
