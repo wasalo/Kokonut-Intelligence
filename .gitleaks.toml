@@ -81,6 +81,20 @@ paths = [
 ]
 
 [[allowlists]]
+description = "Synthetic solution canonical keys in disposable PostgreSQL checks are domain identifiers, not credentials."
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "line"
+regexes = [
+  "canonical_key = 'synthetic\\.water\\.harvesting\\.v1'",
+  '''"canonical_key": "water\.harvesting\.v1",''',
+]
+paths = [
+  '''^scripts/check-solution-create-disposable\.py$''',
+  '''^tests/test_gateway_solution_lifecycle_create\.py$''',
+]
+
+[[allowlists]]
 description = "Historical synthetic marker in the attestation CLI regression is not a credential."
 targetRules = ["generic-api-key"]
 condition = "AND"
