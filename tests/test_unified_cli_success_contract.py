@@ -500,6 +500,77 @@ def test_operator_grant_revocation_cli_matches_and_persists_audit_fields(
     assert unified.stderr == ""
 
 
+def test_operator_identity_provision_cli_matches_without_reenabling_disabled_identity(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.gateway import operator_cli
+
+    identity = {
+        "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "issuer": "https://identity.example.test",
+        "subject": "subject-123",
+        "display_name": "Operator One",
+        "enabled": True,
+    }
+    connections = []
+
+    class FakeResult:
+        def first(self):
+            return identity
+
+    class FakeConnection:
+        closed = False
+        query = ""
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.closed = True
+            return False
+
+        def execute(self, query, _parameters):
+            self.query = " ".join(query.lower().split())
+            return FakeResult()
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(operator_cli, "get_connection", make_connection)
+    arguments = [
+        "identity", "provision",
+        "--issuer", "https://identity.example.test",
+        "--subject", "subject-123",
+        "--display-name", "Operator One",
+    ]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.gateway.operator_cli", *arguments]
+        operator_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["operator", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == identity
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    for connection in connections:
+        update = connection.query.split("do update set", maxsplit=1)[1].split("where", maxsplit=1)[0]
+        assert "enabled" not in update
+        assert "where operator_identity.enabled = true" in connection.query
+    assert unified.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,

@@ -280,6 +280,10 @@ python3 -m services.cli operator list
 
 The OIDC login does not auto-provision identities or grants. Disabled identities
 cannot create sessions, and disabling an identity revokes its current sessions.
+Provisioning an existing enabled issuer/subject may refresh its display name;
+provisioning a disabled identity fails closed and does not reactivate it. The
+CLI currently has no identity-reactivation command, so reactivation requires a
+separately reviewed operator procedure.
 Scope-grant revocation requires an actor and reason. Revoking an organization
 membership or location share records the same actor/reason on every associated
 grant revoked by that cascade. These are local database-administration

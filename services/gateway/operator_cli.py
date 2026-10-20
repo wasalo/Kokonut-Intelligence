@@ -44,7 +44,8 @@ def provision_identity(args) -> None:
                VALUES (:issuer, :subject, :display_name, TRUE)
                ON CONFLICT (issuer, subject) DO UPDATE
                  SET display_name = COALESCE(EXCLUDED.display_name, operator_identity.display_name),
-                     enabled = TRUE, updated_at = NOW()
+                     updated_at = NOW()
+               WHERE operator_identity.enabled = TRUE
                RETURNING id, issuer, subject, display_name, enabled""",
             {
                 "issuer": args.issuer,
@@ -52,6 +53,10 @@ def provision_identity(args) -> None:
                 "display_name": args.display_name,
             },
         ).first()
+        if row is None:
+            raise ValueError(
+                "operator identity is disabled; provisioning will not re-enable it"
+            )
     print_json(row)
 
 

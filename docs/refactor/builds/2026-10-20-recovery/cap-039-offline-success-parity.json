@@ -2,13 +2,13 @@
   "capability": "CAP-039",
   "check": "offline-success-output-parity",
   "date": "2026-10-20",
-  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py tests/test_operator_cli_revocation_audit.py -q",
+  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py tests/test_operator_cli_revocation_audit.py tests/test_operator_cli_identity_provision.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 140,
-    "new_success_path_cases": 39,
+    "tests_passed": 143,
+    "new_success_path_cases": 40,
     "database_backed_or_aggregate_service_stubbed_cases": 29,
-    "mutation_paths_with_fake_connections": 1,
+    "mutation_paths_with_fake_connections": 2,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -270,10 +270,17 @@
       "dependencies": ["PostgreSQL update stubbed with a fake connection"],
       "output": "JSON revoked-grant receipt with actor and reason",
       "database_behavior": "Standalone and unified output and audit parameters match; this verifies the CLI contract, not database authorization."
+    },
+    {
+      "name": "operator",
+      "arguments": ["identity", "provision", "--issuer", "https://identity.example.test", "--subject", "subject-123", "--display-name", "Operator One"],
+      "dependencies": ["PostgreSQL insert/update stubbed with a fake connection"],
+      "output": "JSON identity receipt",
+      "database_behavior": "Standalone and unified output match; active identity refresh preserves enabled state, and a separate source regression rejects disabled identity reactivation. This does not test database authorization."
     }
   ],
   "limitations": [
-    "Successful parity is covered for nine offline command invocations, twenty-nine PostgreSQL-backed or aggregate-service-stubbed reads, and one fake-connection operator grant-revocation write, across all 37 mounted groups.",
-    "Operator identity/list, grant provisioning, membership/share/transfer authorization, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
+    "Successful parity is covered for nine offline command invocations, twenty-nine PostgreSQL-backed or aggregate-service-stubbed reads, and two fake-connection operator writes, across all 37 mounted groups.",
+    "Operator identity/list beyond provision, grant provisioning, membership/share/transfer authorization, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open. Disabled identity reactivation has no CLI path and needs a separately reviewed procedure."
   ]
 }

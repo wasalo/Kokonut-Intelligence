@@ -2,14 +2,17 @@
 
 Expanded standalone/unified output comparisons across all 37 mounted groups: nine
 offline invocations, twenty-eight database-backed reads with stubbed query
-results, and one tenant-preflight invocation with a synthetic aggregate report.
+results, one tenant-preflight invocation with a synthetic aggregate report, and
+two operator writes with fake connections.
 Field Collector media cleanup and reconciliation now have dry-run parity using
 synthetic database/provider inventories; neither path deletes media.
 Operator farm-activity role templates match offline from their local registry.
 Scope-grant revocation now requires actor/reason attribution, and membership or
 share revocation propagates that attribution to cascaded grants. Focused fake-
-connection tests cover those SQL writes; identity and remaining tenant
-administration commands stay open for boundary review.
+connection tests cover those SQL writes. Identity provisioning no longer
+reactivates a disabled subject on a matching issuer/subject conflict; enabled
+identity refresh preserves the existing enabled state. No identity-reactivation
+command is exposed pending a reviewed procedure.
 Exit status, parsed filters, and JSON/text output match. No database or provider
 is contacted. The governance proposal, role,
 link, tactical, and tension read CLIs close owned connections after successful
@@ -25,19 +28,21 @@ aggregate-only service report; the real dedicated-role and SQL checks remain
 separate evidence. Cleanup does not initialize object storage, and reconciliation
 uses only fake object-store and database results.
 Forecast, CRISP, and Threatcasting close resources if queries fail; Delphi
-closes its cursor and connection on either outcome. The selection passes 140
-tests across CLI parity, CLI contracts, operator revocation audit, Delphi, and
-media service coverage, including 39 successful-output invocations and the
+closes its cursor and connection on either outcome. The selection passes 143
+tests across CLI parity, CLI contracts, operator identity/revocation safety,
+Delphi, and media service coverage, including 40 successful-output invocations and the
 native Typer tree comparison. Standalone/unified command trees and leaf
 parameters match for `kernel`, `dao`, and `treasury`; shell-completion toggles
 remain intentionally disabled under the unified root. CAP-039 remains
-deployed, not accepted: operator identity/list, grant provisioning, membership,
-share, and transfer commands still need dependency and privileged-action
-boundary review. MAN-CAP-039 review remains open. Checklist: 802 complete /
+deployed, not accepted: operator identity/list beyond provision, grant
+provisioning, membership, share, and transfer commands still need dependency
+and privileged-action boundary review. MAN-CAP-039 review remains open.
+Checklist: 803 complete /
 24 open; matrix:
 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
 [CLI contract](unified-cli-kernel-contract.md),
-[tests](../../tests/test_unified_cli_success_contract.py), and
+[parity tests](../../tests/test_unified_cli_success_contract.py),
+[identity safety tests](../../tests/test_operator_cli_identity_provision.py), and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
 ### CAP-038 authenticated AI-summary drafts and human review — 20 October 2026
