@@ -260,6 +260,34 @@ def test_experiment_observation_capture_requires_active_experiment_and_exact_col
     assert "solutionLifecyclePendingExperimentObservations.set(experimentId, pending)" in form
     assert "Retrying unchanged values reuses the same request ID" in form
     assert 'experiments/${encodeURIComponent(experimentId)}/observations' in form
+
+
+def test_experiment_analysis_is_grant_gated_advisory_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleExperiment(experiment)",
+        "function createSolutionLifecycleExperimentObservationForm(experiment)",
+    )
+    form = _function(
+        source,
+        "function createSolutionLifecycleExperimentAnalysisForm(experiment)",
+        "function createSolutionLifecycleExperimentSubmissionForm(experiment)",
+    )
+    assert 'experiment.experiment_status === "active"' in renderer
+    assert "solutionLifecycleAnalyzeLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert "createSolutionLifecycleExperimentAnalysisForm(experiment)" in renderer
+    assert 'scope.action === "analyze"' in source
+    assert "solutionLifecyclePendingExperimentAnalyses.get(experimentId)" in form
+    assert "solutionLifecyclePendingExperimentAnalyses.set(experimentId, pending)" in form
+    assert 'experiments/${encodeURIComponent(experimentId)}/analyze' in form
+    assert 'method: "POST"' in form and 'cache: "no-store"' in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert "result.benefit_direction" in form
+    assert "result.posterior_threshold" in form
+    assert "textContent = value" in form
+    assert "innerHTML" not in form
+    assert "does not complete the experiment" in form
     assert 'method: "POST"' in form and 'cache: "no-store"' in form
     assert 'credentials: "same-origin"' in form
     assert '"X-CSRF-Token": csrf' in form

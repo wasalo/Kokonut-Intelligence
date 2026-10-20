@@ -10,6 +10,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     from services.gateway.solution_lifecycle_actions import (
         SolutionLifecycleActionInvalid,
         activate_location_solution_replication,
+        analyze_location_solution_experiment,
         apply_location_solution_learning,
         approve_location_solution_experiment_protocol,
         approve_location_solution_funding,
@@ -1136,6 +1137,86 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Experiment observation capture unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        status_code = 200 if result.get("replayed") else 201
+        return JSONResponse(jsonable_encoder(result), status_code=status_code, headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/analyze"
+    )
+    async def analyze_solution_experiment_route(
+        request: Request, location_id: str, experiment_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {"request_id", "metric_key", "acknowledged"}
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Experiment analysis fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                analyze_location_solution_experiment,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                experiment_id,
+                payload["request_id"],
+                payload["metric_key"],
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle analysis access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active exact-location analysis grant and current observation consent are required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Exact-location active experiment not found"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Experiment analysis input or protocol settings are invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Experiment analysis is not eligible; refresh and retry"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Experiment analysis unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Experiment analysis unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         status_code = 200 if result.get("replayed") else 201

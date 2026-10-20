@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–510 are additive and are
+**Status:** prepared implementation contract; migrations 488–511 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -246,6 +246,43 @@ Candidate and legacy databases remain untouched; migration 510 has not been
 rolled out. To roll back before rollout, disable the route and console form. If
 applied, retain captured observations and receipts and use a reviewed forward
 migration for schema changes; never edit or reverse the ordered migration.
+
+## Consent-aware sequential experiment analysis
+
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/analyze`
+requires signed exact-location `solution_lifecycle:analyze`, an active human
+binding, an active exact-origin experiment, a declared metric key, and explicit
+acknowledgement. The direction, minimum sample per arm, benefit threshold,
+posterior threshold, safety-event limit, and maximum duration come from the
+immutable approved protocol; callers cannot override them. Analysis reports an
+advisory decision and never completes the experiment, verifies a result, or
+changes solution lifecycle state.
+
+Migration 511 adds a non-login analyst role, a private source-observation map,
+and an immutable retry receipt. The analysis uses only currently consent-visible
+observations for the requested metric plus current adverse-event records. It
+uses a Welch standard error and a bounded normal-CDF approximation for the
+benefit probability; both groups must reach the approved minimum and have
+positive within-group variance before benefit/futility decisions are eligible.
+Safety limits and elapsed approved duration take precedence. The returned
+summary includes its thresholds, sample counts, time, and source count, but no
+observation IDs or raw evidence.
+
+Forced RLS filters the analysis source map through the same live consent and
+participant-link policy as observations. A withdrawal or link revocation hides
+the entire derived analysis from both analyst and reviewer reads; historical
+analysis rows remain `unassessed` and invisible. Runtime and Directus cannot
+read or mutate analysis runs, lineage, or receipts directly. The operator
+console exposes analysis only for active experiments at locations with exact
+read and analyze grants, uses CSRF/no-store requests and stable retry IDs, and
+renders only fixed aggregate fields.
+
+Migration 511 is checked through disposable PostgreSQL 16 apply/replay with
+synthetic current-consent and unassessed observations. Candidate and legacy
+databases remain untouched; migration 511 has not been rolled out. Before
+rollout, disable the route and console form. After application, preserve
+lineage and receipts and use a reviewed forward migration rather than editing
+or reversing the ordered migration.
 
 ## Funding draft proposal
 
@@ -844,7 +881,7 @@ state boundary, separately authorized submission, private protocol review and
 independent approval, funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–510 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–511 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -855,6 +892,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–510. After application, do not edit or reverse them; disable the routes and
+488–511. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

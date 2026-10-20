@@ -57,7 +57,13 @@ DECLARE first_draft RECORD; first_submission RECORD; second_draft RECORD;
           "primary_metric_keys":["soil.organic_matter"],
           "secondary_metric_keys":["water.retention"],
           "duration_days":90,
-          "stopping_rules":{"safety":"pause on adverse event"},
+          "stopping_rules":{
+            "safety":"pause on adverse event",
+            "benefit_direction_by_metric":{"soil.organic_matter":"higher","water.retention":"higher"},
+            "benefit_threshold":0,
+            "posterior_threshold":0.9,
+            "safety_event_limit":1
+          },
           "rollback_plan":"Return to baseline practice.",
           "safety_boundaries":{"synthetic":true},
           "consent_requirements":{

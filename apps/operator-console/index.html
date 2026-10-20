@@ -717,6 +717,7 @@
               <label for="solution-lifecycle-experiment-duration">Duration in days (optional, 1–3650)</label>
               <input id="solution-lifecycle-experiment-duration" type="number" min="1" max="3650" step="1">
               <label for="solution-lifecycle-experiment-stopping">Stopping rules (JSON object)</label>
+              <p class="muted">Sequential analysis reads its direction and thresholds from this approved protocol. Add a <code>benefit_direction_by_metric</code> map for every declared key, using only <code>higher</code> or <code>lower</code>; optional <code>benefit_threshold</code>, <code>posterior_threshold</code>, and <code>safety_event_limit</code> are fixed when the protocol is approved.</p>
               <textarea id="solution-lifecycle-experiment-stopping" required maxlength="8192" spellcheck="false">{}</textarea>
               <label for="solution-lifecycle-experiment-rollback">Rollback plan</label>
               <textarea id="solution-lifecycle-experiment-rollback" required maxlength="4000"></textarea>
@@ -1754,6 +1755,7 @@
       let solutionLifecycleTransitionLocations = new Set();
       let solutionLifecycleSubmitLocations = new Set();
       let solutionLifecycleCollectLocations = new Set();
+      let solutionLifecycleAnalyzeLocations = new Set();
       let solutionLifecycleApplyLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
@@ -1763,6 +1765,7 @@
       let solutionLifecycleExperimentsRequestVersion = 0;
       let solutionLifecycleExperimentsOffset = 0;
       const solutionLifecyclePendingExperimentObservations = new Map();
+      const solutionLifecyclePendingExperimentAnalyses = new Map();
       let solutionLifecycleFundingRequestVersion = 0;
       let solutionLifecycleFundingOffset = 0;
       let solutionLifecycleFundingTargetsRequestVersion = 0;
@@ -3759,6 +3762,12 @@
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
           article.append(createSolutionLifecycleExperimentObservationForm(experiment));
         }
+        if (experiment.experiment_status === "active"
+            && solutionLifecycleAnalyzeLocations.has(solutionLifecycleLocation.value)
+            && typeof experiment.experiment_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
+          article.append(createSolutionLifecycleExperimentAnalysisForm(experiment));
+        }
         if (solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)
             && experiment.experiment_status === "completed"
             && !experiment.latest_result_reviewed_at
@@ -3948,6 +3957,145 @@
             await loadSolutionLifecycleExperiments();
           } catch (error) {
             status.textContent = `${error.message} Retrying unchanged values reuses the same request ID.`;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
+      }
+
+      function createSolutionLifecycleExperimentAnalysisForm(experiment) {
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        form.analysisLocationId = solutionLifecycleLocation.value;
+        const heading = document.createElement("h5");
+        heading.textContent = "Run advisory sequential analysis";
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = "Uses the experiment's approved direction, sample minimum, benefit and posterior thresholds, safety-event limit, and currently consent-eligible observations. Analysis does not complete the experiment, verify findings, or change the solution lifecycle.";
+        const label = document.createElement("label");
+        const metricKey = document.createElement("input");
+        metricKey.type = "text";
+        metricKey.required = true;
+        metricKey.maxLength = 120;
+        metricKey.pattern = "[A-Za-z0-9][A-Za-z0-9._:-]{0,119}";
+        const metricKeyId = `solution-lifecycle-analysis-metric-${experiment.experiment_id}`;
+        metricKey.id = metricKeyId;
+        label.htmlFor = metricKeyId;
+        label.textContent = "Approved protocol metric key";
+        label.append(metricKey);
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(
+          acknowledgement,
+          document.createTextNode(" I confirm the selected metric is in the approved protocol and the output is advisory for human review.")
+        );
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Analyze experiment";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        const output = document.createElement("dl");
+        output.hidden = true;
+        form.append(heading, explanation, label, acknowledgementLabel, submit, status, output);
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          output.replaceChildren();
+          output.hidden = true;
+          const locationId = solutionLifecycleLocation.value;
+          const experimentId = experiment.experiment_id;
+          const selectedMetric = metricKey.value.trim();
+          if (form.analysisLocationId !== locationId
+              || !solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleAnalyzeLocations.has(locationId)
+              || experiment.experiment_status !== "active"
+              || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(selectedMetric)) {
+            status.textContent = "Refresh the session and confirm the exact location read and analyze grants, active experiment, and declared metric key.";
+            return;
+          }
+          if (!acknowledgement.checked) {
+            status.textContent = "Confirm the advisory analysis acknowledgement before continuing.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before running an analysis.";
+            return;
+          }
+          const fingerprint = JSON.stringify({ locationId, experimentId, metricKey: selectedMetric });
+          let pending = solutionLifecyclePendingExperimentAnalyses.get(experimentId);
+          if (pending && (pending.locationId !== locationId || pending.fingerprint !== fingerprint)) {
+            status.textContent = "The previous analysis may have reached the server. Retry the same metric before changing it.";
+            return;
+          }
+          if (!pending) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to run an analysis.";
+              return;
+            }
+            pending = { locationId, fingerprint, requestId };
+            solutionLifecyclePendingExperimentAnalyses.set(experimentId, pending);
+          }
+          submit.disabled = true;
+          status.textContent = "Calculating against the approved protocol and current consent-eligible observations…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/analyze`,
+              {
+                method: "POST", credentials: "same-origin", cache: "no-store",
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+                body: JSON.stringify({ request_id: pending.requestId, metric_key: selectedMetric, acknowledged: true }),
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              solutionLifecyclePendingExperimentAnalyses.delete(experimentId);
+              throw new Error("Your session, analyze grant, or current observation consent is no longer valid.");
+            }
+            if (!response.ok) {
+              if (response.status < 500) solutionLifecyclePendingExperimentAnalyses.delete(experimentId);
+              throw new Error(result.error || "The experiment analysis could not be completed.");
+            }
+            solutionLifecyclePendingExperimentAnalyses.delete(experimentId);
+            output.replaceChildren();
+            for (const [name, value] of [
+              ["Decision", result.decision],
+              ["Benefit direction", result.benefit_direction],
+              ["Baseline sample", result.baseline_count],
+              ["Treatment sample", result.treatment_count],
+              ["Baseline mean", result.baseline_mean],
+              ["Treatment mean", result.treatment_mean],
+              ["Treatment minus baseline effect", result.effect_estimate],
+              ["Standard error", result.standard_error],
+              ["95% interval lower bound", result.lower_bound],
+              ["95% interval upper bound", result.upper_bound],
+              ["Posterior probability of benefit", result.posterior_probability_benefit],
+              ["Approved minimum per group", result.minimum_sample],
+              ["Approved benefit threshold", result.benefit_threshold],
+              ["Approved posterior threshold", result.posterior_threshold],
+              ["Adverse-event count / limit", `${result.adverse_event_count ?? "—"} / ${result.safety_event_limit ?? "not configured"}`],
+              ["Observations in analysis", result.source_observation_count],
+              ["Analysis time", result.analysis_as_of],
+              ["Stopping reason", result.stopping_reason],
+            ]) {
+              const term = document.createElement("dt");
+              const description = document.createElement("dd");
+              term.textContent = name;
+              description.textContent = value === null || value === undefined ? "—" : String(value);
+              output.append(term, description);
+            }
+            output.hidden = false;
+            status.textContent = result.replayed === true
+              ? "The original advisory analysis was confirmed after retry. Human review and lifecycle changes remain separate."
+              : "Advisory analysis recorded. It did not complete the experiment or change the solution lifecycle.";
+          } catch (error) {
+            status.textContent = `${error.message} Retrying unchanged input reuses the same request ID.`;
           } finally {
             submit.disabled = false;
           }
@@ -9211,6 +9359,11 @@
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));
           solutionLifecycleCollectLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "collect")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));
+          solutionLifecycleAnalyzeLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "analyze")
             .map((scope) => scope.location_id)
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));

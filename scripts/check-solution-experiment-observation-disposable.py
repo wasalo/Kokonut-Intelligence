@@ -15,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PRIOR_CHECK = ROOT / "scripts/check-solution-experiment-start-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/510_location_solution_experiment_observation_capture.sql"
+ANALYSIS_MIGRATION = ROOT / "schemas/postgres/511_location_solution_experiment_sequential_analysis.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-experiment-observation-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_experiment_start_disposable", PRIOR_CHECK)
 if spec is None or spec.loader is None:
@@ -477,6 +478,220 @@ BEGIN
 END $$;
 """
 
+ANALYSIS_GRANT = r"""
+INSERT INTO public.operator_scope_grant
+    (id, operator_id, location_id, resource, action, organization_id, revoked_at)
+VALUES
+    ('a6000000-0000-4000-8000-000000000085', 'a0000000-0000-4000-8000-000000000041', 'b0000000-0000-4000-8000-000000000001', 'solution_lifecycle', 'analyze', NULL, NULL)
+ON CONFLICT (id) DO NOTHING;
+"""
+
+ANALYSIS_EXPERIMENT_ID = "ed000000-0000-4000-8000-000000000051"
+ANALYSIS_EXPERIMENT_SETUP = r"""
+INSERT INTO public.stakeholder_consent (
+    id, party_id, event_type, data_category, purpose, scope_type, scope_id,
+    recipient_party_id, recipient_type, consent_version, effective_at, expires_at
+) VALUES (
+    'e2000000-0000-4000-8000-000000000057',
+    'c2000000-0000-4000-8000-000000000051', 'grant',
+    'solution_experiment_participation',
+    'Participation in the synthetic experiment.', 'location',
+    'b0000000-0000-4000-8000-000000000001', NULL, 'system', 'v1',
+    pg_catalog.clock_timestamp(), NULL
+);
+INSERT INTO public.solution_experiment (
+    id, solution_id, hypothesis, null_hypothesis, protocol_version,
+    baseline_definition, treatment_definition, comparator_definition,
+    unit_of_analysis, sample_plan, primary_metric_keys, secondary_metric_keys,
+    stopping_rules, rollback_plan, safety_boundaries, consent_requirements,
+    status, approved_at, started_at
+) VALUES (
+    '__EXPERIMENT_ID__', 'c0000000-0000-4000-8000-000000000041',
+    'Synthetic consent-bound analysis improves soil condition.',
+    'No measurable difference from current practice.', 'v1',
+    'Synthetic baseline sample.', 'Synthetic treatment sample.',
+    'Compare paired field units.', 'One synthetic field unit.',
+    '{"minimum_sample":4}', '["soil.organic_matter"]', '["water.retention"]',
+    '{"benefit_direction_by_metric":{"soil.organic_matter":"higher","water.retention":"lower"},"benefit_threshold":0,"posterior_threshold":0.9,"safety_event_limit":1}',
+    'Return to baseline after review.', '{"synthetic":true}',
+    '{"participant_consent_required":true,"purpose":"Participation in the synthetic experiment.","consent_version":"v1"}',
+    'active', pg_catalog.clock_timestamp(), pg_catalog.clock_timestamp()
+);
+INSERT INTO public.solution_experiment_observation (
+    experiment_id, metric_key, value, arm, adverse_event, evidence
+) VALUES (
+    '__EXPERIMENT_ID__', 'soil.organic_matter', 999, 'treatment', FALSE,
+    '{"historical":"unassessed synthetic row"}'::JSONB
+);
+"""
+
+ANALYSIS_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+DO $$
+DECLARE i INTEGER; arm_value TEXT; measured NUMERIC; captured RECORD;
+        first_run RECORD; replay RECORD; denied BOOLEAN := FALSE;
+        direct_read_denied BOOLEAN := FALSE;
+BEGIN
+    FOR i IN 1..16 LOOP
+        arm_value := CASE WHEN (i - 1) % 8 < 4 THEN 'baseline' ELSE 'treatment' END;
+        IF i <= 8 THEN
+            measured := CASE WHEN i <= 4 THEN 10 + i ELSE 96 + i END;
+        ELSE
+            measured := CASE WHEN i <= 12 THEN 80 + i ELSE 20 + i END;
+        END IF;
+        SELECT * INTO captured FROM kokonut_security.capture_location_solution_experiment_observation(
+            'b0000000-0000-4000-8000-000000000001',
+            '__EXPERIMENT_ID__'::UUID,
+            ('ab000000-0000-4000-8000-' || pg_catalog.lpad((200 + i)::TEXT, 12, '0'))::UUID,
+            CASE WHEN i <= 8 THEN 'soil.organic_matter' ELSE 'water.retention' END,
+            measured, arm_value, NULL, FALSE,
+            '{"evidence_refs":["synthetic-analysis"]}'::JSONB,
+            'd2000000-0000-4000-8000-000000000051', TRUE
+        );
+        IF captured.observation_id IS NULL OR captured.replayed THEN
+            RAISE EXCEPTION 'analysis fixture observation did not append';
+        END IF;
+    END LOOP;
+    SELECT * INTO captured FROM kokonut_security.capture_location_solution_experiment_observation(
+        'b0000000-0000-4000-8000-000000000001', '__EXPERIMENT_ID__'::UUID,
+        'ab000000-0000-4000-8000-000000000217', 'water.retention', NULL,
+        'treatment', NULL, TRUE,
+        '{"evidence_refs":["synthetic-safety-event"]}'::JSONB,
+        'd2000000-0000-4000-8000-000000000051', TRUE
+    );
+
+    SELECT * INTO first_run FROM kokonut_security.analyze_location_solution_experiment(
+        'b0000000-0000-4000-8000-000000000001',
+        '__EXPERIMENT_ID__'::UUID,
+        'ab000000-0000-4000-8000-000000000209',
+        'soil.organic_matter', TRUE
+    );
+    IF first_run.analysis_run_id IS NULL OR first_run.replayed
+       OR first_run.decision <> 'benefit'
+       OR first_run.benefit_direction <> 'higher'
+       OR first_run.minimum_sample <> 4
+       OR first_run.baseline_count <> 4
+       OR first_run.treatment_count < 4
+       OR first_run.effect_estimate <= 0
+       OR first_run.posterior_probability_benefit < first_run.posterior_threshold
+       OR first_run.adverse_event_count <> 1
+       OR first_run.safety_event_limit <> 1
+       OR first_run.source_observation_count <> 9
+       OR first_run.analysis_version <> 'sequential-v2-consent' THEN
+        RAISE EXCEPTION 'protocol-bound analysis did not return the expected advisory benefit result';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.analyze_location_solution_experiment(
+        'b0000000-0000-4000-8000-000000000001',
+        first_run.experiment_id,
+        'ab000000-0000-4000-8000-000000000209',
+        'soil.organic_matter', TRUE
+    );
+    IF NOT replay.replayed OR replay.analysis_run_id <> first_run.analysis_run_id THEN
+        RAISE EXCEPTION 'analysis retry did not replay the same result';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.analyze_location_solution_experiment(
+        'b0000000-0000-4000-8000-000000000001', first_run.experiment_id,
+        'ab000000-0000-4000-8000-000000000210', 'water.retention', TRUE
+    );
+    IF replay.replayed OR replay.decision <> 'benefit'
+       OR replay.benefit_direction <> 'lower'
+       OR replay.effect_estimate >= 0
+       OR replay.posterior_probability_benefit < replay.posterior_threshold
+       OR replay.source_observation_count <> 9 THEN
+        RAISE EXCEPTION 'lower-is-better protocol direction was not honored';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.analyze_location_solution_experiment(
+            'b0000000-0000-4000-8000-000000000001', first_run.experiment_id,
+            'ab000000-0000-4000-8000-000000000209', 'soil.moisture', TRUE
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := TRUE; END;
+    IF NOT denied THEN RAISE EXCEPTION 'analysis request collision was accepted'; END IF;
+
+    BEGIN
+        PERFORM count(*) FROM public.solution_experiment_analysis_run;
+    EXCEPTION WHEN insufficient_privilege THEN direct_read_denied := TRUE; END;
+    IF NOT direct_read_denied THEN RAISE EXCEPTION 'runtime direct analysis table read was allowed'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_solution_experiment_reviewer;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000042', TRUE);
+DO $$
+DECLARE visible_count INTEGER;
+BEGIN
+    SELECT count(*)::INTEGER INTO visible_count
+      FROM public.solution_experiment_analysis_run
+     WHERE metric_key = 'soil.organic_matter';
+    IF visible_count <> 1 THEN
+        RAISE EXCEPTION 'reviewer cannot see a current-consent exact-location analysis';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+INSERT INTO public.stakeholder_consent (
+    party_id, event_type, data_category, purpose, scope_type, scope_id,
+    recipient_party_id, recipient_type, consent_version, effective_at, expires_at, reason
+) VALUES (
+    'c2000000-0000-4000-8000-000000000051', 'withdraw',
+    'solution_experiment_participation',
+    'Participation in the synthetic experiment.', 'location',
+    'b0000000-0000-4000-8000-000000000001', NULL, 'system', 'v1',
+    pg_catalog.clock_timestamp(), NULL, 'Synthetic consent-withdrawal acceptance'
+);
+
+SET ROLE kokonut_solution_experiment_reviewer;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000042', TRUE);
+DO $$
+DECLARE visible_count INTEGER;
+BEGIN
+    SELECT count(*)::INTEGER INTO visible_count
+      FROM public.solution_experiment_analysis_run
+     WHERE metric_key = 'soil.organic_matter';
+    IF visible_count <> 0 THEN
+        RAISE EXCEPTION 'consent withdrawal did not hide the derived analysis';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+DO $$
+DECLARE denied BOOLEAN := FALSE; experiment_value UUID;
+BEGIN
+    experiment_value := '__EXPERIMENT_ID__'::UUID;
+    BEGIN
+        PERFORM * FROM kokonut_security.analyze_location_solution_experiment(
+            'b0000000-0000-4000-8000-000000000001', experiment_value,
+            'ab000000-0000-4000-8000-000000000209', 'soil.organic_matter', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := TRUE; END;
+    IF NOT denied THEN RAISE EXCEPTION 'withdrawn analysis was replayed to the analyst'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+"""
+
 
 def main() -> int:
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
@@ -484,6 +699,7 @@ def main() -> int:
     evidence: dict[str, object] = {
         "result": "failed",
         "migration": MIGRATION.name,
+        "additional_migration": ANALYSIS_MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -495,6 +711,12 @@ def main() -> int:
             "request retries are idempotent and changed payload collisions are denied",
             "consent withdrawal immediately hides previously captured participant observations from reviewer RLS reads",
             "legacy unassessed observations remain hidden and direct runtime/Directus table access is denied",
+            "migration 511 binds higher/lower analysis direction and stopping thresholds to the approved protocol",
+            "analysis retries are idempotent and changed request payloads are rejected",
+            "analysis source lineage uses only currently consent-eligible observations and exact location scope",
+            "current consent withdrawal hides the derived analysis from reviewer and analyst reads",
+            "runtime and Directus cannot read or mutate analysis runs, source maps, or receipts",
+            "analysis remains advisory and leaves experiment and solution lifecycle state unchanged",
         ],
     }
     try:
@@ -564,9 +786,23 @@ def main() -> int:
         psql(docker, container, migration_text)
         psql(docker, container, FIXTURE)
         psql(docker, container, ACCEPTANCE.replace("__EXPERIMENT_ID__", experiment_id))
+        psql(docker, container, ANALYSIS_GRANT)
+        analysis_migration_text = ANALYSIS_MIGRATION.read_text(encoding="utf-8")
+        psql(
+            docker,
+            container,
+            ANALYSIS_EXPERIMENT_SETUP.replace("__EXPERIMENT_ID__", ANALYSIS_EXPERIMENT_ID),
+        )
+        psql(docker, container, analysis_migration_text)
+        psql(docker, container, analysis_migration_text)
+        psql(
+            docker,
+            container,
+            ANALYSIS_ACCEPTANCE.replace("__EXPERIMENT_ID__", ANALYSIS_EXPERIMENT_ID),
+        )
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 8
-        print("PASS: migration 510 applies/replays; consent-aware observation capture, RLS withdrawal, retry, and ACL checks passed")
+        evidence["acceptance_groups_passed"] = 17
+        print("PASS: migrations 510 and 511 apply/replay; consent-aware capture, directional analysis, source-lineage withdrawal, retry, and ACL checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

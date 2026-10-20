@@ -182,6 +182,62 @@ def _normalize_experiment_consent_requirements(value: dict) -> dict:
     )
 
 
+def _normalize_experiment_analysis_policy(sample_plan: dict, stopping_rules: dict, metric_keys: set[str]):
+    sample_plan = dict(sample_plan)
+    minimum_sample = sample_plan.get("minimum_sample", 2)
+    if isinstance(minimum_sample, bool) or not isinstance(minimum_sample, int) \
+            or not 2 <= minimum_sample <= 10000:
+        raise SolutionLifecycleActionInvalid(
+            "Sample plan minimum_sample must be a whole number from 2 through 10000"
+        )
+    sample_plan["minimum_sample"] = minimum_sample
+
+    stopping_rules = dict(stopping_rules)
+    directions = stopping_rules.get("benefit_direction_by_metric", {})
+    if not isinstance(directions, dict) or set(directions) != metric_keys:
+        raise SolutionLifecycleActionInvalid(
+            "Stopping rules must set benefit_direction_by_metric for every declared metric"
+        )
+    if any(
+        not isinstance(direction, str) or direction not in {"higher", "lower"}
+        for direction in directions.values()
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Metric benefit directions must be higher or lower"
+        )
+    stopping_rules["benefit_direction_by_metric"] = {
+        key: directions[key] for key in sorted(metric_keys)
+    }
+
+    benefit_threshold = stopping_rules.get("benefit_threshold", 0)
+    if isinstance(benefit_threshold, bool) or not isinstance(benefit_threshold, (int, float)) \
+            or not math.isfinite(benefit_threshold) or abs(benefit_threshold) > 1_000_000:
+        raise SolutionLifecycleActionInvalid(
+            "Stopping-rule benefit_threshold must be a finite supported number"
+        )
+    stopping_rules["benefit_threshold"] = benefit_threshold
+
+    posterior_threshold = stopping_rules.get("posterior_threshold", 0.9)
+    if isinstance(posterior_threshold, bool) or not isinstance(posterior_threshold, (int, float)) \
+            or not math.isfinite(posterior_threshold) or not 0.5 < posterior_threshold < 1:
+        raise SolutionLifecycleActionInvalid(
+            "Stopping-rule posterior_threshold must be greater than 0.5 and less than 1"
+        )
+    stopping_rules["posterior_threshold"] = posterior_threshold
+
+    safety_event_limit = stopping_rules.get("safety_event_limit")
+    if safety_event_limit is not None and (
+        isinstance(safety_event_limit, bool)
+        or not isinstance(safety_event_limit, int)
+        or not 0 <= safety_event_limit <= 100000
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Stopping-rule safety_event_limit must be a whole number from 0 through 100000"
+        )
+    stopping_rules["safety_event_limit"] = safety_event_limit
+    return sample_plan, stopping_rules
+
+
 def create_location_solution(
     operator_id: str,
     location_id: str,
@@ -465,6 +521,13 @@ def create_location_solution_experiment(
         raise SolutionLifecycleActionInvalid(
             "Primary and secondary experiment metric keys must be distinct"
         )
+    sample_plan, stopping_rules = _normalize_experiment_analysis_policy(
+        normalized["sample_plan"],
+        normalized["stopping_rules"],
+        metric_sets["primary_metric_keys"] | metric_sets["secondary_metric_keys"],
+    )
+    normalized["sample_plan"] = sample_plan
+    normalized["stopping_rules"] = stopping_rules
 
     effect = protocol.get("minimum_detectable_effect")
     if effect is not None:
@@ -787,6 +850,59 @@ def record_location_solution_experiment_observation(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Experiment observation capture returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def analyze_location_solution_experiment(
+    operator_id: str,
+    location_id: str,
+    experiment_id: str,
+    request_id: str,
+    metric_key: str,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Persist one protocol-bound sequential analysis without changing lifecycle state."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    experiment_id = _normalize_uuid(experiment_id, "experiment")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(metric_key, str) or not _EXPERIMENT_METRIC_KEY_RE.fullmatch(metric_key):
+        raise SolutionLifecycleActionInvalid("Analysis metric key is invalid")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Experiment analysis requires explicit acknowledgement")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="analyze",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.analyze_location_solution_experiment(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::boolean
+                       )""",
+                (location_id, experiment_id, request_id, metric_key, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Experiment analysis returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result

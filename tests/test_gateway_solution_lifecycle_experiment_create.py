@@ -34,7 +34,16 @@ PROTOCOL = {
     "minimum_detectable_effect": 0.1,
     "confidence_target": 0.95,
     "duration_days": 180,
-    "stopping_rules": {"safety": "pause for an adverse event"},
+    "stopping_rules": {
+        "safety": "pause for an adverse event",
+        "benefit_direction_by_metric": {
+            "water.reliability": "higher",
+            "soil.moisture": "higher",
+        },
+        "benefit_threshold": 0.0,
+        "posterior_threshold": 0.9,
+        "safety_event_limit": 1,
+    },
     "rollback_plan": "Restore the prior practice after review if safety or reliability declines.",
     "safety_boundaries": {"no_participant_identity": True},
     "consent_requirements": {
@@ -133,6 +142,15 @@ def test_create_action_sets_exact_create_context_and_calls_bounded_function():
         {"primary_metric_keys": ["invalid key"]},
         {"primary_metric_keys": ["water", "water"]},
         {"primary_metric_keys": ["shared"], "secondary_metric_keys": ["shared"]},
+        {"stopping_rules": {"benefit_direction_by_metric": {"water.reliability": "higher"}}},
+        {"stopping_rules": {"benefit_direction_by_metric": {
+            "water.reliability": "higher", "soil.moisture": "sideways",
+        }}},
+        {"stopping_rules": {"posterior_threshold": 1.0}},
+        {"stopping_rules": {"safety_event_limit": True}},
+        {"sample_plan": {"minimum_sample": True}},
+        {"sample_plan": {"minimum_sample": 1}},
+        {"stopping_rules": {"benefit_threshold": 1_000_001}},
         {"confidence_target": 0.49},
         {"duration_days": True},
         {"consent_requirements": {}},
@@ -168,6 +186,24 @@ def test_missing_acknowledgement_fails_before_database():
         actions.create_location_solution_experiment(
             OPERATOR_ID, LOCATION_ID, SOLUTION_ID, REQUEST_ID, PROTOCOL, False,
             connection_factory=lambda: pytest.fail("unacknowledged draft opened a database"),
+        )
+
+
+@pytest.mark.parametrize(
+    "rules, message",
+    [
+        ({"benefit_threshold": 1_000_001, "benefit_direction_by_metric": {
+            "water.reliability": "higher", "soil.moisture": "higher",
+        }}, "benefit_threshold"),
+        ({"posterior_threshold": 0.5, "benefit_direction_by_metric": {
+            "water.reliability": "higher", "soil.moisture": "higher",
+        }}, "posterior_threshold"),
+    ],
+)
+def test_analysis_thresholds_are_bounded_in_the_approved_protocol(rules, message):
+    with pytest.raises(actions.SolutionLifecycleActionInvalid, match=message):
+        actions._normalize_experiment_analysis_policy(
+            {"minimum_sample": 4}, rules, {"water.reliability", "soil.moisture"}
         )
 
 

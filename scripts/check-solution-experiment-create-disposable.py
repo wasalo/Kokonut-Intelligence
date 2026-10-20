@@ -176,7 +176,13 @@ DECLARE created RECORD; replay RECORD; denied BOOLEAN;
           "secondary_metric_keys":["soil.moisture"],
           "confidence_target":0.95,
           "duration_days":90,
-          "stopping_rules":{"safety":"pause if adverse event"},
+          "stopping_rules":{
+            "safety":"pause if adverse event",
+            "benefit_direction_by_metric":{"water.reliability":"higher","soil.moisture":"higher"},
+            "benefit_threshold":0,
+            "posterior_threshold":0.9,
+            "safety_event_limit":1
+          },
           "rollback_plan":"Return to baseline practice after review.",
           "safety_boundaries":{"synthetic":true},
           "consent_requirements":{
