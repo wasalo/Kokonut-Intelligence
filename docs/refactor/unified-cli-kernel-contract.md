@@ -92,16 +92,17 @@ mounted unified command using the same arguments. It covers:
 | `mobile-tenant-preflight` | `--location-id <synthetic-location-uuid>` | PostgreSQL read through the dedicated tenant-preflight service; service is stubbed | Aggregate-only JSON inventory |
 | `mobile-media-cleanup` | `--limit 17` | PostgreSQL eligibility-count read is stubbed; dry-run does not initialize object storage | JSON expiry preview |
 | `mobile-media-reconcile` | `--older-than-hours 48 --limit 9` | Registered-key query and private object inventory are stubbed; dry-run does not delete | JSON orphan preview without object keys |
+| `operator` | `farm-activity-role templates` | Local role-to-scope registry; no database or grant mutation | JSON role-to-scope catalogue |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Eight successful offline invocations and twenty-eight PostgreSQL-backed
+real service. Nine successful offline invocations and twenty-eight PostgreSQL-backed
 read invocations with stubbed query functions, plus one tenant-preflight
 invocation with a synthetic aggregate service report, match standalone output
-across 36 mounted groups (133 tests including Delphi and media service suites, error-path cleanup, and the native Typer command-tree
+across all 37 mounted groups (134 tests including Delphi and media service suites, error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
@@ -112,7 +113,7 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 133-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 134-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
 The twenty-eight query-backed success paths and one aggregate-service-stubbed
@@ -131,11 +132,13 @@ provider; media reconciliation uses only a stubbed inventory and confirms no
 deletion. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
 
-This closes successful output parity only for these eight offline command
-invocations across seven mounted groups, twenty-eight stubbed database-query paths,
-and one aggregate-service path. The operator group still needs command-specific success-path checks and
-database/provider classification. Privileged operator action boundaries and
-MAN-CAP-039 owner acceptance are also open.
+Every mounted group now has at least one successful output-parity path. This
+selection covers nine offline invocations across eight groups, twenty-eight
+stubbed database-query paths, and one aggregate-service path. The operator
+CLI's database-backed identity/list commands and grant, share, membership, and
+tenant-transfer mutations still need command-specific dependency and
+authorization-boundary review. Real database/provider behavior and MAN-CAP-039
+owner acceptance remain open.
 
 ## Remaining parity gates
 

@@ -5,8 +5,8 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 133,
-    "new_success_path_cases": 37,
+    "tests_passed": 134,
+    "new_success_path_cases": 38,
     "database_backed_or_aggregate_service_stubbed_cases": 29,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
@@ -255,10 +255,17 @@
       "dependencies": ["registered-key query and private object inventory stubbed"],
       "output": "JSON orphan preview without object keys",
       "database_behavior": "Standalone and unified dry-run output match; the fake connection closes, object keys remain private, and no deletion occurs."
+    },
+    {
+      "name": "operator",
+      "arguments": ["farm-activity-role", "templates"],
+      "dependencies": ["local role-to-scope registry"],
+      "output": "JSON role-to-scope catalogue",
+      "database_behavior": "Standalone and unified offline output match; no database is opened and no grants are provisioned."
     }
   ],
   "limitations": [
-    "Successful parity is covered for eight offline command invocations and twenty-nine PostgreSQL-backed or aggregate-service-stubbed commands, across 36 mounted groups.",
-    "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
+    "Successful parity is covered for nine offline command invocations and twenty-nine PostgreSQL-backed or aggregate-service-stubbed commands, across all 37 mounted groups.",
+    "The operator identity/list and grant/share/membership/transfer commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

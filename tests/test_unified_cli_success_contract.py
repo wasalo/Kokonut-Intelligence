@@ -399,6 +399,25 @@ def test_database_and_provider_backed_mobile_media_reconcile_dry_run_matches_wit
     assert unified.stderr == ""
 
 
+def test_offline_operator_role_templates_output_matches_standalone() -> None:
+    environment = _environment()
+    arguments = ["farm-activity-role", "templates"]
+
+    standalone = _run(["-m", "services.gateway.operator_cli", *arguments], environment)
+    unified = _run(["-m", "services.cli", "operator", "--", *arguments], environment)
+
+    assert standalone.returncode == unified.returncode == 0
+    assert unified.stdout == standalone.stdout
+    report = json.loads(unified.stdout)
+    assert report["roles"]
+    assert all(
+        isinstance(scope, dict) and set(scope) == {"resource", "action"}
+        for scopes in report["roles"].values()
+        for scope in scopes
+    )
+    assert unified.stderr == standalone.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,
