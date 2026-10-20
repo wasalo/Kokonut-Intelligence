@@ -2,8 +2,8 @@
 
 **Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
 scale-gate, replication, reviewed-replication learning, exact-origin retirement
-reads, and independently reviewed retirement and learning proposal actions are
-prepared; not owner-accepted.
+reads, independently reviewed retirement and learning proposal actions, and
+the operator-console status views are prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -192,9 +192,16 @@ adverse-event details, evidence, and reviewer identities remain excluded; the
 panel cannot approve or review results. It also pages funding-case and tranche
 lifecycle labels, currency, and timestamps only. Amounts, milestone terms,
 rationale, evidence, and submitter/approver/releaser identities are excluded;
-the panel cannot approve funding or release tranches. Requests use the
-same-origin session, disable caching, and discard stale responses after a
-location change. No lifecycle mutation is available, and source checks do not
+the panel cannot approve funding or release tranches. Five additional selector
+views page adoption programs, scale gates, replications, learning records, and
+retirement records through the existing exact-grant routes. They render only
+fixed lifecycle labels, state bands, approval/review presence, timestamps, and
+the consented adopter-reference count when the database projection returns it;
+that count remains withheld below the five-reference threshold. Identifiers,
+raw references, narratives, evidence, measurements, and person-level details
+are not rendered. All reads are same-origin and no-store, limited to 25 rows per
+page, and stale responses are discarded when the location or selected view
+changes. No lifecycle mutation is available, and source checks do not
 constitute live OIDC/browser acceptance.
 
 ## Verification and remaining parity

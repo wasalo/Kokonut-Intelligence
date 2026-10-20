@@ -1,3 +1,19 @@
+### CAP-035 supplemental lifecycle status console — 20 October 2026
+
+The operator console now pages adoption-program, scale-gate, replication,
+learning, and retirement status through the existing exact
+`solution_lifecycle:read` location grant. Each view uses a fixed field list,
+same-origin no-store requests, 25-row pagination, and stale location/view
+guards. Identifiers, person-level details, narratives, and evidence are not
+rendered. Adoption counts remain hidden below the database's five-reference
+threshold. The focused combined CAP-025/CAP-035 selection passes 139 tests,
+including inline JavaScript parsing; Ruff and capability-matrix validation
+pass. No database or migration was used. CAP-035 remains prepared pending
+remaining workflow and populated parity, live OIDC/browser, broader ACL/RLS,
+recovery, and owner acceptance. Checklist: 724 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared. [Contract](solution-lifecycle-kernel-read-contract.md);
+[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_solution_lifecycle.py).
+
 ### CAP-026 advisory backcast console read — 20 October 2026
 
 The operator console now lists location-granted backcast plans and reads

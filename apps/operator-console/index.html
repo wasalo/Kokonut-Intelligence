@@ -614,6 +614,22 @@
           <p id="solution-lifecycle-funding-status" class="muted" role="status" aria-live="polite"></p>
           <div id="solution-lifecycle-funding-rows"></div>
           <button id="solution-lifecycle-funding-more" class="secondary" type="button" hidden>Load more funding cases</button>
+          <h3>Additional lifecycle status</h3>
+          <p class="muted">Choose a location-scoped status projection. Each view uses the existing read grant and omits evidence, narrative, and person-level details described in the lifecycle contract.</p>
+          <div class="toolbar">
+            <label for="solution-lifecycle-projection">Projection</label>
+            <select id="solution-lifecycle-projection">
+              <option value="adoption">Adoption programs</option>
+              <option value="scale-gates">Scale gates</option>
+              <option value="replications">Replications</option>
+              <option value="learning">Learning records</option>
+              <option value="retirements">Retirement records</option>
+            </select>
+            <button id="solution-lifecycle-projection-load" type="button">Load status</button>
+          </div>
+          <p id="solution-lifecycle-projection-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="solution-lifecycle-projection-rows"></div>
+          <button id="solution-lifecycle-projection-more" class="secondary" type="button" hidden>Load more records</button>
         </section>
         <section id="coordination-summary" hidden aria-labelledby="coordination-summary-heading">
           <h2 id="coordination-summary-heading">Coordination overview</h2>
@@ -980,6 +996,11 @@
       const solutionLifecycleFundingStatus = document.querySelector("#solution-lifecycle-funding-status");
       const solutionLifecycleFundingRows = document.querySelector("#solution-lifecycle-funding-rows");
       const solutionLifecycleFundingMore = document.querySelector("#solution-lifecycle-funding-more");
+      const solutionLifecycleProjection = document.querySelector("#solution-lifecycle-projection");
+      const solutionLifecycleProjectionLoad = document.querySelector("#solution-lifecycle-projection-load");
+      const solutionLifecycleProjectionStatus = document.querySelector("#solution-lifecycle-projection-status");
+      const solutionLifecycleProjectionRows = document.querySelector("#solution-lifecycle-projection-rows");
+      const solutionLifecycleProjectionMore = document.querySelector("#solution-lifecycle-projection-more");
       let solutionLifecycleLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
@@ -988,6 +1009,56 @@
       let solutionLifecycleExperimentsOffset = 0;
       let solutionLifecycleFundingRequestVersion = 0;
       let solutionLifecycleFundingOffset = 0;
+      let solutionLifecycleProjectionRequestVersion = 0;
+      let solutionLifecycleProjectionOffset = 0;
+      const solutionLifecycleSupplementalViews = Object.freeze({
+        adoption: {
+          route: "adoption", responseKey: "programs", title: "Adoption program",
+          fields: [
+            ["Solution type", "solution_type"], ["Current stage", "current_stage"],
+            ["Solution status", "solution_status"], ["Program status", "program_status"],
+            ["Consented adopter references", "consented_adopter_reference_count"],
+            ["Program created", "program_created_at"], ["Program updated", "program_updated_at"]
+          ]
+        },
+        "scale-gates": {
+          route: "scale-gates", responseKey: "scale_gates", title: "Scale gate",
+          fields: [
+            ["Solution type", "solution_type"], ["Current stage", "current_stage"],
+            ["Solution status", "solution_status"], ["Gate type", "gate_type"],
+            ["Gate status", "gate_status"], ["Human approval", "has_human_approval"],
+            ["Approved at", "approved_at"]
+          ]
+        },
+        replications: {
+          route: "replications", responseKey: "replications", title: "Replication",
+          fields: [
+            ["Solution type", "solution_type"], ["Current stage", "current_stage"],
+            ["Solution status", "solution_status"], ["Replication status", "replication_status"],
+            ["Replication result", "replication_result"], ["Evidence maturity", "evidence_maturity"],
+            ["Reviewed", "has_review"], ["Created", "replication_created_at"], ["Completed", "completed_at"]
+          ]
+        },
+        learning: {
+          route: "learning", responseKey: "learning", title: "Learning record",
+          fields: [
+            ["Solution type", "solution_type"], ["Current stage", "current_stage"],
+            ["Solution status", "solution_status"], ["Lesson type", "lesson_type"],
+            ["Confidence band", "confidence"], ["Transferability band", "transferability"],
+            ["Decision status", "decision_status"], ["Created", "created_at"]
+          ]
+        },
+        retirements: {
+          route: "retirements", responseKey: "retirements", title: "Retirement record",
+          fields: [
+            ["Solution type", "solution_type"], ["Current stage", "current_stage"],
+            ["Solution status", "solution_status"], ["Retirement type", "retirement_type"],
+            ["Retirement status", "retirement_status"], ["Human approval", "has_human_approval"],
+            ["Approved at", "approved_at"], ["Effective at", "effective_at"],
+            ["Post-retirement review", "post_retirement_review_at"], ["Created", "created_at"]
+          ]
+        }
+      });
       const coordinationSummary = document.querySelector("#coordination-summary");
       const coordinationSummaryLocation = document.querySelector("#coordination-summary-location");
       const coordinationSummaryStatus = document.querySelector("#coordination-summary-status");
@@ -1855,6 +1926,91 @@
           if (requestVersion === solutionLifecycleFundingRequestVersion) {
             solutionLifecycleFundingLoad.disabled = false;
             solutionLifecycleFundingMore.disabled = false;
+          }
+        }
+      }
+
+      function appendSolutionLifecycleSupplementalRecord(record, view) {
+        const article = document.createElement("article");
+        const heading = document.createElement("h4");
+        const details = document.createElement("dl");
+        heading.textContent = `${view.title}: ${record.solution_name || "Location-linked solution"}`;
+        for (const [label, field] of view.fields) {
+          let value = record[field];
+          if (field === "consented_adopter_reference_count") {
+            value = value === null || value === undefined
+              ? "Withheld below disclosure threshold"
+              : `${String(value)} consented references`;
+          } else if (typeof value === "boolean") {
+            value = value ? "Recorded" : "Not recorded";
+          }
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = value === null || value === undefined ? "—" : String(value);
+          details.append(term, description);
+        }
+        article.append(heading, details);
+        solutionLifecycleProjectionRows.append(article);
+      }
+
+      async function loadSolutionLifecycleProjection(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const viewName = solutionLifecycleProjection.value;
+        const view = Object.prototype.hasOwnProperty.call(solutionLifecycleSupplementalViews, viewName)
+          ? solutionLifecycleSupplementalViews[viewName]
+          : null;
+        const requestVersion = ++solutionLifecycleProjectionRequestVersion;
+        if (!view || !solutionLifecycleLocations.has(locationId)) {
+          solutionLifecycleProjectionRows.replaceChildren();
+          solutionLifecycleProjectionMore.hidden = true;
+          solutionLifecycleProjectionStatus.textContent = "Select a location with an active solution-lifecycle read grant to view status.";
+          solutionLifecycleProjectionLoad.disabled = false;
+          solutionLifecycleProjectionMore.disabled = false;
+          return;
+        }
+        const offset = append ? solutionLifecycleProjectionOffset : 0;
+        solutionLifecycleProjectionStatus.textContent = `Loading location-linked ${view.title.toLowerCase()} status…`;
+        solutionLifecycleProjectionLoad.disabled = true;
+        solutionLifecycleProjectionMore.disabled = true;
+        if (!append) {
+          solutionLifecycleProjectionRows.replaceChildren();
+          solutionLifecycleProjectionMore.hidden = true;
+        }
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/${view.route}?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location solution-lifecycle grant is no longer valid. Reload the console to refresh access.");
+            }
+            throw new Error(`${view.title} status could not be loaded. Retry when the service is available.`);
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleProjectionRequestVersion
+              || locationId !== solutionLifecycleLocation.value
+              || viewName !== solutionLifecycleProjection.value) return;
+          const records = Array.isArray(result[view.responseKey]) ? result[view.responseKey] : [];
+          for (const record of records) appendSolutionLifecycleSupplementalRecord(record, view);
+          solutionLifecycleProjectionOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset
+            : offset;
+          solutionLifecycleProjectionMore.hidden = result.has_more !== true
+            || solutionLifecycleProjectionOffset <= offset;
+          solutionLifecycleProjectionStatus.textContent = solutionLifecycleProjectionRows.children.length
+            ? `${solutionLifecycleProjectionRows.children.length} ${view.title.toLowerCase()} record${solutionLifecycleProjectionRows.children.length === 1 ? "" : "s"} shown. This is read-only status.`
+            : `No location-linked ${view.title.toLowerCase()} records are available for this location.`;
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleProjectionRequestVersion) return;
+          solutionLifecycleProjectionStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleProjectionRequestVersion) {
+            solutionLifecycleProjectionLoad.disabled = false;
+            solutionLifecycleProjectionMore.disabled = false;
           }
         }
       }
@@ -6384,6 +6540,13 @@
         solutionLifecycleFundingMore.hidden = true;
         solutionLifecycleFundingLoad.disabled = false;
         solutionLifecycleFundingMore.disabled = false;
+        solutionLifecycleProjectionRequestVersion += 1;
+        solutionLifecycleProjectionOffset = 0;
+        solutionLifecycleProjectionRows.replaceChildren();
+        solutionLifecycleProjectionStatus.textContent = "";
+        solutionLifecycleProjectionMore.hidden = true;
+        solutionLifecycleProjectionLoad.disabled = false;
+        solutionLifecycleProjectionMore.disabled = false;
         loadSolutionLifecycleSummary();
       });
       solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates());
@@ -6392,6 +6555,9 @@
       solutionLifecycleExperimentsMore.addEventListener("click", () => loadSolutionLifecycleExperiments(true));
       solutionLifecycleFundingLoad.addEventListener("click", () => loadSolutionLifecycleFunding());
       solutionLifecycleFundingMore.addEventListener("click", () => loadSolutionLifecycleFunding(true));
+      solutionLifecycleProjectionLoad.addEventListener("click", () => loadSolutionLifecycleProjection());
+      solutionLifecycleProjectionMore.addEventListener("click", () => loadSolutionLifecycleProjection(true));
+      solutionLifecycleProjection.addEventListener("change", () => loadSolutionLifecycleProjection());
       document.querySelector("#coordination-summary-refresh").addEventListener("click", loadCoordinationSummary);
       coordinationSummaryLocation.addEventListener("change", loadCoordinationSummary);
       document.querySelector("#business-planning-refresh").addEventListener("click", () => loadBusinessPlanningCanvases());

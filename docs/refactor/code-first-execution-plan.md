@@ -15,13 +15,18 @@ identity; the experiment page shows fixed lifecycle metadata and only the latest
 explicitly reviewed outcome, without protocol narratives, metrics/values,
 observations, adverse-event details, or evidence. The funding page exposes only
 case/tranche lifecycle labels, currency, and timestamps, never amounts, terms,
-rationale, evidence, or participant identities. The combined CAP-025/CAP-035
-console, Gateway read/action, and route-policy selection passes 136 tests; Ruff,
-inline JavaScript parsing, capability validation, inventory refresh, and diff
-checks pass. No database, migration, candidate, or legacy system was used.
+rationale, evidence, or participant identities. Five additional paged status
+views cover adoption programs, scale gates, replications, learning, and
+retirements under the same exact location grant; fixed fields omit IDs,
+narratives, evidence, and person-level details, and adoption cohort counts
+remain hidden below the database threshold. The combined CAP-025/CAP-035
+console, Gateway read/action, and route-policy selection passes 139 tests;
+Ruff, inline JavaScript parsing, capability validation, inventory refresh, and
+diff checks pass. No database, migration, candidate, or legacy system was
+used.
 CAP-025 and CAP-035 remain prepared pending their remaining source/workflow
 parity, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and
-owner acceptance. Checklist: 723 complete / 24 open; matrix: 31
+owner acceptance. Checklist: 724 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows. Evidence:
 [CAP-025 contract](stakeholder-identity-kernel-contract.md),
 [CAP-035 contract](solution-lifecycle-kernel-read-contract.md), [console](../apps/operator-console/index.html), and
@@ -1978,6 +1983,25 @@ prepared pending remaining item-level workflows and write/review parity,
 populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and owner
 acceptance. Checklist: 721 complete / 24 open; matrix remains 66 rows (31
 baseline-retained, 7 deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
+[tests](../tests/test_operator_console_solution_lifecycle.py).
+
+### CAP-035 supplemental lifecycle status console — 20 October 2026
+
+Added fixed, paged views for adoption programs, scale gates, replications,
+learning records, and retirements using the existing exact-grant Gateway reads.
+All requests are same-origin and no-store, use 25-row pages, and discard stale
+responses when the location or selected view changes. Rendering uses fixed
+fields and text-only DOM updates; identifiers, narratives, evidence, and
+person-level details remain hidden. The adoption count is shown only when the
+database projection provides it above the five-reference suppression
+threshold. No mutation controls, migrations, or database access were added.
+
+The combined CAP-025/CAP-035 console, Gateway, action, and route-policy
+selection passes 139 tests; Ruff and inline JavaScript parsing pass. CAP-035
+remains prepared pending remaining workflow and populated-fixture parity, live
+OIDC/browser acceptance, broader ACL/RLS, recovery, and owner acceptance.
+Checklist: 724 complete / 24 open; matrix: 66 rows (31 baseline-retained, 7
+deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
 [tests](../tests/test_operator_console_solution_lifecycle.py).
 
 ### CAP-035 experiment status console read — 20 October 2026

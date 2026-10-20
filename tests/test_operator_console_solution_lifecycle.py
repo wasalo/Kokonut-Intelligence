@@ -148,6 +148,56 @@ def test_funding_renderer_omits_amounts_terms_evidence_and_party_details():
     assert "innerHTML" not in renderer
 
 
+def test_supplemental_projection_routes_and_result_keys_are_fixed_allowlists():
+    source = CONSOLE.read_text(encoding="utf-8")
+    start = source.index("const solutionLifecycleSupplementalViews = Object.freeze({")
+    end = source.index("\n      });", start)
+    views = source[start:end]
+    for route in ("adoption", "scale-gates", "replications", "learning", "retirements"):
+        assert f'route: "{route}"' in views
+    for response_key in ("programs", "scale_gates", "replications", "learning", "retirements"):
+        assert f'responseKey: "{response_key}"' in views
+    for option in ("adoption", "scale-gates", "replications", "learning", "retirements"):
+        assert f'<option value="{option}">' in source
+    for private_field in (
+        "adopter_ref", "cohort_id", "evidence", "party_id", "reviewer_id", "target_context",
+        "adaptation_required", "learning_text", "recommendation", "trigger_reason", "residual_risk",
+    ):
+        assert f'"{private_field}"' not in views
+
+
+def test_supplemental_projection_reader_uses_same_origin_no_store_paging_and_stale_guards():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(source, "async function loadSolutionLifecycleProjection(", "function renderCoordinationSummary(")
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/${view.route}?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "solutionLifecycleLocations.has(locationId)" in reader
+    assert "requestVersion !== solutionLifecycleProjectionRequestVersion" in reader
+    assert "locationId !== solutionLifecycleLocation.value" in reader
+    assert "viewName !== solutionLifecycleProjection.value" in reader
+    assert "result[view.responseKey]" in reader
+    assert "result.next_offset" in reader and "result.has_more" in reader
+    assert 'method: "POST"' not in reader
+    assert "innerHTML" not in reader
+
+
+def test_supplemental_renderer_uses_fixed_view_fields_and_hides_small_adoption_cohorts():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(source, "function appendSolutionLifecycleSupplementalRecord(", "async function loadSolutionLifecycleProjection(")
+    assert "for (const [label, field] of view.fields)" in renderer
+    assert "record[field]" in renderer
+    assert 'field === "consented_adopter_reference_count"' in renderer
+    assert "Withheld below disclosure threshold" in renderer
+    assert 'typeof value === "boolean"' in renderer
+    assert "record.solution_name" in renderer
+    assert "record.party_id" not in renderer
+    assert "Object.entries" not in renderer
+    assert "textContent" in renderer
+    assert "innerHTML" not in renderer
+
+
 def test_renderer_uses_only_fixed_aggregate_groups_and_safe_dom_text():
     source = CONSOLE.read_text(encoding="utf-8")
     renderer = _function(source, "function renderSolutionLifecycleSummary(summary)", "async function loadSolutionLifecycleSummary()")
@@ -178,6 +228,9 @@ def test_console_ids_are_unique_and_refresh_controls_are_wired():
     assert 'solutionLifecycleExperimentsMore.addEventListener("click", () => loadSolutionLifecycleExperiments(true))' in source
     assert 'solutionLifecycleFundingLoad.addEventListener("click", () => loadSolutionLifecycleFunding())' in source
     assert 'solutionLifecycleFundingMore.addEventListener("click", () => loadSolutionLifecycleFunding(true))' in source
+    assert 'solutionLifecycleProjectionLoad.addEventListener("click", () => loadSolutionLifecycleProjection())' in source
+    assert 'solutionLifecycleProjectionMore.addEventListener("click", () => loadSolutionLifecycleProjection(true))' in source
+    assert 'solutionLifecycleProjection.addEventListener("change", () => loadSolutionLifecycleProjection())' in source
     assert 'document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary)' in source
 
 
