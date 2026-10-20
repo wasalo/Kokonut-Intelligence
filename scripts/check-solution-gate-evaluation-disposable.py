@@ -14,7 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 GATE_CHECK = ROOT / "scripts/check-solution-lifecycle-gates-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/483_location_solution_gate_evaluation.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-gate-evaluation-disposable.json"
+REVIEW_MIGRATION = ROOT / "schemas/postgres/484_location_solution_gate_review.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_gates_disposable", GATE_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load disposable solution gate fixtures")
@@ -57,6 +58,9 @@ ALTER TABLE public.solution_gate_evaluation
 ALTER TABLE public.solution_gate_evaluation
     ALTER COLUMN id SET DEFAULT gen_random_uuid(),
     ALTER COLUMN evaluated_at SET DEFAULT now();
+ALTER TABLE public.solution_stage_gate
+    ADD COLUMN approved_by_party_id uuid,
+    ADD COLUMN approved_at timestamptz;
 UPDATE public.location
    SET organization_id = 'f0000000-0000-4000-8000-000000000001'
  WHERE id = 'b0000000-0000-4000-8000-000000000002';
@@ -72,6 +76,11 @@ INSERT INTO public.operator_organization_membership
 VALUES ('a2000000-0000-4000-8000-000000000003',
         'a0000000-0000-4000-8000-000000000003',
         'f0000000-0000-4000-8000-000000000001', NULL);
+INSERT INTO public.operator_organization_membership
+    (id, operator_id, organization_id, revoked_at)
+VALUES ('a2000000-0000-4000-8000-000000000004',
+        'a0000000-0000-4000-8000-000000000002',
+        'f0000000-0000-4000-8000-000000000001', NULL);
 INSERT INTO public.operator_scope_grant
     (id, operator_id, location_id, resource, action, organization_id, revoked_at)
 VALUES
@@ -86,17 +95,58 @@ VALUES
     ('a1000000-0000-4000-8000-000000000005',
      'a0000000-0000-4000-8000-000000000001',
      'b0000000-0000-4000-8000-000000000002',
-     'solution_lifecycle', 'create', 'f0000000-0000-4000-8000-000000000001', NULL);
+     'solution_lifecycle', 'create', 'f0000000-0000-4000-8000-000000000001', NULL),
+    ('a1000000-0000-4000-8000-000000000006',
+     'a0000000-0000-4000-8000-000000000001',
+     'b0000000-0000-4000-8000-000000000001',
+     'solution_lifecycle', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+    ('a1000000-0000-4000-8000-000000000007',
+     'a0000000-0000-4000-8000-000000000002',
+     'b0000000-0000-4000-8000-000000000001',
+     'solution_lifecycle', 'review', 'f0000000-0000-4000-8000-000000000001', NULL),
+    ('a1000000-0000-4000-8000-000000000008',
+     'a0000000-0000-4000-8000-000000000002',
+     'b0000000-0000-4000-8000-000000000002',
+     'solution_lifecycle', 'review', 'f0000000-0000-4000-8000-000000000001', NULL);
 INSERT INTO public.party (id, display_name, party_type, status)
-VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Synthetic evaluator', 'person', 'active');
+VALUES ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Synthetic evaluator', 'person', 'active'),
+       ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'Synthetic independent reviewer', 'person', 'active');
 INSERT INTO public.operator_governance_party_binding
     (id, operator_id, party_id, revoked_at)
 VALUES ('a5000000-0000-4000-8000-000000000001',
         'a0000000-0000-4000-8000-000000000001',
-        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', NULL);
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', NULL),
+       ('a5000000-0000-4000-8000-000000000002',
+        'a0000000-0000-4000-8000-000000000002',
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', NULL);
 UPDATE public.solution_stage_gate
    SET status = 'draft'
  WHERE id = 'e0000000-0000-4000-8000-000000000001';
+INSERT INTO public.solution_stage_gate
+    (id, solution_id, status, from_stage, to_stage,
+     requires_human_approval, created_at)
+VALUES ('e0000000-0000-4000-8000-000000000003',
+        'c0000000-0000-4000-8000-000000000001',
+        'draft', 'testing', 'adoption_ready', true, now()),
+       ('e0000000-0000-4000-8000-000000000004',
+        'c0000000-0000-4000-8000-000000000001',
+        'draft', 'testing', 'adoption_ready', true, now()),
+       ('e0000000-0000-4000-8000-000000000005',
+        'c0000000-0000-4000-8000-000000000001',
+        'draft', 'testing', 'adoption_ready', false, now());
+INSERT INTO public.solution_gate_evaluation
+    (id, gate_id, passed, evaluated_at, observed, evidence,
+     evaluated_by_party_id)
+VALUES ('e1000000-0000-4000-8000-000000000004',
+        'e0000000-0000-4000-8000-000000000004', false,
+        '2026-10-04', '{"reviewed_experiments":1}',
+        '[{"source":"failed-review-fixture"}]',
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+       ('e1000000-0000-4000-8000-000000000005',
+        'e0000000-0000-4000-8000-000000000005', true,
+        '2026-10-05', '{"reviewed_experiments":2}',
+        '[{"source":"not-required-fixture"}]',
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
 """
 
 EVALUATION_ACCEPTANCE = r"""
@@ -176,6 +226,15 @@ BEGIN
     IF second_result.replayed OR second_result.passed THEN
         RAISE EXCEPTION 'independent failed evaluation was not appended';
     END IF;
+
+    PERFORM * FROM kokonut_security.record_location_solution_gate_evaluation(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000003',
+        'ab000000-0000-4000-8000-000000000008',
+        true,
+        '{"reviewed_experiments":2}'::jsonb,
+        '[{"source":"independent-gate-review-fixture"}]'::jsonb
+    );
     denied := false;
     BEGIN
         PERFORM * FROM kokonut_security.record_location_solution_gate_evaluation(
@@ -265,22 +324,171 @@ BEGIN
 END $$;
 """
 
+GATE_REVIEW_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE
+    review_row record;
+    first_approval record;
+    retry_approval record;
+    denied boolean := false;
+    row_count integer;
+BEGIN
+    SELECT * INTO review_row
+      FROM kokonut_security.location_solution_gate_review(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000003'
+      );
+    IF NOT FOUND OR review_row.evaluation_passed IS DISTINCT FROM TRUE
+       OR review_row.observed <> '{"reviewed_experiments":2}'::jsonb
+       OR review_row.evidence <> '[{"source":"independent-gate-review-fixture"}]'::jsonb THEN
+        RAISE EXCEPTION 'review detail did not return the latest scoped evaluation evidence';
+    END IF;
+    IF pg_catalog.pg_get_function_result(
+        'kokonut_security.location_solution_gate_review(uuid,uuid)'::regprocedure
+    ) ~* 'evaluated_by_party_id|reviewer_party_id' THEN
+        RAISE EXCEPTION 'review projection exposes an evaluator or reviewer identity';
+    END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    SELECT count(*) INTO row_count FROM kokonut_security.location_solution_gate_review(
+        'b0000000-0000-4000-8000-000000000002',
+        'e0000000-0000-4000-8000-000000000003'
+    );
+    IF row_count <> 0 THEN RAISE EXCEPTION 'cross-location gate detail was returned'; END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.location_solution_gate_review(
+            'b0000000-0000-4000-8000-000000000001',
+            'e0000000-0000-4000-8000-000000000003'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'operator without review grant read private gate evidence'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_gate(
+            'b0000000-0000-4000-8000-000000000001',
+            'e0000000-0000-4000-8000-000000000003',
+            'ac000000-0000-4000-8000-000000000001'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'gate evaluator approved their own evaluation'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_gate(
+            'b0000000-0000-4000-8000-000000000001',
+            'e0000000-0000-4000-8000-000000000004',
+            'ac000000-0000-4000-8000-000000000002'
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'gate with a failed latest evaluation was approved'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_gate(
+            'b0000000-0000-4000-8000-000000000001',
+            'e0000000-0000-4000-8000-000000000005',
+            'ac000000-0000-4000-8000-000000000005'
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'gate without human-approval requirement was approved'; END IF;
+
+    SELECT * INTO first_approval FROM kokonut_security.approve_location_solution_gate(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000003',
+        'ac000000-0000-4000-8000-000000000003'
+    );
+    IF first_approval.replayed OR first_approval.gate_status <> 'approved'
+       OR first_approval.approved_at IS NULL THEN
+        RAISE EXCEPTION 'independent gate approval did not update status and attribution';
+    END IF;
+    SELECT * INTO retry_approval FROM kokonut_security.approve_location_solution_gate(
+        'b0000000-0000-4000-8000-000000000001',
+        'e0000000-0000-4000-8000-000000000003',
+        'ac000000-0000-4000-8000-000000000003'
+    );
+    IF NOT retry_approval.replayed
+       OR retry_approval.approved_at <> first_approval.approved_at THEN
+        RAISE EXCEPTION 'identical approval retry did not return the saved result';
+    END IF;
+
+    PERFORM set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000002', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_gate(
+            'b0000000-0000-4000-8000-000000000002',
+            'e0000000-0000-4000-8000-000000000003',
+            'ac000000-0000-4000-8000-000000000003'
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'approval request ID replayed across locations'; END IF;
+
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_gate_approval_submission_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read gate approval receipts'; END IF;
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_gate_evaluation;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read gate evaluation evidence'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.location_solution_gate_review(uuid,uuid)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.approve_location_solution_gate(uuid,uuid,uuid)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.location_solution_gate_review(uuid,uuid)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.approve_location_solution_gate(uuid,uuid,uuid)', 'EXECUTE')
+       OR has_table_privilege('kokonut_runtime', 'public.solution_gate_approval_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_directus_runtime', 'public.solution_gate_approval_submission_receipt', 'SELECT')
+       OR has_table_privilege('kokonut_solution_gate_reviewer', 'public.solution_stage_gate', 'UPDATE')
+       OR has_column_privilege('kokonut_solution_gate_approver', 'public.solution_stage_gate', 'from_stage', 'UPDATE')
+       OR has_column_privilege('kokonut_solution_gate_approver', 'public.solution_gate_approval_submission_receipt', 'id', 'UPDATE') THEN
+        RAISE EXCEPTION 'gate review/approval role or function boundary failed';
+    END IF;
+END $$;
+"""
+
 
 def main() -> int:
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
     container = f"kokonut-gate-eval-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": MIGRATION.name,
+        "migration": REVIEW_MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migration 483 applies and replays after the location-scoped gate read",
+            "migrations 483 and 484 apply and replay after the location-scoped gate read",
             "signed exact location context, create grant, active human attribution, and exact-origin gate lineage are enforced",
             "bounded pass/fail observations and evidence are appended under a non-login evaluator owner",
             "same request retries return the original result while changed input collisions fail closed",
             "runtime cannot read idempotency receipts directly and Directus cannot execute the function",
             "evaluation receipts are append-only and the action does not approve the gate",
+            "private evaluation evidence is visible only under exact review scope and an active human binding",
+            "migration 484 exposes bounded private review detail without evaluator identity",
+            "approval requires an explicitly human-reviewed draft/ready gate and a latest passing evaluation by a distinct human reviewer",
+            "gate approval leaves solution stage transition separate",
+            "approval retries are atomic and idempotent, with exact scope, grant, and non-login role boundaries",
+            "approval receipts are atomic/idempotent and runtime/Directus cannot access source or receipt tables directly",
         ],
     }
     try:
@@ -303,9 +511,14 @@ def main() -> int:
         psql(docker, container, migration)
         psql(docker, container, migration)
         psql(docker, container, EVALUATION_ACCEPTANCE)
+        review_migration = REVIEW_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, review_migration)
+        psql(docker, container, review_migration)
+        psql(docker, container, GATE_REVIEW_ACCEPTANCE)
         evidence["result"] = "passed"
         evidence["acceptance_groups_passed"] = 8
-        print("PASS: migrations 459, 466, and 483 apply; 466 and 483 replay; eight gate-evaluation acceptance groups passed")
+        evidence["approval_acceptance_groups_passed"] = 7
+        print("PASS: migrations 459, 466, 483, and 484 apply; 466, 483, and 484 replay; gate-evaluation and independent-review groups passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

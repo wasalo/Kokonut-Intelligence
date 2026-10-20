@@ -132,6 +132,51 @@ def record_location_solution_gate_evaluation(
         connection.close()
 
 
+def approve_location_solution_gate(
+    operator_id: str,
+    location_id: str,
+    gate_id: str,
+    request_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Approve a passing location-origin gate by a distinct active reviewer."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    gate_id = _normalize_uuid(gate_id, "gate")
+    request_id = _normalize_uuid(request_id, "request")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.approve_location_solution_gate(
+                           %s::uuid, %s::uuid, %s::uuid
+                       )""",
+                (location_id, gate_id, request_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution gate approval returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def approve_location_solution_retirement(
     operator_id: str,
     location_id: str,

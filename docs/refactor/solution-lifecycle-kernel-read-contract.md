@@ -340,13 +340,47 @@ input bounds, and runtime/Directus boundaries. Candidate and legacy databases
 are untouched; migration 477 is not rolled out. Evidence is in
 `builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json`.
 
+## CAP-035 gate evidence review and approval
+
+Migration 484 adds a private exact-location review projection and an independent
+gate-approval action. `GET
+/operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/review` requires a
+signed operator context, an active `solution_lifecycle:review` grant for the
+exact location, an active OIDC-to-person binding, and a solution whose canonical
+origin is that location. It returns only the gate transition/status and the
+latest evaluation result, bounded observations, evidence, and timestamp. The
+evaluator identity is intentionally withheld.
+
+`POST
+/operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/approve` uses the
+same review scope. PostgreSQL requires the gate to remain draft/ready and
+explicitly require human approval, the latest evaluation to pass, and the active
+reviewer party to differ from the evaluator. Approval updates gate status and
+attribution with an append-only
+request receipt in the same transaction; identical retries return the original
+approval and request-key collisions fail closed. Approval does not advance the
+solution's lifecycle stage. Gate evaluation remains a separate
+`solution_lifecycle:create` action.
+
+The review and approver functions have separate non-login owners with narrow
+source-column access. The runtime can execute the bounded functions but cannot
+read evaluation or approval-receipt tables directly; Directus cannot execute
+them. The console renders reviewed evidence as text, requires explicit human
+acknowledgement for approval, and does not offer a lifecycle transition.
+Migration 484 has been applied and replayed only on disposable PostgreSQL 16;
+the focused Gateway, console, route-policy, and migration-metadata selection
+passes 82 tests. Evidence is recorded in
+`builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json`.
+Candidate and legacy databases are untouched, and migration 484 is not rolled
+out.
+
 ## Rollback
 
 Before migration rollout, remove a route registration, route-policy entry, read
-or action service, migration source, and tests together. If migration 483 has been
-applied, disable the evaluation route but retain the ordered migration, role, and
-ACL until a separately reviewed forward migration removes them. After migration application,
-disable the route but retain its ordered migration and ACL. Do not edit or
-reverse an applied migration; any schema rollback requires a separately
-reviewed forward migration after checking for location links and dependent data
-created since rollout.
+or action service, migration source, and tests together. If migrations 483 or
+484 have been applied, disable the corresponding evaluation, review, or approval
+routes and console panels, but retain the ordered migrations, roles, and ACLs
+until separately reviewed forward migrations remove them. Do not edit or reverse
+an applied migration; any schema rollback requires a separately reviewed
+forward migration after checking for location links, evaluation evidence,
+approval receipts, and dependent data created since rollout.

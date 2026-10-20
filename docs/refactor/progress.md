@@ -1,3 +1,9 @@
+### CAP-035 independent stage-gate review and approval — 20 October 2026
+
+Added separate private evidence review and independent approval for location-origin CAP-035 gates. `GET /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/review` requires exact signed `solution_lifecycle:review` context and an active human binding, then returns the latest bounded observation/evidence without evaluator identity. `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/approve` requires a draft/ready gate, a latest passing evaluation, and an active reviewer party distinct from the evaluator. Migration 484 records the approval and append-only idempotency receipt atomically. Gate approval does not advance the solution stage. The console keeps evidence review and approval behind the review grant and preserves the separate create-grant evaluation action.
+
+The combined Gateway, exact route-policy, console, and migration-metadata selection passes 82 tests; Ruff, compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migrations 483 and 484 and passes eight evaluation plus seven review/approval acceptance groups. Candidate and legacy databases are untouched; migration 484 is not rolled out. CAP-035 remains prepared pending remaining workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review. Checklist: 729 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/484_location_solution_gate_review.sql); [tests](../tests/test_gateway_solution_lifecycle_gate_review.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-review-disposable.json).
+
 ### CAP-035 retirement review inbox and approval console — 20 October 2026
 
 Added a private, paged review inbox and proposal detail route under exact

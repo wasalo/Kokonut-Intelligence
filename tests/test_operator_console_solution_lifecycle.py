@@ -43,7 +43,7 @@ def test_summary_uses_same_origin_no_store_route_and_discards_stale_location_res
 
 def test_gate_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleGates(", "function appendSolutionLifecycleExperiment(")
+    reader = _function(source, "async function loadSolutionLifecycleGates(", "function createSolutionLifecycleGateReviewPanel(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader
@@ -93,6 +93,27 @@ def test_gate_evaluation_form_requires_create_scope_and_preserves_exact_retry():
     assert '"X-CSRF-Token": csrf' in form
     assert "does not approve" in source or "Gate approval remains a separate human review." in form
     assert "innerHTML" not in form
+
+
+def test_gate_evidence_and_approval_require_review_grant_and_remain_separate():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(source, "function appendSolutionLifecycleGate(", "async function loadSolutionLifecycleGates(")
+    review = _function(source, "function createSolutionLifecycleGateReviewPanel(", "function appendSolutionLifecycleExperiment(")
+    assert 'solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)' in renderer
+    assert 'gate.requires_human_approval === true' in renderer
+    assert "gate.latest_evaluation_passed === true" in renderer
+    assert "createSolutionLifecycleGateReviewPanel(gate.gate_id)" in renderer
+    assert "solutionLifecycleReviewLocations.has(locationId)" in review
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/review`' in review
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/approve`' in review
+    assert 'credentials: "same-origin"' in review and 'cache: "no-store"' in review
+    assert 'method: "POST"' in review and '"X-CSRF-Token": csrf' in review
+    assert "approval.pendingRequestId" in review
+    assert "acknowledge.checked" in review
+    assert "different active person from the evaluator" in review
+    assert "The solution stage remains unchanged" in review
+    assert "result.evaluated_by_party_id" not in review
+    assert "innerHTML" not in review
 
 
 def test_experiment_reader_uses_location_scope_no_store_paging_and_stale_guards():
