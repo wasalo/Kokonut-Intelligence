@@ -7,12 +7,13 @@
     "516_location_solution_adoption_readiness_review.sql",
     "517_location_solution_configuration_draft_review.sql",
     "518_location_solution_adoption_program_review.sql",
-    "519_location_solution_adoption_program_revision.sql"
+    "519_location_solution_adoption_program_revision.sql",
+    "520_location_solution_adoption_consent_events.sql"
   ],
   "database_target": "new disposable PostgreSQL 16 container",
   "candidate_or_legacy_modified": false,
   "checks": [
-    "migrations 513 through 519 apply and replay idempotently in order",
+    "migrations 513 through 520 apply and replay idempotently in order",
     "migration 515 allows draft preparation from pilot_active before the adoption-ready gate",
     "migration 516 expires historical unreviewed ready rows while preserving their audit records",
     "draft creation requires signed exact-location create context and an active human identity",
@@ -49,7 +50,14 @@
     "only reviewed redesign decisions can create a linked immutable new draft",
     "revision listing is exact-location, bounded, and excludes roots with an existing child",
     "revision retries replay exactly; changed payload reuse and branching fail closed",
-    "the source redesign remains unchanged and direct runtime/Directus access to revision lineage and receipts is denied"
+    "the source redesign remains unchanged and direct runtime/Directus access to revision lineage and receipts is denied",
+    "a program without an immutable consent policy cannot enter community review",
+    "policy creation is creator-owned, exact-location, immutable, and idempotent; changed retries fail closed",
+    "creator and independent reviewer queues receive the exact reviewed consent purpose and version",
+    "event capture requires an active exact-location link and current policy consent, stores no raw participant reference, and replays exact retries",
+    "the consent summary shows five participants only at the minimum disclosure threshold",
+    "withdrawal removes one participant before the small-cohort suppression threshold and revoked links remove further counts",
+    "direct runtime event/receipt access and all Directus event/policy paths are denied"
   ],
-  "acceptance_groups_passed": 42
+  "acceptance_groups_passed": 51
 }

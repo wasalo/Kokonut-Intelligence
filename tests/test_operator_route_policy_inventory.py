@@ -334,6 +334,14 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
     (
         "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/adoption/programs/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/consent-policy",
+    ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/adoption/programs/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/events",
+    ): _expected("solution_lifecycle", "collect", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/adoption/configurations",
     ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
     (

@@ -18,6 +18,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         approve_location_solution_gate,
         approve_location_solution_retirement,
         complete_location_solution_experiment,
+        configure_location_solution_adoption_consent_policy,
         create_location_solution,
         create_location_solution_adoption_program,
         create_location_solution_configuration_draft,
@@ -34,6 +35,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         propose_location_solution_replication,
         propose_location_solution_replication_completion,
         propose_location_solution_retirement,
+        record_location_solution_adoption_event,
         record_location_solution_experiment_observation,
         record_location_solution_gate_evaluation,
         review_location_solution_adopter_readiness,
@@ -1471,6 +1473,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
         required_fields = {
             "request_id", "solution_id", "adoption_pathway", "acknowledged",
+            "consent_purpose", "consent_version",
         }
         optional_fields = {"local_adaptation_policy"}
         if (
@@ -1491,6 +1494,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 payload["solution_id"],
                 payload["request_id"],
                 payload["adoption_pathway"],
+                consent_purpose=payload["consent_purpose"],
+                consent_version=payload["consent_version"],
                 local_adaptation_policy=payload.get("local_adaptation_policy"),
                 acknowledged=payload["acknowledged"],
             )
@@ -1512,7 +1517,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 )
             if code == "22023":
                 return JSONResponse(status_code=400, content={"error": "Location adoption program input is invalid"}, headers=headers)
-            if code in {"23505", "55000", "40001"}:
+            if code in {"23505", "55000", "40001", "23514"}:
                 return JSONResponse(
                     status_code=409,
                     content={"error": "The adoption program is no longer eligible; refresh the lifecycle view"},
@@ -1528,6 +1533,59 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 content={"error": "Solution adoption program creation unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/consent-policy"
+    )
+    async def configure_solution_adoption_consent_policy(
+        request: Request, location_id: str, program_id: str
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {
+            "request_id", "consent_purpose", "consent_version", "acknowledged",
+        }:
+            return JSONResponse(status_code=400, content={"error": "Adoption consent policy fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                configure_location_solution_adoption_consent_policy,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                program_id,
+                payload["request_id"],
+                payload["consent_purpose"],
+                payload["consent_version"],
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle create access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current exact-location solution lifecycle create grant is required"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Exact-location adoption program was not found"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Adoption consent policy input is invalid"}, headers=headers)
+            if code in {"23505", "55000", "40001", "23514"}:
+                return JSONResponse(status_code=409, content={"error": "The adoption consent policy is already set or the draft is no longer eligible"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption consent policy unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Adoption consent policy configuration unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(
             jsonable_encoder(result),
             status_code=200 if result.get("replayed") else 201,
@@ -1604,7 +1662,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             payload = await request.json()
         except Exception:
             return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
-        required_fields = {"request_id", "adoption_pathway", "acknowledged"}
+        required_fields = {
+            "request_id", "adoption_pathway", "acknowledged",
+            "consent_purpose", "consent_version",
+        }
         optional_fields = {"local_adaptation_policy"}
         if (
             not isinstance(payload, dict)
@@ -1620,6 +1681,8 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 program_id,
                 payload["request_id"],
                 payload["adoption_pathway"],
+                consent_purpose=payload["consent_purpose"],
+                consent_version=payload["consent_version"],
                 local_adaptation_policy=payload.get("local_adaptation_policy"),
                 acknowledged=payload["acknowledged"],
             )
@@ -2206,6 +2269,94 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/events"
+    )
+    async def capture_location_solution_adoption_event(
+        request: Request, location_id: str, program_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "participant_ref", "event_type", "acknowledged",
+        }
+        optional_fields = {"fidelity_score"}
+        if (
+            not isinstance(payload, dict)
+            or not required_fields.issubset(payload)
+            or not set(payload).issubset(required_fields | optional_fields)
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Adoption event fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                record_location_solution_adoption_event,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                program_id,
+                payload["request_id"],
+                payload["participant_ref"],
+                payload["event_type"],
+                fidelity_score=payload.get("fidelity_score"),
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle collect access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current exact-location participant consent grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Exact-location adoption program or participant reference was not found"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Adoption event input is invalid"}, headers=headers)
+            if code in {"23505", "55000", "40001", "23514"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "The adoption program or participant consent is no longer eligible"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption event capture unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution adoption event capture unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/scale-gates")
     async def location_solution_scale_gates(

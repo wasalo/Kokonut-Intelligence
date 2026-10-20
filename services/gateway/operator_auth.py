@@ -1153,6 +1153,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_adoption_consent_policy_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/programs/([0-9a-fA-F-]{36})/consent-policy",
+        path,
+    )
+    if solution_lifecycle_adoption_consent_policy_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "create",
+            "public": False,
+            "location_id": solution_lifecycle_adoption_consent_policy_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_adoption_readiness_submit_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/readiness",
         path,
@@ -1288,6 +1302,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "read",
             "public": False,
             "location_id": solution_lifecycle_adoption_events_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_adoption_event_capture_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/programs/([0-9a-fA-F-]{36})/events",
+        path,
+    )
+    if solution_lifecycle_adoption_event_capture_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "collect",
+            "public": False,
+            "location_id": solution_lifecycle_adoption_event_capture_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }

@@ -1,3 +1,33 @@
+### CAP-035 consent-aware adoption event capture — 20 October 2026
+
+Migration 520 adds an immutable consent policy to every submitted adoption
+program and a bounded participant-event capture path. The creator configures the
+exact purpose and notice version on the draft; the independent reviewer sees
+those terms, and PostgreSQL blocks submission without the policy. The new
+`solution_lifecycle:collect` action hashes the opaque participant reference
+before database access and requires its active exact-location participant link
+and current matching consent. Stored events retain only link/consent IDs, with
+`adopter_ref` NULL. Exact retries are immutable; withdrawal and link revocation
+remove participants from current-consent projections, and phase cohorts below
+five are suppressed. The historical direct `record_event` helper remains
+fail-closed.
+
+The focused Gateway, route-policy, console, and migration-metadata selection
+passes 113 tests, including inline JavaScript syntax. Ruff, Python compilation,
+and diff checks pass. Disposable PostgreSQL 16 applies and replays migrations
+513–520 and passes 51 grouped adoption, consent, retry, lifecycle, disclosure,
+withdrawal, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases remain untouched;
+migration 520 is not rolled out. CAP-035 remains prepared pending populated
+legacy parity, live ZITADEL/browser acceptance, broader runtime ACL/RLS,
+recovery, and MAN-CAP-035 owner acceptance. Checklist: 772 complete / 24 open;
+capability classifications remain 31 baseline-retained, 7 deployed, and 28
+prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
+[write contract](solution-lifecycle-kernel-write-contract.md),
+[migration](../schemas/postgres/520_location_solution_adoption_consent_events.sql),
+[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program.py),
+[console tests](../tests/test_operator_console_solution_lifecycle.py), and
+[disposable checker](../../scripts/check-solution-adoption-program-disposable.py).
+
 ### CAP-035 location solution-configuration draft and review — 20 October 2026
 
 Migration 517 adds exact-location versioned solution-configuration drafts for active location-origin solutions at `pilot_active` or `adoption_ready`. PostgreSQL derives the proposer from the active human binding; only that proposer can submit the immutable version, and another active human can approve or reject it with an auditable note. Private receipts make create, submit, and review retries idempotent, while a trigger prevents any unreviewed direct approval. Existing approved rows are preserved in a private archive and returned to draft because their reviewer independence cannot be proven.

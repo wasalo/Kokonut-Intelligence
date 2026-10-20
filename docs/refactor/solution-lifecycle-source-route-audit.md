@@ -29,13 +29,20 @@ and the existing database-backed regression now expects the legacy helper to
 reject the write.
 
 `services.innovation.solution_adoption.record_event` also trusted a
-caller-supplied `consent_checked` boolean before inserting events. The canonical
-`stakeholder_consent` stream is party-linked, but adoption programs do not yet
-carry a consent policy and adoption references are not linked to a canonical
-participant party. The helper now fails before database access even when
-`consent_checked=True`. Mocked regressions cover both boolean values. This
-retires the unsafe legacy write; it does not replace adoption event collection.
-A consent-aware, exact-location Gateway write remains required.
+caller-supplied `consent_checked` boolean before inserting events. The helper
+still fails before database access for either boolean value. Migration 520 now
+adds a reviewed immutable policy per adoption program and a bounded
+`solution_lifecycle:collect` route. The Gateway hashes the opaque participant
+reference before database access; PostgreSQL resolves the active exact-location
+participant link and requires current consent for the policy's category,
+purpose, scope, and version. The stored event keeps only link/consent IDs,
+leaves `adopter_ref` NULL, and uses an immutable retry receipt. Consent-aware
+list/summary reads recheck current consent and active link state and suppress
+small cohorts. The reviewer queue displays policy terms before enablement.
+Migrations 513–520 pass disposable PostgreSQL 16 apply/replay and the focused
+The focused Gateway/console/JavaScript selection passes 113 tests; the expanded selection with migration-metadata and exact registered-route policy regressions passes 149 tests. Candidate
+and legacy databases remain untouched; migration 520 is not rolled out. The
+legacy direct write remains retired.
 
 `services.innovation.solution_lifecycle.transition` also issued direct stage and
 lifecycle-event SQL outside the signed tenant boundary. Its direct writer now
@@ -113,8 +120,8 @@ Other legacy direct mutation helpers already fail closed:
 | `create_gate`, `evaluate_gate` | Scale-gate assessment and independent review |
 | `record_learning`, `apply_learning` | Learning proposal/review/application |
 | `propose_retirement`, `approve_retirement` | Retirement proposal and independent review |
-| `solution_adoption.record_event` | No write route yet; the helper is now fail-closed until policy-backed participant and consent linkage is implemented. |
-| `solution_adoption.create_program` | Migrations 513/515 provide exact-location draft creation for active location-origin solutions at `pilot_active`, `adoption_ready`, or `adopting`; migration 518 adds creator submission and independent `enablement_ready`/`redesign` review; migration 519 adds a one-child immutable revision lineage from reviewed redesigns. The legacy direct helper is retired. | Compare pathway, redesign, and revision semantics with populated legacy fixtures; add participant consent/event linkage, canonical party linkage, and current-consent validation. Configuration approval, readiness, and launch remain separate; complete live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance. |
+| `solution_adoption.record_event` | Migration 520 provides `POST /operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/events` under exact `solution_lifecycle:collect`, reviewed policy, active participant link, current consent, opaque hash, and immutable retry receipt. The legacy direct helper remains fail-closed. | Compare event meanings and population semantics with legacy fixtures; complete live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance. |
+| `solution_adoption.create_program` | Migrations 513/515 provide exact-location draft creation for active location-origin solutions at `pilot_active`, `adoption_ready`, or `adopting`; migration 518 adds creator submission and independent `enablement_ready`/`redesign` review; migration 519 adds a one-child immutable revision lineage; migration 520 binds an immutable consent policy to each submitted/reviewed program. The legacy direct helper is retired. | Compare pathway, redesign, revision, and consent-event semantics with populated legacy fixtures. Readiness, configuration approval, and launch remain separate; complete live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance. |
 | `solution_adoption.assess_readiness` | The legacy direct upsert is retired. Migrations 514 and 516 provide exact-location assessment submission and independent review; only review of the current immutable assessment can mark it ready. Historical unreviewed ready rows expire. |
 | `solution_adoption.approve_configuration` | The legacy direct approved-row insert is retired. Migration 517 adds exact-location versioned draft creation, creator submission, independent human approval/rejection, idempotent receipts, a direct-approval trigger, and historical-approval archival; runtime and Directus retain no configuration DML or receipt access. Migration 518 adds the separate program enablement review gate. |
 | `solution_lifecycle.approve_gate`, `evaluate_gate` | Exact-location human review/approval and evidence-backed evaluation actions remain available through the Gateway. |
@@ -136,7 +143,7 @@ mark CAP-035 complete or claim universal tenant isolation while they remain.
 | `solution_lifecycle.create_gate` | Migration 505 adds exact-origin promotion-gate definition at `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/gates`. The legacy direct helper remains retired. New definitions are immutable drafts with a bounded criterion and thresholds, one of four fixed current-stage promotions, one required evaluation, and independent human approval. The existing review projection exposes criterion only to the owning location. | Compare gate criteria and threshold semantics against populated legacy records; complete live OIDC/browser acceptance, broader ACL/RLS review, recovery acceptance, and remaining source-to-route parity. Gate evaluation, approval, and transition remain separate actions. |
 | `solution_experiments.create_experiment`, `submit_protocol`, `approve_protocol`, `start_experiment`, `record_observation`, `complete_experiment`, `analyze_sequentially` | Migrations 506–512 provide exact-origin immutable protocol drafts, owner submission, private independent approval, exact-location start, consent-aware observation capture, protocol-bound advisory analysis, and protocol-bound completion. Migration 511 requires signed exact-location `solution_lifecycle:analyze`; directions, minimum sample, benefit/posterior thresholds, safety limit, and duration come from the immutable protocol. Migration 512 completes data collection only when every primary metric has a fresh, current-consent terminal analysis matching its protocol and source digest; completion stores a private immutable receipt and leaves result review separate. Forced RLS hides analyses when a source observation's consent is withdrawn or its link is revoked, and leaves historical unassessed runs hidden. Legacy direct create, submit, approval, start, observation, analysis, and completion helpers fail before database access; runtime and Directus cannot access private observation, analysis, or completion receipts directly. | Compare completion, analysis, and observation semantics against populated fixtures and retain independent result-review separation; complete live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance. |
 | `solution_experiments.review_result`, `create_replication` | Scoped independent result-review and replication-proposal paths exist; both legacy direct helpers now fail before database access. | Compare review and proposal semantics against populated legacy fixtures and preserve reviewer separation and validated-source checks. |
-| `solution_adoption.create_program`, `assess_readiness`, `approve_configuration` | Migrations 513/515 provide exact-location program draft creation for active exact-origin solutions at `pilot_active`, `adoption_ready`, or `adopting`. Migration 516 adds immutable readiness submissions and independent human review; below-target assessments cannot be marked ready, exact retries replay, and a trigger blocks unreviewed direct readiness updates. Migration 517 adds versioned location configuration drafts, creator-only submission, independent approval/rejection, immutable receipts, historical approval archival, and direct-approval protection. Migration 518 adds exact-location adoption-program submission and independent `enablement_ready`/`redesign` review; migration 519 adds one-child lineage and a new draft after an independently reviewed redesign. The console uses exact create/submit/review grants, no-store/CSRF, safe text rendering, and stable retry IDs. Runtime and Directus cannot write lifecycle tables or access private receipts; legacy helpers fail before database access. | Compare program/readiness/configuration semantics against populated legacy fixtures. Add consent-aware participant events, reviewed program policy, canonical party linkage, and current-consent validation. Preserve separate review and launch boundaries; complete live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance. |
+| `solution_adoption.create_program`, `record_event`, `assess_readiness`, `approve_configuration` | Migrations 513/515 provide exact-location program draft creation for active exact-origin solutions at `pilot_active`, `adoption_ready`, or `adopting`. Migration 516 adds immutable readiness submissions and independent human review; below-target assessments cannot be marked ready, exact retries replay, and a trigger blocks unreviewed direct readiness updates. Migration 517 adds versioned location configuration drafts, creator-only submission, independent approval/rejection, immutable receipts, historical approval archival, and direct-approval protection. Migration 518 adds exact-location adoption-program submission and independent `enablement_ready`/`redesign` review; migration 519 adds one-child lineage and a new draft after an independently reviewed redesign. Migration 520 adds the reviewed immutable participant-consent policy, exact-location participant-link capture, current-consent and link-revocation-aware projections, and cohort suppression. The console uses exact create/submit/review/collect grants, no-store/CSRF, safe text rendering, and stable retry IDs. Runtime and Directus cannot directly write event/policy tables or access private receipts; legacy helpers fail before database access. | Compare program/readiness/configuration/event semantics against populated legacy fixtures. Preserve separate review and launch boundaries; complete live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance. |
 | `solution_funding.create_case`, `submit_case`, `approve_case`, `add_tranche`, `approve_tranche` | Migrations 488–492 provide scoped proposal, submission, case review/approval, and tranche review/approval. The legacy funding helpers now fail before database access. | Compare semantics with populated legacy fixtures; complete live OIDC/browser acceptance, broader ACL/RLS review, and recovery acceptance. |
 | `solution_funding.release_tranche` | No release route exists; the legacy shared-role writer now fails before database access. | Keep disbursement gated until a separate authority, custody, evidence, and retry contract is defined and independently reviewed. |
 
@@ -147,7 +154,7 @@ establish universal database ACL/RLS boundaries. CAP-035 remains prepared.
 ## Verification and rollback
 
 The focused Gateway/route-policy/console selection covers migrations 503–505
-and 513–517; disposable PostgreSQL 16 checkers apply and replay these
+and 513–520; disposable PostgreSQL 16 checkers apply and replay these
 migrations after the CAP-035 chain. Migration 504 acceptance exercises exact
 scope, active human attribution, input validation, opening-event atomicity, exact retry replay,
 changed-payload rejection, and receipt privacy. Migration 505 acceptance
@@ -160,6 +167,9 @@ assessment, independent review, current-assessment binding, replay, historical
 ready expiration, and role boundaries. Migration 517 checks legacy approval
 archival, location-qualified draft creation, versioning, retries, submission,
 reviewer exclusion, approval/rejection, trigger enforcement, and private role
-boundaries. Candidate and legacy databases were untouched; migrations 503–505
-and 513–517 have not been rolled out. Before rollout, disable new routes and console forms while
+boundaries. Migration 520 checks consent-policy immutability and trigger
+enforcement, creator/reviewer projections, hash-only participant event capture,
+current-consent and active-link filtering, withdrawal/revocation, disclosure
+thresholds, retries, and role boundaries. Candidate and legacy databases were
+untouched; migrations 503–505 and 513–520 have not been rolled out. Before rollout, disable new routes and console forms while
 retaining additive migrations; do not edit or reverse an applied migration.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise exact-location adoption-program workflows through migration 519."""
+"""Exercise exact-location adoption-program and consent workflows through migration 520."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ READINESS_MIGRATION = ROOT / "schemas/postgres/516_location_solution_adoption_re
 CONFIGURATION_MIGRATION = ROOT / "schemas/postgres/517_location_solution_configuration_draft_review.sql"
 PROGRAM_REVIEW_MIGRATION = ROOT / "schemas/postgres/518_location_solution_adoption_program_review.sql"
 PROGRAM_REVISION_MIGRATION = ROOT / "schemas/postgres/519_location_solution_adoption_program_revision.sql"
+ADOPTION_CONSENT_MIGRATION = ROOT / "schemas/postgres/520_location_solution_adoption_consent_events.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json"
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
@@ -37,6 +38,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA kokonut_security;
 CREATE ROLE kokonut_runtime NOLOGIN;
 CREATE ROLE kokonut_directus_runtime NOLOGIN;
+CREATE ROLE kokonut_solution_reader NOLOGIN;
 
 CREATE TABLE public.location (
     id UUID PRIMARY KEY,
@@ -89,10 +91,16 @@ CREATE TABLE public.solution (
     id UUID PRIMARY KEY,
     canonical_key TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL DEFAULT 'Synthetic solution',
+    solution_type TEXT NOT NULL DEFAULT 'practice',
     originating_scope_type TEXT NOT NULL,
     originating_scope_id UUID NOT NULL,
     current_stage TEXT NOT NULL,
     status TEXT NOT NULL
+);
+CREATE TABLE public.solution_link (
+    solution_id UUID NOT NULL REFERENCES public.solution(id),
+    entity_type TEXT NOT NULL,
+    entity_id UUID NOT NULL
 );
 CREATE TABLE public.solution_adoption_program (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -106,6 +114,53 @@ CREATE TABLE public.solution_adoption_program (
     created_by_party_id UUID REFERENCES public.party(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE public.solution_adoption_cohort (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    program_id UUID NOT NULL REFERENCES public.solution_adoption_program(id),
+    cohort_key TEXT NOT NULL
+);
+CREATE TABLE public.solution_adoption_event (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    program_id UUID NOT NULL REFERENCES public.solution_adoption_program(id),
+    cohort_id UUID REFERENCES public.solution_adoption_cohort(id),
+    adopter_ref TEXT NOT NULL,
+    event_type TEXT NOT NULL CHECK (event_type IN (
+        'aware', 'interested', 'eligible', 'committed', 'onboarded',
+        'first_use', 'repeat_use', 'habitual_use', 'advocating', 'paused', 'abandoned'
+    )),
+    observed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fidelity_score NUMERIC(8,3),
+    support_required TEXT,
+    outcome JSONB NOT NULL DEFAULT '{}'::JSONB,
+    consent_checked BOOLEAN NOT NULL DEFAULT FALSE,
+    evidence JSONB NOT NULL DEFAULT '{}'::JSONB,
+    recorded_by_party_id UUID REFERENCES public.party(id),
+    CHECK (consent_checked = TRUE OR event_type IN ('aware', 'interested'))
+);
+CREATE TABLE public.mobile_participant_link (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    participant_ref_hash CHAR(64) NOT NULL UNIQUE,
+    party_id UUID NOT NULL REFERENCES public.party(id),
+    location_id UUID NOT NULL REFERENCES public.location(id),
+    revoked_at TIMESTAMPTZ
+);
+CREATE TABLE public.stakeholder_consent (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    party_id UUID NOT NULL REFERENCES public.party(id),
+    event_type TEXT NOT NULL CHECK (event_type IN ('grant', 'withdraw', 'deny', 'expire')),
+    data_category TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    scope_type TEXT NOT NULL,
+    scope_id UUID,
+    recipient_party_id UUID REFERENCES public.party(id),
+    recipient_type TEXT NOT NULL DEFAULT 'system',
+    consent_version TEXT NOT NULL DEFAULT '1.0',
+    effective_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    reason TEXT,
+    CHECK (event_type = 'grant' OR NULLIF(BTRIM(COALESCE(reason, '')), '') IS NOT NULL)
 );
 CREATE TABLE public.test_adoption_program_ids (
     test_key TEXT PRIMARY KEY,
@@ -148,6 +203,20 @@ GRANT SELECT, INSERT, UPDATE ON public.test_adoption_program_ids TO kokonut_runt
 GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE
     ON public.solution_adopter_readiness, public.solution_configuration
     TO PUBLIC, kokonut_runtime, kokonut_directus_runtime;
+GRANT SELECT (id, solution_id, target_scope_type, target_scope_id, status,
+              created_at, updated_at) ON public.solution_adoption_program
+    TO kokonut_solution_reader;
+GRANT SELECT (solution_id, entity_type, entity_id) ON public.solution_link
+    TO kokonut_solution_reader;
+GRANT SELECT (program_id, adopter_ref, consent_checked)
+    ON public.solution_adoption_event TO kokonut_solution_reader;
+GRANT SELECT (id, party_type, status) ON public.party TO kokonut_solution_reader;
+GRANT SELECT (id, party_id, location_id, revoked_at)
+    ON public.mobile_participant_link TO kokonut_solution_reader;
+GRANT SELECT (id, party_id, event_type, data_category, purpose, scope_type,
+              scope_id, recipient_party_id, recipient_type, consent_version,
+              effective_at, expires_at, created_at)
+    ON public.stakeholder_consent TO kokonut_solution_reader;
 
 CREATE FUNCTION kokonut_security.current_tenant_context()
 RETURNS TABLE(actor_id UUID, location_id UUID, actor_type TEXT)
@@ -180,7 +249,13 @@ INSERT INTO public.operator_identity (id, enabled) VALUES
     ('a0000000-0000-4000-8000-000000000043', TRUE);
 INSERT INTO public.party (id, party_type, status) VALUES
     ('c1000000-0000-4000-8000-000000000041', 'person', 'active'),
-    ('c1000000-0000-4000-8000-000000000043', 'person', 'active');
+    ('c1000000-0000-4000-8000-000000000043', 'person', 'active'),
+    ('c1000000-0000-4000-8000-000000000045', 'person', 'active'),
+    ('c1000000-0000-4000-8000-000000000046', 'person', 'active'),
+    ('c1000000-0000-4000-8000-000000000047', 'person', 'active'),
+    ('c1000000-0000-4000-8000-000000000048', 'person', 'active'),
+    ('c1000000-0000-4000-8000-000000000049', 'person', 'active'),
+    ('c1000000-0000-4000-8000-000000000050', 'person', 'active');
 INSERT INTO public.operator_governance_party_binding
     (operator_id, party_id, revoked_at)
 VALUES
@@ -193,9 +268,13 @@ INSERT INTO public.operator_scope_grant
 VALUES
     ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'create',
      'b0000000-0000-4000-8000-000000000001'),
+    ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'read',
+     'b0000000-0000-4000-8000-000000000001'),
     ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'submit',
      'b0000000-0000-4000-8000-000000000001'),
     ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'review',
+     'b0000000-0000-4000-8000-000000000001'),
+    ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'collect',
      'b0000000-0000-4000-8000-000000000001'),
     ('a0000000-0000-4000-8000-000000000043', 'solution_lifecycle', 'review',
      'b0000000-0000-4000-8000-000000000001');
@@ -350,9 +429,46 @@ SELECT set_config('kokonut.actor_type', 'operator', TRUE);
 DO $$
 DECLARE first_program UUID; second_program UUID; submitted RECORD; replay RECORD;
         own_draft RECORD; own_queue BIGINT; caught BOOLEAN := FALSE; draft_count BIGINT;
+        policy RECORD; policy_replay RECORD; policy_collision BOOLEAN := FALSE;
 BEGIN
     SELECT program_id INTO first_program FROM public.test_adoption_program_ids WHERE test_key = 'eligible';
     SELECT program_id INTO second_program FROM public.test_adoption_program_ids WHERE test_key = 'pilot';
+    SELECT * INTO policy FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+        'b0000000-0000-4000-8000-000000000001', first_program,
+        'ab000000-0000-4000-8000-000000000101',
+        'Track voluntary participation in the synthetic adoption program', '1.0', TRUE
+    );
+    SELECT * INTO policy_replay FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+        'b0000000-0000-4000-8000-000000000001', first_program,
+        'ab000000-0000-4000-8000-000000000101',
+        'Track voluntary participation in the synthetic adoption program', '1.0', TRUE
+    );
+    IF policy.program_id <> first_program OR policy_replay.replayed IS DISTINCT FROM TRUE
+       OR policy_replay.consent_version <> '1.0' THEN
+        RAISE EXCEPTION 'consent policy creation or exact retry was not stable';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+            'b0000000-0000-4000-8000-000000000001', first_program,
+            'ab000000-0000-4000-8000-000000000101',
+            'Changed purpose on retry', '1.0', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN policy_collision := TRUE;
+    END;
+    IF NOT policy_collision THEN RAISE EXCEPTION 'changed consent-policy retry was accepted'; END IF;
+    PERFORM * FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+        'b0000000-0000-4000-8000-000000000001', second_program,
+        'ab000000-0000-4000-8000-000000000102',
+        'Track voluntary participation in the synthetic pilot program', '1.0', TRUE
+    );
+    SELECT * INTO own_draft FROM kokonut_security.location_solution_adoption_program_drafts_with_consent(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    ) WHERE program_id = first_program;
+    IF own_draft.consent_data_category <> 'solution_adoption_participation'
+       OR own_draft.consent_purpose <> 'Track voluntary participation in the synthetic adoption program'
+       OR own_draft.consent_version <> '1.0' THEN
+        RAISE EXCEPTION 'creator did not see the exact immutable consent policy';
+    END IF;
     SELECT count(*) INTO draft_count FROM kokonut_security.location_solution_adoption_program_drafts(
         'b0000000-0000-4000-8000-000000000001', 26, 0
     );
@@ -445,14 +561,17 @@ DECLARE first_program UUID; second_program UUID; queued RECORD; approved RECORD;
 BEGIN
     SELECT program_id INTO first_program FROM public.test_adoption_program_ids WHERE test_key = 'eligible';
     SELECT program_id INTO second_program FROM public.test_adoption_program_ids WHERE test_key = 'pilot';
-    SELECT * INTO queued FROM kokonut_security.location_solution_adoption_program_review_queue(
+    SELECT * INTO queued FROM kokonut_security.location_solution_adoption_program_review_queue_with_consent(
         'b0000000-0000-4000-8000-000000000001', 26, 0
     );
     IF queued.program_id IS NULL OR queued.adoption_pathway <> 'Community-led training and field support'
-       OR queued.local_adaptation_policy <> 'Preserve safety invariants.' THEN
+       OR queued.local_adaptation_policy <> 'Preserve safety invariants.'
+       OR queued.consent_data_category <> 'solution_adoption_participation'
+       OR queued.consent_purpose <> 'Track voluntary participation in the synthetic adoption program'
+       OR queued.consent_version <> '1.0' THEN
         RAISE EXCEPTION 'review queue did not return safe program detail';
     END IF;
-    SELECT count(*) INTO queue_count FROM kokonut_security.location_solution_adoption_program_review_queue(
+    SELECT count(*) INTO queue_count FROM kokonut_security.location_solution_adoption_program_review_queue_with_consent(
         'b0000000-0000-4000-8000-000000000001', 26, 0
     );
     IF queue_count <> 2 THEN RAISE EXCEPTION 'review queue omitted an eligible proposal'; END IF;
@@ -491,7 +610,7 @@ BEGIN
     IF redesigned.program_status <> 'redesign' OR redesigned.replayed THEN
         RAISE EXCEPTION 'redesign decision did not preserve the program for follow-up';
     END IF;
-    SELECT count(*) INTO queue_count FROM kokonut_security.location_solution_adoption_program_review_queue(
+    SELECT count(*) INTO queue_count FROM kokonut_security.location_solution_adoption_program_review_queue_with_consent(
         'b0000000-0000-4000-8000-000000000001', 26, 0
     );
     IF queue_count <> 0 THEN RAISE EXCEPTION 'decided programs remained in review queue'; END IF;
@@ -522,8 +641,44 @@ BEGIN
     END IF;
     IF pg_catalog.has_function_privilege('kokonut_directus_runtime',
         'kokonut_security.review_location_solution_adoption_program(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
-        'EXECUTE') THEN
-        RAISE EXCEPTION 'Directus can execute adoption-program review';
+        'EXECUTE') OR pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.capture_location_solution_adoption_event(UUID,UUID,UUID,TEXT,TEXT,NUMERIC,BOOLEAN)',
+        'EXECUTE') OR pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.configure_location_solution_adoption_consent_policy(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
+        'EXECUTE') OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_adoption_program_consent_policy', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_adoption_event', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_adoption_event_capture_receipt', 'SELECT') THEN
+        RAISE EXCEPTION 'Directus can execute private adoption policy/review paths or read private event data';
+    END IF;
+END $$;
+"""
+
+CONSENT_POLICY_GUARD_ACCEPTANCE = r"""
+INSERT INTO public.solution_adoption_program (
+    id, solution_id, target_scope_type, target_scope_id, adoption_pathway,
+    created_by_party_id
+) VALUES (
+    'f0000000-0000-4000-8000-000000000001',
+    'c0000000-0000-4000-8000-000000000041', 'location',
+    'b0000000-0000-4000-8000-000000000001',
+    'Synthetic draft without a consent policy',
+    'c1000000-0000-4000-8000-000000000041'
+);
+DO $$
+DECLARE policy_guarded BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        UPDATE public.solution_adoption_program
+           SET status = 'community_review'
+         WHERE id = 'f0000000-0000-4000-8000-000000000001';
+    EXCEPTION WHEN SQLSTATE '23514' THEN
+        policy_guarded := SQLERRM LIKE '%immutable reviewed participant consent policy%';
+    END;
+    IF NOT policy_guarded THEN
+        RAISE EXCEPTION 'program without a reviewed consent policy entered community review';
     END IF;
 END $$;
 """
@@ -560,6 +715,11 @@ BEGIN
         'ab000000-0000-4000-8000-000000000091',
         'Add a maintenance cooperative and seasonal support rotation.',
         'Preserve the safety invariants and define escalation ownership.', TRUE
+    );
+    PERFORM * FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+        'b0000000-0000-4000-8000-000000000001', created.program_id,
+        'ab000000-0000-4000-8000-000000000091',
+        'Track voluntary participation in the revised synthetic program', '2.0', TRUE
     );
     IF created.program_status <> 'draft' OR created.replayed
        OR created.revision_number <> 2 OR created.prior_program_id <> prior_program THEN
@@ -651,6 +811,330 @@ BEGIN
         'EXECUTE') THEN
         RAISE EXCEPTION 'Directus can execute Kernel revision functions';
     END IF;
+END $$;
+"""
+
+CONSENT_EVENT_FIXTURES = r"""
+DO $$
+DECLARE program_id UUID;
+BEGIN
+    SELECT test.program_id INTO program_id
+      FROM public.test_adoption_program_ids AS test
+     WHERE test.test_key = 'eligible';
+    INSERT INTO public.mobile_participant_link (
+        id, participant_ref_hash, party_id, location_id
+    ) VALUES
+        ('d1000000-0000-4000-8000-000000000045',
+         pg_catalog.encode(public.digest(pg_catalog.convert_to(
+             'synthetic-participant-reference-opaque-001', 'UTF8'), 'sha256'), 'hex'),
+         'c1000000-0000-4000-8000-000000000045',
+         'b0000000-0000-4000-8000-000000000001'),
+        ('d1000000-0000-4000-8000-000000000046',
+         pg_catalog.encode(public.digest(pg_catalog.convert_to(
+             'synthetic-participant-reference-opaque-002', 'UTF8'), 'sha256'), 'hex'),
+         'c1000000-0000-4000-8000-000000000046',
+         'b0000000-0000-4000-8000-000000000001');
+    INSERT INTO public.mobile_participant_link (
+        id, participant_ref_hash, party_id, location_id
+    )
+    SELECT ('d1000000-0000-4000-8000-' || pg_catalog.lpad(party_suffix::TEXT, 12, '0'))::UUID,
+           pg_catalog.encode(public.digest(pg_catalog.convert_to(
+               'synthetic-participant-reference-opaque-' || pg_catalog.lpad((party_suffix - 44)::TEXT, 3, '0'),
+               'UTF8'), 'sha256'), 'hex'),
+           ('c1000000-0000-4000-8000-' || pg_catalog.lpad(party_suffix::TEXT, 12, '0'))::UUID,
+           'b0000000-0000-4000-8000-000000000001'
+      FROM pg_catalog.generate_series(47, 50) AS party_suffix;
+    INSERT INTO public.stakeholder_consent (
+        party_id, event_type, data_category, purpose, scope_type, scope_id,
+        recipient_party_id, recipient_type, consent_version, effective_at
+    ) VALUES
+      ('c1000000-0000-4000-8000-000000000045', 'grant',
+        'solution_adoption_participation',
+        'Track voluntary participation in the synthetic adoption program',
+        'location', 'b0000000-0000-4000-8000-000000000001', NULL, 'system',
+        '1.0', pg_catalog.clock_timestamp()),
+      ('c1000000-0000-4000-8000-000000000046', 'grant',
+        'solution_adoption_participation',
+        'Track voluntary participation in the synthetic adoption program',
+        'location', 'b0000000-0000-4000-8000-000000000001', NULL, 'system',
+        '1.0', pg_catalog.clock_timestamp()),
+      ('c1000000-0000-4000-8000-000000000047', 'grant',
+        'solution_adoption_participation',
+        'Track voluntary participation in the synthetic adoption program',
+        'location', 'b0000000-0000-4000-8000-000000000001', NULL, 'system',
+        '1.0', pg_catalog.clock_timestamp()),
+      ('c1000000-0000-4000-8000-000000000048', 'grant',
+        'solution_adoption_participation',
+        'Track voluntary participation in the synthetic adoption program',
+        'location', 'b0000000-0000-4000-8000-000000000001', NULL, 'system',
+        '1.0', pg_catalog.clock_timestamp()),
+      ('c1000000-0000-4000-8000-000000000049', 'grant',
+        'solution_adoption_participation',
+        'Track voluntary participation in the synthetic adoption program',
+        'location', 'b0000000-0000-4000-8000-000000000001', NULL, 'system',
+        '1.0', pg_catalog.clock_timestamp());
+END $$;
+"""
+
+CONSENT_EVENT_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE program_id UUID; captured RECORD; replay RECORD; summary RECORD;
+        loop_idx INTEGER; adoption_page RECORD;
+        caught BOOLEAN := FALSE; direct_select_denied BOOLEAN := FALSE;
+        direct_insert_denied BOOLEAN := FALSE; receipt_denied BOOLEAN := FALSE;
+BEGIN
+    SELECT test.program_id INTO program_id FROM public.test_adoption_program_ids AS test
+     WHERE test.test_key = 'eligible';
+    SELECT * INTO captured FROM kokonut_security.capture_location_solution_adoption_event(
+        'b0000000-0000-4000-8000-000000000001', program_id,
+        'ab000000-0000-4000-8000-000000000111',
+        pg_catalog.encode(public.digest(pg_catalog.convert_to(
+            'synthetic-participant-reference-opaque-001', 'UTF8'), 'sha256'), 'hex'),
+        'aware', 72.5, TRUE
+    );
+    IF captured.event_id IS NULL OR captured.replayed THEN
+        RAISE EXCEPTION 'consent-aware event capture did not create one event';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.capture_location_solution_adoption_event(
+        'b0000000-0000-4000-8000-000000000001', program_id,
+        'ab000000-0000-4000-8000-000000000111',
+        pg_catalog.encode(public.digest(pg_catalog.convert_to(
+            'synthetic-participant-reference-opaque-001', 'UTF8'), 'sha256'), 'hex'),
+        'aware', 72.5, TRUE
+    );
+    IF NOT replay.replayed OR replay.event_id <> captured.event_id THEN
+        RAISE EXCEPTION 'exact adoption-event retry did not replay';
+    END IF;
+    FOR loop_idx IN 2..5 LOOP
+        SELECT * INTO replay FROM kokonut_security.capture_location_solution_adoption_event(
+            'b0000000-0000-4000-8000-000000000001', program_id,
+            ('ab000000-0000-4000-8000-' || pg_catalog.lpad((200 + loop_idx)::TEXT, 12, '0'))::UUID,
+            pg_catalog.encode(public.digest(pg_catalog.convert_to(
+                'synthetic-participant-reference-opaque-' || pg_catalog.lpad(loop_idx::TEXT, 3, '0'),
+                'UTF8'), 'sha256'), 'hex'),
+            'aware', NULL, TRUE
+        );
+        IF replay.event_id IS NULL OR replay.replayed THEN
+            RAISE EXCEPTION 'consented participant % was not captured once', loop_idx;
+        END IF;
+    END LOOP;
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.capture_location_solution_adoption_event(
+            'b0000000-0000-4000-8000-000000000001', program_id,
+            'ab000000-0000-4000-8000-000000000111',
+            pg_catalog.encode(public.digest(pg_catalog.convert_to(
+                'synthetic-participant-reference-opaque-001', 'UTF8'), 'sha256'), 'hex'),
+            'interested', 72.5, TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed event retry reused the same request ID'; END IF;
+
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.capture_location_solution_adoption_event(
+            'b0000000-0000-4000-8000-000000000002', program_id,
+            'ab000000-0000-4000-8000-000000000112', repeat('a', 64), 'aware', NULL, TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'event escaped signed exact-location context'; END IF;
+
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.capture_location_solution_adoption_event(
+            'b0000000-0000-4000-8000-000000000001', program_id,
+            'ab000000-0000-4000-8000-000000000113', repeat('a', 64), 'aware', NULL, TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'unknown participant reference was accepted'; END IF;
+
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.capture_location_solution_adoption_event(
+            'b0000000-0000-4000-8000-000000000001', program_id,
+            'ab000000-0000-4000-8000-000000000114',
+            pg_catalog.encode(public.digest(pg_catalog.convert_to(
+                'synthetic-participant-reference-opaque-006', 'UTF8'), 'sha256'), 'hex'),
+            'aware', NULL, TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'participant without exact consent was accepted'; END IF;
+
+    SELECT * INTO summary FROM kokonut_security.get_location_solution_adoption_event_summary(
+        'b0000000-0000-4000-8000-000000000001', program_id
+    );
+    IF summary.breakdown_suppressed IS DISTINCT FROM FALSE
+       OR summary.engagement_reference_count <> 5 THEN
+        RAISE EXCEPTION 'five current-consent participants did not pass the disclosure threshold';
+    END IF;
+    SELECT adoption.* INTO adoption_page FROM kokonut_security.list_location_solution_adoption(
+        'b0000000-0000-4000-8000-000000000001', 25, 0
+    ) AS adoption WHERE adoption.program_status = 'enablement_ready';
+    IF adoption_page.consented_adopter_reference_count <> 5 THEN
+        RAISE EXCEPTION 'adoption list did not return only the safe aggregate count';
+    END IF;
+
+    BEGIN
+        PERFORM 1 FROM public.solution_adoption_event;
+    EXCEPTION WHEN insufficient_privilege THEN direct_select_denied := TRUE;
+    END;
+    BEGIN
+        INSERT INTO public.solution_adoption_event (program_id, adopter_ref, event_type)
+        VALUES (program_id, 'forged', 'aware');
+    EXCEPTION WHEN insufficient_privilege THEN direct_insert_denied := TRUE;
+    END;
+    BEGIN
+        PERFORM 1 FROM public.solution_adoption_event_capture_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN receipt_denied := TRUE;
+    END;
+    IF NOT direct_select_denied OR NOT direct_insert_denied OR NOT receipt_denied THEN
+        RAISE EXCEPTION 'runtime retained direct event or receipt access';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM public.solution_adoption_event AS event
+         WHERE event.consent_validation_status <> 'granted'
+            OR event.consent_checked IS DISTINCT FROM TRUE
+            OR event.adopter_ref IS NOT NULL
+            OR event.participant_link_id IS NULL
+            OR event.consent_event_id IS NULL
+    ) THEN
+        RAISE EXCEPTION 'captured events retained a raw reference or omitted consent provenance';
+    END IF;
+END $$;
+
+INSERT INTO public.stakeholder_consent (
+    party_id, event_type, data_category, purpose, scope_type, scope_id,
+    recipient_party_id, recipient_type, consent_version, effective_at, reason
+) VALUES (
+    'c1000000-0000-4000-8000-000000000045', 'withdraw',
+    'solution_adoption_participation',
+    'Track voluntary participation in the synthetic adoption program',
+    'location', 'b0000000-0000-4000-8000-000000000001', NULL, 'system',
+    '1.0', pg_catalog.clock_timestamp(), 'Synthetic withdrawal acceptance'
+);
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE program_id UUID; summary RECORD; captured RECORD; caught BOOLEAN := FALSE;
+        adoption_page RECORD;
+BEGIN
+    SELECT test.program_id INTO program_id FROM public.test_adoption_program_ids AS test
+     WHERE test.test_key = 'eligible';
+    SELECT * INTO summary FROM kokonut_security.get_location_solution_adoption_event_summary(
+        'b0000000-0000-4000-8000-000000000001', program_id
+    );
+    IF summary.breakdown_suppressed IS DISTINCT FROM TRUE
+       OR summary.engagement_reference_count IS NOT NULL THEN
+        RAISE EXCEPTION 'withdrawal did not reduce the cohort to a suppressed count';
+    END IF;
+    SELECT adoption.* INTO adoption_page FROM kokonut_security.list_location_solution_adoption(
+        'b0000000-0000-4000-8000-000000000001', 25, 0
+    ) AS adoption WHERE adoption.program_status = 'enablement_ready';
+    IF adoption_page.consented_adopter_reference_count IS NOT NULL THEN
+        RAISE EXCEPTION 'withdrawn adopter remained in the location adoption projection';
+    END IF;
+    SELECT * INTO captured FROM kokonut_security.capture_location_solution_adoption_event(
+        'b0000000-0000-4000-8000-000000000001', program_id,
+        'ab000000-0000-4000-8000-000000000111',
+        pg_catalog.encode(public.digest(pg_catalog.convert_to(
+            'synthetic-participant-reference-opaque-001', 'UTF8'), 'sha256'), 'hex'),
+        'aware', 72.5, TRUE
+    );
+    IF NOT captured.replayed THEN RAISE EXCEPTION 'retry after withdrawal did not replay the original event'; END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.capture_location_solution_adoption_event(
+            'b0000000-0000-4000-8000-000000000001', program_id,
+            'ab000000-0000-4000-8000-000000000115',
+            pg_catalog.encode(public.digest(pg_catalog.convert_to(
+                'synthetic-participant-reference-opaque-001', 'UTF8'), 'sha256'), 'hex'),
+            'repeat_use', NULL, TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'new event was accepted after consent withdrawal'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+UPDATE public.mobile_participant_link
+   SET revoked_at = pg_catalog.clock_timestamp()
+ WHERE party_id IN (
+    'c1000000-0000-4000-8000-000000000046',
+    'c1000000-0000-4000-8000-000000000047',
+    'c1000000-0000-4000-8000-000000000048',
+    'c1000000-0000-4000-8000-000000000049'
+ );
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE program_id UUID; summary RECORD; caught BOOLEAN := FALSE;
+BEGIN
+    SELECT test.program_id INTO program_id FROM public.test_adoption_program_ids AS test
+     WHERE test.test_key = 'eligible';
+    SELECT * INTO summary FROM kokonut_security.get_location_solution_adoption_event_summary(
+        'b0000000-0000-4000-8000-000000000001', program_id
+    );
+    IF summary.breakdown_suppressed IS DISTINCT FROM FALSE
+       OR summary.engagement_reference_count <> 0 THEN
+        RAISE EXCEPTION 'revoked participant links remained in consent-aware summary';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.capture_location_solution_adoption_event(
+            'b0000000-0000-4000-8000-000000000001', program_id,
+            'ab000000-0000-4000-8000-000000000206',
+            pg_catalog.encode(public.digest(pg_catalog.convert_to(
+                'synthetic-participant-reference-opaque-002', 'UTF8'), 'sha256'), 'hex'),
+            'repeat_use', NULL, TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'revoked participant link allowed a new capture'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.capture_location_solution_adoption_event(UUID,UUID,UUID,TEXT,TEXT,NUMERIC,BOOLEAN)',
+        'EXECUTE') OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_adoption_program_consent_policy', 'SELECT') THEN
+        RAISE EXCEPTION 'Directus can access adoption consent policy or event capture';
+    END IF;
+END $$;
+
+DO $$
+DECLARE caught BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        UPDATE public.solution_adoption_program_consent_policy
+           SET consent_version = '9.9';
+    EXCEPTION WHEN SQLSTATE '23514' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'adoption consent policy was mutable'; END IF;
 END $$;
 """
 
@@ -1165,11 +1649,11 @@ def main() -> int:
     container = f"kokonut-solution-adoption-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name, CONFIGURATION_MIGRATION.name, PROGRAM_REVIEW_MIGRATION.name, PROGRAM_REVISION_MIGRATION.name],
+        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name, CONFIGURATION_MIGRATION.name, PROGRAM_REVIEW_MIGRATION.name, PROGRAM_REVISION_MIGRATION.name, ADOPTION_CONSENT_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 513 through 519 apply and replay idempotently in order",
+            "migrations 513 through 520 apply and replay idempotently in order",
             "migration 515 allows draft preparation from pilot_active before the adoption-ready gate",
             "migration 516 expires historical unreviewed ready rows while preserving their audit records",
             "draft creation requires signed exact-location create context and an active human identity",
@@ -1207,6 +1691,13 @@ def main() -> int:
             "revision listing is exact-location, bounded, and excludes roots with an existing child",
             "revision retries replay exactly; changed payload reuse and branching fail closed",
             "the source redesign remains unchanged and direct runtime/Directus access to revision lineage and receipts is denied",
+            "a program without an immutable consent policy cannot enter community review",
+            "policy creation is creator-owned, exact-location, immutable, and idempotent; changed retries fail closed",
+            "creator and independent reviewer queues receive the exact reviewed consent purpose and version",
+            "event capture requires an active exact-location link and current policy consent, stores no raw participant reference, and replays exact retries",
+            "the consent summary shows five participants only at the minimum disclosure threshold",
+            "withdrawal removes one participant before the small-cohort suppression threshold and revoked links remove further counts",
+            "direct runtime event/receipt access and all Directus event/policy paths are denied",
         ],
     }
     try:
@@ -1241,14 +1732,20 @@ def main() -> int:
         program_revision_text = PROGRAM_REVISION_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, program_revision_text)
         psql(docker, container, program_revision_text)
+        adoption_consent_text = ADOPTION_CONSENT_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, adoption_consent_text)
+        psql(docker, container, adoption_consent_text)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, READINESS_ACCEPTANCE)
         psql(docker, container, CONFIGURATION_ACCEPTANCE)
         psql(docker, container, PROGRAM_REVIEW_ACCEPTANCE)
+        psql(docker, container, CONSENT_POLICY_GUARD_ACCEPTANCE)
         psql(docker, container, PROGRAM_REVISION_ACCEPTANCE)
+        psql(docker, container, CONSENT_EVENT_FIXTURES)
+        psql(docker, container, CONSENT_EVENT_ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 42
-        print("PASS: migrations 513–519 apply/replay, adoption preparation, readiness, configuration, program review and revision lineage, retries, lifecycle, and privilege checks passed")
+        evidence["acceptance_groups_passed"] = 51
+        print("PASS: migrations 513–520 apply/replay, adoption preparation, immutable reviewed consent policies, participant event capture, withdrawal/link-revocation suppression, readiness, configuration, program review and revision lineage, retries, lifecycle, and privilege checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -76,6 +77,11 @@ SOLUTION_REVERSIBILITY = frozenset({"high", "medium", "low", "unknown"})
 _SOLUTION_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{1,159}$")
 _EXPERIMENT_METRIC_KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$")
 _EXPERIMENT_CONSENT_VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,29}$")
+_ADOPTION_PARTICIPANT_REF_RE = re.compile(r"^[A-Za-z0-9_-]{32,128}$")
+_ADOPTION_EVENT_TYPES = frozenset({
+    "aware", "interested", "eligible", "committed", "onboarded",
+    "first_use", "repeat_use", "habitual_use", "advocating", "paused", "abandoned",
+})
 _EXPERIMENT_UNIT_REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$")
 _EXPERIMENT_PROTOCOL_FIELDS = frozenset({
     "hypothesis", "null_hypothesis", "baseline_definition", "treatment_definition",
@@ -180,6 +186,56 @@ def _normalize_experiment_consent_requirements(value: dict) -> dict:
     raise SolutionLifecycleActionInvalid(
         "Consent requirements must explicitly declare whether participant consent is required"
     )
+
+
+def _normalize_adoption_consent_policy(purpose: str, consent_version: str) -> tuple[str, str]:
+    if not isinstance(purpose, str) or not 1 <= len(purpose.strip()) <= 255 or "\x00" in purpose:
+        raise SolutionLifecycleActionInvalid(
+            "Participant consent purpose must contain 1 to 255 characters"
+        )
+    purpose = purpose.strip()
+    try:
+        if len(purpose.encode("utf-8")) > 1020:
+            raise SolutionLifecycleActionInvalid(
+                "Participant consent purpose must fit within 1 KiB"
+            )
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid(
+            "Participant consent purpose must be valid UTF-8 text"
+        ) from exc
+    if (
+        not isinstance(consent_version, str)
+        or _EXPERIMENT_CONSENT_VERSION_RE.fullmatch(consent_version) is None
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Participant consent version must be a bounded version identifier"
+        )
+    return purpose, consent_version
+
+
+def _adoption_participant_reference_hash(participant_ref: str) -> str:
+    if (
+        not isinstance(participant_ref, str)
+        or _ADOPTION_PARTICIPANT_REF_RE.fullmatch(participant_ref) is None
+    ):
+        raise SolutionLifecycleActionInvalid("Participant reference is invalid")
+    return hashlib.sha256(participant_ref.encode("utf-8")).hexdigest()
+
+
+def _normalize_adoption_fidelity_score(value) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise SolutionLifecycleActionInvalid("Fidelity score must be between 0 and 100")
+    try:
+        score = Decimal(str(value))
+    except (InvalidOperation, TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Fidelity score must be between 0 and 100") from exc
+    if not score.is_finite() or not Decimal("0") <= score <= Decimal("100"):
+        raise SolutionLifecycleActionInvalid("Fidelity score must be between 0 and 100")
+    if score != score.quantize(Decimal("0.001")):
+        raise SolutionLifecycleActionInvalid("Fidelity score must use no more than three decimal places")
+    return format(score, ".3f")
 
 
 def _normalize_experiment_analysis_policy(sample_plan: dict, stopping_rules: dict, metric_keys: set[str]):
@@ -361,6 +417,8 @@ def create_location_solution_adoption_program(
     request_id: str,
     adoption_pathway: str,
     *,
+    consent_purpose: str | None = None,
+    consent_version: str | None = None,
     local_adaptation_policy: str | None = None,
     acknowledged: bool = False,
     connection_factory: Callable | None = None,
@@ -370,6 +428,9 @@ def create_location_solution_adoption_program(
     location_id = _normalize_uuid(location_id, "location")
     solution_id = _normalize_uuid(solution_id, "solution")
     request_id = _normalize_uuid(request_id, "request")
+    consent_purpose, consent_version = _normalize_adoption_consent_policy(
+        consent_purpose, consent_version
+    )
     if (
         not isinstance(adoption_pathway, str)
         or not 1 <= len(adoption_pathway.strip()) <= 2000
@@ -438,7 +499,81 @@ def create_location_solution_adoption_program(
             if row is None:
                 raise RuntimeError("Adoption program creation returned no result")
             result = _mapping(cursor, row)
+            cursor.execute(
+                """SELECT * FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id, result["program_id"], request_id,
+                    consent_purpose, consent_version, True,
+                ),
+            )
+            policy_row = cursor.fetchone()
+            if policy_row is None:
+                raise RuntimeError("Adoption consent policy configuration returned no result")
+            policy = _mapping(cursor, policy_row)
         connection.commit()
+        result["consent_policy"] = {
+            "data_category": "solution_adoption_participation",
+            "purpose": policy["consent_purpose"],
+            "consent_version": policy["consent_version"],
+        }
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def configure_location_solution_adoption_consent_policy(
+    operator_id: str,
+    location_id: str,
+    program_id: str,
+    request_id: str,
+    consent_purpose: str,
+    consent_version: str,
+    *,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Attach the one immutable participant-consent policy to an existing draft."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    program_id = _normalize_uuid(program_id, "adoption program")
+    request_id = _normalize_uuid(request_id, "request")
+    consent_purpose, consent_version = _normalize_adoption_consent_policy(
+        consent_purpose, consent_version
+    )
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Adoption consent policy requires acknowledgement that policy is reviewed before enablement"
+        )
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id, program_id, request_id,
+                    consent_purpose, consent_version, acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Adoption consent policy configuration returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        result["data_category"] = "solution_adoption_participation"
         return result
     except Exception:
         connection.rollback()
@@ -494,6 +629,68 @@ def submit_location_solution_adoption_program(
         connection.close()
 
 
+def record_location_solution_adoption_event(
+    operator_id: str,
+    location_id: str,
+    program_id: str,
+    request_id: str,
+    participant_ref: str,
+    event_type: str,
+    *,
+    fidelity_score=None,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Capture one current-consent event using an opaque participant reference."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    program_id = _normalize_uuid(program_id, "adoption program")
+    request_id = _normalize_uuid(request_id, "request")
+    reference_hash = _adoption_participant_reference_hash(participant_ref)
+    if not isinstance(event_type, str) or event_type not in _ADOPTION_EVENT_TYPES:
+        raise SolutionLifecycleActionInvalid("Adoption event type is invalid")
+    fidelity_score = _normalize_adoption_fidelity_score(fidelity_score)
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Adoption event capture requires acknowledgement of consent and location scope"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="collect",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.capture_location_solution_adoption_event(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text,
+                           %s::text, %s::numeric, %s::boolean
+                       )""",
+                (
+                    location_id, program_id, request_id, reference_hash,
+                    event_type, fidelity_score, acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Adoption event capture returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def _get_location_solution_adoption_program_page(
     operator_id: str,
     location_id: str,
@@ -512,10 +709,10 @@ def _get_location_solution_adoption_program_page(
     if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 10000:
         raise SolutionLifecycleActionInvalid("Adoption program page offset is invalid")
     page_functions = {
-        "location_solution_adoption_program_drafts": (
+        "location_solution_adoption_program_drafts_with_consent": (
             "drafts", "submit",
         ),
-        "location_solution_adoption_program_review_queue": (
+        "location_solution_adoption_program_review_queue_with_consent": (
             "programs", "review",
         ),
     }
@@ -564,7 +761,7 @@ def get_location_solution_adoption_program_drafts(
     """List only the caller's own exact-location unsubmitted program drafts."""
     return _get_location_solution_adoption_program_page(
         operator_id, location_id, limit=limit, offset=offset, action="submit",
-        function_name="location_solution_adoption_program_drafts",
+        function_name="location_solution_adoption_program_drafts_with_consent",
         response_key="drafts", connection_factory=connection_factory,
     )
 
@@ -580,7 +777,7 @@ def get_location_solution_adoption_program_review_queue(
     """List bounded submitted program details while excluding self-authored work."""
     return _get_location_solution_adoption_program_page(
         operator_id, location_id, limit=limit, offset=offset, action="review",
-        function_name="location_solution_adoption_program_review_queue",
+        function_name="location_solution_adoption_program_review_queue_with_consent",
         response_key="programs", connection_factory=connection_factory,
     )
 
@@ -704,6 +901,8 @@ def revise_location_solution_adoption_program(
     request_id: str,
     adoption_pathway: str,
     *,
+    consent_purpose: str | None = None,
+    consent_version: str | None = None,
     local_adaptation_policy: str | None = None,
     acknowledged: bool = False,
     connection_factory: Callable | None = None,
@@ -713,6 +912,9 @@ def revise_location_solution_adoption_program(
     location_id = _normalize_uuid(location_id, "location")
     prior_program_id = _normalize_uuid(prior_program_id, "adoption program")
     request_id = _normalize_uuid(request_id, "request")
+    consent_purpose, consent_version = _normalize_adoption_consent_policy(
+        consent_purpose, consent_version
+    )
     if (
         not isinstance(adoption_pathway, str)
         or not 1 <= len(adoption_pathway.strip()) <= 2000
@@ -781,7 +983,25 @@ def revise_location_solution_adoption_program(
             if row is None:
                 raise RuntimeError("Adoption program revision returned no result")
             result = _mapping(cursor, row)
+            cursor.execute(
+                """SELECT * FROM kokonut_security.configure_location_solution_adoption_consent_policy(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id, result["program_id"], request_id,
+                    consent_purpose, consent_version, True,
+                ),
+            )
+            policy_row = cursor.fetchone()
+            if policy_row is None:
+                raise RuntimeError("Revised adoption consent policy configuration returned no result")
+            policy = _mapping(cursor, policy_row)
         connection.commit()
+        result["consent_policy"] = {
+            "data_category": "solution_adoption_participation",
+            "purpose": policy["consent_purpose"],
+            "consent_version": policy["consent_version"],
+        }
         return result
     except Exception:
         connection.rollback()

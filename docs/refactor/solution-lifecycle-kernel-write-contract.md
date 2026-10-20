@@ -835,16 +835,43 @@ migration or restore the legacy direct writer.
 
 ## Adoption-event consent boundary
 
-The legacy `solution_adoption.record_event` helper no longer accepts
-`consent_checked=True` as evidence and fails before database access for every
-event type. The canonical consent stream is party-linked, while adoption
-programs currently have no configured consent policy and event references have
-no canonical participant-party link. Do not restore the legacy write by adding
-another caller-supplied flag. The replacement must bind the participant to a
-canonical party, resolve the program's reviewed policy, validate the current
-exact-scope consent decision, and write through a bounded location-scoped
-Gateway action. Adoption event ingestion remains an open capability until that
-path exists.
+The legacy `solution_adoption.record_event` helper still fails before database
+access; a caller-supplied `consent_checked` flag is not evidence. Migration 520
+adds a single immutable policy per exact-location adoption program, with a
+fixed `solution_adoption_participation` category, explicit purpose and notice
+version, active human attribution, and a private idempotency receipt. The
+program creator configures the policy in the same transaction as a new or
+revised draft; an existing draft without a policy can receive it once. A
+database trigger prevents submission or enablement approval until the policy
+exists, and the reviewer queue shows its exact purpose and version before
+approval.
+
+`POST /operator/api/solution-lifecycle/{location_id}/adoption/programs/{program_id}/events`
+requires signed exact-location `solution_lifecycle:collect`, an active human
+binding, an enablement-ready reviewed program, and an active location-scoped
+participant link. The Gateway hashes the opaque reference with SHA-256 before
+database access. PostgreSQL resolves the hash to the participant's active
+canonical party and requires that party's latest grant for the program's exact
+category, purpose, location and version. The event stores only the participant
+link and consent-event IDs; `adopter_ref` is NULL, `consent_checked` is derived
+by the function, and an immutable receipt makes exact retries safe. Capture
+does not alter program status or solution lifecycle.
+
+The list and event-summary functions count only active participant links whose
+current exact consent remains granted. Withdrawal or link revocation removes
+that participant from future projections; phase counts of one through four
+remain suppressed. Runtime and Directus cannot directly read or write raw event
+rows, policy records, or private receipts; only the bounded Gateway functions
+are exposed to the runtime role.
+
+Focused Gateway, route-policy, console and inline-JavaScript checks pass 113
+tests. The disposable PostgreSQL 16 checker applies and replays migrations
+513–520 and verifies the policy guard, retries/collisions, creator/reviewer
+projections, no-policy submission denial, five-participant disclosure
+threshold, withdrawal, link revocation, and runtime/Directus boundaries.
+Candidate and legacy databases remain untouched; migration 520 is not rolled
+out. Populated legacy parity, live ZITADEL/browser acceptance, broader
+runtime ACL/RLS, recovery, and MAN-CAP-035 owner acceptance remain open.
 
 ## Legacy gate-evaluation and approval boundary
 

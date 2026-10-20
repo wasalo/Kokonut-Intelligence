@@ -36,6 +36,19 @@ REVISED = {
     "program_status": "draft",
     "created_at": "2026-10-20T12:00:00+00:00",
     "replayed": False,
+    "consent_policy": {
+        "data_category": "solution_adoption_participation",
+        "purpose": "Track voluntary participation",
+        "consent_version": "1.0",
+    },
+}
+REVISED_ROW = {key: value for key, value in REVISED.items() if key != "consent_policy"}
+POLICY_ROW = {
+    "program_id": REVISION_ID,
+    "consent_purpose": "Track voluntary participation",
+    "consent_version": "1.0",
+    "configured_at": "2026-10-20T12:00:00+00:00",
+    "replayed": False,
 }
 
 
@@ -48,7 +61,7 @@ class _Column(tuple):
 class _Connection:
     def __init__(self, rows=None, result=None):
         self.rows = rows or []
-        self.result = result or REVISED
+        self.result = result or REVISED_ROW
         self.operations = []
         self.committed = False
         self.rolled_back = False
@@ -85,10 +98,14 @@ class _Cursor:
         if "location_solution_adoption_program_redesigns" in normalized:
             self.description = tuple(_Column((name,)) for name in PROGRAM)
         elif "revise_location_solution_adoption_program" in normalized:
-            self.description = tuple(_Column((name,)) for name in self.connection.result)
+            self.result = self.connection.result
+            self.description = tuple(_Column((name,)) for name in self.result)
+        elif "configure_location_solution_adoption_consent_policy" in normalized:
+            self.result = POLICY_ROW
+            self.description = tuple(_Column((name,)) for name in POLICY_ROW)
 
     def fetchone(self):
-        return tuple(self.connection.result.values())
+        return tuple(self.result.values())
 
     def fetchall(self):
         return self.connection.rows
@@ -132,15 +149,23 @@ def test_revision_uses_exact_create_context_and_records_retryable_function_call(
         result = actions.revise_location_solution_adoption_program(
             OPERATOR_ID, LOCATION_ID, PROGRAM_ID, REQUEST_ID,
             "  Revised pathway  ",
+            consent_purpose="Track voluntary participation",
+            consent_version="1.0",
             local_adaptation_policy="  Keep safeguards  ",
             acknowledged=True,
             connection_factory=lambda: connection,
         )
 
     assert contexts[0]["action"] == "create" and contexts[0]["location_id"] == LOCATION_ID
-    query, params = connection.operations[-1]
+    query, params = connection.operations[-2]
     assert "revise_location_solution_adoption_program" in query
     assert params == (LOCATION_ID, PROGRAM_ID, REQUEST_ID, "Revised pathway", "Keep safeguards", True)
+    policy_query, policy_params = connection.operations[-1]
+    assert "configure_location_solution_adoption_consent_policy" in policy_query
+    assert policy_params == (
+        LOCATION_ID, REVISION_ID, REQUEST_ID,
+        "Track voluntary participation", "1.0", True,
+    )
     assert result == REVISED
     assert connection.committed and connection.closed and not connection.rolled_back
 
@@ -149,12 +174,16 @@ def test_revision_uses_exact_create_context_and_records_retryable_function_call(
     {"adoption_pathway": " "},
     {"adoption_pathway": "x" * 2001},
     {"local_adaptation_policy": "x" * 4001},
+    {"consent_purpose": " "},
+    {"consent_version": "bad version"},
     {"acknowledged": False},
 ])
 def test_revision_invalid_payload_fails_before_database_access(changes):
     payload = {
         "adoption_pathway": "A replacement pathway",
         "local_adaptation_policy": None,
+        "consent_purpose": "Track voluntary participation",
+        "consent_version": "1.0",
         "acknowledged": True,
     }
     payload.update(changes)
@@ -163,6 +192,8 @@ def test_revision_invalid_payload_fails_before_database_access(changes):
             OPERATOR_ID, LOCATION_ID, PROGRAM_ID, REQUEST_ID,
             payload["adoption_pathway"],
             local_adaptation_policy=payload["local_adaptation_policy"],
+            consent_purpose=payload["consent_purpose"],
+            consent_version=payload["consent_version"],
             acknowledged=payload["acknowledged"],
             connection_factory=lambda: pytest.fail("invalid revision must fail before DB access"),
         )
@@ -180,7 +211,8 @@ def test_revision_rolls_back_and_closes_on_database_failure():
         with pytest.raises(RuntimeError, match="revision failed"):
             actions.revise_location_solution_adoption_program(
                 OPERATOR_ID, LOCATION_ID, PROGRAM_ID, REQUEST_ID,
-                "Revised pathway", acknowledged=True,
+                "Revised pathway", consent_purpose="Track voluntary participation",
+                consent_version="1.0", acknowledged=True,
                 connection_factory=lambda: connection,
             )
     assert connection.rolled_back and connection.closed and not connection.committed
@@ -236,6 +268,8 @@ def test_revision_http_routes_enforce_allowlist_and_tenant_denial(monkeypatch):
             "request_id": REQUEST_ID,
             "adoption_pathway": "Revised pathway",
             "local_adaptation_policy": "Keep safeguards",
+            "consent_purpose": "Track voluntary participation",
+            "consent_version": "1.0",
             "acknowledged": True,
         })
         invalid = client.post(revise_path, json={
@@ -267,6 +301,7 @@ def test_revision_http_routes_enforce_allowlist_and_tenant_denial(monkeypatch):
     with TestClient(denied_app) as client:
         denied = client.post(revise_path, json={
             "request_id": REQUEST_ID, "adoption_pathway": "Revised pathway",
+            "consent_purpose": "Track voluntary participation", "consent_version": "1.0",
             "acknowledged": True,
         })
     assert denied.status_code == 403

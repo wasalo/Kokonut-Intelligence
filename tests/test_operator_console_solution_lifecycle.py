@@ -768,7 +768,8 @@ def test_adoption_program_draft_requires_exact_grants_filters_origin_and_preserv
     panel = re.search(r'<section id="solution-lifecycle-adoption-create".*?</section>', source, re.DOTALL)
     assert panel is not None
     assert "Requires exact location read and create grants" in panel.group(0)
-    assert "does not assess readiness" in panel.group(0)
+    assert "immutable participant-consent purpose and version" in panel.group(0)
+    assert "Consent must also be granted separately" in panel.group(0)
     assert 'solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate' in source
     assert '&& !hasSolutionLifecycleReview && !hasSolutionLifecycleSubmit' in source
     assert 'solutionLifecycleReadinessAssessment.hidden = !hasSolutionLifecycleCreate' in source
@@ -1749,6 +1750,47 @@ def test_adoption_program_submission_and_review_console_contract():
     )
     assert "Retry the unchanged adoption-program submission before changing locations." in location_change
     assert "Retry the unchanged adoption-program decision before changing locations." in location_change
+
+
+def test_adoption_consent_configuration_and_event_capture_console_contract():
+    source = CONSOLE.read_text(encoding="utf-8")
+    create = re.search(r'<section id="solution-lifecycle-adoption-program-create".*?</section>', source, re.DOTALL)
+    assert create is not None
+    assert 'id="solution-lifecycle-adoption-consent-purpose"' in create.group(0)
+    assert 'id="solution-lifecycle-adoption-consent-version"' in create.group(0)
+    assert "solution_adoption_participation" in create.group(0)
+
+    policy = _function(
+        source,
+        "async function configureSolutionLifecycleAdoptionConsentPolicy(",
+        "async function submitSolutionLifecycleAdoptionProgramDraft(",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in policy
+    assert "solutionLifecyclePendingAdoptionConsentPolicies" in policy
+    assert "/consent-policy`" in policy
+    assert 'credentials: "same-origin"' in policy and 'cache: "no-store"' in policy
+    assert '"X-CSRF-Token": csrf' in policy
+
+    form = _function(
+        source,
+        "function createSolutionLifecycleAdoptionEventForm(",
+        "function createSolutionLifecycleRetirementTransitionForm(",
+    )
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleAdoptionEvent(",
+        "function createSolutionLifecycleRetirementTransitionForm(",
+    )
+    assert 'participantRef.type = "password"' in form
+    assert "solutionLifecycleCollectLocations.has(locationId)" in submit
+    assert "locationId !== originalLocationId" in submit
+    assert "solutionLifecyclePendingAdoptionEvents" in submit
+    assert "/adoption/programs/${encodeURIComponent(record.program_id)}/events`" in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'participantRef.value = ""' in submit
+    assert "localStorage" not in form + submit
+    assert "innerHTML" not in form + submit + policy
 
 
 def test_adoption_program_redesign_revision_console_contract():
