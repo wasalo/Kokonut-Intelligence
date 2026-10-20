@@ -13,13 +13,15 @@ and experiment status pages in the lifecycle console. The gate page shows
 structural thresholds and latest evaluation state without evidence or reviewer
 identity; the experiment page shows fixed lifecycle metadata and only the latest
 explicitly reviewed outcome, without protocol narratives, metrics/values,
-observations, adverse-event details, or evidence. The combined CAP-025/CAP-035
-console, Gateway read/action, and route-policy selection passes 134 tests; Ruff,
+observations, adverse-event details, or evidence. The funding page exposes only
+case/tranche lifecycle labels, currency, and timestamps, never amounts, terms,
+rationale, evidence, or participant identities. The combined CAP-025/CAP-035
+console, Gateway read/action, and route-policy selection passes 136 tests; Ruff,
 inline JavaScript parsing, capability validation, inventory refresh, and diff
 checks pass. No database, migration, candidate, or legacy system was used.
 CAP-025 and CAP-035 remain prepared pending their remaining source/workflow
 parity, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and
-owner acceptance. Checklist: 722 complete / 24 open; matrix: 31
+owner acceptance. Checklist: 723 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows. Evidence:
 [CAP-025 contract](stakeholder-identity-kernel-contract.md),
 [CAP-035 contract](solution-lifecycle-kernel-read-contract.md), [console](../apps/operator-console/index.html), and
@@ -1997,4 +1999,23 @@ CAP-035 remains prepared pending experiment evidence/review and other item-level
 read/write workflows, populated fixture parity, live OIDC/browser, broader
 ACL/RLS, recovery, and owner acceptance. Checklist: 722 complete / 24 open;
 matrix: 66 rows (31 baseline-retained, 7 deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
+[tests](../tests/test_operator_console_solution_lifecycle.py).
+
+### CAP-035 funding and tranche status console — 20 October 2026
+
+Added a bounded funding/tranche list to the location-scoped lifecycle console,
+using the existing exact-grant `/funding` route. It displays solution labels,
+capital stage, instrument, currency, case/tranche state, and approval/release
+timestamps. It intentionally omits IDs, all amounts, milestone terms,
+rationale, evidence, and submitter/approver/releaser identities. Requests are
+same-origin, no-store, paginated in 25-row groups, and guarded against stale
+location responses. No approval or tranche-release action is present.
+
+The combined CAP-025/CAP-035 console, Gateway read/action, and exact route-policy
+selection passes 136 tests; Ruff and inline JavaScript parsing pass. No
+migration or database was used; candidate and legacy remain untouched. CAP-035
+stays prepared pending remaining lifecycle detail/write parity, populated
+fixtures, live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance.
+Checklist: 723 complete / 24 open; matrix: 66 rows (31 baseline-retained, 7
+deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
 [tests](../tests/test_operator_console_solution_lifecycle.py).

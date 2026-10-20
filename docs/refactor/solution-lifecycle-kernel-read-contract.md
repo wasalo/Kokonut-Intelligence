@@ -189,10 +189,13 @@ informational and the panel cannot approve or change a gate. It can also load a
 bounded experiment page showing lifecycle metadata and the latest explicitly
 reviewed outcome only. Protocol narratives, metric names/values, observations,
 adverse-event details, evidence, and reviewer identities remain excluded; the
-panel cannot approve or review results. Requests use the same-origin session,
-disable caching, and discard stale responses after a location change. No
-lifecycle mutation is available, and source checks do not constitute live
-OIDC/browser acceptance.
+panel cannot approve or review results. It also pages funding-case and tranche
+lifecycle labels, currency, and timestamps only. Amounts, milestone terms,
+rationale, evidence, and submitter/approver/releaser identities are excluded;
+the panel cannot approve funding or release tranches. Requests use the
+same-origin session, disable caching, and discard stale responses after a
+location change. No lifecycle mutation is available, and source checks do not
+constitute live OIDC/browser acceptance.
 
 ## Verification and remaining parity
 

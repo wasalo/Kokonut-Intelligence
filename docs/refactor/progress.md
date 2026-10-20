@@ -12122,3 +12122,22 @@ candidate, or legacy environment was touched. Remaining CAP-035 code and owner
 gates remain open. Checklist: 722 complete / 24 open; matrix: 31
 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
 [tests](../tests/test_operator_console_solution_lifecycle.py).
+
+### CAP-035 funding and tranche status console — 20 October 2026
+
+Added a paged funding/tranche status view backed by the existing exact-grant
+`/funding` route. It shows location-linked solution labels, capital stage,
+instrument, currency, case/tranche state, and approval/release timestamps.
+Amounts, milestone terms, rationale, evidence, and proposer/approver/releaser
+identities stay excluded; the console provides no approval or release actions.
+The view uses same-origin no-store reads, 25-row pages, and location
+stale-response guards.
+
+The combined CAP-025/CAP-035 console, Gateway read/action, and route-policy
+selection passes 136 tests with Ruff and Node.js syntax checks. Capability
+validation, inventory refresh, and diff checks pass. No migration or database
+was used. Other CAP-035 item details/write parity, populated fixtures, live
+OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
+Checklist: 723 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
+[tests](../tests/test_operator_console_solution_lifecycle.py).

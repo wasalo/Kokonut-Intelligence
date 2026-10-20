@@ -110,6 +110,44 @@ def test_experiment_renderer_limits_result_visibility_to_reviewed_enum_and_metad
     assert "innerHTML" not in renderer
 
 
+def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():
+    source = CONSOLE.read_text(encoding="utf-8")
+    reader = _function(source, "async function loadSolutionLifecycleFunding(", "function renderCoordinationSummary(")
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/funding?${params}`' in reader
+    assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
+    assert 'credentials: "same-origin"' in reader
+    assert 'cache: "no-store"' in reader
+    assert "solutionLifecycleLocations.has(locationId)" in reader
+    assert "requestVersion !== solutionLifecycleFundingRequestVersion" in reader
+    assert "locationId !== solutionLifecycleLocation.value" in reader
+    assert 'Array.isArray(result.funding)' in reader
+    assert "result.next_offset" in reader and "result.has_more" in reader
+    assert 'method: "POST"' not in reader
+    assert "innerHTML" not in reader
+
+
+def test_funding_renderer_omits_amounts_terms_evidence_and_party_details():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<h3>Funding and tranche status</h3>(.*?)</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "amounts, milestone terms, rationale, evidence" in panel.group(1)
+    renderer = _function(source, "function appendSolutionLifecycleFundingCase(", "async function loadSolutionLifecycleFunding(")
+    for field in (
+        "solution_name", "solution_type", "current_stage", "solution_status", "capital_stage",
+        "funding_instrument", "currency", "decision_status", "case_created_at", "case_approved_at",
+        "tranche_number", "tranche_status", "tranche_approved_at", "tranche_released_at",
+    ):
+        assert f"fundingCase.{field}" in renderer
+    for private_field in (
+        "funding_case_id", "tranche_id", "requested_amount", "authorized_amount", "amount",
+        "milestone", "rationale", "evidence", "submitted_by", "approved_by", "party_id",
+    ):
+        assert f"fundingCase.{private_field}" not in renderer
+    assert "No tranche recorded" in renderer
+    assert "textContent" in renderer
+    assert "innerHTML" not in renderer
+
+
 def test_renderer_uses_only_fixed_aggregate_groups_and_safe_dom_text():
     source = CONSOLE.read_text(encoding="utf-8")
     renderer = _function(source, "function renderSolutionLifecycleSummary(summary)", "async function loadSolutionLifecycleSummary()")
@@ -138,6 +176,8 @@ def test_console_ids_are_unique_and_refresh_controls_are_wired():
     assert 'solutionLifecycleGatesMore.addEventListener("click", () => loadSolutionLifecycleGates(true))' in source
     assert 'solutionLifecycleExperimentsLoad.addEventListener("click", () => loadSolutionLifecycleExperiments())' in source
     assert 'solutionLifecycleExperimentsMore.addEventListener("click", () => loadSolutionLifecycleExperiments(true))' in source
+    assert 'solutionLifecycleFundingLoad.addEventListener("click", () => loadSolutionLifecycleFunding())' in source
+    assert 'solutionLifecycleFundingMore.addEventListener("click", () => loadSolutionLifecycleFunding(true))' in source
     assert 'document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary)' in source
 
 
