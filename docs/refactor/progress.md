@@ -11714,3 +11714,25 @@ remain open. CAP-035 remains prepared, not accepted. Checklist: 700 complete /
 [Contract](solution-lifecycle-kernel-read-contract.md);
 [migration](../schemas/postgres/472_location_scoped_solution_learning.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-learning-disposable.json).
+
+### CAP-035 exact-origin retirement status — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/retirements` under
+the exact location `solution_lifecycle:read` grant and signed tenant context.
+Migration 473 returns retirement metadata only for solutions originated at the
+exact location. Since retirement records have no target scope, a location link
+alone does not expose shared-solution retirement state. The response includes
+type/status, approval presence, and approval/effective/post-review timestamps;
+it omits reasons, evidence, affected users, dependencies, replacement links,
+plans, risks, and identities. The 117-test Gateway, route-policy, and migration
+metadata selection passes. Disposable PostgreSQL 16 applies/replays migrations
+459 and 466–473 and passes eight grouped scope, privacy, authorization, paging,
+summary-compatibility, and runtime/Directus checks. Ruff and compilation pass.
+Candidate and legacy databases remain untouched; migration 473 is not rolled
+out. Retirement write/review workflows, populated parity, live OIDC/browser,
+broader ACL/RLS, recovery, and MAN-CAP-035 owner review remain open. CAP-035
+remains prepared, not accepted. Checklist: 701 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, and 28 prepared.
+[Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/473_location_scoped_solution_retirements.sql);
+[disposable evidence](builds/2026-10-19-recovery/cap-035-solution-retirements-disposable.json).
