@@ -10,10 +10,16 @@ not represented as row-level evidence links. The focused Gateway, route-policy,
 and legacy suggestion selection passes 33 tests; eight database-backed legacy
 checks skip because localhost PostgreSQL is unavailable. Ruff, compilation,
 matrix validation, and diff checks pass; no database or migration was touched.
-The thirteen-section status, canvas edit/version routes, populated output
-parity, live OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain
-open. Checklist: 689 complete / 24 open; matrix: 31 baseline-retained,
-7 deployed, 28 prepared. [Contract](business-planning-kernel-write-contract.md),
+The fourteen-section status source now rolls back failed sections to PostgreSQL
+savepoints, omits network-wide stakeholder architecture links from a location
+report, and counts only published anti-capture policies assigned to that
+location. Twenty-eight focused mocked tests pass with Ruff and compilation;
+generated report-query inventories were refreshed. This is source-scope
+hardening, not Gateway exposure or populated-output acceptance. Canvas
+edit/version routes, populated output parity, live OIDC/browser, universal
+ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 690 complete / 24 open;
+matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+[Contract](business-planning-kernel-write-contract.md),
 [tests](../tests/test_gateway_business_planning_writes.py), and
 [evidence](builds/2026-10-19-recovery/cap-065-gateway-generated-draft.json).
 
@@ -50,7 +56,7 @@ because local PostgreSQL is unavailable. This does not create a Gateway-native
 suggestion workflow or establish populated parity.
 
 CAP-065 is prepared, not accepted. Gateway-native generated suggestions,
-thirteen-section status, edit/version and populated-output parity, live
+fourteen-section status, edit/version and populated-output parity, live
 OIDC/browser, universal ACL/RLS, and MAN-CAP-065 review remain open. Checklist:
 688 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
 See the [write contract](business-planning-kernel-write-contract.md),

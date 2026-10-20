@@ -5,8 +5,8 @@
   "summary": {
     "registered_report_types": 94,
     "reports_with_resolved_helper_query_sites": 34,
-    "reachable_helper_query_sites_per_report": 167,
-    "helper_query_sites_with_location_scope_signal": 63,
+    "reachable_helper_query_sites_per_report": 175,
+    "helper_query_sites_with_location_scope_signal": 65,
     "unresolved_local_helper_calls": 0
   },
   "reports": [
@@ -414,7 +414,7 @@
         {
           "caller": "services/analytics/business_model_canvas.py:compute_health",
           "callee": "services/analytics/business_model_canvas.py:get",
-          "line": 459,
+          "line": 484,
           "depth": 2
         }
       ],
@@ -422,7 +422,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "list_canvas",
-          "line": 133,
+          "line": 126,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -437,7 +437,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 149,
+          "line": 142,
           "relations": [
             "business_model_canvas"
           ],
@@ -454,7 +454,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 155,
+          "line": 148,
           "relations": [
             "customer_job"
           ],
@@ -471,7 +471,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 160,
+          "line": 153,
           "relations": [
             "pain_point"
           ],
@@ -488,7 +488,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "get",
-          "line": 165,
+          "line": 158,
           "relations": [
             "gain_creator"
           ],
@@ -505,7 +505,7 @@
         {
           "source_file": "services/analytics/business_model_canvas.py",
           "callable": "compute_health",
-          "line": 500,
+          "line": 525,
           "relations": [],
           "sql_source": "static_or_resolved",
           "bound_location_scope_signal": false,
@@ -966,7 +966,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 608,
+          "line": 632,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -983,7 +983,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 621,
+          "line": 645,
           "relations": [],
           "sql_source": "dynamic_or_unresolved",
           "bound_location_scope_signal": false,
@@ -1000,7 +1000,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 637,
+          "line": 661,
           "relations": [
             "crop",
             "price_observation"
@@ -1020,7 +1020,7 @@
         {
           "source_file": "services/analytics/marketplace.py",
           "callable": "get_market_overview",
-          "line": 654,
+          "line": 678,
           "relations": [
             "market_listing",
             "market_order"
@@ -1698,7 +1698,7 @@
         {
           "caller": "generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 818,
+          "line": 833,
           "depth": 1
         },
         {
@@ -1776,7 +1776,7 @@
         {
           "caller": "services/capital/credit.py:list_draft_credits",
           "callee": "services/capital/credit.py:_clean",
-          "line": 118,
+          "line": 190,
           "depth": 3
         }
       ],
@@ -1840,12 +1840,12 @@
         {
           "source_file": "services/capital/capture.py",
           "callable": "capture_risk",
-          "line": 62,
+          "line": 64,
           "relations": [
             "anti_capture_governance_policy"
           ],
           "sql_source": "static_or_resolved",
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -1858,7 +1858,7 @@
         {
           "source_file": "services/capital/credit.py",
           "callable": "list_draft_credits",
-          "line": 110,
+          "line": 182,
           "relations": [
             "regenerative_credit_ledger"
           ],
@@ -1876,7 +1876,7 @@
         {
           "source_file": "services/capital/credit.py",
           "callable": "credit_capacity",
-          "line": 131,
+          "line": 203,
           "relations": [
             "regenerative_credit_ledger"
           ],
@@ -1910,7 +1910,7 @@
         }
       ],
       "helper_query_site_count": 7,
-      "helper_query_sites_with_location_scope_signal": 5,
+      "helper_query_sites_with_location_scope_signal": 6,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -1988,7 +1988,7 @@
         {
           "caller": "generate_capital_provider_utility",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 480,
+          "line": 554,
           "depth": 1
         },
         {
@@ -2020,25 +2020,25 @@
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_carbon_balance",
-          "line": 489,
+          "line": 504,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_ghg_emissions",
-          "line": 490,
+          "line": 505,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_tree_carbon",
-          "line": 491,
+          "line": 506,
           "depth": 1
         },
         {
           "caller": "generate_climate_impact",
           "callee": "services/analytics/carbon_balance.py:compute_regenerative_score",
-          "line": 492,
+          "line": 507,
           "depth": 1
         },
         {
@@ -2279,7 +2279,10 @@
         "services/capital/diversion.py:_sum",
         "services/capital/diversion.py:compute_diversion_index",
         "services/common/errors.py:safe_exception_class",
+        "services/export/reports/state.py:_composite_section_savepoint",
+        "services/export/reports/state.py:_harvest_quantity_overview",
         "services/export/reports/state.py:_report_error_summary",
+        "services/export/reports/state.py:_run_composite_section",
         "services/export/reports/state.py:_state_of_kokonut_locations",
         "services/export/reports/strategy.py:generate_capital_accounting"
       ],
@@ -2287,37 +2290,61 @@
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_state_of_kokonut_locations",
-          "line": 305,
+          "line": 387,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
-          "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 318,
+          "callee": "services/export/reports/state.py:_run_composite_section",
+          "line": 396,
+          "depth": 1
+        },
+        {
+          "caller": "generate_comprehensive_status",
+          "callee": "services/export/reports/state.py:_composite_section_savepoint",
+          "line": 400,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/strategy.py:generate_capital_accounting",
-          "line": 321,
+          "line": 401,
           "depth": 1
         },
         {
           "caller": "generate_comprehensive_status",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 326,
+          "line": 406,
           "depth": 1
         },
         {
-          "caller": "services/export/reports/state.py:_state_of_kokonut_locations",
+          "caller": "generate_comprehensive_status",
+          "callee": "services/export/reports/state.py:_harvest_quantity_overview",
+          "line": 423,
+          "depth": 1
+        },
+        {
+          "caller": "services/export/reports/state.py:_run_composite_section",
+          "callee": "services/export/reports/state.py:_composite_section_savepoint",
+          "line": 63,
+          "depth": 2
+        },
+        {
+          "caller": "services/export/reports/state.py:_run_composite_section",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 83,
+          "line": 66,
+          "depth": 2
+        },
+        {
+          "caller": "services/export/reports/state.py:_state_of_kokonut_locations",
+          "callee": "services/export/reports/state.py:_run_composite_section",
+          "line": 149,
           "depth": 2
         },
         {
           "caller": "services/export/reports/strategy.py:generate_capital_accounting",
           "callee": "services/capital/accounting_report.py:build_capital_accounting",
-          "line": 818,
+          "line": 833,
           "depth": 2
         },
         {
@@ -2395,7 +2422,7 @@
         {
           "caller": "services/capital/credit.py:list_draft_credits",
           "callee": "services/capital/credit.py:_clean",
-          "line": 118,
+          "line": 190,
           "depth": 4
         }
       ],
@@ -2462,12 +2489,12 @@
         {
           "source_file": "services/capital/capture.py",
           "callable": "capture_risk",
-          "line": 62,
+          "line": 64,
           "relations": [
             "anti_capture_governance_policy"
           ],
           "sql_source": "static_or_resolved",
-          "bound_location_scope_signal": false,
+          "bound_location_scope_signal": true,
           "location_scope_conditionally_added": false,
           "reachable_via": [
             [
@@ -2481,7 +2508,7 @@
         {
           "source_file": "services/capital/credit.py",
           "callable": "list_draft_credits",
-          "line": 110,
+          "line": 182,
           "relations": [
             "regenerative_credit_ledger"
           ],
@@ -2500,7 +2527,7 @@
         {
           "source_file": "services/capital/credit.py",
           "callable": "credit_capacity",
-          "line": 131,
+          "line": 203,
           "relations": [
             "regenerative_credit_ledger"
           ],
@@ -2536,8 +2563,68 @@
         },
         {
           "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 48,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_comprehensive_status",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 52,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_comprehensive_status",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 55,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_comprehensive_status",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 56,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_comprehensive_status",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_locations",
-          "line": 45,
+          "line": 114,
           "relations": [
             "location"
           ],
@@ -2554,7 +2641,7 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_locations",
-          "line": 50,
+          "line": 119,
           "relations": [
             "location"
           ],
@@ -2569,8 +2656,8 @@
           ]
         }
       ],
-      "helper_query_site_count": 9,
-      "helper_query_sites_with_location_scope_signal": 5,
+      "helper_query_site_count": 13,
+      "helper_query_sites_with_location_scope_signal": 6,
       "classification": "mixed_resolved_helper_query_scope_signals",
       "unresolved_local_helper_calls": []
     },
@@ -2748,13 +2835,13 @@
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:list_scans",
-          "line": 638,
+          "line": 653,
           "depth": 1
         },
         {
           "caller": "generate_env_scan_report",
           "callee": "services/analytics/env_scanning.py:render_markdown",
-          "line": 647,
+          "line": 662,
           "depth": 1
         }
       ],
@@ -2762,7 +2849,7 @@
         {
           "source_file": "services/analytics/env_scanning.py",
           "callable": "list_scans",
-          "line": 152,
+          "line": 151,
           "relations": [
             "env_scan",
             "location"
@@ -2780,7 +2867,7 @@
         {
           "source_file": "services/analytics/env_scanning.py",
           "callable": "list_scans",
-          "line": 161,
+          "line": 160,
           "relations": [
             "env_scan",
             "location"
@@ -2825,25 +2912,25 @@
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_value",
-          "line": 154,
+          "line": 169,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 155,
+          "line": 170,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 156,
+          "line": 171,
           "depth": 1
         },
         {
           "caller": "generate_farm_summary",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 157,
+          "line": 172,
           "depth": 1
         },
         {
@@ -2976,7 +3063,7 @@
         {
           "caller": "generate_fork_opportunities",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 671,
+          "line": 686,
           "depth": 1
         }
       ],
@@ -3663,13 +3750,13 @@
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:list_analyses",
-          "line": 557,
+          "line": 572,
           "depth": 1
         },
         {
           "caller": "generate_pestel_assessment",
           "callee": "services/analytics/pestel.py:render_markdown",
-          "line": 566,
+          "line": 581,
           "depth": 1
         }
       ],
@@ -3677,7 +3764,7 @@
         {
           "source_file": "services/analytics/pestel.py",
           "callable": "list_analyses",
-          "line": 105,
+          "line": 123,
           "relations": [
             "location",
             "pestel_analysis"
@@ -3695,7 +3782,7 @@
         {
           "source_file": "services/analytics/pestel.py",
           "callable": "list_analyses",
-          "line": 114,
+          "line": 132,
           "relations": [
             "location",
             "pestel_analysis"
@@ -3728,7 +3815,7 @@
         {
           "caller": "generate_pin_dependency",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 688,
+          "line": 703,
           "depth": 1
         },
         {
@@ -4688,7 +4775,7 @@
         {
           "caller": "generate_promotion_ladder",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 706,
+          "line": 721,
           "depth": 1
         }
       ],
@@ -4733,19 +4820,19 @@
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_publics",
-          "line": 609,
+          "line": 624,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:list_segments",
-          "line": 610,
+          "line": 625,
           "depth": 1
         },
         {
           "caller": "generate_publics_market_landscape",
           "callee": "services/analytics/publics.py:influence_interest_matrix",
-          "line": 611,
+          "line": 626,
           "depth": 1
         },
         {
@@ -4940,13 +5027,13 @@
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:list_assessments",
-          "line": 583,
+          "line": 598,
           "depth": 1
         },
         {
           "caller": "generate_regional_readiness",
           "callee": "services/analytics/regional_readiness.py:render_markdown",
-          "line": 592,
+          "line": 607,
           "depth": 1
         }
       ],
@@ -5094,7 +5181,7 @@
         {
           "caller": "generate_revenue_multiplier",
           "callee": "services/revenue_multiplier/analyzer.py:analyze_location",
-          "line": 337,
+          "line": 352,
           "depth": 1
         },
         {
@@ -5408,6 +5495,7 @@
         "services/simulation/resolution.py:monte_carlo",
         "services/simulation/resolution.py:resolve_clash",
         "services/strategic_reserve/health.py:_breaches",
+        "services/strategic_reserve/health.py:_preempt_status",
         "services/strategic_reserve/health.py:_preempt_value",
         "services/strategic_reserve/health.py:compute_adequacy",
         "services/strategic_reserve/health.py:evaluate_trigger",
@@ -5417,25 +5505,25 @@
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:list_twins",
-          "line": 787,
+          "line": 802,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/analytics/digital_twin.py:monte_carlo_yield",
-          "line": 789,
+          "line": 804,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/simulation/clash_examples.py:stress_reserve",
-          "line": 791,
+          "line": 806,
           "depth": 1
         },
         {
           "caller": "generate_simulation_wargame",
           "callee": "services/common/errors.py:safe_exception_class",
-          "line": 794,
+          "line": 809,
           "depth": 1
         },
         {
@@ -5471,37 +5559,43 @@
         {
           "caller": "services/simulation/resolution.py:monte_carlo",
           "callee": "services/simulation/resolution.py:_coerce_sampler",
-          "line": 120,
+          "line": 121,
           "depth": 3
         },
         {
           "caller": "services/strategic_reserve/health.py:reserve_health",
           "callee": "services/strategic_reserve/health.py:compute_adequacy",
-          "line": 178,
+          "line": 192,
           "depth": 3
         },
         {
           "caller": "services/strategic_reserve/health.py:reserve_health",
           "callee": "services/strategic_reserve/health.py:evaluate_trigger",
-          "line": 179,
+          "line": 193,
           "depth": 3
         },
         {
           "caller": "services/strategic_reserve/health.py:evaluate_trigger",
           "callee": "services/strategic_reserve/health.py:_breaches",
-          "line": 131,
+          "line": 143,
+          "depth": 4
+        },
+        {
+          "caller": "services/strategic_reserve/health.py:evaluate_trigger",
+          "callee": "services/strategic_reserve/health.py:_preempt_status",
+          "line": 146,
           "depth": 4
         },
         {
           "caller": "services/strategic_reserve/health.py:evaluate_trigger",
           "callee": "services/strategic_reserve/health.py:_preempt_value",
-          "line": 134,
+          "line": 147,
           "depth": 4
         },
         {
           "caller": "services/strategic_reserve/health.py:evaluate_trigger",
           "callee": "services/strategic_reserve/health.py:_breaches",
-          "line": 135,
+          "line": 148,
           "depth": 4
         }
       ],
@@ -5579,7 +5673,7 @@
         {
           "source_file": "services/strategic_reserve/health.py",
           "callable": "evaluate_trigger",
-          "line": 117,
+          "line": 129,
           "relations": [
             "metric_definition",
             "metric_value"
@@ -5599,7 +5693,7 @@
         {
           "source_file": "services/strategic_reserve/health.py",
           "callable": "reserve_health",
-          "line": 173,
+          "line": 187,
           "relations": [
             "strategic_reserve"
           ],
@@ -5747,7 +5841,10 @@
       "resolved_helper_functions": [
         "services/common/utils.py:serialize_rows",
         "services/common/utils.py:serialize_value",
+        "services/export/reports/state.py:_composite_section_savepoint",
+        "services/export/reports/state.py:_harvest_quantity_overview",
         "services/export/reports/state.py:_report_error_summary",
+        "services/export/reports/state.py:_run_composite_section",
         "services/export/reports/state.py:_state_of_kokonut_actors",
         "services/export/reports/state.py:_state_of_kokonut_locations"
       ],
@@ -5755,43 +5852,49 @@
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_state_of_kokonut_locations",
-          "line": 179,
+          "line": 267,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut",
           "callee": "services/export/reports/state.py:_state_of_kokonut_actors",
-          "line": 180,
+          "line": 268,
+          "depth": 1
+        },
+        {
+          "caller": "generate_state_of_kokonut",
+          "callee": "services/export/reports/state.py:_harvest_quantity_overview",
+          "line": 283,
           "depth": 1
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_locations",
-          "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 83,
+          "callee": "services/export/reports/state.py:_run_composite_section",
+          "line": 149,
           "depth": 2
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 155,
+          "line": 241,
           "depth": 2
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 156,
+          "line": 242,
           "depth": 2
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 157,
+          "line": 243,
           "depth": 2
         },
         {
           "caller": "services/export/reports/state.py:_state_of_kokonut_actors",
           "callee": "services/common/utils.py:serialize_rows",
-          "line": 158,
+          "line": 244,
           "depth": 2
         },
         {
@@ -5799,13 +5902,93 @@
           "callee": "services/common/utils.py:serialize_value",
           "line": 28,
           "depth": 3
+        },
+        {
+          "caller": "services/export/reports/state.py:_run_composite_section",
+          "callee": "services/export/reports/state.py:_composite_section_savepoint",
+          "line": 63,
+          "depth": 3
+        },
+        {
+          "caller": "services/export/reports/state.py:_run_composite_section",
+          "callee": "services/export/reports/state.py:_report_error_summary",
+          "line": 66,
+          "depth": 3
         }
       ],
       "reachable_helper_query_sites": [
         {
           "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 48,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_state_of_kokonut",
+              "services/export/reports/state.py:_state_of_kokonut_locations",
+              "services/export/reports/state.py:_run_composite_section",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 52,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_state_of_kokonut",
+              "services/export/reports/state.py:_state_of_kokonut_locations",
+              "services/export/reports/state.py:_run_composite_section",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 55,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_state_of_kokonut",
+              "services/export/reports/state.py:_state_of_kokonut_locations",
+              "services/export/reports/state.py:_run_composite_section",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
+          "callable": "_composite_section_savepoint",
+          "line": 56,
+          "relations": [],
+          "sql_source": "static_or_resolved",
+          "bound_location_scope_signal": false,
+          "location_scope_conditionally_added": false,
+          "reachable_via": [
+            [
+              "generate_state_of_kokonut",
+              "services/export/reports/state.py:_state_of_kokonut_locations",
+              "services/export/reports/state.py:_run_composite_section",
+              "services/export/reports/state.py:_composite_section_savepoint"
+            ]
+          ]
+        },
+        {
+          "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_locations",
-          "line": 45,
+          "line": 114,
           "relations": [
             "location"
           ],
@@ -5822,7 +6005,7 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_locations",
-          "line": 50,
+          "line": 119,
           "relations": [
             "location"
           ],
@@ -5839,7 +6022,7 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 98,
+          "line": 165,
           "relations": [
             "funding_round"
           ],
@@ -5856,7 +6039,7 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 113,
+          "line": 180,
           "relations": [
             "funding_round"
           ],
@@ -5873,7 +6056,7 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 125,
+          "line": 193,
           "relations": [
             "funding_round",
             "project_funding"
@@ -5891,7 +6074,7 @@
         {
           "source_file": "services/export/reports/state.py",
           "callable": "_state_of_kokonut_actors",
-          "line": 139,
+          "line": 207,
           "relations": [
             "funding_round"
           ],
@@ -5906,7 +6089,7 @@
           ]
         }
       ],
-      "helper_query_site_count": 6,
+      "helper_query_site_count": 10,
       "helper_query_sites_with_location_scope_signal": 0,
       "classification": "no_location_scope_signal_in_resolved_helper_queries",
       "unresolved_local_helper_calls": []
@@ -5927,13 +6110,13 @@
         {
           "caller": "generate_state_of_kokonut_graphs",
           "callee": "services/export/kokonut_graphs.py:build_all",
-          "line": 243,
+          "line": 325,
           "depth": 1
         },
         {
           "caller": "generate_state_of_kokonut_graphs",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 263,
+          "line": 345,
           "depth": 1
         },
         {
@@ -6203,6 +6386,7 @@
       "resolved_helper_functions": [
         "services/export/reports/state.py:_report_error_summary",
         "services/strategic_reserve/health.py:_breaches",
+        "services/strategic_reserve/health.py:_preempt_status",
         "services/strategic_reserve/health.py:_preempt_value",
         "services/strategic_reserve/health.py:compute_adequacy",
         "services/strategic_reserve/health.py:evaluate_trigger",
@@ -6213,49 +6397,55 @@
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/strategic_reserve/health.py:reserve_health",
-          "line": 410,
+          "line": 484,
           "depth": 1
         },
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/strategic_reserve/health.py:seed_vault_health",
-          "line": 417,
+          "line": 491,
           "depth": 1
         },
         {
           "caller": "generate_strategic_reserve",
           "callee": "services/export/reports/state.py:_report_error_summary",
-          "line": 419,
+          "line": 493,
           "depth": 1
         },
         {
           "caller": "services/strategic_reserve/health.py:reserve_health",
           "callee": "services/strategic_reserve/health.py:compute_adequacy",
-          "line": 178,
+          "line": 192,
           "depth": 2
         },
         {
           "caller": "services/strategic_reserve/health.py:reserve_health",
           "callee": "services/strategic_reserve/health.py:evaluate_trigger",
-          "line": 179,
+          "line": 193,
           "depth": 2
         },
         {
           "caller": "services/strategic_reserve/health.py:evaluate_trigger",
           "callee": "services/strategic_reserve/health.py:_breaches",
-          "line": 131,
+          "line": 143,
+          "depth": 3
+        },
+        {
+          "caller": "services/strategic_reserve/health.py:evaluate_trigger",
+          "callee": "services/strategic_reserve/health.py:_preempt_status",
+          "line": 146,
           "depth": 3
         },
         {
           "caller": "services/strategic_reserve/health.py:evaluate_trigger",
           "callee": "services/strategic_reserve/health.py:_preempt_value",
-          "line": 134,
+          "line": 147,
           "depth": 3
         },
         {
           "caller": "services/strategic_reserve/health.py:evaluate_trigger",
           "callee": "services/strategic_reserve/health.py:_breaches",
-          "line": 135,
+          "line": 148,
           "depth": 3
         }
       ],
@@ -6263,7 +6453,7 @@
         {
           "source_file": "services/strategic_reserve/health.py",
           "callable": "evaluate_trigger",
-          "line": 117,
+          "line": 129,
           "relations": [
             "metric_definition",
             "metric_value"
@@ -6282,7 +6472,7 @@
         {
           "source_file": "services/strategic_reserve/health.py",
           "callable": "reserve_health",
-          "line": 173,
+          "line": 187,
           "relations": [
             "strategic_reserve"
           ],
@@ -6299,7 +6489,7 @@
         {
           "source_file": "services/strategic_reserve/health.py",
           "callable": "seed_vault_health",
-          "line": 202,
+          "line": 216,
           "relations": [
             "crop_cycle",
             "tree_inventory"
@@ -6467,31 +6657,31 @@
         {
           "caller": "generate_tactical_layer",
           "callee": "services/events/fork_detector.py:detect_fork_opportunities",
-          "line": 727,
+          "line": 742,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/threatcasting/preempt.py:plan_preemptive_actions",
-          "line": 728,
+          "line": 743,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/pin_dependency.py:detect_pin_blocks",
-          "line": 729,
+          "line": 744,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/feedback/automation.py:detect_zwischenzug",
-          "line": 730,
+          "line": 745,
           "depth": 1
         },
         {
           "caller": "generate_tactical_layer",
           "callee": "services/analytics/promotion_ladder.py:compute_promotion_ladder",
-          "line": 731,
+          "line": 746,
           "depth": 1
         },
         {

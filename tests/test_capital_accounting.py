@@ -119,6 +119,17 @@ def test_capture_risk_high_concentration():
     assert fin["capture_risk_level"] == "high"
 
 
+def test_capture_risk_counts_only_published_policies_for_the_location():
+    conn = _conn({})
+
+    capture.capture_risk(conn, "location-a")
+
+    query, params = conn.cursor.return_value.execute.call_args.args
+    assert "location_id = %s" in query
+    assert "status = 'published'" in query
+    assert params == ("location-a",)
+
+
 # --- credit ledger (DRAFT-only) ----------------------------------------------
 
 def test_propose_credit_creates_draft():

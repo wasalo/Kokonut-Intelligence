@@ -81,7 +81,7 @@ def test_comprehensive_status_redacts_section_failures(monkeypatch):
         lambda *_args: (_ for _ in ()).throw(ValueError(SECRET)),
     )
 
-    report = state.generate_comprehensive_status(object(), location_id="location-1")
+    report = state.generate_comprehensive_status(MagicMock(), location_id="location-1")
 
     sections = report["locations"][0]["sections"]
     assert sections["foundational_wellbeing"]["error"] == (

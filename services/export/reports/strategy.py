@@ -390,7 +390,12 @@ def generate_stakeholder_ecosystem(conn, location_id=None, period_start=None, pe
 
 
 def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, period_end=None):
-    """Generate stakeholder outcomes from governed outcomes and architecture links."""
+    """Generate stakeholder outcomes from governed outcomes and architecture links.
+
+    The architecture view is network-wide and has no location lineage. Include
+    it only for an explicitly network-wide report; a location report must not
+    expose another farm's stakeholder relationships.
+    """
     with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         query = "SELECT * FROM stakeholder_outcome WHERE status IN ('verified', 'published')"
         params = []
@@ -400,18 +405,28 @@ def generate_stakeholder_outcomes(conn, location_id=None, period_start=None, per
         query += " ORDER BY created_at DESC"
         cur.execute(query, params)
         outcomes = [dict(row) for row in cur.fetchall()]
-        cur.execute("SELECT * FROM v_stakeholder_capability_value_stream ORDER BY entity_type, entity_name, party_name")
-        architecture = [dict(row) for row in cur.fetchall()]
+        architecture = []
+        if not location_id:
+            cur.execute(
+                "SELECT * FROM v_stakeholder_capability_value_stream "
+                "ORDER BY entity_type, entity_name, party_name"
+            )
+            architecture = [dict(row) for row in cur.fetchall()]
+    limitations = [
+        "Only verified or published governed outcomes are included.",
+        "Outcome presence does not establish causal attribution or satisfaction without supporting evidence.",
+    ]
+    if location_id:
+        limitations.append(
+            "Network-wide capability and value-stream links are omitted because their source view has no location lineage."
+        )
     return {
         "report_type": "stakeholder_outcomes",
         "location_id": location_id,
         "outcome_count": len(outcomes),
         "outcomes": outcomes,
         "capability_and_value_stream_links": architecture,
-        "limitations": [
-            "Only verified or published governed outcomes are included.",
-            "Outcome presence does not establish causal attribution or satisfaction without supporting evidence.",
-        ],
+        "limitations": limitations,
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 

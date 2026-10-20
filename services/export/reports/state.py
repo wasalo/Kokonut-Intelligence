@@ -1,5 +1,6 @@
 """State-of-Kokonut and network-level report generators."""
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 
@@ -37,6 +38,32 @@ def _report_error_summary(operation: str, exc: Exception) -> str:
     if not name.isascii() or not name.isidentifier() or len(name) > 64:
         name = "Exception"
     return f"{operation} failed ({name})"
+
+
+@contextmanager
+def _composite_section_savepoint(conn):
+    """Isolate one read-only report section from PostgreSQL statement failures."""
+    savepoint = "kokonut_comprehensive_status_section"
+    with conn.cursor() as cur:
+        cur.execute(f"SAVEPOINT {savepoint}")
+    try:
+        yield
+        with conn.cursor() as cur:
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+    except Exception:
+        with conn.cursor() as cur:
+            cur.execute(f"ROLLBACK TO SAVEPOINT {savepoint}")
+            cur.execute(f"RELEASE SAVEPOINT {savepoint}")
+        raise
+
+
+def _run_composite_section(conn, fn, *args, operation="report section"):
+    """Run a dynamic report section and return a bounded failure summary."""
+    try:
+        with _composite_section_savepoint(conn):
+            return fn(*args)
+    except Exception as exc:  # noqa: BLE001 - isolate individual report sections
+        return {"error": _report_error_summary(operation, exc)}
 
 
 def _harvest_quantity_overview(entries):
@@ -104,7 +131,8 @@ def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
             "region": loc.get("region"),
             "sections": {},
         }
-        # Compose existing per-location generators; one failure must not break the composite.
+        # Compose existing per-location generators; a failed SQL statement must
+        # be rolled back to its savepoint before the next section runs.
         for section, fn in (
             ("farm_summary", generate_farm_summary),
             ("crop_noi", generate_crop_noi),
@@ -118,12 +146,9 @@ def _state_of_kokonut_locations(conn, location_ids, period_start, period_end):
             ("training_impact", generate_training_impact),
             ("regenerative_outcomes", generate_regenerative_outcomes),
         ):
-            try:
-                entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
-            except Exception as exc:  # noqa: BLE001 - keep composite resilient
-                entry["sections"][section] = {
-                    "error": _report_error_summary("report section", exc)
-                }
+            entry["sections"][section] = _run_composite_section(
+                conn, fn, conn, loc_id, period_start, period_end
+            )
         composed.append(entry)
     return locations, composed
 
@@ -345,8 +370,8 @@ def generate_comprehensive_status(
     Composes the canonical per-location sections (farm, crop NOI, environmental,
     climate impact, financial sustainability, capital efficiency, holistic and
     foundational wellbeing, community governance, GNH alignment, training
-    impact, regenerative outcomes, stakeholder outcomes) into one document for
-    one, many, or all locations. When no location is selected (or ``--all``),
+    impact, regenerative outcomes, stakeholder outcomes, and capital accounting)
+    into one document for one, many, or all locations. When no location is selected (or ``--all``),
     the report is network-wide: it nests per-location bundles and adds an
     ecosystem rollup. Each section is called defensively; one failure is
     isolated and reported as an error rather than breaking the composite.
@@ -368,16 +393,14 @@ def generate_comprehensive_status(
             ("foundational_wellbeing", generate_foundational_wellbeing),
             ("stakeholder_outcomes", generate_stakeholder_outcomes),
         ):
-            try:
-                entry["sections"][section] = fn(conn, loc_id, period_start, period_end)
-            except Exception as exc:  # noqa: BLE001 - keep composite resilient
-                entry["sections"][section] = {
-                    "error": _report_error_summary("report section", exc)
-                }
-        try:
-            entry["sections"]["capital_accounting"] = generate_capital_accounting(
-                conn, loc_id, period_start, period_end
+            entry["sections"][section] = _run_composite_section(
+                conn, fn, conn, loc_id, period_start, period_end
             )
+        try:
+            with _composite_section_savepoint(conn):
+                entry["sections"]["capital_accounting"] = generate_capital_accounting(
+                    conn, loc_id, period_start, period_end
+                )
         except Exception as exc:  # noqa: BLE001 - keep composite resilient
             entry["sections"]["capital_accounting"] = {
                 "error": _report_error_summary("capital accounting", exc)
