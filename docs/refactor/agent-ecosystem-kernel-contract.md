@@ -109,27 +109,31 @@ supplied record against the exact location, binds manifests to the authenticated
 them only through exact location draft/review functions. The console renders
 the row IDs safely under the existing review grant. Draft generation uses
 `REPEATABLE READ` so summary values and references share one database snapshot.
-Old summaries are not
-backfilled. Global reference tables such as crop and expense category, every
-legacy/background agent source, and full source snapshots remain outside this
-slice; these row references help locate evidence but do not prove its content.
+Migration 524 extends the manifest to shared `crop` and `expense_category`
+records only when they are linked through this location's verified sales or
+the displayed top-five verified expense categories. The setter checks those
+relationships and the drafter role receives only the needed source columns.
+Old summaries are not backfilled; other global references, legacy/background
+agent sources, and full source snapshots remain outside this slice. The row
+references help locate evidence but do not prove its content.
 
 The focused Gateway, route-policy, console, source-reference, and safety
-selection passes 62 tests with nine PostgreSQL-dependent skips; Ruff, Python
+selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python
 compilation, and JavaScript syntax checks pass. Disposable PostgreSQL 16
-applies/replays migrations 521–523 on a network-disabled container and passes
-11 grouped draft/review, attribution,
+applies/replays migrations 521–524 on a network-disabled container and passes
+12 grouped draft/review, attribution,
 idempotency, location binding, manifest privacy/immutability, self-review,
 legacy-blocker, lifecycle, and privilege checks. Candidate and legacy
-databases remain untouched; migration 523 is not rolled out. See the
+databases remain untouched; migration 524 is not rolled out. See the
 [migration 521](../../schemas/postgres/521_location_scoped_ai_summary_review.sql),
 [migration 522](../../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
 [migration 523](../../schemas/postgres/523_ai_summary_source_references.sql),
+[migration 524](../../schemas/postgres/524_ai_summary_global_source_references.sql),
 [draft Gateway tests](../../tests/test_gateway_ai_summary_draft.py),
 [review Gateway tests](../../tests/test_gateway_ai_summary_review.py),
 [source reference tests](../../tests/test_ai_summary_source_references.py),
 [console checks](../../tests/test_operator_console_ai_summary_review.py), and
-[disposable evidence](builds/2026-10-20-recovery/cap-038-ai-summary-source-references-disposable.json).
+[disposable evidence](builds/2026-10-20-recovery/cap-038-ai-summary-global-source-references-disposable.json).
 
 ## Verification and limits
 

@@ -31,7 +31,7 @@ from services.agents.tasks import (
 from services.common.database import get_db
 
 _SOURCE_REFERENCE_LIMIT = 50
-_LOCATION_SOURCE_TABLES = {
+_SOURCE_REFERENCE_TABLES = {
     "harvest_event",
     "sales_event",
     "crop_cycle",
@@ -42,6 +42,8 @@ _LOCATION_SOURCE_TABLES = {
     "species_observation",
     "remote_sensing_observation",
     "weather_observation",
+    "crop",
+    "expense_category",
 }
 
 
@@ -53,13 +55,53 @@ def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[s
     matching row. Table names and SQL fragments come from this module's static
     generator definitions; callers cannot supply query fragments.
     """
-    if any(table not in _LOCATION_SOURCE_TABLES for table in scopes):
-        unsupported = next(table for table in scopes if table not in _LOCATION_SOURCE_TABLES)
+    if any(table not in _SOURCE_REFERENCE_TABLES for table in scopes):
+        unsupported = next(table for table in scopes if table not in _SOURCE_REFERENCE_TABLES)
         raise ValueError(f"Unsupported AI-summary source table: {unsupported}")
     manifest = {}
     with conn.cursor() as cursor:
         for table, (predicate, parameters, ordering, latest_only) in scopes.items():
-            if latest_only:
+            if table == "crop":
+                # Crop rows are shared reference data. Link only crops that
+                # contributed to verified sales at this location.
+                query = """
+                    SELECT selected.id::text, COUNT(*) OVER () AS row_count
+                      FROM (
+                          SELECT DISTINCT crop.id
+                            FROM public.crop AS crop
+                            JOIN public.crop_cycle AS cycle ON cycle.crop_id = crop.id
+                            JOIN public.sales_event AS sale ON sale.crop_cycle_id = cycle.id
+                           WHERE cycle.location_id = %s
+                             AND sale.location_id = %s
+                             AND cycle.location_id = sale.location_id
+                             AND sale.status IN ('verified', 'published')
+                           ORDER BY crop.id
+                      ) AS selected
+                     ORDER BY selected.id
+                     LIMIT %s
+                """
+                query_parameters = (location_id, location_id, _SOURCE_REFERENCE_LIMIT)
+            elif table == "expense_category":
+                # Expense categories are global taxonomy rows. Restrict them
+                # to the same top-five, location-backed groups shown above.
+                query = """
+                    SELECT selected.id::text, COUNT(*) OVER () AS row_count
+                      FROM (
+                          SELECT category.id
+                            FROM public.expense_category AS category
+                            JOIN public.expense_event AS expense
+                              ON expense.category = category.name
+                           WHERE expense.location_id = %s
+                             AND expense.status IN ('verified', 'published')
+                           GROUP BY category.id, category.name
+                           ORDER BY SUM(expense.amount) DESC, category.name
+                           LIMIT 5
+                      ) AS selected
+                     ORDER BY selected.id
+                     LIMIT %s
+                """
+                query_parameters = (location_id, _SOURCE_REFERENCE_LIMIT)
+            elif latest_only:
                 query = f"""
                     SELECT selected.id::text, COUNT(*) OVER () AS row_count
                       FROM (
@@ -197,6 +239,7 @@ def generate_financial_summary(conn, location_id: str) -> dict:
         SELECT c.name as crop_name, COALESCE(SUM(se.total_amount), 0) as revenue
         FROM sales_event se
         JOIN crop_cycle cc ON se.crop_cycle_id = cc.id
+                           AND cc.location_id = se.location_id
         JOIN crop c ON cc.crop_id = c.id
         WHERE se.location_id = %s AND se.status IN ('verified', 'published')
         GROUP BY c.name ORDER BY revenue DESC
@@ -222,10 +265,17 @@ def generate_financial_summary(conn, location_id: str) -> dict:
     cur.close()
 
     source_references = _collect_source_references(conn, location_id, {
-        "sales_event": ("status IN ('verified', 'published')", (), "sale_date, id", False),
+        "sales_event": (
+            "status IN ('verified', 'published') AND EXISTS ("
+            "SELECT 1 FROM public.crop_cycle AS cycle "
+            "WHERE cycle.id = sales_event.crop_cycle_id "
+            "AND cycle.location_id = sales_event.location_id)",
+            (), "sale_date, id", False,
+        ),
         "crop_cycle": (
             "id IN (SELECT DISTINCT se.crop_cycle_id FROM public.sales_event AS se "
-            "WHERE se.location_id = %s AND se.status IN ('verified', 'published'))",
+            "WHERE se.location_id = %s AND se.status IN ('verified', 'published') "
+            "AND se.crop_cycle_id IS NOT NULL)",
             (location_id,),
             "id",
             False,
@@ -238,6 +288,8 @@ def generate_financial_summary(conn, location_id: str) -> dict:
             "GROUP BY ee.category ORDER BY SUM(ee.amount) DESC, ee.category LIMIT 5)",
             (location_id,), "expense_date, id", False,
         ),
+        "expense_category": ("TRUE", (), "id", False),
+        "crop": ("TRUE", (), "id", False),
         "noi_snapshot": ("TRUE", (), "period_end, id", False),
     })
 

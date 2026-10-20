@@ -150,3 +150,52 @@ def test_financial_manifest_matches_the_top_five_configured_expense_categories(m
     assert parameters == (LOCATION_ID,)
     assert ordering == "expense_date, id"
     assert latest_only is False
+    sales_predicate, _, _, _ = captured["sales_event"]
+    assert "cycle.location_id = sales_event.location_id" in sales_predicate
+    cycle_predicate, cycle_parameters, _, _ = captured["crop_cycle"]
+    assert "se.crop_cycle_id IS NOT NULL" in cycle_predicate
+    assert cycle_parameters == (LOCATION_ID,)
+    revenue_query, revenue_parameters = cursor.execute.call_args_list[0][0]
+    assert "cc.location_id = se.location_id" in revenue_query
+    assert revenue_parameters == (LOCATION_ID,)
+
+
+def test_global_crop_reference_is_limited_to_location_verified_sales():
+    cursor = _Cursor([
+        ("f0000000-0000-4000-8000-000000000001", 2),
+        ("f0000000-0000-4000-8000-000000000002", 2),
+    ])
+    connection = Mock()
+    connection.cursor.return_value = cursor
+
+    result = ai_summary._collect_source_references(
+        connection,
+        LOCATION_ID,
+        {"crop": ("TRUE", (), "id", False)},
+    )
+
+    assert "JOIN public.crop_cycle AS cycle ON cycle.crop_id = crop.id" in cursor.query
+    assert "JOIN public.sales_event AS sale ON sale.crop_cycle_id = cycle.id" in cursor.query
+    assert "sale.status IN ('verified', 'published')" in cursor.query
+    assert "cycle.location_id = %s" in cursor.query
+    assert "cycle.location_id = sale.location_id" in cursor.query
+    assert cursor.parameters == (LOCATION_ID, LOCATION_ID, 50)
+    assert result["crop"]["row_count"] == 2
+
+
+def test_global_expense_category_reference_matches_the_displayed_top_five():
+    cursor = _Cursor([("f0000000-0000-4000-8000-000000000003", 5)])
+    connection = Mock()
+    connection.cursor.return_value = cursor
+
+    result = ai_summary._collect_source_references(
+        connection,
+        LOCATION_ID,
+        {"expense_category": ("TRUE", (), "id", False)},
+    )
+
+    assert "JOIN public.expense_event AS expense" in cursor.query
+    assert "expense.location_id = %s" in cursor.query
+    assert "ORDER BY SUM(expense.amount) DESC, category.name LIMIT 5" in cursor.query
+    assert cursor.parameters == (LOCATION_ID, 50)
+    assert result["expense_category"]["row_count"] == 5

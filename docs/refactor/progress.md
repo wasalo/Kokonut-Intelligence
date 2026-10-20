@@ -3,7 +3,7 @@
 Migration 522 adds an OIDC `ai_summary:draft` route that uses the existing
 deterministic generator and records the authenticated requesting operator. A
 private immutable receipt provides idempotent retries, and retries return the
-stored result before regeneration. Migration 523 records exact source-row counts
+stored result before regeneration. Migrations 523–524 record exact source-row counts
 and up to 50 ordered IDs per location-owned table in a private append-only
 manifest; PostgreSQL checks each ID against the exact location, and the scoped
 review queue exposes the manifest to reviewers. The sensor sample matches
@@ -17,29 +17,32 @@ self-review is blocked for either decision, legacy unattributed summaries may
 be rejected but not verified, and a distinct reviewer may set `verified` only.
 The lifecycle constraint permits `verified` or later `published` for an
 attributed summary only when distinct reviewer identity and review time exist.
-Legacy summaries are not backfilled; global crop/category references,
-background-agent sources, and full source snapshots remain open provenance work.
+Shared crop and expense-category IDs now link through location-owned verified
+sales and the top-five verified expense categories. Other global references,
+background-agent sources, old summaries, and full source snapshots remain open
+provenance work.
 
 The focused Gateway, route-policy, console, source-reference, and agent-safety
-selection passes 62 tests with nine PostgreSQL-dependent skips; Ruff, Python
+selection passes 64 tests with nine PostgreSQL-dependent skips; Ruff, Python
 compilation, and inline JavaScript syntax checks pass.
-Disposable PostgreSQL 16 applies/replays migrations 521–523 on a network-disabled
-container and passes 11 grouped attribution, idempotency, location binding,
+Disposable PostgreSQL 16 applies/replays migrations 521–524 on a network-disabled
+container and passes 12 grouped attribution, idempotency, location binding,
 manifest privacy/immutability, self-review, legacy-blocker, lifecycle, and ACL
-checks. Candidate and legacy databases remain untouched; migration 523 is not
+checks. Candidate and legacy databases remain untouched; migration 524 is not
 rolled out. Existing CLI/background agent
 writers still do not identify their authenticated requester, and those drafts
 remain approval-blocked. Populated parity, live OIDC/browser behavior, runtime
-recovery, full source snapshots, and MAN-CAP-038 remain open. Checklist: 785 complete /
+recovery, full source snapshots, and MAN-CAP-038 remain open. Checklist: 786 complete /
 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
 Evidence: [contract](agent-ecosystem-kernel-contract.md),
 [migration](../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
 [source-reference migration](../schemas/postgres/523_ai_summary_source_references.sql),
+[shared-reference migration](../schemas/postgres/524_ai_summary_global_source_references.sql),
 [draft tests](../tests/test_gateway_ai_summary_draft.py),
 [review tests](../tests/test_gateway_ai_summary_review.py),
 [source-reference tests](../tests/test_ai_summary_source_references.py),
 [console tests](../tests/test_operator_console_ai_summary_review.py), and
-[disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-source-references-disposable.json).
+[disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-global-source-references-disposable.json).
 
 ### CAP-035 consent-aware adoption event capture — 20 October 2026
 

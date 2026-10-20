@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply/replay migrations 522–523 and check AI-summary draft/review boundaries."""
+"""Apply/replay migrations 521–524 and check AI-summary draft/review boundaries."""
 
 from __future__ import annotations
 
@@ -15,7 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BASE_SCRIPT = ROOT / "scripts/check-ai-summary-review-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/522_authenticated_ai_summary_drafts.sql"
 SOURCE_MIGRATION = ROOT / "schemas/postgres/523_ai_summary_source_references.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-038-ai-summary-source-references-disposable.json"
+GLOBAL_SOURCE_MIGRATION = ROOT / "schemas/postgres/524_ai_summary_global_source_references.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-038-ai-summary-global-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 
 
@@ -59,7 +60,7 @@ BEGIN
     SELECT * INTO created
       FROM kokonut_security.create_location_ai_summary_draft(
           'b0000000-0000-4000-8000-000000000001', 'operations',
-          'Requester-attributed synthetic draft.', ARRAY['harvest_event', 'sales_event'],
+          'Requester-attributed synthetic draft.', ARRAY['harvest_event', 'sales_event', 'crop', 'expense_category'],
           'd0000000-0000-4000-8000-000000000011'
       );
     IF created.replayed OR created.summary_id IS NULL THEN
@@ -86,14 +87,41 @@ BEGIN
     IF NOT location_mismatch_denied THEN
         RAISE EXCEPTION 'source reference from another location was accepted';
     END IF;
+    location_mismatch_denied := false;
+    BEGIN
+        PERFORM kokonut_security.set_location_ai_summary_source_references(
+            'b0000000-0000-4000-8000-000000000001', created.summary_id,
+            'd0000000-0000-4000-8000-000000000011',
+            '{"crop":{"record_ids":["f0000000-0000-4000-8000-000000000002"],"row_count":1,"truncated":false}}'::jsonb
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN location_mismatch_denied := true;
+    END;
+    IF NOT location_mismatch_denied THEN
+        RAISE EXCEPTION 'shared crop from another location was accepted';
+    END IF;
+    location_mismatch_denied := false;
+    BEGIN
+        PERFORM kokonut_security.set_location_ai_summary_source_references(
+            'b0000000-0000-4000-8000-000000000001', created.summary_id,
+            'd0000000-0000-4000-8000-000000000011',
+            '{"expense_category":{"record_ids":["f0000000-0000-4000-8000-000000000016"],"row_count":1,"truncated":false}}'::jsonb
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN location_mismatch_denied := true;
+    END;
+    IF NOT location_mismatch_denied THEN
+        RAISE EXCEPTION 'expense category outside the top five was accepted';
+    END IF;
     SELECT kokonut_security.set_location_ai_summary_source_references(
         'b0000000-0000-4000-8000-000000000001', created.summary_id,
         'd0000000-0000-4000-8000-000000000011',
-        '{"harvest_event":{"record_ids":["e0000000-0000-4000-8000-000000000001"],"row_count":1,"truncated":false},"sales_event":{"record_ids":["e0000000-0000-4000-8000-000000000003"],"row_count":1,"truncated":false}}'::jsonb
+        '{"harvest_event":{"record_ids":["e0000000-0000-4000-8000-000000000001"],"row_count":1,"truncated":false},"sales_event":{"record_ids":["e0000000-0000-4000-8000-000000000003"],"row_count":1,"truncated":false},"crop":{"record_ids":["f0000000-0000-4000-8000-000000000001"],"row_count":1,"truncated":false},"expense_category":{"record_ids":["f0000000-0000-4000-8000-000000000011"],"row_count":1,"truncated":false}}'::jsonb
     ) INTO source_manifest;
     IF source_manifest -> 'harvest_event' ->> 'row_count' <> '1'
        OR source_manifest -> 'harvest_event' -> 'record_ids' ->> 0
-            <> 'e0000000-0000-4000-8000-000000000001' THEN
+            <> 'e0000000-0000-4000-8000-000000000001'
+       OR source_manifest -> 'crop' -> 'record_ids' ->> 0
+            <> 'f0000000-0000-4000-8000-000000000001'
+       OR source_manifest -> 'expense_category' ->> 'row_count' <> '1' THEN
         RAISE EXCEPTION 'source manifest did not preserve exact bounded references';
     END IF;
     IF kokonut_security.get_location_ai_summary_source_references(
@@ -362,10 +390,11 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-ai-summary-draft-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migrations 521–523 apply/replay on disposable PostgreSQL 16",
+        "migrations 521–524 apply/replay on disposable PostgreSQL 16",
         "exact signed draft scope attributes requester and location; private receipts stay inaccessible",
         "same-intent request lookup/replay returns the original draft before regeneration and prevents duplicates",
         "bounded source record IDs attach only when every record belongs to the exact granted location",
+        "shared crop and expense-category IDs require exact location-backed source relationships",
         "source manifests survive retries and appear only through scoped draft/review functions",
         "private source-reference tables deny direct runtime/Directus reads and immutable changes",
         "request ID reuse for another location/type fails closed",
@@ -378,7 +407,7 @@ def main() -> int:
         "result": "failed",
         "migration": (
             "521_location_scoped_ai_summary_review.sql, "
-            f"{MIGRATION.name}, {SOURCE_MIGRATION.name}"
+            f"{MIGRATION.name}, {SOURCE_MIGRATION.name}, {GLOBAL_SOURCE_MIGRATION.name}"
         ),
         "database_target": "new disposable PostgreSQL 16 container, network disabled",
         "candidate_or_legacy_modified": False,
@@ -419,10 +448,19 @@ def main() -> int:
         stage = "source_fixture_and_migration_523_apply_replay"
         base.psql(docker, container, r"""
             CREATE TABLE public.harvest_event (id uuid PRIMARY KEY, location_id uuid NOT NULL);
-            CREATE TABLE public.sales_event (id uuid PRIMARY KEY, location_id uuid NOT NULL);
-            CREATE TABLE public.crop_cycle (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.crop (id uuid PRIMARY KEY, name text NOT NULL);
+            CREATE TABLE public.expense_category (id uuid PRIMARY KEY, name text NOT NULL UNIQUE);
+            CREATE TABLE public.sales_event (
+                id uuid PRIMARY KEY, location_id uuid NOT NULL, crop_cycle_id uuid, status text NOT NULL
+            );
+            CREATE TABLE public.crop_cycle (
+                id uuid PRIMARY KEY, location_id uuid NOT NULL, crop_id uuid NOT NULL
+            );
             CREATE TABLE public.sensor_reading (id uuid PRIMARY KEY, location_id uuid NOT NULL);
-            CREATE TABLE public.expense_event (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.expense_event (
+                id uuid PRIMARY KEY, location_id uuid NOT NULL, category text NOT NULL,
+                status text NOT NULL, amount numeric NOT NULL
+            );
             CREATE TABLE public.noi_snapshot (id uuid PRIMARY KEY, location_id uuid NOT NULL);
             CREATE TABLE public.soil_carbon_measurement (id uuid PRIMARY KEY, location_id uuid NOT NULL);
             CREATE TABLE public.species_observation (id uuid PRIMARY KEY, location_id uuid NOT NULL);
@@ -431,12 +469,36 @@ def main() -> int:
             INSERT INTO public.harvest_event VALUES
                 ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001'),
                 ('e0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000002');
+            INSERT INTO public.crop VALUES
+                ('f0000000-0000-4000-8000-000000000001', 'Kokonut Crop One'),
+                ('f0000000-0000-4000-8000-000000000002', 'Other Location Crop');
+            INSERT INTO public.crop_cycle VALUES
+                ('f1000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'f0000000-0000-4000-8000-000000000001'),
+                ('f1000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000002', 'f0000000-0000-4000-8000-000000000002');
             INSERT INTO public.sales_event VALUES
-                ('e0000000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000001');
+                ('e0000000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000001', 'f1000000-0000-4000-8000-000000000001', 'verified'),
+                ('e0000000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000002', 'f1000000-0000-4000-8000-000000000002', 'verified');
+            INSERT INTO public.expense_category (id, name) VALUES
+                ('f0000000-0000-4000-8000-000000000011', 'Category One'),
+                ('f0000000-0000-4000-8000-000000000012', 'Category Two'),
+                ('f0000000-0000-4000-8000-000000000013', 'Category Three'),
+                ('f0000000-0000-4000-8000-000000000014', 'Category Four'),
+                ('f0000000-0000-4000-8000-000000000015', 'Category Five'),
+                ('f0000000-0000-4000-8000-000000000016', 'Category Six');
+            INSERT INTO public.expense_event VALUES
+                ('e1000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001', 'Category One', 'verified', 600),
+                ('e1000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000001', 'Category Two', 'verified', 500),
+                ('e1000000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000001', 'Category Three', 'verified', 400),
+                ('e1000000-0000-4000-8000-000000000004', 'b0000000-0000-4000-8000-000000000001', 'Category Four', 'verified', 300),
+                ('e1000000-0000-4000-8000-000000000005', 'b0000000-0000-4000-8000-000000000001', 'Category Five', 'verified', 200),
+                ('e1000000-0000-4000-8000-000000000006', 'b0000000-0000-4000-8000-000000000001', 'Category Six', 'verified', 1);
         """)
         source_sql = SOURCE_MIGRATION.read_text(encoding="utf-8")
         base.psql(docker, container, source_sql)
         base.psql(docker, container, source_sql)
+        global_source_sql = GLOBAL_SOURCE_MIGRATION.read_text(encoding="utf-8")
+        base.psql(docker, container, global_source_sql)
+        base.psql(docker, container, global_source_sql)
         stage = "acceptance"
         base.psql(docker, container, ACCEPTANCE)
         stage = "immutable_source_references"
@@ -444,8 +506,8 @@ def main() -> int:
             DO $$
             DECLARE blocked BOOLEAN := false;
             BEGIN
-                IF (SELECT count(*) FROM kokonut_security.ai_summary_source_manifest) <> 2
-                   OR (SELECT count(*) FROM kokonut_security.ai_summary_source_reference) <> 2 THEN
+                IF (SELECT count(*) FROM kokonut_security.ai_summary_source_manifest) <> 4
+                   OR (SELECT count(*) FROM kokonut_security.ai_summary_source_reference) <> 4 THEN
                     RAISE EXCEPTION 'unexpected source-reference fixture rows';
                 END IF;
                 BEGIN

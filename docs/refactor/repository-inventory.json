@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "201b52dd461fc7f27349becb231c23322f3b2590",
+  "baseline_commit": "51690b7a2f63c7a6b9e8724c15428b3db00ef4fd",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2786,7 +2786,8 @@
       "schemas/postgres/520_location_solution_adoption_consent_events.sql",
       "schemas/postgres/521_location_scoped_ai_summary_review.sql",
       "schemas/postgres/522_authenticated_ai_summary_drafts.sql",
-      "schemas/postgres/523_ai_summary_source_references.sql"
+      "schemas/postgres/523_ai_summary_source_references.sql",
+      "schemas/postgres/524_ai_summary_global_source_references.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
