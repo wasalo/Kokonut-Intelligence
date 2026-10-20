@@ -5,8 +5,8 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 101,
-    "new_success_path_cases": 33,
+    "tests_passed": 102,
+    "new_success_path_cases": 34,
     "database_backed_cases_with_stubbed_query": 26,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
@@ -227,10 +227,17 @@
       "dependencies": ["PostgreSQL read through report-snapshot service; query stubbed"],
       "output": "Formatted report-snapshot table",
       "database_behavior": "Standalone and unified output match under a synthetic location filter; owned connection closes after success."
+    },
+    {
+      "name": "migration",
+      "arguments": ["validate", "--schemas-only"],
+      "dependencies": ["local schema migration files"],
+      "output": "Validated migration source file count",
+      "database_behavior": "Not applicable; standalone and unified commands validate 515 schema sources without credentials, PostgreSQL, or providers."
     }
   ],
   "limitations": [
-    "Successful parity is covered for seven offline command invocations and twenty-six PostgreSQL-backed commands whose service queries were stubbed, across 32 mounted groups.",
+    "Successful parity is covered for eight offline command invocations and twenty-six PostgreSQL-backed commands whose service queries were stubbed, across 33 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

@@ -88,15 +88,16 @@ mounted unified command using the same arguments. It covers:
 | `delphi` | `list-studies` | PostgreSQL read; connection and cursor are stubbed | One JSON study row per line |
 | `threatcasting` | `list-threats --location-id <synthetic-location> --type climate` | PostgreSQL read; connection and cursor are stubbed | One JSON threat row per line |
 | `export` | `--list --location-id <synthetic-location-uuid>` | PostgreSQL read through report-snapshot service; query is stubbed | Formatted report-snapshot table |
+| `migration` | `validate --schemas-only` | Local migration-source files; no database or secrets | Validated migration-source file count |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Seven successful offline invocations and twenty-six PostgreSQL-backed
+real service. Eight successful offline invocations and twenty-six PostgreSQL-backed
 read invocations with stubbed query functions match their standalone output
-across 32 mounted groups (101 tests including the Delphi service suite, error-path cleanup, and the native Typer command-tree
+across 33 mounted groups (102 tests including the Delphi service suite, error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
@@ -107,7 +108,7 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 101-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 102-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
 The twenty-six database-backed success paths exercise their real parsers,
@@ -123,9 +124,9 @@ cursors and connections on both paths. Export snapshot listing closes its
 connection on success. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
 
-This closes successful output parity only for these seven offline command
-invocations across six mounted groups plus twenty-six stubbed database-backed
-paths. The other five mounted groups still need command-specific success-path checks and
+This closes successful output parity only for these eight offline command
+invocations across seven mounted groups plus twenty-six stubbed database-backed
+paths. The other four mounted groups still need command-specific success-path checks and
 database/provider classification. Privileged operator action boundaries and
 MAN-CAP-039 owner acceptance are also open.
 

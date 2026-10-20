@@ -162,6 +162,20 @@ def test_offline_attestation_schema_catalogue_output_matches_standalone() -> Non
     assert unified.stderr == standalone.stderr == ""
 
 
+def test_offline_migration_source_validation_matches_standalone() -> None:
+    environment = _environment()
+    args = ["validate", "--schemas-only"]
+
+    standalone = _run(["-m", "services.migration.cli", *args], environment)
+    unified = _run(["-m", "services.cli", "migration", "--", *args], environment)
+
+    assert standalone.returncode == unified.returncode == 0
+    assert unified.stdout == standalone.stdout
+    assert unified.stdout.startswith("Validated ")
+    assert " migration source files.\n" in unified.stdout
+    assert unified.stderr == standalone.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,
