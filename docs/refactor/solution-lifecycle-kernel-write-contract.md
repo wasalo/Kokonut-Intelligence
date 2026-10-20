@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–505 are additive and are
+**Status:** prepared implementation contract; migrations 488–506 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -77,6 +77,43 @@ binding, input bounds, supported stage mapping, immutable draft state, retry
 replay/collision behavior, cross-origin criterion redaction, and runtime/
 Directus privilege boundaries. Candidate and legacy databases are untouched;
 migration 505 has not been rolled out.
+
+## Location-origin experiment protocol draft
+
+`POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/experiments`
+creates an immutable experiment protocol in `draft`. PostgreSQL requires signed
+exact-location `solution_lifecycle:create` context, an enabled operator with an
+active human-party binding, an active solution whose origin is exactly the
+requested location, and a current stage of `experiment_ready` or `testing`.
+Linked solutions from another location are not eligible.
+
+The request is restricted to the experiment's protocol fields: hypothesis and
+optional null hypothesis; baseline, treatment, optional comparator, and unit of
+analysis; sample plan; primary and secondary metric keys; detectable effect,
+confidence target, duration; stopping rules; rollback plan; safety boundaries;
+and consent requirements. Values, text lengths, object sizes, arrays, metric-key
+syntax, and numeric ranges are bounded in both Gateway and PostgreSQL. Ownership,
+approval, lifecycle state, and timestamps are not caller-controlled. The active
+bound human becomes the draft owner; status is always `draft`.
+
+Creation and its private append-only receipt are atomic. An exact operator/request
+ID and payload retry returns the original draft; changed input under that ID is
+rejected. Protocol definitions cannot be inserted or edited through runtime or
+Directus table grants, and experiments cannot be deleted by those roles. Runtime
+retains only the existing narrow lifecycle-column updates, while its bootstrap
+reapplies the boundary after compatibility grants. The legacy direct
+`create_experiment` helper fails before database access. This route does not
+submit or approve the protocol, establish participant consent, record
+observations, start or complete an experiment, or analyze results; those are
+separate actions requiring their own policies and review boundaries.
+
+The console form requires exact location read and create grants and uses CSRF,
+same-origin no-store requests, stale-location guards, and a stable request ID
+bound to the original payload. Disposable PostgreSQL 16 applies/replays migration
+506 after the ordered lifecycle chain and checks location scope, human binding,
+origin/stage eligibility, payload validation, exact retries, draft-only state,
+protocol immutability, and role boundaries. Candidate and legacy databases are
+untouched; migration 506 has not been rolled out.
 
 ## Funding draft proposal
 
@@ -675,7 +712,7 @@ state boundary, separately authorized submission, private reviewer reads, and
 independent funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–505 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–506 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -686,6 +723,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–505. After application, do not edit or reverse them; disable the routes and
+488–506. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

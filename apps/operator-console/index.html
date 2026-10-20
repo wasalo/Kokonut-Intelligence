@@ -679,6 +679,59 @@
             <p id="solution-lifecycle-stage-transitions-status" class="muted" role="status" aria-live="polite"></p>
             <div id="solution-lifecycle-stage-transition-rows"></div>
           </section>
+          <section id="solution-lifecycle-experiment-create" hidden aria-labelledby="solution-lifecycle-experiment-create-heading">
+            <h3 id="solution-lifecycle-experiment-create-heading">Draft an experiment protocol</h3>
+            <p class="muted">Requires exact location read and create grants. This writes an immutable protocol draft for an active location-origin solution in experiment-ready or testing. Submission, consent review, protocol approval, observations, execution, and results review remain separate steps.</p>
+            <div class="toolbar">
+              <button id="solution-lifecycle-experiment-targets-load" type="button">Load experiment-ready solutions</button>
+              <button id="solution-lifecycle-experiment-targets-more" class="secondary" type="button" hidden>Load more solutions</button>
+            </div>
+            <p id="solution-lifecycle-experiment-targets-status" class="muted" role="status" aria-live="polite"></p>
+            <form id="solution-lifecycle-experiment-create-form" class="stacked-form">
+              <label for="solution-lifecycle-experiment-solution">Location-origin solution</label>
+              <select id="solution-lifecycle-experiment-solution" required>
+                <option value="">Load experiment-ready solutions, then choose one</option>
+              </select>
+              <label for="solution-lifecycle-experiment-hypothesis">Hypothesis</label>
+              <textarea id="solution-lifecycle-experiment-hypothesis" required maxlength="4000"></textarea>
+              <label for="solution-lifecycle-experiment-null-hypothesis">Null hypothesis (optional)</label>
+              <textarea id="solution-lifecycle-experiment-null-hypothesis" maxlength="4000"></textarea>
+              <label for="solution-lifecycle-experiment-baseline">Baseline definition</label>
+              <textarea id="solution-lifecycle-experiment-baseline" required maxlength="4000"></textarea>
+              <label for="solution-lifecycle-experiment-treatment">Treatment definition</label>
+              <textarea id="solution-lifecycle-experiment-treatment" required maxlength="4000"></textarea>
+              <label for="solution-lifecycle-experiment-comparator">Comparator definition (optional)</label>
+              <textarea id="solution-lifecycle-experiment-comparator" maxlength="4000"></textarea>
+              <label for="solution-lifecycle-experiment-unit">Unit of analysis</label>
+              <input id="solution-lifecycle-experiment-unit" required maxlength="255">
+              <label for="solution-lifecycle-experiment-sample">Sample plan (JSON object)</label>
+              <textarea id="solution-lifecycle-experiment-sample" required maxlength="8192" spellcheck="false">{}</textarea>
+              <label for="solution-lifecycle-experiment-primary">Primary metric keys (JSON array)</label>
+              <textarea id="solution-lifecycle-experiment-primary" required maxlength="8192" spellcheck="false">[]</textarea>
+              <label for="solution-lifecycle-experiment-secondary">Secondary metric keys (JSON array)</label>
+              <textarea id="solution-lifecycle-experiment-secondary" required maxlength="8192" spellcheck="false">[]</textarea>
+              <label for="solution-lifecycle-experiment-effect">Minimum detectable effect (optional)</label>
+              <input id="solution-lifecycle-experiment-effect" type="number" step="any">
+              <label for="solution-lifecycle-experiment-confidence">Confidence target (optional, 0.5–1)</label>
+              <input id="solution-lifecycle-experiment-confidence" type="number" min="0.5" max="1" step="any">
+              <label for="solution-lifecycle-experiment-duration">Duration in days (optional, 1–3650)</label>
+              <input id="solution-lifecycle-experiment-duration" type="number" min="1" max="3650" step="1">
+              <label for="solution-lifecycle-experiment-stopping">Stopping rules (JSON object)</label>
+              <textarea id="solution-lifecycle-experiment-stopping" required maxlength="8192" spellcheck="false">{}</textarea>
+              <label for="solution-lifecycle-experiment-rollback">Rollback plan</label>
+              <textarea id="solution-lifecycle-experiment-rollback" required maxlength="4000"></textarea>
+              <label for="solution-lifecycle-experiment-safety">Safety boundaries (JSON object)</label>
+              <textarea id="solution-lifecycle-experiment-safety" required maxlength="8192" spellcheck="false">{}</textarea>
+              <label for="solution-lifecycle-experiment-consent">Consent requirements (JSON object)</label>
+              <textarea id="solution-lifecycle-experiment-consent" required maxlength="8192" spellcheck="false">{}</textarea>
+              <label><input id="solution-lifecycle-experiment-confirm" type="checkbox" required> I confirm this creates a draft only; it does not submit, approve, establish consent, collect observations, or start an experiment.</label>
+              <div class="toolbar">
+                <button id="solution-lifecycle-experiment-create-submit" type="submit">Create protocol draft</button>
+                <button id="solution-lifecycle-experiment-create-reset" class="secondary" type="button">Clear draft form</button>
+              </div>
+              <p id="solution-lifecycle-experiment-create-status" class="muted" role="status" aria-live="polite"></p>
+            </form>
+          </section>
           <h3>Experiments and reviewed outcomes</h3>
           <p class="muted">This read shows experiment lifecycle metadata and only an explicitly reviewed outcome. Protocol narratives, metric names and values, observations, adverse-event details, and evidence remain private; this panel cannot approve or review results.</p>
           <div class="toolbar">
@@ -1521,6 +1574,16 @@
       const solutionLifecycleExperimentsStatus = document.querySelector("#solution-lifecycle-experiments-status");
       const solutionLifecycleExperimentRows = document.querySelector("#solution-lifecycle-experiment-rows");
       const solutionLifecycleExperimentsMore = document.querySelector("#solution-lifecycle-experiments-more");
+      const solutionLifecycleExperimentCreate = document.querySelector("#solution-lifecycle-experiment-create");
+      const solutionLifecycleExperimentCreateForm = document.querySelector("#solution-lifecycle-experiment-create-form");
+      const solutionLifecycleExperimentCreateStatus = document.querySelector("#solution-lifecycle-experiment-create-status");
+      const solutionLifecycleExperimentTargets = document.querySelector("#solution-lifecycle-experiment-solution");
+      const solutionLifecycleExperimentTargetsLoad = document.querySelector("#solution-lifecycle-experiment-targets-load");
+      const solutionLifecycleExperimentTargetsMore = document.querySelector("#solution-lifecycle-experiment-targets-more");
+      const solutionLifecycleExperimentTargetsStatus = document.querySelector("#solution-lifecycle-experiment-targets-status");
+      let solutionLifecycleExperimentTargetsOffset = 0;
+      let solutionLifecycleExperimentTargetsRequestVersion = 0;
+      let solutionLifecyclePendingExperimentCreate = null;
       const solutionLifecycleFundingLoad = document.querySelector("#solution-lifecycle-funding-load");
       const solutionLifecycleFundingStatus = document.querySelector("#solution-lifecycle-funding-status");
       const solutionLifecycleFundingRows = document.querySelector("#solution-lifecycle-funding-rows");
@@ -3458,6 +3521,184 @@
           }
         });
         return panel;
+      }
+
+      async function loadSolutionLifecycleExperimentTargets(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleExperimentTargetsRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleCreateLocations.has(locationId)) {
+          solutionLifecycleExperimentTargets.replaceChildren();
+          solutionLifecycleExperimentTargetsMore.hidden = true;
+          solutionLifecycleExperimentTargetsStatus.textContent = "Exact location read and create grants are required.";
+          return;
+        }
+        const offset = append ? solutionLifecycleExperimentTargetsOffset : 0;
+        if (!append) {
+          const placeholder = solutionLifecycleExperimentTargets.options[0];
+          solutionLifecycleExperimentTargets.replaceChildren(placeholder);
+          solutionLifecycleExperimentTargetsMore.hidden = true;
+        }
+        solutionLifecycleExperimentTargetsLoad.disabled = true;
+        solutionLifecycleExperimentTargetsMore.disabled = true;
+        solutionLifecycleExperimentTargetsStatus.textContent = "Loading experiment-ready location-origin solutions…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/stage-transition-targets?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Experiment-ready solutions could not be loaded.");
+          if (requestVersion !== solutionLifecycleExperimentTargetsRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          for (const solution of Array.isArray(result.solutions) ? result.solutions : []) {
+            if (solution.solution_status !== "active"
+                || !["experiment_ready", "testing"].includes(solution.current_stage)
+                || typeof solution.solution_id !== "string"
+                || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(solution.solution_id)
+                || [...solutionLifecycleExperimentTargets.options].some((option) => option.value === solution.solution_id)) continue;
+            const option = document.createElement("option");
+            option.value = solution.solution_id;
+            option.textContent = `${solution.solution_name || "Location-origin solution"} · ${solution.current_stage}`;
+            solutionLifecycleExperimentTargets.append(option);
+          }
+          solutionLifecycleExperimentTargetsOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset : offset;
+          solutionLifecycleExperimentTargetsMore.hidden = result.has_more !== true
+            || solutionLifecycleExperimentTargetsOffset <= offset;
+          const count = Math.max(0, solutionLifecycleExperimentTargets.options.length - 1);
+          solutionLifecycleExperimentTargetsStatus.textContent = count
+            ? `${count} active experiment-ready solution${count === 1 ? "" : "s"} shown.`
+            : result.has_more === true
+              ? "No eligible solution on this page. Load more to continue."
+              : "No active experiment-ready solutions are available for this location.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleExperimentTargetsRequestVersion) {
+            solutionLifecycleExperimentTargetsStatus.textContent = error.message;
+          }
+        } finally {
+          if (requestVersion === solutionLifecycleExperimentTargetsRequestVersion) {
+            solutionLifecycleExperimentTargetsLoad.disabled = false;
+            solutionLifecycleExperimentTargetsMore.disabled = false;
+          }
+        }
+      }
+
+      async function submitSolutionLifecycleExperimentCreate(event) {
+        event.preventDefault();
+        const locationId = solutionLifecycleLocation.value;
+        const solutionId = solutionLifecycleExperimentTargets.value;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleCreateLocations.has(locationId)
+            || !solutionId) {
+          solutionLifecycleExperimentCreateStatus.textContent = "Choose an experiment-ready solution and confirm exact location read/create access.";
+          return;
+        }
+        if (!document.querySelector("#solution-lifecycle-experiment-confirm").checked) {
+          solutionLifecycleExperimentCreateStatus.textContent = "Confirm that this creates a draft only.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleExperimentCreateStatus.textContent = "Refresh the operator session before creating a protocol draft.";
+          return;
+        }
+        const readJson = (selector, expected, label) => {
+          let value;
+          try { value = JSON.parse(document.querySelector(selector).value); }
+          catch { throw new Error(`${label} must be valid JSON.`); }
+          if (expected === "object" ? !value || typeof value !== "object" || Array.isArray(value)
+            : expected === "array" ? !Array.isArray(value) : false) {
+            throw new Error(`${label} must be a JSON ${expected}.`);
+          }
+          return value;
+        };
+        let protocol;
+        try {
+          protocol = {
+            hypothesis: document.querySelector("#solution-lifecycle-experiment-hypothesis").value.trim(),
+            baseline_definition: document.querySelector("#solution-lifecycle-experiment-baseline").value.trim(),
+            treatment_definition: document.querySelector("#solution-lifecycle-experiment-treatment").value.trim(),
+            unit_of_analysis: document.querySelector("#solution-lifecycle-experiment-unit").value.trim(),
+            rollback_plan: document.querySelector("#solution-lifecycle-experiment-rollback").value.trim(),
+            sample_plan: readJson("#solution-lifecycle-experiment-sample", "object", "Sample plan"),
+            primary_metric_keys: readJson("#solution-lifecycle-experiment-primary", "array", "Primary metric keys"),
+            secondary_metric_keys: readJson("#solution-lifecycle-experiment-secondary", "array", "Secondary metric keys"),
+            stopping_rules: readJson("#solution-lifecycle-experiment-stopping", "object", "Stopping rules"),
+            safety_boundaries: readJson("#solution-lifecycle-experiment-safety", "object", "Safety boundaries"),
+            consent_requirements: readJson("#solution-lifecycle-experiment-consent", "object", "Consent requirements"),
+          };
+          const nullHypothesis = document.querySelector("#solution-lifecycle-experiment-null-hypothesis").value.trim();
+          const comparator = document.querySelector("#solution-lifecycle-experiment-comparator").value.trim();
+          const effect = document.querySelector("#solution-lifecycle-experiment-effect").value.trim();
+          const confidence = document.querySelector("#solution-lifecycle-experiment-confidence").value.trim();
+          const duration = document.querySelector("#solution-lifecycle-experiment-duration").value.trim();
+          if (nullHypothesis) protocol.null_hypothesis = nullHypothesis;
+          if (comparator) protocol.comparator_definition = comparator;
+          if (effect) protocol.minimum_detectable_effect = Number(effect);
+          if (confidence) protocol.confidence_target = Number(confidence);
+          if (duration) protocol.duration_days = Number(duration);
+          if ([protocol.minimum_detectable_effect, protocol.confidence_target].some(
+            (value) => value !== undefined && !Number.isFinite(value)
+          )) throw new Error("Effect and confidence values must be finite numbers.");
+          if (protocol.duration_days !== undefined
+              && (!Number.isInteger(protocol.duration_days) || protocol.duration_days < 1 || protocol.duration_days > 3650)) {
+            throw new Error("Duration must be a whole number from 1 through 3650 days.");
+          }
+        } catch (error) {
+          solutionLifecycleExperimentCreateStatus.textContent = error.message;
+          return;
+        }
+        const payload = { request_id: "", protocol, acknowledged: true };
+        const fingerprint = JSON.stringify({ locationId, solutionId, protocol, acknowledged: true });
+        if (solutionLifecyclePendingExperimentCreate
+            && solutionLifecyclePendingExperimentCreate.fingerprint !== fingerprint) {
+          solutionLifecycleExperimentCreateStatus.textContent = "The prior result may be uncertain. Retry the same values or resolve it before creating another protocol.";
+          return;
+        }
+        if (!solutionLifecyclePendingExperimentCreate) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            solutionLifecycleExperimentCreateStatus.textContent = "A secure browser context is required to create an experiment draft.";
+            return;
+          }
+          solutionLifecyclePendingExperimentCreate = { fingerprint, request_id: requestId, locationId };
+        }
+        payload.request_id = solutionLifecyclePendingExperimentCreate.request_id;
+        const submit = document.querySelector("#solution-lifecycle-experiment-create-submit");
+        submit.disabled = true;
+        solutionLifecycleExperimentCreateStatus.textContent = "Creating an immutable protocol draft…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/solutions/${encodeURIComponent(solutionId)}/experiments`,
+            {
+              method: "POST", credentials: "same-origin", cache: "no-store",
+              headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify(payload),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingExperimentCreate = null;
+            throw new Error("Your session or location create grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingExperimentCreate = null;
+            throw new Error(result.error || "The experiment protocol draft could not be created.");
+          }
+          solutionLifecyclePendingExperimentCreate = null;
+          solutionLifecycleExperimentCreateForm.reset();
+          solutionLifecycleExperimentCreateStatus.textContent = result.replayed === true
+            ? "The original protocol draft was confirmed after retry. Submission and approval remain separate."
+            : "Protocol draft created. It has not been submitted, approved, consented, or started.";
+          await loadSolutionLifecycleExperiments();
+        } catch (error) {
+          solutionLifecycleExperimentCreateStatus.textContent = `${error.message} Retrying unchanged values reuses the same request ID.`;
+        } finally {
+          submit.disabled = false;
+        }
       }
 
       function appendSolutionLifecycleExperiment(experiment) {
@@ -8740,6 +8981,8 @@
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleGateCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleExperimentCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+              || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleReplicationProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
@@ -12010,6 +12253,12 @@
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
       solutionLifecycleLocation.addEventListener("change", () => {
+        if (solutionLifecyclePendingExperimentCreate
+            && solutionLifecycleLocation.value !== solutionLifecyclePendingExperimentCreate.locationId) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingExperimentCreate.locationId;
+          solutionLifecycleExperimentCreateStatus.textContent = "Retry or resolve the pending protocol-draft request before changing locations.";
+          return;
+        }
         if (solutionLifecyclePendingGateCreate
             && solutionLifecycleLocation.value !== solutionLifecyclePendingGateCreate.locationId) {
           solutionLifecycleLocation.value = solutionLifecyclePendingGateCreate.locationId;
@@ -12069,6 +12318,19 @@
         solutionLifecycleExperimentsMore.hidden = true;
         solutionLifecycleExperimentsLoad.disabled = false;
         solutionLifecycleExperimentsMore.disabled = false;
+        solutionLifecycleExperimentTargetsRequestVersion += 1;
+        solutionLifecycleExperimentTargetsOffset = 0;
+        solutionLifecycleExperimentTargets.replaceChildren();
+        const experimentTargetPlaceholder = document.createElement("option");
+        experimentTargetPlaceholder.value = "";
+        experimentTargetPlaceholder.textContent = "Load experiment-ready solutions, then choose one";
+        solutionLifecycleExperimentTargets.append(experimentTargetPlaceholder);
+        solutionLifecycleExperimentTargetsStatus.textContent = "";
+        solutionLifecycleExperimentTargetsMore.hidden = true;
+        solutionLifecycleExperimentTargetsLoad.disabled = false;
+        solutionLifecycleExperimentTargetsMore.disabled = false;
+        solutionLifecycleExperimentCreateForm.reset();
+        solutionLifecycleExperimentCreateStatus.textContent = "";
         solutionLifecycleFundingRequestVersion += 1;
         solutionLifecycleFundingOffset = 0;
         solutionLifecycleFundingRows.replaceChildren();
@@ -12211,6 +12473,8 @@
         solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleExperimentCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+          || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleGateCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
@@ -12277,6 +12541,17 @@
       solutionLifecycleStageTransitionsMore.addEventListener("click", () => loadSolutionLifecycleStageTransitionTargets(true));
       solutionLifecycleExperimentsLoad.addEventListener("click", () => loadSolutionLifecycleExperiments());
       solutionLifecycleExperimentsMore.addEventListener("click", () => loadSolutionLifecycleExperiments(true));
+      solutionLifecycleExperimentTargetsLoad.addEventListener("click", () => loadSolutionLifecycleExperimentTargets());
+      solutionLifecycleExperimentTargetsMore.addEventListener("click", () => loadSolutionLifecycleExperimentTargets(true));
+      solutionLifecycleExperimentCreateForm.addEventListener("submit", submitSolutionLifecycleExperimentCreate);
+      document.querySelector("#solution-lifecycle-experiment-create-reset").addEventListener("click", () => {
+        if (solutionLifecyclePendingExperimentCreate) {
+          solutionLifecycleExperimentCreateStatus.textContent = "A request may already have reached the server. Retry the unchanged protocol before clearing the form.";
+          return;
+        }
+        solutionLifecycleExperimentCreateForm.reset();
+        solutionLifecycleExperimentCreateStatus.textContent = "";
+      });
       solutionLifecycleFundingLoad.addEventListener("click", () => loadSolutionLifecycleFunding());
       solutionLifecycleFundingMore.addEventListener("click", () => loadSolutionLifecycleFunding(true));
       solutionLifecycleFundingTargetsLoad.addEventListener("click", () => loadSolutionLifecycleFundingTargets());

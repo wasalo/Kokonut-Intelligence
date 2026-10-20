@@ -228,6 +228,50 @@ def test_experiment_renderer_limits_result_visibility_to_reviewed_enum_and_metad
     assert "innerHTML" not in renderer
 
 
+def test_experiment_protocol_draft_form_is_read_create_gated_and_preserves_separation():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(
+        r'<section id="solution-lifecycle-experiment-create".*?</section>',
+        source,
+        re.DOTALL,
+    )
+    assert panel is not None
+    assert "exact location read and create grants" in panel.group(0)
+    assert "immutable protocol draft" in panel.group(0)
+    assert "does not submit, approve, establish consent, collect observations, or start" in panel.group(0)
+    assert 'solutionLifecycleExperimentCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
+
+    loader = _function(
+        source,
+        "async function loadSolutionLifecycleExperimentTargets(",
+        "async function submitSolutionLifecycleExperimentCreate(",
+    )
+    assert "solutionLifecycleLocations.has(locationId)" in loader
+    assert "solutionLifecycleCreateLocations.has(locationId)" in loader
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/stage-transition-targets?${params}`' in loader
+    assert '["experiment_ready", "testing"].includes(solution.current_stage)' in loader
+    assert 'solution.solution_status !== "active"' in loader
+    assert 'cache: "no-store"' in loader
+    assert "requestVersion !== solutionLifecycleExperimentTargetsRequestVersion" in loader
+    assert "innerHTML" not in loader
+
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleExperimentCreate(",
+        "function appendSolutionLifecycleExperiment(",
+    )
+    assert "solutionLifecyclePendingExperimentCreate.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingExperimentCreate.request_id" in submit
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/solutions/${encodeURIComponent(solutionId)}/experiments`' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "loadSolutionLifecycleExperiments()" in submit
+    assert "Submission and approval remain separate" in submit
+    assert "innerHTML" not in submit
+
+
 def test_experiment_result_review_form_is_exact_grant_and_pending_state_gated():
     source = CONSOLE.read_text(encoding="utf-8")
     renderer = _function(

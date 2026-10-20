@@ -15,22 +15,16 @@ def _clean(row):
 
 
 def create_experiment(conn, solution_id: str, hypothesis: str, baseline_definition: str, treatment_definition: str, unit_of_analysis: str, rollback_plan: str, *, null_hypothesis: Optional[str] = None, comparator_definition: Optional[str] = None, primary_metric_keys: Optional[list[str]] = None, secondary_metric_keys: Optional[list[str]] = None, sample_plan: Optional[dict[str, Any]] = None, stopping_rules: Optional[dict[str, Any]] = None, safety_boundaries: Optional[dict[str, Any]] = None, consent_requirements: Optional[dict[str, Any]] = None, owner_party_id: Optional[str] = None) -> Dict[str, Any]:
-    with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("""INSERT INTO solution_experiment
-            (solution_id, hypothesis, null_hypothesis, baseline_definition, treatment_definition,
-             comparator_definition, unit_of_analysis, rollback_plan, primary_metric_keys,
-             secondary_metric_keys, sample_plan, stopping_rules, safety_boundaries,
-             consent_requirements, owner_party_id)
-            VALUES (%s::uuid, %s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s::jsonb, %s::uuid)
-            RETURNING *""", (solution_id, hypothesis, null_hypothesis, baseline_definition,
-                              treatment_definition, comparator_definition, unit_of_analysis,
-                              rollback_plan, json.dumps(primary_metric_keys or []),
-                              json.dumps(secondary_metric_keys or []), json.dumps(sample_plan or {}),
-                              json.dumps(stopping_rules or {}), json.dumps(safety_boundaries or {}),
-                              json.dumps(consent_requirements or {}), owner_party_id))
-        row = _clean(cur.fetchone())
-        conn.commit()
-        return row
+    del (
+        conn, solution_id, hypothesis, baseline_definition, treatment_definition,
+        unit_of_analysis, rollback_plan, null_hypothesis, comparator_definition,
+        primary_metric_keys, secondary_metric_keys, sample_plan, stopping_rules,
+        safety_boundaries, consent_requirements, owner_party_id,
+    )
+    raise RuntimeError(
+        "Direct experiment creation is disabled; create protocol drafts through the "
+        "location-scoped Solution Lifecycle Gateway"
+    )
 
 
 def submit_protocol(conn, experiment_id: str) -> Dict[str, Any]:

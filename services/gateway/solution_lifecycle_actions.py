@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -73,6 +74,14 @@ SOLUTION_TYPES = frozenset({
 SOLUTION_RISK_CLASSES = frozenset({"low", "medium", "high", "critical"})
 SOLUTION_REVERSIBILITY = frozenset({"high", "medium", "low", "unknown"})
 _SOLUTION_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{1,159}$")
+_EXPERIMENT_METRIC_KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$")
+_EXPERIMENT_PROTOCOL_FIELDS = frozenset({
+    "hypothesis", "null_hypothesis", "baseline_definition", "treatment_definition",
+    "comparator_definition", "unit_of_analysis", "sample_plan", "primary_metric_keys",
+    "secondary_metric_keys", "minimum_detectable_effect", "confidence_target",
+    "duration_days", "stopping_rules", "rollback_plan", "safety_boundaries",
+    "consent_requirements",
+})
 SOLUTION_GATE_PROMOTIONS = {
     "testing": "validated",
     "investment_ready": "funded",
@@ -311,6 +320,148 @@ def create_location_solution_gate(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Location solution gate creation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def create_location_solution_experiment(
+    operator_id: str,
+    location_id: str,
+    solution_id: str,
+    request_id: str,
+    protocol: dict,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create an immutable experiment protocol draft for an exact-origin solution."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    solution_id = _normalize_uuid(solution_id, "solution")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(protocol, dict) or not set(protocol).issubset(_EXPERIMENT_PROTOCOL_FIELDS):
+        raise SolutionLifecycleActionInvalid("Experiment protocol fields are invalid")
+
+    normalized = {}
+    required_text = (
+        ("hypothesis", 4000),
+        ("baseline_definition", 4000),
+        ("treatment_definition", 4000),
+        ("unit_of_analysis", 255),
+        ("rollback_plan", 4000),
+    )
+    for field, maximum in required_text:
+        value = protocol.get(field)
+        if not isinstance(value, str) or not 1 <= len(value.strip()) <= maximum or "\x00" in value:
+            raise SolutionLifecycleActionInvalid(
+                f"{field.replace('_', ' ').capitalize()} must contain 1 to {maximum} characters"
+            )
+        normalized[field] = value.strip()
+    for field in ("null_hypothesis", "comparator_definition"):
+        value = protocol.get(field)
+        if value is not None:
+            if not isinstance(value, str) or len(value) > 4000 or "\x00" in value:
+                raise SolutionLifecycleActionInvalid(
+                    f"{field.replace('_', ' ').capitalize()} must be at most 4000 characters"
+                )
+            normalized[field] = value.strip() or None
+
+    for field in ("sample_plan", "stopping_rules", "safety_boundaries", "consent_requirements"):
+        value = protocol.get(field, {})
+        if not isinstance(value, dict):
+            raise SolutionLifecycleActionInvalid(
+                f"{field.replace('_', ' ').capitalize()} must be a JSON object"
+            )
+        normalized[field] = value
+
+    metric_sets = {}
+    for field in ("primary_metric_keys", "secondary_metric_keys"):
+        values = protocol.get(field, [])
+        if not isinstance(values, list) or len(values) > 50:
+            raise SolutionLifecycleActionInvalid(
+                f"{field.replace('_', ' ').capitalize()} must contain at most 50 metric keys"
+            )
+        if any(not isinstance(value, str) or not _EXPERIMENT_METRIC_KEY_RE.fullmatch(value)
+               for value in values):
+            raise SolutionLifecycleActionInvalid(
+                f"{field.replace('_', ' ').capitalize()} contains an invalid metric key"
+            )
+        if len(values) != len(set(values)):
+            raise SolutionLifecycleActionInvalid(
+                f"{field.replace('_', ' ').capitalize()} must contain unique metric keys"
+            )
+        metric_sets[field] = set(values)
+        normalized[field] = values
+    if metric_sets["primary_metric_keys"] & metric_sets["secondary_metric_keys"]:
+        raise SolutionLifecycleActionInvalid(
+            "Primary and secondary experiment metric keys must be distinct"
+        )
+
+    effect = protocol.get("minimum_detectable_effect")
+    if effect is not None:
+        if isinstance(effect, bool) or not isinstance(effect, (int, float)) \
+                or not math.isfinite(effect) or abs(effect) > 1_000_000_000_000:
+            raise SolutionLifecycleActionInvalid("Minimum detectable effect is outside the supported range")
+        normalized["minimum_detectable_effect"] = effect
+    confidence = protocol.get("confidence_target")
+    if confidence is not None:
+        if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) \
+                or not math.isfinite(confidence) or not 0.5 <= confidence <= 1:
+            raise SolutionLifecycleActionInvalid("Confidence target must be from 0.5 through 1")
+        normalized["confidence_target"] = confidence
+    duration = protocol.get("duration_days")
+    if duration is not None:
+        if isinstance(duration, bool) or not isinstance(duration, int) or not 1 <= duration <= 3650:
+            raise SolutionLifecycleActionInvalid("Duration must be an integer from 1 through 3650 days")
+        normalized["duration_days"] = duration
+
+    try:
+        encoded_protocol = json.dumps(
+            normalized, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Experiment protocol must contain JSON values") from exc
+    if len(encoded_protocol.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Experiment protocol exceeds the 64 KiB limit")
+    for field in ("sample_plan", "stopping_rules", "safety_boundaries", "consent_requirements"):
+        if len(json.dumps(normalized[field], ensure_ascii=False, allow_nan=False,
+                          separators=(",", ":")).encode("utf-8")) > 8192:
+            raise SolutionLifecycleActionInvalid(
+                f"{field.replace('_', ' ').capitalize()} exceeds the 8 KiB limit"
+            )
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Experiment draft creation requires acknowledgement that review and execution are separate"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.create_location_solution_experiment(
+                           %s::uuid, %s::uuid, %s::uuid, %s::jsonb, %s::boolean
+                       )""",
+                (location_id, solution_id, request_id, encoded_protocol, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Location solution experiment creation returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result

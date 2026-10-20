@@ -805,6 +805,91 @@ def _verify_solution_stage_gate_boundary(cur, role_name: str) -> None:
         )
 
 
+def _apply_solution_experiment_protocol_boundary(
+    cur, runtime_ident: sql.Identifier
+) -> dict[str, object]:
+    """Permit lifecycle-field updates; draft creation stays behind the Gateway."""
+    cur.execute("SELECT to_regclass('public.solution_experiment')")
+    if cur.fetchone()[0] is None:
+        return {
+            "installed": False, "insert": False, "delete": False,
+            "protocol_update": False,
+        }
+
+    table_ident = sql.Identifier("public", "solution_experiment")
+    cur.execute(
+        "SELECT attname FROM pg_attribute "
+        "WHERE attrelid = 'public.solution_experiment'::regclass "
+        "AND attnum > 0 AND NOT attisdropped"
+    )
+    columns = [row[0] for row in cur.fetchall()]
+    if not columns:
+        raise RuntimeError("solution_experiment has no columns for the runtime boundary")
+
+    cur.execute(
+        sql.SQL("REVOKE INSERT, UPDATE, DELETE ON TABLE {} FROM {}").format(
+            table_ident, runtime_ident
+        )
+    )
+    for column in columns:
+        for privilege in ("INSERT", "UPDATE"):
+            cur.execute(
+                sql.SQL("REVOKE {} ({}) ON TABLE {} FROM {}").format(
+                    sql.SQL(privilege),
+                    sql.Identifier(column),
+                    table_ident,
+                    runtime_ident,
+                )
+            )
+    cur.execute(
+        sql.SQL(
+            "GRANT UPDATE (status, approved_by_party_id, approved_at, started_at, "
+            "completed_at, updated_at) ON TABLE {} TO {}"
+        ).format(table_ident, runtime_ident)
+    )
+    return {
+        "installed": True,
+        "insert": False,
+        "delete": False,
+        "protocol_update": False,
+        "lifecycle_update_columns": [
+            "status", "approved_by_party_id", "approved_at", "started_at",
+            "completed_at", "updated_at",
+        ],
+        "access": "bounded Gateway protocol creation; lifecycle fields remain writable",
+    }
+
+
+def _verify_solution_experiment_protocol_boundary(cur, role_name: str) -> None:
+    cur.execute("SELECT to_regclass('public.solution_experiment')")
+    if cur.fetchone()[0] is None:
+        return
+    cur.execute(
+        "SELECT has_table_privilege(%s, 'public.solution_experiment', 'INSERT'), "
+        "has_table_privilege(%s, 'public.solution_experiment', 'UPDATE'), "
+        "has_table_privilege(%s, 'public.solution_experiment', 'DELETE'), "
+        "EXISTS (SELECT 1 FROM pg_attribute "
+        "WHERE attrelid = 'public.solution_experiment'::regclass "
+        "AND attnum > 0 AND NOT attisdropped "
+        "AND (has_column_privilege(%s, 'public.solution_experiment', attname, 'INSERT') "
+        "OR (attname NOT IN ('status', 'approved_by_party_id', 'approved_at', "
+        "'started_at', 'completed_at', 'updated_at') "
+        "AND has_column_privilege(%s, 'public.solution_experiment', attname, 'UPDATE')))), "
+        "has_column_privilege(%s, 'public.solution_experiment', 'status', 'UPDATE'), "
+        "has_column_privilege(%s, 'public.solution_experiment', 'approved_by_party_id', 'UPDATE'), "
+        "has_column_privilege(%s, 'public.solution_experiment', 'approved_at', 'UPDATE'), "
+        "has_column_privilege(%s, 'public.solution_experiment', 'started_at', 'UPDATE'), "
+        "has_column_privilege(%s, 'public.solution_experiment', 'completed_at', 'UPDATE'), "
+        "has_column_privilege(%s, 'public.solution_experiment', 'updated_at', 'UPDATE')",
+        (role_name,) * 11,
+    )
+    expected = (False, False, False, False, True, True, True, True, True, True)
+    if cur.fetchone() != expected:
+        raise RuntimeError(
+            f"{role_name} retains direct solution_experiment protocol privileges"
+        )
+
+
 def provision_runtime_role(
     conn,
     *,
@@ -1430,6 +1515,9 @@ def provision_runtime_role(
         api_key_grants = _apply_api_key_boundary(cur, runtime_ident)
         farm_activity_event_grants = _apply_farm_activity_operator_event_boundary(cur, runtime_ident)
         solution_stage_gate_grants = _apply_solution_stage_gate_boundary(
+            cur, runtime_ident
+        )
+        solution_experiment_protocol_grants = _apply_solution_experiment_protocol_boundary(
             cur, runtime_ident
         )
         cur.execute(
@@ -2276,6 +2364,7 @@ def provision_runtime_role(
         _verify_api_key_boundary(cur, runtime_user)
         _verify_farm_activity_operator_event_boundary(cur, runtime_user)
         _verify_solution_stage_gate_boundary(cur, runtime_user)
+        _verify_solution_experiment_protocol_boundary(cur, runtime_user)
         _verify_no_runtime_default_privileges(
             cur, admin_user=admin_user, runtime_user=runtime_user
         )
@@ -2439,11 +2528,15 @@ def provision_runtime_role(
             "operator_session": "bounded functions only",
             "farm_activity_operator_event": "read-only SELECT; trigger owner appends; no direct write",
             "solution_stage_gate": "bounded security-definer functions only; no direct runtime access",
+            "solution_experiment": (
+                "bounded Gateway protocol creation; lifecycle updates limited to status and timestamps"
+            ),
         },
         "runtime_mobile_credential_privileges": mobile_credential_grants,
         "runtime_api_key_privileges": api_key_grants,
         "runtime_farm_activity_operator_event_privileges": farm_activity_event_grants,
         "runtime_solution_stage_gate_privileges": solution_stage_gate_grants,
+        "runtime_solution_experiment_protocol_privileges": solution_experiment_protocol_grants,
         "farm_activity_event_owner_restored": farm_activity_event_owner_ready,
         "operator_session_access": "bounded functions only",
         "security_definer_owners_verified": True,

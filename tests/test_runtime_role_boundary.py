@@ -482,6 +482,83 @@ def test_runtime_solution_stage_gate_access_is_only_through_bounded_functions():
     assert len(cursor.calls) == 3 + 3 * 3
 
 
+def test_runtime_solution_experiment_protocol_boundary_preserves_only_lifecycle_updates():
+    class Cursor:
+        def __init__(self):
+            self.calls = []
+            self.fetches = 0
+
+        def execute(self, statement, parameters=None):
+            self.calls.append((statement, parameters))
+
+        def fetchone(self):
+            self.fetches += 1
+            return ("solution_experiment",)
+
+        def fetchall(self):
+            return [(column,) for column in (
+                "id", "hypothesis", "solution_id", "status", "approved_by_party_id",
+                "approved_at", "started_at", "completed_at", "updated_at",
+            )]
+
+    cursor = Cursor()
+    result = runtime_role._apply_solution_experiment_protocol_boundary(
+        cursor,
+        runtime_role.sql.Identifier("kokonut_runtime"),
+    )
+
+    assert result["installed"] is True
+    assert result["insert"] is False
+    assert result["delete"] is False
+    assert result["protocol_update"] is False
+    assert result["lifecycle_update_columns"] == [
+        "status", "approved_by_party_id", "approved_at", "started_at",
+        "completed_at", "updated_at",
+    ]
+    assert len(cursor.calls) == 4 + 2 * 9
+
+
+@pytest.mark.parametrize(
+    "privileges,should_raise",
+    [
+        ((False, False, False, False, True, True, True, True, True, True), False),
+        ((True, False, False, False, True, True, True, True, True, True), True),
+        ((False, True, False, False, True, True, True, True, True, True), True),
+        ((False, False, True, False, True, True, True, True, True, True), True),
+        ((False, False, False, True, True, True, True, True, True, True), True),
+        ((False, False, False, False, True, True, True, True, True, False), True),
+    ],
+)
+def test_runtime_solution_experiment_protocol_privilege_verification(
+    privileges, should_raise
+):
+    class Cursor:
+        def __init__(self):
+            self.fetches = 0
+
+        def execute(self, _statement, _parameters=None):
+            return None
+
+        def fetchone(self):
+            self.fetches += 1
+            if self.fetches == 1:
+                return ("solution_experiment",)
+            return privileges
+
+    cursor = Cursor()
+    if should_raise:
+        with pytest.raises(
+            RuntimeError, match="retains direct solution_experiment protocol privileges"
+        ):
+            runtime_role._verify_solution_experiment_protocol_boundary(
+                cursor, "kokonut_runtime"
+            )
+    else:
+        runtime_role._verify_solution_experiment_protocol_boundary(
+            cursor, "kokonut_runtime"
+        )
+
+
 @pytest.mark.parametrize(
     "privileges,should_raise",
     [
