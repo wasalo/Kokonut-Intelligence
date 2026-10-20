@@ -689,6 +689,18 @@
           </div>
           <button id="competitive-landscape-more" class="secondary" type="button" hidden>Load more summaries</button>
         </section>
+        <section id="strategy-plan-summary" hidden aria-labelledby="strategy-plan-summary-heading">
+          <h2 id="strategy-plan-summary-heading">Location strategy plans</h2>
+          <p class="muted">Read-only metadata and aggregate execution signals for plans owned by the granted location. Diagnosis, policy rationale, allocation details, costs, evidence, and parent organization plan details are excluded. Structural gate status describes database checks only; it is not human approval and does not authorize execution.</p>
+          <div class="toolbar">
+            <label for="strategy-plan-location">Granted location</label>
+            <select id="strategy-plan-location"></select>
+            <button id="strategy-plan-refresh" type="button">Refresh plans</button>
+          </div>
+          <p id="strategy-plan-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="strategy-plan-cards"></div>
+          <button id="strategy-plan-more" class="secondary" type="button" hidden>Load more plans</button>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -737,7 +749,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, competitive landscape, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, competitive landscape, strategy, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -954,6 +966,14 @@
       let competitiveLandscapeLocations = new Set();
       let competitiveLandscapeRequestVersion = 0;
       let competitiveLandscapeOffset = 0;
+      const strategyPlanSummary = document.querySelector("#strategy-plan-summary");
+      const strategyPlanLocation = document.querySelector("#strategy-plan-location");
+      const strategyPlanStatus = document.querySelector("#strategy-plan-status");
+      const strategyPlanCards = document.querySelector("#strategy-plan-cards");
+      const strategyPlanMore = document.querySelector("#strategy-plan-more");
+      let strategyPlanLocations = new Set();
+      let strategyPlanRequestVersion = 0;
+      let strategyPlanOffset = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1973,6 +1993,94 @@
         }
       }
 
+      function renderStrategyPlanCard(plan) {
+        const article = document.createElement("article");
+        const heading = document.createElement("h3");
+        const details = document.createElement("dl");
+        heading.textContent = typeof plan.plan_name === "string" && plan.plan_name
+          ? plan.plan_name
+          : "Untitled strategy plan";
+        for (const [field, label] of [
+          ["version", "Version"],
+          ["plan_status", "Lifecycle state"],
+          ["visibility", "Visibility"],
+          ["planning_horizon_start", "Planning starts"],
+          ["planning_horizon_end", "Planning ends"],
+          ["updated_at", "Last updated"],
+          ["cascade_mode", "Cascade mode"],
+          ["cascade_status", "Cascade state"],
+          ["has_parent_strategy", "Parent strategy linked"],
+          ["objective_count", "Objectives"],
+          ["initiative_count", "Initiatives"],
+          ["completed_initiative_count", "Completed initiatives"],
+          ["investment_case_count", "Investment cases"],
+          ["recommended_investment_count", "Recommended investments"],
+          ["open_coherence_finding_count", "Open coherence findings"],
+          ["blocking_finding_count", "Structural blockers"],
+          ["structural_gate_status", "Structural gate status (not approval)"],
+          ["open_review_task_count", "Open review tasks"],
+          ["submitted_allocation_count", "Submitted allocations"],
+          ["approved_allocation_count", "Approved allocations"]
+        ]) {
+          const value = plan[field];
+          if (value !== null && value !== undefined
+              && typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") continue;
+          const term = document.createElement("dt");
+          const valueElement = document.createElement("dd");
+          term.textContent = label;
+          valueElement.textContent = typeof value === "number" && Number.isFinite(value)
+            ? value.toLocaleString()
+            : typeof value === "boolean" ? (value ? "Yes" : "No")
+              : value === null || value === undefined ? "—" : value;
+          details.append(term, valueElement);
+        }
+        article.append(heading, details);
+        return article;
+      }
+
+      async function loadStrategyPlanSummaries(append = false) {
+        const locationId = strategyPlanLocation.value;
+        const requestVersion = ++strategyPlanRequestVersion;
+        if (!strategyPlanLocations.has(locationId)) return;
+        const offset = append ? strategyPlanOffset : 0;
+        strategyPlanStatus.textContent = "Loading location strategy plans…";
+        strategyPlanMore.disabled = true;
+        if (!append) strategyPlanCards.replaceChildren();
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/strategy/${encodeURIComponent(locationId)}/plans?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Strategy plan reads are unavailable for this location.");
+            throw new Error("The strategy plans could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== strategyPlanRequestVersion
+              || locationId !== strategyPlanLocation.value) return;
+          const plans = Array.isArray(result.plans) ? result.plans : [];
+          for (const plan of plans) strategyPlanCards.append(renderStrategyPlanCard(plan));
+          const nextOffset = result.next_offset;
+          strategyPlanOffset = Number.isInteger(nextOffset) && nextOffset > offset && nextOffset <= 10000
+            ? nextOffset
+            : offset;
+          strategyPlanMore.hidden = result.has_more !== true || strategyPlanOffset <= offset;
+          strategyPlanStatus.textContent = strategyPlanCards.children.length
+            ? `${strategyPlanCards.children.length} location strategy plans shown. Counts and structural status do not authorize execution.`
+            : "No location-owned strategy plans are available for this location.";
+        } catch (error) {
+          if (requestVersion !== strategyPlanRequestVersion) return;
+          strategyPlanCards.replaceChildren();
+          strategyPlanStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === strategyPlanRequestVersion) strategyPlanMore.disabled = false;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -2046,6 +2154,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           competitiveLandscapeLocations = new Set(competitiveLandscapeLocationIds);
+          const strategyPlanLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "strategy" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          strategyPlanLocations = new Set(strategyPlanLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -2339,6 +2453,17 @@
             }
             competitiveLandscapeSummary.hidden = false;
             await loadCompetitiveLandscapeSummaries();
+            hasAuthorizedSurface = true;
+          }
+          if (strategyPlanLocationIds.length) {
+            for (const locationId of strategyPlanLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              strategyPlanLocation.append(option);
+            }
+            strategyPlanSummary.hidden = false;
+            await loadStrategyPlanSummaries();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -5506,6 +5631,9 @@
       document.querySelector("#competitive-landscape-refresh").addEventListener("click", () => loadCompetitiveLandscapeSummaries());
       competitiveLandscapeLocation.addEventListener("change", () => loadCompetitiveLandscapeSummaries());
       competitiveLandscapeMore.addEventListener("click", () => loadCompetitiveLandscapeSummaries(true));
+      document.querySelector("#strategy-plan-refresh").addEventListener("click", () => loadStrategyPlanSummaries());
+      strategyPlanLocation.addEventListener("change", () => loadStrategyPlanSummaries());
+      strategyPlanMore.addEventListener("click", () => loadStrategyPlanSummaries(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

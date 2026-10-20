@@ -1,3 +1,20 @@
+### CAP-028 strategy plans operator-console read — 20 October 2026
+
+The operator console now lists bounded location strategy plans under exact
+`strategy:read` grants. Fixed metadata and aggregate objective, initiative,
+investment, coherence, review, and allocation fields are shown. Plan/parent
+identifiers, rationale, costs, and evidence are not rendered. Structural gate
+status is labeled as informational and does not imply human approval or
+authorize execution. Same-origin no-store reads, stale-location guards, and
+bounded 25-row pages are in place. The focused console, Gateway, and
+route-policy selection passes 21 tests, including JavaScript syntax
+validation; Ruff and capability-matrix validation pass. Candidate and legacy
+databases remain untouched; migration 452 is not rolled out. CAP-028 remains
+prepared pending complete workflow parity, populated fixtures, live OIDC/browser,
+broader ACL/RLS, and MAN-CAP-028 owner review. Checklist: 718 complete / 24
+open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Read contract](strategy-kernel-read-contract.md);
+[console checks](../tests/test_operator_console_strategy.py).
+
 ### CAP-029 competitive landscape operator-console read — 20 October 2026
 
 The operator console now surfaces CAP-029's location landscape summaries for
