@@ -76,15 +76,19 @@ mounted unified command using the same arguments. It covers:
 | `governance-links` | `list --source-circle-id <synthetic-source> --status active` | PostgreSQL read; connection and query are stubbed | JSON cross-circle link rows |
 | `governance-tactical` | `session-list --circle-id <synthetic-circle> --status active` | PostgreSQL read; connection and query are stubbed | JSON tactical session rows |
 | `governance-tensions` | `list --circle-id <synthetic-circle> --status submitted --overdue-only` | PostgreSQL read; connection and query are stubbed | JSON tension health rows |
+| `stakeholder-grievances` | `health --status submitted --overdue-only` | PostgreSQL read; connection and query are stubbed | JSON grievance health rows |
+| `stakeholder-identity` | `queue` | PostgreSQL read; connection and query are stubbed | JSON identity-resolution queue rows |
+| `stakeholder-representation` | `distribution-summary --scope-type location --scope-id <synthetic-location>` | PostgreSQL read; connection and query are stubbed | JSON distribution summary rows |
+| `stakeholder-trust` | `timeline <synthetic-party>` | PostgreSQL read; connection and query are stubbed | JSON trust evidence rows |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Six successful offline invocations and fifteen PostgreSQL-backed
+real service. Six successful offline invocations and nineteen PostgreSQL-backed
 read invocations with stubbed query functions match their standalone output
-across 20 mounted groups (36 tests including the native Typer command-tree
+across 24 mounted groups (40 tests including the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
 
@@ -95,20 +99,21 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 36-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 40-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The fifteen database-backed success paths exercise their real parsers, forwarding,
+The nineteen database-backed success paths exercise their real parsers, forwarding,
 and JSON renderers from both entry points with synthetic query results. The
 connection-taking commands use fake connections and prove they close them.
 The governance proposal, role, link, tactical, and tension read CLIs close their
-connections after both successful and failing service calls. The cases confirm
-parsed filters reach expected service calls; they do not claim database query
-behavior or authorization.
+connections after both successful and failing service calls. The stakeholder
+grievance, identity, representation, and trust read paths also close their
+connections on success. The cases confirm parsed filters reach expected
+service calls; they do not claim database query behavior or authorization.
 
 This closes successful output parity only for these six offline command
-invocations across five mounted groups plus fifteen stubbed database-backed
-paths. The other 17 mounted groups still need command-specific success-path checks and
+invocations across five mounted groups plus nineteen stubbed database-backed
+paths. The other 13 mounted groups still need command-specific success-path checks and
 database/provider classification. Privileged operator action boundaries and
 MAN-CAP-039 owner acceptance are also open.
 

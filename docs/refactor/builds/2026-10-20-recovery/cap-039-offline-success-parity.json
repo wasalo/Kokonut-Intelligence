@@ -5,9 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 36,
-    "new_success_path_cases": 21,
-    "database_backed_cases_with_stubbed_query": 15,
+    "tests_passed": 40,
+    "new_success_path_cases": 25,
+    "database_backed_cases_with_stubbed_query": 19,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -150,10 +150,34 @@
       "dependencies": ["PostgreSQL read; connection and query stubbed"],
       "output": "JSON tension health rows",
       "database_behavior": "Standalone and unified filters/output match; owned fake connections close after success and failure."
+    },
+    {
+      "name": "stakeholder-grievances",
+      "arguments": ["health", "--status", "submitted", "--overdue-only"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON grievance health rows"
+    },
+    {
+      "name": "stakeholder-identity",
+      "arguments": ["queue"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON identity-resolution queue rows"
+    },
+    {
+      "name": "stakeholder-representation",
+      "arguments": ["distribution-summary", "--scope-type", "location", "--scope-id", "synthetic-location"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON distribution summary rows"
+    },
+    {
+      "name": "stakeholder-trust",
+      "arguments": ["timeline", "synthetic-party"],
+      "dependencies": ["PostgreSQL read; connection and query stubbed"],
+      "output": "JSON trust evidence timeline rows"
     }
   ],
   "limitations": [
-    "Successful parity is covered for six offline command invocations and fifteen PostgreSQL-backed commands whose service queries were stubbed, across 20 mounted groups.",
+    "Successful parity is covered for six offline command invocations and nineteen PostgreSQL-backed commands whose service queries were stubbed, across 24 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }
