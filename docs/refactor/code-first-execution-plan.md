@@ -3,6 +3,21 @@
 **Updated:** 19 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Latest implementation slice — 19 October 2026:** the operator console now
+surfaces CAP-037's existing summary, demand, and capacity-period GET routes for
+locations with an exact `operating_pilot:read` session grant. It uses
+same-origin/no-store requests, discards stale location responses, displays only
+fixed aggregate summary keys, and hides capacity totals for suppressed cohorts.
+The focused console/Gateway/route-policy selection passes 37 tests, including
+inline JavaScript syntax validation; Ruff and capability-matrix validation
+pass. No database was used and migration 480 remains unrolled on the candidate.
+CAP-037 remains prepared pending item-level workflows, populated scope and
+legacy parity, audience review, live OIDC/browser behavior, broader ACL/RLS,
+recovery, and owner acceptance. Checklist: 709 complete / 24 open; capability
+matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read
+contract](operating-pilot-kernel-read-contract.md), [console](../apps/operator-console/index.html), and
+[console checks](../tests/test_operator_console_operating_pilot.py).
+
 **Latest implementation slice — 19 October 2026:** CAP-037 now has a
 bounded aggregate capacity-period page at
 `GET /operator/api/operating-pilot/{location_id}/capacity-periods`. Migration

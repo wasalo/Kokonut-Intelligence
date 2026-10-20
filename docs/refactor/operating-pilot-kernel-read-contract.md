@@ -86,6 +86,19 @@ participant-key, and capacity columns needed by the summary and this aggregate;
 it does not grant profile notes. The route cannot verify, approve, or mutate a
 capacity profile.
 
+## Operator console
+
+The operator console exposes these three read routes in a single operating-pilot
+panel only when the signed session contains an exact `operating_pilot:read`
+location grant. The location selector is populated only from those grants; the
+browser sends same-origin, no-store requests and discards stale responses when
+the selected location changes. Demand and capacity pages are bounded to 25
+rows per request and provide explicit load-more controls. Capacity totals are
+rendered as suppressed whenever the page marks a period with fewer than three
+contributors. The summary renders only fixed aggregate fields. This console
+surface does not add write or review actions and does not constitute live
+OIDC/browser acceptance.
+
 ## Database boundary
 
 The non-login `kokonut_operating_pilot_reader` role can select only the source

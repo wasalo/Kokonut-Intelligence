@@ -1,3 +1,20 @@
+### CAP-037 operating-pilot console reads — 19 October 2026
+
+The operator console now has a read-only CAP-037 panel for locations with the
+exact `operating_pilot:read` session grant. It calls the existing summary,
+demand-page, and capacity-period routes with same-origin no-store requests,
+discards stale responses after location changes, and renders only fixed
+aggregate summary fields. Capacity period totals appear only when the response
+is not suppressed for a cohort below three contributors. The focused console,
+Gateway, and route-policy selection passes 37 tests, including inline
+JavaScript syntax validation; Ruff and capability-matrix validation pass. No
+database was used; migration 480 remains unrolled on the candidate. CAP-037
+remains prepared pending item-level workflows, populated scope and legacy
+parity, audience review, live OIDC/browser behavior, broader ACL/RLS, recovery,
+and owner acceptance. Checklist: 709 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared. [Contract](operating-pilot-kernel-read-contract.md);
+[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_operating_pilot.py).
+
 ### CAP-036 location-scoped evidence timeline — 19 October 2026
 
 Added `GET /operator/api/sequential-evidence/{location_id}/events` under exact signed `sequential_evidence:read` context. Migration 478 returns a stable, bounded evidence/posterior timeline for exact location-scoped strategy plans, threats, and location-origin or explicitly linked solutions. Each page exposes only sequence ordinals, observed/ingested timestamps, evidence class/quality, and posterior update sequence/version; statements, row IDs, source references, raw values, likelihoods, posterior values, threshold outcomes, and identities remain private. Unknown subject types remain excluded.

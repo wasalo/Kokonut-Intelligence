@@ -527,6 +527,36 @@
             </form>
           </section>
         </section>
+        <section id="operating-pilot" hidden aria-labelledby="operating-pilot-heading">
+          <h2 id="operating-pilot-heading">Operating pilot overview</h2>
+          <p class="muted">Read-only, location-scoped summary of current operating measures, redacted demand signals, and aggregate capacity periods. Capacity hours remain hidden when fewer than three people contribute to a period.</p>
+          <div class="toolbar">
+            <label for="operating-pilot-location">Granted location</label>
+            <select id="operating-pilot-location"></select>
+            <button id="operating-pilot-refresh" type="button">Refresh overview</button>
+          </div>
+          <p id="operating-pilot-status" class="muted" role="status" aria-live="polite"></p>
+          <h3>Current operating summary</h3>
+          <dl id="operating-pilot-summary"></dl>
+          <h3>Demand signals</h3>
+          <p id="operating-pilot-demand-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Work type</th><th>Period</th><th>Required hours</th><th>Priority</th><th>Status</th></tr></thead>
+              <tbody id="operating-pilot-demand-rows"></tbody>
+            </table>
+          </div>
+          <button id="operating-pilot-demand-more" class="secondary" type="button" hidden>Load more demand</button>
+          <h3>Capacity periods</h3>
+          <p id="operating-pilot-capacity-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Period</th><th>Available hours</th><th>Committed hours</th><th>Protected hours</th></tr></thead>
+              <tbody id="operating-pilot-capacity-rows"></tbody>
+            </table>
+          </div>
+          <button id="operating-pilot-capacity-more" class="secondary" type="button" hidden>Load more capacity periods</button>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -575,7 +605,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, operating pilot, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -709,6 +739,22 @@
       const farmActivityRecordTransitionForm = document.querySelector("#farm-activity-record-transition-form");
       const farmActivityRecordTransitionActions = document.querySelector("#farm-activity-record-transition-actions");
       const farmActivityRecordDetailStatus = document.querySelector("#farm-activity-record-detail-status");
+      const operatingPilot = document.querySelector("#operating-pilot");
+      const operatingPilotLocation = document.querySelector("#operating-pilot-location");
+      const operatingPilotStatus = document.querySelector("#operating-pilot-status");
+      const operatingPilotSummary = document.querySelector("#operating-pilot-summary");
+      const operatingPilotDemandStatus = document.querySelector("#operating-pilot-demand-status");
+      const operatingPilotDemandRows = document.querySelector("#operating-pilot-demand-rows");
+      const operatingPilotDemandMore = document.querySelector("#operating-pilot-demand-more");
+      const operatingPilotCapacityStatus = document.querySelector("#operating-pilot-capacity-status");
+      const operatingPilotCapacityRows = document.querySelector("#operating-pilot-capacity-rows");
+      const operatingPilotCapacityMore = document.querySelector("#operating-pilot-capacity-more");
+      let operatingPilotLocations = new Set();
+      let operatingPilotSummaryRequestVersion = 0;
+      let operatingPilotDemandRequestVersion = 0;
+      let operatingPilotCapacityRequestVersion = 0;
+      let operatingPilotDemandOffset = 0;
+      let operatingPilotCapacityOffset = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -806,6 +852,216 @@
         }
       }
 
+      function operatingPilotDisplayValue(value) {
+        if (value === null || value === undefined) return "—";
+        if (typeof value === "number") {
+          return Number.isFinite(value) ? value.toLocaleString() : "—";
+        }
+        return String(value);
+      }
+
+      function addOperatingPilotMetric(label, value) {
+        const term = document.createElement("dt");
+        const description = document.createElement("dd");
+        term.textContent = label;
+        description.textContent = operatingPilotDisplayValue(value);
+        operatingPilotSummary.append(term, description);
+      }
+
+      function renderOperatingPilotSummary(summary) {
+        operatingPilotSummary.replaceChildren();
+        if (summary.scope_configured !== true) {
+          operatingPilotStatus.textContent = "No active operating-pilot scope is mapped to this location.";
+          return;
+        }
+        operatingPilotStatus.textContent = "Read-only summary. Measures use the current database date.";
+        const capacity = summary.capacity_profiles || {};
+        if (capacity.suppressed === true) {
+          addOperatingPilotMetric("Current-period capacity", "Suppressed (<3 contributors)");
+        } else {
+          addOperatingPilotMetric("Capacity profiles draft", capacity.draft);
+          addOperatingPilotMetric("Capacity profiles submitted", capacity.submitted);
+          addOperatingPilotMetric("Capacity profiles approved", capacity.approved);
+          addOperatingPilotMetric("Capacity profiles superseded", capacity.superseded);
+          addOperatingPilotMetric("Current-period available hours", capacity.available_hours);
+          addOperatingPilotMetric("Current-period committed hours", capacity.committed_hours);
+          addOperatingPilotMetric("Current-period protected hours", capacity.protected_hours);
+        }
+        const demand = summary.demand_signals || {};
+        addOperatingPilotMetric("Demand signals draft", demand.draft);
+        addOperatingPilotMetric("Demand signals submitted", demand.submitted);
+        addOperatingPilotMetric("Demand signals approved", demand.approved);
+        addOperatingPilotMetric("Demand signals fulfilled", demand.fulfilled);
+        addOperatingPilotMetric("Demand signals cancelled", demand.cancelled);
+        addOperatingPilotMetric("Current-period required hours", demand.required_hours);
+        const work = summary.work_items || {};
+        addOperatingPilotMetric("Work items", work.total);
+        addOperatingPilotMetric("Open work items", work.open);
+        addOperatingPilotMetric("Claimed work items", work.claimed);
+        addOperatingPilotMetric("Allocated work items", work.allocated);
+        addOperatingPilotMetric("Paused work items", work.paused);
+        addOperatingPilotMetric("Closed work items", work.closed);
+        for (const [key, label, fields] of [
+          ["work_claims", "Work claims", ["proposed", "accepted", "rejected", "withdrawn"]],
+          ["competency_reviews", "Competency reviews", ["submitted", "verified", "open_gap"]],
+          ["learning_plans", "Learning plans", ["draft", "submitted", "active", "completed", "paused", "cancelled"]],
+          ["resource_requests", "Resource requests", ["pending", "approved", "partially_approved", "declined", "fulfilled"]],
+          ["aggregate_only_coaching_sessions", "Aggregate coaching sessions", ["count"]]
+        ]) {
+          const group = summary[key] || {};
+          if (group.suppressed === true) {
+            addOperatingPilotMetric(label, "Suppressed (<3 contributors)");
+            continue;
+          }
+          for (const field of fields) {
+            const value = group[field];
+            if (typeof value !== "number" || !Number.isFinite(value)) continue;
+            const readableField = field.replaceAll("_", " ");
+            addOperatingPilotMetric(`${label} · ${readableField}`, value);
+          }
+        }
+      }
+
+      function appendOperatingPilotRow(container, values) {
+        const row = document.createElement("tr");
+        for (const value of values) {
+          const cell = document.createElement("td");
+          cell.textContent = operatingPilotDisplayValue(value);
+          row.append(cell);
+        }
+        container.append(row);
+      }
+
+      function operatingPilotRequestError(response) {
+        if (response.status === 401 || response.status === 403) {
+          return "Your session or location read grant is no longer valid. Reload the console to refresh access.";
+        }
+        if (response.status === 404) return "Operating-pilot reads are unavailable for this location.";
+        return "The operating-pilot data could not be loaded. Retry when the service is available.";
+      }
+
+      async function loadOperatingPilotSummary() {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotSummaryRequestVersion;
+        if (!operatingPilotLocations.has(locationId)) return;
+        operatingPilotStatus.textContent = "Loading summary…";
+        try {
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotSummaryRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          renderOperatingPilotSummary(result);
+        } catch (error) {
+          if (requestVersion !== operatingPilotSummaryRequestVersion) return;
+          operatingPilotSummary.replaceChildren();
+          operatingPilotStatus.textContent = error.message;
+        }
+      }
+
+      async function loadOperatingPilotDemand(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotDemandRequestVersion;
+        if (!operatingPilotLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotDemandOffset = 0;
+          operatingPilotDemandRows.replaceChildren();
+        }
+        const offset = append ? operatingPilotDemandOffset : 0;
+        operatingPilotDemandMore.disabled = true;
+        operatingPilotDemandStatus.textContent = "Loading demand signals…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/demand-signals?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotDemandRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) {
+            appendOperatingPilotRow(operatingPilotDemandRows, [
+              item.work_type,
+              `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+              item.required_hours,
+              item.priority,
+              item.status
+            ]);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotDemandMore.hidden = !canContinue;
+          operatingPilotDemandOffset = canContinue ? nextOffset : 0;
+          operatingPilotDemandStatus.textContent = canContinue
+            ? "Showing a bounded page of redacted demand records."
+            : operatingPilotDemandRows.childElementCount ? "Demand records loaded." : "No demand records are available.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotDemandRequestVersion) return;
+          operatingPilotDemandMore.hidden = true;
+          operatingPilotDemandStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotDemandRequestVersion) operatingPilotDemandMore.disabled = false;
+        }
+      }
+
+      async function loadOperatingPilotCapacity(append = false) {
+        const locationId = operatingPilotLocation.value;
+        const requestVersion = ++operatingPilotCapacityRequestVersion;
+        if (!operatingPilotLocations.has(locationId)) return;
+        if (!append) {
+          operatingPilotCapacityOffset = 0;
+          operatingPilotCapacityRows.replaceChildren();
+        }
+        const offset = append ? operatingPilotCapacityOffset : 0;
+        operatingPilotCapacityMore.disabled = true;
+        operatingPilotCapacityStatus.textContent = "Loading capacity periods…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/operating-pilot/${encodeURIComponent(locationId)}/capacity-periods?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) throw new Error(operatingPilotRequestError(response));
+          const result = await response.json();
+          if (requestVersion !== operatingPilotCapacityRequestVersion
+              || locationId !== operatingPilotLocation.value) return;
+          for (const item of result.items || []) {
+            const suppression = item.suppressed === true;
+            appendOperatingPilotRow(operatingPilotCapacityRows, [
+              `${operatingPilotDisplayValue(item.period_start)} – ${operatingPilotDisplayValue(item.period_end)}`,
+              suppression ? "Suppressed (<3 contributors)" : item.available_hours,
+              suppression ? "Suppressed (<3 contributors)" : item.committed_hours,
+              suppression ? "Suppressed (<3 contributors)" : item.protected_hours
+            ]);
+          }
+          const nextOffset = Number.isInteger(result.next_offset) ? result.next_offset : null;
+          const canContinue = result.has_more === true && nextOffset !== null && nextOffset <= 10000;
+          operatingPilotCapacityMore.hidden = !canContinue;
+          operatingPilotCapacityOffset = canContinue ? nextOffset : 0;
+          operatingPilotCapacityStatus.textContent = canContinue
+            ? "Showing a bounded page of aggregate capacity periods."
+            : operatingPilotCapacityRows.childElementCount ? "Capacity periods loaded." : "No capacity periods are available.";
+        } catch (error) {
+          if (requestVersion !== operatingPilotCapacityRequestVersion) return;
+          operatingPilotCapacityMore.hidden = true;
+          operatingPilotCapacityStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === operatingPilotCapacityRequestVersion) operatingPilotCapacityMore.disabled = false;
+        }
+      }
+
+      async function loadOperatingPilot() {
+        await Promise.all([
+          loadOperatingPilotSummary(),
+          loadOperatingPilotDemand(),
+          loadOperatingPilotCapacity()
+        ]);
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -825,6 +1081,12 @@
           const reviewLocations = [...new Set((data.scopes || [])
             .filter((scope) => scope.resource === "report_snapshot_review" && scope.action === "read")
             .map((scope) => scope.location_id))];
+          const operatingPilotLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "operating_pilot" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          operatingPilotLocations = new Set(operatingPilotLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -1019,6 +1281,17 @@
             }
             mobileOperations.hidden = false;
             await loadMobileOperationsInventory();
+            hasAuthorizedSurface = true;
+          }
+          if (operatingPilotLocationIds.length) {
+            for (const locationId of operatingPilotLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              operatingPilotLocation.append(option);
+            }
+            operatingPilot.hidden = false;
+            await loadOperatingPilot();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -4161,6 +4434,10 @@
       mobileReviewLocation.addEventListener("change", loadMobileQueue);
       document.querySelector("#mobile-operations-refresh").addEventListener("click", loadMobileOperationsInventory);
       mobileOperationsLocation.addEventListener("change", loadMobileOperationsInventory);
+      document.querySelector("#operating-pilot-refresh").addEventListener("click", loadOperatingPilot);
+      operatingPilotLocation.addEventListener("change", loadOperatingPilot);
+      operatingPilotDemandMore.addEventListener("click", () => loadOperatingPilotDemand(true));
+      operatingPilotCapacityMore.addEventListener("click", () => loadOperatingPilotCapacity(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();
