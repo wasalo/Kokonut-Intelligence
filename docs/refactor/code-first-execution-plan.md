@@ -3,20 +3,21 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-032 now has a
-read-only business-architecture panel in the operator console, gated by exact
-`business_architecture:read` location grants. It renders approved
-vision/mission/values statements and bounded roadmap mappings through fixed
-text-only fields, with same-origin no-store reads, stale-location guards, and
-25-row pagination. The panel exposes no approval or lifecycle actions. The
-focused console/Gateway/route-policy selection passes 21 tests, including
-JavaScript syntax validation; Ruff and capability checks pass. No database was
-used. CAP-032 remains prepared pending populated parity, live OIDC/browser,
-broader ACL/RLS, and MAN-CAP-032 review. Checklist: 714 complete / 24 open;
-matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read
-contract](business-architecture-kernel-read-contract.md),
+**Latest implementation slice — 20 October 2026:** CAP-031 now has a
+read-only location budget panel in the operator console, gated by exact
+`planning_budget:read` grants. It displays plan lifecycle, native currency and
+period, objective presence, planned amount, verified expenses/variance, and
+foreign-currency/scenario counts. Currency values remain separate; plan and
+transaction details are excluded. Same-origin no-store reads, stale-location
+guards, and 25-row paging are in place. The focused console/Gateway/route-policy
+selection passes 22 tests, including JavaScript syntax validation; Ruff and
+capability checks pass. No database was used. CAP-031 remains partial pending
+budget lifecycle, objectives/KPIs, portfolio, revenue/cash-flow, S&OP, populated
+parity, live OIDC/browser, broader ACL/RLS, and MAN-CAP-031 review. Checklist:
+715 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+Evidence: [read contract](planning-budget-kernel-read-contract.md),
 [console](../apps/operator-console/index.html), and
-[console checks](../tests/test_operator_console_business_architecture.py).
+[console checks](../tests/test_operator_console_planning_budget.py).
 
 **Previous implementation slice — 20 October 2026:** CAP-035 now has a
 read-only operator-console overview for its location-scoped lifecycle summary,

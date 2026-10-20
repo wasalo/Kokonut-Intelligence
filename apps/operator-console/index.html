@@ -644,6 +644,23 @@
           </div>
           <button id="business-architecture-more" class="secondary" type="button" hidden>Load more mappings</button>
         </section>
+        <section id="planning-budget-summary" hidden aria-labelledby="planning-budget-summary-heading">
+          <h2 id="planning-budget-summary-heading">Location budget summaries</h2>
+          <p class="muted">Read-only plan totals for explicitly location-assigned budget lines and verified in-period expenses. Amounts remain in each plan’s currency; expenses in other currencies are counted separately, and no conversion is inferred. Plan labels, categories, assumptions, and transaction details are excluded.</p>
+          <div class="toolbar">
+            <label for="planning-budget-location">Granted location</label>
+            <select id="planning-budget-location"></select>
+            <button id="planning-budget-refresh" type="button">Refresh budgets</button>
+          </div>
+          <p id="planning-budget-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Plan state</th><th>Currency</th><th>Period</th><th>Objective linked</th><th>Budget lines</th><th>Planned amount</th><th>Verified expenses</th><th>Variance</th><th>Other-currency expenses</th><th>Scenarios</th></tr></thead>
+              <tbody id="planning-budget-rows"></tbody>
+            </table>
+          </div>
+          <button id="planning-budget-more" class="secondary" type="button" hidden>Load more budgets</button>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -692,7 +709,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -887,6 +904,14 @@
       let businessArchitectureLocations = new Set();
       let businessArchitectureRequestVersion = 0;
       let businessArchitectureOffset = 0;
+      const planningBudgetSummary = document.querySelector("#planning-budget-summary");
+      const planningBudgetLocation = document.querySelector("#planning-budget-location");
+      const planningBudgetStatus = document.querySelector("#planning-budget-status");
+      const planningBudgetRows = document.querySelector("#planning-budget-rows");
+      const planningBudgetMore = document.querySelector("#planning-budget-more");
+      let planningBudgetLocations = new Set();
+      let planningBudgetRequestVersion = 0;
+      let planningBudgetOffset = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1705,6 +1730,73 @@
         }
       }
 
+      async function loadPlanningBudgetSummaries(append = false) {
+        const locationId = planningBudgetLocation.value;
+        const requestVersion = ++planningBudgetRequestVersion;
+        if (!planningBudgetLocations.has(locationId)) return;
+        const offset = append ? planningBudgetOffset : 0;
+        planningBudgetStatus.textContent = "Loading location budget summaries…";
+        planningBudgetMore.disabled = true;
+        if (!append) planningBudgetRows.replaceChildren();
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/planning/${encodeURIComponent(locationId)}/budgets?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Planning budget reads are unavailable for this location.");
+            throw new Error("Location budget summaries could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== planningBudgetRequestVersion
+              || locationId !== planningBudgetLocation.value) return;
+          const plans = Array.isArray(result.plans) ? result.plans : [];
+          for (const plan of plans) {
+            const row = document.createElement("tr");
+            const currency = plan.currency === null || plan.currency === undefined ? "—" : String(plan.currency);
+            const period = [plan.period_start, plan.period_end]
+              .map((value) => value === null || value === undefined ? "—" : String(value))
+              .join(" – ");
+            const amount = (value) => value === null || value === undefined ? "—" : `${String(value)} ${currency}`;
+            const objective = plan.has_objective === true ? "Yes" : plan.has_objective === false ? "No" : "—";
+            for (const value of [
+              plan.plan_status,
+              currency,
+              period,
+              objective,
+              plan.budget_line_count,
+              amount(plan.planned_amount),
+              amount(plan.verified_expense_amount),
+              amount(plan.budget_variance),
+              plan.nonmatching_currency_expense_count,
+              plan.planning_scenario_count
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            planningBudgetRows.append(row);
+          }
+          const nextOffset = result.next_offset;
+          planningBudgetOffset = Number.isInteger(nextOffset) && nextOffset > offset && nextOffset <= 10000
+            ? nextOffset
+            : offset;
+          planningBudgetMore.hidden = result.has_more !== true || planningBudgetOffset <= offset;
+          planningBudgetStatus.textContent = planningBudgetRows.children.length
+            ? `${planningBudgetRows.children.length} location budget summaries shown. Currency totals remain separate; no lifecycle state was changed.`
+            : "No location-assigned budget lines are available for this location.";
+        } catch (error) {
+          if (requestVersion !== planningBudgetRequestVersion) return;
+          planningBudgetStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === planningBudgetRequestVersion) planningBudgetMore.disabled = false;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -1760,6 +1852,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           businessArchitectureLocations = new Set(businessArchitectureLocationIds);
+          const planningBudgetLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "planning_budget" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          planningBudgetLocations = new Set(planningBudgetLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -2020,6 +2118,17 @@
             }
             businessArchitectureSummary.hidden = false;
             await loadBusinessArchitectureSummary();
+            hasAuthorizedSurface = true;
+          }
+          if (planningBudgetLocationIds.length) {
+            for (const locationId of planningBudgetLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              planningBudgetLocation.append(option);
+            }
+            planningBudgetSummary.hidden = false;
+            await loadPlanningBudgetSummaries();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -5179,6 +5288,9 @@
       document.querySelector("#business-architecture-refresh").addEventListener("click", () => loadBusinessArchitectureSummary());
       businessArchitectureLocation.addEventListener("change", () => loadBusinessArchitectureSummary());
       businessArchitectureMore.addEventListener("click", () => loadBusinessArchitectureSummary(true));
+      document.querySelector("#planning-budget-refresh").addEventListener("click", () => loadPlanningBudgetSummaries());
+      planningBudgetLocation.addEventListener("change", () => loadPlanningBudgetSummaries());
+      planningBudgetMore.addEventListener("click", () => loadPlanningBudgetSummaries(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

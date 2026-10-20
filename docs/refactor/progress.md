@@ -1,3 +1,21 @@
+### CAP-031 planning budget operator-console read — 20 October 2026
+
+The operator console now shows bounded location budget summaries under exact
+`planning_budget:read` grants. Fixed fields include plan state, currency and
+period, objective presence, planned amount, verified in-period expenses and
+variance, nonmatching-currency expense count, and scenario count. Currency
+totals remain separate; plan and transaction details are not rendered.
+Same-origin no-store requests, stale-location guards, and bounded 25-row pages
+are in place. The focused console, Gateway, and route-policy selection passes
+22 tests, including JavaScript syntax validation; Ruff and capability-matrix
+validation pass. No database was used. Candidate and legacy remain untouched;
+migration 455 is not rolled out. CAP-031 remains partial pending budget
+lifecycle, objectives/KPIs, portfolio, revenue/cash-flow, S&OP, populated parity,
+live OIDC/browser, broader ACL/RLS, and MAN-CAP-031 owner review. Checklist:
+715 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+[Read contract](planning-budget-kernel-read-contract.md);
+[console checks](../tests/test_operator_console_planning_budget.py).
+
 ### CAP-032 business architecture operator-console read — 20 October 2026
 
 The operator console now surfaces approved vision/mission/values statements
