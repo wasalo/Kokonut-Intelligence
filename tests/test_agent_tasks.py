@@ -11,6 +11,7 @@ from services.agents.tasks import (
     list_tasks,
     validate_output,
     validate_task_capabilities,
+    validate_task_inputs,
 )
 
 
@@ -70,6 +71,29 @@ def test_output_validation_checks_declared_top_level_types_and_formats() -> None
     )
     assert uuid_errors == ["Invalid output format for field: ai_summary_id (expected uuid)"]
     assert "private-not-a-uuid" not in " ".join(uuid_errors)
+
+
+def test_task_input_validation_checks_required_types_and_formats() -> None:
+    assert validate_task_inputs("ebf_evidence_gap", {}) == [
+        "Missing required task input: scorecard_id"
+    ]
+    assert validate_task_inputs("financial_resilience_synthesis", {"store": False}) == []
+
+    valid = {
+        "location_id": "a0000000-0000-4000-8000-000000000001",
+        "period_start": "2026-01-01",
+        "period_end": "2026-12-31",
+    }
+    assert validate_task_inputs("ebf_scorecard_draft", valid) == []
+
+    errors = validate_task_inputs(
+        "ebf_scorecard_draft",
+        {"location_id": "bad-id", "period_start": "2026-W01-1", "period_end": 20261231},
+    )
+    assert "Invalid task input format for field: location_id (expected uuid)" in errors
+    assert "Invalid task input format for field: period_start (expected date)" in errors
+    assert "Invalid task input type for field: period_end (expected string)" in errors
+    assert "bad-id" not in " ".join(errors)
 
 
 def test_every_catalogue_write_is_draft_or_submission_only() -> None:

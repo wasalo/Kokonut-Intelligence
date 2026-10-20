@@ -19,14 +19,22 @@ and [NOI evidence](builds/2026-10-20-recovery/directus-noi-partial-failures.json
 **Latest CAP-038 implementation slice — 20 October 2026:** The shared
 `SynthesisAgent` and standalone AI-summary runners now validate declared
 top-level output presence, types, and UUID formats before draft persistence,
-so invalid output cannot be committed as an agent-created draft. Twenty-one
-focused task-schema and persistence-boundary checks pass, including no insert
-or commit on invalid output and guaranteed connection close; no database or
-model provider was contacted. Nested content validation, authenticated agent
-identities, least-privilege table access, populated parity, live provider
-behavior, and a separate human approval workflow remain open. See the
+so invalid output cannot be committed as an agent-created draft. Eighty-six
+focused agent-module, task-schema, and persistence-boundary checks pass,
+including no insert or commit on invalid output and guaranteed connection
+close; no database or model provider was contacted. Nested content validation,
+authenticated agent identities, least-privilege table access, populated parity,
+live provider behavior, and a separate human approval workflow remain open. See the
 [agent contract](agent-ecosystem-kernel-contract.md) and
 [evidence](builds/2026-10-20-recovery/cap-038-agent-draft-validation.json).
+
+Agent task entry points now also validate declared required inputs, primitive
+types, UUIDs, and exact `YYYY-MM-DD` dates before database access or Delphi
+facilitator initialization. The 19-file focused run passes 172 tests with nine
+database-dependent skips; mocked preflight checks, Ruff, Python compilation,
+and capability-matrix validation pass. This is shape validation only; caller
+identity, tenant authorization, runtime database least privilege, populated
+task/provider parity, and recovery remain open ([input evidence](builds/2026-10-20-recovery/cap-038-agent-input-preflight.json)).
 
 **Latest code-first audit slice — 20 October 2026:** The optional Directus parity inventory now includes a deterministic source report for literal permission declarations. It counts 175 declared rule rows, of which 125 use wildcard fields and 50 use explicit field lists; it identifies 28 wildcard Auditor declarations, confirms zero literal `farm_activity` permission insertions, and records four permission updates plus one deletion. The generated JSON is freshness-checked in CI, and parser regressions cover quoted delimiters and SQL comments. This is not effective deployed permission state and does not alter role access; conditional seed logic, later mutations, custom policies, relation parity, hook effects, and runtime acceptance remain open. See the [parity inventory](directus-parity-inventory.md), [checker](../scripts/directus_permission_inventory.py), [tests](../tests/test_directus_permission_inventory.py), and [source report](builds/2026-10-20-recovery/directus-permission-source-inventory.json).
 

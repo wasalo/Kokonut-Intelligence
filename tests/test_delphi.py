@@ -4,7 +4,7 @@ facilitator orchestration, agent integration, and CLI smoke."""
 from __future__ import annotations
 
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -399,7 +399,9 @@ class TestDelphiAgent:
         mock_conn = _make_mock_conn(mock_cursor)
         fac = Facilitator(conn=mock_conn)
         mock_cursor.fetchone.return_value = {"id": "rec-1", "status": "draft"}
-        rec = draft_recommendation("study-1", "Adopt medians", facilitator=fac)
+        rec = draft_recommendation(
+            "a0000000-0000-4000-8000-000000000001", "Adopt medians", facilitator=fac
+        )
         assert rec["status"] == "draft"
 
     def test_run_facilitation(self):
@@ -408,7 +410,8 @@ class TestDelphiAgent:
         mock_cursor = MagicMock()
         mock_conn = _make_mock_conn(mock_cursor)
         fac = Facilitator(conn=mock_conn)
-        study_dict = {"id": "study-1", "title": "Drought", "status": "open"}
+        study_id = "a0000000-0000-4000-8000-000000000001"
+        study_dict = {"id": study_id, "title": "Drought", "status": "open"}
         item_dict = {"item_id": "item-1", "label": "Q1", "scale": "desirability", "item_type": "option",
                      "median": 0.5, "iqr": 0.2, "stddev": 0.1, "cv": 0.2,
                      "participant_count": 3, "weighted_median": 0.5, "consensus_reached": True}
@@ -421,7 +424,7 @@ class TestDelphiAgent:
             [item_dict],
             [],
         ]
-        output = run_delphi_facilitation("study-1", draft=True, facilitator=fac)
+        output = run_delphi_facilitation(study_id, draft=True, facilitator=fac)
         assert "summary" in output
         assert "recommendation_draft" in output
 

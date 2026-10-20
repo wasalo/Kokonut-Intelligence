@@ -8,11 +8,20 @@
   ],
   "behavior": "Declared top-level output presence, types, and UUID formats are validated before optional draft persistence; invalid output raises before INSERT/COMMIT and connections close in finally blocks. Nested content is not validated.",
   "verification": {
-    "focused_tests": "21 passed",
+    "focused_tests": "86 passed across 12 agent-focused test files",
     "python_files": [
       "tests/test_agent_tasks.py",
       "tests/test_agents_base.py",
-      "tests/test_ai_summary_safety.py"
+      "tests/test_ai_summary_safety.py",
+      "tests/test_bio_factory_operations.py",
+      "tests/test_capital_efficiency.py",
+      "tests/test_commons_liberation.py",
+      "tests/test_financial_resilience.py",
+      "tests/test_gnh_alignment.py",
+      "tests/test_holistic_wellbeing.py",
+      "tests/test_kokonut_commons_governance.py",
+      "tests/test_open_source_capitalist_scaling.py",
+      "tests/test_regenerative_outcomes.py"
     ],
     "database_or_model_provider_contacted": false
   },

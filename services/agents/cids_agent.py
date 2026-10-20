@@ -11,7 +11,11 @@ import json
 from typing import Any
 
 from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output, validate_task_capabilities
+from services.agents.tasks import (
+    validate_output,
+    validate_task_capabilities,
+    validate_task_inputs,
+)
 from services.common.cli import print_json
 from services.registry.cids_export import _json_default, export_location, get_connection
 
@@ -19,6 +23,9 @@ from services.registry.cids_export import _json_default, export_location, get_co
 def run_cids_export(location_id: str) -> dict[str, Any]:
     """Return a validated CIDS export task output."""
     validate_task_capabilities("cids_export")
+    errors = validate_task_inputs("cids_export", {"location_id": location_id})
+    if errors:
+        raise ValueError("; ".join(errors))
     assert_agent_action_allowed("read", "cids_export", {"location_id": location_id})
     conn = get_connection()
     try:

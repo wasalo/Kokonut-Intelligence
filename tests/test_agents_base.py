@@ -6,6 +6,9 @@ from unittest import mock
 
 from services.agents.base import SynthesisAgent, agent_cli, run_fetch
 
+LOCATION_ID = "a0000000-0000-4000-8000-000000000001"
+SCORECARD_ID = "a0000000-0000-4000-8000-000000000002"
+
 
 class _FakeCursor:
     def __init__(self) -> None:
@@ -53,7 +56,7 @@ def _run_with_fakes(store: bool):
     with mock.patch("services.agents.base.get_db", return_value=conn):
         with mock.patch("services.agents.base.assert_agent_action_allowed"):
             with mock.patch("services.agents.base.validate_output", return_value=[]):
-                out = _DummyAgent().run("loc-1", store=store)
+                out = _DummyAgent().run(LOCATION_ID, store=store)
     return out, conn
 
 
@@ -74,11 +77,14 @@ def test_run_store_inserts_draft_and_commits():
 
 
 def test_run_uses_sentinel_subject_id_for_locationless_summary():
+    class _LocationlessDummyAgent(_DummyAgent):
+        task_key = "financial_resilience_synthesis"
+
     conn = _FakeConn()
     with mock.patch("services.agents.base.get_db", return_value=conn):
         with mock.patch("services.agents.base.assert_agent_action_allowed"):
             with mock.patch("services.agents.base.validate_output", return_value=[]):
-                _DummyAgent().run(store=True)
+                _LocationlessDummyAgent().run(store=True)
     _, params = conn.cursor_obj.executed
     assert params[1] == "00000000-0000-0000-0000-000000000000"
 
@@ -89,7 +95,7 @@ def test_run_raises_on_validation_errors():
         with mock.patch("services.agents.base.assert_agent_action_allowed"):
             with mock.patch("services.agents.base.validate_output", return_value=["bad field"]):
                 try:
-                    _DummyAgent().run("loc-1")
+                    _DummyAgent().run(LOCATION_ID)
                 except ValueError as exc:
                     assert "bad field" in str(exc)
                 else:
@@ -103,7 +109,7 @@ def test_run_does_not_store_invalid_draft_output():
         with mock.patch("services.agents.base.assert_agent_action_allowed"):
             with mock.patch("services.agents.base.validate_output", return_value=["bad field"]):
                 try:
-                    _DummyAgent().run("loc-1", store=True)
+                    _DummyAgent().run(LOCATION_ID, store=True)
                 except ValueError as exc:
                     assert "bad field" in str(exc)
                 else:
@@ -122,10 +128,36 @@ def test_run_fetch_validates_and_closes():
     with mock.patch("services.agents.base.get_db", return_value=conn):
         with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
             with mock.patch("services.agents.base.validate_output", return_value=[]):
-                out = run_fetch("ebf_evidence_gap", "ebf_scorecard", fetch, scorecard_id="sc-1")
-    assert out == {"scorecard_id": "sc-1"}
-    safety.assert_called_once_with("read", "ebf_scorecard", {"scorecard_id": "sc-1"})
+                out = run_fetch(
+                    "ebf_evidence_gap", "ebf_scorecard", fetch, scorecard_id=SCORECARD_ID
+                )
+    assert out == {"scorecard_id": SCORECARD_ID}
+    safety.assert_called_once_with("read", "ebf_scorecard", {"scorecard_id": SCORECARD_ID})
     assert conn.closed is True
+
+
+def test_run_rejects_malformed_scope_before_database_access():
+    with mock.patch("services.agents.base.get_db", side_effect=AssertionError("database opened")):
+        with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
+            try:
+                _DummyAgent().run("not-a-uuid")
+            except ValueError as exc:
+                assert "Invalid task input format for field: location_id" in str(exc)
+            else:
+                raise AssertionError("expected malformed location rejection")
+    safety.assert_not_called()
+
+
+def test_run_fetch_rejects_malformed_scope_before_database_access():
+    with mock.patch("services.agents.base.get_db", side_effect=AssertionError("database opened")):
+        with mock.patch("services.agents.base.assert_agent_action_allowed") as safety:
+            try:
+                run_fetch("ebf_evidence_gap", "ebf_scorecard", lambda *_args: {}, scorecard_id="bad")
+            except ValueError as exc:
+                assert "Invalid task input format for field: scorecard_id" in str(exc)
+            else:
+                raise AssertionError("expected malformed scorecard rejection")
+    safety.assert_not_called()
 
 
 def test_agent_cli_builds_parser():

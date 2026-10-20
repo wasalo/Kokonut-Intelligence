@@ -16,7 +16,11 @@ import uuid
 from typing import Any, Callable, Optional
 
 from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output, validate_task_capabilities
+from services.agents.tasks import (
+    validate_output,
+    validate_task_capabilities,
+    validate_task_inputs,
+)
 from services.common.cli import print_json
 from services.common.database import get_db
 
@@ -86,6 +90,12 @@ class SynthesisAgent:
     def run(self, location_id: Optional[str] = None, store: bool = False) -> dict[str, Any]:
         """Run the agent: synthesize, optionally store a draft, and validate."""
         validate_task_capabilities(self.task_key)
+        inputs = {"store": store}
+        if location_id is not None:
+            inputs["location_id"] = location_id
+        errors = validate_task_inputs(self.task_key, inputs)
+        if errors:
+            raise ValueError("; ".join(errors))
         assert_agent_action_allowed("read", self.read_collection, {"location_id": location_id})
         conn = get_db()
         try:
@@ -115,6 +125,9 @@ def run_fetch(
     used as the safety-policy payload.
     """
     validate_task_capabilities(task_key)
+    errors = validate_task_inputs(task_key, ctx)
+    if errors:
+        raise ValueError("; ".join(errors))
     assert_agent_action_allowed("read", read_collection, ctx)
     conn = get_db()
     try:

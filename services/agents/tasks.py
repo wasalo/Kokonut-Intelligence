@@ -7,6 +7,7 @@ import json
 import math
 import re
 from copy import deepcopy
+from datetime import date
 from typing import Any
 from uuid import UUID
 
@@ -375,49 +376,80 @@ def output_schema(task_key: str) -> dict[str, Any]:
     return get_task(task_key)["outputs"]
 
 
-def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
-    """Validate declared top-level output presence, types, and known formats."""
+_SCHEMA_TYPE_CHECKS = {
+    "array": lambda item: isinstance(item, list),
+    "boolean": lambda item: isinstance(item, bool),
+    "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
+    "number": lambda item: (
+        not isinstance(item, bool)
+        and (
+            isinstance(item, int)
+            or (isinstance(item, float) and math.isfinite(item))
+        )
+    ),
+    "object": lambda item: isinstance(item, dict),
+    "string": lambda item: isinstance(item, str),
+}
+
+
+def _validate_declared_fields(
+    schema: dict[str, Any], values: dict[str, Any], *, field_kind: str
+) -> list[str]:
+    if not isinstance(values, dict):
+        return [f"{field_kind.capitalize()} values must be an object"]
+
     errors: list[str] = []
-    schema = output_schema(task_key)
     for field, spec in schema.items():
-        if field not in output:
+        if field not in values:
             if spec.get("required"):
-                errors.append(f"Missing required output field: {field}")
+                if field_kind == "output":
+                    errors.append(f"Missing required output field: {field}")
+                else:
+                    errors.append(f"Missing required task input: {field}")
             continue
 
-        value = output[field]
+        value = values[field]
         expected_type = spec.get("type")
-        type_checks = {
-            "array": lambda item: isinstance(item, list),
-            "boolean": lambda item: isinstance(item, bool),
-            "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
-            "number": lambda item: (
-                not isinstance(item, bool)
-                and (
-                    isinstance(item, int)
-                    or (isinstance(item, float) and math.isfinite(item))
-                )
-            ),
-            "object": lambda item: isinstance(item, dict),
-            "string": lambda item: isinstance(item, str),
-        }
-        check_type = type_checks.get(expected_type)
+        check_type = _SCHEMA_TYPE_CHECKS.get(expected_type)
         if check_type is None:
-            errors.append(f"Unsupported output schema type for field: {field}")
+            errors.append(f"Unsupported {field_kind} schema type for field: {field}")
             continue
         if not check_type(value):
-            errors.append(f"Invalid output type for field: {field} (expected {expected_type})")
+            errors.append(
+                f"Invalid {field_kind} type for field: {field} (expected {expected_type})"
+            )
             continue
 
-        output_format = spec.get("format")
-        if output_format == "uuid":
+        value_format = spec.get("format")
+        if value_format in {"uuid", "date"}:
             try:
-                UUID(value)
+                if value_format == "uuid":
+                    UUID(value)
+                else:
+                    parsed_date = date.fromisoformat(value)
+                    if parsed_date.isoformat() != value:
+                        raise ValueError("date must use YYYY-MM-DD")
             except (TypeError, ValueError, AttributeError):
-                errors.append(f"Invalid output format for field: {field} (expected uuid)")
-        elif output_format is not None:
-            errors.append(f"Unsupported output format for field: {field}")
+                errors.append(
+                    f"Invalid {field_kind} format for field: {field} (expected {value_format})"
+                )
+        elif value_format is not None:
+            errors.append(f"Unsupported {field_kind} format for field: {field}")
     return errors
+
+
+def validate_task_inputs(task_key: str, inputs: dict[str, Any]) -> list[str]:
+    """Validate declared top-level task input presence, types, and formats."""
+    return _validate_declared_fields(
+        get_task(task_key)["inputs"], inputs, field_kind="task input"
+    )
+
+
+def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
+    """Validate declared top-level output presence, types, and known formats."""
+    return _validate_declared_fields(
+        output_schema(task_key), output, field_kind="output"
+    )
 
 
 def main() -> None:

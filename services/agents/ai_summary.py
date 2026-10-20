@@ -23,7 +23,11 @@ import psycopg2
 import psycopg2.extras
 
 from services.agents.safety import assert_agent_action_allowed
-from services.agents.tasks import validate_output, validate_task_capabilities
+from services.agents.tasks import (
+    validate_output,
+    validate_task_capabilities,
+    validate_task_inputs,
+)
 from services.common.database import get_db
 
 
@@ -297,6 +301,12 @@ def list_summaries(conn, location_id: str = None):
 def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool = False) -> dict[str, Any]:
     """Generate and optionally store an AI summary with safety checks."""
     validate_task_capabilities("ai_summary_synthesis")
+    errors = validate_task_inputs(
+        "ai_summary_synthesis",
+        {"location_id": location_id, "summary_type": summary_type, "store": store},
+    )
+    if errors:
+        raise ValueError("; ".join(errors))
     assert_agent_action_allowed("read", "ai_summary", {"location_id": location_id})
     conn = get_pg()
     try:

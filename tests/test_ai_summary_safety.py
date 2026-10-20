@@ -28,7 +28,11 @@ def test_run_ai_summary_does_not_store_invalid_output():
                         ):
                             with mock.patch.object(ai_summary, "store_summary") as store:
                                 with pytest.raises(ValueError, match="bad summary"):
-                                    ai_summary.run_ai_summary("location-1", "operations", store=True)
+                                    ai_summary.run_ai_summary(
+                                        "a0000000-0000-4000-8000-000000000001",
+                                        "operations",
+                                        store=True,
+                                    )
 
     store.assert_not_called()
     conn.close.assert_called_once_with()
