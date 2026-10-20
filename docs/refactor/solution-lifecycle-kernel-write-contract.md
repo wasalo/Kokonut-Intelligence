@@ -460,6 +460,19 @@ Migration 492 rechecks the signed location and active review grant, locks the ca
 
 The dedicated non-login tranche approver role can read only the columns needed to verify scope, identity, case state, and tranche terms. It can update only tranche decision columns; narrow `UPDATE(id)` grants on related rows support row locking inside the bounded functions. It can insert/read its receipt, but cannot update or delete it. Runtime can call those functions but cannot read funding tables or receipts directly. Directus cannot execute the functions. The console offers tranche review only for approved cases with proposed tranches and an exact review grant; private milestone terms are rendered as text, while approval uses explicit acknowledgement, CSRF, no-store, same-origin requests, and a stable request ID.
 
+## Legacy funding-writer boundary
+
+The legacy `services.innovation.solution_funding` functions for case creation,
+submission, approval, tranche creation, and tranche approval now fail before
+opening a cursor. Their scoped replacements are the proposal and decision
+actions above. The legacy tranche-release function is also disabled before
+database access: no Kernel disbursement route exists, and milestone matching
+alone is not a custody or disbursement authority. Implementing release requires
+a separately reviewed authority, custody, evidence, idempotency, and recovery
+contract. Focused regressions verify all six functions avoid cursor, commit,
+and rollback access. This retires shared-role bypasses without claiming
+disbursement parity.
+
 ## Location-scoped replication proposal
 
 `POST /operator/api/solution-lifecycle/{location_id}/replications` requires

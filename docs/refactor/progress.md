@@ -12680,3 +12680,17 @@ broader ACL/RLS review, recovery, and owner acceptance. Checklist: 755 complete
 rows. [Migration](../schemas/postgres/503_location_solution_nonpromotion_stage_transition.sql); [write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md).
 
 ### CAP-035 legacy learning-write retirement and source-to-route audit — 20 October 2026
+
+### CAP-035 legacy funding-writer retirement — 20 October 2026
+
+The five legacy funding proposal/review helpers now fail before database access;
+their location-scoped Gateway counterparts remain available through migrations
+488–492. The legacy tranche-release helper also fails closed because no
+separately reviewed disbursement and custody contract exists. Focused mocks
+cover all six helper paths and confirm no cursor, commit, or rollback call. The
+funding/Gateway/route-policy selection passes 163 tests; Ruff, Python
+compilation, and diff checks pass. No migration or database was used. Checklist:
+766 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared
+across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
+[write contract](solution-lifecycle-kernel-write-contract.md), and
+[tests](../tests/test_solution_funding.py).

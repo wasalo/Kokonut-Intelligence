@@ -61,6 +61,15 @@ access: links need a reviewed network/location sharing policy, and gate
 definitions need a location-scoped configuration/review contract. Their
 capabilities remain open; shutting the unscoped helper does not claim parity.
 
+The six `solution_funding` direct writers (`create_case`, `submit_case`,
+`approve_case`, `add_tranche`, `approve_tranche`, and `release_tranche`) now fail
+before database access. The first five have exact-location Gateway proposal,
+submission, case-review, and tranche-review actions backed by migrations
+488–492. No disbursement route exists: tranche release stays disabled until a
+separate custody, disbursement-authority, evidence, and retry contract is
+approved and implemented. Focused mock coverage verifies every helper avoids
+cursor, commit, and rollback access.
+
 Other legacy direct mutation helpers already fail closed:
 
 | Legacy helper | Scoped path |
@@ -89,8 +98,8 @@ mark CAP-035 complete or claim universal tenant isolation while they remain.
 | `solution_experiments.create_experiment`, `submit_protocol`, `approve_protocol`, `start_experiment`, `record_observation`, `complete_experiment`, `analyze_sequentially` | Migrations 506–512 provide exact-origin immutable protocol drafts, owner submission, private independent approval, exact-location start, consent-aware observation capture, protocol-bound advisory analysis, and protocol-bound completion. Migration 511 requires signed exact-location `solution_lifecycle:analyze`; directions, minimum sample, benefit/posterior thresholds, safety limit, and duration come from the immutable protocol. Migration 512 completes data collection only when every primary metric has a fresh, current-consent terminal analysis matching its protocol and source digest; completion stores a private immutable receipt and leaves result review separate. Forced RLS hides analyses when a source observation's consent is withdrawn or its link is revoked, and leaves historical unassessed runs hidden. Legacy direct create, submit, approval, start, observation, analysis, and completion helpers fail before database access; runtime and Directus cannot access private observation, analysis, or completion receipts directly. | Compare completion, analysis, and observation semantics against populated fixtures and retain independent result-review separation; complete live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance. |
 | `solution_experiments.review_result`, `create_replication` | Scoped independent result-review and replication-proposal paths exist; both legacy direct helpers now fail before database access. | Compare review and proposal semantics against populated legacy fixtures and preserve reviewer separation and validated-source checks. |
 | `solution_adoption.create_program`, `assess_readiness`, `approve_configuration` | Location-scoped adoption summaries and aggregate adoption-event summaries are reads only. `record_event` now fails closed and has no replacement write route. | Add scoped program/readiness/configuration writes and a consent-aware event route. Configure policy on the program, bind event references to canonical participant identity, and validate current consent at write time. |
-| `solution_funding.create_case`, `submit_case`, `approve_case`, `add_tranche`, `approve_tranche` | Scoped proposal/submission/review/approval routes exist. Legacy helpers still write directly. | Retire duplicate helpers after callers migrate and add fail-before-database regressions. |
-| `solution_funding.release_tranche` | No release route was found. | Keep execution gated until a separate disbursement authority, custody, evidence, and retry contract is defined; do not expose the legacy shared-role writer as a substitute. |
+| `solution_funding.create_case`, `submit_case`, `approve_case`, `add_tranche`, `approve_tranche` | Migrations 488–492 provide scoped proposal, submission, case review/approval, and tranche review/approval. The legacy funding helpers now fail before database access. | Compare semantics with populated legacy fixtures; complete live OIDC/browser acceptance, broader ACL/RLS review, and recovery acceptance. |
+| `solution_funding.release_tranche` | No release route exists; the legacy shared-role writer now fails before database access. | Keep disbursement gated until a separate authority, custody, evidence, and retry contract is defined and independently reviewed. |
 
 This inventory is a source-level checkpoint. It does not show whether any
 external consumer calls a legacy helper, prove populated-record parity, or
