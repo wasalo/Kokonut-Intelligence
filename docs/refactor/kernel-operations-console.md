@@ -288,6 +288,8 @@ Scope-grant revocation requires an actor and reason. Revoking an organization
 membership or location share records the same actor/reason on every associated
 grant revoked by that cascade. These are local database-administration
 commands; the submitted actor string is audit attribution, not authentication.
+The full command and principal boundary is recorded in the
+[operator CLI inventory](operator-cli-boundary-inventory.md).
 
 For the implemented farm-activity Gateway surface, legacy Directus role names
 are available as explicit scope templates. Each template expands into ordinary

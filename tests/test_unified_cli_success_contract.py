@@ -571,6 +571,87 @@ def test_operator_identity_provision_cli_matches_without_reenabling_disabled_ide
     assert unified.stderr == ""
 
 
+def test_operator_list_cli_matches_with_synthetic_rows_and_closes_connections(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.gateway import operator_cli
+
+    rows_by_table = {
+        "operator_identity": [{"id": "synthetic-operator", "subject": "synthetic-subject"}],
+        "operator_scope_grant": [{"id": "synthetic-grant", "resource": "farm_activity"}],
+        "operator_organization_membership": [{"id": "synthetic-membership", "membership_role": "operator"}],
+        "location_organization_share": [{"id": "synthetic-share", "reason": "fixture"}],
+        "location_tenant_transfer": [{"id": "synthetic-transfer", "status": "pending"}],
+    }
+    expected = {
+        "identities": rows_by_table["operator_identity"],
+        "grants": rows_by_table["operator_scope_grant"],
+        "memberships": rows_by_table["operator_organization_membership"],
+        "shares": rows_by_table["location_organization_share"],
+        "tenant_transfers": rows_by_table["location_tenant_transfer"],
+    }
+    connections = []
+
+    class FakeResult:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def all(self):
+            return self.rows
+
+    class FakeConnection:
+        def __init__(self):
+            self.closed = False
+            self.queries = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.closed = True
+            return False
+
+        def execute(self, query):
+            normalized = " ".join(query.lower().split())
+            self.queries.append(normalized)
+            for table, rows in rows_by_table.items():
+                if f"from {table}" in normalized:
+                    return FakeResult(rows)
+            raise AssertionError(f"unexpected operator-list query: {normalized}")
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(operator_cli, "get_connection", make_connection)
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.gateway.operator_cli", "list"]
+        operator_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["operator", "--", "list"])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == expected
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all(len(connection.queries) == 5 for connection in connections)
+    assert all(
+        all("operator_session" not in query for query in connection.queries)
+        for connection in connections
+    )
+    assert unified.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,

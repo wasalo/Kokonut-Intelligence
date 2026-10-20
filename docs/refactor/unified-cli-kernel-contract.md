@@ -95,17 +95,19 @@ mounted unified command using the same arguments. It covers:
 | `operator` | `farm-activity-role templates` | Local role-to-scope registry; no database or grant mutation | JSON role-to-scope catalogue |
 | `operator` | `revoke-grant --grant-id <uuid> --revoked-by <actor> --reason <reason>` | PostgreSQL update is stubbed | JSON revoked-grant receipt with audit actor/reason |
 | `operator` | `identity provision --issuer <https-url> --subject <subject> --display-name <name>` | PostgreSQL insert/update is stubbed | JSON identity receipt; active identity refresh cannot change enabled state |
+| `operator` | `list` | Five PostgreSQL inventory queries return synthetic rows | JSON identities, grants, memberships, shares, and tenant transfers |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
 The form fixture is synthetic, and the spool path is a fresh temporary path.
 The test environment sets an unavailable SOPS identity and a closed loopback
 PostgreSQL URL so accidental secret/database setup fails instead of reaching a
-real service. Nine successful offline invocations and twenty-eight PostgreSQL-backed
-read invocations with stubbed query functions, one tenant-preflight invocation
-with a synthetic aggregate service report, and two operator write invocations
-with fake connections match standalone output across all 37 mounted groups
-(143 tests including operator identity/revocation safety, Delphi, and media service suites,
+real service. Nine successful offline invocations, twenty-eight other
+PostgreSQL-backed read invocations with stubbed query functions, one operator
+inventory read, one tenant-preflight invocation with a synthetic aggregate
+service report, and two operator write invocations with fake connections match
+standalone output across all 37 mounted groups (144 tests including operator
+identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
@@ -117,11 +119,12 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 143-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 144-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
-The twenty-eight query-backed success paths, one aggregate-service-stubbed
-tenant-preflight path, and two fake-connection operator writes exercise
+The twenty-nine query-backed success paths (including the operator inventory),
+one aggregate-service-stubbed tenant-preflight path, and two fake-connection
+operator writes exercise
 their real parsers, forwarding, and JSON or text output paths from both entry
 points with synthetic results. The grant-revocation case confirms the required
 actor and reason reach the UPDATE; it does not test database authorization. The
@@ -143,15 +146,23 @@ deletion. The cases confirm parsed filters reach expected
 service calls; they do not claim database query behavior or authorization.
 
 Every mounted group now has at least one successful output-parity path. This
-selection covers nine offline invocations across eight groups, twenty-eight
-stubbed database-query paths, one aggregate-service path, and two fake-connection
-operator writes. Identity provisioning no longer re-enables a disabled subject;
-the CLI exposes no reactivation operation. The operator CLI's identity/list
-reads and grant, membership, share, and tenant-transfer mutations still need
+selection covers nine offline invocations across eight groups, twenty-nine
+stubbed database-query paths (including the operator inventory), one
+aggregate-service path, and two fake-connection operator writes. Identity
+provisioning no longer re-enables a disabled subject; the CLI exposes no
+reactivation operation.
+The global identity/access list is unfiltered and exposes issuer, subject,
+email, and access history; its role boundary remains open. Grant, membership,
+share, and tenant-transfer mutations still need
 command-specific dependency and authorization-boundary review. Manual grant
 revocation requires actor and reason, and membership/share cascades record that
 attribution on associated grants. Real database/provider behavior and
 MAN-CAP-039 owner acceptance remain open.
+
+See the [operator CLI boundary inventory](operator-cli-boundary-inventory.md)
+for the command-by-command caller, actor, database-principal, and owner-review
+classification. `operator list` is parity-tested with synthetic rows but remains
+global, unfiltered, and restricted to the trusted local DBA surface.
 
 ## Remaining parity gates
 
