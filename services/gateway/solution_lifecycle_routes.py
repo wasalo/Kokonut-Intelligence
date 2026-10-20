@@ -24,6 +24,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         propose_location_solution_replication,
         propose_location_solution_replication_completion,
         propose_location_solution_retirement,
+        record_location_solution_experiment_observation,
         record_location_solution_gate_evaluation,
         review_location_solution_experiment,
         review_location_solution_learning,
@@ -1045,6 +1046,100 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/observations"
+    )
+    async def record_solution_experiment_observation_route(
+        request: Request, location_id: str, experiment_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "metric_key", "value", "arm", "adverse_event",
+            "evidence", "acknowledged",
+        }
+        optional_fields = {"unit_ref", "participant_link_id"}
+        if (
+            not isinstance(payload, dict)
+            or not required_fields.issubset(payload)
+            or set(payload) - required_fields - optional_fields
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Experiment observation fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                record_location_solution_experiment_observation,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                experiment_id,
+                payload["request_id"],
+                payload["metric_key"],
+                payload["value"],
+                payload["arm"],
+                payload.get("unit_ref"),
+                payload["adverse_event"],
+                payload["evidence"],
+                payload.get("participant_link_id"),
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle collection access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active exact-location collection grant and current consent are required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Exact-location active experiment not found"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "Experiment observation input is invalid"},
+                    headers=headers,
+                )
+            if code in {"23505", "40001", "55000"}:
+                return JSONResponse(
+                    status_code=409,
+                    content={"error": "Experiment observation is not eligible; refresh and retry"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Experiment observation capture unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Experiment observation capture unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        status_code = 200 if result.get("replayed") else 201
+        return JSONResponse(jsonable_encoder(result), status_code=status_code, headers=headers)
 
     @router.get(
         "/operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review"

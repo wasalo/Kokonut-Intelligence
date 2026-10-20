@@ -722,8 +722,9 @@
               <textarea id="solution-lifecycle-experiment-rollback" required maxlength="4000"></textarea>
               <label for="solution-lifecycle-experiment-safety">Safety boundaries (JSON object)</label>
               <textarea id="solution-lifecycle-experiment-safety" required maxlength="8192" spellcheck="false">{}</textarea>
-              <label for="solution-lifecycle-experiment-consent">Consent requirements (JSON object)</label>
-              <textarea id="solution-lifecycle-experiment-consent" required maxlength="8192" spellcheck="false">{}</textarea>
+              <label for="solution-lifecycle-experiment-consent">Participant consent policy (JSON object)</label>
+              <p class="muted">Declare consent explicitly. Participant protocols use {"participant_consent_required":true,"purpose":"...","consent_version":"v1"}. Non-personal measurements must use {"participant_consent_required":false,"non_personal_basis":"environmental_measurement"} (or the approved operational/infrastructure code). Missing or unrecognized policy is rejected.</p>
+              <textarea id="solution-lifecycle-experiment-consent" required maxlength="8192" spellcheck="false">{"participant_consent_required":true,"purpose":"Participation in this experiment.","consent_version":"v1"}</textarea>
               <label><input id="solution-lifecycle-experiment-confirm" type="checkbox" required> I confirm this creates a draft only; it does not submit, approve, establish consent, collect observations, or start an experiment.</label>
               <div class="toolbar">
                 <button id="solution-lifecycle-experiment-create-submit" type="submit">Create protocol draft</button>
@@ -1752,6 +1753,7 @@
       let solutionLifecycleReviewLocations = new Set();
       let solutionLifecycleTransitionLocations = new Set();
       let solutionLifecycleSubmitLocations = new Set();
+      let solutionLifecycleCollectLocations = new Set();
       let solutionLifecycleApplyLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
       let solutionLifecycleGatesRequestVersion = 0;
@@ -1760,6 +1762,7 @@
       let solutionLifecycleStageTransitionsOffset = 0;
       let solutionLifecycleExperimentsRequestVersion = 0;
       let solutionLifecycleExperimentsOffset = 0;
+      const solutionLifecyclePendingExperimentObservations = new Map();
       let solutionLifecycleFundingRequestVersion = 0;
       let solutionLifecycleFundingOffset = 0;
       let solutionLifecycleFundingTargetsRequestVersion = 0;
@@ -3750,6 +3753,12 @@
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
           article.append(createSolutionLifecycleExperimentStartForm(experiment.experiment_id));
         }
+        if (experiment.experiment_status === "active"
+            && solutionLifecycleCollectLocations.has(solutionLifecycleLocation.value)
+            && typeof experiment.experiment_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
+          article.append(createSolutionLifecycleExperimentObservationForm(experiment));
+        }
         if (solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)
             && experiment.experiment_status === "completed"
             && !experiment.latest_result_reviewed_at
@@ -3758,6 +3767,192 @@
           article.append(createSolutionLifecycleExperimentReviewPanel(experiment.experiment_id));
         }
         solutionLifecycleExperimentRows.append(article);
+      }
+
+      function createSolutionLifecycleExperimentObservationForm(experiment) {
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        const heading = document.createElement("h5");
+        heading.textContent = "Record an experiment observation";
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = "Requires the exact location collection grant. Participant observations need an active location link and current consent for this protocol. Enter only the opaque participant-link ID; do not include names or contact details. Evidence should contain non-identifying references.";
+
+        const prefix = `solution-lifecycle-observation-${experiment.experiment_id}`;
+        const addField = (name, labelText, type, options = {}) => {
+          const label = document.createElement("label");
+          const input = document.createElement(type === "textarea" || type === "select" ? type : "input");
+          const id = `${prefix}-${name}`;
+          input.id = id;
+          label.htmlFor = id;
+          label.textContent = labelText;
+          if (type === "input") input.type = options.inputType || "text";
+          if (options.required) input.required = true;
+          if (options.maxLength) input.maxLength = options.maxLength;
+          if (options.pattern) input.pattern = options.pattern;
+          if (options.step) input.step = options.step;
+          if (options.min !== undefined) input.min = options.min;
+          if (options.max !== undefined) input.max = options.max;
+          if (options.placeholder) input.placeholder = options.placeholder;
+          if (options.value !== undefined) input.value = options.value;
+          if (type === "select") {
+            for (const [value, text] of options.choices || []) {
+              const option = document.createElement("option");
+              option.value = value;
+              option.textContent = text;
+              input.append(option);
+            }
+          }
+          form.append(label, input);
+          return input;
+        };
+
+        const metricKey = addField("metric-key", "Protocol metric key", "input", {
+          required: true, maxLength: 120, pattern: "[A-Za-z0-9][A-Za-z0-9._:-]{0,119}"
+        });
+        const value = addField("value", "Measured value", "input", {
+          required: true, inputType: "number", step: "any", min: "-1000000000000", max: "1000000000000"
+        });
+        const arm = addField("arm", "Experiment arm", "select", {
+          required: true,
+          choices: [["", "Choose an arm"], ["baseline", "Baseline"], ["treatment", "Treatment"], ["comparator", "Comparator"]]
+        });
+        const participantLinkId = addField("participant-link", "Participant link ID (required for participant protocols)", "input", {
+          maxLength: 36,
+          pattern: "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+          placeholder: "Opaque location-scoped link UUID"
+        });
+        const unitRef = addField("unit-ref", "Measurement unit reference (non-participant observations only)", "input", {
+          maxLength: 120, pattern: "[A-Za-z0-9][A-Za-z0-9._:-]{0,119}"
+        });
+        const adverseEvent = addField("adverse-event", "Adverse event occurred", "input", { inputType: "checkbox" });
+        const evidence = addField("evidence", "Evidence references (JSON object or array; no personal details)", "textarea", {
+          required: true, maxLength: 16384, value: "[]"
+        });
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(acknowledgement, document.createTextNode(" I confirm this observation is supported by the active experiment protocol and its consent policy."));
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Record observation";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(acknowledgementLabel, submit, status);
+        form.prepend(explanation, heading);
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          const experimentId = experiment.experiment_id;
+          if (!solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleCollectLocations.has(locationId)
+              || experiment.experiment_status !== "active"
+              || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experimentId)) {
+            status.textContent = "Refresh the session and confirm the exact location collection grant and active experiment.";
+            return;
+          }
+          if (!acknowledgement.checked) {
+            status.textContent = "Confirm the observation and active protocol before recording.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before recording an observation.";
+            return;
+          }
+          const participantId = participantLinkId.value.trim();
+          const unitReference = unitRef.value.trim();
+          if (participantId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(participantId)) {
+            status.textContent = "Enter a valid opaque participant-link UUID.";
+            return;
+          }
+          if (participantId && unitReference) {
+            status.textContent = "Participant observations cannot include a unit reference.";
+            return;
+          }
+          let measuredValue;
+          let evidenceValue;
+          try {
+            measuredValue = Number(value.value);
+            if (value.value.trim() === "" || !Number.isFinite(measuredValue)
+                || Math.abs(measuredValue) > 1000000000000) {
+              throw new Error("Enter a finite measured value within the supported range.");
+            }
+            evidenceValue = JSON.parse(evidence.value);
+            if (!evidenceValue || typeof evidenceValue !== "object") {
+              throw new Error("Evidence must be a JSON object or array.");
+            }
+            if (new TextEncoder().encode(JSON.stringify(evidenceValue)).byteLength > 65536) {
+              throw new Error("Evidence exceeds the 64 KiB limit.");
+            }
+          } catch (error) {
+            status.textContent = error.message;
+            return;
+          }
+          const payload = {
+            request_id: "",
+            metric_key: metricKey.value.trim(),
+            value: measuredValue,
+            arm: arm.value,
+            adverse_event: adverseEvent.checked,
+            evidence: evidenceValue,
+            acknowledged: true,
+          };
+          if (participantId) payload.participant_link_id = participantId;
+          if (unitReference) payload.unit_ref = unitReference;
+          const fingerprint = JSON.stringify({ locationId, experimentId, ...payload });
+          let pending = solutionLifecyclePendingExperimentObservations.get(experimentId);
+          if (pending && (pending.locationId !== locationId || pending.fingerprint !== fingerprint)) {
+            status.textContent = "The previous result may be uncertain. Retry the same values before recording a different observation.";
+            return;
+          }
+          if (!pending) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to record an observation.";
+              return;
+            }
+            pending = { locationId, fingerprint, requestId };
+            solutionLifecyclePendingExperimentObservations.set(experimentId, pending);
+          }
+          payload.request_id = pending.requestId;
+          submit.disabled = true;
+          status.textContent = "Recording the location-scoped experiment observation…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/observations`,
+              {
+                method: "POST", credentials: "same-origin", cache: "no-store",
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+                body: JSON.stringify(payload),
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              solutionLifecyclePendingExperimentObservations.delete(experimentId);
+              throw new Error("Your session, collection grant, or current consent is no longer valid.");
+            }
+            if (!response.ok) {
+              if (response.status < 500) solutionLifecyclePendingExperimentObservations.delete(experimentId);
+              throw new Error(result.error || "The observation could not be recorded.");
+            }
+            solutionLifecyclePendingExperimentObservations.delete(experimentId);
+            form.reset();
+            status.textContent = result.replayed === true
+              ? "The original observation was confirmed after retry."
+              : "Observation recorded under the active protocol.";
+            await loadSolutionLifecycleExperiments();
+          } catch (error) {
+            status.textContent = `${error.message} Retrying unchanged values reuses the same request ID.`;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
       }
 
       function createSolutionLifecycleExperimentSubmissionForm(experiment) {
@@ -9011,6 +9206,11 @@
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));
           solutionLifecycleSubmitLocations = new Set((data.scopes || [])
             .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "submit")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));
+          solutionLifecycleCollectLocations = new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "solution_lifecycle" && scope.action === "collect")
             .map((scope) => scope.location_id)
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)));

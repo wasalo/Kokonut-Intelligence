@@ -60,7 +60,11 @@ DECLARE first_draft RECORD; first_submission RECORD; second_draft RECORD;
           "stopping_rules":{"safety":"pause on adverse event"},
           "rollback_plan":"Return to baseline practice.",
           "safety_boundaries":{"synthetic":true},
-          "consent_requirements":{"review_required":true}
+          "consent_requirements":{
+            "participant_consent_required":true,
+            "purpose":"Participation in the synthetic experiment.",
+            "consent_version":"v1"
+          }
         }'::JSONB;
 BEGIN
     SELECT * INTO first_draft FROM kokonut_security.create_location_solution_experiment(

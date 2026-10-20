@@ -228,6 +228,44 @@ def test_experiment_renderer_limits_result_visibility_to_reviewed_enum_and_metad
     assert "innerHTML" not in renderer
 
 
+def test_experiment_observation_capture_requires_active_experiment_and_exact_collect_grant():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleExperiment(",
+        "function createSolutionLifecycleExperimentObservationForm(",
+    )
+    assert 'experiment.experiment_status === "active"' in renderer
+    assert "solutionLifecycleCollectLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert "createSolutionLifecycleExperimentObservationForm(experiment)" in renderer
+    assert 'scope.resource === "solution_lifecycle" && scope.action === "collect"' in source
+    assert "solutionLifecycleCollectLocations = new Set" in source
+
+    form = _function(
+        source,
+        "function createSolutionLifecycleExperimentObservationForm(",
+        "function createSolutionLifecycleExperimentSubmissionForm(",
+    )
+    for field in (
+        '"Protocol metric key"', '"Measured value"', '"Experiment arm"',
+        '"Participant link ID (required for participant protocols)"',
+        '"Adverse event occurred"', '"Evidence references (JSON object or array; no personal details)"',
+    ):
+        assert field in form
+    assert "current consent for this protocol" in form
+    assert "do not include names or contact details" in form
+    assert "solutionLifecycleCollectLocations.has(locationId)" in form
+    assert 'experiment.experiment_status !== "active"' in form
+    assert "solutionLifecyclePendingExperimentObservations.get(experimentId)" in form
+    assert "solutionLifecyclePendingExperimentObservations.set(experimentId, pending)" in form
+    assert "Retrying unchanged values reuses the same request ID" in form
+    assert 'experiments/${encodeURIComponent(experimentId)}/observations' in form
+    assert 'method: "POST"' in form and 'cache: "no-store"' in form
+    assert 'credentials: "same-origin"' in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert "innerHTML" not in form
+
+
 def test_experiment_protocol_draft_form_is_read_create_gated_and_preserves_separation():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(

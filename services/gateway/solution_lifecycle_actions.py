@@ -75,12 +75,19 @@ SOLUTION_RISK_CLASSES = frozenset({"low", "medium", "high", "critical"})
 SOLUTION_REVERSIBILITY = frozenset({"high", "medium", "low", "unknown"})
 _SOLUTION_KEY_RE = re.compile(r"^[a-z0-9][a-z0-9._:-]{1,159}$")
 _EXPERIMENT_METRIC_KEY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$")
+_EXPERIMENT_CONSENT_VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,29}$")
+_EXPERIMENT_UNIT_REF_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$")
 _EXPERIMENT_PROTOCOL_FIELDS = frozenset({
     "hypothesis", "null_hypothesis", "baseline_definition", "treatment_definition",
     "comparator_definition", "unit_of_analysis", "sample_plan", "primary_metric_keys",
     "secondary_metric_keys", "minimum_detectable_effect", "confidence_target",
     "duration_days", "stopping_rules", "rollback_plan", "safety_boundaries",
     "consent_requirements",
+})
+_EXPERIMENT_NON_PERSONAL_BASIS_CODES = frozenset({
+    "environmental_measurement",
+    "non_personal_operational_measurement",
+    "infrastructure_measurement",
 })
 SOLUTION_GATE_PROMOTIONS = {
     "testing": "validated",
@@ -121,6 +128,58 @@ def _normalize_uuid(value: str, field: str) -> str:
         return str(UUID(str(value)))
     except (TypeError, ValueError, AttributeError) as exc:
         raise SolutionLifecycleActionInvalid(f"Invalid {field} identifier") from exc
+
+
+def _normalize_experiment_consent_requirements(value: dict) -> dict:
+    """Require an explicit participant-consent policy in every protocol draft."""
+    participant_consent_required = value.get("participant_consent_required")
+    if participant_consent_required is True:
+        if set(value) != {
+            "participant_consent_required", "purpose", "consent_version",
+        }:
+            raise SolutionLifecycleActionInvalid(
+                "Participant consent requirements must contain only purpose and consent version"
+            )
+        purpose = value.get("purpose")
+        if not isinstance(purpose, str) or not 1 <= len(purpose.strip()) <= 255 or "\x00" in purpose:
+            raise SolutionLifecycleActionInvalid(
+                "Participant consent purpose must contain 1 to 255 characters"
+            )
+        consent_version = value.get("consent_version")
+        if (
+            not isinstance(consent_version, str)
+            or not _EXPERIMENT_CONSENT_VERSION_RE.fullmatch(consent_version)
+        ):
+            raise SolutionLifecycleActionInvalid(
+                "Participant consent version must be a bounded identifier"
+            )
+        return {
+            "participant_consent_required": True,
+            "purpose": purpose.strip(),
+            "consent_version": consent_version,
+        }
+
+    if participant_consent_required is False:
+        if set(value) != {"participant_consent_required", "non_personal_basis"}:
+            raise SolutionLifecycleActionInvalid(
+                "Non-participant protocols must declare one approved non-personal basis"
+            )
+        basis = value.get("non_personal_basis")
+        if (
+            not isinstance(basis, str)
+            or basis not in _EXPERIMENT_NON_PERSONAL_BASIS_CODES
+        ):
+            raise SolutionLifecycleActionInvalid(
+                "Non-personal basis must be environmental, operational, or infrastructure measurement"
+            )
+        return {
+            "participant_consent_required": False,
+            "non_personal_basis": basis,
+        }
+
+    raise SolutionLifecycleActionInvalid(
+        "Consent requirements must explicitly declare whether participant consent is required"
+    )
 
 
 def create_location_solution(
@@ -378,7 +437,11 @@ def create_location_solution_experiment(
             raise SolutionLifecycleActionInvalid(
                 f"{field.replace('_', ' ').capitalize()} must be a JSON object"
             )
-        normalized[field] = value
+        normalized[field] = (
+            _normalize_experiment_consent_requirements(value)
+            if field == "consent_requirements"
+            else value
+        )
 
     metric_sets = {}
     for field in ("primary_metric_keys", "secondary_metric_keys"):
@@ -615,6 +678,115 @@ def start_location_solution_experiment(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Experiment start returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def record_location_solution_experiment_observation(
+    operator_id: str,
+    location_id: str,
+    experiment_id: str,
+    request_id: str,
+    metric_key: str,
+    value: int | float | Decimal | None,
+    arm: str,
+    unit_ref: str | None,
+    adverse_event: bool,
+    evidence: dict | list,
+    participant_link_id: str | None,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Record one observation under exact location scope and current consent."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    experiment_id = _normalize_uuid(experiment_id, "experiment")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(metric_key, str) or not _EXPERIMENT_METRIC_KEY_RE.fullmatch(metric_key):
+        raise SolutionLifecycleActionInvalid("Observation metric key is invalid")
+    if not isinstance(adverse_event, bool):
+        raise SolutionLifecycleActionInvalid("Adverse-event flag must be true or false")
+    if value is not None:
+        if isinstance(value, bool):
+            raise SolutionLifecycleActionInvalid("Observation value must be a finite number")
+        try:
+            decimal_value = Decimal(str(value))
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise SolutionLifecycleActionInvalid(
+                "Observation value must be a finite number"
+            ) from exc
+        if not decimal_value.is_finite():
+            raise SolutionLifecycleActionInvalid("Observation value must be a finite number")
+        if abs(decimal_value) > Decimal("1000000000000"):
+            raise SolutionLifecycleActionInvalid(
+                "Observation value is outside the supported range"
+            )
+        encoded_value = format(decimal_value, "f")
+    else:
+        encoded_value = None
+        if adverse_event is not True:
+            raise SolutionLifecycleActionInvalid(
+                "A missing observation value is allowed only for an adverse event"
+            )
+    if not isinstance(arm, str) or arm not in {"baseline", "treatment", "comparator"}:
+        raise SolutionLifecycleActionInvalid("Observation arm is invalid")
+    if unit_ref is not None and (
+        not isinstance(unit_ref, str)
+        or not _EXPERIMENT_UNIT_REF_RE.fullmatch(unit_ref)
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Unit reference must be a short opaque identifier"
+        )
+    if not isinstance(evidence, (dict, list)):
+        raise SolutionLifecycleActionInvalid("Observation evidence must be a JSON object or array")
+    try:
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Observation evidence must contain JSON values") from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Observation evidence exceeds the 64 KiB limit")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Observation capture requires explicit acknowledgement")
+    if participant_link_id is not None:
+        participant_link_id = _normalize_uuid(participant_link_id, "participant link")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="collect",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.capture_location_solution_experiment_observation(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::numeric,
+                           %s::text, %s::text, %s::boolean, %s::jsonb,
+                           %s::uuid, %s::boolean
+                       )""",
+                (
+                    location_id, experiment_id, request_id, metric_key,
+                    encoded_value, arm, unit_ref, adverse_event, encoded_evidence,
+                    participant_link_id, acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Experiment observation capture returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result

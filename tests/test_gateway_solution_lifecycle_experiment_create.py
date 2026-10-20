@@ -37,7 +37,11 @@ PROTOCOL = {
     "stopping_rules": {"safety": "pause for an adverse event"},
     "rollback_plan": "Restore the prior practice after review if safety or reliability declines.",
     "safety_boundaries": {"no_participant_identity": True},
-    "consent_requirements": {"review_required": True},
+    "consent_requirements": {
+        "participant_consent_required": True,
+        "purpose": "Participation in the water reliability experiment.",
+        "consent_version": "v1",
+    },
 }
 BODY = {"request_id": REQUEST_ID, "protocol": PROTOCOL, "acknowledged": True}
 CREATED = {
@@ -131,6 +135,22 @@ def test_create_action_sets_exact_create_context_and_calls_bounded_function():
         {"primary_metric_keys": ["shared"], "secondary_metric_keys": ["shared"]},
         {"confidence_target": 0.49},
         {"duration_days": True},
+        {"consent_requirements": {}},
+        {"consent_requirements": {"participant_consent_required": 1}},
+        {"consent_requirements": {"participant_consent_required": False}},
+        {"consent_requirements": {
+            "participant_consent_required": False,
+            "non_personal_basis": [],
+        }},
+        {"consent_requirements": {
+            "participant_consent_required": True,
+            "purpose": "Participation in the experiment.",
+        }},
+        {"consent_requirements": {
+            "participant_consent_required": True,
+            "purpose": "Participation in the experiment.",
+            "consent_version": "invalid version",
+        }},
         {"unexpected": "field"},
     ],
 )
@@ -149,6 +169,27 @@ def test_missing_acknowledgement_fails_before_database():
             OPERATOR_ID, LOCATION_ID, SOLUTION_ID, REQUEST_ID, PROTOCOL, False,
             connection_factory=lambda: pytest.fail("unacknowledged draft opened a database"),
         )
+
+
+def test_non_personal_experiment_requires_explicit_basis_and_preserves_policy():
+    connection = _Connection(CREATED)
+    protocol = {
+        **PROTOCOL,
+        "consent_requirements": {
+            "participant_consent_required": False,
+            "non_personal_basis": "environmental_measurement",
+        },
+    }
+
+    with patch.object(actions, "set_operator_tenant_context"):
+        actions.create_location_solution_experiment(
+            OPERATOR_ID, LOCATION_ID, SOLUTION_ID, REQUEST_ID, protocol, True,
+            connection_factory=lambda: connection,
+        )
+
+    query, params = connection.operations[-1]
+    assert "kokonut_security.create_location_solution_experiment" in query
+    assert json.loads(params[3])["consent_requirements"] == protocol["consent_requirements"]
 
 
 def test_experiment_action_rolls_back_and_closes_on_tenant_denial():

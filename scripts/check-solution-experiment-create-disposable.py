@@ -179,7 +179,11 @@ DECLARE created RECORD; replay RECORD; denied BOOLEAN;
           "stopping_rules":{"safety":"pause if adverse event"},
           "rollback_plan":"Return to baseline practice after review.",
           "safety_boundaries":{"synthetic":true},
-          "consent_requirements":{"review_required":true}
+          "consent_requirements":{
+            "participant_consent_required":true,
+            "purpose":"Participation in the synthetic experiment.",
+            "consent_version":"v1"
+          }
         }'::JSONB;
 BEGIN
     SELECT * INTO created FROM kokonut_security.create_location_solution_experiment(

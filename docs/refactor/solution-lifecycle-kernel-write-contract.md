@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–509 are additive and are
+**Status:** prepared implementation contract; migrations 488–510 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -193,15 +193,13 @@ original start and changed request reuse is rejected.
 
 Starting does not assert or grant participant consent, collect observations,
 run analysis, or change the solution stage. Consent-aware observation
-collection remains a separate required Kernel action. Runtime cannot update
+collection is a separate Kernel action. Runtime cannot update
 experiment lifecycle columns directly or access the private receipt; Directus
 cannot execute the function, update experiment rows, or access the receipt.
 Migration 509 removes the lifecycle-column updates previously granted to the
 shared runtime role. Legacy direct creation, submission, approval, start,
 observation, analysis, completion, result-review, and replication helpers all
-fail before database access. Scoped observation collection, analysis, and
-completion remain unimplemented and must retain consent, location, and retry
-checks when added.
+fail before database access. Scoped analysis and completion remain unimplemented.
 
 The console offers start only for a `protocol_approved` experiment to an
 operator with exact location read and transition grants. It binds the pending
@@ -211,6 +209,43 @@ checks scope, approval lineage, request retries/collisions, consent and
 observation separation, unchanged solution stage, and role boundaries.
 Candidate and legacy databases remain untouched; migration 509 has not been
 rolled out.
+
+## Consent-aware experiment observation capture
+
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/observations`
+requires signed exact-location `solution_lifecycle:collect` context, explicit
+acknowledgement, and an active human binding. Protocol creation requires one
+typed consent policy: either participant consent with an exact purpose and
+version, or a fixed non-personal measurement basis. The capture function checks
+the active exact-origin experiment and declared metric/arm. Participant
+observations additionally require an active participant link at the same
+location and the current consent state for the exact purpose, scope, and recipient to remain
+granted at the declared version; any later event for that scope and recipient
+makes the previous grant ineligible. Participant captures cannot include a unit reference.
+Non-personal observations require a declared allowed basis and cannot attach a
+participant link.
+
+The bounded Gateway accepts a request UUID, metric key, finite numeric value,
+arm, optional unit or participant-link reference, adverse-event flag, bounded
+JSON evidence, and acknowledgement. A private receipt and observation write are
+atomic. Exact retries return the original result, while changed-payload reuse is
+rejected. The console presents capture only for an active experiment and an
+exact location `collect` grant; it uses same-origin CSRF-protected no-store
+requests, non-identifying evidence guidance, and stable retry IDs. The status
+projection continues to omit raw observations, participant links, adverse-event
+details, and evidence.
+
+Migration 510 adds forced RLS for observations. Reviewers can read only rows
+whose participant link and latest consent remain current; old rows without a
+consent assessment and rows invalidated by withdrawal are hidden. Runtime and
+Directus have no direct observation-write or private receipt access. The
+disposable PostgreSQL 16 checker applies and replays migration 510 and passes
+eight grouped checks for consented and non-personal captures, idempotency,
+denials, withdrawal visibility, legacy-row filtering, and role boundaries.
+Candidate and legacy databases remain untouched; migration 510 has not been
+rolled out. To roll back before rollout, disable the route and console form. If
+applied, retain captured observations and receipts and use a reviewed forward
+migration for schema changes; never edit or reverse the ordered migration.
 
 ## Funding draft proposal
 
@@ -809,7 +844,7 @@ state boundary, separately authorized submission, private protocol review and
 independent approval, funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–509 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–510 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -820,6 +855,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–509. After application, do not edit or reverse them; disable the routes and
+488–510. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

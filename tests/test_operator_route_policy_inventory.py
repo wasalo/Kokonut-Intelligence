@@ -240,6 +240,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/experiments/dddddddd-dddd-4ddd-8ddd-dddddddddddf/start",
     ): _expected("solution_lifecycle", "transition", scoped=True, location_id=_LOCATION_ID),
     (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/experiments/dddddddd-dddd-4ddd-8ddd-dddddddddddf/observations",
+    ): _expected("solution_lifecycle", "collect", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/experiments",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
