@@ -35,6 +35,7 @@ _PARAMETER_SAMPLES = {
     "case_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     "retirement_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     "solution_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "replication_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "recommendation_id": "99999999-9999-4999-8999-999999999997",
@@ -202,6 +203,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/learning",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/replications/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/learning",
+    ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/retirements",

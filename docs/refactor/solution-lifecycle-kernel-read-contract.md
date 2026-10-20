@@ -2,7 +2,7 @@
 
 **Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
 scale-gate, replication, reviewed-replication learning, exact-origin retirement
-reads, and independently reviewed retirement proposal/approval actions are
+reads, and independently reviewed retirement and learning proposal actions are
 prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
@@ -15,7 +15,8 @@ prepared; not owner-accepted.
 `473_location_scoped_solution_retirements.sql` plus
 `474_solution_retirement_independent_review.sql` and
 `475_location_solution_retirement_review.sql` and
-`476_location_solution_retirement_proposal.sql`.
+`476_location_solution_retirement_proposal.sql`, and
+`477_location_solution_learning_proposal.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -26,11 +27,12 @@ prepared; not owner-accepted.
 `GET /operator/api/solution-lifecycle/{location_id}/learning`,
 `GET /operator/api/solution-lifecycle/{location_id}/retirements`, and
 `POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve`,
-and `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements`.
+`POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements`, and
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement
-proposals require `solution_lifecycle:create`; approval requires exact
-`solution_lifecycle:review`. Mutations use signed operator tenant context
-checked in Gateway and PostgreSQL.
+and learning proposals require exact `solution_lifecycle:create`; approval
+requires exact `solution_lifecycle:review`. Mutations use signed operator
+tenant context checked in Gateway and PostgreSQL.
 
 ## Purpose and boundary
 
@@ -43,6 +45,11 @@ approval but does not execute migration, sunset, or retirement of a solution.
 The proposal action creates a `proposed` record only for an exact location-origin
 solution and an active OIDC-to-person binding; an independent reviewer must
 approve it separately before later lifecycle execution.
+The learning proposal action creates a `proposed` learning record only from a
+completed, actively reviewed replication targeting the exact location and
+linked to a solution originated in or explicitly associated with that location.
+The receipt attributes the OIDC proposer separately from the learning record's
+optional owner identity; it does not accept, reject, or apply the lesson.
 These routes do not replace the domain services, change stage-transition rules,
 approve gates, release funding, or activate adoption.
 
@@ -130,6 +137,20 @@ request-key reuse across decisions is rejected. A dedicated non-login owner has
 only the source columns and tenant-checking relations it needs, can insert but
 cannot update/delete receipts, and is not directly callable by Directus.
 
+Migration 477 adds a separate learning-proposal action. It requires a completed
+replication with an active human reviewer, exact target location, and exact
+solution origin/location-link lineage. The Gateway accepts only an idempotency
+UUID, allowlisted lesson type, bounded finding/recommendation, confidence and
+transferability bands, bounded assumption/metric references, and nonempty
+bounded evidence references. PostgreSQL repeats the signed location grant and
+source checks, writes `decision_status = 'proposed'` plus an append-only receipt
+atomically, and returns only receipt/learning IDs, current proposal status,
+timestamp, and replay state. Retries return the original receipt; request-key
+reuse with changed input is rejected. A separate non-login owner cannot update
+learning content/status or modify/delete receipts. Runtime can call the bounded
+function but cannot access learning records or receipts directly; Directus
+cannot call it.
+
 ## Database boundary
 
 The stable read function is owned by `kokonut_solution_reader`, a non-login,
@@ -148,6 +169,10 @@ retirement approval fields plus identity columns needed to lock active human
 bindings. It can SELECT/INSERT receipts but cannot update or delete them.
 Runtime can execute the bounded function but cannot access source or receipt
 tables directly; Directus cannot execute the action.
+Migration 477 uses `kokonut_solution_learning_proposal_owner`; it receives only
+the source columns and tenant-check relations needed to validate a reviewed
+replication and write a draft learning record, with no learning-record update
+or receipt update/delete privileges.
 
 ## Verification and remaining parity
 
@@ -185,6 +210,14 @@ experiment evidence detail under reviewed grants,
 funding/tranche and adoption event detail, populated legacy-to-Kernel fixture
 comparison, browser/OIDC acceptance, broader ACL/RLS, recovery behavior, and
 MAN-CAP-035 owner review.
+
+Migration 477 adds the reviewed-replication learning proposal action. The
+16-test Gateway/route-policy selection passes; disposable PostgreSQL 16 applies
+and replays migration 477 and passes nine acceptance groups for source lineage,
+reviewer status, exact tenant grants, idempotency/collision, draft-only state,
+input bounds, and runtime/Directus boundaries. Candidate and legacy databases
+are untouched; migration 477 is not rolled out. Evidence is in
+`builds/2026-10-19-recovery/cap-035-solution-learning-proposal-disposable.json`.
 
 ## Rollback
 

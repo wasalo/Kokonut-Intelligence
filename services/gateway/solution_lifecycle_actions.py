@@ -26,6 +26,18 @@ RETIREMENT_TYPES = frozenset({
     "governance_breach",
     "mission_complete",
 })
+LEARNING_TYPES = frozenset({
+    "validated_assumption",
+    "invalidated_assumption",
+    "implementation",
+    "adoption",
+    "safety",
+    "economic",
+    "equity",
+    "context_transfer",
+})
+LEARNING_CONFIDENCE = frozenset({"high", "moderate", "low", "insufficient_evidence"})
+LEARNING_TRANSFERABILITY = frozenset({"high", "medium", "low", "unknown"})
 
 
 def _connection_factory() -> Callable:
@@ -160,6 +172,104 @@ def propose_location_solution_retirement(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Solution retirement proposal returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def propose_location_solution_learning(
+    operator_id: str,
+    location_id: str,
+    replication_id: str,
+    request_id: str,
+    lesson_type: str,
+    finding: str,
+    recommended_action: str,
+    evidence: list,
+    *,
+    confidence: str = "moderate",
+    transferability: str = "unknown",
+    affected_assumptions: list | None = None,
+    affected_metrics: list | None = None,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create an attributed learning proposal from a reviewed location replication."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    replication_id = _normalize_uuid(replication_id, "replication")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(lesson_type, str) or lesson_type not in LEARNING_TYPES:
+        raise SolutionLifecycleActionInvalid("Invalid learning lesson type")
+    if not isinstance(confidence, str) or confidence not in LEARNING_CONFIDENCE:
+        raise SolutionLifecycleActionInvalid("Invalid learning confidence")
+    if not isinstance(transferability, str) or transferability not in LEARNING_TRANSFERABILITY:
+        raise SolutionLifecycleActionInvalid("Invalid learning transferability")
+    for value, name in ((finding, "finding"), (recommended_action, "recommended action")):
+        if not isinstance(value, str) or not value.strip() or len(value) > 4000:
+            raise SolutionLifecycleActionInvalid(
+                f"Learning {name} is required and must be at most 4000 characters"
+            )
+
+    def encode_array(value: list | None, name: str, *, required: bool = False) -> str:
+        if value is None and not required:
+            value = []
+        if not isinstance(value, list) or (required and not value) or len(value) > 100:
+            qualifier = "a nonempty list" if required else "a list"
+            raise SolutionLifecycleActionInvalid(
+                f"Learning {name} must be {qualifier} of at most 100 items"
+            )
+        try:
+            encoded = json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        except (TypeError, ValueError) as exc:
+            raise SolutionLifecycleActionInvalid(f"Learning {name} must contain JSON values") from exc
+        if len(encoded.encode("utf-8")) > 65536:
+            raise SolutionLifecycleActionInvalid(f"Learning {name} exceeds the 64 KiB limit")
+        return encoded
+
+    encoded_assumptions = encode_array(affected_assumptions, "affected assumptions")
+    encoded_metrics = encode_array(affected_metrics, "affected metrics")
+    encoded_evidence = encode_array(evidence, "evidence", required=True)
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.propose_location_solution_learning(
+                           %s::uuid, %s::uuid, %s::uuid, %s, %s, %s, %s,
+                           %s::jsonb, %s::jsonb, %s, %s::jsonb
+                       )""",
+                (
+                    location_id,
+                    replication_id,
+                    request_id,
+                    lesson_type,
+                    finding,
+                    confidence,
+                    transferability,
+                    encoded_assumptions,
+                    encoded_metrics,
+                    recommended_action,
+                    encoded_evidence,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution learning proposal returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result

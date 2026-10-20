@@ -10,6 +10,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     from services.gateway.solution_lifecycle_actions import (
         SolutionLifecycleActionInvalid,
         approve_location_solution_retirement,
+        propose_location_solution_learning,
         propose_location_solution_retirement,
     )
     from services.gateway.solution_lifecycle_reads import (
@@ -268,6 +269,94 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning"
+    )
+    async def propose_solution_learning(
+        request: Request, location_id: str, replication_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "lesson_type", "finding", "recommended_action", "evidence"
+        }
+        optional_fields = {
+            "confidence", "transferability", "affected_assumptions", "affected_metrics"
+        }
+        if (
+            not isinstance(payload, dict)
+            or not required_fields.issubset(payload)
+            or not set(payload).issubset(required_fields | optional_fields)
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Learning proposal fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                propose_location_solution_learning,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                replication_id,
+                payload["request_id"],
+                payload["lesson_type"],
+                payload["finding"],
+                payload["recommended_action"],
+                payload["evidence"],
+                confidence=payload.get("confidence", "moderate"),
+                transferability=payload.get("transferability", "unknown"),
+                affected_assumptions=payload.get("affected_assumptions", []),
+                affected_metrics=payload.get("affected_metrics", []),
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle create access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle create grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Completed reviewed replication not found in this location"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Learning proposal input is invalid"}, headers=headers)
+            if code in {"23505", "23514", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Learning proposal conflicts with current state"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution learning proposal unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution learning proposal unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers
+        )
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/retirements")
     async def location_solution_retirements(

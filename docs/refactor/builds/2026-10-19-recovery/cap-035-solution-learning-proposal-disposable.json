@@ -1,0 +1,15 @@
+{
+  "result": "passed",
+  "migration": "477_location_solution_learning_proposal.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "solution lifecycle schema through migration 476 and learning proposal migration 477 apply; migration 477 replays",
+    "only completed, actively reviewed replications targeting exact location lineage can seed a learning proposal",
+    "signed operator location context, exact create grant, and active OIDC-to-person attribution are required",
+    "proposal and append-only receipt are atomic, draft-only, and request-idempotent",
+    "cross-location, network, unlinked, unreviewed, inactive-reviewer, and non-completed sources fail closed",
+    "runtime can invoke the bounded function but cannot access learning records or receipts directly; Directus cannot invoke it"
+  ],
+  "acceptance_groups_passed": 9
+}
