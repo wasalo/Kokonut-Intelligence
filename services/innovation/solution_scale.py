@@ -76,6 +76,8 @@ def apply_learning(conn, learning_id: str, applied_to_version: str, owner_party_
 
 
 def propose_retirement(conn, solution_id: str, retirement_type: str, trigger_reason: str, *, evidence_refs: Optional[list[Any]] = None, migration_plan: Optional[str] = None, replacement_solution_id: Optional[str] = None, created_by_party_id: Optional[str] = None) -> Dict[str, Any]:
+    if not created_by_party_id:
+        raise ValueError("retirement proposal requires an attributed proposer")
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute("""INSERT INTO solution_retirement
             (solution_id, retirement_type, trigger_reason, evidence_refs, migration_plan, replacement_solution_id, created_by_party_id)
@@ -87,11 +89,17 @@ def propose_retirement(conn, solution_id: str, retirement_type: str, trigger_rea
 
 def approve_retirement(conn, retirement_id: str, approved_by_party_id: str) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("SELECT evidence_refs, retirement_type, migration_plan, replacement_solution_id FROM solution_retirement WHERE id = %s::uuid FOR UPDATE", (retirement_id,))
+        cur.execute("SELECT evidence_refs, retirement_type, migration_plan, replacement_solution_id, created_by_party_id FROM solution_retirement WHERE id = %s::uuid FOR UPDATE", (retirement_id,))
         retirement = cur.fetchone()
         if not retirement:
             conn.rollback()
             raise ValueError("retirement not found")
+        if not retirement["created_by_party_id"]:
+            conn.rollback()
+            raise ValueError("retirement approval requires an attributed proposer")
+        if str(retirement["created_by_party_id"]) == str(approved_by_party_id):
+            conn.rollback()
+            raise ValueError("retirement approval requires an independent reviewer")
         if not retirement["evidence_refs"]:
             conn.rollback()
             raise ValueError("retirement approval requires evidence")

@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "8243bdf80fbbd5e8e133a8728426158ae27f18f7",
+  "baseline_commit": "c4ffd79590f2441d52f1b9f8bb9dcea1896afb0b",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2268,7 +2268,8 @@
       "schemas/postgres/470_location_scoped_solution_scale_gates.sql",
       "schemas/postgres/471_location_scoped_solution_replications.sql",
       "schemas/postgres/472_location_scoped_solution_learning.sql",
-      "schemas/postgres/473_location_scoped_solution_retirements.sql"
+      "schemas/postgres/473_location_scoped_solution_retirements.sql",
+      "schemas/postgres/474_solution_retirement_independent_review.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",

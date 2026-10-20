@@ -11736,3 +11736,23 @@ remains prepared, not accepted. Checklist: 701 complete / 24 open; matrix:
 [Contract](solution-lifecycle-kernel-read-contract.md);
 [migration](../schemas/postgres/473_location_scoped_solution_retirements.sql);
 [disposable evidence](builds/2026-10-19-recovery/cap-035-solution-retirements-disposable.json).
+
+### CAP-035 independent retirement approval guard — 19 October 2026
+
+Migration 474 and the legacy innovation service now fail closed when a
+retirement proposal lacks a proposer or the proposer attempts to approve it.
+The trigger also prevents proposer or reviewer attribution from being changed
+after approval. Existing rows are not rewritten at migration time. The focused
+Gateway, route-policy, migration metadata, and non-database service selection
+passes 120 tests with the default-database integration test excluded. Disposable
+PostgreSQL 16 applies/replays migrations 459 and 466–474 and passes five checks
+for self-review denial, missing proposer denial, successful independent review,
+immutable attribution, and safe replay. Ruff, compilation, matrix validation,
+runtime SQL inventory, repository inventory, and secret scan pass. Candidate and
+legacy databases remain untouched; migration 474 is not rolled out. Gateway
+retirement proposal/review UI and data-dependent repair of legacy un-attributed
+rows remain open. CAP-035 remains prepared, not accepted. Checklist: 702
+complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared.
+[Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/474_solution_retirement_independent_review.sql);
+[disposable evidence](builds/2026-10-19-recovery/solution-retirement-independent-review-disposable.json).

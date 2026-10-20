@@ -11,7 +11,8 @@ retirement read slices prepared; not owner-accepted.
 `470_location_scoped_solution_scale_gates.sql`, and
 `471_location_scoped_solution_replications.sql`,
 `472_location_scoped_solution_learning.sql`, and
-`473_location_scoped_solution_retirements.sql`.
+`473_location_scoped_solution_retirements.sql` plus
+`474_solution_retirement_independent_review.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -101,6 +102,8 @@ The learning route returns a bounded page only for records linked to a human-rev
 
 The retirements route returns bounded retirement metadata only for solutions originated at the exact requested location. It shows retirement type/status, whether a human approval reference exists, and approval/effective/post-review/creation timestamps. It omits trigger reasons, evidence, affected users, dependencies, replacement links, migration/remedy plans, residual risk, and party identities. It does not include solutions that are merely linked to the location: `solution_retirement` has no target-scope column, so a shared solution's global retirement state must not be inferred as location-specific. This read does not propose, approve, schedule, or execute a retirement.
 
+Migration 474 adds a database trigger and service preflight so a newly approved retirement has a recorded proposer, an independent reviewer, and immutable proposer/reviewer attribution. Approval without proposer attribution and self-approval fail closed. The migration does not rewrite or validate historical rows at install time; legacy approvals remain untouched and require separate review before they are changed. No Gateway approval route is added by this integrity slice.
+
 ## Database boundary
 
 The stable read function is owned by `kokonut_solution_reader`, a non-login,
@@ -111,12 +114,13 @@ function but cannot select the solution tables directly; Directus has neither
 function nor table access. The reader has no identity-table access and no write
 privileges. Migrations 466–473 add bounded gate, experiment, funding, adoption,
 scale-gate, replication, learning, and retirement functions under the same
-reader role and exact signed-location grant checks.
+reader role and exact signed-location grant checks. Migration 474 adds the
+retirement independent-review trigger.
 
 ## Verification and remaining parity
 
 The summary, gate, experiment, funding, adoption, scale-gate, replication,
-learning, and retirement source checks and their
+learning, retirement, and independent-review source checks and their
 disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/cap-035-solution-lifecycle-disposable.json` and
 `builds/2026-10-19-recovery/cap-035-solution-gates-disposable.json` and
@@ -127,7 +131,8 @@ disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/cap-035-solution-replications-disposable.json`, and
 `builds/2026-10-19-recovery/cap-035-solution-learning-disposable.json`, and
 `builds/2026-10-19-recovery/cap-035-solution-retirements-disposable.json`.
-Candidate and legacy databases are untouched; migrations 459 and 466–473 have not been
+`builds/2026-10-19-recovery/solution-retirement-independent-review-disposable.json`.
+Candidate and legacy databases are untouched; migrations 459 and 466–474 have not been
 rolled out. This is not parity acceptance. Remaining work includes
 item-level read and write workflows beyond status projections, gate and
 experiment evidence detail under reviewed grants,

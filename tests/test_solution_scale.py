@@ -8,8 +8,8 @@ import pytest
 from services.ingestion.base import get_db
 from services.innovation import solution_lifecycle, solution_scale
 
-
 PARTY_ID = "b0000000-0000-0000-0000-000000002712"
+PROPOSER_ID = "b0000000-0000-0000-0000-000000002713"
 
 
 def test_scale_requires_evidence_and_learning_can_be_applied():
@@ -21,7 +21,9 @@ def test_scale_requires_evidence_and_learning_can_be_applied():
     try:
         with conn.cursor() as cur:
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
+            cur.execute("DELETE FROM party WHERE id = %s::uuid", (PROPOSER_ID,))
             cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Scale Reviewer')", (PARTY_ID,))
+            cur.execute("INSERT INTO party (id, party_type, display_name) VALUES (%s::uuid, 'person', 'Retirement Proposer')", (PROPOSER_ID,))
         conn.commit()
         solution = solution_lifecycle.create_solution(conn, f"scale-{uuid.uuid4().hex[:8]}", "Validated practice", "practice", "A recurring problem", owner_party_id=PARTY_ID)
         solution_id = str(solution["id"])
@@ -42,8 +44,10 @@ def test_scale_requires_evidence_and_learning_can_be_applied():
         replacement_id = str(uuid.uuid4())
         with conn.cursor() as cur:
             cur.execute("INSERT INTO solution (id, canonical_key, name, solution_type, problem_statement) VALUES (%s::uuid, %s, 'Replacement', 'practice', 'Safer approach')", (replacement_id, f"replacement-{uuid.uuid4().hex[:8]}"))
-        retirement = solution_scale.propose_retirement(conn, solution_id, "superseded", "A safer validated version exists", evidence_refs=[{"source":"review"}], migration_plan="Migrate adopters to the replacement", replacement_solution_id=replacement_id, created_by_party_id=PARTY_ID)
+        retirement = solution_scale.propose_retirement(conn, solution_id, "superseded", "A safer validated version exists", evidence_refs=[{"source":"review"}], migration_plan="Migrate adopters to the replacement", replacement_solution_id=replacement_id, created_by_party_id=PROPOSER_ID)
         retirement_id = str(retirement["id"])
+        with pytest.raises(ValueError, match="independent reviewer"):
+            solution_scale.approve_retirement(conn, retirement_id, PROPOSER_ID)
         approved = solution_scale.approve_retirement(conn, retirement_id, PARTY_ID)
         assert approved["status"] == "approved"
     finally:
@@ -54,6 +58,7 @@ def test_scale_requires_evidence_and_learning_can_be_applied():
             if replacement_id:
                 cur.execute("DELETE FROM solution WHERE id = %s::uuid", (replacement_id,))
             cur.execute("DELETE FROM party WHERE id = %s::uuid", (PARTY_ID,))
+            cur.execute("DELETE FROM party WHERE id = %s::uuid", (PROPOSER_ID,))
         conn.commit()
         conn.close()
 
@@ -69,3 +74,12 @@ def test_evaluate_gate_rejects_empty_evidence():
     mock_conn = MagicMock()
     with pytest.raises(ValueError, match="evidence"):
         solution_scale.evaluate_gate(mock_conn, "gate-id", True, "val", [], "party-id")
+
+
+def test_retirement_proposal_requires_attributed_proposer_before_database_access():
+    mock_conn = MagicMock()
+    with pytest.raises(ValueError, match="attributed proposer"):
+        solution_scale.propose_retirement(
+            mock_conn, "solution-id", "unsafe", "Evidence withdrawn"
+        )
+    mock_conn.cursor.assert_not_called()
