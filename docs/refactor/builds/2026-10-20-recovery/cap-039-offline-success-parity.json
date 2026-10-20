@@ -5,8 +5,8 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 14,
-    "new_success_path_cases": 4,
+    "tests_passed": 16,
+    "new_success_path_cases": 6,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -35,15 +35,27 @@
       "output": "JSON manifest summary with database_write=false"
     },
     {
+      "name": "mobile-forms",
+      "arguments": ["preview", "--manifest", "synthetic temporary JSON file"],
+      "dependencies": ["local file", "local schema validation"],
+      "output": "JSON revision comparison with publication=not applied"
+    },
+    {
       "name": "audit-spool",
       "arguments": ["status", "--path", "missing temporary path"],
       "dependencies": ["local filesystem", "SQLite only if journal exists"],
       "output": "JSON capacity summary without event contents",
       "side_effect": "missing journal remains absent"
+    },
+    {
+      "name": "systems",
+      "arguments": ["--list-modules"],
+      "dependencies": ["local Python module registry"],
+      "output": "sorted systems module names and descriptions"
     }
   ],
   "limitations": [
-    "Successful parity is covered for four offline commands only.",
+    "Successful parity is covered for six offline command invocations across five mounted groups only.",
     "Other mounted legacy commands, database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

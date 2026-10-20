@@ -1,17 +1,18 @@
-### CAP-039 successful offline unified-CLI output parity — 20 October 2026
+### CAP-039 successful offline and native unified-CLI parity — 20 October 2026
 
-Added real non-help output comparisons for four offline mounted commands:
-`agents list`, `ingestion --list`, `mobile-forms validate`, and
-`audit-spool status` on a missing temporary journal. Each standalone module
-and unified entry returns the same status and output. The synthetic form
-manifest reports `database_write: false`; the audit status query leaves the
-missing journal absent. The run sets an unavailable SOPS identity and closed
-loopback PostgreSQL URL; no database or provider is contacted. The focused
-selection passes 14 tests (four new successful-output parity cases, a native
-command-tree comparison, and the existing unified CLI contract tests). The
+Added real non-help output comparisons for six offline invocations across five
+mounted groups: `agents list`, `ingestion --list`, `mobile-forms validate` and `preview`,
+`audit-spool status` on a missing temporary journal, and `systems --list-modules`.
+All six standalone/unified invocations return matching status and output. The
+synthetic form manifest reports `database_write: false`; preview says it did
+not publish; audit status leaves the missing journal absent. The run sets an
+unavailable SOPS identity and closed loopback PostgreSQL URL; no database or
+provider is contacted. The focused selection passes 16 tests (six successful-
+output cases, a native command-tree comparison, and the existing unified CLI
+contract tests). The
 standalone/unified command trees and leaf parameters match for `kernel`, `dao`,
 and `treasury`; shell-completion toggles are intentionally disabled under the
-unified root. CAP-039 remains deployed, not accepted: 33 mounted groups still
+unified root. CAP-039 remains deployed, not accepted: 32 mounted groups still
 need successful-path/output and dependency classification, and privileged
 operator-action boundaries and MAN-CAP-039 review remain open. Checklist:
 788 complete / 24 open; matrix: 31 baseline-retained,

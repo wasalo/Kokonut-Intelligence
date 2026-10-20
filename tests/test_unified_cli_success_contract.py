@@ -98,6 +98,24 @@ def test_offline_form_validation_output_matches_standalone_cli(tmp_path: Path) -
     assert unified.stderr == standalone.stderr == ""
 
 
+def test_offline_form_preview_output_matches_standalone_cli(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(_manifest()), encoding="utf-8")
+    args = ["preview", "--manifest", str(manifest_path)]
+    environment = _environment()
+
+    standalone = _run(["-m", "services.mobile.forms_cli", *args], environment)
+    unified = _run(["-m", "services.cli", "mobile-forms", "--", *args], environment)
+
+    assert standalone.returncode == unified.returncode == 0
+    standalone_output = json.loads(standalone.stdout)
+    unified_output = json.loads(unified.stdout)
+    assert unified_output == standalone_output
+    assert unified_output["publication"] == "not applied"
+    assert unified_output["change"] == "version_comparison_not_supplied"
+    assert unified.stderr == standalone.stderr == ""
+
+
 def test_audit_spool_missing_file_status_matches_standalone_without_creating_it(tmp_path: Path) -> None:
     journal = tmp_path / "journal.sqlite3"
     args = ["status", "--path", str(journal)]
@@ -110,4 +128,16 @@ def test_audit_spool_missing_file_status_matches_standalone_without_creating_it(
     assert json.loads(unified.stdout) == json.loads(standalone.stdout)
     assert json.loads(unified.stdout)["exists"] is False
     assert not journal.exists()
+    assert unified.stderr == standalone.stderr == ""
+
+
+def test_systems_module_catalogue_output_matches_standalone_cli() -> None:
+    environment = _environment()
+
+    standalone = _run(["-m", "services.systems.cli", "--list-modules"], environment)
+    unified = _run(["-m", "services.cli", "systems", "--", "--list-modules"], environment)
+
+    assert standalone.returncode == unified.returncode == 0
+    assert unified.stdout == standalone.stdout
+    assert "causal_loops" in unified.stdout
     assert unified.stderr == standalone.stderr == ""
