@@ -978,6 +978,24 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_replication_completion_review_queue_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/replications/completion-review",
+        path,
+    )
+    if (
+        solution_lifecycle_replication_completion_review_queue_match
+        and method.upper() == "GET"
+        and enabled
+    ):
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_replication_completion_review_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_replication_review_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/replications/([0-9a-fA-F-]{36})/review",
         path,
@@ -988,6 +1006,24 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "review",
             "public": False,
             "location_id": solution_lifecycle_replication_review_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_replication_completion_review_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/replications/([0-9a-fA-F-]{36})/completion-proposals/([0-9a-fA-F-]{36})/review",
+        path,
+    )
+    if (
+        solution_lifecycle_replication_completion_review_match
+        and method.upper() in {"GET", "POST"}
+        and enabled
+    ):
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_replication_completion_review_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }

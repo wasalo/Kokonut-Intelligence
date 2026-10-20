@@ -559,7 +559,7 @@ def test_replication_proposal_submit_is_draft_only_csrf_bounded_and_retry_stable
     submit = _function(
         source,
         "async function submitSolutionLifecycleReplicationProposal(",
-        "async function loadSolutionLifecycleLearningSources(",
+        "function resetSolutionLifecycleReplicationReviewQueue()",
     )
     assert "solutionLifecycleCreateLocations.has(locationId)" in submit
     assert "solutionLifecycleLocations.has(locationId)" in submit
@@ -863,6 +863,87 @@ def test_replication_activation_is_transition_grant_gated_acknowledged_and_retry
         'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
     )
     assert "Resolve the pending replication start request" in location_change
+
+
+def test_replication_completion_review_is_exact_review_grant_gated_paged_and_private():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(
+        r'<section id="solution-lifecycle-replication-completion-review".*?</section>\s*</section>',
+        source,
+        re.DOTALL,
+    )
+    assert panel is not None
+    assert 'id="solution-lifecycle-replication-completion-review" hidden' in panel.group()
+    assert "solution stage remains unchanged" in panel.group()
+    assert "leaves the replication active" in panel.group()
+
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleReplicationCompletionReviewQueue(",
+        "async function loadSolutionLifecycleReplicationCompletionReviewDetail(",
+    )
+    assert 'solutionLifecycleReviewLocations.has(locationId)' in queue
+    assert "solutionLifecycleLocations.has(locationId)" not in queue
+    assert "/replications/completion-review?${params}`" in queue
+    assert 'new URLSearchParams({ limit: "50", offset: String(offset) })' in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+    assert "requestVersion !== solutionLifecycleReplicationCompletionReviewRequestVersion" in queue
+    assert "locationId !== solutionLifecycleLocation.value" in queue
+    assert "result.next_offset" in queue and "result.has_more" in queue
+    assert "cell.textContent = String(value)" in queue
+    assert "innerHTML" not in queue
+
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleReplicationCompletionReviewDetail(",
+        "function lockSolutionLifecycleReplicationCompletionReview(",
+    )
+    assert "/completion-proposals/${encodeURIComponent(proposalId)}/review`" in detail
+    assert 'credentials: "same-origin"' in detail and 'cache: "no-store"' in detail
+    assert "result.outcome_summary" in detail
+    assert "JSON.stringify(result.evidence ?? [], null, 2)" in detail
+    for reviewer_guard in (
+        "result.is_self_authored !== true",
+        "result.is_self_started !== true",
+        "result.is_initial_approver !== true",
+        "result.is_source_owner !== true",
+        "result.is_source_approver !== true",
+        "result.is_source_result_reviewer !== true",
+        "result.source_is_current === true",
+    ):
+        assert reviewer_guard in detail
+    assert "innerHTML" not in detail
+
+
+def test_replication_completion_decision_is_acknowledged_csrf_protected_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    review = _function(
+        source,
+        "async function reviewSolutionLifecycleReplicationCompletion(",
+        "async function loadSolutionLifecycleLearningSources(",
+    )
+    assert "solutionLifecycleReviewLocations.has(locationId)" in review
+    assert "detail.is_self_authored === true" in review
+    assert "detail.is_self_started === true" in review
+    assert "detail.is_initial_approver === true" in review
+    assert "detail.is_source_result_reviewer === true" in review
+    assert "detail.source_is_current !== true" in review
+    assert "solutionLifecycleReplicationCompletionReviewConfirm.checked" in review
+    assert 'decision === "rejected" && reason.length < 10' in review
+    assert "solutionLifecyclePendingReplicationCompletionReview.fingerprint !== fingerprint" in review
+    assert "solutionLifecyclePendingReplicationCompletionReview.request_id" in review
+    assert "/completion-proposals/${encodeURIComponent(detail.proposal_id)}/review`" in review
+    assert 'method: "POST"' in review
+    assert 'credentials: "same-origin"' in review and 'cache: "no-store"' in review
+    assert '"X-CSRF-Token": csrf' in review
+    assert "response.status < 500" in review
+    assert "result.replayed === true" in review
+    assert "Replication completed with reviewed outcome" in review
+    assert "the solution stage is unchanged" in review
+    assert "Replication remains active" in review
+    assert 'solutionLifecycleReplicationCompletionReviewForm.addEventListener("submit", reviewSolutionLifecycleReplicationCompletion)' in source
+    assert 'solutionLifecycleReplicationCompletionReviewDecision.addEventListener("change"' in source
+    assert "innerHTML" not in review
 
 
 def test_inline_javascript_parses_when_node_is_available():

@@ -2,8 +2,9 @@
 
 **Status:** CAP-035 location-scoped reads and gated actions are prepared,
 including migration 494 replication proposals, migration 495 independent
-review, migration 496 controlled activation, and migration 497 completion-report
-proposals. They have not been owner-accepted.
+review, migration 496 controlled activation, migration 497 completion-report
+proposals, and migration 498 independent completion-report review. They have not
+been owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -25,7 +26,8 @@ proposals. They have not been owner-accepted.
 `494_location_solution_replication_proposal.sql`, and
 `495_location_solution_replication_review.sql`, and
 `496_location_solution_replication_activation.sql`, and
-`497_location_solution_replication_completion_proposal.sql`.
+`497_location_solution_replication_completion_proposal.sql`, and
+`498_location_solution_replication_completion_review.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -49,14 +51,18 @@ proposals. They have not been owner-accepted.
 `GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`, and
 `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`, and
 `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/start`, and
-`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals`.
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals`,
+`GET /operator/api/solution-lifecycle/{location_id}/replications/completion-review`,
+`GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review`, and
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement,
 learning proposals, and gate evaluations require exact
 `solution_lifecycle:create`; replication completion proposals require exact
 `solution_lifecycle:submit`; review requires exact `solution_lifecycle:review`;
 replication activation requires exact `solution_lifecycle:transition`;
-retirement review reads, gate evaluations, replication review/activation, and
-completion proposals also require an active human party binding. Mutations use
+retirement review reads, gate evaluations, replication review/activation,
+completion proposals, and completion-review reads also require an active human
+party binding. Mutations use
 signed operator tenant context checked in Gateway and PostgreSQL.
 Experiment review detail and result submission require exact
 `solution_lifecycle:review` scope and an active human binding; the result
@@ -64,6 +70,18 @@ reviewer must differ from both the experiment owner and protocol approver.
 Replication review queue/detail and decisions require that same exact review
 scope and active human binding; the reviewer must differ from the attributed
 proposal author.
+
+Completion-report queue, detail, and decisions require the exact
+`solution_lifecycle:review` location grant plus an active human party binding.
+The decision reviewer must differ from the report author, replication starter,
+initial replication approver, source experiment owner/protocol approver, and
+source result reviewer. Detail reports those conflicts for the console, while
+the database function rechecks them during the decision. Acceptance copies the
+reviewed outcome, evidence, and maturity onto the replication, marks its
+operational status `completed`, and records reviewer attribution atomically.
+The domain outcome remains separate, including `failed` as a reviewed report
+outcome. Rejection leaves the replication `active` and permits a revised report.
+Neither decision changes the solution stage.
 
 ## Purpose and boundary
 

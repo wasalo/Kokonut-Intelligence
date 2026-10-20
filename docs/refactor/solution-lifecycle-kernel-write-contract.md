@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–497 are additive and are
+**Status:** prepared implementation contract; migrations 488–498 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -293,29 +293,62 @@ runtime can call only the bounded submission function. Submission does not
 change replication status, result, evidence, maturity, completion time, or
 solution stage. An independent review action must accept the report before any
 completion values are written; the legacy `failed` replication state remains a
-separate operational disposition.
+separate operational disposition. A submitted report with outcome `failed` is
+still a report result; migration 498 records it as `result = 'failed'` only
+after review and sets the replication's operational status to `completed`.
 
-This slice exposes the protected Gateway API but does not yet add the console
-form or the independent completion-review queue/decision. The focused Gateway,
-route-policy, proposal/review/activation, console-regression, and migration
-selection passes 122 tests. Disposable PostgreSQL 16 applies and replays
-migration 497 and passes ten grouped scope, input, idempotency, pending-report,
-source-lineage, privacy, and privilege checks. Candidate and legacy databases
-are untouched; migration 497 is not rolled out.
+The submission Gateway path and operator console now feed a separate
+independent-review queue and decision. Migration 498 stores immutable review
+receipts and reviewer attribution, and only an accepted report completes the
+replication. Migration 497 remains unrolled out, as does migration 498.
+
+## Replication completion report review
+
+Migration 498 adds bounded queue/detail functions and a decision function under
+the exact signed location `solution_lifecycle:review` grant and active human
+binding. The reviewer must differ from the report author, replication starter,
+initial approver, source experiment owner/protocol approver, and source result
+reviewer. Queue/detail return conflict flags for the console; PostgreSQL repeats
+all checks when a decision is recorded. Detail exposes only the private report
+summary, bounded evidence references, outcome/maturity, solution context, and
+independence/source-current flags. Runtime uses the bounded functions and
+cannot read report/receipt tables directly; Directus receives no execute grant.
+
+Decision requests require an idempotency UUID, literal acknowledgement, and
+`accepted` or `rejected`; rejection requires a 10–4,000 character reason.
+Acceptance atomically marks the replication `completed`, copies the accepted
+report's outcome/evidence/maturity, and records reviewer attribution. A report
+whose domain outcome is `failed` still produces operational replication status
+`completed` with `result = 'failed'`; these fields represent distinct concepts.
+Rejection leaves the replication `active` so the operator can submit a revised
+report. Both decisions preserve the solution's current stage. The console uses
+exact review-grant gating, text-only detail rendering, same-origin no-store
+requests, CSRF on decisions, and stable request IDs for uncertain retries.
+
+The focused replication proposal/review/activation/completion, console, and
+route-policy regression selection passes 88 tests; a separate Gateway,
+console, route-policy, and migration-metadata selection passes 86 tests. Ruff,
+Python compilation, inline JavaScript syntax, dependency-group alignment,
+capability validation, runtime SQL inventory validation, and diff checks pass.
+Disposable PostgreSQL 16 applies and replays migration 498 with the ordered
+CAP-035 chain; twelve grouped checks cover detail independence flags, reviewer
+separation, rejection/revision, acceptance, retries, lifecycle separation,
+private tables, and role boundaries. Candidate and legacy databases are
+untouched; migrations 497–498 are not rolled out.
 
 ### Acceptance and rollback
 
-Focused Gateway, route-policy, console, and migration tests cover exact grants,
+Focused Gateway, route-policy, console, and migration checks cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
 state boundary, separately authorized submission, private reviewer reads, and
 independent funding, tranche, replication review, replication activation, and
 completion-report proposal. Disposable PostgreSQL 16 applies and replays
-migrations 488–497 and checks location-origin targeting, create/submit/review/transition
+migrations 488–498 and checks location-origin targeting, create/submit/review/transition
 authorization, private receipts, tranche ceilings, atomic writes, self-authorship, legacy unattributed records, approval retries and collisions,
 role boundaries, unchanged proposed tranche states, independent tranche-reviewer separation, immutable tranche receipts, unchanged release state, independent replication review, immutable review receipts, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
 not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–497. After application, do not edit or reverse them; disable the routes and
+488–498. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

@@ -22,6 +22,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         record_location_solution_gate_evaluation,
         review_location_solution_experiment,
         review_location_solution_replication,
+        review_location_solution_replication_completion,
         submit_location_solution_funding,
         transition_location_solution_gate,
     )
@@ -36,6 +37,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         get_location_solution_funding_tranche_review_detail,
         get_location_solution_gate_review,
         get_location_solution_lifecycle_summary,
+        get_location_solution_replication_completion_review_detail,
         get_location_solution_replication_review_detail,
         get_location_solution_retirement_review_detail,
         list_location_solution_adoption,
@@ -45,6 +47,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         list_location_solution_funding_targets,
         list_location_solution_gates,
         list_location_solution_learning,
+        list_location_solution_replication_completion_review_queue,
         list_location_solution_replication_review_queue,
         list_location_solution_replications,
         list_location_solution_retirement_candidates,
@@ -859,6 +862,161 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution replication review unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/replications/completion-review"
+    )
+    async def location_solution_replication_completion_review_queue(
+        request: Request,
+        location_id: str,
+        limit: str = "25",
+        offset: str = "0",
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                list_location_solution_replication_completion_review_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=limit,
+                offset=offset,
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified review access is required"}, headers=headers)
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location review grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Replication completion review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Replication completion review queue unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review"
+    )
+    async def location_solution_replication_completion_review_detail(
+        request: Request,
+        location_id: str,
+        replication_id: str,
+        proposal_id: str,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_replication_completion_review_detail,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                replication_id,
+                proposal_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified review access is required"}, headers=headers)
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleReviewNotFound as exc:
+            return JSONResponse(status_code=404, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "An active human location review grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Replication completion review detail unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Replication completion review detail unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review"
+    )
+    async def review_solution_replication_completion(
+        request: Request,
+        location_id: str,
+        replication_id: str,
+        proposal_id: str,
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {"request_id", "decision", "acknowledged"}
+        optional_fields = {"review_reason"}
+        if (
+            not isinstance(payload, dict)
+            or not required_fields.issubset(payload)
+            or not set(payload).issubset(required_fields | optional_fields)
+        ):
+            return JSONResponse(status_code=400, content={"error": "Completion review fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                review_location_solution_replication_completion,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                replication_id,
+                proposal_id,
+                payload["request_id"],
+                payload["decision"],
+                payload.get("review_reason"),
+                payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified review access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "An independent human with an active location review grant is required"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Pending completion report with current source lineage not found for this location"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Completion review input is invalid"}, headers=headers)
+            if code in {"23505", "23514", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Completion report has already been reviewed or changed"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Replication completion review unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Replication completion review unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
