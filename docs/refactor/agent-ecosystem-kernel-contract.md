@@ -137,6 +137,16 @@ databases remain untouched; migration 524 is not rolled out. See the
 
 ## Verification and limits
 
+The standalone `ai_summary` CLI validates required mode selection and UUID
+arguments before opening PostgreSQL. Generation delegates directly to the
+validated runner rather than opening and discarding a preliminary connection.
+List and verify modes acquire a connection only for their query and close it in
+`finally`; verify also closes its cursor when the query fails. Focused offline
+CLI checks exercise missing/malformed inputs and cleanup failures. This is a
+resource-lifecycle and input-preflight guarantee only: the CLI still uses its
+configured database principal and does not authenticate an operator or establish
+tenant authorization.
+
 Focused source tests cover all current catalogue write declarations, defensive
 copy behavior, denied high-risk actions, malformed policy input, and preflight
 before database access. These checks do not establish Directus runtime-role

@@ -473,16 +473,17 @@ def store_summary(conn, location_id: str, summary_type: str, content: str,
 def list_summaries(conn, location_id: str = None):
     """List existing AI summaries."""
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    if location_id:
-        cur.execute(
-            "SELECT id, summary_type, status, created_at, LEFT(content, 80) as preview FROM ai_summary WHERE subject_id = %s ORDER BY created_at DESC LIMIT 20",
-            (location_id,),
-        )
-    else:
-        cur.execute("SELECT id, summary_type, status, created_at, LEFT(content, 80) as preview FROM ai_summary ORDER BY created_at DESC LIMIT 20")
-    rows = [dict(r) for r in cur.fetchall()]
-    cur.close()
-    return rows
+    try:
+        if location_id:
+            cur.execute(
+                "SELECT id, summary_type, status, created_at, LEFT(content, 80) as preview FROM ai_summary WHERE subject_id = %s ORDER BY created_at DESC LIMIT 20",
+                (location_id,),
+            )
+        else:
+            cur.execute("SELECT id, summary_type, status, created_at, LEFT(content, 80) as preview FROM ai_summary ORDER BY created_at DESC LIMIT 20")
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
 
 
 def build_summary(conn, location_id: str, summary_type: str = "combined") -> dict[str, Any]:
@@ -540,6 +541,14 @@ def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool
     return output
 
 
+def _cli_uuid(parser: argparse.ArgumentParser, value: str, label: str) -> str:
+    """Validate and normalize a UUID before a CLI branch opens the database."""
+    try:
+        return str(uuid.UUID(value))
+    except (TypeError, ValueError, AttributeError):
+        parser.error(f"{label} must be a UUID")
+
+
 def main():
     parser = argparse.ArgumentParser(description="AI Summary Generator")
     parser.add_argument("--location-id", help="Location UUID")
@@ -550,10 +559,14 @@ def main():
     parser.add_argument("--verify", help="Verify a summary by ID (check content hash)")
     args = parser.parse_args()
 
-    conn = get_pg()
-
     if args.list:
-        summaries = list_summaries(conn, args.location_id)
+        if args.location_id:
+            args.location_id = _cli_uuid(parser, args.location_id, "location-id")
+        conn = get_pg()
+        try:
+            summaries = list_summaries(conn, args.location_id)
+        finally:
+            conn.close()
         if not summaries:
             print("No summaries found.")
         else:
@@ -561,15 +574,20 @@ def main():
             print("-" * 120)
             for s in summaries:
                 print(f"{str(s['id']):<38} {s['summary_type']:<15} {s['status']:<12} {str(s['created_at']):<20} {(s['preview'] or '')[:60]}")
-        conn.close()
         return
 
     if args.verify:
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("SELECT * FROM ai_summary WHERE id = %s", (args.verify,))
-        row = cur.fetchone()
-        cur.close()
-        conn.close()
+        args.verify = _cli_uuid(parser, args.verify, "summary-id")
+        conn = get_pg()
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            try:
+                cur.execute("SELECT * FROM ai_summary WHERE id = %s", (args.verify,))
+                row = cur.fetchone()
+            finally:
+                cur.close()
+        finally:
+            conn.close()
         if not row:
             print(f"Summary not found: {args.verify}")
         else:
@@ -585,7 +603,7 @@ def main():
     if not args.location_id:
         parser.error("--location-id is required (or use --list)")
 
-    conn.close()
+    args.location_id = _cli_uuid(parser, args.location_id, "location-id")
 
     print(f"Generating {args.summary_type} summary for location {args.location_id}...")
     result = run_ai_summary(args.location_id, args.summary_type, store=args.store)

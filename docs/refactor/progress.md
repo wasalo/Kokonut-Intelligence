@@ -1,3 +1,14 @@
+### CAP-038 standalone AI-summary CLI lifecycle — 20 October 2026
+
+The legacy AI-summary CLI now rejects missing command modes and malformed UUIDs
+before acquiring PostgreSQL, sends generation directly through its validated
+runner without a throwaway connection, and closes list/verify query resources on
+errors. Seven focused checks and a 33-test summary/safety regression selection
+pass, along with Ruff and Python compilation. No database or provider was
+contacted and no migration was added. This does not establish CLI
+operator authentication, database authorization, tenant scope, or MAN-CAP-038
+acceptance ([implementation](../../services/agents/ai_summary.py); [tests](../../tests/test_ai_summary_cli_lifecycle.py); [evidence](builds/2026-10-20-recovery/cap-038-ai-summary-cli-lifecycle.json)).
+
 ### CAP-039 expanded unified-CLI success parity — 20 October 2026
 
 Expanded standalone/unified output comparisons across all 37 mounted groups: nine

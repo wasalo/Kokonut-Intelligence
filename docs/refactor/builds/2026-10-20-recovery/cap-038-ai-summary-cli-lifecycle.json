@@ -1,0 +1,30 @@
+{
+  "capability": "CAP-038",
+  "check": "ai-summary-cli-preflight-and-resource-lifecycle",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_ai_summary_cli_lifecycle.py -q",
+  "result": "passed",
+  "summary": {
+    "tests_passed": 7,
+    "missing_mode_rejected_before_database": true,
+    "malformed_location_or_summary_uuid_rejected_before_database": true,
+    "generation_avoids_preliminary_connection": true,
+    "list_connection_closed_on_failure": true,
+    "verify_cursor_and_connection_closed_on_failure": true,
+    "database_or_provider_calls": 0,
+    "migration_added_or_applied": false
+  },
+  "additional_checks": {
+    "regression_selection": {
+      "command": "python3 -m pytest tests/test_ai_summary_cli_lifecycle.py tests/test_ai_summary_safety.py tests/test_agent_input_preflight.py tests/test_ai_summary_source_references.py tests/test_gateway_ai_summary_draft.py -q",
+      "tests_passed": 33
+    },
+    "ruff": "passed",
+    "python_compilation": "passed",
+    "git_diff_check": "passed"
+  },
+  "limitations": [
+    "These checks cover CLI input preflight and resource cleanup only.",
+    "They do not establish an authenticated operator identity, database principal authorization, tenant isolation, live PostgreSQL behavior, or MAN-CAP-038 acceptance."
+  ]
+}
