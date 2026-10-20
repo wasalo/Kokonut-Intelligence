@@ -17,6 +17,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         propose_location_solution_funding,
         propose_location_solution_learning,
         propose_location_solution_replication,
+        propose_location_solution_replication_completion,
         propose_location_solution_retirement,
         record_location_solution_gate_evaluation,
         review_location_solution_experiment,
@@ -927,6 +928,86 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution replication activation unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result),
+            status_code=200 if result.get("replayed") else 201,
+            headers=headers,
+        )
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals"
+    )
+    async def propose_solution_replication_completion(
+        request: Request, location_id: str, replication_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "outcome", "evidence_maturity", "outcome_summary", "evidence", "acknowledged"
+        }
+        if not isinstance(payload, dict) or set(payload) != required_fields:
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Replication completion proposal fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                propose_location_solution_replication_completion,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                replication_id,
+                payload["request_id"],
+                payload["outcome"],
+                payload["evidence_maturity"],
+                payload["outcome_summary"],
+                payload["evidence"],
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle submit access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "An active human with a current location submit grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Started replication not found for this location"},
+                    headers=headers,
+                )
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Replication completion proposal is invalid"}, headers=headers)
+            if code in {"23505", "23514", "55000", "40001", "55P03"}:
+                return JSONResponse(status_code=409, content={"error": "A completion proposal is already pending or this replication changed"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution replication completion proposal unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution replication completion proposal unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(

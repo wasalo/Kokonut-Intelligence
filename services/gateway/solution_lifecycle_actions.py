@@ -40,6 +40,7 @@ LEARNING_TYPES = frozenset({
 })
 LEARNING_CONFIDENCE = frozenset({"high", "moderate", "low", "insufficient_evidence"})
 LEARNING_TRANSFERABILITY = frozenset({"high", "medium", "low", "unknown"})
+REPLICATION_COMPLETION_OUTCOMES = frozenset({"successful", "failed", "mixed", "inconclusive"})
 EXPERIMENT_OUTCOMES = frozenset({
     "validated",
     "invalidated",
@@ -1079,6 +1080,84 @@ def activate_location_solution_replication(
             row = cursor.fetchone()
             if row is None:
                 raise RuntimeError("Solution replication activation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def propose_location_solution_replication_completion(
+    operator_id: str,
+    location_id: str,
+    replication_id: str,
+    request_id: str,
+    outcome: str,
+    evidence_maturity: int,
+    outcome_summary: str,
+    evidence: list,
+    *,
+    acknowledged: bool,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit a private completion report for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    replication_id = _normalize_uuid(replication_id, "replication")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Completion report acknowledgement is required")
+    if not isinstance(outcome, str) or outcome not in REPLICATION_COMPLETION_OUTCOMES:
+        raise SolutionLifecycleActionInvalid("Replication outcome is invalid")
+    if isinstance(evidence_maturity, bool) or not isinstance(evidence_maturity, int) or not 1 <= evidence_maturity <= 6:
+        raise SolutionLifecycleActionInvalid("Evidence maturity must be an integer from 1 to 6")
+    if not isinstance(outcome_summary, str) or not 10 <= len(outcome_summary.strip()) <= 4000:
+        raise SolutionLifecycleActionInvalid("Outcome summary must contain 10 to 4,000 non-whitespace characters")
+    if not isinstance(evidence, list) or len(evidence) > 100:
+        raise SolutionLifecycleActionInvalid("Completion evidence must be a JSON array with at most 100 items")
+    try:
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Completion evidence must contain JSON values") from exc
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Completion evidence exceeds the 64 KiB limit")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="submit",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.propose_location_solution_replication_completion(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::integer,
+                           %s::text, %s::jsonb
+                       )""",
+                (
+                    location_id,
+                    replication_id,
+                    request_id,
+                    outcome,
+                    evidence_maturity,
+                    outcome_summary.strip(),
+                    encoded_evidence,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution replication completion proposal returned no result")
             result = _mapping(cursor, row)
         connection.commit()
         return result
