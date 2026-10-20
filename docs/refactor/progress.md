@@ -11547,3 +11547,22 @@ rejected scope does not call the database opener. Automatic `--all` remains
 failure-tolerant for generators that do not implement the literal aggregate
 scope. Populated report parity, authorization, tenant isolation, and owner review remain open
 ([evidence](builds/2026-10-19-recovery/report-generator-location-scope-preflight.json)).
+
+### CAP-065 draft canvas metadata editing — 19 October 2026
+
+The protected business-planning Gateway now updates allowlisted draft canvas
+metadata (`canvas_name`, `description`, `fiscal_year`, and `tags`) under the
+same signed location grant, optimistic version/timestamp checks, request
+idempotency, required reason, and append-only snapshot history as block edits.
+Migration 465 adds a bounded function and extends the shared private ledger;
+the version endpoint includes metadata edits in the existing timeline. The
+focused Gateway/read/write/policy/migration selection passes 112 tests. A fresh
+disposable PostgreSQL 16 acceptance applies and replays migrations 457, 463,
+464, and 465 and passes 21 grouped checks, including roleless migration
+application. Ruff, compilation, matrix validation, route-policy inventory,
+runtime SQL inventory, and diff checks pass. Candidate and legacy databases
+remain untouched; migration 465 is not rolled out. Lifecycle transitions,
+universal writer isolation, populated parity, live OIDC/browser, and
+MAN-CAP-065 owner review remain open. Checklist: 693 complete / 24 open;
+matrix classifications unchanged. [Contract](business-planning-kernel-edit-contract.md);
+[evidence](builds/2026-10-19-recovery/cap-065-business-canvas-metadata-disposable.json).

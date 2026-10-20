@@ -157,6 +157,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases/22222222-2222-4222-8222-222222222222/blocks/key_partners",
     ): _expected("business_planning", "update", scoped=True, location_id=_LOCATION_ID),
     (
+        "PATCH",
+        "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases/22222222-2222-4222-8222-222222222222/metadata",
+    ): _expected("business_planning", "update", scoped=True, location_id=_LOCATION_ID),
+    (
         "GET",
         "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases/22222222-2222-4222-8222-222222222222/versions",
     ): _expected("business_planning", "read", scoped=True, location_id=_LOCATION_ID),

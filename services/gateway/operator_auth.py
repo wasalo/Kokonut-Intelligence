@@ -607,6 +607,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    business_canvas_metadata_edit_match = re.fullmatch(
+        r"/operator/api/business-planning/([0-9a-fA-F-]{36})/canvases/([0-9a-fA-F-]{36})/metadata",
+        path,
+    )
+    if business_canvas_metadata_edit_match and method.upper() == "PATCH" and enabled:
+        return {
+            "resource": "business_planning",
+            "action": "update",
+            "public": False,
+            "location_id": business_canvas_metadata_edit_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     business_architecture_match = re.fullmatch(
         r"/operator/api/business-architecture/([0-9a-fA-F-]{36})/summary", path
     )

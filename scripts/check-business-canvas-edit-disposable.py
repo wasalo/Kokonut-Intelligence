@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise migration 464 on a fresh disposable PostgreSQL 16 container."""
+"""Exercise migrations 464–465 on fresh disposable PostgreSQL 16 containers."""
 
 from __future__ import annotations
 
@@ -16,7 +16,8 @@ CREATE_CHECK = ROOT / "scripts/check-business-canvas-create-disposable.py"
 MIGRATION_457 = ROOT / "schemas/postgres/457_location_scoped_business_canvas_read.sql"
 MIGRATION_463 = ROOT / "schemas/postgres/463_location_scoped_business_canvas_create.sql"
 MIGRATION_464 = ROOT / "schemas/postgres/464_location_scoped_business_canvas_edit.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/cap-065-business-canvas-edit-disposable.json"
+MIGRATION_465 = ROOT / "schemas/postgres/465_location_scoped_business_canvas_metadata_edit.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/cap-065-business-canvas-metadata-disposable.json"
 
 spec = importlib.util.spec_from_file_location("business_canvas_create_disposable", CREATE_CHECK)
 if spec is None or spec.loader is None:
@@ -89,6 +90,8 @@ DECLARE
     created record;
     edited record;
     replayed record;
+    metadata_edited record;
+    metadata_replayed record;
     history_row record;
     expected_time timestamptz := transaction_timestamp();
     denied boolean;
@@ -124,6 +127,67 @@ BEGIN
         RAISE EXCEPTION 'exact edit retry was not idempotent';
     END IF;
 
+    SELECT * INTO metadata_edited
+      FROM kokonut_security.update_location_business_model_canvas_metadata(
+        'b0000000-0000-4000-8000-000000000001', created.canvas_id,
+        'c0000000-0000-4000-8000-000000000004', edited.version, edited.updated_at,
+        '{"canvas_name":"Updated metadata canvas","description":null,"fiscal_year":2027,"tags":["planning","reviewed"]}'::jsonb,
+        'Update canvas planning metadata'
+      );
+    IF metadata_edited.status <> 'draft' OR metadata_edited.version <> 3
+       OR metadata_edited.replayed THEN
+        RAISE EXCEPTION 'metadata update did not create draft version three';
+    END IF;
+    SELECT * INTO metadata_replayed
+      FROM kokonut_security.update_location_business_model_canvas_metadata(
+        'b0000000-0000-4000-8000-000000000001', created.canvas_id,
+        'c0000000-0000-4000-8000-000000000004', edited.version, edited.updated_at,
+        '{"canvas_name":"Updated metadata canvas","description":null,"fiscal_year":2027,"tags":["planning","reviewed"]}'::jsonb,
+        'Update canvas planning metadata'
+      );
+    IF NOT metadata_replayed.replayed OR metadata_replayed.version <> 3 THEN
+        RAISE EXCEPTION 'exact metadata retry was not idempotent';
+    END IF;
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.update_location_business_model_canvas_metadata(
+            'b0000000-0000-4000-8000-000000000001', created.canvas_id,
+            'c0000000-0000-4000-8000-000000000004', edited.version, edited.updated_at,
+            '{"canvas_name":"Changed retry"}'::jsonb, 'Changed metadata request'
+        );
+    EXCEPTION WHEN unique_violation THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'metadata request ID content collision was accepted'; END IF;
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.update_location_business_model_canvas_metadata(
+            'b0000000-0000-4000-8000-000000000001', created.canvas_id,
+            'c0000000-0000-4000-8000-000000000005', edited.version, edited.updated_at,
+            '{"tags":["stale"]}'::jsonb, 'Stale metadata request'
+        );
+    EXCEPTION WHEN serialization_failure THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'stale metadata version/timestamp was accepted'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.update_location_business_model_canvas_metadata(
+            'b0000000-0000-4000-8000-000000000001', created.canvas_id,
+            'c0000000-0000-4000-8000-000000000006', metadata_edited.version,
+            metadata_edited.updated_at, '{"tags":["Planning"," planning "]}'::jsonb,
+            'Reject duplicate tags at the database boundary'
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'database accepted case-insensitive duplicate tags'; END IF;
+    SELECT * INTO history_row FROM kokonut_security.list_location_business_model_canvas_versions(
+        'b0000000-0000-4000-8000-000000000001', created.canvas_id, 10, 0
+    ) WHERE is_current;
+    IF history_row.version <> metadata_edited.version
+       OR history_row.snapshot->'tags' <> '["planning", "reviewed"]'::JSONB THEN
+        RAISE EXCEPTION 'invalid metadata changed the canvas or wrote a history version';
+    END IF;
+
     denied := false;
     BEGIN
         PERFORM * FROM kokonut_security.update_location_business_model_canvas_block(
@@ -150,16 +214,25 @@ BEGIN
       FROM kokonut_security.list_location_business_model_canvas_versions(
           'b0000000-0000-4000-8000-000000000001', created.canvas_id, 10, 0
       );
-    IF history_count <> 2 THEN RAISE EXCEPTION 'history must contain prior and current versions'; END IF;
+    IF history_count <> 3 THEN RAISE EXCEPTION 'history must contain both prior and current versions'; END IF;
     SELECT * INTO history_row FROM kokonut_security.list_location_business_model_canvas_versions(
         'b0000000-0000-4000-8000-000000000001', created.canvas_id, 10, 0
     ) ORDER BY version DESC LIMIT 1;
-    IF history_row.version <> 2 OR NOT history_row.is_current
+    IF history_row.version <> 3 OR NOT history_row.is_current
+       OR history_row.snapshot->>'canvas_name' <> 'Updated metadata canvas'
        OR history_row.snapshot->'blocks'->'key_partners'->0->>'name' <> 'Updated partner' THEN
         RAISE EXCEPTION 'current version history projection is incorrect';
     END IF;
     SELECT * INTO history_row FROM kokonut_security.list_location_business_model_canvas_versions(
         'b0000000-0000-4000-8000-000000000001', created.canvas_id, 10, 1
+    );
+    IF history_row.version <> 2 OR history_row.is_current
+       OR history_row.snapshot->>'canvas_name' <> 'Editable draft'
+       OR history_row.snapshot->'blocks'->'key_partners'->0->>'name' <> 'Updated partner' THEN
+        RAISE EXCEPTION 'metadata history did not retain the immediately prior canvas snapshot';
+    END IF;
+    SELECT * INTO history_row FROM kokonut_security.list_location_business_model_canvas_versions(
+        'b0000000-0000-4000-8000-000000000001', created.canvas_id, 10, 2
     );
     IF history_row.version <> 1 OR history_row.is_current
        OR history_row.snapshot->'blocks'->'key_partners'->0->>'name' <> 'Original partner' THEN
@@ -244,7 +317,7 @@ BEGIN
       FROM kokonut_security.list_location_business_model_canvases(
           'b0000000-0000-4000-8000-000000000001', 10, 0
       ) AS canvas
-     WHERE canvas.canvas_name = 'Editable draft';
+     WHERE canvas.canvas_name = 'Updated metadata canvas';
     IF NOT FOUND THEN RAISE EXCEPTION 'read grant cannot find the test canvas'; END IF;
     BEGIN
         PERFORM * FROM kokonut_security.update_location_business_model_canvas_block(
@@ -273,8 +346,12 @@ BEGIN
        'kokonut_security.update_location_business_model_canvas_block(uuid,uuid,uuid,integer,timestamp with time zone,text,jsonb,text)', 'EXECUTE')
        OR NOT has_function_privilege('kokonut_runtime',
        'kokonut_security.list_location_business_model_canvas_versions(uuid,uuid,integer,integer)', 'EXECUTE')
+       OR NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.update_location_business_model_canvas_metadata(uuid,uuid,uuid,integer,timestamp with time zone,jsonb,text)', 'EXECUTE')
        OR has_function_privilege('kokonut_directus_runtime',
        'kokonut_security.update_location_business_model_canvas_block(uuid,uuid,uuid,integer,timestamp with time zone,text,jsonb,text)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.update_location_business_model_canvas_metadata(uuid,uuid,uuid,integer,timestamp with time zone,jsonb,text)', 'EXECUTE')
        OR has_function_privilege('kokonut_directus_runtime',
        'kokonut_security.list_location_business_model_canvas_versions(uuid,uuid,integer,integer)', 'EXECUTE')
        OR has_table_privilege('kokonut_runtime', 'public.business_model_canvas_kernel_edit_request', 'SELECT')
@@ -290,20 +367,23 @@ def main() -> int:
     container = f"kokonut-business-canvas-edit-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": MIGRATION_464.name,
+        "migration": MIGRATION_465.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 457, 463, and 464 apply and migration 464 replays",
+            "migrations 457, 463, 464, and 465 apply; migrations 464 and 465 replay",
             "exact business_planning:update and signed location context are required",
             "only draft canvases accept block edits; status remains unchanged",
             "version and updated_at concurrency rejects stale writes",
             "request ID retries are idempotent and changed-content collisions fail",
+            "allowlisted metadata edits are draft-only, optimistic, and idempotent",
+            "metadata edits share the append-only prior snapshot/version history",
+            "metadata values reject invalid bounds, types, and duplicate tags",
             "prior snapshots and current state are returned under exact read grant",
             "legacy snapshots expose only the allowlisted canvas fields and blocks",
             "edit history is append-only and hidden from runtime/directus table access",
             "runtime can invoke bounded functions but Directus cannot",
-            "migration 464 also applies with runtime/directus roles absent",
+            "migration 465 also applies with runtime/directus roles absent",
         ],
     }
     roleless_container = f"kokonut-business-canvas-edit-roleless-{uuid.uuid4().hex[:8]}"
@@ -318,6 +398,8 @@ def main() -> int:
         psql(docker, container, MIGRATION_463.read_text(encoding="utf-8"))
         psql(docker, container, MIGRATION_464.read_text(encoding="utf-8"))
         psql(docker, container, MIGRATION_464.read_text(encoding="utf-8"))
+        psql(docker, container, MIGRATION_465.read_text(encoding="utf-8"))
+        psql(docker, container, MIGRATION_465.read_text(encoding="utf-8"))
         psql(docker, container, SEED)
         psql(docker, container, ACCEPTANCE)
 
@@ -339,10 +421,11 @@ def main() -> int:
         psql(docker, roleless_container, MIGRATION_457.read_text(encoding="utf-8"))
         psql(docker, roleless_container, MIGRATION_463.read_text(encoding="utf-8"))
         psql(docker, roleless_container, MIGRATION_464.read_text(encoding="utf-8"))
+        psql(docker, roleless_container, MIGRATION_465.read_text(encoding="utf-8"))
 
         evidence["result"] = "passed"
-        evidence["assertions_passed"] = 14
-        print("PASS: migration 464 applies/replays and all fourteen disposable PostgreSQL assertions passed")
+        evidence["assertions_passed"] = 21
+        print("PASS: migrations 464–465 apply/replay and all twenty-one disposable PostgreSQL assertions passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

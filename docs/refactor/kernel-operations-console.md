@@ -145,8 +145,13 @@ under an exact `business_planning:update` grant, expected version/timestamp,
 and a required change reason. Version history is read through
 `GET /operator/api/business-planning/{location_id}/canvases/{canvas_id}/versions`
 under `business_planning:read`; it returns bounded current and prior snapshots.
-The edit path does not change lifecycle status. Existing direct CLI/Directus
-writes remain compatible and can bypass Kernel history. See the
+Canvas metadata (`canvas_name`, `description`, `fiscal_year`, and `tags`) can be
+patched on drafts through
+`PATCH /operator/api/business-planning/{location_id}/canvases/{canvas_id}/metadata`;
+the route shares version/timestamp guards, request idempotency, a required
+change reason, and the same append-only history. Neither edit route changes
+lifecycle status. Existing direct CLI/Directus writes remain compatible and
+can bypass Kernel history. See the
 [business planning edit contract](business-planning-kernel-edit-contract.md).
 The Gateway checks each grant against the requested canonical location UUID;
 the mobile detail grant is intentionally separate from list access. Each
