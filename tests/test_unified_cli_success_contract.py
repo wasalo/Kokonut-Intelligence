@@ -652,6 +652,74 @@ def test_operator_list_cli_matches_with_synthetic_rows_and_closes_connections(
     assert unified.stderr == ""
 
 
+def test_operator_identity_disable_cli_matches_and_revokes_sessions(monkeypatch, capsys) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.gateway import operator_cli
+
+    operator_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    identity = {"id": operator_id, "issuer": "https://identity.example.test", "enabled": False}
+    connections = []
+
+    class FakeResult:
+        def __init__(self, row=None):
+            self.row = row
+
+        def first(self):
+            return self.row
+
+    class FakeConnection:
+        def __init__(self):
+            self.closed = False
+            self.statements = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.closed = True
+            return False
+
+        def execute(self, query, parameters):
+            normalized = " ".join(query.lower().split())
+            self.statements.append((normalized, parameters))
+            if normalized.startswith("update operator_identity"):
+                return FakeResult(identity)
+            if normalized.startswith("update operator_session"):
+                return FakeResult()
+            raise AssertionError(f"unexpected operator identity SQL: {normalized}")
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(operator_cli, "get_connection", make_connection)
+    arguments = ["identity", "disable", "--operator-id", operator_id]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.gateway.operator_cli", *arguments]
+        operator_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["operator", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == identity
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    for connection in connections:
+        assert len(connection.statements) == 2
+        assert connection.statements[0][0].startswith("update operator_identity")
+        assert connection.statements[1][0].startswith("update operator_session")
+        assert all(params == {"operator_id": operator_id} for _query, params in connection.statements)
+    assert unified.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,

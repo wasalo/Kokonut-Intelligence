@@ -42,10 +42,12 @@ rights.
 ## Evidence and limits
 
 The CAP-039 offline selection compares standalone and unified CLI output for
-operator identity provisioning, operator list, and scope-grant revocation using
-fake connections. Focused mocked checks cover disabled-identity reactivation
-and revocation audit fields. These tests verify parsing, SQL construction,
-synthetic output, and connection cleanup; they do not prove PostgreSQL
+operator identity provisioning, identity disablement, operator list, and
+scope-grant revocation using fake connections. Focused mocked checks cover
+disabled-identity reactivation, identity/session transaction rollback, and
+revocation audit fields. Disablement still records no actor or reason. These
+tests verify parsing, SQL construction, synthetic output, and connection
+cleanup; they do not prove PostgreSQL
 authorization, an authenticated grantor, or production principal separation.
 Migration 390's request, acceptance, and cancellation functions have separate
 disposable PostgreSQL checks.

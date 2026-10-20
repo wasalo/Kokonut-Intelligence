@@ -96,6 +96,7 @@ mounted unified command using the same arguments. It covers:
 | `operator` | `revoke-grant --grant-id <uuid> --revoked-by <actor> --reason <reason>` | PostgreSQL update is stubbed | JSON revoked-grant receipt with audit actor/reason |
 | `operator` | `identity provision --issuer <https-url> --subject <subject> --display-name <name>` | PostgreSQL insert/update is stubbed | JSON identity receipt; active identity refresh cannot change enabled state |
 | `operator` | `list` | Five PostgreSQL inventory queries return synthetic rows | JSON identities, grants, memberships, shares, and tenant transfers |
+| `operator` | `identity disable --operator-id <uuid>` | Identity update and session revocation are stubbed | JSON disabled-identity receipt |
 
 For each row, the regression invokes both `python -m <legacy-module>` and
 `python -m services.cli <group> -- ...`, then compares exit status and output.
@@ -105,9 +106,9 @@ PostgreSQL URL so accidental secret/database setup fails instead of reaching a
 real service. Nine successful offline invocations, twenty-eight other
 PostgreSQL-backed read invocations with stubbed query functions, one operator
 inventory read, one tenant-preflight invocation with a synthetic aggregate
-service report, and two operator write invocations with fake connections match
-standalone output across all 37 mounted groups (144 tests including operator
-identity/revocation safety, Delphi, and media service suites,
+service report, and three operator write invocations with fake connections
+match standalone output across all 37 mounted groups (147 tests including
+operator identity/revocation safety, Delphi, and media service suites,
 error-path cleanup, and the native Typer command-tree
 comparison below). See [the test](../../tests/test_unified_cli_success_contract.py)
 and [the recorded evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
@@ -119,11 +120,11 @@ root deliberately disables shell completion, so the standalone groups'
 `--install-completion` and `--show-completion` root options are excluded from
 the comparison. The check inspects command metadata only; it does not invoke a
 database or chain/provider command. These checks run with the offline output
-parity cases in a 144-test selection ([tests](../../tests/test_cli.py) and
+parity cases in a 147-test selection ([tests](../../tests/test_cli.py) and
 [evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json)).
 
 The twenty-nine query-backed success paths (including the operator inventory),
-one aggregate-service-stubbed tenant-preflight path, and two fake-connection
+one aggregate-service-stubbed tenant-preflight path, and three fake-connection
 operator writes exercise
 their real parsers, forwarding, and JSON or text output paths from both entry
 points with synthetic results. The grant-revocation case confirms the required
@@ -131,7 +132,9 @@ actor and reason reach the UPDATE; it does not test database authorization. The
 identity-provision case confirms an existing enabled identity can be refreshed
 without changing its enabled state; the separate focused source check verifies
 that a disabled identity is rejected and cannot be re-enabled through this
-command. These cases do not establish database authorization. The
+command. The identity-disable case verifies the identity update and session
+revocation share one transaction and that a session-update failure rolls back;
+it does not add actor/reason audit or establish database authorization. The
 connection-taking commands use fake connections and prove they close them.
 The governance proposal, role, link, tactical, and tension read CLIs close their
 connections after both successful and failing service calls. The stakeholder
@@ -148,7 +151,7 @@ service calls; they do not claim database query behavior or authorization.
 Every mounted group now has at least one successful output-parity path. This
 selection covers nine offline invocations across eight groups, twenty-nine
 stubbed database-query paths (including the operator inventory), one
-aggregate-service path, and two fake-connection operator writes. Identity
+aggregate-service path, and three fake-connection operator writes. Identity
 provisioning no longer re-enables a disabled subject; the CLI exposes no
 reactivation operation.
 The global identity/access list is unfiltered and exposes issuer, subject,
