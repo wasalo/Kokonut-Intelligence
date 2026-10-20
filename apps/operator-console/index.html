@@ -591,6 +591,17 @@
           <dl id="solution-lifecycle-overview"></dl>
           <div id="solution-lifecycle-count-groups"></div>
         </section>
+        <section id="coordination-summary" hidden aria-labelledby="coordination-summary-heading">
+          <h2 id="coordination-summary-heading">Coordination overview</h2>
+          <p class="muted">Read-only counts for location-scoped alliances, review, integrity, remedies, and learning. Names, identities, narratives, evidence, and metric values are omitted. This overview does not approve, activate, or publish alliance state.</p>
+          <div class="toolbar">
+            <label for="coordination-summary-location">Granted location</label>
+            <select id="coordination-summary-location"></select>
+            <button id="coordination-summary-refresh" type="button">Refresh overview</button>
+          </div>
+          <p id="coordination-summary-status" class="muted" role="status" aria-live="polite"></p>
+          <dl id="coordination-summary-counts"></dl>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -639,7 +650,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -807,6 +818,12 @@
       const solutionLifecycleCountGroups = document.querySelector("#solution-lifecycle-count-groups");
       let solutionLifecycleLocations = new Set();
       let solutionLifecycleSummaryRequestVersion = 0;
+      const coordinationSummary = document.querySelector("#coordination-summary");
+      const coordinationSummaryLocation = document.querySelector("#coordination-summary-location");
+      const coordinationSummaryStatus = document.querySelector("#coordination-summary-status");
+      const coordinationSummaryCounts = document.querySelector("#coordination-summary-counts");
+      let coordinationSummaryLocations = new Set();
+      let coordinationSummaryRequestVersion = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1358,6 +1375,68 @@
         }
       }
 
+      function renderCoordinationSummary(summary) {
+        coordinationSummaryCounts.replaceChildren();
+        for (const [field, label] of [
+          ["alliance_count", "Location-scoped alliances"],
+          ["draft_alliance_count", "Draft alliances"],
+          ["proposed_alliance_count", "Proposed alliances"],
+          ["approved_alliance_count", "Approved alliances"],
+          ["active_alliance_count", "Active alliances"],
+          ["paused_alliance_count", "Paused alliances"],
+          ["completed_alliance_count", "Completed alliances"],
+          ["dissolved_alliance_count", "Dissolved alliances"],
+          ["rejected_alliance_count", "Rejected alliances"],
+          ["overdue_review_count", "Overdue active or paused reviews"],
+          ["open_conflict_declaration_count", "Open conflict declarations"],
+          ["unreviewed_harm_analysis_count", "Unreviewed harm analyses"],
+          ["open_appeal_count", "Open appeals"],
+          ["open_remedy_count", "Open remedies"],
+          ["preserved_minority_view_count", "Preserved minority views"],
+          ["completed_knowledge_exchange_count", "Completed knowledge exchanges"],
+          ["open_learning_link_count", "Open learning links"],
+          ["draft_metric_observation_count", "Draft metric observations"],
+          ["rejected_metric_observation_count", "Rejected metric observations"]
+        ]) {
+          const value = summary[field];
+          if (typeof value !== "number" || !Number.isFinite(value)) continue;
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = value.toLocaleString();
+          coordinationSummaryCounts.append(term, description);
+        }
+      }
+
+      async function loadCoordinationSummary() {
+        const locationId = coordinationSummaryLocation.value;
+        const requestVersion = ++coordinationSummaryRequestVersion;
+        if (!coordinationSummaryLocations.has(locationId)) return;
+        coordinationSummaryStatus.textContent = "Loading coordination overview…";
+        try {
+          const response = await fetch(
+            `/operator/api/coordination/${encodeURIComponent(locationId)}/summary`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Coordination reads are unavailable for this location.");
+            throw new Error("The coordination overview could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== coordinationSummaryRequestVersion
+              || locationId !== coordinationSummaryLocation.value) return;
+          renderCoordinationSummary(result);
+          coordinationSummaryStatus.textContent = "Read-only aggregate counts. No alliance state was changed.";
+        } catch (error) {
+          if (requestVersion !== coordinationSummaryRequestVersion) return;
+          coordinationSummaryCounts.replaceChildren();
+          coordinationSummaryStatus.textContent = error.message;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -1395,6 +1474,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           solutionLifecycleLocations = new Set(solutionLifecycleLocationIds);
+          const coordinationLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "coordination" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          coordinationSummaryLocations = new Set(coordinationLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -1622,6 +1707,17 @@
             }
             solutionLifecycle.hidden = false;
             await loadSolutionLifecycleSummary();
+            hasAuthorizedSurface = true;
+          }
+          if (coordinationLocationIds.length) {
+            for (const locationId of coordinationLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              coordinationSummaryLocation.append(option);
+            }
+            coordinationSummary.hidden = false;
+            await loadCoordinationSummary();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -4773,6 +4869,8 @@
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
       solutionLifecycleLocation.addEventListener("change", loadSolutionLifecycleSummary);
+      document.querySelector("#coordination-summary-refresh").addEventListener("click", loadCoordinationSummary);
+      coordinationSummaryLocation.addEventListener("change", loadCoordinationSummary);
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

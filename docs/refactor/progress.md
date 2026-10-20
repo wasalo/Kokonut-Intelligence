@@ -1,3 +1,17 @@
+### CAP-034 coordination summary console — 20 October 2026
+
+The operator console now displays CAP-034's 19 coordination counters for a
+location with the exact `coordination:read` session grant. It uses fixed
+projection fields, same-origin no-store requests, stale-location response
+guards, and text-only DOM updates. No alliance mutation or approval controls
+were added. The focused console/Gateway/route-policy selection passes 15 tests,
+including inline JavaScript syntax validation; Ruff and capability-matrix
+validation pass. No database was used. CAP-034 remains prepared pending populated
+parity, live OIDC/browser, trigger/worker recovery, broader ACL/RLS, and owner
+review. Checklist: 712 complete / 24 open; matrix: 31 baseline-retained, 7
+deployed, 28 prepared. [Contract](coordination-kernel-read-contract.md);
+[console](../apps/operator-console/index.html); [tests](../tests/test_operator_console_coordination.py).
+
 ### CAP-035 solution-lifecycle console summary — 20 October 2026
 
 The operator console now shows the CAP-035 aggregate solution total and fixed

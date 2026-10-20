@@ -3,7 +3,20 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-035 now has a
+**Latest implementation slice — 20 October 2026:** CAP-034 now has a
+read-only coordination overview in the operator console, gated by exact
+`coordination:read` location grants. The view renders the 19 fixed aggregate
+counters with same-origin no-store requests and stale-location response guards;
+no alliance actions are exposed. The focused console/Gateway/route-policy set
+passes 15 tests, including JavaScript syntax validation; Ruff and capability
+checks pass. No database was used. CAP-034 remains prepared pending populated
+parity, live OIDC/browser, trigger/worker recovery, broader ACL/RLS, and owner
+review. Checklist: 712 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, 28 prepared. Evidence: [contract](coordination-kernel-read-contract.md),
+[console](../apps/operator-console/index.html), and
+[console checks](../tests/test_operator_console_coordination.py).
+
+**Previous implementation slice — 20 October 2026:** CAP-035 now has a
 read-only operator-console overview for its location-scoped lifecycle summary,
 visible only with exact `solution_lifecycle:read`. It displays the solution
 total and fixed aggregate status groups in collapsed sections; it exposes no

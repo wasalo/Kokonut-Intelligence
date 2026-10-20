@@ -35,3 +35,12 @@ migration replay, and least-privilege boundaries. Candidate and legacy
 databases are untouched. CAP-034 remains prepared pending populated alliance
 parity, live OIDC/browser acceptance, trigger and worker outage acceptance,
 broader ACL/RLS, and MAN-CAP-034 owner review.
+
+## Operator console
+
+The operator console displays the aggregate summary only when the signed session
+contains an exact `coordination:read` grant for the selected location. It uses a
+fixed allowlist of the 19 projection counters and inserts labels and values as
+text. Requests are same-origin and no-store; stale responses are discarded when
+the selected location changes. The panel has no alliance mutation or approval
+controls and does not constitute live OIDC/browser acceptance.
