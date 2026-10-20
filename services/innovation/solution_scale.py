@@ -66,7 +66,7 @@ def record_learning(conn, solution_id: str, lesson_type: str, finding: str, reco
 
 def apply_learning(conn, learning_id: str, applied_to_version: str, owner_party_id: str) -> Dict[str, Any]:
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute("UPDATE solution_learning_record SET decision_status = 'applied', applied_to_version = %s, owner_party_id = %s::uuid WHERE id = %s::uuid AND decision_status IN ('proposed', 'accepted') RETURNING *", (applied_to_version, owner_party_id, learning_id))
+        cur.execute("UPDATE solution_learning_record SET decision_status = 'applied', applied_to_version = %s, owner_party_id = %s::uuid WHERE id = %s::uuid AND decision_status = 'accepted' AND reviewed_by_party_id IS NOT NULL AND reviewed_at IS NOT NULL RETURNING id, decision_status, applied_to_version, owner_party_id, reviewed_by_party_id, reviewed_at", (applied_to_version, owner_party_id, learning_id))
         row = cur.fetchone()
         if not row:
             conn.rollback()

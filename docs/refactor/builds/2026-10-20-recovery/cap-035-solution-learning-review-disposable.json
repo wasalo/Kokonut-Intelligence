@@ -1,0 +1,16 @@
+{
+  "result": "passed",
+  "migration": "499_location_solution_learning_review.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migration 499 applies and replays after migration 498",
+    "queue and detail require exact signed location review scope and an active human identity",
+    "learning proposals require current completed replication and accepted completion receipt lineage",
+    "reviewer must differ from proposal author, starter, initial approver, completion reviewer, and source experiment decision makers",
+    "accepted/rejected decisions are atomic, attributed, append-only, and idempotently replayable",
+    "direct proposed-to-accepted/applied transitions are denied; accepted-only legacy apply preserves solution stage",
+    "runtime uses bounded functions and Directus cannot execute review functions or read review receipts"
+  ],
+  "acceptance_groups_passed": 11
+}

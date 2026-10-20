@@ -513,7 +513,7 @@ def test_learning_proposal_source_loader_requires_both_grants_and_filters_review
 
 def test_learning_proposal_submit_is_create_scoped_draft_only_csrf_and_retry_stable():
     source = CONSOLE.read_text(encoding="utf-8")
-    submit = _function(source, "async function submitSolutionLifecycleLearningProposal(", "function renderCoordinationSummary(")
+    submit = _function(source, "async function submitSolutionLifecycleLearningProposal(", "function learningReviewConflictFields(")
     assert "solutionLifecycleCreateLocations.has(locationId)" in submit
     assert 'scope.resource === "solution_lifecycle" && scope.action === "create"' in source
     assert '"#solution-lifecycle-learning-confirm"' in submit
@@ -528,7 +528,66 @@ def test_learning_proposal_submit_is_create_scoped_draft_only_csrf_and_retry_sta
     assert "proposed and requires independent human review" in submit
     assert "decision_status" not in submit and "approve" not in submit and "accept" not in submit
     assert "lockSolutionLifecycleLearningProposalForRetry(true)" in submit
-    assert "solutionLifecycleLocation.disabled = locked" in source
+    assert "refreshSolutionLifecycleLocationLock();" in source
+
+
+def test_learning_review_console_is_review_grant_gated_and_shows_role_conflicts():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-learning-review".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "exact location review grant" in panel.group(0)
+    assert "does not apply the lesson or change the solution stage" in panel.group(0)
+    assert 'solutionLifecycleLearningReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)' in source
+    renderer = _function(
+        source,
+        "function learningReviewConflictFields(",
+        "async function loadSolutionLifecycleLearningReviewQueue(",
+    )
+    for field in (
+        "is_self_authored", "is_self_starter", "is_initial_approver",
+        "is_completion_reviewer", "is_source_owner", "is_source_approver",
+        "is_source_result_reviewer",
+    ):
+        assert field in renderer
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleLearningReviewQueue(",
+        "async function loadSolutionLifecycleLearningReviewDetail(",
+    )
+    assert "solutionLifecycleReviewLocations.has(locationId)" in queue
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/learning/review?${params}`' in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+    assert "requestVersion !== solutionLifecycleLearningReviewRequestVersion" in queue
+    assert "result.next_offset" in queue and "result.has_more" in queue
+    assert "innerHTML" not in queue
+
+
+def test_learning_review_console_uses_current_lineage_csrf_and_stable_retries_without_apply():
+    source = CONSOLE.read_text(encoding="utf-8")
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleLearningReviewDetail(",
+        "function lockSolutionLifecycleLearningReviewForRetry(",
+    )
+    assert 'record.source_is_current === true' in detail
+    assert "learningReviewConflictFields(record)" in detail
+    assert "solutionLifecycleLearningReviewFinding.textContent" in detail
+    assert "solutionLifecycleLearningReviewEvidence.textContent" in detail
+    assert "innerHTML" not in detail
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleLearningReview(",
+        "function renderCoordinationSummary(",
+    )
+    assert "solutionLifecycleReviewLocations.has(locationId)" in submit
+    assert "solutionLifecycleLearningReviewConfirm.checked" in submit
+    assert "solutionLifecyclePendingLearningReview.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingLearningReview.request_id" in submit
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/learning/${encodeURIComponent(record.learning_record_id)}/review`' in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert "applied_to_version" not in submit and "solution stage is unchanged" in submit
 
 
 def test_replication_proposal_sources_require_both_grants_and_reviewed_validation():

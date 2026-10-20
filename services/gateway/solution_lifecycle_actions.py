@@ -1249,3 +1249,78 @@ def propose_location_solution_replication_completion(
         raise
     finally:
         connection.close()
+
+
+def review_location_solution_learning(
+    operator_id: str,
+    location_id: str,
+    learning_record_id: str,
+    request_id: str,
+    decision: str,
+    review_reason: str | None,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Accept or reject one current learning proposal with independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    learning_record_id = _normalize_uuid(learning_record_id, "learning record")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(decision, str) or decision not in {"accepted", "rejected"}:
+        raise SolutionLifecycleActionInvalid("Learning decision must be accepted or rejected")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Learning review acknowledgement is required")
+    if review_reason is not None and (
+        not isinstance(review_reason, str)
+        or not review_reason.strip()
+        or len(review_reason) > 4000
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Learning review reason is limited to 4,000 characters"
+        )
+    if decision == "rejected" and (
+        review_reason is None or len(review_reason.strip()) < 10
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "A rejection reason of at least 10 characters is required"
+        )
+    normalized_reason = review_reason.strip() if review_reason is not None else None
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.review_location_solution_learning(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id,
+                    learning_record_id,
+                    request_id,
+                    decision,
+                    normalized_reason,
+                    acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution learning review returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()

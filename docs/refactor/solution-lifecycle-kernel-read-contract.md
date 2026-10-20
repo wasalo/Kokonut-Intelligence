@@ -3,8 +3,9 @@
 **Status:** CAP-035 location-scoped reads and gated actions are prepared,
 including migration 494 replication proposals, migration 495 independent
 review, migration 496 controlled activation, migration 497 completion-report
-proposals, and migration 498 independent completion-report review. They have not
-been owner-accepted.
+proposals, migration 498 independent completion-report review, and migration
+499 independent learning review. They have not been owner-accepted or rolled
+out to candidate/legacy.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -27,7 +28,8 @@ been owner-accepted.
 `495_location_solution_replication_review.sql`, and
 `496_location_solution_replication_activation.sql`, and
 `497_location_solution_replication_completion_proposal.sql`, and
-`498_location_solution_replication_completion_review.sql`.
+`498_location_solution_replication_completion_review.sql`, and
+`499_location_solution_learning_review.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -54,7 +56,10 @@ been owner-accepted.
 `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals`,
 `GET /operator/api/solution-lifecycle/{location_id}/replications/completion-review`,
 `GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review`, and
-`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review`.
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/completion-proposals/{proposal_id}/review`,
+`GET /operator/api/solution-lifecycle/{location_id}/learning/review`,
+`GET /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`, and
+`POST /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement,
 learning proposals, and gate evaluations require exact
 `solution_lifecycle:create`; replication completion proposals require exact
@@ -64,6 +69,9 @@ retirement review reads, gate evaluations, replication review/activation,
 completion proposals, and completion-review reads also require an active human
 party binding. Mutations use
 signed operator tenant context checked in Gateway and PostgreSQL.
+Learning-review queue/detail/decision routes also require an active human
+binding and current source lineage; the reviewer must be independent from the
+proposal and its upstream lifecycle actors.
 Experiment review detail and result submission require exact
 `solution_lifecycle:review` scope and an active human binding; the result
 reviewer must differ from both the experiment owner and protocol approver.
@@ -230,6 +238,24 @@ reuse with changed input is rejected. A separate non-login owner cannot update
 learning content/status or modify/delete receipts. Runtime can call the bounded
 function but cannot access learning records or receipts directly; Directus
 cannot call it.
+
+Migration 499 adds a separate exact-location learning-review queue, private
+detail, and accept/reject action under signed `solution_lifecycle:review`.
+Pending proposals are returned only while their completed replication,
+independent completion review, validated source experiment/result, and active
+location-visible solution remain current. Detail exposes bounded lesson fields
+and boolean conflict indicators, but no party IDs. PostgreSQL prevents review
+by the proposer, replication starter, initial approver, completion reviewer,
+source experiment owner/protocol approver, or source result reviewer.
+Rejection requires a 10–4,000 character reason. The append-only receipt makes
+exact retries idempotent and changed-input retries fail closed. Review records
+only decision and reviewer attribution; it does not apply the lesson or change
+the solution stage. The separate legacy apply path now requires accepted
+status and recorded reviewer attribution. A dedicated non-login reviewer role
+has narrow decision permissions; runtime can execute only bounded functions,
+cannot read review receipts directly, and cannot bypass the lifecycle trigger.
+Directus cannot execute these functions. Migration 499 remains unapplied to
+candidate and legacy.
 
 ## Database boundary
 

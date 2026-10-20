@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–498 are additive and are
+**Status:** prepared implementation contract; migrations 488–499 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -342,19 +342,74 @@ separation, rejection/revision, acceptance, retries, lifecycle separation,
 private tables, and role boundaries. Candidate and legacy databases are
 untouched; migrations 497–498 are not rolled out.
 
+## Independent learning proposal review
+
+Migration 499 adds a private, exact-location review queue and detail read plus
+an independent decision action for learning records created by the learning
+proposal flow:
+
+- `GET /operator/api/solution-lifecycle/{location_id}/learning/review`
+- `GET /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`
+- `POST /operator/api/solution-lifecycle/{location_id}/learning/{learning_record_id}/review`
+
+Each route requires the signed exact-location `solution_lifecycle:review` grant
+and an active human identity. PostgreSQL revalidates that the learning record
+was proposed from a completed, independently reviewed replication targeting
+this location, that the source experiment/result remains validated and
+independently reviewed, and that the solution remains active and visible at
+the location. Queue/detail responses expose bounded lesson fields and actor
+conflict booleans, not party identifiers. A reviewer must be distinct from the
+learning proposer, replication starter, initial replication approver,
+completion-report reviewer, source experiment owner/protocol approver, and
+source result reviewer.
+
+The decision accepts only `accepted` or `rejected`, requires explicit
+acknowledgement, and requires a 10–4,000 character reason for rejection. The
+decision and immutable idempotency receipt commit atomically; exact retries
+return the original receipt while changed-input reuse fails closed. The
+decision changes only learning review status and attribution. It does not
+apply the lesson or change the solution stage. The legacy learning-application
+path now accepts only records with accepted status and recorded reviewer
+attribution; application remains a separate operation.
+
+The dedicated non-login review owner has narrow source/tenant-check reads and
+decision-column writes. Runtime can call only the bounded functions, cannot
+read the private receipt directly, and cannot bypass the proposed-to-reviewed
+trigger. Directus has no execute grant. The operator console renders private
+lesson text as text, gates queue/detail and decisions on exact review grants,
+and uses no-store reads, CSRF, acknowledgement, stale-record checks, and stable
+retry IDs. Migration 499 is not applied to candidate or legacy.
+
+The focused Gateway, route-policy, console, solution-application, and migration
+selection passes 94 tests; the database-backed solution-scale test is skipped
+because no permitted local PostgreSQL connection was available. Ruff, Python compilation,
+inline JavaScript parsing, and diff checks pass. Disposable PostgreSQL 16
+applies and replays migrations through 499 and passes eleven grouped learning
+review checks covering lineage, reviewer conflicts, accept/reject, retry
+receipts, privilege boundaries, and the accepted-only apply path. Candidate and
+legacy databases are untouched.
+
+For rollout, disable the three review routes and console panel while retaining
+migration 499. After applying the migration, use a separately reviewed forward
+migration to change its schema or ACL objects; do not edit or reverse an
+applied migration.
+
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration checks cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
 state boundary, separately authorized submission, private reviewer reads, and
-independent funding, tranche, replication review, replication activation, and
-completion-report proposal. Disposable PostgreSQL 16 applies and replays
-migrations 488–498 and checks location-origin targeting, create/submit/review/transition
-authorization, private receipts, tranche ceilings, atomic writes, self-authorship, legacy unattributed records, approval retries and collisions,
-role boundaries, unchanged proposed tranche states, independent tranche-reviewer separation, immutable tranche receipts, unchanged release state, independent replication review, immutable review receipts, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
+independent funding, tranche, replication review, replication activation,
+completion-report proposal/review, and learning proposal review. Disposable
+PostgreSQL 16 applies and replays migrations 488–499 and checks location-origin
+targeting, create/submit/review/transition authorization, private receipts,
+tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
+approval retries and collisions, role boundaries, unchanged proposed tranche
+states, independent reviewer separation, immutable receipts, unchanged release
+state, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
 not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–498. After application, do not edit or reverse them; disable the routes and
+488–499. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

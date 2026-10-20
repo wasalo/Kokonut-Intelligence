@@ -1360,3 +1360,118 @@ def get_location_solution_retirement_review_detail(
             connection.rollback()
         finally:
             connection.close()
+
+
+def list_location_solution_learning_review_queue(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int | str = 25,
+    offset: int | str = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return bounded pending learning metadata for an exact-location reviewer."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    page_size = _page_value(limit, "Limit", 1, _MAX_READ_PAGE_SIZE)
+    page_offset = _page_value(offset, "Offset", 0, 10000)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.list_location_solution_learning_review_queue(
+                           %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, page_size + 1, page_offset),
+            )
+            rows = [_mapping(cursor, row) for row in cursor.fetchall()]
+        has_more = len(rows) > page_size
+        result = {
+            "location_id": location_id,
+            "offset": page_offset,
+            "items": rows[:page_size],
+            "has_more": has_more,
+            "next_offset": page_offset + page_size if has_more else None,
+        }
+        response_bytes = len(
+            json.dumps(result, default=str, separators=(",", ":")).encode("utf-8")
+        )
+        if response_bytes > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution learning review queue exceeds 256 KiB"
+            )
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def get_location_solution_learning_review_detail(
+    operator_id: str,
+    location_id: str,
+    learning_record_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return private lesson text only for one pending exact-location review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    learning_record_id = _normalize_uuid(learning_record_id, "learning record")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.get_location_solution_learning_review_detail(
+                           %s::uuid, %s::uuid
+                       )""",
+                (location_id, learning_record_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise SolutionLifecycleReviewNotFound(
+                    "Pending learning proposal not found for this location"
+                )
+            result = {"location_id": location_id, **_mapping(cursor, row)}
+        response_bytes = len(
+            json.dumps(result, default=str, separators=(",", ":")).encode("utf-8")
+        )
+        if response_bytes > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution learning review detail exceeds 256 KiB"
+            )
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()

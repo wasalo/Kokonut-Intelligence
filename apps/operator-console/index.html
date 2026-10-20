@@ -848,6 +848,44 @@
             </form>
             <p id="solution-lifecycle-learning-proposal-status" class="muted" role="status" aria-live="polite"></p>
           </section>
+          <section id="solution-lifecycle-learning-review" hidden aria-labelledby="solution-lifecycle-learning-review-heading">
+            <h3 id="solution-lifecycle-learning-review-heading">Independent learning review</h3>
+            <p class="muted">Requires an exact location review grant and an active human reviewer independent from the proposer, replication starter and approver, completion reviewer, and source experiment decision makers. Accepting or rejecting records a reviewed decision only; it does not apply the lesson or change the solution stage.</p>
+            <button id="solution-lifecycle-learning-review-load" type="button">Load learning proposals</button>
+            <p id="solution-lifecycle-learning-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Solution</th><th>Lesson type</th><th>Confidence</th><th>Transferability</th><th>Proposed</th><th>Review independence</th><th></th></tr></thead>
+                <tbody id="solution-lifecycle-learning-review-queue"></tbody>
+              </table>
+            </div>
+            <button id="solution-lifecycle-learning-review-more" class="secondary" type="button" hidden>Load more proposals</button>
+            <section id="solution-lifecycle-learning-review-detail" hidden aria-labelledby="solution-lifecycle-learning-review-detail-heading">
+              <h4 id="solution-lifecycle-learning-review-detail-heading">Private learning proposal</h4>
+              <dl id="solution-lifecycle-learning-review-metadata"></dl>
+              <h5>Finding</h5>
+              <pre id="solution-lifecycle-learning-review-finding"></pre>
+              <h5>Recommended follow-up</h5>
+              <pre id="solution-lifecycle-learning-review-recommendation"></pre>
+              <h5>Affected assumptions and measures</h5>
+              <pre id="solution-lifecycle-learning-review-references"></pre>
+              <h5>Evidence references</h5>
+              <pre id="solution-lifecycle-learning-review-evidence"></pre>
+              <form id="solution-lifecycle-learning-review-form" class="stacked-form" hidden>
+                <label for="solution-lifecycle-learning-review-decision">Decision</label>
+                <select id="solution-lifecycle-learning-review-decision" required>
+                  <option value="accepted">Accept lesson for future decisions</option>
+                  <option value="rejected">Reject lesson</option>
+                </select>
+                <label for="solution-lifecycle-learning-review-reason">Review note (required for rejection)</label>
+                <textarea id="solution-lifecycle-learning-review-reason" maxlength="4000"></textarea>
+                <label><input id="solution-lifecycle-learning-review-confirm" type="checkbox" required> I independently reviewed this learning record. My decision does not apply the lesson or advance the solution stage.</label>
+                <button id="solution-lifecycle-learning-review-submit" type="submit">Record learning decision</button>
+                <p id="solution-lifecycle-learning-review-detail-status" class="muted" role="status" aria-live="polite"></p>
+              </form>
+              <p id="solution-lifecycle-learning-review-readonly-status" class="muted" role="status" aria-live="polite"></p>
+            </section>
+          </section>
           <section id="solution-lifecycle-retirement-proposal" hidden aria-labelledby="solution-lifecycle-retirement-proposal-heading">
             <h3 id="solution-lifecycle-retirement-proposal-heading">Propose retirement of a location-origin solution</h3>
             <p class="muted">Requires both location read and create grants. This creates a proposed retirement for separate human review; it does not approve, schedule, or execute a retirement.</p>
@@ -1382,6 +1420,24 @@
       const solutionLifecycleLearningSubmit = document.querySelector("#solution-lifecycle-learning-submit");
       const solutionLifecycleLearningReset = document.querySelector("#solution-lifecycle-learning-reset");
       const solutionLifecycleLearningProposalStatus = document.querySelector("#solution-lifecycle-learning-proposal-status");
+      const solutionLifecycleLearningReview = document.querySelector("#solution-lifecycle-learning-review");
+      const solutionLifecycleLearningReviewLoad = document.querySelector("#solution-lifecycle-learning-review-load");
+      const solutionLifecycleLearningReviewMore = document.querySelector("#solution-lifecycle-learning-review-more");
+      const solutionLifecycleLearningReviewStatus = document.querySelector("#solution-lifecycle-learning-review-status");
+      const solutionLifecycleLearningReviewQueue = document.querySelector("#solution-lifecycle-learning-review-queue");
+      const solutionLifecycleLearningReviewDetail = document.querySelector("#solution-lifecycle-learning-review-detail");
+      const solutionLifecycleLearningReviewMetadata = document.querySelector("#solution-lifecycle-learning-review-metadata");
+      const solutionLifecycleLearningReviewFinding = document.querySelector("#solution-lifecycle-learning-review-finding");
+      const solutionLifecycleLearningReviewRecommendation = document.querySelector("#solution-lifecycle-learning-review-recommendation");
+      const solutionLifecycleLearningReviewReferences = document.querySelector("#solution-lifecycle-learning-review-references");
+      const solutionLifecycleLearningReviewEvidence = document.querySelector("#solution-lifecycle-learning-review-evidence");
+      const solutionLifecycleLearningReviewForm = document.querySelector("#solution-lifecycle-learning-review-form");
+      const solutionLifecycleLearningReviewDecision = document.querySelector("#solution-lifecycle-learning-review-decision");
+      const solutionLifecycleLearningReviewReason = document.querySelector("#solution-lifecycle-learning-review-reason");
+      const solutionLifecycleLearningReviewConfirm = document.querySelector("#solution-lifecycle-learning-review-confirm");
+      const solutionLifecycleLearningReviewSubmit = document.querySelector("#solution-lifecycle-learning-review-submit");
+      const solutionLifecycleLearningReviewDetailStatus = document.querySelector("#solution-lifecycle-learning-review-detail-status");
+      const solutionLifecycleLearningReviewReadonlyStatus = document.querySelector("#solution-lifecycle-learning-review-readonly-status");
       const solutionLifecycleReplicationProposal = document.querySelector("#solution-lifecycle-replication-proposal");
       const solutionLifecycleReplicationSourcesLoad = document.querySelector("#solution-lifecycle-replication-sources-load");
       const solutionLifecycleReplicationSourcesMore = document.querySelector("#solution-lifecycle-replication-sources-more");
@@ -1477,6 +1533,11 @@
       let solutionLifecycleLearningSourcesRequestVersion = 0;
       let solutionLifecycleLearningSourcesOffset = 0;
       let solutionLifecyclePendingLearningProposal = null;
+      let solutionLifecycleLearningReviewOffset = 0;
+      let solutionLifecycleLearningReviewRequestVersion = 0;
+      let solutionLifecycleLearningReviewDetailVersion = 0;
+      let solutionLifecycleLearningReviewDetailRecord = null;
+      let solutionLifecyclePendingLearningReview = null;
       let solutionLifecycleReplicationSourcesRequestVersion = 0;
       let solutionLifecycleReplicationSourcesOffset = 0;
       let solutionLifecyclePendingReplicationProposal = null;
@@ -4329,8 +4390,7 @@
         }
         solutionLifecycleRetirementSubmit.disabled = submitting;
         solutionLifecycleRetirementReset.disabled = locked;
-        solutionLifecycleLocation.disabled = locked || Boolean(solutionLifecyclePendingLearningProposal)
-          || Boolean(solutionLifecyclePendingRetirementApproval);
+        refreshSolutionLifecycleLocationLock();
       }
 
       async function submitSolutionLifecycleRetirementProposal(event) {
@@ -4620,10 +4680,7 @@
         for (const button of solutionLifecycleRetirementReviewQueue.querySelectorAll("button")) {
           button.disabled = locked;
         }
-        solutionLifecycleLocation.disabled = locked
-          || Boolean(solutionLifecyclePendingLearningProposal)
-          || Boolean(solutionLifecyclePendingRetirementProposal)
-          || Boolean(solutionLifecyclePendingRetirementApproval);
+        refreshSolutionLifecycleLocationLock();
       }
 
       async function approveSolutionLifecycleRetirement(event) {
@@ -4792,14 +4849,7 @@
         }
         solutionLifecycleReplicationSubmit.disabled = submitting;
         solutionLifecycleReplicationReset.disabled = locked;
-        solutionLifecycleLocation.disabled = locked
-          || Boolean(solutionLifecyclePendingLearningProposal)
-          || Boolean(solutionLifecyclePendingFundingProposal)
-          || Boolean(solutionLifecyclePendingFundingSubmission)
-          || Boolean(solutionLifecyclePendingFundingApproval)
-          || Boolean(solutionLifecyclePendingFundingTrancheApproval)
-          || Boolean(solutionLifecyclePendingRetirementProposal)
-          || Boolean(solutionLifecyclePendingRetirementApproval);
+        refreshSolutionLifecycleLocationLock();
       }
 
       async function submitSolutionLifecycleReplicationProposal(event) {
@@ -5051,14 +5101,7 @@
         for (const button of solutionLifecycleReplicationReviewQueue.querySelectorAll("button")) {
           button.disabled = pending;
         }
-        solutionLifecycleLocation.disabled = pending
-          || Boolean(solutionLifecyclePendingReplicationProposal)
-          || Boolean(solutionLifecyclePendingLearningProposal)
-          || Boolean(solutionLifecyclePendingFundingProposal)
-          || Boolean(solutionLifecyclePendingFundingApproval)
-          || Boolean(solutionLifecyclePendingFundingTrancheApproval)
-          || Boolean(solutionLifecyclePendingRetirementProposal)
-          || Boolean(solutionLifecyclePendingRetirementApproval);
+        refreshSolutionLifecycleLocationLock();
       }
 
       async function reviewSolutionLifecycleReplication(event) {
@@ -5315,16 +5358,7 @@
         for (const button of solutionLifecycleReplicationCompletionReviewQueue.querySelectorAll("button")) {
           button.disabled = pending || submitting;
         }
-        solutionLifecycleLocation.disabled = pending
-          || Boolean(solutionLifecyclePendingReplicationActivation)
-          || Boolean(solutionLifecyclePendingReplicationReview)
-          || Boolean(solutionLifecyclePendingReplicationProposal)
-          || Boolean(solutionLifecyclePendingLearningProposal)
-          || Boolean(solutionLifecyclePendingFundingProposal)
-          || Boolean(solutionLifecyclePendingFundingApproval)
-          || Boolean(solutionLifecyclePendingFundingTrancheApproval)
-          || Boolean(solutionLifecyclePendingRetirementProposal)
-          || Boolean(solutionLifecyclePendingRetirementApproval);
+        refreshSolutionLifecycleLocationLock();
       }
 
       async function reviewSolutionLifecycleReplicationCompletion(event) {
@@ -5508,8 +5542,7 @@
         }
         solutionLifecycleLearningSubmit.disabled = submitting;
         solutionLifecycleLearningReset.disabled = locked;
-        solutionLifecycleLocation.disabled = locked || Boolean(solutionLifecyclePendingRetirementProposal)
-          || Boolean(solutionLifecyclePendingRetirementApproval);
+        refreshSolutionLifecycleLocationLock();
       }
 
       async function submitSolutionLifecycleLearningProposal(event) {
@@ -5606,6 +5639,275 @@
             : error.message;
         } finally {
           lockSolutionLifecycleLearningProposalForRetry();
+        }
+      }
+
+      function learningReviewConflictFields(record) {
+        return [
+          ["is_self_authored", "proposal author"],
+          ["is_self_starter", "replication starter"],
+          ["is_initial_approver", "initial replication approver"],
+          ["is_completion_reviewer", "completion reviewer"],
+          ["is_source_owner", "source experiment owner"],
+          ["is_source_approver", "source experiment approver"],
+          ["is_source_result_reviewer", "source result reviewer"],
+        ].filter(([field]) => record[field] === true).map(([, label]) => label);
+      }
+
+      function appendSolutionLifecycleLearningReviewItem(item) {
+        if (typeof item.learning_record_id !== "string"
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.learning_record_id)) return;
+        const row = document.createElement("tr");
+        for (const value of [
+          item.solution_name || "Location solution",
+          item.lesson_type || "Lesson",
+          item.confidence || "Unknown",
+          item.transferability || "Unknown",
+          item.created_at || "",
+        ]) {
+          const cell = document.createElement("td");
+          cell.textContent = String(value);
+          row.append(cell);
+        }
+        const conflicts = learningReviewConflictFields(item);
+        const independence = document.createElement("td");
+        independence.textContent = conflicts.length
+          ? `Not eligible: same person is ${conflicts.join(", ")}`
+          : "No listed role conflict";
+        row.append(independence);
+        const actionCell = document.createElement("td");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = "Review details";
+        button.addEventListener("click", () => loadSolutionLifecycleLearningReviewDetail(item.learning_record_id));
+        actionCell.append(button);
+        row.append(actionCell);
+        solutionLifecycleLearningReviewQueue.append(row);
+      }
+
+      async function loadSolutionLifecycleLearningReviewQueue(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleLearningReviewRequestVersion;
+        if (!solutionLifecycleReviewLocations.has(locationId)) {
+          solutionLifecycleLearningReviewQueue.replaceChildren();
+          solutionLifecycleLearningReviewMore.hidden = true;
+          solutionLifecycleLearningReviewStatus.textContent = "An exact location review grant is required.";
+          return;
+        }
+        const offset = append ? solutionLifecycleLearningReviewOffset : 0;
+        solutionLifecycleLearningReviewLoad.disabled = true;
+        solutionLifecycleLearningReviewMore.disabled = true;
+        if (!append) {
+          solutionLifecycleLearningReviewQueue.replaceChildren();
+          solutionLifecycleLearningReviewDetail.hidden = true;
+          solutionLifecycleLearningReviewDetailRecord = null;
+        }
+        solutionLifecycleLearningReviewStatus.textContent = "Loading pending learning proposals…";
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/learning/review?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or exact location review grant is no longer valid.");
+            }
+            throw new Error("Learning proposals could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleLearningReviewRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const items = Array.isArray(result.items) ? result.items : [];
+          for (const item of items) appendSolutionLifecycleLearningReviewItem(item);
+          solutionLifecycleLearningReviewOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset : offset;
+          solutionLifecycleLearningReviewMore.hidden = result.has_more !== true
+            || solutionLifecycleLearningReviewOffset <= offset;
+          solutionLifecycleLearningReviewStatus.textContent = items.length
+            ? `${solutionLifecycleLearningReviewQueue.querySelectorAll("tr").length} pending learning proposal(s) shown. Open details to review private evidence.`
+            : result.has_more === true
+              ? "No proposals on this page. Load more to continue."
+              : "No current learning proposals are awaiting review.";
+        } catch (error) {
+          if (requestVersion === solutionLifecycleLearningReviewRequestVersion) {
+            solutionLifecycleLearningReviewStatus.textContent = error.message;
+          }
+        } finally {
+          if (requestVersion === solutionLifecycleLearningReviewRequestVersion) {
+            solutionLifecycleLearningReviewLoad.disabled = false;
+            solutionLifecycleLearningReviewMore.disabled = false;
+          }
+        }
+      }
+
+      async function loadSolutionLifecycleLearningReviewDetail(learningRecordId) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleLearningReviewDetailVersion;
+        if (!solutionLifecycleReviewLocations.has(locationId)
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(learningRecordId)) return;
+        solutionLifecycleLearningReviewDetail.hidden = false;
+        solutionLifecycleLearningReviewForm.hidden = true;
+        solutionLifecycleLearningReviewReadonlyStatus.textContent = "Loading private lesson details…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/learning/${encodeURIComponent(learningRecordId)}/review`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or exact location review grant is no longer valid.");
+            }
+            throw new Error("This learning proposal is no longer pending or its source lineage changed.");
+          }
+          const record = await response.json();
+          if (requestVersion !== solutionLifecycleLearningReviewDetailVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          solutionLifecycleLearningReviewDetailRecord = record;
+          solutionLifecycleLearningReviewMetadata.replaceChildren();
+          for (const [label, value] of [
+            ["Solution", record.solution_name], ["Lesson type", record.lesson_type],
+            ["Confidence", record.confidence], ["Transferability", record.transferability],
+            ["Proposed", record.created_at],
+          ]) {
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = value == null ? "Not provided" : String(value);
+            solutionLifecycleLearningReviewMetadata.append(term, description);
+          }
+          solutionLifecycleLearningReviewFinding.textContent = record.finding || "";
+          solutionLifecycleLearningReviewRecommendation.textContent = record.recommended_action || "";
+          solutionLifecycleLearningReviewReferences.textContent = JSON.stringify({
+            affected_assumptions: record.affected_assumptions || [],
+            affected_metrics: record.affected_metrics || [],
+          }, null, 2);
+          solutionLifecycleLearningReviewEvidence.textContent = JSON.stringify(record.evidence || [], null, 2);
+          solutionLifecycleLearningReviewForm.reset();
+          solutionLifecycleLearningReviewReason.required = false;
+          const conflicts = learningReviewConflictFields(record);
+          const canReview = record.source_is_current === true && conflicts.length === 0;
+          solutionLifecycleLearningReviewForm.hidden = !canReview;
+          solutionLifecycleLearningReviewReadonlyStatus.textContent = canReview
+            ? "Current source lineage verified. Review the lesson and evidence before recording a decision."
+            : !record.source_is_current
+              ? "The source lineage is stale; this proposal cannot be decided."
+              : `This reviewer cannot decide because they are also the ${conflicts.join(", ")}.`;
+        } catch (error) {
+          if (requestVersion === solutionLifecycleLearningReviewDetailVersion) {
+            solutionLifecycleLearningReviewReadonlyStatus.textContent = error.message;
+          }
+        }
+      }
+
+      function lockSolutionLifecycleLearningReviewForRetry(submitting = false) {
+        const locked = Boolean(solutionLifecyclePendingLearningReview);
+        for (const field of solutionLifecycleLearningReviewForm.querySelectorAll("input, select, textarea")) {
+          field.disabled = locked;
+        }
+        solutionLifecycleLearningReviewSubmit.disabled = submitting;
+        refreshSolutionLifecycleLocationLock();
+      }
+
+      function refreshSolutionLifecycleLocationLock() {
+        solutionLifecycleLocation.disabled = Boolean(
+          solutionLifecyclePendingLearningReview
+          || solutionLifecyclePendingLearningProposal
+          || solutionLifecyclePendingReplicationProposal
+          || solutionLifecyclePendingReplicationReview
+          || solutionLifecyclePendingReplicationActivation
+          || solutionLifecyclePendingReplicationCompletionProposal
+          || solutionLifecyclePendingReplicationCompletionReview
+          || solutionLifecyclePendingFundingProposal
+          || solutionLifecyclePendingFundingSubmission
+          || solutionLifecyclePendingFundingApproval
+          || solutionLifecyclePendingFundingTrancheApproval
+          || solutionLifecyclePendingRetirementProposal
+          || solutionLifecyclePendingRetirementApproval
+        );
+      }
+
+      async function submitSolutionLifecycleLearningReview(event) {
+        event.preventDefault();
+        const record = solutionLifecycleLearningReviewDetailRecord;
+        const locationId = solutionLifecycleLocation.value;
+        if (!record || !solutionLifecycleReviewLocations.has(locationId)
+            || record.source_is_current !== true
+            || learningReviewConflictFields(record).length) {
+          solutionLifecycleLearningReviewDetailStatus.textContent = "Select a current proposal and confirm an exact-location review grant with no source-role conflict.";
+          return;
+        }
+        if (!solutionLifecycleLearningReviewConfirm.checked) {
+          solutionLifecycleLearningReviewDetailStatus.textContent = "Confirm independent review before recording a learning decision.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleLearningReviewDetailStatus.textContent = "Refresh the operator session before recording a learning decision.";
+          return;
+        }
+        const review = {
+          decision: solutionLifecycleLearningReviewDecision.value,
+          review_reason: solutionLifecycleLearningReviewReason.value.trim() || null,
+          acknowledged: true,
+        };
+        if (!new Set(["accepted", "rejected"]).has(review.decision)
+            || (review.decision === "rejected" && (!review.review_reason || review.review_reason.length < 10))
+            || (review.review_reason && review.review_reason.length > 4000)) {
+          solutionLifecycleLearningReviewDetailStatus.textContent = "Choose a valid decision and provide a 10 to 4,000 character rejection reason.";
+          return;
+        }
+        const fingerprint = JSON.stringify({ location_id: locationId, learning_record_id: record.learning_record_id, ...review });
+        if (solutionLifecyclePendingLearningReview
+            && solutionLifecyclePendingLearningReview.fingerprint !== fingerprint) {
+          solutionLifecycleLearningReviewDetailStatus.textContent = "The prior response may be uncertain. Retry the exact same decision or reload after confirming its status.";
+          return;
+        }
+        if (!solutionLifecyclePendingLearningReview) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            solutionLifecycleLearningReviewDetailStatus.textContent = "A secure browser context is required to record a learning decision.";
+            return;
+          }
+          solutionLifecyclePendingLearningReview = { fingerprint, request_id: requestId, location_id: locationId };
+        }
+        lockSolutionLifecycleLearningReviewForRetry(true);
+        solutionLifecycleLearningReviewDetailStatus.textContent = "Recording independent learning decision…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/learning/${encodeURIComponent(record.learning_record_id)}/review`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...review, request_id: solutionLifecyclePendingLearningReview.request_id }),
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingLearningReview = null;
+            throw new Error("Your session or exact location review grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingLearningReview = null;
+            throw new Error(result.error || "The learning decision could not be recorded.");
+          }
+          solutionLifecyclePendingLearningReview = null;
+          solutionLifecycleLearningReviewDetailRecord = null;
+          solutionLifecycleLearningReviewDetail.hidden = true;
+          solutionLifecycleLearningReviewStatus.textContent = result.decision === "accepted"
+            ? "Learning accepted for future decisions. It has not been applied and the solution stage is unchanged."
+            : "Learning rejected with an audit receipt. The solution stage is unchanged.";
+          solutionLifecycleLearningReviewDetailStatus.textContent = "Decision recorded.";
+          await loadSolutionLifecycleLearningReviewQueue();
+        } catch (error) {
+          solutionLifecycleLearningReviewDetailStatus.textContent = solutionLifecyclePendingLearningReview
+            ? `${error.message} The result may be uncertain; retry the unchanged decision to reuse its request ID.`
+            : error.message;
+        } finally {
+          lockSolutionLifecycleLearningReviewForRetry();
         }
       }
 
@@ -6898,6 +7200,7 @@
             solutionLifecycleFundingReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleReplicationReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleReplicationCompletionReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleLearningReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycle.hidden = false;
             await loadSolutionLifecycleSummary();
             hasAuthorizedSurface = true;
@@ -10150,6 +10453,11 @@
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
       solutionLifecycleLocation.addEventListener("change", () => {
+        if (solutionLifecyclePendingLearningReview) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingLearningReview.location_id;
+          solutionLifecycleProjectionStatus.textContent = "Resolve the pending learning review request before changing locations.";
+          return;
+        }
         if (solutionLifecyclePendingReplicationCompletionProposal) {
           solutionLifecycleLocation.value = solutionLifecyclePendingReplicationCompletionProposal.locationId;
           solutionLifecycleProjectionStatus.textContent = "Resolve the pending completion-report request before changing locations.";
@@ -10285,6 +10593,18 @@
         solutionLifecycleReplicationCompletionReviewReason.required = false;
         solutionLifecyclePendingReplicationCompletionReview = null;
         solutionLifecycleReplicationCompletionReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleLearningReviewRequestVersion += 1;
+        solutionLifecycleLearningReviewDetailVersion += 1;
+        solutionLifecycleLearningReviewOffset = 0;
+        solutionLifecycleLearningReviewQueue.replaceChildren();
+        solutionLifecycleLearningReviewDetail.hidden = true;
+        solutionLifecycleLearningReviewStatus.textContent = "";
+        solutionLifecycleLearningReviewMore.hidden = true;
+        solutionLifecycleLearningReviewForm.reset();
+        solutionLifecycleLearningReviewReason.required = false;
+        solutionLifecycleLearningReviewDetailRecord = null;
+        solutionLifecyclePendingLearningReview = null;
+        solutionLifecycleLearningReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
@@ -10351,6 +10671,12 @@
       solutionLifecycleReplicationReviewMore.addEventListener("click", () => loadSolutionLifecycleReplicationReviewQueue(true));
       solutionLifecycleReplicationReviewForm.addEventListener("submit", reviewSolutionLifecycleReplication);
       solutionLifecycleReplicationCompletionReviewLoad.addEventListener("click", () => loadSolutionLifecycleReplicationCompletionReviewQueue());
+      solutionLifecycleLearningReviewLoad.addEventListener("click", () => loadSolutionLifecycleLearningReviewQueue());
+      solutionLifecycleLearningReviewMore.addEventListener("click", () => loadSolutionLifecycleLearningReviewQueue(true));
+      solutionLifecycleLearningReviewDecision.addEventListener("change", () => {
+        solutionLifecycleLearningReviewReason.required = solutionLifecycleLearningReviewDecision.value === "rejected";
+      });
+      solutionLifecycleLearningReviewForm.addEventListener("submit", submitSolutionLifecycleLearningReview);
       solutionLifecycleReplicationCompletionReviewMore.addEventListener("click", () => loadSolutionLifecycleReplicationCompletionReviewQueue(true));
       solutionLifecycleReplicationCompletionReviewForm.addEventListener("submit", reviewSolutionLifecycleReplicationCompletion);
       solutionLifecycleReplicationCompletionReviewDecision.addEventListener("change", () => {

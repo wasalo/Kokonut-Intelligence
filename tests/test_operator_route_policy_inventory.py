@@ -38,6 +38,7 @@ _PARAMETER_SAMPLES = {
     "gate_id": "dddddddd-dddd-4ddd-8ddd-ddddddddddde",
     "experiment_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddf",
     "funding_case_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed",
+    "learning_record_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeec",
     "tranche_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
     "proposal_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
     "program_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
@@ -309,6 +310,18 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/replications/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/learning",
     ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/learning/review",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/learning/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeec/review",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/learning/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeec/review",
+    ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/retirements",
