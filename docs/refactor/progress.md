@@ -1,3 +1,20 @@
+### CAP-032 business architecture operator-console read — 20 October 2026
+
+The operator console now surfaces approved vision/mission/values statements
+and bounded roadmap mappings for locations with an exact
+`business_architecture:read` grant. It uses the existing signed-context
+projection, fixed text-only fields, same-origin no-store requests,
+stale-location guards, and bounded 25-row pages. Roadmap/requirement IDs are not rendered; the projection omits descriptions,
+evidence, owners, rationale, and organization-level strategy links. No approval
+or lifecycle action is present. The focused console, Gateway, and
+route-policy selection passes 21 tests, including JavaScript syntax
+validation; Ruff and capability-matrix validation pass. Candidate and legacy
+databases remain untouched, and migration 456 is not rolled out. CAP-032
+remains prepared pending populated parity, live OIDC/browser acceptance, broader
+ACL/RLS, and MAN-CAP-032 owner review. Checklist: 714 complete / 24 open;
+matrix: 31 baseline-retained, 7 deployed, 28 prepared. [Read contract](business-architecture-kernel-read-contract.md);
+[console checks](../tests/test_operator_console_business_architecture.py).
+
 ### CAP-033 business canvas operator-console read — 20 October 2026
 
 The operator console now lists stored canvases for locations with an exact
