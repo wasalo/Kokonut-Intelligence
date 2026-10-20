@@ -23,8 +23,10 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     )
     from services.gateway.solution_lifecycle_reads import (
         SolutionLifecycleReadInvalid,
+        SolutionLifecycleRecordNotFound,
         SolutionLifecycleResponseTooLarge,
         SolutionLifecycleReviewNotFound,
+        get_location_solution_adoption_event_summary,
         get_location_solution_experiment_review,
         get_location_solution_funding_review_detail,
         get_location_solution_funding_tranche_review_detail,
@@ -551,6 +553,67 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
             return JSONResponse(
                 status_code=503,
                 content={"error": "Solution lifecycle adoption unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.get(
+        "/operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events"
+    )
+    async def location_solution_lifecycle_adoption_event_summary(
+        request: Request, location_id: str, program_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_adoption_event_summary,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                program_id,
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleReadInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except SolutionLifecycleRecordNotFound:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Exact-location adoption program was not found"},
+                headers=headers,
+            )
+        except SolutionLifecycleResponseTooLarge as exc:
+            return JSONResponse(status_code=413, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle read grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Exact-location adoption program was not found"},
+                    headers=headers,
+                )
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution adoption event summary unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution adoption event summary unavailable"},
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)

@@ -39,6 +39,7 @@ _PARAMETER_SAMPLES = {
     "experiment_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddf",
     "funding_case_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeed",
     "tranche_id": "ffffffff-ffff-4fff-8fff-ffffffffffff",
+    "program_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "replication_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
@@ -250,6 +251,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     (
         "GET",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/adoption",
+    ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/adoption/eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee/events",
     ): _expected("solution_lifecycle", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",

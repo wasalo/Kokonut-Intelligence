@@ -836,6 +836,110 @@ def test_adoption_list_context_denial_rolls_back_without_projection_call():
     assert connection.rolled_back and connection.closed
 
 
+def test_adoption_event_summary_uses_signed_context_and_returns_only_coarse_counts():
+    columns = (
+        "program_id", "engagement_reference_count", "commitment_reference_count",
+        "use_reference_count", "advocacy_reference_count",
+        "paused_or_abandoned_reference_count", "breakdown_suppressed",
+    )
+    program_id = "f4000000-0000-4000-8000-000000000001"
+    connection = _Connection(
+        row=(program_id, 8, 5, 6, 0, 0, False),
+        columns=columns,
+    )
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.get_location_solution_adoption_event_summary(
+            OPERATOR_ID, LOCATION_ID, program_id,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "read",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "get_location_solution_adoption_event_summary" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, program_id)
+    assert result == {
+        "location_id": LOCATION_ID,
+        "program_id": program_id,
+        "engagement_reference_count": 8,
+        "commitment_reference_count": 5,
+        "use_reference_count": 6,
+        "advocacy_reference_count": 0,
+        "paused_or_abandoned_reference_count": 0,
+        "breakdown_suppressed": False,
+    }
+    assert not {"adopter_ref", "cohort_id", "event_type", "observed_at", "evidence"}.intersection(result)
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("location_id,program_id", [
+    ("not-a-uuid", "f4000000-0000-4000-8000-000000000001"),
+    (LOCATION_ID, "bad-program-id"),
+])
+def test_adoption_event_summary_rejects_invalid_ids_before_database_access(location_id, program_id):
+    with pytest.raises(reads.SolutionLifecycleReadInvalid):
+        reads.get_location_solution_adoption_event_summary(
+            OPERATOR_ID, location_id, program_id,
+            connection_factory=lambda: pytest.fail("invalid IDs opened a connection"),
+        )
+
+
+def test_adoption_event_summary_context_denial_rolls_back_without_projection_call():
+    connection = _Connection()
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("denied")
+
+    with patch.object(reads, "set_operator_tenant_context", deny):
+        with pytest.raises(TenantContextDenied):
+            reads.get_location_solution_adoption_event_summary(
+                OPERATOR_ID, LOCATION_ID, "f4000000-0000-4000-8000-000000000001",
+                connection_factory=lambda: connection,
+            )
+
+    assert not any("get_location_solution_adoption_event_summary" in query
+                   for query, _ in connection.operations)
+    assert connection.rolled_back and connection.closed
+
+
+def test_adoption_event_summary_hides_database_not_found_as_scoped_record_not_found():
+    class _MissingProgram(Exception):
+        pgcode = "P0002"
+
+    class _MissingCursor(_Cursor):
+        def execute(self, query, params=None):
+            super().execute(query, params)
+            if "get_location_solution_adoption_event_summary" in query:
+                raise _MissingProgram("not found")
+
+    class _MissingConnection(_Connection):
+        def cursor(self):
+            return _MissingCursor(self)
+
+    connection = _MissingConnection()
+    with patch.object(reads, "set_operator_tenant_context"):
+        with pytest.raises(reads.SolutionLifecycleRecordNotFound):
+            reads.get_location_solution_adoption_event_summary(
+                OPERATOR_ID, LOCATION_ID, "f4000000-0000-4000-8000-000000000001",
+                connection_factory=lambda: connection,
+            )
+    assert connection.rolled_back and connection.closed
+
+
 def test_gate_route_policy_uses_the_exact_solution_location_read_grant():
     path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -1088,6 +1192,74 @@ def test_adoption_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypa
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["programs"][0]["consented_adopter_reference_count"] is None
+
+    disabled = FastAPI()
+    disabled_router = APIRouter()
+    register_solution_lifecycle_routes(disabled_router, None, run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    disabled.include_router(disabled_router)
+    with TestClient(disabled) as client:
+        no_oidc = client.get(path)
+    assert no_oidc.status_code == 404
+    assert no_oidc.headers["cache-control"] == "no-store"
+
+
+def test_adoption_event_summary_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    program_id = "f4000000-0000-4000-8000-000000000001"
+    summary = {
+        "location_id": LOCATION_ID,
+        "program_id": program_id,
+        "engagement_reference_count": None,
+        "commitment_reference_count": None,
+        "use_reference_count": None,
+        "advocacy_reference_count": None,
+        "paused_or_abandoned_reference_count": None,
+        "breakdown_suppressed": True,
+    }
+    missing_program = False
+
+    def lookup_summary(*_args, **_kwargs):
+        if missing_program:
+            raise reads.SolutionLifecycleRecordNotFound("missing")
+        return summary
+
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.get_location_solution_adoption_event_summary",
+        lookup_summary,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/adoption/{program_id}/events"
+    with TestClient(app) as client:
+        response = client.get(path)
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json() == summary
+    assert "adopter_ref" not in response.json()
+
+    missing_program = True
+    with TestClient(app) as client:
+        missing = client.get(path)
+    assert missing.status_code == 404
+    assert missing.headers["cache-control"] == "no-store"
 
     disabled = FastAPI()
     disabled_router = APIRouter()

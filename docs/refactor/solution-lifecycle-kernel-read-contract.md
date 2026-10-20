@@ -22,12 +22,14 @@ owner-accepted.
 `481_location_solution_retirement_candidates.sql`, and
 `482_location_solution_retirement_review_queue.sql`, and
 `483_location_solution_gate_evaluation.sql`, and
-`487_location_solution_experiment_review.sql`.
+`487_location_solution_experiment_review.sql`, and
+`493_location_solution_adoption_event_summary.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
 `GET /operator/api/solution-lifecycle/{location_id}/funding`,
 `GET /operator/api/solution-lifecycle/{location_id}/adoption`,
+`GET /operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events`,
 `GET /operator/api/solution-lifecycle/{location_id}/scale-gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/replications`,
 `GET /operator/api/solution-lifecycle/{location_id}/learning`,
@@ -132,7 +134,9 @@ accept 1–50 rows with an offset up to 10,000, use stable case/tranche ordering
 and share the 256 KiB response cap. The route does not approve funding cases,
 approve or release tranches, or expose release execution.
 
-The adoption route returns a bounded page of programs whose target is the exact requested location and whose solution originates there or has an explicit location link. It includes solution/program identifiers and labels, lifecycle state, and timestamps. `consented_adopter_reference_count` is null unless at least five distinct, nonempty, case- and whitespace-normalized `adopter_ref` values have consent-checked events; repeated events carrying the same reference do not increase the threshold, and non-consented events are excluded. The count is an aggregate of source references, not a verified count of natural persons. Adopter references, cohort IDs, event type/time, fidelity, support needs, outcomes, evidence, and party identities are omitted from the response. The security-definer owner receives column access to the pseudonymous adopter reference solely for the distinct count; runtime and Directus cannot read the source tables. Pages use the same 1–50 limit, 10,000 offset ceiling, no-store response, and 256 KiB serialized response cap. This does not expose event detail or mutate adoption state.
+The adoption route returns a bounded page of programs whose target is the exact requested location and whose solution originates there or has an explicit location link. It includes solution/program identifiers and labels, lifecycle state, and timestamps. `consented_adopter_reference_count` is null unless at least five distinct, nonempty, case- and whitespace-normalized `adopter_ref` values have consent-checked events; repeated events carrying the same reference do not increase the threshold, and non-consented events are excluded. The count is an aggregate of source references, not a verified count of natural persons. Adopter references, cohort IDs, event type/time, fidelity, support needs, outcomes, evidence, and party identities are omitted from the response. The security-definer owner receives column access to the pseudonymous adopter reference solely for the distinct count; runtime and Directus cannot read the source tables. Pages use the same 1–50 limit, 10,000 offset ceiling, no-store response, and 256 KiB serialized response cap.
+
+The adoption event route accepts one program ID and rechecks the exact location target, solution origin or explicit location link, signed operator location context, and active `solution_lifecycle:read` grant. It returns counts of distinct normalized pseudonymous references with consent-checked events in five coarse phases: engagement, commitment, use, advocacy, and paused/abandoned. A reference may appear in multiple phases, so these counts are not additive and are not verified counts of natural persons. It does not return individual event rows, timestamps, cohorts, source references, fidelity, support needs, outcomes, evidence, or party identities. The whole phase breakdown is suppressed when any populated phase contains fewer than five distinct references; this avoids exposing a small phase as well as subtracting it from other visible counts. Consent is evaluated from the event's recorded `consent_checked` marker; this projection does not claim current consent status or update adoption state. The `kokonut_solution_reader` gains only the event-type column needed to build the coarse counts; runtime and Directus retain function-only access.
 
 The scale-gates route returns a bounded page of gates whose scope is exactly the requested location and whose solution originates there or has an explicit location link. It includes solution/gate IDs and labels, gate type/status, a boolean indicating whether an approver reference exists, and the nullable approval timestamp. It omits free-text requirements, configured thresholds, measured values, metric keys, units, evidence, and approver identity. The non-login reader has column access to `approved_by_party_id` only to derive the boolean; neither that value nor party details are returned. Pages follow the same bounds and response cap. This read does not evaluate, waive, approve, or mutate a scale gate.
 

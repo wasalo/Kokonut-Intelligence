@@ -460,6 +460,37 @@ def test_supplemental_renderer_uses_fixed_view_fields_and_hides_small_adoption_c
     assert "innerHTML" not in renderer
 
 
+def test_adoption_event_detail_uses_only_consent_checked_coarse_suppressed_phase_counts():
+    source = CONSOLE.read_text(encoding="utf-8")
+    assert "View consented phase summary" in source
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/${encodeURIComponent(programId)}/events`' in source
+    assert 'credentials: "same-origin"' in source
+    assert 'cache: "no-store"' in source
+    assert "solutionLifecycleLocations.has(locationId)" in source
+    assert 'solutionLifecycleProjection.value !== "adoption"' in source
+    assert "summary.breakdown_suppressed === true" in source
+    assert "Number.isSafeInteger(count)" in source
+    for field in (
+        "engagement_reference_count", "commitment_reference_count", "use_reference_count",
+        "advocacy_reference_count", "paused_or_abandoned_reference_count",
+    ):
+        assert field in source
+    loader = _function(
+        source,
+        "async function loadSolutionLifecycleAdoptionEventSummary(",
+        "async function loadSolutionLifecycleProjection(",
+    )
+    for private_field in (
+        "adopter_ref", "cohort_id", "observed_at", "fidelity_score",
+        "support_required", "outcome", "evidence", "recorded_by_party_id",
+    ):
+        assert f'"{private_field}"' not in loader
+    assert "article.isConnected" in loader
+    assert "requestVersion !== solutionLifecycleAdoptionEventRequestVersion" in loader
+    assert "status.replaceChildren" in loader
+    assert "innerHTML" not in loader
+
+
 def test_learning_proposal_source_loader_requires_both_grants_and_filters_reviewed_completion():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(r'<section id="solution-lifecycle-learning-proposal".*?</section>', source, re.DOTALL)

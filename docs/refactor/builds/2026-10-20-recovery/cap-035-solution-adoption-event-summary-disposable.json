@@ -1,0 +1,23 @@
+{
+  "result": "passed",
+  "migration": "493_location_solution_adoption_event_summary.sql",
+  "predecessor_migration": "469_location_scoped_solution_adoption.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 459, 466, 467, 468, and 469 apply, and migration 469 replays",
+    "adoption programs are scoped by both solution lineage and exact location target",
+    "fewer than five distinct nonempty normalized consented adopter references are suppressed; repeated, blank, and non-consented events cannot bypass the threshold",
+    "participant/event detail is omitted from output and reader column privileges",
+    "page bounds, signed context, exact location grant, and read-only behavior are enforced",
+    "the migration-459 aggregate summary still runs with the narrowed program columns",
+    "runtime can call the bounded function but cannot read source tables; Directus cannot call it",
+    "migration 493 applies and replays the coarse consent-checked adoption phase summary",
+    "five progress-phase counts use distinct normalized consent-checked references and ignore non-consented events",
+    "the entire phase breakdown is suppressed when any populated phase has fewer than five references",
+    "the summary function hides missing and cross-location program IDs and enforces exact read grants",
+    "the summary output contains no participant, cohort, evidence, or identity fields",
+    "only the non-login reader receives the event-type column; runtime and Directus retain function-only boundaries"
+  ],
+  "acceptance_groups_passed": 13
+}

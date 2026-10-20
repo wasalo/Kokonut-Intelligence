@@ -22,6 +22,10 @@ class SolutionLifecycleReviewNotFound(LookupError):
     """A pending exact-location solution lifecycle review item was not found."""
 
 
+class SolutionLifecycleRecordNotFound(LookupError):
+    """An exact-location solution lifecycle record was not found."""
+
+
 _MAX_READ_PAGE_SIZE = 50
 _MAX_READ_RESPONSE_BYTES = 262_144
 
@@ -661,6 +665,64 @@ def list_location_solution_adoption(
         return result
     except Exception:
         connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def get_location_solution_adoption_event_summary(
+    operator_id: str,
+    location_id: str,
+    program_id: str,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return small-cohort-suppressed progress phases for one adoption program."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    program_id = _normalize_uuid(program_id, "adoption program")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="read",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.get_location_solution_adoption_event_summary(
+                           %s::uuid, %s::uuid
+                       )""",
+                (location_id, program_id),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise SolutionLifecycleRecordNotFound(
+                    "Exact-location adoption program was not found"
+                )
+            summary = _mapping(cursor, row)
+        result = {"location_id": location_id, **summary}
+        size = len(json.dumps(result, default=str, separators=(",", ":")).encode("utf-8"))
+        if size > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution adoption event summary exceeds 256 KiB"
+            )
+        return result
+    except Exception as exc:
+        connection.rollback()
+        if getattr(exc, "pgcode", None) == "P0002":
+            raise SolutionLifecycleRecordNotFound(
+                "Exact-location adoption program was not found"
+            ) from exc
         raise
     finally:
         try:

@@ -14,7 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FUNDING_CHECK = ROOT / "scripts/check-solution-lifecycle-funding-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/469_location_scoped_solution_adoption.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-19-recovery/cap-035-solution-adoption-disposable.json"
+DETAIL_MIGRATION = ROOT / "schemas/postgres/493_location_solution_adoption_event_summary.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-adoption-event-summary-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_funding_disposable", FUNDING_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load disposable solution funding fixtures")
@@ -99,6 +100,46 @@ SELECT ('f4200000-0000-4000-8000-' || pg_catalog.lpad(n::text, 12, '0'))::uuid,
        'f4000000-0000-4000-8000-000000000002', 'outside-' || n,
        'onboarded', '2026-10-18', true
   FROM generate_series(1, 7) AS n;
+
+INSERT INTO public.solution_adoption_event
+    (id, program_id, adopter_ref, event_type, observed_at, consent_checked)
+SELECT ('f4400000-0000-4000-8000-' || pg_catalog.lpad(n::text, 12, '0'))::uuid,
+       'f4000000-0000-4000-8000-000000000003', 'engagement-' || n,
+       'eligible', '2026-10-18', true
+  FROM generate_series(1, 5) AS n;
+INSERT INTO public.solution_adoption_event
+    (id, program_id, adopter_ref, event_type, observed_at, consent_checked)
+SELECT ('f4410000-0000-4000-8000-' || pg_catalog.lpad(n::text, 12, '0'))::uuid,
+       'f4000000-0000-4000-8000-000000000003', 'commitment-' || n,
+       'committed', '2026-10-18', true
+  FROM generate_series(1, 5) AS n;
+INSERT INTO public.solution_adoption_event
+    (id, program_id, adopter_ref, event_type, observed_at, consent_checked)
+SELECT ('f4420000-0000-4000-8000-' || pg_catalog.lpad(n::text, 12, '0'))::uuid,
+       'f4000000-0000-4000-8000-000000000003', 'use-' || n,
+       'first_use', '2026-10-18', true
+  FROM generate_series(1, 5) AS n;
+INSERT INTO public.solution_adoption_event
+    (id, program_id, adopter_ref, event_type, observed_at, consent_checked)
+SELECT ('f4430000-0000-4000-8000-' || pg_catalog.lpad(n::text, 12, '0'))::uuid,
+       'f4000000-0000-4000-8000-000000000003', 'advocacy-' || n,
+       'advocating', '2026-10-18', true
+  FROM generate_series(1, 5) AS n;
+INSERT INTO public.solution_adoption_event
+    (id, program_id, adopter_ref, event_type, observed_at, consent_checked)
+SELECT ('f4440000-0000-4000-8000-' || pg_catalog.lpad(n::text, 12, '0'))::uuid,
+       'f4000000-0000-4000-8000-000000000003', 'paused-' || n,
+       'paused', '2026-10-18', true
+  FROM generate_series(1, 5) AS n;
+INSERT INTO public.solution_adoption_event
+    (id, program_id, adopter_ref, event_type, observed_at, consent_checked)
+VALUES
+    ('f4450000-0000-4000-8000-000000000001',
+     'f4000000-0000-4000-8000-000000000003', '  ENGAGEMENT-1  ',
+     'interested', '2026-10-19', true),
+    ('f4450000-0000-4000-8000-000000000002',
+     'f4000000-0000-4000-8000-000000000003', 'not-consented',
+     'interested', '2026-10-19', false);
 """
 
 ADOPTION_ACCEPTANCE = r"""
@@ -138,7 +179,7 @@ BEGIN
             RAISE EXCEPTION 'fewer than five consented adopters were not suppressed';
         END IF;
         IF adoption_row.program_id = 'f4000000-0000-4000-8000-000000000003'
-           AND adoption_row.consented_adopter_reference_count IS DISTINCT FROM 5 THEN
+           AND adoption_row.consented_adopter_reference_count IS DISTINCT FROM 30 THEN
             RAISE EXCEPTION 'distinct consented adopter count or non-consented exclusion failed';
         END IF;
         IF adoption_row.program_id = 'f4000000-0000-4000-8000-000000000004'
@@ -233,13 +274,130 @@ BEGIN
 END $$;
 """
 
+ADOPTION_DETAIL_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+DO $$
+DECLARE
+    detail record;
+    denied boolean := false;
+    result_signature text;
+BEGIN
+    SELECT * INTO detail FROM kokonut_security.get_location_solution_adoption_event_summary(
+        'b0000000-0000-4000-8000-000000000001',
+        'f4000000-0000-4000-8000-000000000003'
+    );
+    IF NOT FOUND OR detail.breakdown_suppressed
+       OR detail.engagement_reference_count <> 5
+       OR detail.commitment_reference_count <> 6
+       OR detail.use_reference_count <> 8
+       OR detail.advocacy_reference_count <> 7
+       OR detail.paused_or_abandoned_reference_count <> 5 THEN
+        RAISE EXCEPTION 'consented distinct adopter phase summary is incorrect';
+    END IF;
+
+    SELECT * INTO detail FROM kokonut_security.get_location_solution_adoption_event_summary(
+        'b0000000-0000-4000-8000-000000000001',
+        'f4000000-0000-4000-8000-000000000001'
+    );
+    IF NOT FOUND OR NOT detail.breakdown_suppressed
+       OR detail.engagement_reference_count IS NOT NULL
+       OR detail.commitment_reference_count IS NOT NULL
+       OR detail.use_reference_count IS NOT NULL
+       OR detail.advocacy_reference_count IS NOT NULL
+       OR detail.paused_or_abandoned_reference_count IS NOT NULL THEN
+        RAISE EXCEPTION 'small phase detail was not wholly suppressed';
+    END IF;
+
+    SELECT pg_catalog.pg_get_function_result(
+        'kokonut_security.get_location_solution_adoption_event_summary(uuid,uuid)'::regprocedure
+    ) INTO result_signature;
+    IF result_signature ~* '(adopter_ref|cohort|event_type|observed_at|fidelity|support_required|outcome|evidence|party_id)' THEN
+        RAISE EXCEPTION 'adoption event summary signature exposes private source detail';
+    END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.get_location_solution_adoption_event_summary(
+            'b0000000-0000-4000-8000-000000000002',
+            'f4000000-0000-4000-8000-000000000003'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'mismatched location context was accepted'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.get_location_solution_adoption_event_summary(
+            'b0000000-0000-4000-8000-000000000001',
+            'f4000000-0000-4000-8000-000000000002'
+        );
+    EXCEPTION WHEN no_data_found THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'cross-location adoption program was disclosed'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.get_location_solution_adoption_event_summary(
+            'b0000000-0000-4000-8000-000000000001',
+            'f4000000-0000-4000-8000-000000000099'
+        );
+    EXCEPTION WHEN no_data_found THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'missing adoption program was not hidden'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.get_location_solution_adoption_event_summary(
+            'b0000000-0000-4000-8000-000000000001',
+            'f4000000-0000-4000-8000-000000000003'
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'operator without exact read grant was accepted'; END IF;
+
+    denied := false;
+    BEGIN PERFORM event_type FROM public.solution_adoption_event;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read adoption event categories'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF NOT has_function_privilege('kokonut_runtime',
+       'kokonut_security.get_location_solution_adoption_event_summary(uuid,uuid)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'runtime lacks adoption event summary execute';
+    END IF;
+    IF has_function_privilege('kokonut_directus_runtime',
+       'kokonut_security.get_location_solution_adoption_event_summary(uuid,uuid)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'Directus can execute adoption event summary';
+    END IF;
+    IF NOT has_column_privilege('kokonut_solution_reader',
+       'public.solution_adoption_event', 'event_type', 'SELECT')
+       OR has_column_privilege('kokonut_solution_reader',
+          'public.solution_adoption_event', 'fidelity_score', 'SELECT')
+       OR has_column_privilege('kokonut_solution_reader',
+          'public.solution_adoption_event', 'evidence', 'SELECT')
+       OR has_column_privilege('kokonut_runtime',
+          'public.solution_adoption_event', 'event_type', 'SELECT')
+       OR has_column_privilege('kokonut_directus_runtime',
+          'public.solution_adoption_event', 'event_type', 'SELECT') THEN
+        RAISE EXCEPTION 'adoption event reader column boundary failed';
+    END IF;
+END $$;
+"""
+
 
 def main() -> int:
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
     container = f"kokonut-solution-adoption-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": MIGRATION.name,
+        "migration": DETAIL_MIGRATION.name,
+        "predecessor_migration": MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -250,6 +408,12 @@ def main() -> int:
             "page bounds, signed context, exact location grant, and read-only behavior are enforced",
             "the migration-459 aggregate summary still runs with the narrowed program columns",
             "runtime can call the bounded function but cannot read source tables; Directus cannot call it",
+            "migration 493 applies and replays the coarse consent-checked adoption phase summary",
+            "five progress-phase counts use distinct normalized consent-checked references and ignore non-consented events",
+            "the entire phase breakdown is suppressed when any populated phase has fewer than five references",
+            "the summary function hides missing and cross-location program IDs and enforces exact read grants",
+            "the summary output contains no participant, cohort, evidence, or identity fields",
+            "only the non-login reader receives the event-type column; runtime and Directus retain function-only boundaries",
         ],
     }
     try:
@@ -272,9 +436,13 @@ def main() -> int:
         psql(docker, container, migration_469)
         psql(docker, container, migration_469)
         psql(docker, container, ADOPTION_ACCEPTANCE)
+        detail_migration = DETAIL_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, detail_migration)
+        psql(docker, container, detail_migration)
+        psql(docker, container, ADOPTION_DETAIL_ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 7
-        print("PASS: migrations 459/466/467/468/469 apply, migration 469 replays, and seven grouped PostgreSQL checks passed")
+        evidence["acceptance_groups_passed"] = 13
+        print("PASS: migrations 459/466/467/468/469/493 apply; migrations 469 and 493 replay; 13 grouped PostgreSQL checks passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

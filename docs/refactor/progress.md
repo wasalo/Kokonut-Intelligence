@@ -12310,3 +12310,31 @@ Checklist: 723 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 Added `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations` under exact signed `solution_lifecycle:create` scope and active OIDC-to-person attribution. Migration 483 installs a dedicated non-login function owner and an append-only idempotency receipt; it accepts bounded pass/fail observations and evidence only for draft/ready gates on solutions originated at the exact location. Same-request retries return the original evaluation; different-location or changed-payload reuse fails. The create-grant-gated console form uses CSRF and no-store requests and explicitly preserves the independent gate-approval boundary.
 
 The focused Gateway, exact route-policy, and console selection passes 38 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migration 483 and passes eight grouped evaluation, scope, attribution, retry, and role-boundary checks. Candidate and legacy databases remain untouched; migration 483 is not rolled out. Checklist: 728 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending broader workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review ([contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/483_location_solution_gate_evaluation.sql); [tests](../tests/test_gateway_solution_lifecycle_gate_evaluations.py); [disposable check](../../scripts/check-solution-gate-evaluation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-evaluation-disposable.json)).
+
+
+### CAP-035 adoption event phase summary — 20 October 2026
+
+Added a location-scoped adoption event summary at
+`GET /operator/api/solution-lifecycle/{location_id}/adoption/{program_id}/events`.
+Migration 493 requires the exact signed location read grant and verifies the
+program target plus solution origin or explicit location link. It counts only
+consent-checked, normalized distinct pseudonymous references in five coarse
+phases. References may overlap across phases, so counts are not additive or
+verified person totals. If any populated phase has fewer than five references, all phase counts
+are withheld. Individual events, dates, cohorts, fidelity, support needs,
+outcomes, evidence, and identities remain private. The operator console exposes
+the summary through a no-store, same-origin action and fixed text rendering.
+
+The focused Gateway, console, route-policy, and migration-metadata selection passes 175 tests.
+Disposable PostgreSQL 16 applies and replays migration 493 and passes 13 grouped
+checks for authorization, location lineage, consent filtering, normalized
+counts, small-cohort suppression, and role boundaries. Ruff, compilation,
+capability validation, route inventory, and runtime SQL inventory pass.
+Candidate and legacy databases are untouched; migration 493 is not rolled out.
+The recorded consent marker is not proof of current consent, and participant
+level review, other adoption workflows, populated fixture parity, live
+OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
+Checklist: 738 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
+28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
+[migration](../schemas/postgres/493_location_solution_adoption_event_summary.sql);
+[evidence](builds/2026-10-20-recovery/cap-035-solution-adoption-event-summary-disposable.json).

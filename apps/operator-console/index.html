@@ -682,7 +682,7 @@
           <div id="solution-lifecycle-funding-rows"></div>
           <button id="solution-lifecycle-funding-more" class="secondary" type="button" hidden>Load more funding cases</button>
           <h3>Additional lifecycle status</h3>
-          <p class="muted">Choose a location-scoped status projection. Each view uses the existing read grant and omits evidence, narrative, and person-level details described in the lifecycle contract.</p>
+          <p class="muted">Choose a location-scoped status projection. Each view uses the existing read grant and omits evidence, narrative, and person-level details described in the lifecycle contract. Adoption event summaries show only coarse consent-checked phase counts and withhold the whole breakdown when any phase has fewer than five distinct references.</p>
           <div class="toolbar">
             <label for="solution-lifecycle-projection">Projection</label>
             <select id="solution-lifecycle-projection">
@@ -1338,6 +1338,7 @@
       let solutionLifecyclePendingFundingTrancheApproval = null;
       let solutionLifecycleProjectionRequestVersion = 0;
       let solutionLifecycleProjectionOffset = 0;
+      let solutionLifecycleAdoptionEventRequestVersion = 0;
       let solutionLifecycleLearningSourcesRequestVersion = 0;
       let solutionLifecycleLearningSourcesOffset = 0;
       let solutionLifecyclePendingLearningProposal = null;
@@ -3585,7 +3586,7 @@
         }
       }
 
-      function appendSolutionLifecycleSupplementalRecord(record, view) {
+      function appendSolutionLifecycleSupplementalRecord(record, view, locationId) {
         const article = document.createElement("article");
         const heading = document.createElement("h4");
         const details = document.createElement("dl");
@@ -3606,7 +3607,79 @@
           details.append(term, description);
         }
         article.append(heading, details);
+        if (view.route === "adoption" && typeof record.program_id === "string") {
+          const detailStatus = document.createElement("div");
+          detailStatus.className = "muted";
+          detailStatus.setAttribute("role", "status");
+          detailStatus.setAttribute("aria-live", "polite");
+          const detailButton = document.createElement("button");
+          detailButton.type = "button";
+          detailButton.className = "secondary";
+          detailButton.textContent = "View consented phase summary";
+          detailButton.addEventListener("click", () => loadSolutionLifecycleAdoptionEventSummary(
+            locationId, record.program_id, article, detailButton, detailStatus,
+          ));
+          article.append(detailButton, detailStatus);
+        }
         solutionLifecycleProjectionRows.append(article);
+      }
+
+      async function loadSolutionLifecycleAdoptionEventSummary(
+        locationId, programId, article, button, status,
+      ) {
+        const requestVersion = ++solutionLifecycleAdoptionEventRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)
+            || locationId !== solutionLifecycleLocation.value
+            || solutionLifecycleProjection.value !== "adoption"
+            || !article.isConnected) return;
+        button.disabled = true;
+        status.textContent = "Loading consented phase summary…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/${encodeURIComponent(programId)}/events`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } },
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location solution-lifecycle grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("This adoption program is no longer available for the selected location.");
+            throw new Error("The adoption phase summary could not be loaded. Retry when the service is available.");
+          }
+          const summary = await response.json();
+          if (requestVersion !== solutionLifecycleAdoptionEventRequestVersion
+              || locationId !== solutionLifecycleLocation.value
+              || solutionLifecycleProjection.value !== "adoption"
+              || !article.isConnected) return;
+          if (summary.breakdown_suppressed === true) {
+            status.textContent = "Phase breakdown withheld because at least one phase contains fewer than five distinct consent-checked references.";
+            return;
+          }
+          const details = document.createElement("dl");
+          for (const [label, field] of [
+            ["References with engagement events", "engagement_reference_count"],
+            ["References with commitment events", "commitment_reference_count"],
+            ["References with use events", "use_reference_count"],
+            ["References with advocacy events", "advocacy_reference_count"],
+            ["References with paused or abandoned events", "paused_or_abandoned_reference_count"],
+          ]) {
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            const count = summary[field];
+            description.textContent = Number.isSafeInteger(count) && count >= 0
+              ? `${count} distinct consent-checked references`
+              : "Unavailable";
+            details.append(term, description);
+          }
+          status.replaceChildren(document.createTextNode("Consent-checked adoption phase summary. Counts are distinct pseudonymous references, not verified people, and may overlap between phases."), details);
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleAdoptionEventRequestVersion
+              || !article.isConnected) return;
+          status.textContent = error.message;
+        } finally {
+          if (article.isConnected) button.disabled = false;
+        }
       }
 
       async function loadSolutionLifecycleProjection(append = false) {
@@ -3616,6 +3689,7 @@
           ? solutionLifecycleSupplementalViews[viewName]
           : null;
         const requestVersion = ++solutionLifecycleProjectionRequestVersion;
+        solutionLifecycleAdoptionEventRequestVersion += 1;
         if (!view || !solutionLifecycleLocations.has(locationId)) {
           solutionLifecycleProjectionRows.replaceChildren();
           solutionLifecycleProjectionMore.hidden = true;
@@ -3649,7 +3723,7 @@
               || locationId !== solutionLifecycleLocation.value
               || viewName !== solutionLifecycleProjection.value) return;
           const records = Array.isArray(result[view.responseKey]) ? result[view.responseKey] : [];
-          for (const record of records) appendSolutionLifecycleSupplementalRecord(record, view);
+          for (const record of records) appendSolutionLifecycleSupplementalRecord(record, view, locationId);
           solutionLifecycleProjectionOffset = Number.isInteger(result.next_offset)
             && result.next_offset > offset && result.next_offset <= 10000
             ? result.next_offset
