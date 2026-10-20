@@ -566,6 +566,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    comprehensive_status_match = re.fullmatch(
+        r"/operator/api/comprehensive-status/([0-9a-fA-F-]{36})", path
+    )
+    if comprehensive_status_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "comprehensive_status",
+            "action": "read",
+            "public": False,
+            "location_id": comprehensive_status_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     business_architecture_match = re.fullmatch(
         r"/operator/api/business-architecture/([0-9a-fA-F-]{36})/summary", path
     )
@@ -2597,6 +2610,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     from services.gateway.competitive_landscape_routes import (
         register_competitive_landscape_routes,
     )
+    from services.gateway.comprehensive_status_routes import register_comprehensive_status_routes
     from services.gateway.coordination_routes import register_coordination_routes
     from services.gateway.credit_custody_routes import register_credit_custody_routes
     from services.gateway.delphi_consultation_routes import register_delphi_consultation_routes
@@ -2648,6 +2662,7 @@ def create_auth_router(provider: OIDCOperatorProvider | None):
     register_management_work_routes(router, provider, run_in_threadpool, psycopg2)
     register_planning_budget_routes(router, provider, run_in_threadpool, psycopg2)
     register_business_architecture_routes(router, provider, run_in_threadpool, psycopg2)
+    register_comprehensive_status_routes(router, provider, run_in_threadpool, psycopg2)
     register_business_planning_routes(router, provider, run_in_threadpool, psycopg2)
     register_coordination_routes(router, provider, run_in_threadpool, psycopg2)
     register_solution_lifecycle_routes(router, provider, run_in_threadpool, psycopg2)

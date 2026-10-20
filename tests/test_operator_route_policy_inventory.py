@@ -136,6 +136,10 @@ _EXPECTED_OPERATOR_POLICIES = {
     ): _expected("business_architecture", "read", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
+        "/operator/api/comprehensive-status/11111111-1111-4111-8111-111111111111",
+    ): _expected("comprehensive_status", "read", scoped=True, location_id=_LOCATION_ID),
+    (
+        "GET",
         "/operator/api/business-planning/11111111-1111-4111-8111-111111111111/canvases",
     ): _expected("business_planning", "read", scoped=True, location_id=_LOCATION_ID),
     (

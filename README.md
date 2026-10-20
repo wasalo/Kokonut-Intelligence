@@ -197,7 +197,7 @@ Full deploy steps (local, production Caddy, Traefik) are in
 | | ARKIV parity | Time-scoped data (expires_at), origin transaction indexing, marketplace fee collection/distribution |
 | | GeoNode parity | Shapefile/KML import, raster metadata, CSW OGC Catalogue Service, ISO 19115 metadata, hierarchical thesaurus, Leaflet map viewer, geostories |
 | **External** | gRPC API | Type-safe external API with Protobuf schemas, server-side streaming (5s batching), API key auth, Buf codegen for Python/TypeScript, gRPC-web support |
-| | Business Model Canvas | 1-click BMC derivation from canonical tables; comprehensive status composing 14 per-location sections plus network-wide rollup |
+| | Business Model Canvas | 1-click BMC derivation from canonical tables; 14-section comprehensive status with an exact-location Gateway read and network-wide CLI rollup |
 | | State of Kokonut | Ecosystem report across locations with ecosystem-actor funding view; Mermaid + JSON visual timelines (ecosystem tree, Ikigai, farm phases, crop timelines) |
 
 > [!NOTE]

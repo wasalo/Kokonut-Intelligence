@@ -133,6 +133,12 @@ The browser session response includes only the signed-in operator's active
 grant tuples so the page can offer assigned locations. The report review grant
 is `report_snapshot_review:read`. Field Collector list/detail grants are
 `mobile_collection_review:read` and `mobile_collection_review:read_detail`.
+The comprehensive status read is a separate `GET
+/operator/api/comprehensive-status/{location_id}` operation requiring the
+exact `comprehensive_status:read` grant for that location. It generates the
+14-section report without saving or publishing it, accepts optional canonical
+date bounds, and returns `no-store` data capped at 512 KiB. Stakeholder classes
+receive no automatic grants. See the [Comprehensive Status read contract](comprehensive-status-kernel-read-contract.md).
 The Gateway checks each grant against the requested canonical location UUID;
 the mobile detail grant is intentionally separate from list access. Each
 read-only SQL query rechecks the active grant and binds record ID and location.

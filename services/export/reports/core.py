@@ -520,5 +520,8 @@ def generate_climate_impact(conn, location_id: str, period_start: str = None, pe
             {"title": p["title"], "section": p["section"], "version": p["version"]} for p in protocols
         ],
         "stored_summary": dict(summary_row) if summary_row else None,
+        "limitations": [
+            "Active operations protocols are shared platform reference metadata, not location-specific evidence.",
+        ],
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }

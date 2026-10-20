@@ -1,0 +1,48 @@
+{
+  "capability": "CAP-065",
+  "slice": "location-scoped-comprehensive-status-gateway-read",
+  "date": "2026-10-19",
+  "route": {
+    "method": "GET",
+    "path": "/operator/api/comprehensive-status/{location_id}",
+    "resource": "comprehensive_status",
+    "action": "read",
+    "location_scoped": true,
+    "public": false,
+    "network_wide_mode": false,
+    "response_limit_bytes": 524288
+  },
+  "behavior": [
+    "Validates operator/location UUIDs and canonical YYYY-MM-DD periods before opening the report-data connection; OIDC session and route-grant authorization is a separate Gateway check.",
+    "Establishes database-signed operator tenant context before invoking any report generator.",
+    "Runs the existing 14-section report in a read-only transaction with an eight-second statement timeout and a two-second lock timeout.",
+    "Returns no-store responses and exposes no default grant to DAO, guild, liquidity-provider, or community audiences.",
+    "Rejects generated JSON payloads larger than 512 KiB and does not persist, verify, publish, or attest reports."
+  ],
+  "verification": {
+    "command": "python3 -m pytest tests/test_gateway_comprehensive_status_reads.py tests/test_operator_route_policy_inventory.py tests/test_comprehensive_status.py tests/test_stakeholder_outcomes_scope.py tests/test_capital_accounting.py tests/test_state_of_kokonut.py tests/test_state_of_kokonut_graphs.py tests/test_farm_activity_summary_report.py -q",
+    "result": "59 passed",
+    "ruff": "passed",
+    "python_compileall": "passed",
+    "capability_matrix_check": "passed: 66 rows; 31 baseline-retained, 7 deployed, 28 prepared",
+    "runtime_sql_inventory": "refreshed and freshness check passed",
+    "report_source_query_helper_inventories": "refreshed and all three freshness checks passed",
+    "batch_checklist_count": "691 complete / 24 open"
+  },
+  "boundaries": {
+    "test_database_contacted": false,
+    "operator_auth_database_contacted_by_live_gateway": true,
+    "migration_added_or_applied": false,
+    "candidate_or_legacy_changed": false,
+    "provider_contacted": false,
+    "live_oidc_or_browser_verified": false,
+    "populated_output_parity_proven": false,
+    "default_audience_grant_created": false
+  },
+  "remaining_gates": [
+    "Provision an accountable operator with a tenant-qualified comprehensive_status:read grant for a test location.",
+    "Verify live OIDC denial and success, browser cache behavior, and the 512 KiB error boundary.",
+    "Compare the complete 14-section output against owner-selected populated reference reports.",
+    "Complete broader database ACL/RLS, recovery, and MAN-CAP-065 owner review."
+  ]
+}

@@ -58,9 +58,11 @@ expenses by native currency, and includes feedback only when it is public,
 consented, and has at least five identified respondents. Focused tests cover
 its source-selection rules and that the Gateway establishes signed context
 before suggestion reads. The Gateway now has a generated-draft path, but this
-does not prove populated-output parity. The fourteen-section status report
-remains separate, as do existing canvas edits and version history; those
-features still need Kernel routes and parity evidence.
+does not prove populated-output parity. The fourteen-section status report now
+has a separate location-scoped read route under
+`comprehensive_status:read`; its read contract is documented separately, and
+populated-output parity remains open. Existing canvas edits and version history
+still need Kernel routes and parity evidence.
 
 ## Verification boundary
 

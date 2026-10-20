@@ -1,3 +1,20 @@
+### CAP-065 Gateway comprehensive-status read — 19 October 2026
+
+`GET /operator/api/comprehensive-status/{location_id}` now generates the
+14-section report for one exact location under `comprehensive_status:read`.
+The OIDC route validates tenant-qualified access before report queries, uses a
+read-only transaction with statement/lock timeouts, rejects invalid periods
+before connecting, and caps the encoded response at 512 KiB. The location
+source audit suppresses the global stakeholder architecture view and bounds
+anti-capture policy counts; shared protocol metadata and the verified public
+governance view are documented. The focused Gateway and report selection
+passes 59 mocked tests, Ruff, and compilation. No database or migration was
+used. Populated output parity, role provisioning, live OIDC/browser, universal
+ACL/RLS, and MAN-CAP-065 review remain open. Checklist: 691 complete / 24 open;
+matrix: 31 baseline-retained, 7 deployed, 28 prepared. See the
+[read contract](comprehensive-status-kernel-read-contract.md), [tests](../tests/test_gateway_comprehensive_status_reads.py),
+and [evidence](builds/2026-10-19-recovery/cap-065-comprehensive-status-read.json).
+
 ### CAP-065 Gateway-generated BMC draft — 19 October 2026
 
 `POST /operator/api/business-planning/{location_id}/canvases/from-data` now
