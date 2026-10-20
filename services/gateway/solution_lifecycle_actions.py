@@ -647,6 +647,149 @@ def review_location_solution_adoption_program(
         connection.close()
 
 
+def list_location_solution_adoption_program_redesigns(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """List reviewed redesign decisions that can receive one new draft revision."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 50:
+        raise SolutionLifecycleActionInvalid("Adoption program revision page size is invalid")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 10000:
+        raise SolutionLifecycleActionInvalid("Adoption program revision page offset is invalid")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.location_solution_adoption_program_redesigns(
+                           %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, limit, offset),
+            )
+            rows = [_mapping(cursor, row) for row in cursor.fetchall()]
+        connection.commit()
+        has_more = len(rows) > limit
+        return {
+            "programs": rows[:limit],
+            "next_offset": offset + min(len(rows), limit),
+            "has_more": has_more,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def revise_location_solution_adoption_program(
+    operator_id: str,
+    location_id: str,
+    prior_program_id: str,
+    request_id: str,
+    adoption_pathway: str,
+    *,
+    local_adaptation_policy: str | None = None,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create a linked draft only after an independent redesign decision."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    prior_program_id = _normalize_uuid(prior_program_id, "adoption program")
+    request_id = _normalize_uuid(request_id, "request")
+    if (
+        not isinstance(adoption_pathway, str)
+        or not 1 <= len(adoption_pathway.strip()) <= 2000
+        or "\x00" in adoption_pathway
+    ):
+        raise SolutionLifecycleActionInvalid(
+            "Revised adoption pathway must contain 1 to 2,000 characters"
+        )
+    adoption_pathway = adoption_pathway.strip()
+    try:
+        if len(adoption_pathway.encode("utf-8")) > 4000:
+            raise SolutionLifecycleActionInvalid(
+                "Revised adoption pathway must fit within 4 KiB"
+            )
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid(
+            "Revised adoption pathway must be valid UTF-8 text"
+        ) from exc
+    if local_adaptation_policy is not None:
+        if not isinstance(local_adaptation_policy, str) or len(local_adaptation_policy) > 4000:
+            raise SolutionLifecycleActionInvalid(
+                "Revised local adaptation policy must be at most 4,000 characters"
+            )
+        if "\x00" in local_adaptation_policy:
+            raise SolutionLifecycleActionInvalid(
+                "Revised local adaptation policy cannot contain a null character"
+            )
+        try:
+            if len(local_adaptation_policy.encode("utf-8")) > 8000:
+                raise SolutionLifecycleActionInvalid(
+                    "Revised local adaptation policy must fit within 8 KiB"
+                )
+        except UnicodeEncodeError as exc:
+            raise SolutionLifecycleActionInvalid(
+                "Revised local adaptation policy must be valid UTF-8 text"
+            ) from exc
+        local_adaptation_policy = local_adaptation_policy.strip() or None
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Program revision requires acknowledgement that the reviewed redesign remains immutable"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.revise_location_solution_adoption_program(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id, prior_program_id, request_id, adoption_pathway,
+                    local_adaptation_policy, acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Adoption program revision returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def submit_location_solution_adopter_readiness(
     operator_id: str,
     location_id: str,

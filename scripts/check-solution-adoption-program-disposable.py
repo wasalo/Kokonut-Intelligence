@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise exact-location adoption-program workflows through migration 518."""
+"""Exercise exact-location adoption-program workflows through migration 519."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ PREPARATION_MIGRATION = ROOT / "schemas/postgres/515_location_solution_adoption_
 READINESS_MIGRATION = ROOT / "schemas/postgres/516_location_solution_adoption_readiness_review.sql"
 CONFIGURATION_MIGRATION = ROOT / "schemas/postgres/517_location_solution_configuration_draft_review.sql"
 PROGRAM_REVIEW_MIGRATION = ROOT / "schemas/postgres/518_location_solution_adoption_program_review.sql"
+PROGRAM_REVISION_MIGRATION = ROOT / "schemas/postgres/519_location_solution_adoption_program_revision.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json"
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
@@ -523,6 +524,132 @@ BEGIN
         'kokonut_security.review_location_solution_adoption_program(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
         'EXECUTE') THEN
         RAISE EXCEPTION 'Directus can execute adoption-program review';
+    END IF;
+END $$;
+"""
+
+PROGRAM_REVISION_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE prior_program UUID; created RECORD; replay RECORD; listed RECORD;
+        caught BOOLEAN := FALSE; visible_count BIGINT;
+BEGIN
+    SELECT program_id INTO prior_program FROM public.test_adoption_program_ids
+     WHERE test_key = 'pilot';
+    SELECT count(*) INTO visible_count
+      FROM kokonut_security.location_solution_adoption_program_redesigns(
+          'b0000000-0000-4000-8000-000000000001', 25, 0
+      );
+    IF visible_count <> 1 THEN
+        RAISE EXCEPTION 'eligible reviewed redesign was not listed for revision';
+    END IF;
+    SELECT * INTO listed FROM kokonut_security.location_solution_adoption_program_redesigns(
+        'b0000000-0000-4000-8000-000000000001', 25, 0
+    );
+    IF listed.program_id <> prior_program OR listed.next_revision_number <> 2
+       OR listed.adoption_pathway <> 'Prepare transition from the active pilot' THEN
+        RAISE EXCEPTION 'redesign revision listing omitted safe prior pathway context';
+    END IF;
+
+    SELECT * INTO created FROM kokonut_security.revise_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', prior_program,
+        'ab000000-0000-4000-8000-000000000091',
+        'Add a maintenance cooperative and seasonal support rotation.',
+        'Preserve the safety invariants and define escalation ownership.', TRUE
+    );
+    IF created.program_status <> 'draft' OR created.replayed
+       OR created.revision_number <> 2 OR created.prior_program_id <> prior_program THEN
+        RAISE EXCEPTION 'reviewed redesign did not create a linked second draft';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.revise_location_solution_adoption_program(
+        'b0000000-0000-4000-8000-000000000001', prior_program,
+        'ab000000-0000-4000-8000-000000000091',
+        'Add a maintenance cooperative and seasonal support rotation.',
+        'Preserve the safety invariants and define escalation ownership.', TRUE
+    );
+    IF NOT replay.replayed OR replay.program_id <> created.program_id
+       OR replay.revision_number <> created.revision_number THEN
+        RAISE EXCEPTION 'exact revision retry did not replay the original draft';
+    END IF;
+    BEGIN
+        caught := FALSE;
+        PERFORM * FROM kokonut_security.revise_location_solution_adoption_program(
+            'b0000000-0000-4000-8000-000000000001', prior_program,
+            'ab000000-0000-4000-8000-000000000091',
+            'Changed pathway on retry.', NULL, TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed revision request reuse was accepted'; END IF;
+
+    SELECT count(*) INTO visible_count
+      FROM kokonut_security.location_solution_adoption_program_redesigns(
+          'b0000000-0000-4000-8000-000000000001', 25, 0
+      );
+    IF visible_count <> 0 THEN RAISE EXCEPTION 'redesign with an existing child remained revisable'; END IF;
+
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.revise_location_solution_adoption_program(
+            'b0000000-0000-4000-8000-000000000001',
+            'c0000000-0000-4000-8000-000000000041',
+            'ab000000-0000-4000-8000-000000000092', 'Invalid source', NULL, TRUE
+        );
+    EXCEPTION WHEN SQLSTATE 'P0002' THEN caught := TRUE;
+             WHEN SQLSTATE '55000' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'non-program source was accepted as a revision'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+DECLARE
+    prior_status TEXT;
+    prior_program UUID;
+    revision_program UUID;
+    target_population JSONB;
+BEGIN
+    SELECT program_id INTO prior_program FROM public.test_adoption_program_ids
+     WHERE test_key = 'pilot';
+    SELECT revision_program_id INTO revision_program
+      FROM public.solution_adoption_program_revision
+     WHERE prior_program_id = prior_program
+       AND solution_id = 'c0000000-0000-4000-8000-000000000043'
+       AND revision_number = 2;
+    SELECT status INTO prior_status FROM public.solution_adoption_program
+     WHERE id = prior_program;
+    SELECT program.target_population INTO target_population
+      FROM public.solution_adoption_program AS program
+     WHERE program.id = revision_program;
+    IF prior_status <> 'redesign' OR revision_program IS NULL THEN
+        RAISE EXCEPTION 'revision overwrote the old review or failed to preserve lineage';
+    END IF;
+    IF target_population <> '{}'::JSONB THEN
+        RAISE EXCEPTION 'revision copied uncontrolled target population';
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_adoption_program_revision', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_adoption_program_revision_receipt', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_adoption_program_revision_receipt', 'SELECT') THEN
+        RAISE EXCEPTION 'runtime or Directus can read private revision lineage/receipts';
+    END IF;
+    IF pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.revise_location_solution_adoption_program(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
+        'EXECUTE') OR pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.location_solution_adoption_program_redesigns(UUID,INTEGER,INTEGER)',
+        'EXECUTE') THEN
+        RAISE EXCEPTION 'Directus can execute Kernel revision functions';
     END IF;
 END $$;
 """
@@ -1038,11 +1165,11 @@ def main() -> int:
     container = f"kokonut-solution-adoption-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name, CONFIGURATION_MIGRATION.name, PROGRAM_REVIEW_MIGRATION.name],
+        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name, CONFIGURATION_MIGRATION.name, PROGRAM_REVIEW_MIGRATION.name, PROGRAM_REVISION_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 513 through 517 apply and replay idempotently in order",
+            "migrations 513 through 519 apply and replay idempotently in order",
             "migration 515 allows draft preparation from pilot_active before the adoption-ready gate",
             "migration 516 expires historical unreviewed ready rows while preserving their audit records",
             "draft creation requires signed exact-location create context and an active human identity",
@@ -1076,6 +1203,10 @@ def main() -> int:
             "submission metadata cannot be edited outside its lifecycle transition",
             "runtime and Directus cannot access private submission or review receipts",
             "program decision does not change solution stage or launch adoption",
+            "only reviewed redesign decisions can create a linked immutable new draft",
+            "revision listing is exact-location, bounded, and excludes roots with an existing child",
+            "revision retries replay exactly; changed payload reuse and branching fail closed",
+            "the source redesign remains unchanged and direct runtime/Directus access to revision lineage and receipts is denied",
         ],
     }
     try:
@@ -1107,13 +1238,17 @@ def main() -> int:
         program_review_text = PROGRAM_REVIEW_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, program_review_text)
         psql(docker, container, program_review_text)
+        program_revision_text = PROGRAM_REVISION_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, program_revision_text)
+        psql(docker, container, program_revision_text)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, READINESS_ACCEPTANCE)
         psql(docker, container, CONFIGURATION_ACCEPTANCE)
         psql(docker, container, PROGRAM_REVIEW_ACCEPTANCE)
+        psql(docker, container, PROGRAM_REVISION_ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 36
-        print("PASS: migrations 513–518 apply/replay, adoption preparation, readiness, configuration and program review, retries, lifecycle, and privilege checks passed")
+        evidence["acceptance_groups_passed"] = 42
+        print("PASS: migrations 513–519 apply/replay, adoption preparation, readiness, configuration, program review and revision lineage, retries, lifecycle, and privilege checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

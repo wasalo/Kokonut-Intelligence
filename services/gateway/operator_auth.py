@@ -1069,6 +1069,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_adoption_program_redesigns_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/programs/redesigns",
+        path,
+    )
+    if solution_lifecycle_adoption_program_redesigns_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "create",
+            "public": False,
+            "location_id": solution_lifecycle_adoption_program_redesigns_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_adoption_program_drafts_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/programs/drafts",
         path,
@@ -1121,6 +1135,20 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "action": "review",
             "public": False,
             "location_id": solution_lifecycle_adoption_program_review_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_adoption_program_revise_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/programs/([0-9a-fA-F-]{36})/revise",
+        path,
+    )
+    if solution_lifecycle_adoption_program_revise_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "create",
+            "public": False,
+            "location_id": solution_lifecycle_adoption_program_revise_match.group(1),
             "scope_required": True,
             "operator_auth": True,
         }

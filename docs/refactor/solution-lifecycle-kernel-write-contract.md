@@ -1117,13 +1117,22 @@ trigger rejects direct status writes unless the exact matching receipt exists;
 shared runtime and Directus roles have no program DML or private receipt access.
 `enablement_ready` approves the program pathway only: the existing stage gate
 still requires independently reviewed location readiness and configuration.
-The `redesign` outcome preserves the reviewed record; a revised pathway is
-proposed as a new draft. Participant consent, event capture, downstream
-program revision, populated legacy parity, and launch remain separate work.
+The `redesign` outcome preserves the reviewed record. Migration 519 adds an
+exact-location `GET .../adoption/programs/redesigns` list and
+`POST .../adoption/programs/{program_id}/revise` action under exact
+`solution_lifecycle:create`. Only a current, independently reviewed redesign
+for an active exact-origin solution can be revised. Each predecessor has at
+most one child; revision lineage and retry receipts are private, and an exact
+retry returns the same new draft. The new draft preserves empty target scope,
+starts at revision number 2 or later, and must be submitted and independently
+reviewed. It does not alter the predecessor's pathway, review, readiness,
+configuration, consent, or solution stage. Participant consent/event capture,
+populated legacy parity, and launch remain separate work.
 
-Disposable PostgreSQL 16 applies and replays migrations 513–518 and checks
+Disposable PostgreSQL 16 applies and replays migrations 513–519 and checks
 creator-only submission, exact grants, idempotency and collision handling,
 self-review denial, decision outcomes, direct status trigger enforcement,
+redesign-only revision, non-branching lineage, revision retry/collision,
 receipt privacy, and unchanged solution stage. The candidate and legacy
-databases were not touched; migration 518 is not rolled out. Evidence is in
+databases were not touched; migrations 518 and 519 are not rolled out. Evidence is in
 [`cap-035-adoption-program-disposable.json`](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json).

@@ -1751,6 +1751,52 @@ def test_adoption_program_submission_and_review_console_contract():
     assert "Retry the unchanged adoption-program decision before changing locations." in location_change
 
 
+def test_adoption_program_redesign_revision_console_contract():
+    source = CONSOLE.read_text(encoding="utf-8")
+    for element_id in (
+        "solution-lifecycle-adoption-program-revision",
+        "solution-lifecycle-adoption-program-revisions-load",
+        "solution-lifecycle-adoption-program-revisions-more",
+        "solution-lifecycle-adoption-program-revisions-rows",
+    ):
+        assert f'id="{element_id}"' in source
+    assert "solutionLifecycleAdoptionProgramRevision.hidden = !hasSolutionLifecycleCreate" in source
+
+    render = _function(
+        source,
+        "function appendSolutionLifecycleAdoptionProgramRevision(",
+        "async function loadSolutionLifecycleAdoptionProgramRedesigns(",
+    )
+    assert "textContent" in render and "dataset.adoptionProgramRevision" in render
+    assert "Replacement adoption pathway" in render
+    assert "redesign remains immutable" in render
+    assert "innerHTML" not in render
+
+    load = _function(
+        source,
+        "async function loadSolutionLifecycleAdoptionProgramRedesigns(",
+        "solutionLifecycleAdoptionProgramRevisionsRows.addEventListener(\"submit\"",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in load
+    assert "/adoption/programs/redesigns?${params}" in load
+    assert 'credentials: "same-origin"' in load and 'cache: "no-store"' in load
+    assert "solutionLifecycleAdoptionProgramRevisionsRequestVersion" in load
+    assert "locationId !== solutionLifecycleLocation.value" in load
+
+    submit = _function(
+        source,
+        "solutionLifecycleAdoptionProgramRevisionsRows.addEventListener(\"submit\"",
+        "solutionLifecycleAdoptionProgramRevisionsLoad.addEventListener(\"click\"",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert "/adoption/programs/${encodeURIComponent(priorProgramId)}/revise" in submit
+    assert "solutionLifecyclePendingAdoptionProgramRevisions" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert "Retry the unchanged adoption-program revision before changing locations." in source
+    assert "innerHTML" not in submit
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:

@@ -12799,3 +12799,28 @@ and stable retry IDs. The focused Gateway/route-policy/console selection passes
 remain untouched; migration 518 is not rolled out. CAP-035 remains prepared.
 Checklist: 770 complete / 24 open; capability matrix remains 31 baseline-retained,
 7 deployed, and 28 prepared across 66 rows.
+
+### CAP-035 reviewed adoption-program revision — 20 October 2026
+
+Migration 519 adds a bounded exact-location list of reviewed `redesign` decisions
+and a create-grant action that makes one linked replacement draft from the
+selected predecessor. The database requires an active exact-origin solution,
+an active human, a matching independent redesign receipt, and no existing child;
+the predecessor's decision and text remain immutable. Revision lineage and
+idempotency receipts are private, and every new draft must still be submitted
+and independently reviewed. The operator console presents the prior pathway as
+context and uses safe text nodes, CSRF/no-store, exact-grant gating, paging,
+location-change guards, and stable retry IDs.
+
+The focused Gateway, route-policy, console, and migration-metadata selection
+passes 127 tests. Ruff and Python compilation pass. Disposable PostgreSQL 16
+applies and replays migrations 513–519 with 42 grouped workflow, lineage,
+retry, lifecycle, and privilege checks ([evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json)). Candidate and legacy databases remain untouched;
+migration 519 is not rolled out. CAP-035 remains prepared pending consent-aware
+participant events, populated legacy parity, live ZITADEL/browser acceptance,
+broader runtime ACL/RLS, recovery, and MAN-CAP-035 owner acceptance. Checklist:
+771 complete / 24 open; capability matrix remains 31 baseline-retained,
+7 deployed, and 28 prepared across 66 rows. See the [source-to-route audit](solution-lifecycle-source-route-audit.md),
+[write contract](solution-lifecycle-kernel-write-contract.md), [migration](../schemas/postgres/519_location_solution_adoption_program_revision.sql),
+[Gateway tests](../tests/test_gateway_solution_lifecycle_adoption_program_revision.py), and
+[console tests](../tests/test_operator_console_solution_lifecycle.py).
