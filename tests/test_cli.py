@@ -6,6 +6,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
+import click
 import pytest
 from typer.testing import CliRunner
 
@@ -61,6 +62,53 @@ def test_unified_cli_help_lists_mounted_and_native_groups() -> None:
         assert name in result.output
     for name in ("kernel", "dao", "treasury"):
         assert name in result.output
+
+
+def test_native_typer_command_surfaces_match_standalone_apps() -> None:
+    from typer.main import get_command
+
+    from services.core import cli as kernel_cli
+    from services.governance import cli as governance_cli
+    from services.treasury import cli as treasury_cli
+
+    root = get_command(unified_cli.app)
+    root_context = click.Context(root)
+
+    def command_surface(command: click.Command, *, root: bool = False) -> tuple[object, ...]:
+        parameters = tuple(
+            (
+                parameter.name,
+                parameter.type.name,
+                parameter.required,
+                parameter.nargs,
+                tuple(parameter.opts),
+                tuple(parameter.secondary_opts),
+                getattr(parameter, "is_flag", False),
+                getattr(parameter, "multiple", False),
+            )
+            for parameter in command.params
+            if not root or parameter.name not in {"install_completion", "show_completion"}
+        )
+        if not hasattr(command, "list_commands") or not hasattr(command, "get_command"):
+            return (command.name, command.help, parameters)
+        context = click.Context(command)
+        children = tuple(
+            (name, command_surface(command.get_command(context, name)))
+            for name in command.list_commands(context)
+        )
+        if root:
+            return (parameters, children)
+        return (command.name, command.help, parameters, children)
+
+    for group_name, native_app in (
+        ("kernel", kernel_cli.app),
+        ("dao", governance_cli.app),
+        ("treasury", treasury_cli.app),
+    ):
+        standalone = get_command(native_app)
+        mounted = root.get_command(root_context, group_name)
+        assert mounted is not None
+        assert command_surface(mounted, root=True) == command_surface(standalone, root=True), group_name
 
 
 def test_every_mounted_group_exposes_help() -> None:

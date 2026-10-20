@@ -1,3 +1,24 @@
+### CAP-039 successful offline unified-CLI output parity — 20 October 2026
+
+Added real non-help output comparisons for four offline mounted commands:
+`agents list`, `ingestion --list`, `mobile-forms validate`, and
+`audit-spool status` on a missing temporary journal. Each standalone module
+and unified entry returns the same status and output. The synthetic form
+manifest reports `database_write: false`; the audit status query leaves the
+missing journal absent. The run sets an unavailable SOPS identity and closed
+loopback PostgreSQL URL; no database or provider is contacted. The focused
+selection passes 14 tests (four new successful-output parity cases, a native
+command-tree comparison, and the existing unified CLI contract tests). The
+standalone/unified command trees and leaf parameters match for `kernel`, `dao`,
+and `treasury`; shell-completion toggles are intentionally disabled under the
+unified root. CAP-039 remains deployed, not accepted: 33 mounted groups still
+need successful-path/output and dependency classification, and privileged
+operator-action boundaries and MAN-CAP-039 review remain open. Checklist:
+788 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, and 28 prepared across 66 rows. See the [CLI contract](unified-cli-kernel-contract.md),
+[tests](../../tests/test_unified_cli_success_contract.py), and
+[evidence](builds/2026-10-20-recovery/cap-039-offline-success-parity.json).
+
 ### CAP-038 authenticated AI-summary drafts and human review — 20 October 2026
 
 Migration 522 adds an OIDC `ai_summary:draft` route that uses the existing

@@ -1,0 +1,49 @@
+{
+  "capability": "CAP-039",
+  "check": "offline-success-output-parity",
+  "date": "2026-10-20",
+  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py -q",
+  "result": "passed",
+  "summary": {
+    "tests_passed": 14,
+    "new_success_path_cases": 4,
+    "native_groups_compared": ["kernel", "dao", "treasury"],
+    "database_or_provider_calls": 0
+  },
+  "environment": {
+    "sops_identity": "intentionally unavailable",
+    "postgresql_url": "closed loopback port",
+    "provider_credentials": "not accessed"
+  },
+  "groups": [
+    {
+      "name": "agents",
+      "arguments": ["list"],
+      "dependencies": ["local task catalogue"],
+      "output": "newline-delimited task keys"
+    },
+    {
+      "name": "ingestion",
+      "arguments": ["--list"],
+      "dependencies": ["local static registry"],
+      "output": "sorted tool names and descriptions"
+    },
+    {
+      "name": "mobile-forms",
+      "arguments": ["validate", "--manifest", "synthetic temporary JSON file"],
+      "dependencies": ["local file", "local schema validation"],
+      "output": "JSON manifest summary with database_write=false"
+    },
+    {
+      "name": "audit-spool",
+      "arguments": ["status", "--path", "missing temporary path"],
+      "dependencies": ["local filesystem", "SQLite only if journal exists"],
+      "output": "JSON capacity summary without event contents",
+      "side_effect": "missing journal remains absent"
+    }
+  ],
+  "limitations": [
+    "Successful parity is covered for four offline commands only.",
+    "Other mounted legacy commands, database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
+  ]
+}
