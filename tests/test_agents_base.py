@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from unittest import mock
 
+import pytest
+
 from services.agents.base import SynthesisAgent, agent_cli, run_fetch
 
 LOCATION_ID = "a0000000-0000-4000-8000-000000000001"
@@ -74,6 +76,26 @@ def test_run_store_inserts_draft_and_commits():
     assert "INSERT INTO ai_summary" in sql
     assert params[2] == "dummy"  # summary_type
     assert params[4] == ["dummy_table"]  # source_tables
+
+
+def test_store_summary_rejects_missing_synthesis_before_cursor_access():
+    conn = _FakeConn()
+
+    with pytest.raises(ValueError, match="summary.synthesis must be a non-empty string"):
+        _DummyAgent().store_summary(conn, {"location_id": LOCATION_ID})
+
+    assert conn.cursor_obj.executed is None
+    assert conn.committed is False
+
+
+def test_store_summary_rejects_malformed_location_before_cursor_access():
+    conn = _FakeConn()
+
+    with pytest.raises(ValueError, match="Invalid task input format for field: location_id"):
+        _DummyAgent().store_summary(conn, {"location_id": "bad-id", "synthesis": "draft"})
+
+    assert conn.cursor_obj.executed is None
+    assert conn.committed is False
 
 
 def test_run_uses_sentinel_subject_id_for_locationless_summary():

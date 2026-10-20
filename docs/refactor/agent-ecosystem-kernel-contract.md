@@ -47,6 +47,12 @@ run without decrypting `.env.sops`.
   validate declared top-level task inputs before work begins. The validator
   checks required fields, primitive types, UUIDs, and exact ISO dates; it does
   not validate nested payloads or replace authentication and tenant grants.
+- Both shared and standalone draft persistence helpers repeat their write-side
+  checks before requesting a cursor. They reject malformed task scope and
+  incomplete/empty persisted content, invalid source-table metadata, or an
+  invalid model-version label; callers cannot bypass the runner's validation
+  by invoking the low-level write helper directly. These checks still create
+  drafts only and do not approve or publish them.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.
 - Optional Directus hooks keep their role and lifecycle checks. The action-log

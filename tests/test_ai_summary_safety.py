@@ -9,6 +9,49 @@ import pytest
 from services.agents import ai_summary
 
 
+def test_store_summary_rejects_malformed_location_before_cursor_access():
+    conn = mock.Mock()
+    with mock.patch.object(ai_summary, "assert_agent_action_allowed") as safety:
+        with pytest.raises(ValueError, match="Invalid task input format for field: location_id"):
+            ai_summary.store_summary(conn, "not-a-uuid", "operations", "draft", [])
+
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
+    safety.assert_not_called()
+
+
+def test_store_summary_rejects_invalid_content_before_cursor_access():
+    conn = mock.Mock()
+    with pytest.raises(ValueError, match="non-empty string"):
+        ai_summary.store_summary(
+            conn,
+            "a0000000-0000-4000-8000-000000000001",
+            "operations",
+            "   ",
+            ["harvest_event"],
+        )
+
+    conn.cursor.assert_not_called()
+    conn.commit.assert_not_called()
+
+
+def test_store_summary_validates_and_commits_a_draft():
+    conn = mock.Mock()
+    conn.cursor.return_value.fetchone.return_value = ("stored-id",)
+
+    result = ai_summary.store_summary(
+        conn,
+        "a0000000-0000-4000-8000-000000000001",
+        "operations",
+        "synthetic draft",
+        ["harvest_event"],
+    )
+
+    assert result == "stored-id"
+    conn.cursor.return_value.execute.assert_called_once()
+    conn.commit.assert_called_once_with()
+
+
 def test_run_ai_summary_does_not_store_invalid_output():
     conn = mock.Mock()
     generator = mock.Mock(

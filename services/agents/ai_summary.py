@@ -264,6 +264,22 @@ def store_summary(conn, location_id: str, summary_type: str, content: str,
                   source_tables: list, model_version: str = "rules-v1") -> str:
     """Store AI summary in the database as a draft."""
     validate_task_capabilities("ai_summary_synthesis")
+    errors = validate_task_inputs(
+        "ai_summary_synthesis",
+        {"location_id": location_id, "summary_type": summary_type, "store": True},
+    )
+    if errors:
+        raise ValueError("; ".join(errors))
+    if summary_type not in GENERATORS:
+        raise ValueError("Unsupported AI summary type")
+    if not isinstance(content, str) or not content.strip():
+        raise ValueError("AI summary content must be a non-empty string")
+    if not isinstance(source_tables, list) or any(
+        not isinstance(table, str) or not table for table in source_tables
+    ):
+        raise ValueError("AI summary source_tables must be a list of non-empty strings")
+    if not isinstance(model_version, str) or not model_version.strip():
+        raise ValueError("AI summary model_version must be a non-empty string")
     assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
     cur = conn.cursor()
     summary_id = str(uuid.uuid4())

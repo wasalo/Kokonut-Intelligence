@@ -60,10 +60,28 @@ class SynthesisAgent:
     ) -> str:
         """Store a draft ``ai_summary`` for human review (no publication)."""
         validate_task_capabilities(self.task_key)
+        errors = validate_output(self.task_key, {"summary": summary})
+        if errors:
+            raise ValueError("; ".join(errors))
+        synthesis = summary.get("synthesis")
+        if not isinstance(synthesis, str) or not synthesis.strip():
+            raise ValueError(
+                "Invalid agent draft: summary.synthesis must be a non-empty string"
+            )
+        inputs = {"store": True}
+        location_id = summary.get("location_id")
+        if location_id is not None:
+            inputs["location_id"] = location_id
+        errors = validate_task_inputs(self.task_key, inputs)
+        if errors:
+            raise ValueError("; ".join(errors))
+        version = model_version or self.model_version
+        if not isinstance(version, str) or not version.strip():
+            raise ValueError("Invalid agent draft: model_version must be a non-empty string")
         assert_agent_action_allowed("create", "ai_summary", {"status": "draft"})
         summary_id = str(uuid.uuid4())
         # Location-optional agents fall back to a sentinel subject id.
-        subject_id = summary.get("location_id") or "00000000-0000-0000-0000-000000000000"
+        subject_id = location_id or "00000000-0000-0000-0000-000000000000"
         cur = conn.cursor()
         cur.execute(
             """
@@ -79,7 +97,7 @@ class SynthesisAgent:
                 self.summary_type,
                 summary["synthesis"],
                 self.source_tables,
-                model_version or self.model_version,
+                version,
             ),
         )
         stored_id = str(cur.fetchone()[0])
