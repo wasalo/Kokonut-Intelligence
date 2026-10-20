@@ -301,6 +301,11 @@ The submission Gateway path and operator console now feed a separate
 independent-review queue and decision. Migration 498 stores immutable review
 receipts and reviewer attribution, and only an accepted report completes the
 replication. Migration 497 remains unrolled out, as does migration 498.
+The replication status view also exposes a completion-report form only to
+operators with exact location read and submit grants. It validates the allowed
+outcome, evidence maturity, bounded summary, and JSON evidence array; CSRF,
+acknowledgement, and unchanged-request retry IDs are required. Submission leaves
+the report proposed and the replication active until independent review.
 
 ## Replication completion report review
 
@@ -326,8 +331,9 @@ exact review-grant gating, text-only detail rendering, same-origin no-store
 requests, CSRF on decisions, and stable request IDs for uncertain retries.
 
 The focused replication proposal/review/activation/completion, console, and
-route-policy regression selection passes 88 tests; a separate Gateway,
-console, route-policy, and migration-metadata selection passes 86 tests. Ruff,
+route-policy regression selection passes 89 tests; a separate Gateway,
+console, route-policy, and migration-metadata selection passes 87 tests. The
+console suite passes 41 tests, including inline JavaScript syntax. Ruff,
 Python compilation, inline JavaScript syntax, dependency-group alignment,
 capability validation, runtime SQL inventory validation, and diff checks pass.
 Disposable PostgreSQL 16 applies and replays migration 498 with the ordered

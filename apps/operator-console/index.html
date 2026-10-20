@@ -1486,6 +1486,7 @@
       let solutionLifecycleReplicationReviewDetailRecord = null;
       let solutionLifecyclePendingReplicationReview = null;
       let solutionLifecycleReplicationReviewSubmitting = false;
+      let solutionLifecyclePendingReplicationCompletionProposal = null;
       let solutionLifecycleReplicationCompletionReviewOffset = 0;
       let solutionLifecycleReplicationCompletionReviewRequestVersion = 0;
       let solutionLifecycleReplicationCompletionReviewDetailVersion = 0;
@@ -3782,6 +3783,13 @@
                 && solutionLifecyclePendingReplicationActivation?.replicationId === record.replication_id))) {
           article.append(createSolutionLifecycleReplicationActivationForm(record, locationId));
         }
+        if (view.route === "replications"
+            && record.replication_status === "active"
+            && solutionLifecycleSubmitLocations.has(locationId)
+            && typeof record.replication_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(record.replication_id)) {
+          article.append(createSolutionLifecycleReplicationCompletionProposalForm(record, locationId));
+        }
         solutionLifecycleProjectionRows.append(article);
       }
 
@@ -3894,6 +3902,200 @@
               : error.message;
           } finally {
             submit.disabled = false;
+          }
+        });
+        return form;
+      }
+
+      function createSolutionLifecycleReplicationCompletionProposalForm(record, locationId) {
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        const heading = document.createElement("h5");
+        heading.textContent = "Submit completion report";
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = "This submits a private report for independent review. It does not complete the replication or change the solution stage.";
+        const outcomeLabel = document.createElement("label");
+        outcomeLabel.textContent = "Reported outcome";
+        const outcome = document.createElement("select");
+        outcome.required = true;
+        for (const [value, label] of [
+          ["successful", "Successful"], ["failed", "Failed"], ["mixed", "Mixed"], ["inconclusive", "Inconclusive"]
+        ]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          outcome.append(option);
+        }
+        const maturityLabel = document.createElement("label");
+        maturityLabel.textContent = "Evidence maturity (1–6)";
+        const maturity = document.createElement("select");
+        maturity.required = true;
+        for (let level = 1; level <= 6; level += 1) {
+          const option = document.createElement("option");
+          option.value = String(level);
+          option.textContent = String(level);
+          maturity.append(option);
+        }
+        const summaryLabel = document.createElement("label");
+        summaryLabel.textContent = "Outcome summary (10–4,000 characters)";
+        const summary = document.createElement("textarea");
+        summary.minLength = 10;
+        summary.maxLength = 4000;
+        summary.required = true;
+        const evidenceLabel = document.createElement("label");
+        evidenceLabel.textContent = "Evidence references (JSON array, up to 100 items / 64 KiB)";
+        const evidence = document.createElement("textarea");
+        evidence.maxLength = 65536;
+        evidence.required = true;
+        evidence.spellcheck = false;
+        evidence.value = "[]";
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(
+          acknowledgement,
+          document.createTextNode(" I confirm this report is ready for independent review and does not itself complete the replication.")
+        );
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Submit completion report";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        const pending = solutionLifecyclePendingReplicationCompletionProposal;
+        if (pending?.locationId === locationId && pending?.replicationId === record.replication_id) {
+          outcome.value = pending.payload.outcome;
+          maturity.value = String(pending.payload.evidence_maturity);
+          summary.value = pending.payload.outcome_summary;
+          evidence.value = JSON.stringify(pending.payload.evidence, null, 2);
+          acknowledgement.checked = true;
+          status.textContent = "The prior response may be uncertain. Retry the unchanged report to reuse its request ID.";
+        }
+        form.append(
+          heading, explanation,
+          outcomeLabel, outcome,
+          maturityLabel, maturity,
+          summaryLabel, summary,
+          evidenceLabel, evidence,
+          acknowledgementLabel, submit, status
+        );
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          if (solutionLifecycleLocation.value !== locationId
+              || !solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleSubmitLocations.has(locationId)) {
+            status.textContent = "Both exact location read access and the location submit grant are required.";
+            return;
+          }
+          if (!acknowledgement.checked) {
+            status.textContent = "Confirm that this report is ready for independent review.";
+            return;
+          }
+          let evidenceValue;
+          try {
+            evidenceValue = JSON.parse(evidence.value);
+          } catch {
+            status.textContent = "Evidence references must be valid JSON.";
+            return;
+          }
+          if (!Array.isArray(evidenceValue) || evidenceValue.length > 100) {
+            status.textContent = "Evidence must be a JSON array with at most 100 items.";
+            return;
+          }
+          const encodedEvidence = JSON.stringify(evidenceValue);
+          if (new TextEncoder().encode(encodedEvidence).length > 65536) {
+            status.textContent = "Evidence references exceed the 64 KiB limit.";
+            return;
+          }
+          const payload = {
+            outcome: outcome.value,
+            evidence_maturity: Number(maturity.value),
+            outcome_summary: summary.value.trim(),
+            evidence: evidenceValue,
+            acknowledged: true
+          };
+          if (payload.outcome_summary.length < 10 || payload.outcome_summary.length > 4000) {
+            status.textContent = "Outcome summary must contain 10 to 4,000 non-whitespace characters.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before submitting the report.";
+            return;
+          }
+          const fingerprint = JSON.stringify({ replication_id: record.replication_id, ...payload });
+          if (solutionLifecyclePendingReplicationCompletionProposal
+              && (solutionLifecyclePendingReplicationCompletionProposal.locationId !== locationId
+                || solutionLifecyclePendingReplicationCompletionProposal.replicationId !== record.replication_id)) {
+            status.textContent = "Resolve the previous completion-report request before submitting another report.";
+            return;
+          }
+          if (solutionLifecyclePendingReplicationCompletionProposal
+              && solutionLifecyclePendingReplicationCompletionProposal.fingerprint !== fingerprint) {
+            status.textContent = "The prior response may be uncertain. Retry the unchanged report before editing it.";
+            return;
+          }
+          if (!solutionLifecyclePendingReplicationCompletionProposal) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to submit the report.";
+              return;
+            }
+            solutionLifecyclePendingReplicationCompletionProposal = {
+              locationId,
+              replicationId: record.replication_id,
+              request_id: requestId,
+              fingerprint,
+              payload
+            };
+          }
+          const requestId = solutionLifecyclePendingReplicationCompletionProposal.request_id;
+          for (const field of form.querySelectorAll("input, select, textarea")) field.disabled = true;
+          submit.disabled = true;
+          status.textContent = "Submitting the private completion report for independent review…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/${encodeURIComponent(record.replication_id)}/completion-proposals`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "X-CSRF-Token": csrf
+                },
+                body: JSON.stringify({ ...payload, request_id: requestId })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              solutionLifecyclePendingReplicationCompletionProposal = null;
+              throw new Error("Your session or location submit grant is no longer valid.");
+            }
+            if (!response.ok) {
+              if (response.status < 500) solutionLifecyclePendingReplicationCompletionProposal = null;
+              throw new Error(result.error || "The completion report could not be submitted.");
+            }
+            solutionLifecyclePendingReplicationCompletionProposal = null;
+            const message = result.replayed === true
+              ? "The same completion report is already pending independent review."
+              : "Completion report submitted for independent review. Replication remains active and the solution stage is unchanged.";
+            await loadSolutionLifecycleProjection();
+            solutionLifecycleProjectionStatus.textContent = message;
+            await loadSolutionLifecycleSummary();
+          } catch (error) {
+            status.textContent = solutionLifecyclePendingReplicationCompletionProposal
+              ? `${error.message} The result may be uncertain; retry this unchanged report to reuse its request ID.`
+              : error.message;
+          } finally {
+            submit.disabled = false;
+            for (const field of form.querySelectorAll("input, select, textarea")) {
+              field.disabled = Boolean(solutionLifecyclePendingReplicationCompletionProposal);
+            }
           }
         });
         return form;
@@ -9948,6 +10150,11 @@
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
       solutionLifecycleLocation.addEventListener("change", () => {
+        if (solutionLifecyclePendingReplicationCompletionProposal) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingReplicationCompletionProposal.locationId;
+          solutionLifecycleProjectionStatus.textContent = "Resolve the pending completion-report request before changing locations.";
+          return;
+        }
         if (solutionLifecyclePendingReplicationCompletionReview) {
           solutionLifecycleLocation.value = solutionLifecyclePendingReplicationCompletionReview.locationId;
           solutionLifecycleProjectionStatus.textContent = "Resolve the pending completion review request before changing locations.";
@@ -10067,6 +10274,7 @@
         solutionLifecycleReplicationReviewReason.required = false;
         solutionLifecyclePendingReplicationReview = null;
         solutionLifecycleReplicationReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+        solutionLifecyclePendingReplicationCompletionProposal = null;
         solutionLifecycleReplicationCompletionReviewRequestVersion += 1;
         solutionLifecycleReplicationCompletionReviewDetailVersion += 1;
         solutionLifecycleReplicationCompletionReviewOffset = 0;

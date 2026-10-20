@@ -946,6 +946,51 @@ def test_replication_completion_decision_is_acknowledged_csrf_protected_and_retr
     assert "innerHTML" not in review
 
 
+def test_replication_completion_submission_is_active_row_submit_grant_gated_and_bounded():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleSupplementalRecord(",
+        "function createSolutionLifecycleReplicationActivationForm(",
+    )
+    assert 'view.route === "replications"' in renderer
+    assert 'record.replication_status === "active"' in renderer
+    assert "solutionLifecycleSubmitLocations.has(locationId)" in renderer
+    assert "record.replication_id" in renderer
+    assert "createSolutionLifecycleReplicationCompletionProposalForm(record, locationId)" in renderer
+
+    form = _function(
+        source,
+        "function createSolutionLifecycleReplicationCompletionProposalForm(",
+        "async function loadSolutionLifecycleAdoptionEventSummary(",
+    )
+    assert '"successful"' in form and '"failed"' in form
+    assert 'evidence_maturity: Number(maturity.value)' in form
+    assert 'summary.minLength = 10' in form and 'summary.maxLength = 4000' in form
+    assert 'evidence.maxLength = 65536' in form
+    assert "evidenceValue.length > 100" in form
+    assert "TextEncoder().encode(encodedEvidence).length > 65536" in form
+    assert "solutionLifecycleSubmitLocations.has(locationId)" in form
+    assert "solutionLifecycleLocations.has(locationId)" in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert "/completion-proposals`" in form
+    assert 'method: "POST"' in form
+    assert 'credentials: "same-origin"' in form and 'cache: "no-store"' in form
+    assert "solutionLifecyclePendingReplicationCompletionProposal.fingerprint !== fingerprint" in form
+    assert "solutionLifecyclePendingReplicationCompletionProposal.request_id" in form
+    assert "The result may be uncertain" in form
+    assert "Replication remains active and the solution stage is unchanged" in form
+    assert "does not complete the replication" in form
+    assert "innerHTML" not in renderer + form
+
+    location_change = _function(
+        source,
+        'solutionLifecycleLocation.addEventListener("change", () => {',
+        'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
+    )
+    assert "Resolve the pending completion-report request" in location_change
+
+
 def test_inline_javascript_parses_when_node_is_available():
     node = shutil.which("node")
     if node is None:
