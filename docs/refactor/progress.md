@@ -1,8 +1,10 @@
 ### CAP-039 expanded unified-CLI success parity — 20 October 2026
 
-Expanded standalone/unified output comparisons across 34 mounted groups: eight
-offline invocations, twenty-six database-backed reads with stubbed query
+Expanded standalone/unified output comparisons across 36 mounted groups: eight
+offline invocations, twenty-eight database-backed reads with stubbed query
 results, and one tenant-preflight invocation with a synthetic aggregate report.
+Field Collector media cleanup and reconciliation now have dry-run parity using
+synthetic database/provider inventories; neither path deletes media.
 Exit status, parsed filters, and JSON/text output match. No database or provider
 is contacted. The governance proposal, role,
 link, tactical, and tension read CLIs close owned connections after successful
@@ -15,17 +17,18 @@ list and export snapshot listing are also compared with fake database results.
 Migration source validation runs offline without credentials or PostgreSQL.
 The tenant-preflight CLI forwards a location filter and renders a synthetic
 aggregate-only service report; the real dedicated-role and SQL checks remain
-separate evidence.
+separate evidence. Cleanup does not initialize object storage, and reconciliation
+uses only fake object-store and database results.
 Forecast, CRISP, and Threatcasting close resources if queries fail; Delphi
-closes its cursor and connection on either outcome. The selection passes 103
-tests across CLI parity, CLI contracts, and Delphi service coverage, including
-35 successful-output invocations and the
+closes its cursor and connection on either outcome. The selection passes 133
+tests across CLI parity, CLI contracts, Delphi, and media service coverage, including
+37 successful-output invocations and the
 native Typer tree comparison. Standalone/unified command trees and leaf
 parameters match for `kernel`, `dao`, and `treasury`; shell-completion toggles
 remain intentionally disabled under the unified root. CAP-039 remains
-deployed, not accepted: three mounted groups still need successful-path/output
+deployed, not accepted: one mounted group still needs successful-path/output
 and dependency classification, and privileged operator-action boundaries and
-MAN-CAP-039 review remain open. Checklist: 797 complete / 24 open; matrix:
+MAN-CAP-039 review remain open. Checklist: 799 complete / 24 open; matrix:
 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
 [CLI contract](unified-cli-kernel-contract.md),
 [tests](../../tests/test_unified_cli_success_contract.py), and

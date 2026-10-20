@@ -2,12 +2,12 @@
   "capability": "CAP-039",
   "check": "offline-success-output-parity",
   "date": "2026-10-20",
-  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py -q",
+  "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py tests/test_mobile_media_cleanup.py tests/test_mobile_media_reconcile.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 103,
-    "new_success_path_cases": 35,
-    "database_backed_or_aggregate_service_stubbed_cases": 27,
+    "tests_passed": 133,
+    "new_success_path_cases": 37,
+    "database_backed_or_aggregate_service_stubbed_cases": 29,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -241,10 +241,24 @@
       "dependencies": ["read-only PostgreSQL inventory service stubbed at the CLI boundary"],
       "output": "Aggregate-only JSON inventory",
       "database_behavior": "Standalone and unified JSON match; the location filter is forwarded and the synthetic report does not emit its UUID. No database is contacted by this CLI parity case."
+    },
+    {
+      "name": "mobile-media-cleanup",
+      "arguments": ["--limit", "17"],
+      "dependencies": ["PostgreSQL eligibility-count query stubbed"],
+      "output": "JSON expiry preview",
+      "database_behavior": "Standalone and unified dry-run output match; the connection closes and object storage is not initialized. No media is deleted."
+    },
+    {
+      "name": "mobile-media-reconcile",
+      "arguments": ["--older-than-hours", "48", "--limit", "9"],
+      "dependencies": ["registered-key query and private object inventory stubbed"],
+      "output": "JSON orphan preview without object keys",
+      "database_behavior": "Standalone and unified dry-run output match; the fake connection closes, object keys remain private, and no deletion occurs."
     }
   ],
   "limitations": [
-    "Successful parity is covered for eight offline command invocations and twenty-seven PostgreSQL-backed or aggregate-service-stubbed commands, across 34 mounted groups.",
+    "Successful parity is covered for eight offline command invocations and twenty-nine PostgreSQL-backed or aggregate-service-stubbed commands, across 36 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

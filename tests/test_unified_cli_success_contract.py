@@ -224,6 +224,181 @@ def test_database_backed_mobile_tenant_preflight_output_matches_with_stubbed_inv
     assert unified.stderr == ""
 
 
+def test_database_backed_mobile_media_cleanup_dry_run_matches_without_loading_provider(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.mobile import media_cleanup
+
+    connections = []
+    provider_calls = []
+
+    class FakeResult:
+        def all(self):
+            return [{"eligible_count": 3}]
+
+    class FakeConnection:
+        closed = False
+        queries = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.closed = True
+            return False
+
+        def execute(self, sql, _params=None):
+            self.queries.append(" ".join(sql.lower().split()))
+            return FakeResult()
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    def unexpected_provider_call():
+        provider_calls.append(True)
+        raise AssertionError("dry-run must not configure private object storage")
+
+    monkeypatch.setattr(media_cleanup, "get_connection", make_connection)
+    monkeypatch.setattr(media_cleanup, "create_media_store", unexpected_provider_call)
+    arguments = ["--limit", "17"]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.mobile.media_cleanup", *arguments]
+        media_cleanup.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(
+        unified_cli.app,
+        ["mobile-media-cleanup", "--", *arguments],
+    )
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == {
+        "mode": "dry-run",
+        "eligible_count": 3,
+        "limit": 17,
+        "expired_count": 0,
+    }
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all("mobile_media_upload" in connection.queries[0] for connection in connections)
+    assert provider_calls == []
+    assert unified.stderr == ""
+
+
+def test_database_and_provider_backed_mobile_media_reconcile_dry_run_matches_without_deleting(
+    monkeypatch,
+    capsys,
+) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.mobile import media_reconcile
+    from services.mobile.media_storage import PrivateMediaObject
+
+    registered_key = "private/field-collector/synthetic/device/registered.jpg"
+    orphan_key = "private/field-collector/synthetic/device/orphan.jpg"
+    now = datetime.now(timezone.utc)
+    modified = now - timedelta(days=3)
+    connections = []
+    stores = []
+
+    class FakeResult:
+        def all(self):
+            return [{"object_key": registered_key}]
+
+    class FakeConnection:
+        closed = False
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.closed = True
+            return False
+
+        def execute(self, sql, _params=None):
+            assert "select object_key from mobile_media_upload" in " ".join(sql.lower().split())
+            return FakeResult()
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    class FakeStore:
+        def __init__(self):
+            self.objects = [
+                PrivateMediaObject("registered-id", modified, "object", registered_key),
+                PrivateMediaObject("orphan-id", modified, "object", orphan_key),
+            ]
+            self.deleted = []
+
+        def list_private_objects(self):
+            return list(self.objects)
+
+        def object_id_for_key(self, key):
+            return "registered-id" if key == registered_key else "orphan-id"
+
+        def delete_orphan(self, item):
+            self.deleted.append(item.object_id)
+
+    def make_store():
+        store = FakeStore()
+        stores.append(store)
+        return store
+
+    monkeypatch.setattr(media_reconcile, "get_connection", make_connection)
+    monkeypatch.setattr(media_reconcile, "create_media_store", make_store)
+    arguments = ["--older-than-hours", "48", "--limit", "9"]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.mobile.media_reconcile", *arguments]
+        media_reconcile.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(
+        unified_cli.app,
+        ["mobile-media-reconcile", "--", *arguments],
+    )
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    report = json.loads(unified.output)
+    assert report == {
+        "mode": "dry-run",
+        "provider_object_count": 2,
+        "registered_object_count": 1,
+        "unregistered_object_count": 1,
+        "eligible_count": 1,
+        "too_young_count": 0,
+        "limit": 9,
+        "older_than_hours": 48,
+        "deleted_count": 0,
+        "skipped_registered_count": 0,
+        "skipped_changed_count": 0,
+    }
+    assert len(connections) == len(stores) == 2
+    assert all(connection.closed for connection in connections)
+    assert all(store.deleted == [] for store in stores)
+    assert registered_key not in unified.output
+    assert orphan_key not in unified.output
+    assert unified.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,
