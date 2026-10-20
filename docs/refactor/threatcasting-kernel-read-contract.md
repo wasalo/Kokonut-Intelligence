@@ -14,8 +14,9 @@ and closes the transaction without committing. Responses use `Cache-Control:
 no-store` and `Vary: Cookie`.
 
 The list route is keyset paginated and capped at 100 plans. Detail is capped at
-500 milestones and returns only the plan header, narrative title/type, threat
-name, milestone state, dependency IDs, and entered completion evidence. It does
+500 milestones and a 1 MiB encoded response size; oversized details return HTTP
+413. It returns only the plan header, narrative title/type, threat name,
+milestone state, dependency IDs, and entered completion evidence. It does
 not include arbitrary metadata, full narrative stories, or feedback payloads.
 Every response includes `advisory_only: true`. These routes cannot create or
 edit plans, change milestone state, publish a recommendation, or execute an

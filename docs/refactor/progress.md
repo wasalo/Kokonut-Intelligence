@@ -1,3 +1,20 @@
+### CAP-026 advisory backcast console read — 20 October 2026
+
+The operator console now lists location-granted backcast plans and reads
+milestone details with exact `threatcasting:read` authorization. Keyset paging,
+same-origin no-store reads, stale-response guards, text-only rendering, and the
+`advisory_only` marker are preserved; dependency IDs are not displayed and no
+approval/write actions are present. The Gateway now caps encoded plan details
+at 1 MiB and returns HTTP 413 when they exceed the limit, in addition to the
+existing 500-milestone bound. The focused console, Gateway, and route-policy
+selection passes 23 tests, including oversize rejection/connection cleanup and
+JavaScript syntax validation; Ruff and matrix validation pass. No database or
+provider was contacted. CAP-026 remains prepared pending live OIDC/browser,
+populated parity, broader ACL/RLS, and MAN-CAP-026 owner acceptance. Checklist:
+719 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
+[Read contract](threatcasting-kernel-read-contract.md);
+[console checks](../tests/test_operator_console_threatcasting.py).
+
 ### CAP-028 strategy plans operator-console read — 20 October 2026
 
 The operator console now lists bounded location strategy plans under exact

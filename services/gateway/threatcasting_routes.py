@@ -9,6 +9,7 @@ def register_threatcasting_routes(router, provider, run_in_threadpool, psycopg2)
     from services.common.tenant_context import TenantContextDenied
     from services.gateway.threatcasting_reads import (
         ThreatcastingReadInvalid,
+        ThreatcastingReadTooLarge,
         get_location_backcast_plan,
         list_location_backcast_plans,
     )
@@ -86,6 +87,12 @@ def register_threatcasting_routes(router, provider, run_in_threadpool, psycopg2)
             )
         except TenantContextDenied:
             return tenant_denied()
+        except ThreatcastingReadTooLarge:
+            return JSONResponse(
+                status_code=413,
+                content={"error": "Backcast plan exceeds the maximum readable response size"},
+                headers=headers,
+            )
         except ThreatcastingReadInvalid as exc:
             return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
         except psycopg2.Error as exc:

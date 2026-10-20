@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (20 October 2026):** 718 checklist items complete and 24
-open (742 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (20 October 2026):** 719 checklist items complete and 24
+open (743 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1598,3 +1598,7 @@ Schema inventory matches; empty workloads do not close complete recovery accepta
 ### CAP-028 strategy plans operator-console read — 20 October 2026
 
 - [x] Surface bounded location strategy plans in the operator console under exact `strategy:read` grants. Plan cards render allowlisted metadata and aggregate objective, initiative, investment, coherence, review, and allocation counts; plan and parent identifiers, rationale, costs, and evidence remain out of view. Structural gate status is explicitly labeled as non-approval. Same-origin no-store reads, stale-location guards, and 25-row paging are used. The focused console, Gateway, and route-policy selection passes 21 tests, including inline JavaScript syntax; Ruff and matrix validation pass. No candidate or legacy database was contacted; migration 452 is not rolled out. CAP-028 remains prepared pending workflow parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and MAN-CAP-028 review ([read contract](strategy-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [checks](../../tests/test_operator_console_strategy.py)). Checklist: 718 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.
+
+### CAP-026 advisory backcast console read — 20 October 2026
+
+- [x] Add a grant-gated operator-console view for location-scoped backcast summaries and milestone detail under exact `threatcasting:read`. The view uses keyset pagination, same-origin no-store requests, stale-response guards, text-only rendering, and preserves `advisory_only`; it exposes no write or approval actions and displays dependency counts without dependency IDs. The Gateway now caps encoded plan detail at 1 MiB and returns 413 for oversized records, in addition to its 500-milestone limit. The focused console, Gateway, and route-policy selection passes 23 tests, including oversized-response cleanup and inline JavaScript syntax; Ruff passes. No database or provider was contacted. CAP-026 remains prepared pending live OIDC/browser, populated output/evidence parity, broader ACL/RLS, and MAN-CAP-026 review ([contract](threatcasting-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [checks](../../tests/test_operator_console_threatcasting.py)). Checklist: 719 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.

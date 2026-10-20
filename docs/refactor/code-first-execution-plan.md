@@ -3,20 +3,20 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-028 now has
-read-only location strategy plan cards in the operator console, gated by exact
-`strategy:read` grants. Fixed metadata and aggregate execution fields are
-shown; plan/parent identifiers, rationale, cost, and evidence are not rendered.
-Structural gate status is labeled as a database check, not human approval.
-Same-origin no-store reads, stale-location guards, and 25-row paging are in
-place. The focused console/Gateway/route-policy selection passes 21 tests,
-including JavaScript syntax validation; Ruff and capability checks pass. No
-database was used. CAP-028 remains prepared pending workflow parity, populated
-fixtures, live OIDC/browser, broader ACL/RLS, and MAN-CAP-028 review. Checklist:
-718 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared.
-Evidence: [read contract](strategy-kernel-read-contract.md),
+**Latest implementation slice — 20 October 2026:** CAP-026 now has a
+grant-gated operator-console view for location-scoped advisory backcasts and
+milestone evidence. Keyset-paged list/detail reads use same-origin no-store
+requests, stale-response guards, fixed text rendering, and no mutation or
+approval actions. A new 1 MiB detail-response ceiling returns HTTP 413 for
+oversized plans while retaining the 500-milestone limit. The focused
+console/Gateway/route-policy selection passes 23 tests, including size-bound
+and JavaScript syntax checks; Ruff passes. No database or provider was used.
+CAP-026 remains prepared pending live OIDC/browser, populated output/evidence
+parity, broader ACL/RLS, and MAN-CAP-026 review. Checklist: 719 complete / 24
+open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read
+contract](threatcasting-kernel-read-contract.md),
 [console](../apps/operator-console/index.html), and
-[console checks](../tests/test_operator_console_strategy.py).
+[console checks](../tests/test_operator_console_threatcasting.py).
 
 **Previous implementation slice — 20 October 2026:** CAP-035 now has a
 read-only operator-console overview for its location-scoped lifecycle summary,

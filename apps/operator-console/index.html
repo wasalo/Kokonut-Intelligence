@@ -701,6 +701,23 @@
           <div id="strategy-plan-cards"></div>
           <button id="strategy-plan-more" class="secondary" type="button" hidden>Load more plans</button>
         </section>
+        <section id="threatcasting-backcasts" hidden aria-labelledby="threatcasting-backcasts-heading">
+          <h2 id="threatcasting-backcasts-heading">Backcasting plans</h2>
+          <p class="muted">Read-only advisory plans and milestone evidence for the granted location. This view cannot approve a plan, change milestone state, publish a recommendation, or trigger an intervention. Narrative feedback and arbitrary metadata are excluded.</p>
+          <div class="toolbar">
+            <label for="threatcasting-location">Granted location</label>
+            <select id="threatcasting-location"></select>
+            <button id="threatcasting-refresh" type="button">Refresh backcasts</button>
+          </div>
+          <p id="threatcasting-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="threatcasting-plans"></div>
+          <button id="threatcasting-more" class="secondary" type="button" hidden>Load more plans</button>
+          <section id="threatcasting-detail" hidden aria-labelledby="threatcasting-detail-heading">
+            <h3 id="threatcasting-detail-heading">Backcast plan detail</h3>
+            <p id="threatcasting-detail-status" class="muted" role="status" aria-live="polite"></p>
+            <div id="threatcasting-detail-content"></div>
+          </section>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -749,7 +766,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, competitive landscape, strategy, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, competitive landscape, strategy, threatcasting, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -974,6 +991,20 @@
       let strategyPlanLocations = new Set();
       let strategyPlanRequestVersion = 0;
       let strategyPlanOffset = 0;
+      const threatcastingBackcasts = document.querySelector("#threatcasting-backcasts");
+      const threatcastingLocation = document.querySelector("#threatcasting-location");
+      const threatcastingStatus = document.querySelector("#threatcasting-status");
+      const threatcastingPlans = document.querySelector("#threatcasting-plans");
+      const threatcastingMore = document.querySelector("#threatcasting-more");
+      const threatcastingDetail = document.querySelector("#threatcasting-detail");
+      const threatcastingDetailStatus = document.querySelector("#threatcasting-detail-status");
+      const threatcastingDetailContent = document.querySelector("#threatcasting-detail-content");
+      let threatcastingLocations = new Set();
+      let threatcastingListRequestVersion = 0;
+      let threatcastingDetailRequestVersion = 0;
+      let threatcastingNextCursor = null;
+      let threatcastingSelectedPlanId = null;
+      const threatcastingPlansById = new Map();
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -2081,6 +2112,190 @@
         }
       }
 
+      function appendThreatcastingDefinitionList(parent, fields) {
+        const list = document.createElement("dl");
+        for (const [label, value] of fields) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = value === null || value === undefined
+            ? "—"
+            : typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+          list.append(term, description);
+        }
+        parent.append(list);
+      }
+
+      function appendThreatcastingPlanCard(plan) {
+        if (typeof plan.id !== "string" || threatcastingPlansById.has(plan.id)) return;
+        threatcastingPlansById.set(plan.id, plan);
+        const card = document.createElement("article");
+        const heading = document.createElement("h3");
+        heading.textContent = typeof plan.plan_name === "string" && plan.plan_name
+          ? plan.plan_name
+          : "Untitled backcasting plan";
+        card.append(heading);
+        appendThreatcastingDefinitionList(card, [
+          ["Narrative title", plan.narrative_title],
+          ["Narrative type", plan.narrative_type],
+          ["Threat", plan.threat_name],
+          ["Future state", plan.future_state_description],
+          ["Current gap", plan.current_gap_analysis],
+          ["Created", plan.created_at],
+          ["Updated", plan.updated_at],
+          ["Milestones", plan.milestone_count],
+          ["Completed milestones", plan.completed_milestone_count],
+          ["Blocked milestones", plan.blocked_milestone_count],
+          ["Decision status", "Advisory only"]
+        ]);
+        const detailButton = document.createElement("button");
+        detailButton.type = "button";
+        detailButton.className = "secondary";
+        detailButton.textContent = "View milestones and evidence";
+        detailButton.addEventListener("click", () => loadThreatcastingPlanDetail(plan.id));
+        card.append(detailButton);
+        threatcastingPlans.append(card);
+      }
+
+      function renderThreatcastingPlanDetail(plan) {
+        threatcastingDetailContent.replaceChildren();
+        document.querySelector("#threatcasting-detail-heading").textContent =
+          `Backcast plan: ${String(plan.plan_name || "Untitled plan")}`;
+        const header = document.createElement("section");
+        const headerHeading = document.createElement("h4");
+        headerHeading.textContent = "Advisory plan context";
+        header.append(headerHeading);
+        appendThreatcastingDefinitionList(header, [
+          ["Narrative title", plan.narrative_title],
+          ["Narrative type", plan.narrative_type],
+          ["Threat", plan.threat_name],
+          ["Future state", plan.future_state_description],
+          ["Current gap", plan.current_gap_analysis],
+          ["Created", plan.created_at],
+          ["Updated", plan.updated_at],
+          ["Decision status", plan.advisory_only === true ? "Advisory only" : "Unavailable"]
+        ]);
+        threatcastingDetailContent.append(header);
+        const milestones = Array.isArray(plan.milestones) ? plan.milestones : [];
+        for (const milestone of milestones) {
+          const article = document.createElement("article");
+          const heading = document.createElement("h4");
+          heading.textContent = `Milestone ${String(milestone.milestone_order ?? "—")}`;
+          const dependencyCount = Array.isArray(milestone.dependencies) ? milestone.dependencies.length : 0;
+          article.append(heading);
+          appendThreatcastingDefinitionList(article, [
+            ["Description", milestone.milestone_description],
+            ["Target date", milestone.milestone_target_date],
+            ["State", milestone.milestone_status],
+            ["Prerequisite links", dependencyCount],
+            ["Responsible party", milestone.responsible_party],
+            ["Resource requirements", milestone.resource_requirements],
+            ["Completion evidence", milestone.completion_evidence],
+            ["Created", milestone.created_at],
+            ["Updated", milestone.updated_at]
+          ]);
+          threatcastingDetailContent.append(article);
+        }
+        if (!milestones.length) {
+          const empty = document.createElement("p");
+          empty.className = "muted";
+          empty.textContent = "This plan has no milestones.";
+          threatcastingDetailContent.append(empty);
+        }
+      }
+
+      async function loadThreatcastingPlanDetail(planId) {
+        const locationId = threatcastingLocation.value;
+        const requestVersion = ++threatcastingDetailRequestVersion;
+        if (!threatcastingLocations.has(locationId) || !threatcastingPlansById.has(planId)) return;
+        threatcastingSelectedPlanId = planId;
+        threatcastingDetail.hidden = false;
+        threatcastingDetailStatus.textContent = "Loading advisory plan detail…";
+        threatcastingDetailContent.replaceChildren();
+        try {
+          const response = await fetch(
+            `/operator/api/threatcasting/${encodeURIComponent(locationId)}/backcast-plans/${encodeURIComponent(planId)}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("This plan is no longer available in the granted location.");
+            if (response.status === 413) throw new Error("This plan exceeds the safe response size and cannot be opened in the console.");
+            throw new Error("Backcast plan detail could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== threatcastingDetailRequestVersion
+              || locationId !== threatcastingLocation.value
+              || planId !== threatcastingSelectedPlanId) return;
+          if (result.advisory_only !== true) throw new Error("This plan is not available as an advisory read.");
+          renderThreatcastingPlanDetail(result);
+          threatcastingDetailStatus.textContent = "Read-only advisory content. No plan or milestone state was changed.";
+        } catch (error) {
+          if (requestVersion !== threatcastingDetailRequestVersion) return;
+          threatcastingDetailContent.replaceChildren();
+          threatcastingDetailStatus.textContent = error.message;
+        }
+      }
+
+      async function loadThreatcastingPlans(append = false) {
+        const locationId = threatcastingLocation.value;
+        const requestVersion = ++threatcastingListRequestVersion;
+        if (!threatcastingLocations.has(locationId)) return;
+        threatcastingStatus.textContent = "Loading advisory backcasting plans…";
+        threatcastingMore.disabled = true;
+        if (!append) {
+          threatcastingPlans.replaceChildren();
+          threatcastingPlansById.clear();
+          threatcastingNextCursor = null;
+          threatcastingSelectedPlanId = null;
+          threatcastingDetailRequestVersion += 1;
+          threatcastingDetail.hidden = true;
+          threatcastingDetailContent.replaceChildren();
+        }
+        try {
+          const params = new URLSearchParams({ limit: "50" });
+          if (append && threatcastingNextCursor) {
+            params.set("cursor_created_at", threatcastingNextCursor.created_at);
+            params.set("cursor_plan_id", threatcastingNextCursor.plan_id);
+          }
+          const response = await fetch(
+            `/operator/api/threatcasting/${encodeURIComponent(locationId)}/backcast-plans?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Backcasting plans are unavailable for this location.");
+            throw new Error("Backcasting plans could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== threatcastingListRequestVersion
+              || locationId !== threatcastingLocation.value) return;
+          if (result.advisory_only !== true) throw new Error("This response is not an advisory read.");
+          const items = Array.isArray(result.items) ? result.items : [];
+          for (const plan of items) appendThreatcastingPlanCard(plan);
+          const nextCursor = result.next_cursor;
+          threatcastingNextCursor = nextCursor
+            && typeof nextCursor.created_at === "string"
+            && typeof nextCursor.plan_id === "string"
+            ? nextCursor
+            : null;
+          threatcastingMore.hidden = threatcastingNextCursor === null;
+          threatcastingStatus.textContent = threatcastingPlansById.size
+            ? `${threatcastingPlansById.size} location backcasting plans shown. All outputs remain advisory.`
+            : "No backcasting plans are available for this location.";
+        } catch (error) {
+          if (requestVersion !== threatcastingListRequestVersion) return;
+          if (!append) threatcastingPlans.replaceChildren();
+          threatcastingStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === threatcastingListRequestVersion) threatcastingMore.disabled = false;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -2160,6 +2375,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           strategyPlanLocations = new Set(strategyPlanLocationIds);
+          const threatcastingLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "threatcasting" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          threatcastingLocations = new Set(threatcastingLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -2464,6 +2685,17 @@
             }
             strategyPlanSummary.hidden = false;
             await loadStrategyPlanSummaries();
+            hasAuthorizedSurface = true;
+          }
+          if (threatcastingLocationIds.length) {
+            for (const locationId of threatcastingLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              threatcastingLocation.append(option);
+            }
+            threatcastingBackcasts.hidden = false;
+            await loadThreatcastingPlans();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -5634,6 +5866,9 @@
       document.querySelector("#strategy-plan-refresh").addEventListener("click", () => loadStrategyPlanSummaries());
       strategyPlanLocation.addEventListener("change", () => loadStrategyPlanSummaries());
       strategyPlanMore.addEventListener("click", () => loadStrategyPlanSummaries(true));
+      document.querySelector("#threatcasting-refresh").addEventListener("click", () => loadThreatcastingPlans());
+      threatcastingLocation.addEventListener("change", () => loadThreatcastingPlans());
+      threatcastingMore.addEventListener("click", () => loadThreatcastingPlans(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

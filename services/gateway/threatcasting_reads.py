@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from functools import partial
 from typing import Callable
@@ -11,10 +12,15 @@ from services.common.tenant_context import set_operator_tenant_context
 
 _MAX_PAGE_SIZE = 100
 _MAX_DETAIL_MILESTONES = 500
+_MAX_DETAIL_RESPONSE_BYTES = 1_048_576
 
 
 class ThreatcastingReadInvalid(ValueError):
     """A threatcasting identifier, page size, or cursor is invalid."""
+
+
+class ThreatcastingReadTooLarge(ValueError):
+    """A backcast detail exceeds the bounded response size."""
 
 
 def _connection_factory() -> Callable:
@@ -226,6 +232,11 @@ def get_location_backcast_plan(
                 )
         plan["milestones"] = milestone_rows
         plan["advisory_only"] = True
+        response_bytes = len(
+            json.dumps(plan, default=str, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        )
+        if response_bytes > _MAX_DETAIL_RESPONSE_BYTES:
+            raise ThreatcastingReadTooLarge("Backcast plan exceeds the maximum readable response size")
         return plan
     finally:
         try:

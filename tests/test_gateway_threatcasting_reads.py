@@ -232,6 +232,32 @@ def test_plan_detail_returns_only_scoped_plan_and_milestone_evidence():
     assert conn.rolled_back and conn.closed
 
 
+def test_plan_detail_rejects_response_over_one_mib_and_closes_connection():
+    plan_row = (
+        PLAN_ID, LOCATION_ID, "Drought resilience path",
+        "A future state with resilient water systems",
+        "Current water storage and governance gaps",
+        CREATED_AT, CREATED_AT,
+        NARRATIVE_ID, "desirable", "Resilient watershed", THREAT_ID, "Drought",
+    )
+    oversized_milestone = (
+        MILESTONE_ID, 1, "x" * reads._MAX_DETAIL_RESPONSE_BYTES, None, "completed", [],
+        None, None, None, CREATED_AT, CREATED_AT,
+    )
+    conn = _Connection([(DETAIL_COLUMNS, [plan_row]), (MILESTONE_COLUMNS, [oversized_milestone])])
+
+    with patch.object(reads, "set_operator_tenant_context", lambda *_args, **_kwargs: None):
+        with pytest.raises(reads.ThreatcastingReadTooLarge):
+            reads.get_location_backcast_plan(
+                OPERATOR_ID,
+                LOCATION_ID,
+                PLAN_ID,
+                connection_factory=lambda: conn,
+            )
+
+    assert conn.rolled_back and conn.closed
+
+
 def test_detail_missing_from_location_returns_not_found_shape():
     conn = _Connection([(DETAIL_COLUMNS, [])])
     with patch.object(reads, "set_operator_tenant_context", lambda *_args, **_kwargs: None):
@@ -276,6 +302,14 @@ def test_http_read_returns_no_store_and_advisory_response(monkeypatch):
         lambda *_args, **_kwargs: {"location_id": LOCATION_ID, "advisory_only": True, "items": []},
     )
 
+    def oversized_detail(*_args, **_kwargs):
+        raise reads.ThreatcastingReadTooLarge("oversized")
+
+    monkeypatch.setattr(
+        "services.gateway.threatcasting_reads.get_location_backcast_plan",
+        oversized_detail,
+    )
+
     router = APIRouter()
     async def run_in_threadpool(function, *args, **kwargs):
         return function(*args, **kwargs)
@@ -292,7 +326,12 @@ def test_http_read_returns_no_store_and_advisory_response(monkeypatch):
 
     with TestClient(router_app) as client:
         response = client.get(f"/operator/api/threatcasting/{LOCATION_ID}/backcast-plans")
+        detail_response = client.get(
+            f"/operator/api/threatcasting/{LOCATION_ID}/backcast-plans/{PLAN_ID}"
+        )
 
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert response.json()["advisory_only"] is True
+    assert detail_response.status_code == 413
+    assert detail_response.headers["cache-control"] == "no-store"

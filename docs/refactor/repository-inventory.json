@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "5f023c878e2d37750e3a1da205f85324c4e811a0",
+  "baseline_commit": "52e956c1ac0e44f62540a38927a8af00af294dfd",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -1665,13 +1665,13 @@
       "source": "services/gateway/strategy_routes.py"
     },
     {
-      "line": 37,
+      "line": 38,
       "method": "GET",
       "path": "/operator/api/threatcasting/{location_id}/backcast-plans",
       "source": "services/gateway/threatcasting_routes.py"
     },
     {
-      "line": 70,
+      "line": 71,
       "method": "GET",
       "path": "/operator/api/threatcasting/{location_id}/backcast-plans/{plan_id}",
       "source": "services/gateway/threatcasting_routes.py"
@@ -5120,6 +5120,7 @@
     "tests/test_operator_console_sequential_evidence.py",
     "tests/test_operator_console_solution_lifecycle.py",
     "tests/test_operator_console_strategy.py",
+    "tests/test_operator_console_threatcasting.py",
     "tests/test_operator_mobile_review.py",
     "tests/test_operator_oidc_provider_contract.py",
     "tests/test_operator_report_review.py",
