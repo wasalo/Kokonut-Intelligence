@@ -3,6 +3,17 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
+**Latest implementation slice — 20 October 2026:** The optional Directus
+weekly callback now identifies its real effect: a grouped read of verified,
+source-eligible farm activity that returns location-week rows and persists no
+snapshots. Its log no longer reports snapshots as created. A focused hook
+regression exercises the registered callback, query filters/grouping, and
+absence of a write call. Directus hook and schedule ownership/output parity
+remain open; the daily NOI callback still runs through the Directus database
+connection and needs reconciliation with the default-off signed per-location
+NOI worker. See the [parity inventory](directus-parity-inventory.md) and
+[evidence](builds/2026-10-20-recovery/directus-weekly-schedule-effect.json).
+
 **Latest code-first audit slice — 20 October 2026:** The optional Directus parity inventory now includes a deterministic source report for literal permission declarations. It counts 175 declared rule rows, of which 125 use wildcard fields and 50 use explicit field lists; it identifies 28 wildcard Auditor declarations, confirms zero literal `farm_activity` permission insertions, and records four permission updates plus one deletion. The generated JSON is freshness-checked in CI, and parser regressions cover quoted delimiters and SQL comments. This is not effective deployed permission state and does not alter role access; conditional seed logic, later mutations, custom policies, relation parity, hook effects, and runtime acceptance remain open. See the [parity inventory](directus-parity-inventory.md), [checker](../scripts/directus_permission_inventory.py), [tests](../tests/test_directus_permission_inventory.py), and [source report](builds/2026-10-20-recovery/directus-permission-source-inventory.json).
 
 **Latest implementation slice — 20 October 2026:** CAP-035 now requires an immutable exact-purpose/version participant-consent policy on every submitted adoption program and provides consent-aware event capture through migration 520. The creator configures the policy before submission, and the independent review queue displays its terms. `solution_lifecycle:collect` hashes the opaque participant reference before database access; PostgreSQL requires an active exact-location participant link plus the latest matching consent grant, stores only link/consent IDs, and makes exact retries immutable. Withdrawal and link revocation remove participants from current projections; phase breakdowns below five are suppressed. The legacy direct writer remains fail-closed. Focused Gateway/console checks pass 113 tests; the expanded migration-metadata and exact route-policy selection passes 149 tests. Disposable PostgreSQL 16 applies/replays migrations 513–520 with 51 grouped consent, authorization, retry, privacy, lifecycle, and privilege checks. Ruff, Python compilation, capability-matrix validation, runtime SQL inventory, repository inventory, and diff checks pass. Candidate and legacy databases are untouched; migration 520 is not rolled out. Checklist: 772 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, and 28 prepared. See the [write contract](solution-lifecycle-kernel-write-contract.md), [source audit](solution-lifecycle-source-route-audit.md), and [disposable evidence](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json).

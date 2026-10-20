@@ -620,7 +620,7 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
   });
 
   schedule('0 3 * * 0', async () => {
-    console.log('[Kokonut] Running weekly metric snapshots...');
+    console.log('[Kokonut] Running weekly verified farm activity aggregation...');
     try {
       const activities = await database('farm_activity')
         .where('status', 'verified')
@@ -636,9 +636,11 @@ export default defineHook(({ filter, action, schedule }, { database, env }) => {
         )
         .groupBy('week', 'location_id');
 
-      console.log(`[Kokonut] Weekly snapshots created for ${activities.length} locations`);
+      console.log(
+        `[Kokonut] Weekly verified farm activity query returned ${activities.length} location-week rows; no snapshot records were persisted`
+      );
     } catch (error) {
-      console.error(`[Kokonut] Weekly snapshots failed: ${errorClass(error)}`);
+      console.error(`[Kokonut] Weekly verified farm activity aggregation failed: ${errorClass(error)}`);
     }
   });
 });

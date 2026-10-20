@@ -157,12 +157,20 @@ silently narrow it or call it equivalent to the native operator grants.
 
 The hook source also has effects beyond request validation: NOI snapshot
 recalculation, financial projection writes, lifecycle history, and daily/weekly
-scheduled callbacks. The daily NOI callback calls the snapshot upsert path. The
-weekly callback currently performs a grouped read of verified, source-eligible
-farm activity and logs the number of locations; it does not persist snapshot
-rows. Decide whether that callback is an unfinished placeholder or an intended
-capability before claiming scheduled-output parity. These paths need separate
-owned-job and projection decisions before disabling hooks or Directus.
+scheduled callbacks. The daily 02:00 callback calls the snapshot upsert path
+for every active crop cycle through the Directus database connection; it does
+not establish a location-scoped worker identity. A separate default-off native
+NOI worker already reconciles one explicitly granted location at a time.
+
+The weekly `0 3 * * 0` callback reads verified, source-eligible
+`farm_activity`, groups by week and location, and discards the result. It does
+not create or update snapshot records. Its log now says exactly how many
+location-week result rows were returned and explicitly says that no snapshots
+were persisted; this corrects an earlier success message that implied durable
+output. Whether this is an unfinished placeholder or an intended read/report
+capability still needs an owner decision. The daily Directus callback, native
+NOI worker, and weekly query need separate ownership, scope, overlap, and output
+parity decisions before any schedule is enabled, transferred, or disabled.
 
 ## Scoped parity procedure
 

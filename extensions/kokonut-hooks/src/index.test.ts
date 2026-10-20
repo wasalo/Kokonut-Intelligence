@@ -54,6 +54,72 @@ describe('Directus hook event registration', () => {
     vi.unstubAllGlobals();
   });
 
+  it('reports the weekly Directus query as an aggregation, not persisted snapshots', async () => {
+    const schedules = new Map<string, () => Promise<void>>();
+    const rows = [{ week: '2026-10-19', location_id: 'location-a', activity_count: 3 }];
+    const queryCalls: string[] = [];
+    const write = vi.fn();
+    const database = Object.assign((table: string) => {
+      queryCalls.push(`table:${table}`);
+      const builder: any = {
+        where: vi.fn((...args: unknown[]) => {
+          queryCalls.push(`where:${args[0]}`);
+          return builder;
+        }),
+        whereRaw: vi.fn(() => {
+          queryCalls.push('whereRaw');
+          return builder;
+        }),
+        select: vi.fn(() => {
+          queryCalls.push('select');
+          return builder;
+        }),
+        groupBy: vi.fn(() => {
+          queryCalls.push('groupBy');
+          return builder;
+        }),
+        insert: write,
+        update: write,
+        delete: write,
+        then: (resolve: (value: unknown) => unknown) => Promise.resolve(rows).then(resolve),
+      };
+      return builder;
+    }, {
+      raw: vi.fn((sql: string) => sql),
+    });
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    (registerHook as unknown as (hooks: Record<string, unknown>, context: unknown) => void)(
+      {
+        filter: () => undefined,
+        action: () => undefined,
+        schedule: (cron: string, callback: () => Promise<void>) => {
+          schedules.set(cron, callback);
+        },
+      },
+      { database },
+    );
+
+    await schedules.get('0 3 * * 0')!();
+
+    expect(queryCalls).toEqual([
+      'table:farm_activity',
+      'where:status',
+      'whereRaw',
+      'select',
+      'groupBy',
+    ]);
+    expect(log).toHaveBeenCalledWith(
+      '[Kokonut] Weekly verified farm activity query returned 1 location-week rows; no snapshot records were persisted',
+    );
+    expect(log.mock.calls.flat().join(' ')).not.toContain('snapshots created');
+    expect(error).not.toHaveBeenCalled();
+    expect(write).not.toHaveBeenCalled();
+    log.mockRestore();
+    error.mockRestore();
+  });
+
   it('wires the pre-read tenant filter to request accountability, issuer, and transaction', async () => {
     const callbacks = new Map<string, (...args: any[]) => Promise<any>>();
     const tables: string[] = [];

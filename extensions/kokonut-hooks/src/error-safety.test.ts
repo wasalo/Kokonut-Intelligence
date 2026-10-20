@@ -69,7 +69,9 @@ describe('Directus exception logging', () => {
     await callbacks[1]();
 
     expect(log).toHaveBeenCalledWith('[Kokonut] NOI reconciliation failed: Error');
-    expect(log).toHaveBeenCalledWith('[Kokonut] Weekly snapshots failed: Error');
+    expect(log).toHaveBeenCalledWith(
+      '[Kokonut] Weekly verified farm activity aggregation failed: Error',
+    );
     expect(log.mock.calls.flat().join(' ')).not.toContain('private connection details');
   });
 });
