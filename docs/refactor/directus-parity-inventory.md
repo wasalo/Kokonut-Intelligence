@@ -33,6 +33,18 @@ aligned with that image. This removes the previous Directus 11 versus 12
 compatibility declaration mismatch; it does not establish runtime hook loading
 or permission parity.
 
+The curated permission seed now has a repeatable source inventory at
+[`builds/2026-10-20-recovery/directus-permission-source-inventory.json`](builds/2026-10-20-recovery/directus-permission-source-inventory.json),
+generated and freshness-checked by `scripts/directus_permission_inventory.py`.
+It finds 175 literal permission insert declarations: 125 use `fields = '*'`
+and 50 name explicit fields. The Auditor policy accounts for 28 wildcard
+declarations; Field Worker stakeholder-feedback read is one concrete example.
+No `farm_activity` permission insert is present in the seed, consistent with
+the Gateway-only decision. This report inventories literal source declarations
+only. It does not compute the effective result of conditional inserts, later
+updates/deletes, built-in or operator-created policies, or a running Directus
+database, and it does not itself authorize narrowing any role's access.
+
 The hook register function also now subscribes to the collection-qualified
 `<collection>.items.create` and `<collection>.items.update` events documented
 by Directus. A Vitest invokes the actual register function and rejects
