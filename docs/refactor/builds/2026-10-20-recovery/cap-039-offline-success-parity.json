@@ -5,9 +5,9 @@
   "command": "python3 -m pytest tests/test_unified_cli_success_contract.py tests/test_cli.py tests/test_delphi.py -q",
   "result": "passed",
   "summary": {
-    "tests_passed": 102,
-    "new_success_path_cases": 34,
-    "database_backed_cases_with_stubbed_query": 26,
+    "tests_passed": 103,
+    "new_success_path_cases": 35,
+    "database_backed_or_aggregate_service_stubbed_cases": 27,
     "native_groups_compared": ["kernel", "dao", "treasury"],
     "database_or_provider_calls": 0
   },
@@ -234,10 +234,17 @@
       "dependencies": ["local schema migration files"],
       "output": "Validated migration source file count",
       "database_behavior": "Not applicable; standalone and unified commands validate 515 schema sources without credentials, PostgreSQL, or providers."
+    },
+    {
+      "name": "mobile-tenant-preflight",
+      "arguments": ["--location-id", "12345678-1234-5678-1234-567812345678"],
+      "dependencies": ["read-only PostgreSQL inventory service stubbed at the CLI boundary"],
+      "output": "Aggregate-only JSON inventory",
+      "database_behavior": "Standalone and unified JSON match; the location filter is forwarded and the synthetic report does not emit its UUID. No database is contacted by this CLI parity case."
     }
   ],
   "limitations": [
-    "Successful parity is covered for eight offline command invocations and twenty-six PostgreSQL-backed commands whose service queries were stubbed, across 33 mounted groups.",
+    "Successful parity is covered for eight offline command invocations and twenty-seven PostgreSQL-backed or aggregate-service-stubbed commands, across 34 mounted groups.",
     "Other mounted legacy commands, real database/provider behavior, privileged operator-action boundaries, and MAN-CAP-039 owner acceptance remain open."
   ]
 }

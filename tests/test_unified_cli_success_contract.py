@@ -176,6 +176,54 @@ def test_offline_migration_source_validation_matches_standalone() -> None:
     assert unified.stderr == standalone.stderr == ""
 
 
+def test_database_backed_mobile_tenant_preflight_output_matches_with_stubbed_inventory(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.mobile import tenant_preflight
+
+    location_id = "12345678-1234-5678-1234-567812345678"
+    report = {
+        "scope": "read_only_organization_ownership_and_known_lineage_preflight",
+        "inventory_status": "complete",
+        "location_filter_applied": True,
+        "location_count": 1,
+        "ownership_review_status_counts": {"assigned_owner_matches_relationship": 1},
+        "locations": [{"location_ref": "location:synthetic-reference"}],
+        "identifiers_emitted": False,
+    }
+    calls = []
+
+    def fake_collect_inventory(requested_location_id=None):
+        calls.append(requested_location_id)
+        return report
+
+    monkeypatch.setattr(tenant_preflight, "collect_inventory", fake_collect_inventory)
+    arguments = ["--location-id", location_id]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.mobile.tenant_preflight", *arguments]
+        tenant_preflight.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(
+        unified_cli.app,
+        ["mobile-tenant-preflight", "--", *arguments],
+    )
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == report
+    assert location_id not in unified.output
+    assert calls == [location_id, location_id]
+    assert unified.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,
