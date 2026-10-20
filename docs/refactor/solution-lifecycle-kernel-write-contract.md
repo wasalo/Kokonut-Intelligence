@@ -1029,3 +1029,67 @@ Before rollout, the routes and UI can be disabled while retaining migrations
 488–512. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.
+
+### Location solution configuration draft, submission, and review
+
+Migration 517 replaces the retired direct `solution_adoption.approve_configuration`
+write with an exact-location configuration workflow. It preserves historical
+approval status, reviewer, and timestamp in a private archive, then returns
+those rows to `draft`: historical records do not contain verifiable independent
+review receipts and therefore cannot satisfy a later adoption-stage gate.
+
+The public Gateway contract is:
+
+- `POST /operator/api/solution-lifecycle/{location_id}/adoption/configurations`
+  requires exact `solution_lifecycle:create`. It accepts an active exact-origin
+  solution at `pilot_active` or `adoption_ready`, four bounded JSON objects
+  (invariants, configurable components, prohibited components, and local
+  assumptions), a comparability class, an evidence-impact note, a stable request
+  UUID, and explicit acknowledgement. PostgreSQL derives the proposer from the
+  active human operator binding, assigns the next version, and creates only a
+  draft. Component keys cannot conflict between invariant/configurable/
+  prohibited sets.
+- `GET .../adoption/configurations/drafts` requires exact
+  `solution_lifecycle:submit` and returns only the signed operator's unsubmitted
+  drafts at the exact location.
+- `POST .../adoption/configurations/{configuration_id}/submit` requires exact
+  `solution_lifecycle:submit` and the active human proposer. It freezes the
+  version for independent review.
+- `GET .../adoption/configurations/review-queue` and
+  `POST .../adoption/configurations/{configuration_id}/review` require exact
+  `solution_lifecycle:review`. The queue excludes the proposer. A different
+  active human approves or rejects with a reason and explicit independence
+  acknowledgement. A rejected version remains immutable; propose a new version
+  to revise it.
+
+Each mutation records a private idempotency receipt. Exact retries replay the
+original outcome; reuse of a request UUID with changed input fails closed. The
+configuration row's domain content is immutable after creation. A database
+trigger requires the exact independent approval receipt before an `approved`
+status can be written, including by other database code. Runtime and Directus
+have no direct configuration DML, receipt access, or execution right for the
+configuration functions. Their existing read path is retained. The private
+receipt and legacy-approval archive tables use forced RLS with a dedicated
+non-login owner.
+
+The console exposes create, own-draft submission, and review controls only
+under their separate exact grants. It uses CSRF-protected same-origin
+no-store writes, bounded JSON input, fixed text-node rendering, page limits,
+and stable per-request retry IDs. A pending uncertain write keeps its original
+location and values locked until the same request is retried.
+
+Disposable PostgreSQL 16 acceptance applies and replays migrations 513–517 and
+checks historical archival, active exact-origin eligibility, versioning,
+component conflicts, tenant context, creator-only listing/submission,
+independent approval and rejection, self-review exclusion, exact retry and
+collision behavior, trigger protection, and runtime/Directus privileges. The
+evidence is in
+[`cap-035-adoption-program-disposable.json`](builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json).
+The candidate and legacy databases were not touched; migration 517 is not
+rolled out. Program enablement review, populated legacy comparison, live OIDC,
+broader ACL/RLS, recovery, and owner acceptance remain open.
+
+Before applying migration 517 in an environment, disable the associated routes
+and console forms if rollout is rolled back. After application, preserve the
+additive schema and use a separately reviewed forward migration for any data or
+schema changes; do not edit or reverse migration 517.

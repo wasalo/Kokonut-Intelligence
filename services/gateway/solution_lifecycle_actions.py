@@ -647,6 +647,358 @@ def review_location_solution_adopter_readiness(
         connection.close()
 
 
+_CONFIGURATION_COMPARABILITY = {
+    "comparable", "partially_comparable", "not_comparable",
+}
+
+
+def _encode_location_solution_configuration(
+    invariant_components: dict,
+    configurable_components: dict,
+    prohibited_components: dict,
+    local_assumptions: dict,
+    comparability_class: str,
+    evidence_impact: str,
+) -> tuple[str, str, str, str, str, str]:
+    components = (
+        (invariant_components, "invariant components"),
+        (configurable_components, "configurable components"),
+        (prohibited_components, "prohibited components"),
+        (local_assumptions, "local assumptions"),
+    )
+    encoded_components = []
+
+    def validate_json_text(value: object) -> None:
+        if isinstance(value, str):
+            if "\x00" in value:
+                raise SolutionLifecycleActionInvalid(
+                    "Configuration components cannot contain null characters"
+                )
+            try:
+                value.encode("utf-8")
+            except UnicodeEncodeError as exc:
+                raise SolutionLifecycleActionInvalid(
+                    "Configuration components must be valid UTF-8"
+                ) from exc
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                if not isinstance(key, str):
+                    raise SolutionLifecycleActionInvalid(
+                        "Configuration component object keys must be text"
+                    )
+                validate_json_text(key)
+                validate_json_text(item)
+        elif isinstance(value, list):
+            for item in value:
+                validate_json_text(item)
+        elif value is not None and not isinstance(value, (bool, int, float)):
+            raise SolutionLifecycleActionInvalid(
+                "Configuration components must contain JSON values"
+            )
+
+    for value, name in components:
+        if not isinstance(value, dict) or any(not isinstance(key, str) for key in value):
+            raise SolutionLifecycleActionInvalid(f"Configuration {name} must be a JSON object with text keys")
+        validate_json_text(value)
+        try:
+            encoded = json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+        except (TypeError, ValueError) as exc:
+            raise SolutionLifecycleActionInvalid(f"Configuration {name} must contain JSON values") from exc
+        encoded_components.append(encoded)
+    try:
+        total_size = len(json.dumps(
+            [json.loads(item) for item in encoded_components],
+            ensure_ascii=False, allow_nan=False, separators=(",", ":"),
+        ).encode("utf-8"))
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid("Configuration components must be valid UTF-8") from exc
+    if total_size > 65536:
+        raise SolutionLifecycleActionInvalid("Configuration components exceed the 64 KiB limit")
+    invariant_keys = set(invariant_components)
+    configurable_keys = set(configurable_components)
+    prohibited_keys = set(prohibited_components)
+    if invariant_keys & (configurable_keys | prohibited_keys):
+        raise SolutionLifecycleActionInvalid("Invariant components cannot also be configurable or prohibited")
+    if configurable_keys & prohibited_keys:
+        raise SolutionLifecycleActionInvalid("A component cannot be both configurable and prohibited")
+    if not isinstance(comparability_class, str) or comparability_class not in _CONFIGURATION_COMPARABILITY:
+        raise SolutionLifecycleActionInvalid("Configuration comparability class is invalid")
+    if not isinstance(evidence_impact, str) or not 1 <= len(evidence_impact.strip()) <= 4000:
+        raise SolutionLifecycleActionInvalid("Configuration evidence impact must contain 1 to 4,000 characters")
+    if "\x00" in evidence_impact:
+        raise SolutionLifecycleActionInvalid("Configuration evidence impact cannot contain a null character")
+    try:
+        if len(evidence_impact.encode("utf-8")) > 8000:
+            raise SolutionLifecycleActionInvalid("Configuration evidence impact must fit within 8 KiB")
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid("Configuration evidence impact must be valid UTF-8 text") from exc
+    return (
+        *encoded_components,
+        comparability_class,
+        evidence_impact.strip(),
+    )
+
+
+def create_location_solution_configuration_draft(
+    operator_id: str,
+    location_id: str,
+    solution_id: str,
+    request_id: str,
+    invariant_components: dict,
+    configurable_components: dict,
+    prohibited_components: dict,
+    local_assumptions: dict,
+    comparability_class: str,
+    evidence_impact: str,
+    *,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Create a versioned exact-location configuration draft."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    solution_id = _normalize_uuid(solution_id, "solution")
+    request_id = _normalize_uuid(request_id, "request")
+    encoded = _encode_location_solution_configuration(
+        invariant_components, configurable_components, prohibited_components,
+        local_assumptions, comparability_class, evidence_impact,
+    )
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Configuration draft requires acknowledgement of independent review")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.create_location_solution_configuration_draft(
+                           %s::uuid, %s::uuid, %s::uuid, %s::jsonb, %s::jsonb,
+                           %s::jsonb, %s::jsonb, %s::text, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id, solution_id, request_id, encoded[0], encoded[1],
+                    encoded[2], encoded[3], encoded[4], encoded[5], acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Configuration draft creation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def get_location_solution_configuration_drafts(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 10,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Read the authenticated operator's unsubmitted configuration drafts."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 25:
+        raise SolutionLifecycleActionInvalid("Configuration draft page size must be between 1 and 25")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 10000:
+        raise SolutionLifecycleActionInvalid("Configuration draft page offset is invalid")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="submit",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.location_solution_configuration_drafts(
+                           %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, limit + 1, offset),
+            )
+            rows = cursor.fetchall()
+            columns = [description[0] for description in cursor.description]
+        drafts = [dict(zip(columns, row, strict=False)) for row in rows[:limit]]
+        has_more = len(rows) > limit
+        connection.commit()
+        return {
+            "drafts": drafts,
+            "has_more": has_more,
+            "next_offset": offset + len(drafts) if has_more else None,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def submit_location_solution_configuration(
+    operator_id: str,
+    location_id: str,
+    configuration_id: str,
+    request_id: str,
+    *,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit a creator-owned configuration draft for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    configuration_id = _normalize_uuid(configuration_id, "configuration")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Configuration submission requires explicit acknowledgement")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="submit",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.submit_location_solution_configuration(
+                           %s::uuid, %s::uuid, %s::uuid, %s::boolean
+                       )""",
+                (location_id, configuration_id, request_id, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Configuration submission returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def get_location_solution_configuration_review_queue(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 10,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Read a bounded location-scoped queue of independently reviewable configurations."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 25:
+        raise SolutionLifecycleActionInvalid("Configuration review page size must be between 1 and 25")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 10000:
+        raise SolutionLifecycleActionInvalid("Configuration review page offset is invalid")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.location_solution_configuration_review_queue(
+                           %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, limit + 1, offset),
+            )
+            rows = cursor.fetchall()
+            columns = [description[0] for description in cursor.description]
+        configurations = [dict(zip(columns, row, strict=False)) for row in rows[:limit]]
+        has_more = len(rows) > limit
+        connection.commit()
+        return {
+            "configurations": configurations,
+            "has_more": has_more,
+            "next_offset": offset + len(configurations) if has_more else None,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def review_location_solution_configuration(
+    operator_id: str,
+    location_id: str,
+    configuration_id: str,
+    request_id: str,
+    decision: str,
+    review_note: str,
+    *,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Independently approve or reject an immutable submitted configuration."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    configuration_id = _normalize_uuid(configuration_id, "configuration")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(decision, str) or decision not in {"approved", "rejected"}:
+        raise SolutionLifecycleActionInvalid("Configuration review decision is invalid")
+    if not isinstance(review_note, str) or not 1 <= len(review_note.strip()) <= 2000:
+        raise SolutionLifecycleActionInvalid("Configuration review note must contain 1 to 2,000 characters")
+    if "\x00" in review_note:
+        raise SolutionLifecycleActionInvalid("Configuration review note cannot contain a null character")
+    try:
+        if len(review_note.encode("utf-8")) > 4000:
+            raise SolutionLifecycleActionInvalid("Configuration review note must fit within 4 KiB")
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid("Configuration review note must be valid UTF-8 text") from exc
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid("Configuration review requires acknowledgement of independent review")
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection, operator_id=operator_id, location_id=location_id,
+            resource="solution_lifecycle", action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.review_location_solution_configuration(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (location_id, configuration_id, request_id, decision, review_note.strip(), acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Configuration review returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def create_location_solution_gate(
     operator_id: str,
     location_id: str,

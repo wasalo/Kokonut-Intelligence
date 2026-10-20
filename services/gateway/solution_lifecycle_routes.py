@@ -20,9 +20,12 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         complete_location_solution_experiment,
         create_location_solution,
         create_location_solution_adoption_program,
+        create_location_solution_configuration_draft,
         create_location_solution_experiment,
         create_location_solution_gate,
         get_location_solution_adopter_readiness_review_queue,
+        get_location_solution_configuration_drafts,
+        get_location_solution_configuration_review_queue,
         propose_location_solution_funding,
         propose_location_solution_learning,
         propose_location_solution_replication,
@@ -31,6 +34,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         record_location_solution_experiment_observation,
         record_location_solution_gate_evaluation,
         review_location_solution_adopter_readiness,
+        review_location_solution_configuration,
         review_location_solution_experiment,
         review_location_solution_learning,
         review_location_solution_replication,
@@ -38,6 +42,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
         review_location_solution_scale_gate_assessment,
         start_location_solution_experiment,
         submit_location_solution_adopter_readiness,
+        submit_location_solution_configuration,
         submit_location_solution_experiment_protocol,
         submit_location_solution_funding,
         submit_location_solution_scale_gate_assessment,
@@ -1651,6 +1656,206 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 "Solution adoption readiness review unavailable (%s)", type(exc).__name__
             )
             return JSONResponse(status_code=503, content={"error": "Solution adoption readiness review unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
+
+    @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/configurations")
+    async def create_solution_configuration_draft(request: Request, location_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        fields = {
+            "request_id", "solution_id", "invariant_components",
+            "configurable_components", "prohibited_components", "local_assumptions",
+            "comparability_class", "evidence_impact", "acknowledged",
+        }
+        if not isinstance(payload, dict) or set(payload) != fields:
+            return JSONResponse(status_code=400, content={"error": "Configuration draft fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                create_location_solution_configuration_draft,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                payload["solution_id"],
+                payload["request_id"],
+                payload["invariant_components"],
+                payload["configurable_components"],
+                payload["prohibited_components"],
+                payload["local_assumptions"],
+                payload["comparability_class"],
+                payload["evidence_impact"],
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle create access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current location solution lifecycle create grant is required"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Configuration draft input is invalid"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Active location-origin solution not found"}, headers=headers)
+            if code in {"23505", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Configuration draft is no longer eligible; refresh the lifecycle view"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration draft creation unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution configuration draft creation unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/drafts")
+    async def location_solution_configuration_drafts(
+        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_configuration_drafts,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=int(limit),
+                offset=int(offset),
+            )
+        except ValueError:
+            return JSONResponse(status_code=400, content={"error": "Configuration draft page is invalid"}, headers=headers)
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle submit access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current location solution lifecycle submit grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration draft list unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution configuration draft list unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/{configuration_id}/submit")
+    async def submit_solution_configuration(request: Request, location_id: str, configuration_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {"request_id", "acknowledged"}:
+            return JSONResponse(status_code=400, content={"error": "Configuration submission fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                submit_location_solution_configuration,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                configuration_id,
+                payload["request_id"],
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle submit access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current location solution lifecycle submit grant is required"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Configuration submission input is invalid"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Location configuration draft not found"}, headers=headers)
+            if code in {"23505", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Configuration draft is no longer eligible; refresh the lifecycle view"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration submission unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution configuration submission unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
+
+    @router.get("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/review-queue")
+    async def location_solution_configuration_review_queue(
+        request: Request, location_id: str, limit: str = "10", offset: str = "0"
+    ):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                get_location_solution_configuration_review_queue,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                limit=int(limit),
+                offset=int(offset),
+            )
+        except ValueError:
+            return JSONResponse(status_code=400, content={"error": "Configuration review page is invalid"}, headers=headers)
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle review access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            if getattr(exc, "pgcode", None) == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current location solution lifecycle review grant is required"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration review queue unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution configuration review queue unavailable"}, headers={**headers, "Retry-After": "30"})
+        return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post("/operator/api/solution-lifecycle/{location_id}/adoption/configurations/{configuration_id}/review")
+    async def review_solution_configuration(request: Request, location_id: str, configuration_id: str):
+        if provider is None:
+            return JSONResponse(status_code=404, content={"error": "Operator OIDC is disabled"}, headers=headers)
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        if not isinstance(payload, dict) or set(payload) != {
+            "request_id", "decision", "review_note", "acknowledged",
+        }:
+            return JSONResponse(status_code=400, content={"error": "Configuration review fields are invalid"}, headers=headers)
+        try:
+            result = await run_in_threadpool(
+                review_location_solution_configuration,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                configuration_id,
+                payload["request_id"],
+                payload["decision"],
+                payload["review_note"],
+                acknowledged=payload["acknowledged"],
+            )
+        except TenantContextDenied:
+            return JSONResponse(status_code=403, content={"error": "Tenant-qualified solution lifecycle review access is required"}, headers=headers)
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(status_code=403, content={"error": "A current independent location review grant is required"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Configuration review input is invalid"}, headers=headers)
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Location configuration not found"}, headers=headers)
+            if code in {"23505", "55000", "40001", "23514"}:
+                return JSONResponse(status_code=409, content={"error": "Configuration is no longer eligible; refresh the review queue"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution configuration review unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(status_code=503, content={"error": "Solution configuration review unavailable"}, headers={**headers, "Retry-After": "30"})
         return JSONResponse(jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers)
 
     @router.get("/operator/api/solution-lifecycle/{location_id}/adoption")

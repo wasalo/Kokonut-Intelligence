@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise exact-location adoption-program drafts through migrations 513/515."""
+"""Exercise exact-location adoption-program workflows through migrations 513-517."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ MIGRATION = ROOT / "schemas/postgres/513_location_solution_adoption_program_crea
 WRITE_BOUNDARY_MIGRATION = ROOT / "schemas/postgres/514_location_solution_adoption_write_boundary.sql"
 PREPARATION_MIGRATION = ROOT / "schemas/postgres/515_location_solution_adoption_preparation.sql"
 READINESS_MIGRATION = ROOT / "schemas/postgres/516_location_solution_adoption_readiness_review.sql"
+CONFIGURATION_MIGRATION = ROOT / "schemas/postgres/517_location_solution_configuration_draft_review.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json"
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
@@ -184,6 +185,8 @@ INSERT INTO public.operator_scope_grant
 VALUES
     ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'create',
      'b0000000-0000-4000-8000-000000000001'),
+    ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'submit',
+     'b0000000-0000-4000-8000-000000000001'),
     ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'review',
      'b0000000-0000-4000-8000-000000000001'),
     ('a0000000-0000-4000-8000-000000000043', 'solution_lifecycle', 'review',
@@ -324,6 +327,314 @@ BEGIN
            AND rolcanlogin
     ) THEN
         RAISE EXCEPTION 'function owner unexpectedly has LOGIN';
+    END IF;
+END $$;
+"""
+
+LEGACY_APPROVED_CONFIGURATION = r"""
+INSERT INTO public.solution_configuration (
+    solution_id, scope_type, scope_id, version, approval_status,
+    approved_by_party_id, approved_at
+) VALUES (
+    'c0000000-0000-4000-8000-000000000041', 'location',
+    'b0000000-0000-4000-8000-000000000001', 1, 'approved',
+    'c1000000-0000-4000-8000-000000000043', '2026-10-19T12:00:00Z'
+);
+"""
+
+CONFIGURATION_ACCEPTANCE = r"""
+DO $$
+DECLARE historical RECORD; archived RECORD;
+BEGIN
+    SELECT * INTO historical FROM public.solution_configuration
+     WHERE solution_id = 'c0000000-0000-4000-8000-000000000041' AND version = 1;
+    SELECT * INTO archived FROM public.solution_configuration_legacy_approval_archive
+     WHERE configuration_id = historical.id;
+    IF historical.approval_status <> 'draft' OR historical.approved_by_party_id IS NOT NULL
+       OR historical.approved_at IS NOT NULL OR archived.prior_approval_status <> 'approved'
+       OR archived.prior_approved_by_party_id <> 'c1000000-0000-4000-8000-000000000043'::uuid
+       OR archived.prior_approved_at <> '2026-10-19T12:00:00Z'::timestamptz THEN
+        RAISE EXCEPTION 'historical approval was not preserved and returned to draft';
+    END IF;
+END $$;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE created RECORD; replay RECORD; own_draft RECORD; caught BOOLEAN := FALSE;
+        cross_location_denied BOOLEAN := FALSE; ineligible_origin_denied BOOLEAN := FALSE;
+        drafts BIGINT;
+BEGIN
+    SELECT * INTO created FROM kokonut_security.create_location_solution_configuration_draft(
+        'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000041',
+        'ab000000-0000-4000-8000-000000000071', '{"water_buffer":"preserve"}',
+        '{"crop_mix":["plantain","cacao"]}', '{"chemical_runoff":"prohibited"}',
+        '{"soil_type":"clay loam"}', 'partially_comparable',
+        'Local soil and water evidence will be collected before performance comparison.', TRUE
+    );
+    IF created.approval_status <> 'draft' OR created.replayed OR created.version <> 2 THEN
+        RAISE EXCEPTION 'new configuration was not created as versioned draft';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.create_location_solution_configuration_draft(
+        'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000041',
+        'ab000000-0000-4000-8000-000000000071', '{"water_buffer":"preserve"}',
+        '{"crop_mix":["plantain","cacao"]}', '{"chemical_runoff":"prohibited"}',
+        '{"soil_type":"clay loam"}', 'partially_comparable',
+        'Local soil and water evidence will be collected before performance comparison.', TRUE
+    );
+    IF NOT replay.replayed OR replay.configuration_id <> created.configuration_id
+       OR replay.version <> created.version THEN
+        RAISE EXCEPTION 'exact configuration draft retry did not replay';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.create_location_solution_configuration_draft(
+            'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000041',
+            'ab000000-0000-4000-8000-000000000071', '{"water_buffer":"change"}',
+            '{"crop_mix":["plantain","cacao"]}', '{"chemical_runoff":"prohibited"}',
+            '{"soil_type":"clay loam"}', 'partially_comparable', 'Changed evidence.', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed draft request reuse was accepted'; END IF;
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.create_location_solution_configuration_draft(
+            'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000041',
+            'ab000000-0000-4000-8000-000000000072', '{"same":"key"}',
+            '{"same":"key"}', '{}', '{}', 'comparable', 'Overlapping definitions.', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'overlapping component definitions were accepted'; END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.create_location_solution_configuration_draft(
+            'b0000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000042',
+            'ab000000-0000-4000-8000-000000000073', '{}', '{}', '{}', '{}',
+            'comparable', 'Cross-location draft.', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '42501' THEN cross_location_denied := TRUE;
+    END;
+    IF NOT cross_location_denied THEN RAISE EXCEPTION 'mismatched tenant context was accepted'; END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.create_location_solution_configuration_draft(
+            'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000042',
+            'ab000000-0000-4000-8000-000000000073', '{}', '{}', '{}', '{}',
+            'comparable', 'Cross-origin source must not be configured here.', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE 'P0002' THEN ineligible_origin_denied := TRUE;
+    END;
+    IF NOT ineligible_origin_denied THEN RAISE EXCEPTION 'cross-origin solution was accepted'; END IF;
+    SELECT count(*) INTO drafts FROM kokonut_security.location_solution_configuration_drafts(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF drafts <> 1 THEN RAISE EXCEPTION 'own draft listing included history or omitted the new draft'; END IF;
+    SELECT * INTO own_draft FROM kokonut_security.location_solution_configuration_drafts(
+        'b0000000-0000-4000-8000-000000000001', 1, 0
+    );
+    IF own_draft.configuration_id <> created.configuration_id THEN
+        RAISE EXCEPTION 'draft list returned another configuration';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE submitted RECORD; replay RECORD; caught BOOLEAN := FALSE;
+BEGIN
+    SELECT * INTO submitted FROM kokonut_security.submit_location_solution_configuration(
+        'b0000000-0000-4000-8000-000000000001',
+        (SELECT id FROM public.solution_configuration WHERE version = 2),
+        'ab000000-0000-4000-8000-000000000074', TRUE
+    );
+    IF submitted.approval_status <> 'submitted' OR submitted.replayed THEN
+        RAISE EXCEPTION 'configuration submission did not enter review';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.submit_location_solution_configuration(
+        'b0000000-0000-4000-8000-000000000001', submitted.configuration_id,
+        'ab000000-0000-4000-8000-000000000074', TRUE
+    );
+    IF NOT replay.replayed OR replay.submitted_at <> submitted.submitted_at THEN
+        RAISE EXCEPTION 'exact submission retry did not replay';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.submit_location_solution_configuration(
+            'b0000000-0000-4000-8000-000000000001', submitted.configuration_id,
+            'ab000000-0000-4000-8000-000000000074', FALSE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed submission retry was accepted'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE own_queue BIGINT; caught BOOLEAN := FALSE;
+BEGIN
+    SELECT count(*) INTO own_queue FROM kokonut_security.location_solution_configuration_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    );
+    IF own_queue <> 0 THEN RAISE EXCEPTION 'proposer saw their own configuration in the review queue'; END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.review_location_solution_configuration(
+            'b0000000-0000-4000-8000-000000000001',
+            (SELECT id FROM public.solution_configuration WHERE version = 2),
+            'ab000000-0000-4000-8000-000000000076', 'approved', 'Self review.', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '42501' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'proposer self-review was accepted'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE rejected_draft RECORD; rejected_submission RECORD;
+BEGIN
+    SELECT * INTO rejected_draft FROM kokonut_security.create_location_solution_configuration_draft(
+        'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000043',
+        'ab000000-0000-4000-8000-000000000077', '{"water_buffer":"preserve"}',
+        '{"crop_mix":["plantain"]}', '{"chemical_runoff":"prohibited"}',
+        '{"soil_type":"clay loam"}', 'comparable',
+        'A new evidence comparison is required.', TRUE
+    );
+    SELECT * INTO rejected_submission FROM kokonut_security.submit_location_solution_configuration(
+        'b0000000-0000-4000-8000-000000000001', rejected_draft.configuration_id,
+        'ab000000-0000-4000-8000-000000000078', TRUE
+    );
+    IF rejected_submission.approval_status <> 'submitted' THEN
+        RAISE EXCEPTION 'second configuration was not submitted for independent rejection';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000043', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE queued RECORD; approved RECORD; replay RECORD; caught BOOLEAN := FALSE;
+BEGIN
+    SELECT * INTO queued FROM kokonut_security.location_solution_configuration_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    ) AS pending WHERE pending.solution_id = 'c0000000-0000-4000-8000-000000000041';
+    IF queued.configuration_id IS NULL THEN RAISE EXCEPTION 'independent review queue is empty'; END IF;
+    SELECT * INTO approved FROM kokonut_security.review_location_solution_configuration(
+        'b0000000-0000-4000-8000-000000000001', queued.configuration_id,
+        'ab000000-0000-4000-8000-000000000075', 'approved', 'Independent evidence reviewed.', TRUE
+    );
+    IF approved.approval_status <> 'approved' OR approved.replayed THEN
+        RAISE EXCEPTION 'independent configuration approval failed';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.review_location_solution_configuration(
+        'b0000000-0000-4000-8000-000000000001', queued.configuration_id,
+        'ab000000-0000-4000-8000-000000000075', 'approved', 'Independent evidence reviewed.', TRUE
+    );
+    IF NOT replay.replayed OR replay.reviewed_at <> approved.reviewed_at THEN
+        RAISE EXCEPTION 'exact approval retry did not replay';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.review_location_solution_configuration(
+            'b0000000-0000-4000-8000-000000000001', queued.configuration_id,
+            'ab000000-0000-4000-8000-000000000075', 'rejected', 'Changed decision.', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed review request reuse was accepted'; END IF;
+    SELECT * INTO queued FROM kokonut_security.location_solution_configuration_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 26, 0
+    ) AS pending WHERE pending.solution_id = 'c0000000-0000-4000-8000-000000000043';
+    IF queued.configuration_id IS NULL THEN RAISE EXCEPTION 'second configuration was not available for rejection'; END IF;
+    SELECT * INTO replay FROM kokonut_security.review_location_solution_configuration(
+        'b0000000-0000-4000-8000-000000000001', queued.configuration_id,
+        'ab000000-0000-4000-8000-000000000079', 'rejected', 'Evidence requires a revised version.', TRUE
+    );
+    IF replay.approval_status <> 'rejected' OR replay.replayed THEN
+        RAISE EXCEPTION 'independent configuration rejection failed';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.review_location_solution_configuration(
+        'b0000000-0000-4000-8000-000000000001', queued.configuration_id,
+        'ab000000-0000-4000-8000-000000000079', 'rejected', 'Evidence requires a revised version.', TRUE
+    );
+    IF NOT replay.replayed OR replay.approval_status <> 'rejected' THEN
+        RAISE EXCEPTION 'exact rejection retry did not replay';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE denied BOOLEAN := FALSE;
+BEGIN
+    BEGIN
+        INSERT INTO public.solution_configuration (solution_id, scope_type, scope_id, version)
+        VALUES ('c0000000-0000-4000-8000-000000000041', 'location',
+                'b0000000-0000-4000-8000-000000000001', 99);
+    EXCEPTION WHEN insufficient_privilege THEN denied := TRUE;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly insert solution_configuration'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_solution_configuration_manager;
+DO $$
+DECLARE caught BOOLEAN := FALSE; configuration_id UUID;
+BEGIN
+    SELECT id INTO configuration_id FROM public.solution_configuration
+     WHERE version = 1 AND solution_id = 'c0000000-0000-4000-8000-000000000041';
+    BEGIN
+        UPDATE public.solution_configuration SET approval_status = 'approved',
+            approved_by_party_id = 'c1000000-0000-4000-8000-000000000043',
+            approved_at = now(), current_approval_review_id = NULL
+         WHERE id = configuration_id;
+    EXCEPTION WHEN SQLSTATE '23514' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'unreviewed configuration approval bypassed the trigger'; END IF;
+END $$;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_configuration_draft_receipt', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_configuration_review_receipt', 'INSERT')
+       OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_configuration_submission_receipt', 'SELECT')
+       OR pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.review_location_solution_configuration(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
+        'EXECUTE')
+       OR pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_configuration', 'UPDATE')
+       OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_configuration', 'DELETE') THEN
+        RAISE EXCEPTION 'runtime or Directus can access private receipts or review function';
     END IF;
 END $$;
 """
@@ -531,11 +842,11 @@ def main() -> int:
     container = f"kokonut-solution-adoption-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name],
+        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name, CONFIGURATION_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migrations 513 through 516 apply and replay idempotently in order",
+            "migrations 513 through 517 apply and replay idempotently in order",
             "migration 515 allows draft preparation from pilot_active before the adoption-ready gate",
             "migration 516 expires historical unreviewed ready rows while preserving their audit records",
             "draft creation requires signed exact-location create context and an active human identity",
@@ -551,6 +862,13 @@ def main() -> int:
             "an independent review updates only the current assessment and exact retries replay",
             "the database trigger rejects direct ready status without an independent receipt",
             "runtime and Directus cannot read or forge private readiness records",
+            "migration 517 archives unverifiable historical configuration approval without deleting the old facts",
+            "configuration creation requires exact active location origin, stage, actor, payload bounds, and non-overlapping components",
+            "drafts are versioned, creator-attributed, exact-location scoped, idempotent, and list only the creator's own drafts",
+            "submission is restricted to the active human proposer and supports exact idempotent retry",
+            "review queue excludes the proposer; independent human approval and rejection use immutable receipts and exact retries",
+            "unreviewed direct approval fails the database trigger; shared runtime and Directus cannot write or read private receipts",
+            "migration 517 applies and replays idempotently",
         ],
     }
     try:
@@ -575,11 +893,16 @@ def main() -> int:
         readiness_text = READINESS_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, readiness_text)
         psql(docker, container, readiness_text)
+        psql(docker, container, LEGACY_APPROVED_CONFIGURATION)
+        configuration_text = CONFIGURATION_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, configuration_text)
+        psql(docker, container, configuration_text)
         psql(docker, container, ACCEPTANCE)
         psql(docker, container, READINESS_ACCEPTANCE)
+        psql(docker, container, CONFIGURATION_ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 16
-        print("PASS: migrations 513/514/515/516 apply/replay, adoption preparation, readiness review, retries, lifecycle, and privilege checks passed")
+        evidence["acceptance_groups_passed"] = 26
+        print("PASS: migrations 513–517 apply/replay, adoption preparation, readiness and configuration review, retries, lifecycle, and privilege checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

@@ -769,7 +769,8 @@ def test_adoption_program_draft_requires_exact_grants_filters_origin_and_preserv
     assert panel is not None
     assert "Requires exact location read and create grants" in panel.group(0)
     assert "does not assess readiness" in panel.group(0)
-    assert 'solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate && !hasSolutionLifecycleReview' in source
+    assert 'solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate' in source
+    assert '&& !hasSolutionLifecycleReview && !hasSolutionLifecycleSubmit' in source
     assert 'solutionLifecycleReadinessAssessment.hidden = !hasSolutionLifecycleCreate' in source
     assert 'solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview' in source
     assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
@@ -1124,7 +1125,8 @@ def test_readiness_review_queue_is_review_only_paged_text_rendered_and_retry_saf
     assert '"X-CSRF-Token": csrf' in renderer
     assert "acknowledgement.checked" in renderer
     assert "textContent" in renderer and "innerHTML" not in renderer
-    assert "solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate && !hasSolutionLifecycleReview" in source
+    assert "solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate" in source
+    assert "&& !hasSolutionLifecycleReview && !hasSolutionLifecycleSubmit" in source
     assert 'solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview' in source
 
 
@@ -1633,6 +1635,68 @@ def test_location_solution_creation_is_exact_grant_gated_acknowledged_and_retry_
     assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
     assert '"X-CSRF-Token": csrf' in submit
     assert "innerHTML" not in submit
+
+
+def test_configuration_draft_submission_and_independent_review_console_contract():
+    source = CONSOLE.read_text(encoding="utf-8")
+    for element_id in (
+        "solution-lifecycle-configuration-create",
+        "solution-lifecycle-configuration-invariants",
+        "solution-lifecycle-configuration-configurable",
+        "solution-lifecycle-configuration-prohibited",
+        "solution-lifecycle-configuration-assumptions",
+        "solution-lifecycle-configuration-comparability",
+        "solution-lifecycle-configuration-drafts",
+        "solution-lifecycle-configuration-review",
+    ):
+        assert f'id="{element_id}"' in source
+    assert "a different active human must approve or reject them" in source
+    assert 'solutionLifecycleConfigurationCreate.hidden = !hasSolutionLifecycleCreate' in source
+    assert 'solutionLifecycleConfigurationDrafts.hidden = !hasSolutionLifecycleSubmit' in source
+    assert 'solutionLifecycleConfigurationReview.hidden = !hasSolutionLifecycleReview' in source
+
+    create = _function(
+        source,
+        "async function submitSolutionLifecycleConfigurationDraft(",
+        "function appendSolutionLifecycleConfigurationDraft(",
+    )
+    assert "solutionLifecycleCreateLocations.has(locationId)" in create
+    assert "parseSolutionLifecycleConfigurationObject" in create
+    assert "solutionLifecyclePendingConfigurationCreate.fingerprint !== fingerprint" in create
+    assert "solutionLifecyclePendingConfigurationCreate.request_id" in create
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/configurations`' in create
+    assert 'credentials: "same-origin"' in create and 'cache: "no-store"' in create
+    assert '"X-CSRF-Token": csrf' in create
+
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleConfiguration(",
+        "async function loadSolutionLifecycleConfigurationDrafts(",
+    )
+    assert "solutionLifecycleSubmitLocations.has(locationId)" in submit
+    assert "solutionLifecyclePendingConfigurationSubmissions" in submit
+    assert "/adoption/configurations/${encodeURIComponent(draft.configuration_id)}/submit" in submit
+    assert '"X-CSRF-Token": csrf' in submit
+
+    review = _function(
+        source,
+        "async function submitSolutionLifecycleConfigurationReview(",
+        "async function loadSolutionLifecycleConfigurationReviewQueue(",
+    )
+    assert "solutionLifecycleReviewLocations.has(locationId)" in review
+    assert "solutionLifecyclePendingConfigurationReviews" in review
+    assert "/adoption/configurations/${encodeURIComponent(configuration.configuration_id)}/review" in review
+    assert '"X-CSRF-Token": csrf' in review
+    assert "innerHTML" not in create + submit + review
+
+    location_change = _function(
+        source,
+        'solutionLifecycleLocation.addEventListener("change", () => {',
+        'solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates())',
+    )
+    assert "Retry the unchanged configuration draft before changing locations." in location_change
+    assert "Retry the unchanged configuration submission before changing locations." in location_change
+    assert "Retry the unchanged configuration review before changing locations." in location_change
 
 
 def test_inline_javascript_parses_when_node_is_available():

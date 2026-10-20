@@ -1111,6 +1111,76 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    solution_lifecycle_configuration_create_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/configurations",
+        path,
+    )
+    if solution_lifecycle_configuration_create_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "create",
+            "public": False,
+            "location_id": solution_lifecycle_configuration_create_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_configuration_drafts_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/configurations/drafts",
+        path,
+    )
+    if solution_lifecycle_configuration_drafts_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "submit",
+            "public": False,
+            "location_id": solution_lifecycle_configuration_drafts_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_configuration_submit_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/configurations/([0-9a-fA-F-]{36})/submit",
+        path,
+    )
+    if solution_lifecycle_configuration_submit_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "submit",
+            "public": False,
+            "location_id": solution_lifecycle_configuration_submit_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_configuration_review_queue_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/configurations/review-queue",
+        path,
+    )
+    if solution_lifecycle_configuration_review_queue_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_configuration_review_queue_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
+    solution_lifecycle_configuration_review_match = re.fullmatch(
+        r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption/configurations/([0-9a-fA-F-]{36})/review",
+        path,
+    )
+    if solution_lifecycle_configuration_review_match and method.upper() == "POST" and enabled:
+        return {
+            "resource": "solution_lifecycle",
+            "action": "review",
+            "public": False,
+            "location_id": solution_lifecycle_configuration_review_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     solution_lifecycle_adoption_match = re.fullmatch(
         r"/operator/api/solution-lifecycle/([0-9a-fA-F-]{36})/adoption", path
     )
