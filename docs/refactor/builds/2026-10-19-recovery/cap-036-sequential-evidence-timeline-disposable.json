@@ -1,0 +1,14 @@
+{
+  "result": "passed",
+  "migration": "478_location_sequential_evidence_timeline.sql",
+  "database_target": "new disposable PostgreSQL 16 container",
+  "candidate_or_legacy_modified": false,
+  "checks": [
+    "migrations 460 and 478 apply; migration 478 replays",
+    "sequence pages include only exact location strategy-plan, threat, and linked/origin solution lineages",
+    "event and posterior update order are stable across pages",
+    "source text, IDs, raw values, likelihoods, probabilities, and party identity remain omitted",
+    "signed exact-location read grants, page bounds, runtime execution, and Directus denial are enforced"
+  ],
+  "acceptance_groups_passed": 8
+}

@@ -842,6 +842,19 @@ def auth_route_policy(method: str, path: str, *, enabled: bool) -> dict | None:
             "operator_auth": True,
         }
 
+    sequential_evidence_timeline_match = re.fullmatch(
+        r"/operator/api/sequential-evidence/([0-9a-fA-F-]{36})/events", path
+    )
+    if sequential_evidence_timeline_match and method.upper() == "GET" and enabled:
+        return {
+            "resource": "sequential_evidence",
+            "action": "read",
+            "public": False,
+            "location_id": sequential_evidence_timeline_match.group(1),
+            "scope_required": True,
+            "operator_auth": True,
+        }
+
     operating_pilot_summary_match = re.fullmatch(
         r"/operator/api/operating-pilot/([0-9a-fA-F-]{36})/summary", path
     )

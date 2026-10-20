@@ -1,8 +1,10 @@
 # Sequential evidence Kernel read contract
 
-**Status:** CAP-036 first location-scoped read slice prepared; not owner-accepted.
-**Migration:** `460_location_scoped_sequential_decision_summary.sql`.
-**Route:** `GET /operator/api/sequential-evidence/{location_id}/summary`.
+**Status:** CAP-036 location-scoped summary and redacted evidence timeline prepared; not owner-accepted.
+**Migrations:** `460_location_scoped_sequential_decision_summary.sql` and
+`478_location_sequential_evidence_timeline.sql`.
+**Routes:** `GET /operator/api/sequential-evidence/{location_id}/summary` and
+`GET /operator/api/sequential-evidence/{location_id}/events`.
 **Authorization:** exact `sequential_evidence:read` location grant and signed
 operator tenant context, checked by Gateway and again inside PostgreSQL.
 
@@ -37,8 +39,23 @@ operator session cookie.
 
 The summary does not prove posterior sequence correctness by itself. The
 immutable source ledger and existing sequential decision tests remain the
-source for calculation behavior; a future item-level read must expose sequence
-ordering only under a reviewed detail contract.
+source for calculation behavior. The event timeline adds a bounded item-level
+view of ordering and review metadata, without exposing decision content or
+calculation values.
+
+The timeline supports only the three source lineages explicitly checked by
+migration 460: location-scoped strategy plans, threats at the exact location,
+and solutions originated in or explicitly linked to the location. Unknown
+subject types and organization-scoped plans remain excluded. Pages contain at
+most 50 items, accept offsets through 10,000, and are capped at 128 KiB. Stable
+ordering is by hypothesis creation/id, then event observed/ingested/created
+timestamps and event ID as a private tie-breaker. Each item exposes only an
+opaque hypothesis sequence, allowlisted subject type, event sequence, observed
+and ingested timestamps, evidence class and quality status, plus a nullable
+posterior update sequence, calculation version, and update timestamp. It does
+not expose hypothesis/event IDs, statements, source IDs/references, raw values,
+source reliability, dependence groups, likelihoods, posterior odds or
+probabilities, threshold evaluations, or party identities.
 
 ## Database boundary
 
@@ -55,10 +72,14 @@ no identity-table or write privilege.
 Focused Gateway, route-policy, migration metadata, and legacy decision checks
 plus disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/cap-036-sequential-decision-disposable.json`.
-Candidate and legacy databases are untouched; migration 460 is not rolled out.
-Remaining gates include ordered item-level evidence and posterior review,
-full source-type lineage, populated reference comparison, live OIDC/browser,
-broader ACL/RLS, recovery acceptance, and MAN-CAP-036 owner review.
+Migration 478 applies/replays on disposable PostgreSQL 16 and passes eight
+acceptance groups for ordering, pagination, exact source lineage, privacy,
+tenant grants, and role boundaries; evidence is in
+`builds/2026-10-19-recovery/cap-036-sequential-evidence-timeline-disposable.json`.
+Candidate and legacy databases are untouched; migrations 460 and 478 are not
+rolled out. Remaining gates include complete source-type lineage, populated
+reference comparison, live OIDC/browser, broader ACL/RLS, recovery acceptance,
+and MAN-CAP-036 owner review.
 
 ## Rollback
 

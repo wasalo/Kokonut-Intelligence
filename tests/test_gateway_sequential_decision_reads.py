@@ -25,6 +25,38 @@ SUMMARY = {
     "posterior_update_count": 2,
     "latest_decision_action_counts": {"continue": 1, "insufficient_evidence": 1},
 }
+TIMELINE = {
+    "limit": 2,
+    "offset": 0,
+    "items": [
+        {
+            "hypothesis_sequence": 1,
+            "subject_type": "strategy_plan",
+            "evidence_sequence": 1,
+            "observed_at": "2026-10-01T00:00:00+00:00",
+            "ingested_at": "2026-10-01T01:00:00+00:00",
+            "evidence_class": "field_observation",
+            "quality_status": "verified",
+            "posterior_update_sequence": 1,
+            "calculation_version": "odds-v1",
+            "posterior_updated_at": "2026-10-01T02:00:00+00:00",
+        },
+        {
+            "hypothesis_sequence": 1,
+            "subject_type": "strategy_plan",
+            "evidence_sequence": 2,
+            "observed_at": "2026-10-02T00:00:00+00:00",
+            "ingested_at": "2026-10-02T01:00:00+00:00",
+            "evidence_class": "monitoring_report",
+            "quality_status": "provisional",
+            "posterior_update_sequence": None,
+            "calculation_version": None,
+            "posterior_updated_at": None,
+        },
+    ],
+    "has_more": True,
+    "next_offset": 2,
+}
 
 
 class _Connection:
@@ -140,6 +172,144 @@ def test_route_policy_requires_exact_location_sequential_evidence_read_grant():
     }
     assert auth_route_policy("POST", path, enabled=True) is None
     assert auth_route_policy("GET", path + "/extra", enabled=True) is None
+
+
+def test_timeline_sets_read_only_tenant_context_and_bounded_page():
+    connection = _Connection(TIMELINE)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.list_location_sequential_evidence_timeline(
+            OPERATOR_ID, LOCATION_ID, limit="2", offset="0",
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "sequential_evidence",
+        "action": "read",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "location_sequential_evidence_timeline" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 2, 0)
+    assert result == {"location_id": LOCATION_ID, **TIMELINE}
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize(("limit", "offset"), [
+    (0, 0), (51, 0), ("1.5", 0), (1, -1), (1, 10001), (True, 0),
+])
+def test_invalid_timeline_page_fails_before_database_access(limit, offset):
+    with pytest.raises(reads.SequentialDecisionReadInvalid):
+        reads.list_location_sequential_evidence_timeline(
+            OPERATOR_ID, LOCATION_ID, limit=limit, offset=offset,
+            connection_factory=lambda: pytest.fail("invalid page must fail before DB access"),
+        )
+
+
+def test_timeline_response_size_limit_rolls_back_and_closes():
+    oversized = {**TIMELINE, "items": [{"field": "x" * reads._MAX_RESPONSE_BYTES}]}
+    connection = _Connection(oversized)
+    with patch.object(reads, "set_operator_tenant_context", lambda *_args, **_kwargs: None):
+        with pytest.raises(reads.SequentialDecisionResponseTooLarge):
+            reads.list_location_sequential_evidence_timeline(
+                OPERATOR_ID, LOCATION_ID, connection_factory=lambda: connection,
+            )
+    assert connection.rolled_back and connection.closed
+
+
+def test_timeline_route_policy_requires_exact_location_read_grant():
+    path = f"/operator/api/sequential-evidence/{LOCATION_ID}/events"
+    assert auth_route_policy("GET", path, enabled=True) == {
+        "resource": "sequential_evidence",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=True) is None
+    assert auth_route_policy("GET", path + "/extra", enabled=True) is None
+
+
+def test_timeline_route_is_no_store_and_forwards_pagination(monkeypatch):
+    from services.gateway.sequential_decision_routes import register_sequential_decision_routes
+
+    calls = []
+
+    def timeline(*args, **kwargs):
+        calls.append((args, kwargs))
+        if kwargs["limit"] == "51":
+            raise reads.SequentialDecisionReadInvalid("Limit must be an integer between 1 and 50")
+        return {"location_id": LOCATION_ID, **TIMELINE}
+
+    monkeypatch.setattr(
+        "services.gateway.sequential_decision_reads.list_location_sequential_evidence_timeline",
+        timeline,
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_sequential_decision_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    with TestClient(app) as client:
+        response = client.get(
+            f"/operator/api/sequential-evidence/{LOCATION_ID}/events?limit=2&offset=0"
+        )
+        invalid = client.get(
+            f"/operator/api/sequential-evidence/{LOCATION_ID}/events?limit=51"
+        )
+
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["items"] == TIMELINE["items"]
+    assert calls == [
+        ((OPERATOR_ID, LOCATION_ID), {"limit": "2", "offset": "0"}),
+        ((OPERATOR_ID, LOCATION_ID), {"limit": "51", "offset": "0"}),
+    ]
+    assert invalid.status_code == 400
+
+
+def test_timeline_route_fails_closed_without_oidc(monkeypatch):
+    from services.gateway.sequential_decision_routes import register_sequential_decision_routes
+
+    monkeypatch.setattr(
+        "services.gateway.sequential_decision_reads.list_location_sequential_evidence_timeline",
+        lambda *_args, **_kwargs: pytest.fail("OIDC-disabled timeline must not query data"),
+    )
+    app = FastAPI()
+    router = APIRouter()
+    register_sequential_decision_routes(router, None, lambda *_args: None,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    with TestClient(app) as client:
+        response = client.get(f"/operator/api/sequential-evidence/{LOCATION_ID}/events")
+
+    assert response.status_code == 404
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_http_projection_is_no_store_and_operator_authenticated(monkeypatch):
