@@ -718,6 +718,18 @@
             <div id="threatcasting-detail-content"></div>
           </section>
         </section>
+        <section id="stakeholder-identity-review" hidden aria-labelledby="stakeholder-identity-review-heading">
+          <h2 id="stakeholder-identity-review-heading">Stakeholder identity review</h2>
+          <p class="muted">Review identity proposals for this location. Source names require current personal-data consent; candidate names also require a non-private canonical identity. The queue excludes source identifiers and raw feedback. Decisions are append-only, and the Gateway rejects self-review.</p>
+          <div class="toolbar">
+            <label for="stakeholder-identity-review-location">Granted location</label>
+            <select id="stakeholder-identity-review-location"></select>
+            <button id="stakeholder-identity-review-refresh" type="button">Refresh proposals</button>
+          </div>
+          <p id="stakeholder-identity-review-status" class="muted" role="status" aria-live="polite"></p>
+          <div id="stakeholder-identity-review-cases"></div>
+          <button id="stakeholder-identity-review-more" class="secondary" type="button" hidden>Load more proposals</button>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -1005,6 +1017,16 @@
       let threatcastingNextCursor = null;
       let threatcastingSelectedPlanId = null;
       const threatcastingPlansById = new Map();
+      const stakeholderIdentityReview = document.querySelector("#stakeholder-identity-review");
+      const stakeholderIdentityReviewLocation = document.querySelector("#stakeholder-identity-review-location");
+      const stakeholderIdentityReviewStatus = document.querySelector("#stakeholder-identity-review-status");
+      const stakeholderIdentityReviewCases = document.querySelector("#stakeholder-identity-review-cases");
+      const stakeholderIdentityReviewMore = document.querySelector("#stakeholder-identity-review-more");
+      let stakeholderIdentityReviewLocations = new Set();
+      let stakeholderIdentityReviewRequestVersion = 0;
+      let stakeholderIdentityReviewNextCursor = null;
+      const stakeholderIdentityPendingDecisions = new Map();
+      const stakeholderIdentityResolvedCases = new Set();
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -2296,6 +2318,202 @@
         }
       }
 
+      function appendStakeholderIdentityReviewCase(identityCase) {
+        if (!identityCase || typeof identityCase.case_id !== "string"
+            || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identityCase.case_id)
+            || stakeholderIdentityResolvedCases.has(identityCase.case_id)) return;
+        const article = document.createElement("article");
+        const heading = document.createElement("h3");
+        const details = document.createElement("dl");
+        const source = identityCase.source_label || "Withheld while source eligibility or consent is unavailable";
+        const candidate = identityCase.candidate_name || "Withheld while canonical identity is unavailable";
+        heading.textContent = "Pending identity proposal";
+        for (const [label, value] of [
+          ["Source participant", source],
+          ["Proposed canonical identity", candidate],
+          ["Match method", identityCase.match_method],
+          ["Structured evidence", identityCase.evidence_code],
+          ["Submitted confidence", identityCase.confidence],
+          ["Proposed", identityCase.created_at]
+        ]) {
+          const term = document.createElement("dt");
+          const description = document.createElement("dd");
+          term.textContent = label;
+          description.textContent = value === null || value === undefined ? "—" : String(value);
+          details.append(term, description);
+        }
+        article.append(heading, details);
+        const controls = document.createElement("div");
+        controls.className = "toolbar";
+        const reasonLabel = document.createElement("label");
+        const reasonSelect = document.createElement("select");
+        reasonLabel.textContent = "Rejection reason";
+        reasonSelect.setAttribute("aria-label", "Rejection reason");
+        for (const [value, label] of [
+          ["insufficient_evidence", "Insufficient evidence"],
+          ["conflicting_identity", "Conflicting identity"],
+          ["source_not_eligible", "Source not eligible"]
+        ]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          reasonSelect.append(option);
+        }
+        const approveButton = document.createElement("button");
+        const rejectButton = document.createElement("button");
+        approveButton.type = "button";
+        approveButton.textContent = "Approve match";
+        rejectButton.type = "button";
+        rejectButton.textContent = "Reject proposal";
+        const identityVisible = Boolean(identityCase.source_label
+          && identityCase.candidate_party_id && identityCase.candidate_name);
+        approveButton.disabled = !identityVisible;
+        rejectButton.disabled = !identityVisible;
+        reasonSelect.disabled = !identityVisible;
+        if (!identityVisible) {
+          const withheld = document.createElement("p");
+          withheld.className = "muted";
+          withheld.textContent = "Decision controls are disabled because the current consent or identity eligibility check withholds required names.";
+          article.append(withheld);
+        }
+        approveButton.addEventListener("click", () => decideStakeholderIdentityCase(
+          identityCase, "approve", "match_confirmed", approveButton
+        ));
+        rejectButton.addEventListener("click", () => decideStakeholderIdentityCase(
+          identityCase, "reject", reasonSelect.value, rejectButton
+        ));
+        reasonLabel.append(reasonSelect);
+        controls.append(reasonLabel, approveButton, rejectButton);
+        article.append(controls);
+        stakeholderIdentityReviewCases.append(article);
+      }
+
+      async function loadStakeholderIdentityReviewCases(append = false) {
+        const locationId = stakeholderIdentityReviewLocation.value;
+        const requestVersion = ++stakeholderIdentityReviewRequestVersion;
+        if (!stakeholderIdentityReviewLocations.has(locationId)) return;
+        stakeholderIdentityReviewStatus.textContent = "Loading location-scoped identity proposals…";
+        stakeholderIdentityReviewMore.disabled = true;
+        if (!append) {
+          stakeholderIdentityReviewCases.replaceChildren();
+          stakeholderIdentityReviewNextCursor = null;
+          stakeholderIdentityReviewMore.hidden = true;
+        }
+        try {
+          const params = new URLSearchParams({ limit: "50" });
+          if (append && stakeholderIdentityReviewNextCursor) {
+            params.set("cursor_created_at", stakeholderIdentityReviewNextCursor.created_at);
+            params.set("cursor_case_id", stakeholderIdentityReviewNextCursor.case_id);
+          }
+          const response = await fetch(
+            `/operator/api/stakeholder-identity/${encodeURIComponent(locationId)}/cases?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location identity review grant is no longer valid. Reload the console to refresh access.");
+            }
+            throw new Error("Identity proposals could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== stakeholderIdentityReviewRequestVersion
+              || locationId !== stakeholderIdentityReviewLocation.value) return;
+          const items = Array.isArray(result.items) ? result.items : [];
+          for (const identityCase of items) appendStakeholderIdentityReviewCase(identityCase);
+          const nextCursor = result.next_cursor;
+          stakeholderIdentityReviewNextCursor = nextCursor
+            && typeof nextCursor.created_at === "string"
+            && typeof nextCursor.case_id === "string"
+            ? nextCursor
+            : null;
+          stakeholderIdentityReviewMore.hidden = stakeholderIdentityReviewNextCursor === null;
+          stakeholderIdentityReviewStatus.textContent = stakeholderIdentityReviewCases.children.length
+            ? `${stakeholderIdentityReviewCases.children.length} pending identity proposal${stakeholderIdentityReviewCases.children.length === 1 ? "" : "s"} shown for this location. Decisions remain append-only and subject to independent review.`
+            : "No pending identity proposals are available for this location.";
+        } catch (error) {
+          if (requestVersion !== stakeholderIdentityReviewRequestVersion) return;
+          if (!append) stakeholderIdentityReviewCases.replaceChildren();
+          stakeholderIdentityReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === stakeholderIdentityReviewRequestVersion) stakeholderIdentityReviewMore.disabled = false;
+        }
+      }
+
+      async function decideStakeholderIdentityCase(identityCase, decision, reasonCode, button) {
+        const locationId = stakeholderIdentityReviewLocation.value;
+        if (!stakeholderIdentityReviewLocations.has(locationId)
+            || !identityCase?.case_id || !["approve", "reject"].includes(decision)) {
+          stakeholderIdentityReviewStatus.textContent = "Select a location with the separate identity review grant before recording a decision.";
+          return;
+        }
+        const allowedReasons = decision === "approve"
+          ? ["match_confirmed"]
+          : ["insufficient_evidence", "conflicting_identity", "source_not_eligible"];
+        if (!allowedReasons.includes(reasonCode)) {
+          stakeholderIdentityReviewStatus.textContent = "Choose a supported decision reason.";
+          return;
+        }
+        if (!window.confirm(`Record an immutable ${decision} decision for this identity proposal? The case creator cannot review their own proposal.`)) return;
+        const csrf = csrfToken();
+        if (!csrf) {
+          stakeholderIdentityReviewStatus.textContent = "Refresh the operator session before recording an identity decision.";
+          return;
+        }
+        let pending = stakeholderIdentityPendingDecisions.get(identityCase.case_id);
+        if (pending && (pending.decision !== decision || pending.reason_code !== reasonCode)) {
+          stakeholderIdentityReviewStatus.textContent = "Retry the same decision after an uncertain response; do not submit a different choice until its outcome is confirmed.";
+          return;
+        }
+        if (!pending) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            stakeholderIdentityReviewStatus.textContent = "A secure browser context is required to record an identity decision.";
+            return;
+          }
+          pending = { decision, reason_code: reasonCode, request_id: requestId };
+          stakeholderIdentityPendingDecisions.set(identityCase.case_id, pending);
+        }
+        button.disabled = true;
+        stakeholderIdentityReviewStatus.textContent = `Recording ${decision} decision…`;
+        try {
+          const response = await fetch(
+            `/operator/api/stakeholder-identity/${encodeURIComponent(locationId)}/cases/${encodeURIComponent(identityCase.case_id)}/decision`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrf
+              },
+              body: JSON.stringify({
+                request_id: pending.request_id,
+                decision: pending.decision,
+                reason_code: pending.reason_code
+              })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Your session or location identity review grant is no longer valid.");
+          }
+          if (!response.ok) throw new Error(result.error || "The identity decision could not be recorded.");
+          stakeholderIdentityPendingDecisions.delete(identityCase.case_id);
+          stakeholderIdentityResolvedCases.add(identityCase.case_id);
+          if (locationId === stakeholderIdentityReviewLocation.value) {
+            await loadStakeholderIdentityReviewCases();
+            stakeholderIdentityReviewStatus.textContent = `The ${decision} decision was recorded. The decision ledger is append-only.`;
+          }
+        } catch (error) {
+          if (locationId === stakeholderIdentityReviewLocation.value) {
+            stakeholderIdentityReviewStatus.textContent = `${error.message} If the response was interrupted, retry the same choice to use its original request ID.`;
+          }
+        } finally {
+          button.disabled = false;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -2381,6 +2599,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           threatcastingLocations = new Set(threatcastingLocationIds);
+          const stakeholderIdentityReviewLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "stakeholder_identity" && scope.action === "review")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          stakeholderIdentityReviewLocations = new Set(stakeholderIdentityReviewLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -2696,6 +2920,17 @@
             }
             threatcastingBackcasts.hidden = false;
             await loadThreatcastingPlans();
+            hasAuthorizedSurface = true;
+          }
+          if (stakeholderIdentityReviewLocationIds.length) {
+            for (const locationId of stakeholderIdentityReviewLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              stakeholderIdentityReviewLocation.append(option);
+            }
+            stakeholderIdentityReview.hidden = false;
+            await loadStakeholderIdentityReviewCases();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -5869,6 +6104,9 @@
       document.querySelector("#threatcasting-refresh").addEventListener("click", () => loadThreatcastingPlans());
       threatcastingLocation.addEventListener("change", () => loadThreatcastingPlans());
       threatcastingMore.addEventListener("click", () => loadThreatcastingPlans(true));
+      document.querySelector("#stakeholder-identity-review-refresh").addEventListener("click", () => loadStakeholderIdentityReviewCases());
+      stakeholderIdentityReviewLocation.addEventListener("change", () => loadStakeholderIdentityReviewCases());
+      stakeholderIdentityReviewMore.addEventListener("click", () => loadStakeholderIdentityReviewCases(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

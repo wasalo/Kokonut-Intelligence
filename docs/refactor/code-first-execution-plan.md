@@ -1927,3 +1927,26 @@ style/altitude, raster GroundOverlay, PostGIS recovery and populated spatial
 fixtures, geostory access, thesaurus integration, and MAN-CAP-063 remain open.
 Checklist: 685 complete / 24 open;
 matrix classifications unchanged. [Evidence](builds/2026-10-19-recovery/cap-063-csw-xml-safety.json).
+
+### CAP-025 location-scoped identity reviewer console — 20 October 2026
+
+Added a reviewer panel to `apps/operator-console/index.html`, shown only for
+locations in the signed session's exact `stakeholder_identity:review` grants.
+The bounded queue displays source and candidate names only when the database
+projection supplies them under current consent/privacy rules; it withholds
+source profile IDs and raw feedback and disables decisions when required names
+are absent. Approve uses `match_confirmed`; reject offers only the three
+Gateway reason codes. Each decision has an explicit confirmation and a
+same-origin, no-store, CSRF-protected POST. Request IDs remain stable when a
+response is interrupted, and the database still rejects proposer self-review.
+
+Six focused console contract tests and the related CAP-025 Gateway, trust,
+resolver, and route-policy selection pass 36 tests. Ruff, inline JavaScript
+syntax, and `git diff --check` pass. No database or migration was required, and
+candidate/legacy state was untouched. The console completes this code-owned
+review surface, but CAP-025 remains prepared pending other identity sources,
+non-identity trust evidence, live OIDC/browser acceptance, populated parity,
+RLS, post-review consent disposition, and owner acceptance. Checklist: 720
+complete / 24 open; the matrix remains 66 rows (31 baseline-retained, 7
+deployed, 28 prepared). [Contract](stakeholder-identity-kernel-contract.md);
+[tests](../tests/test_operator_console_stakeholder_identity.py).

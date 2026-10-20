@@ -12065,3 +12065,24 @@ MAN-CAP-037 owner acceptance. Checklist: 708 complete / 24 open; matrix:
 [migration](../schemas/postgres/480_location_operating_pilot_capacity_periods.sql);
 [tests](../tests/test_gateway_operating_pilot_reads.py);
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-capacity-disposable.json).
+
+### CAP-025 location-scoped identity reviewer console — 20 October 2026
+
+Added the CAP-025 operator review panel. It requires an exact
+`stakeholder_identity:review` location grant and reads only the bounded
+consent-aware Gateway queue. Source/candidate names are rendered as text only
+when supplied by the database privacy projection; controls stay disabled when
+required identity fields are withheld. Approve and reject use fixed reason
+codes, explicit confirmation, CSRF-protected same-origin no-store POSTs, and
+stable request IDs across retries. The database remains the authority for
+independent review and immutable decisions. The interface does not expose
+source profile identifiers, reviewer identifiers, or raw feedback.
+
+The six console contract checks and the related CAP-025 Gateway, trust,
+resolver, and policy tests pass (36 total); Ruff, JavaScript parsing, and diff
+checks pass. No migrations, database, candidate, or legacy environment were
+used. Live OIDC/browser acceptance, additional source types, broader trust
+parity, RLS, post-review consent disposition, populated parity, and MAN-CAP-025
+remain open. Checklist: 720 complete / 24 open; matrix: 31 baseline-retained,
+7 deployed, 28 prepared across 66 rows. [Contract](stakeholder-identity-kernel-contract.md);
+[console tests](../tests/test_operator_console_stakeholder_identity.py).

@@ -70,6 +70,21 @@ link exists. An unavailable mapping returns the same not-found response for
 pending, absent, withdrawn, conflicted, or private mappings; the source UUID
 is never echoed in the response.
 
+The operator console now provides a location-scoped pending-case reviewer at
+`apps/operator-console/index.html`. It appears only when the signed session
+contains the exact `stakeholder_identity:review` grant for that location. The
+queue uses the consent-filtered case projection and bounded keyset pagination;
+it renders source/candidate names only when supplied by the projection and
+disables decisions whenever required identity details are withheld. It never
+renders source profile IDs, reviewer IDs, or raw feedback. Approve uses the
+fixed `match_confirmed` reason; reject offers only
+`insufficient_evidence`, `conflicting_identity`, and `source_not_eligible`.
+Decision requests use same-origin credentials, `no-store`, CSRF, a browser
+request UUID, and the same UUID on an exact retry after an interrupted
+response. A confirmation names the immutable decision boundary. The database
+continues to enforce independent review; the interface does not treat its
+own display or checks as authorization.
+
 ## Explicit exclusions and next work
 
 This is the first source type and review workflow, not full identity parity.
@@ -103,8 +118,13 @@ resolution acceptance also proves distinct-grant enforcement, stale-consent
 and legacy-conflict suppression, and the minimal canonical-party response.
 Neither path reads the legacy global trust ledger. The existing
 tenant-context checks cover the actual OIDC-session signature path.
+Focused console/Gateway checks cover exact-grant rendering, consent-filtered
+fields, no-store paging, stale-response guards, fixed decision reasons, CSRF,
+stable retry IDs, unique DOM IDs, and JavaScript syntax. This is source-level
+acceptance; live authenticated browser/OIDC behavior remains open.
 
 To withdraw the feature before migration rollout, remove the Gateway
 registrations/policies and routes/services as one unit. Migrations 446–448 are
 additive and checksummed; if applied, do not edit or reverse them. Keep
-the ledgers, ACLs, and functions in place while removing only API registration.
+the ledgers, ACLs, and functions in place while removing API registration and
+the console panel together.
