@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from copy import deepcopy
 from typing import Any
+from uuid import UUID
 
 TASK_CATALOGUE: dict[str, dict[str, Any]] = {
     "cids_export": {
@@ -374,12 +376,47 @@ def output_schema(task_key: str) -> dict[str, Any]:
 
 
 def validate_output(task_key: str, output: dict[str, Any]) -> list[str]:
-    """Perform lightweight required-field output validation."""
+    """Validate declared top-level output presence, types, and known formats."""
     errors: list[str] = []
     schema = output_schema(task_key)
     for field, spec in schema.items():
-        if spec.get("required") and field not in output:
-            errors.append(f"Missing required output field: {field}")
+        if field not in output:
+            if spec.get("required"):
+                errors.append(f"Missing required output field: {field}")
+            continue
+
+        value = output[field]
+        expected_type = spec.get("type")
+        type_checks = {
+            "array": lambda item: isinstance(item, list),
+            "boolean": lambda item: isinstance(item, bool),
+            "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
+            "number": lambda item: (
+                not isinstance(item, bool)
+                and (
+                    isinstance(item, int)
+                    or (isinstance(item, float) and math.isfinite(item))
+                )
+            ),
+            "object": lambda item: isinstance(item, dict),
+            "string": lambda item: isinstance(item, str),
+        }
+        check_type = type_checks.get(expected_type)
+        if check_type is None:
+            errors.append(f"Unsupported output schema type for field: {field}")
+            continue
+        if not check_type(value):
+            errors.append(f"Invalid output type for field: {field} (expected {expected_type})")
+            continue
+
+        output_format = spec.get("format")
+        if output_format == "uuid":
+            try:
+                UUID(value)
+            except (TypeError, ValueError, AttributeError):
+                errors.append(f"Invalid output format for field: {field} (expected uuid)")
+        elif output_format is not None:
+            errors.append(f"Unsupported output format for field: {field}")
     return errors
 
 

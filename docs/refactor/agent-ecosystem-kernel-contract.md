@@ -32,8 +32,9 @@ run without decrypting `.env.sops`.
 
 - Draft creation continues for the write targets declared by the task catalogue.
 - Shared synthesis runners validate the generated output before inserting a
-  draft. Invalid output now fails before `INSERT`/`COMMIT`, and the connection
-  still closes; validation remains intentionally lightweight and does not
+  draft. The validator checks declared top-level presence, types, and UUID
+  formats. Invalid output now fails before `INSERT`/`COMMIT`, and the connection
+  still closes. Nested content is not schema-validated, and this does not
   replace the human review lifecycle.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.

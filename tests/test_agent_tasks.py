@@ -38,6 +38,40 @@ def test_output_validation_checks_required_fields() -> None:
     assert "Missing required output field: document" in errors
 
 
+def test_output_validation_checks_declared_top_level_types_and_formats() -> None:
+    valid = {
+        "document": {"@graph": []},
+        "graph_count": 1,
+        "alignment_tier": "essential",
+        "cids_version": "3.2.0",
+    }
+    assert validate_output("cids_export", valid) == []
+    assert validate_output(
+        "ai_summary_synthesis",
+        {"summary": {}, "ai_summary_id": "a0000000-0000-4000-8000-000000000001"},
+    ) == []
+
+    errors = validate_output(
+        "cids_export",
+        {
+            "document": [],
+            "graph_count": True,
+            "alignment_tier": 3,
+            "cids_version": "3.2.0",
+        },
+    )
+    assert "Invalid output type for field: document (expected object)" in errors
+    assert "Invalid output type for field: graph_count (expected integer)" in errors
+    assert "Invalid output type for field: alignment_tier (expected string)" in errors
+
+    uuid_errors = validate_output(
+        "ai_summary_synthesis",
+        {"summary": {}, "ai_summary_id": "private-not-a-uuid"},
+    )
+    assert uuid_errors == ["Invalid output format for field: ai_summary_id (expected uuid)"]
+    assert "private-not-a-uuid" not in " ".join(uuid_errors)
+
+
 def test_every_catalogue_write_is_draft_or_submission_only() -> None:
     for task_key in list_tasks():
         task = get_task(task_key)

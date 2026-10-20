@@ -6,10 +6,11 @@
     "services/agents/base.py:SynthesisAgent.run",
     "services/agents/ai_summary.py:run_ai_summary"
   ],
-  "behavior": "Generated output is validated before optional draft persistence; invalid output raises before INSERT/COMMIT and connections close in finally blocks.",
+  "behavior": "Declared top-level output presence, types, and UUID formats are validated before optional draft persistence; invalid output raises before INSERT/COMMIT and connections close in finally blocks. Nested content is not validated.",
   "verification": {
-    "focused_tests": "8 passed",
+    "focused_tests": "21 passed",
     "python_files": [
+      "tests/test_agent_tasks.py",
       "tests/test_agents_base.py",
       "tests/test_ai_summary_safety.py"
     ],
