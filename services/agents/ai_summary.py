@@ -30,6 +30,66 @@ from services.agents.tasks import (
 )
 from services.common.database import get_db
 
+_SOURCE_REFERENCE_LIMIT = 50
+_LOCATION_SOURCE_TABLES = {
+    "harvest_event",
+    "sales_event",
+    "crop_cycle",
+    "sensor_reading",
+    "expense_event",
+    "noi_snapshot",
+    "soil_carbon_measurement",
+    "species_observation",
+    "remote_sensing_observation",
+    "weather_observation",
+}
+
+
+def _collect_source_references(conn, location_id: str, scopes: dict[str, tuple[str, tuple, str, bool]]) -> dict:
+    """Return bounded, location-qualified record references for a summary.
+
+    Each scope tuple contains a fixed SQL predicate, its bind parameters, a
+    fixed ordering expression, and whether the summary uses only the newest
+    matching row. Table names and SQL fragments come from this module's static
+    generator definitions; callers cannot supply query fragments.
+    """
+    if any(table not in _LOCATION_SOURCE_TABLES for table in scopes):
+        unsupported = next(table for table in scopes if table not in _LOCATION_SOURCE_TABLES)
+        raise ValueError(f"Unsupported AI-summary source table: {unsupported}")
+    manifest = {}
+    with conn.cursor() as cursor:
+        for table, (predicate, parameters, ordering, latest_only) in scopes.items():
+            if latest_only:
+                query = f"""
+                    SELECT selected.id::text, COUNT(*) OVER () AS row_count
+                      FROM (
+                          SELECT id FROM public.{table}
+                           WHERE location_id = %s AND ({predicate})
+                           ORDER BY {ordering}
+                           LIMIT 1
+                      ) AS selected
+                """
+                query_parameters = (location_id, *parameters)
+            else:
+                query = f"""
+                    SELECT id::text, COUNT(*) OVER () AS row_count
+                      FROM public.{table}
+                     WHERE location_id = %s AND ({predicate})
+                     ORDER BY {ordering}
+                     LIMIT %s
+                """
+                query_parameters = (location_id, *parameters, _SOURCE_REFERENCE_LIMIT)
+            cursor.execute(query, query_parameters)
+            rows = cursor.fetchall()
+            count = int(rows[0][1]) if rows else 0
+            record_ids = [str(row[0]) for row in rows]
+            manifest[table] = {
+                "record_ids": record_ids,
+                "row_count": count,
+                "truncated": count > len(record_ids),
+            }
+    return manifest
+
 
 def get_pg():
     return get_db()
@@ -88,6 +148,22 @@ def generate_operations_summary(conn, location_id: str) -> dict:
 
     cur.close()
 
+    source_references = _collect_source_references(conn, location_id, {
+        "harvest_event": (
+            "status IN ('verified', 'published') AND harvest_date >= CURRENT_DATE - INTERVAL '90 days'",
+            (), "harvest_date, id", False,
+        ),
+        "sales_event": (
+            "status IN ('verified', 'published') AND sale_date >= CURRENT_DATE - INTERVAL '90 days'",
+            (), "sale_date, id", False,
+        ),
+        "crop_cycle": ("status = 'active'", (), "id", False),
+        "sensor_reading": (
+            "reading_date >= CURRENT_DATE - INTERVAL '30 days'",
+            (), "reading_date, id", False,
+        ),
+    })
+
     lines = [
         "## Operations Summary (Last 90 Days)",
         "",
@@ -103,6 +179,7 @@ def generate_operations_summary(conn, location_id: str) -> dict:
     return {
         "content": "\n".join(lines),
         "source_tables": ["harvest_event", "sales_event", "crop_cycle", "sensor_reading"],
+        "source_references": source_references,
         "summary_type": "operations",
     }
 
@@ -139,6 +216,19 @@ def generate_financial_summary(conn, location_id: str) -> dict:
 
     cur.close()
 
+    source_references = _collect_source_references(conn, location_id, {
+        "sales_event": ("status IN ('verified', 'published')", (), "sale_date, id", False),
+        "crop_cycle": (
+            "id IN (SELECT DISTINCT se.crop_cycle_id FROM public.sales_event AS se "
+            "WHERE se.location_id = %s AND se.status IN ('verified', 'published'))",
+            (location_id,),
+            "id",
+            False,
+        ),
+        "expense_event": ("status IN ('verified', 'published')", (), "expense_date, id", False),
+        "noi_snapshot": ("TRUE", (), "period_end, id", False),
+    })
+
     total_revenue = sum(r["revenue"] for r in revenue_by_crop)
     total_expenses = sum(e["total"] for e in expenses)
 
@@ -168,6 +258,7 @@ def generate_financial_summary(conn, location_id: str) -> dict:
     return {
         "content": "\n".join(lines),
         "source_tables": ["sales_event", "expense_event", "noi_snapshot", "crop_cycle", "crop", "expense_category"],
+        "source_references": source_references,
         "summary_type": "financial",
     }
 
@@ -179,7 +270,7 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
     cur.execute("""
         SELECT carbon_tonnes_per_ha, measurement_date
         FROM soil_carbon_measurement
-        WHERE location_id = %s ORDER BY measurement_date DESC LIMIT 1
+        WHERE location_id = %s ORDER BY measurement_date DESC, id DESC LIMIT 1
     """, (location_id,))
     carbon = cur.fetchone()
 
@@ -194,7 +285,7 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
         SELECT ndvi, observation_date
         FROM remote_sensing_observation
         WHERE location_id = %s AND ndvi IS NOT NULL
-        ORDER BY observation_date DESC LIMIT 1
+        ORDER BY observation_date DESC, id DESC LIMIT 1
     """, (location_id,))
     ndvi = cur.fetchone()
 
@@ -208,6 +299,18 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
     weather = dict(cur.fetchone())
 
     cur.close()
+
+    source_references = _collect_source_references(conn, location_id, {
+        "soil_carbon_measurement": ("TRUE", (), "measurement_date DESC, id DESC", True),
+        "species_observation": ("TRUE", (), "observation_date, id", False),
+        "remote_sensing_observation": (
+            "ndvi IS NOT NULL", (), "observation_date DESC, id DESC", True,
+        ),
+        "weather_observation": (
+            "observation_date >= CURRENT_DATE - INTERVAL '90 days'",
+            (), "observation_date, id", False,
+        ),
+    })
 
     lines = ["## Environmental Summary", ""]
 
@@ -227,6 +330,7 @@ def generate_environmental_summary(conn, location_id: str) -> dict:
     return {
         "content": "\n".join(lines),
         "source_tables": ["soil_carbon_measurement", "species_observation", "remote_sensing_observation", "weather_observation"],
+        "source_references": source_references,
         "summary_type": "environmental",
     }
 
@@ -242,6 +346,7 @@ def generate_combined(conn, location_id: str) -> dict:
     """Generate a combined summary from all generators."""
     sections = []
     all_sources = []
+    all_references = {}
 
     for summary_type, gen_func in GENERATORS.items():
         if summary_type == "combined":
@@ -249,10 +354,12 @@ def generate_combined(conn, location_id: str) -> dict:
         result = gen_func(conn, location_id)
         sections.append(result["content"])
         all_sources.extend(result["source_tables"])
+        all_references.update(result.get("source_references", {}))
 
     return {
         "content": "\n\n".join(sections),
         "source_tables": list(dict.fromkeys(all_sources)),
+        "source_references": all_references,
         "summary_type": "combined",
     }
 
@@ -332,6 +439,7 @@ def build_summary(conn, location_id: str, summary_type: str = "combined") -> dic
     summary = {
         "content": result["content"],
         "source_tables": result["source_tables"],
+        "source_references": result.get("source_references", {}),
         "summary_type": result["summary_type"],
         "location_id": location_id,
     }

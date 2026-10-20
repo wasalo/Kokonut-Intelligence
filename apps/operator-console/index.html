@@ -130,7 +130,7 @@
         </section>
         <section id="ai-summary-review" hidden aria-labelledby="ai-summary-review-heading">
           <h2 id="ai-summary-review-heading">AI summary review</h2>
-          <p class="muted">Review location-scoped drafts. Approval moves a summary to verified; publication remains separate. New Gateway drafts record the requesting operator and the database blocks self-review. Legacy drafts without reliable requester attribution cannot be approved. Source table names are provenance hints, not a substitute for checking the underlying evidence.</p>
+          <p class="muted">Review location-scoped drafts. Approval moves a summary to verified; publication remains separate. New Gateway drafts record the requesting operator and the database blocks self-review. Legacy drafts without reliable requester attribution cannot be approved. Record references identify source rows; counts are exact and each table is capped at 50 displayed IDs. References do not replace checking the underlying evidence.</p>
           <div class="toolbar">
             <label for="ai-summary-review-location">Granted location</label>
             <select id="ai-summary-review-location"></select>
@@ -12312,6 +12312,35 @@
               ? summary.source_tables.filter((value) => typeof value === "string")
               : [];
             sourceCell.textContent = sourceTables.length ? sourceTables.join(", ") : "No source table lineage";
+            const sourceReferences = summary.source_references
+              && typeof summary.source_references === "object"
+              && !Array.isArray(summary.source_references)
+              ? summary.source_references
+              : {};
+            for (const [sourceTable, manifest] of Object.entries(sourceReferences)) {
+              if (!sourceTables.includes(sourceTable) || !manifest || typeof manifest !== "object") continue;
+              const recordIds = Array.isArray(manifest.record_ids)
+                ? manifest.record_ids.filter((value) => typeof value === "string")
+                : [];
+              const rowCount = Number.isInteger(manifest.row_count) && manifest.row_count >= recordIds.length
+                ? manifest.row_count
+                : recordIds.length;
+              const references = document.createElement("details");
+              const label = document.createElement("summary");
+              label.textContent = `${sourceTable}: ${recordIds.length} of ${rowCount} record IDs`;
+              references.append(label);
+              for (const recordId of recordIds) {
+                const item = document.createElement("div");
+                item.textContent = recordId;
+                references.append(item);
+              }
+              if (manifest.truncated === true) {
+                const sampleNote = document.createElement("small");
+                sampleNote.textContent = "Showing a bounded sample; total count is exact.";
+                references.append(sampleNote);
+              }
+              sourceCell.append(document.createElement("br"), references);
+            }
             if (summary.model_version) {
               const model = document.createElement("small");
               model.textContent = `Model: ${String(summary.model_version)}`;
@@ -12489,8 +12518,15 @@
           const sourceTables = Array.isArray(result.source_tables)
             ? result.source_tables.filter((value) => typeof value === "string")
             : [];
+          const sourceReferences = result.source_references
+            && typeof result.source_references === "object"
+            && !Array.isArray(result.source_references)
+            ? Object.entries(result.source_references)
+              .filter(([table, manifest]) => sourceTables.includes(table) && manifest && typeof manifest === "object")
+              .map(([table, manifest]) => `${table}: ${Array.isArray(manifest.record_ids) ? manifest.record_ids.length : 0} of ${Number(manifest.row_count) || 0} record IDs`)
+            : [];
           aiSummaryDraftSources.textContent = sourceTables.length
-            ? `Source table provenance hints: ${sourceTables.join(", ")}`
+            ? `Source tables: ${sourceTables.join(", ")}${sourceReferences.length ? `. Linked records: ${sourceReferences.join("; ")}` : ". Record-level references are unavailable for this result."}`
             : "No source table provenance was returned.";
           aiSummaryDraftResult.hidden = false;
           aiSummaryDraftStatus.textContent = result.replayed === true

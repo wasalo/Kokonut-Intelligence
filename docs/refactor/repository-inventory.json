@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "3e96cf8b68e971a8d71d41ac7e655867f6ce766b",
+  "baseline_commit": "201b52dd461fc7f27349becb231c23322f3b2590",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -2785,7 +2785,8 @@
       "schemas/postgres/519_location_solution_adoption_program_revision.sql",
       "schemas/postgres/520_location_solution_adoption_consent_events.sql",
       "schemas/postgres/521_location_scoped_ai_summary_review.sql",
-      "schemas/postgres/522_authenticated_ai_summary_drafts.sql"
+      "schemas/postgres/522_authenticated_ai_summary_drafts.sql",
+      "schemas/postgres/523_ai_summary_source_references.sql"
     ],
     "seeds": [
       "schemas/seeds/000_expense_categories.sql",
@@ -2970,6 +2971,7 @@
         "tests/test_agent_tasks.py",
         "tests/test_agents_base.py",
         "tests/test_ai_summary_safety.py",
+        "tests/test_ai_summary_source_references.py",
         "tests/test_bio_factory_operations.py",
         "tests/test_capital_accounting.py",
         "tests/test_capital_efficiency.py",
@@ -5280,6 +5282,7 @@
     "tests/test_agents_base.py",
     "tests/test_ai_evaluation.py",
     "tests/test_ai_summary_safety.py",
+    "tests/test_ai_summary_source_references.py",
     "tests/test_analytics_join_safety.py",
     "tests/test_anomaly_detector.py",
     "tests/test_anomaly_detector_cli_scope.py",

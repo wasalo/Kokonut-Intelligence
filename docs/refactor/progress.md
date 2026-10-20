@@ -3,31 +3,40 @@
 Migration 522 adds an OIDC `ai_summary:draft` route that uses the existing
 deterministic generator and records the authenticated requesting operator. A
 private immutable receipt provides idempotent retries, and retries return the
-stored result before regeneration. The console shows draft creation only for
+stored result before regeneration. Migration 523 records exact source-row counts
+and up to 50 ordered IDs per location-owned table in a private append-only
+manifest; PostgreSQL checks each ID against the exact location, and the scoped
+review queue exposes the manifest to reviewers. The console renders IDs safely
+and marks larger result sets as samples. The console shows draft creation only for
 that exact location grant and reports that independent review is still needed.
 Migration 521's review queue now includes both attributed and legacy drafts:
 self-review is blocked for either decision, legacy unattributed summaries may
 be rejected but not verified, and a distinct reviewer may set `verified` only.
 The lifecycle constraint permits `verified` or later `published` for an
 attributed summary only when distinct reviewer identity and review time exist.
-Source-table names remain provenance hints rather than linked evidence.
+Legacy summaries are not backfilled; global crop/category references,
+background-agent sources, and full source snapshots remain open provenance work.
 
-The focused Gateway, route-policy, console, and agent-safety selection passes
-51 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass.
-Disposable PostgreSQL 16 applies/replays migrations 521–522 on a network-disabled
-container and passes eight grouped attribution, idempotency, self-review,
-legacy-blocker, lifecycle, and ACL checks. Candidate and legacy databases remain
-untouched; migration 522 is not rolled out. Existing CLI/background agent
+The focused Gateway, route-policy, console, source-reference, and agent-safety
+selection passes 60 tests with nine PostgreSQL-dependent skips; Ruff, Python
+compilation, and inline JavaScript syntax checks pass.
+Disposable PostgreSQL 16 applies/replays migrations 521–523 on a network-disabled
+container and passes 11 grouped attribution, idempotency, location binding,
+manifest privacy/immutability, self-review, legacy-blocker, lifecycle, and ACL
+checks. Candidate and legacy databases remain untouched; migration 523 is not
+rolled out. Existing CLI/background agent
 writers still do not identify their authenticated requester, and those drafts
 remain approval-blocked. Populated parity, live OIDC/browser behavior, runtime
-recovery, linked evidence, and MAN-CAP-038 remain open. Checklist: 784 complete /
+recovery, full source snapshots, and MAN-CAP-038 remain open. Checklist: 785 complete /
 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows.
 Evidence: [contract](agent-ecosystem-kernel-contract.md),
 [migration](../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
+[source-reference migration](../schemas/postgres/523_ai_summary_source_references.sql),
 [draft tests](../tests/test_gateway_ai_summary_draft.py),
 [review tests](../tests/test_gateway_ai_summary_review.py),
+[source-reference tests](../tests/test_ai_summary_source_references.py),
 [console tests](../tests/test_operator_console_ai_summary_review.py), and
-[disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-draft-disposable.json).
+[disposable acceptance](builds/2026-10-20-recovery/cap-038-ai-summary-source-references-disposable.json).
 
 ### CAP-035 consent-aware adoption event capture — 20 October 2026
 

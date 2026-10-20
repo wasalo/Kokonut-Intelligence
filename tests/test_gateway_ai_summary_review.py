@@ -80,6 +80,7 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
         None,
         True,
         [],
+        {"harvest_event": {"record_ids": [], "row_count": 0, "truncated": False}},
     )
     connection = _Connection([row])
     with patch.object(review, "set_operator_tenant_context", _set_context):
@@ -102,6 +103,7 @@ def test_review_queue_sets_signed_scope_before_query_and_cleans_up():
     }
     assert result["summaries"][0]["summary_id"] == SUMMARY_ID
     assert result["summaries"][0]["review_ready"] is True
+    assert result["summaries"][0]["source_references"]["harvest_event"]["row_count"] == 0
     assert connection.rolled_back and connection.closed
     assert not connection.committed
 

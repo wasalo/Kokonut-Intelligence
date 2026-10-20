@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from functools import partial
 from typing import Callable
 from uuid import UUID
@@ -69,6 +70,14 @@ def create_operator_ai_summary_draft(
             )
             existing = cursor.fetchone()
         if existing is not None:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """SELECT kokonut_security.get_location_ai_summary_source_references(
+                               %s::uuid, %s::uuid, 'draft'
+                           )""",
+                    (location_id, str(existing[0])),
+                )
+                source_references = cursor.fetchone()
             connection.commit()
             return {
                 "summary_id": str(existing[0]),
@@ -76,6 +85,7 @@ def create_operator_ai_summary_draft(
                 "summary_type": summary_type,
                 "content": existing[1],
                 "source_tables": existing[2] or [],
+                "source_references": source_references[0] if source_references else {},
                 "model_version": existing[3],
                 "created_at": existing[4],
                 "resulting_status": existing[5],
@@ -104,6 +114,33 @@ def create_operator_ai_summary_draft(
             row = cursor.fetchone()
         if row is None:
             raise RuntimeError("AI summary draft function returned no result")
+        if row[6]:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """SELECT kokonut_security.get_location_ai_summary_source_references(
+                               %s::uuid, %s::uuid, 'draft'
+                           )""",
+                    (location_id, str(row[0])),
+                )
+                source_references = cursor.fetchone()
+            source_references = source_references[0] if source_references else {}
+        else:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """SELECT kokonut_security.set_location_ai_summary_source_references(
+                               %s::uuid, %s::uuid, %s::uuid, %s::jsonb
+                           )""",
+                    (
+                        location_id,
+                        str(row[0]),
+                        request_id,
+                        json.dumps(summary.get("source_references", {}), sort_keys=True),
+                    ),
+                )
+                attached = cursor.fetchone()
+            if attached is None:
+                raise RuntimeError("AI summary source-reference function returned no result")
+            source_references = attached[0] or {}
         connection.commit()
         return {
             "summary_id": str(row[0]),
@@ -111,6 +148,7 @@ def create_operator_ai_summary_draft(
             "summary_type": summary_type,
             "content": row[1],
             "source_tables": row[2] or [],
+            "source_references": source_references,
             "model_version": row[3],
             "created_at": row[4],
             "resulting_status": row[5],

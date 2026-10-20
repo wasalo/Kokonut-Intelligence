@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Apply/replay migration 522 and check AI-summary draft/review boundaries."""
+"""Apply/replay migrations 522–523 and check AI-summary draft/review boundaries."""
 
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BASE_SCRIPT = ROOT / "scripts/check-ai-summary-review-disposable.py"
 MIGRATION = ROOT / "schemas/postgres/522_authenticated_ai_summary_drafts.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-038-ai-summary-draft-disposable.json"
+SOURCE_MIGRATION = ROOT / "schemas/postgres/523_ai_summary_source_references.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-038-ai-summary-source-references-disposable.json"
 IMAGE = "postgis/postgis:16-3.4"
 
 
@@ -44,6 +45,8 @@ DECLARE
     looked_up record;
     retried record;
     queue_row record;
+    source_manifest JSONB;
+    location_mismatch_denied BOOLEAN;
     denied boolean;
 BEGIN
     SELECT * INTO looked_up
@@ -56,7 +59,7 @@ BEGIN
     SELECT * INTO created
       FROM kokonut_security.create_location_ai_summary_draft(
           'b0000000-0000-4000-8000-000000000001', 'operations',
-          'Requester-attributed synthetic draft.', ARRAY['farm_activity'],
+          'Requester-attributed synthetic draft.', ARRAY['harvest_event', 'sales_event'],
           'd0000000-0000-4000-8000-000000000011'
       );
     IF created.replayed OR created.summary_id IS NULL THEN
@@ -71,6 +74,34 @@ BEGIN
            AND subject_id = 'b0000000-0000-4000-8000-000000000001'
     ) THEN RAISE EXCEPTION 'draft did not record authenticated requester and exact location'; END IF;
 
+    location_mismatch_denied := false;
+    BEGIN
+        PERFORM kokonut_security.set_location_ai_summary_source_references(
+            'b0000000-0000-4000-8000-000000000001', created.summary_id,
+            'd0000000-0000-4000-8000-000000000011',
+            '{"harvest_event":{"record_ids":["e0000000-0000-4000-8000-000000000002"],"row_count":1,"truncated":false}}'::jsonb
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN location_mismatch_denied := true;
+    END;
+    IF NOT location_mismatch_denied THEN
+        RAISE EXCEPTION 'source reference from another location was accepted';
+    END IF;
+    SELECT kokonut_security.set_location_ai_summary_source_references(
+        'b0000000-0000-4000-8000-000000000001', created.summary_id,
+        'd0000000-0000-4000-8000-000000000011',
+        '{"harvest_event":{"record_ids":["e0000000-0000-4000-8000-000000000001"],"row_count":1,"truncated":false},"sales_event":{"record_ids":["e0000000-0000-4000-8000-000000000003"],"row_count":1,"truncated":false}}'::jsonb
+    ) INTO source_manifest;
+    IF source_manifest -> 'harvest_event' ->> 'row_count' <> '1'
+       OR source_manifest -> 'harvest_event' -> 'record_ids' ->> 0
+            <> 'e0000000-0000-4000-8000-000000000001' THEN
+        RAISE EXCEPTION 'source manifest did not preserve exact bounded references';
+    END IF;
+    IF kokonut_security.get_location_ai_summary_source_references(
+        'b0000000-0000-4000-8000-000000000001', created.summary_id, 'draft'
+    ) IS DISTINCT FROM source_manifest THEN
+        RAISE EXCEPTION 'scoped draft source lookup differed from saved manifest';
+    END IF;
+
     SELECT * INTO looked_up
       FROM kokonut_security.get_location_ai_summary_draft_request(
           'b0000000-0000-4000-8000-000000000001', 'operations',
@@ -84,7 +115,7 @@ BEGIN
     SELECT * INTO retried
       FROM kokonut_security.create_location_ai_summary_draft(
           'b0000000-0000-4000-8000-000000000001', 'operations',
-          'Changed generated output after retry.', ARRAY['farm_activity'],
+          'Changed generated output after retry.', ARRAY['harvest_event', 'sales_event'],
           'd0000000-0000-4000-8000-000000000011'
       );
     IF NOT retried.replayed OR retried.summary_id IS DISTINCT FROM created.summary_id
@@ -108,6 +139,13 @@ BEGIN
     IF NOT FOUND OR queue_row.review_ready
        OR NOT ('self_review' = ANY(queue_row.blocked_reasons)) THEN
         RAISE EXCEPTION 'requester draft was not labeled as a self-review blocker';
+    END IF;
+    SELECT * INTO queue_row
+      FROM kokonut_security.list_location_ai_summary_reviews_with_sources(
+          'b0000000-0000-4000-8000-000000000001', 51, 0
+      ) WHERE summary_id = created.summary_id;
+    IF NOT FOUND OR queue_row.source_references -> 'sales_event' ->> 'row_count' <> '1' THEN
+        RAISE EXCEPTION 'review queue did not include persisted source references';
     END IF;
 
     denied := false;
@@ -136,6 +174,12 @@ BEGIN
     EXCEPTION WHEN insufficient_privilege THEN denied := true;
     END;
     IF NOT denied THEN RAISE EXCEPTION 'runtime can read private draft request receipts directly'; END IF;
+    denied := false;
+    BEGIN
+        PERFORM 1 FROM kokonut_security.ai_summary_source_reference;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can read private source-reference rows directly'; END IF;
 END $$;
 COMMIT;
 RESET ROLE;
@@ -225,6 +269,11 @@ BEGIN
     IF NOT FOUND OR existing.resulting_status <> 'verified' THEN
         RAISE EXCEPTION 'retry lookup did not return the draft current lifecycle status';
     END IF;
+    IF kokonut_security.get_location_ai_summary_source_references(
+        'b0000000-0000-4000-8000-000000000001', existing.summary_id, 'draft'
+    ) -> 'harvest_event' ->> 'row_count' <> '1' THEN
+        RAISE EXCEPTION 'retry could not recover its persisted source manifest';
+    END IF;
 END $$;
 COMMIT;
 RESET ROLE;
@@ -248,6 +297,12 @@ BEGIN
        OR has_table_privilege('directus', 'public.ai_summary_draft_request', 'SELECT') THEN
         RAISE EXCEPTION 'runtime or Directus can read private draft receipts';
     END IF;
+    IF has_table_privilege('kokonut_runtime', 'kokonut_security.ai_summary_source_reference', 'SELECT')
+       OR has_table_privilege('directus', 'kokonut_security.ai_summary_source_reference', 'SELECT')
+       OR has_table_privilege('kokonut_runtime', 'kokonut_security.ai_summary_source_manifest', 'SELECT')
+       OR has_table_privilege('directus', 'kokonut_security.ai_summary_source_manifest', 'SELECT') THEN
+        RAISE EXCEPTION 'runtime or Directus can read private source references directly';
+    END IF;
     IF has_function_privilege(
         'kokonut_runtime',
         'kokonut_security.create_location_ai_summary_draft(uuid,text,text,text[],uuid)',
@@ -270,9 +325,31 @@ BEGIN
     ) THEN
         RAISE EXCEPTION 'Directus can execute bounded AI-summary draft functions';
     END IF;
+    IF has_function_privilege(
+        'directus',
+        'kokonut_security.set_location_ai_summary_source_references(uuid,uuid,uuid,jsonb)',
+        'EXECUTE'
+    ) OR has_function_privilege(
+        'directus',
+        'kokonut_security.get_location_ai_summary_source_references(uuid,uuid,text)',
+        'EXECUTE'
+    ) THEN
+        RAISE EXCEPTION 'Directus can access private AI-summary source functions';
+    END IF;
     IF has_table_privilege('kokonut_runtime', 'public.ai_summary', 'UPDATE')
        OR has_table_privilege('directus', 'public.ai_summary', 'UPDATE') THEN
         RAISE EXCEPTION 'runtime or Directus retained direct AI-summary updates';
+    END IF;
+    IF has_function_privilege(
+        'kokonut_runtime',
+        'kokonut_security.list_location_ai_summary_reviews_with_sources(uuid,integer,integer)',
+        'EXECUTE'
+    ) IS NOT TRUE OR has_function_privilege(
+        'directus',
+        'kokonut_security.list_location_ai_summary_reviews_with_sources(uuid,integer,integer)',
+        'EXECUTE'
+    ) THEN
+        RAISE EXCEPTION 'reviewer source-manifest function privilege mismatch';
     END IF;
 END $$;
 """
@@ -285,18 +362,24 @@ def main() -> int:
         raise SystemExit("docker executable is required for disposable PostgreSQL acceptance")
     container = f"kokonut-ai-summary-draft-{uuid.uuid4().hex[:8]}"
     checks = [
-        "migration 521 baseline and migration 522 apply/replay on disposable PostgreSQL 16",
+        "migrations 521–523 apply/replay on disposable PostgreSQL 16",
         "exact signed draft scope attributes requester and location; private receipts stay inaccessible",
         "same-intent request lookup/replay returns the original draft before regeneration and prevents duplicates",
+        "bounded source record IDs attach only when every record belongs to the exact granted location",
+        "source manifests survive retries and appear only through scoped draft/review functions",
+        "private source-reference tables deny direct runtime/Directus reads and immutable changes",
         "request ID reuse for another location/type fails closed",
         "self-review approval and rejection are denied; queue reports self_review",
         "legacy unattributed summaries are approval-blocked but remain rejectable",
         "independent reviewer may verify only to verified, never published",
-        "runtime and Directus cannot bypass functions or read private receipt history",
+        "runtime and Directus cannot bypass functions or read private receipt/source history",
     ]
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": MIGRATION.name,
+        "migration": (
+            "521_location_scoped_ai_summary_review.sql, "
+            f"{MIGRATION.name}, {SOURCE_MIGRATION.name}"
+        ),
         "database_target": "new disposable PostgreSQL 16 container, network disabled",
         "candidate_or_legacy_modified": False,
         "checks": checks,
@@ -333,8 +416,54 @@ def main() -> int:
         sql = MIGRATION.read_text(encoding="utf-8")
         base.psql(docker, container, sql)
         base.psql(docker, container, sql)
+        stage = "source_fixture_and_migration_523_apply_replay"
+        base.psql(docker, container, r"""
+            CREATE TABLE public.harvest_event (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.sales_event (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.crop_cycle (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.sensor_reading (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.expense_event (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.noi_snapshot (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.soil_carbon_measurement (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.species_observation (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.remote_sensing_observation (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            CREATE TABLE public.weather_observation (id uuid PRIMARY KEY, location_id uuid NOT NULL);
+            INSERT INTO public.harvest_event VALUES
+                ('e0000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000001'),
+                ('e0000000-0000-4000-8000-000000000002', 'b0000000-0000-4000-8000-000000000002');
+            INSERT INTO public.sales_event VALUES
+                ('e0000000-0000-4000-8000-000000000003', 'b0000000-0000-4000-8000-000000000001');
+        """)
+        source_sql = SOURCE_MIGRATION.read_text(encoding="utf-8")
+        base.psql(docker, container, source_sql)
+        base.psql(docker, container, source_sql)
         stage = "acceptance"
         base.psql(docker, container, ACCEPTANCE)
+        stage = "immutable_source_references"
+        base.psql(docker, container, r"""
+            DO $$
+            DECLARE blocked BOOLEAN := false;
+            BEGIN
+                IF (SELECT count(*) FROM kokonut_security.ai_summary_source_manifest) <> 2
+                   OR (SELECT count(*) FROM kokonut_security.ai_summary_source_reference) <> 2 THEN
+                    RAISE EXCEPTION 'unexpected source-reference fixture rows';
+                END IF;
+                BEGIN
+                    UPDATE kokonut_security.ai_summary_source_manifest
+                       SET truncated = true
+                     WHERE source_table = 'harvest_event';
+                EXCEPTION WHEN raise_exception THEN blocked := true;
+                END;
+                IF NOT blocked THEN RAISE EXCEPTION 'source manifest update was not rejected'; END IF;
+                blocked := false;
+                BEGIN
+                    DELETE FROM kokonut_security.ai_summary_source_reference
+                     WHERE source_table = 'harvest_event';
+                EXCEPTION WHEN raise_exception THEN blocked := true;
+                END;
+                IF NOT blocked THEN RAISE EXCEPTION 'source reference deletion was not rejected'; END IF;
+            END $$;
+        """)
         evidence["result"] = "passed"
         evidence["assertions_passed"] = len(checks)
     except Exception as exc:  # noqa: BLE001 - evidence contains no credentials

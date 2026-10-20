@@ -99,24 +99,32 @@ recorded. Legacy drafts with `created_by IS NULL` are explicitly marked
 This does not identify background/legacy agent runs: the existing CLI and other
 agent writers still use the shared database role and do not persist an
 authenticated requester. Their unattributed drafts remain approval-blocked.
-The displayed `source_tables` remain provenance hints rather than linked source
-records, so reviewers still need underlying evidence. These do not close
-MAN-CAP-038, which also requires authenticated provider/runtime identities,
-least-privilege access, Directus and populated task parity, linked evidence,
-live OIDC/browser acceptance, recovery, and owner acceptance.
+Migration 523 adds an append-only private source manifest for new authenticated
+deterministic drafts. The generator records exact row counts and up to 50
+ordered record IDs per location-owned source table; larger source sets are
+marked as sampled. PostgreSQL checks every supplied record against the exact
+location, binds manifests to the authenticated request receipt, and exposes
+them only through exact location draft/review functions. The console renders
+the row IDs safely under the existing review grant. Old summaries are not
+backfilled. Global reference tables such as crop and expense category, every
+legacy/background agent source, and full source snapshots remain outside this
+slice; these row references help locate evidence but do not prove its content.
 
-The focused Gateway, route-policy, console, and safety selection passes 51
-tests; Ruff, Python compilation, and JavaScript syntax checks pass. Disposable
-PostgreSQL 16 applies/replays migrations 521–522 on a network-disabled
-container and passes eight grouped draft/review, attribution, idempotency,
-self-review, legacy-blocker, lifecycle, and privilege checks. Candidate and
-legacy databases remain untouched; migration 522 is not rolled out. See the
+The focused Gateway, route-policy, console, source-reference, and safety
+selection passes 60 tests with nine PostgreSQL-dependent skips; Ruff, Python
+compilation, and JavaScript syntax checks pass. Disposable PostgreSQL 16
+applies/replays migrations 521–523 on a network-disabled container and passes 11 grouped draft/review, attribution,
+idempotency, location binding, manifest privacy/immutability, self-review,
+legacy-blocker, lifecycle, and privilege checks. Candidate and legacy
+databases remain untouched; migration 523 is not rolled out. See the
 [migration 521](../../schemas/postgres/521_location_scoped_ai_summary_review.sql),
 [migration 522](../../schemas/postgres/522_authenticated_ai_summary_drafts.sql),
+[migration 523](../../schemas/postgres/523_ai_summary_source_references.sql),
 [draft Gateway tests](../../tests/test_gateway_ai_summary_draft.py),
 [review Gateway tests](../../tests/test_gateway_ai_summary_review.py),
+[source reference tests](../../tests/test_ai_summary_source_references.py),
 [console checks](../../tests/test_operator_console_ai_summary_review.py), and
-[disposable evidence](builds/2026-10-20-recovery/cap-038-ai-summary-draft-disposable.json).
+[disposable evidence](builds/2026-10-20-recovery/cap-038-ai-summary-source-references-disposable.json).
 
 ## Verification and limits
 

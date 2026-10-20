@@ -29,6 +29,8 @@ def test_panel_is_hidden_until_exact_review_scope_and_states_lifecycle_boundary(
     assert "publication remains separate" in panel
     assert "New Gateway drafts record the requesting operator" in panel
     assert "Legacy drafts without reliable requester attribution cannot be approved" in panel
+    assert "counts are exact" in panel
+    assert "capped at 50 displayed IDs" in panel
     assert "innerHTML" not in panel
 
 
@@ -46,6 +48,9 @@ def test_queue_uses_bounded_same_origin_no_store_reads_and_safe_text_rendering()
     assert 'cache: "no-store"' in reader
     assert "content.textContent = String(summary.content || \"\")" in reader
     assert "item.textContent = blocker" in reader
+    assert "summary.source_references" in reader
+    assert "recordIds.length" in reader
+    assert "item.textContent = recordId" in reader
     assert "summary.review_ready === true && blockers.length === 0" in reader
     assert "summary.content_truncated !== true" in reader
     assert "innerHTML" not in reader

@@ -3,20 +3,25 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest CAP-038 implementation slice — 20 October 2026:** Migrations 521–522
-now provide a location-scoped AI-summary review flow and an OIDC operator-
-requested draft endpoint. Draft requests bind to signed `ai_summary:draft`
-location scope, persist the requester, and return their saved result before
-regeneration on retry. Review blocks self-approval/rejection and marks legacy
-unattributed drafts as unapprovable; independent verification sets `verified`
-only and publication remains separate. The focused Gateway/route-policy/console/
-safety selection passes 51 tests, and disposable PostgreSQL 16 applies/replays
-521–522 with eight grouped checks. Ruff, Python compilation, and inline
-JavaScript syntax checks pass. Candidate and legacy remain untouched; migration
-522 is not rolled out. Existing CLI/background agent identity, linked evidence,
-populated parity, live OIDC/browser, runtime recovery, and MAN-CAP-038 remain
-open ([agent contract](agent-ecosystem-kernel-contract.md); [disposable
-evidence](builds/2026-10-20-recovery/cap-038-ai-summary-draft-disposable.json)).
+**Latest CAP-038 implementation slice — 20 October 2026:** Migrations 521–523
+provide location-scoped AI-summary review, authenticated draft creation, and
+private bounded source-record manifests. Draft requests bind to signed
+`ai_summary:draft` location scope, persist the requester, and return their
+saved result before regeneration on retry. Source manifests record exact
+location-owned row counts and up to 50 ordered IDs per table, and PostgreSQL
+checks every ID against the requested location. The review queue exposes these
+references under the exact review grant. Review blocks self-approval/rejection
+and marks legacy unattributed drafts as unapprovable; independent verification
+sets `verified` only and publication remains separate. The focused
+Gateway/route-policy/console/source-reference/safety selection passes 60 tests
+with nine PostgreSQL-dependent skips;
+disposable PostgreSQL 16 applies/replays 521–523 with 11 grouped checks. Ruff,
+Python compilation, and inline JavaScript syntax checks pass. Candidate and
+legacy remain untouched; migration 523 is not rolled out. Legacy agent
+identity, global reference-table and background-agent lineage, full source
+snapshots, populated parity, live OIDC/browser, runtime recovery, and MAN-CAP-038
+remain open ([agent contract](agent-ecosystem-kernel-contract.md); [disposable
+evidence](builds/2026-10-20-recovery/cap-038-ai-summary-source-references-disposable.json)).
 
 **Latest implementation slice — 20 October 2026:** The optional Directus
 weekly callback now identifies its real effect: a grouped read of verified,

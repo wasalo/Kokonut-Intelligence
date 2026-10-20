@@ -23,6 +23,13 @@ class _Connection:
     def __init__(self, *, existing=None, created=None):
         self.existing = existing
         self.created = created
+        self.source_references = {
+            "harvest_event": {
+                "record_ids": ["e0000000-0000-4000-8000-000000000001"],
+                "row_count": 1,
+                "truncated": False,
+            }
+        }
         self.events = []
         self.operations = []
         self.committed = False
@@ -64,6 +71,10 @@ class _Cursor:
             return self.connection.existing
         if "create_location_ai_summary_draft" in self.query:
             return self.connection.created
+        if "set_location_ai_summary_source_references" in self.query:
+            return (self.connection.source_references,)
+        if "get_location_ai_summary_source_references" in self.query:
+            return (self.connection.source_references,)
         return None
 
 
@@ -76,6 +87,7 @@ def _built_summary(*_args):
     return {
         "content": "Synthetic summary",
         "source_tables": ["farm_activity"],
+        "source_references": {},
         "summary_type": "operations",
     }
 
@@ -101,7 +113,9 @@ def test_create_sets_scope_before_lookup_generation_and_write_then_commits():
                   if "get_location_ai_summary_draft_request" in event)
     create = next(i for i, event in enumerate(connection.events)
                   if "create_location_ai_summary_draft" in event)
-    assert connection.events.index("SIGNED_CONTEXT") < lookup < create
+    attach = next(i for i, event in enumerate(connection.events)
+                  if "set_location_ai_summary_source_references" in event)
+    assert connection.events.index("SIGNED_CONTEXT") < lookup < create < attach
     build.assert_called_once_with(connection, LOCATION_ID, "operations")
     safety.assert_called_once_with(
         "create",
@@ -115,6 +129,7 @@ def test_create_sets_scope_before_lookup_generation_and_write_then_commits():
         "action": "draft",
     }
     assert result["summary_id"] == SUMMARY_ID
+    assert result["source_references"] == connection.source_references
     assert result["resulting_status"] == "draft"
     assert result["replayed"] is False
     assert connection.committed and connection.rolled_back and connection.closed
@@ -138,7 +153,9 @@ def test_exact_retry_returns_prior_draft_without_regenerating():
 
     build.assert_not_called()
     assert not any("create_location_ai_summary_draft" in event for event in connection.events)
+    assert any("get_location_ai_summary_source_references" in event for event in connection.events)
     assert result["content"] == "Original summary"
+    assert result["source_references"] == connection.source_references
     assert result["resulting_status"] == "verified"
     assert result["replayed"] is True
     assert connection.committed and connection.closed
@@ -202,6 +219,7 @@ def test_draft_route_is_oidc_only_and_returns_no_store_json(monkeypatch):
         "summary_type": "operations",
         "content": "Synthetic summary",
         "source_tables": ["farm_activity"],
+        "source_references": {},
         "model_version": "rules-v1",
         "created_at": None,
         "resulting_status": "draft",
