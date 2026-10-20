@@ -2,19 +2,29 @@
   "result": "passed",
   "migrations": [
     "513_location_solution_adoption_program_create.sql",
-    "515_location_solution_adoption_preparation.sql"
+    "514_location_solution_adoption_write_boundary.sql",
+    "515_location_solution_adoption_preparation.sql",
+    "516_location_solution_adoption_readiness_review.sql"
   ],
   "database_target": "new disposable PostgreSQL 16 container",
   "candidate_or_legacy_modified": false,
   "checks": [
-    "migration 513 applies and replays idempotently",
+    "migrations 513 through 516 apply and replay idempotently in order",
     "migration 515 allows draft preparation from pilot_active before the adoption-ready gate",
+    "migration 516 expires historical unreviewed ready rows while preserving their audit records",
     "draft creation requires signed exact-location create context and an active human identity",
     "only active pilot_active, adoption_ready, or adopting solutions with exact location origin are eligible",
     "program scope, creator attribution, draft status, and empty target population are server controlled",
     "exact retries replay; changed request reuse fails closed",
     "runtime direct insert/update/delete and receipt access are denied",
-    "Directus cannot write programs or execute the creator function"
+    "Directus cannot write programs or execute the creator function",
+    "readiness submission requires signed exact-location create context and creates an immutable pending assessment",
+    "exact readiness retries replay; changed payload reuse fails closed",
+    "assessors are excluded from their own review queue and cannot self-review",
+    "below-target ready decisions and remediating decisions without a plan are rejected",
+    "an independent review updates only the current assessment and exact retries replay",
+    "the database trigger rejects direct ready status without an independent receipt",
+    "runtime and Directus cannot read or forge private readiness records"
   ],
-  "acceptance_groups_passed": 8
+  "acceptance_groups_passed": 16
 }

@@ -769,7 +769,9 @@ def test_adoption_program_draft_requires_exact_grants_filters_origin_and_preserv
     assert panel is not None
     assert "Requires exact location read and create grants" in panel.group(0)
     assert "does not assess readiness" in panel.group(0)
-    assert 'solutionLifecycleAdoptionCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)' in source
+    assert 'solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate && !hasSolutionLifecycleReview' in source
+    assert 'solutionLifecycleReadinessAssessment.hidden = !hasSolutionLifecycleCreate' in source
+    assert 'solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview' in source
     assert '|| !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in source
     assert 'scope.resource === "solution_lifecycle" && scope.action === "create"' in source
 
@@ -1054,6 +1056,76 @@ def test_retirement_proposal_submit_is_bounded_csrf_idempotent_and_draft_only():
     assert 'solutionLifecycleRetirementProposalForm.addEventListener("submit", submitSolutionLifecycleRetirementProposal)' in source
     assert 'solutionLifecycleRetirementSourcesLoad.addEventListener("click", () => loadSolutionLifecycleRetirementSources())' in source
     assert "innerHTML" not in submit
+
+
+def test_readiness_assessment_console_requires_create_grant_and_keeps_uncertain_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    for element_id in (
+        "solution-lifecycle-readiness-assessment",
+        "solution-lifecycle-readiness-assessment-form",
+        "solution-lifecycle-readiness-solution",
+        "solution-lifecycle-readiness-current",
+        "solution-lifecycle-readiness-required",
+        "solution-lifecycle-readiness-remediation",
+        "solution-lifecycle-readiness-acknowledgement",
+    ):
+        assert f'id="{element_id}"' in source
+    target_loader = _function(
+        source,
+        "async function loadSolutionLifecycleAdoptionTargets(",
+        "async function submitSolutionLifecycleAdoptionProgram(",
+    )
+    assert "solutionLifecycleReadinessSolution.append(readinessOption)" in target_loader
+    submit = _function(
+        source,
+        "async function submitSolutionLifecycleReadinessAssessment(",
+        "function appendSolutionLifecycleReadinessReview(",
+    )
+    assert "solutionLifecycleLocations.has(locationId)" in submit
+    assert "solutionLifecycleCreateLocations.has(locationId)" in submit
+    assert '"#solution-lifecycle-readiness-acknowledgement"' in submit
+    assert "solutionLifecyclePendingReadinessAssessment.fingerprint !== fingerprint" in submit
+    assert "solutionLifecyclePendingReadinessAssessment.request_id" in submit
+    assert "adoption/readiness`" in submit
+    assert 'method: "POST"' in submit
+    assert 'credentials: "same-origin"' in submit and 'cache: "no-store"' in submit
+    assert '"X-CSRF-Token": csrf' in submit
+    assert 'solutionLifecycleReadinessAssessmentForm.addEventListener("submit", submitSolutionLifecycleReadinessAssessment)' in source
+    assert "A different active operator must review it" in submit
+    assert "innerHTML" not in submit
+
+
+def test_readiness_review_queue_is_review_only_paged_text_rendered_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleReadinessReviewQueue(",
+        "async function loadSolutionLifecycleProjection(",
+    )
+    assert "solutionLifecycleReviewLocations.has(locationId)" in queue
+    assert "solutionLifecycleLocations.has(locationId)" not in queue
+    assert "adoption/readiness/review-queue?${params}" in queue
+    assert 'new URLSearchParams({ limit: String(solutionLifecycleReadinessReviewPageSize), offset: String(offset) })' in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+    assert "requestVersion !== solutionLifecycleReadinessReviewRequestVersion" in queue
+    assert "result.next_offset" in queue and "result.has_more" in queue
+    assert "Resolve the pending review with its original assessment form before reloading the queue." in queue
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleReadinessReview(",
+        "async function loadSolutionLifecycleReadinessReviewQueue(",
+    )
+    assert "decision.options[0].disabled = true" in renderer
+    assert '"remediating"' in renderer and '"rejected"' in renderer
+    assert "solutionLifecyclePendingReadinessReviews.get(assessment.assessment_id)" in renderer
+    assert "solutionLifecyclePendingReadinessReviews.set(assessment.assessment_id, pending)" in renderer
+    assert "/adoption/readiness/${encodeURIComponent(assessment.assessment_id)}/review`" in renderer
+    assert 'method: "POST"' in renderer and 'cache: "no-store"' in renderer
+    assert '"X-CSRF-Token": csrf' in renderer
+    assert "acknowledgement.checked" in renderer
+    assert "textContent" in renderer and "innerHTML" not in renderer
+    assert "solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate && !hasSolutionLifecycleReview" in source
+    assert 'solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview' in source
 
 
 def test_replication_review_console_is_grant_gated_private_independent_and_retry_safe():

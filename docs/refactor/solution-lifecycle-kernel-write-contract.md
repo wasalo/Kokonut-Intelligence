@@ -780,13 +780,58 @@ Migration 514 revokes table- and column-level `INSERT`, `UPDATE`, `DELETE`, and
 and `PUBLIC`, preserving SELECT access for existing bounded reads and
 transition checks.
 
-These writes remain unavailable until location-scoped readiness proposal/review
-and configuration draft/approval actions are implemented. A future action must
-keep assessment inputs distinct from approval, derive actor identity from the
-active operator binding, and ensure that only an independently reviewed ready
-assessment and approved location configuration can satisfy the existing
-adoption-stage transition prerequisite. Do not restore shared-role DML or the
-legacy helpers as a shortcut.
+Readiness now has a scoped submission/review path described below.
+Configuration draft/approval remains unavailable. Implement it with a separate
+exact-location draft and independent approval receipt, and ensure only the
+independently reviewed ready assessment and approved location configuration can
+satisfy the existing adoption-stage transition prerequisite. Do not restore
+shared-role DML or the legacy helpers as a shortcut.
+
+## Location-scoped adoption-readiness assessment and review
+
+`POST /operator/api/solution-lifecycle/{location_id}/adoption/readiness`
+requires exact `solution_lifecycle:create` context and acknowledgement. The
+operator must have an active human identity bound to the authenticated
+operator. PostgreSQL accepts only an active solution originated at the exact
+location in `pilot_active`, `adoption_ready`, or `adopting`; the input levels
+are finite, non-negative, bounded to three decimal places, and no higher than
+999.999. The function stores an immutable assessment and private retry receipt,
+then points the current readiness row at that assessment in the same
+transaction. Submission always leaves readiness pending; it cannot mark a
+solution ready.
+
+`GET /operator/api/solution-lifecycle/{location_id}/adoption/readiness/review-queue`
+and `POST /operator/api/solution-lifecycle/{location_id}/adoption/readiness/{assessment_id}/review`
+require exact `solution_lifecycle:review` context. PostgreSQL excludes the
+assessor from the queue and rejects self-review. A ready decision is allowed
+only when current level meets the required level. A remediating decision needs
+the assessment to include a remediation plan. The reviewer must provide a
+bounded note and acknowledge independent review. The append-only review receipt
+and status update commit atomically; exact retries replay, changed reuse fails
+closed, and only review of the exact current assessment can mark it `ready`.
+The database trigger enforces that invariant even if another privileged writer
+attempts a direct update.
+
+A new assessment changes any prior ready value to `not_ready` before storing
+the new assessment. Migration 516 changes historical `ready` rows to
+`expired`, because those rows have no independently verifiable review receipt.
+Their original rows and values remain for audit. Operators must reassess them
+through the new route; they are not silently grandfathered as ready.
+
+The operator console gates assessment submission on exact create access and
+review queue visibility on exact review access, renders review data with text
+nodes, uses same-origin no-store requests and CSRF protection, blocks
+self-review, provides stable request IDs after uncertain responses, and pages
+the queue. Readiness does not approve a local configuration, enable a program,
+collect participant events, or launch adoption. Those remain separate.
+
+Migration 516 is additive and has not been rolled out. Disposable PostgreSQL 16
+applies and replays migrations 513–516, and verifies submission, independent
+review, below-target denial, retries and collisions, historical expiration,
+trigger enforcement, and runtime/Directus boundaries. Candidate and legacy
+databases remain untouched. Before rollout, disable the new route and console
+sections while retaining applied migrations; do not reverse an applied
+migration or restore the legacy direct writer.
 
 ## Adoption-event consent boundary
 

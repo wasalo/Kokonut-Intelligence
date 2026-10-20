@@ -814,27 +814,60 @@
           <button id="solution-lifecycle-funding-more" class="secondary" type="button" hidden>Load more funding cases</button>
           <h3>Additional lifecycle status</h3>
           <p class="muted">Choose a location-scoped status projection. Each view uses the existing read grant and omits evidence, narrative, and person-level details described in the lifecycle contract. Adoption event summaries show only coarse consent-checked phase counts and withhold the whole breakdown when any phase has fewer than five distinct references.</p>
-          <section id="solution-lifecycle-adoption-create" hidden aria-labelledby="solution-lifecycle-adoption-create-heading">
-            <h4 id="solution-lifecycle-adoption-create-heading">Propose an adoption-program draft</h4>
-            <p class="muted">Requires exact location read and create grants. Active, location-origin solutions at pilot-active, adoption-ready, or adopting can be selected so an enablement program can be prepared before the adoption-ready gate. The draft does not assess readiness, approve a local configuration, collect participant events, or launch adoption. Independent review remains separate.</p>
-            <div class="toolbar">
-              <button id="solution-lifecycle-adoption-targets-load" type="button">Load eligible solutions</button>
-              <button id="solution-lifecycle-adoption-targets-more" class="secondary" type="button" hidden>Load more solutions</button>
-            </div>
-            <p id="solution-lifecycle-adoption-targets-status" class="muted" role="status" aria-live="polite"></p>
-            <form id="solution-lifecycle-adoption-create-form" class="stacked-form">
-              <label for="solution-lifecycle-adoption-solution">Location-origin solution</label>
-              <select id="solution-lifecycle-adoption-solution" required>
-                <option value="">Load pilot-active or adoption-stage solutions, then choose one</option>
-              </select>
-              <label for="solution-lifecycle-adoption-pathway">Adoption pathway</label>
-              <textarea id="solution-lifecycle-adoption-pathway" required maxlength="2000" rows="3"></textarea>
-              <label for="solution-lifecycle-adoption-policy">Local adaptation policy (optional)</label>
-              <textarea id="solution-lifecycle-adoption-policy" maxlength="4000" rows="3"></textarea>
-              <label><input id="solution-lifecycle-adoption-confirm" type="checkbox" required> I understand this creates a draft only; readiness, configuration approval, participant consent, and launch are separate.</label>
-              <button id="solution-lifecycle-adoption-submit" type="submit">Create adoption-program draft</button>
-              <p id="solution-lifecycle-adoption-create-status" class="muted" role="status" aria-live="polite"></p>
-            </form>
+          <section id="solution-lifecycle-adoption-create" hidden aria-labelledby="solution-lifecycle-adoption-workflow-heading">
+            <h4 id="solution-lifecycle-adoption-workflow-heading">Adoption preparation and readiness</h4>
+            <p class="muted">Preparation requires an exact location create grant; readiness review requires an exact location review grant. Assessment and review are separate records, and only an independent review of the current assessment can mark readiness ready.</p>
+            <section id="solution-lifecycle-adoption-program-create" hidden aria-labelledby="solution-lifecycle-adoption-create-heading">
+              <h4 id="solution-lifecycle-adoption-create-heading">Propose an adoption-program draft</h4>
+              <p class="muted">Requires exact location read and create grants. Active, location-origin solutions at pilot-active, adoption-ready, or adopting can be selected so an enablement program can be prepared before the adoption-ready gate. The draft does not assess readiness, approve a local configuration, collect participant events, or launch adoption. Independent review remains separate.</p>
+              <div class="toolbar">
+                <button id="solution-lifecycle-adoption-targets-load" type="button">Load eligible solutions</button>
+                <button id="solution-lifecycle-adoption-targets-more" class="secondary" type="button" hidden>Load more solutions</button>
+              </div>
+              <p id="solution-lifecycle-adoption-targets-status" class="muted" role="status" aria-live="polite"></p>
+              <form id="solution-lifecycle-adoption-create-form" class="stacked-form">
+                <label for="solution-lifecycle-adoption-solution">Location-origin solution</label>
+                <select id="solution-lifecycle-adoption-solution" required>
+                  <option value="">Load pilot-active or adoption-stage solutions, then choose one</option>
+                </select>
+                <label for="solution-lifecycle-adoption-pathway">Adoption pathway</label>
+                <textarea id="solution-lifecycle-adoption-pathway" required maxlength="2000" rows="3"></textarea>
+                <label for="solution-lifecycle-adoption-policy">Local adaptation policy (optional)</label>
+                <textarea id="solution-lifecycle-adoption-policy" maxlength="4000" rows="3"></textarea>
+                <label><input id="solution-lifecycle-adoption-confirm" type="checkbox" required> I understand this creates a draft only; readiness, configuration approval, participant consent, and launch are separate.</label>
+                <button id="solution-lifecycle-adoption-submit" type="submit">Create adoption-program draft</button>
+                <p id="solution-lifecycle-adoption-create-status" class="muted" role="status" aria-live="polite"></p>
+              </form>
+            </section>
+            <section id="solution-lifecycle-readiness-assessment" hidden aria-labelledby="solution-lifecycle-readiness-assessment-heading">
+              <h4 id="solution-lifecycle-readiness-assessment-heading">Submit a location readiness assessment</h4>
+              <p class="muted">This records a human assessment and leaves readiness pending until a different active operator reviews it. A new assessment expires the prior ready state for this location and solution.</p>
+              <form id="solution-lifecycle-readiness-assessment-form" class="stacked-form">
+                <label for="solution-lifecycle-readiness-solution">Location-origin solution</label>
+                <select id="solution-lifecycle-readiness-solution" required>
+                  <option value="">Load eligible solutions, then choose one</option>
+                </select>
+                <label for="solution-lifecycle-readiness-current">Current level (0–999.999)</label>
+                <input id="solution-lifecycle-readiness-current" type="number" min="0" max="999.999" step="0.001" required>
+                <label for="solution-lifecycle-readiness-required">Required level (0–999.999)</label>
+                <input id="solution-lifecycle-readiness-required" type="number" min="0" max="999.999" step="0.001" required>
+                <label for="solution-lifecycle-readiness-remediation">Remediation plan (optional)</label>
+                <textarea id="solution-lifecycle-readiness-remediation" maxlength="4000" rows="3"></textarea>
+                <label><input id="solution-lifecycle-readiness-acknowledgement" type="checkbox" required> I understand this assessment stays pending until independent review and cannot by itself mark the solution ready.</label>
+                <button id="solution-lifecycle-readiness-assessment-submit" type="submit">Submit readiness assessment</button>
+                <p id="solution-lifecycle-readiness-assessment-status" class="muted" role="status" aria-live="polite"></p>
+              </form>
+            </section>
+            <section id="solution-lifecycle-readiness-review" hidden aria-labelledby="solution-lifecycle-readiness-review-heading">
+              <h4 id="solution-lifecycle-readiness-review-heading">Review readiness assessments</h4>
+              <p class="muted">The queue excludes your own assessments. Mark ready only when the submitted level meets the required level; otherwise request remediation or reject with a reason.</p>
+              <div class="toolbar">
+                <button id="solution-lifecycle-readiness-review-load" type="button">Load review queue</button>
+                <button id="solution-lifecycle-readiness-review-more" class="secondary" type="button" hidden>Load more</button>
+              </div>
+              <p id="solution-lifecycle-readiness-review-status" class="muted" role="status" aria-live="polite"></p>
+              <div id="solution-lifecycle-readiness-review-rows"></div>
+            </section>
           </section>
           <div class="toolbar">
             <label for="solution-lifecycle-projection">Projection</label>
@@ -1653,6 +1686,22 @@
       const solutionLifecycleProjectionRows = document.querySelector("#solution-lifecycle-projection-rows");
       const solutionLifecycleProjectionMore = document.querySelector("#solution-lifecycle-projection-more");
       const solutionLifecycleAdoptionCreate = document.querySelector("#solution-lifecycle-adoption-create");
+      const solutionLifecycleAdoptionProgramCreate = document.querySelector("#solution-lifecycle-adoption-program-create");
+      const solutionLifecycleReadinessAssessment = document.querySelector("#solution-lifecycle-readiness-assessment");
+      const solutionLifecycleReadinessAssessmentForm = document.querySelector("#solution-lifecycle-readiness-assessment-form");
+      const solutionLifecycleReadinessSolution = document.querySelector("#solution-lifecycle-readiness-solution");
+      const solutionLifecycleReadinessAssessmentSubmit = document.querySelector("#solution-lifecycle-readiness-assessment-submit");
+      const solutionLifecycleReadinessAssessmentStatus = document.querySelector("#solution-lifecycle-readiness-assessment-status");
+      const solutionLifecycleReadinessReview = document.querySelector("#solution-lifecycle-readiness-review");
+      const solutionLifecycleReadinessReviewLoad = document.querySelector("#solution-lifecycle-readiness-review-load");
+      const solutionLifecycleReadinessReviewMore = document.querySelector("#solution-lifecycle-readiness-review-more");
+      const solutionLifecycleReadinessReviewStatus = document.querySelector("#solution-lifecycle-readiness-review-status");
+      const solutionLifecycleReadinessReviewRows = document.querySelector("#solution-lifecycle-readiness-review-rows");
+      const solutionLifecycleReadinessReviewPageSize = 25;
+      let solutionLifecycleReadinessReviewOffset = 0;
+      let solutionLifecycleReadinessReviewRequestVersion = 0;
+      let solutionLifecyclePendingReadinessAssessment = null;
+      const solutionLifecyclePendingReadinessReviews = new Map();
       const solutionLifecycleAdoptionTargetsLoad = document.querySelector("#solution-lifecycle-adoption-targets-load");
       const solutionLifecycleAdoptionTargetsMore = document.querySelector("#solution-lifecycle-adoption-targets-more");
       const solutionLifecycleAdoptionTargetsStatus = document.querySelector("#solution-lifecycle-adoption-targets-status");
@@ -6186,6 +6235,9 @@
           solutionLifecycleAdoptionSolution.replaceChildren(new Option(
             "Choose a location-origin solution", "",
           ));
+          solutionLifecycleReadinessSolution.replaceChildren(new Option(
+            "Choose a location-origin solution", "",
+          ));
           solutionLifecycleAdoptionTargetsOffset = 0;
         }
         solutionLifecycleAdoptionTargetsLoad.disabled = true;
@@ -6211,6 +6263,10 @@
             option.value = solution.solution_id;
             option.textContent = `${solution.solution_name || "Location-origin solution"} · ${solution.current_stage}`;
             solutionLifecycleAdoptionSolution.append(option);
+            const readinessOption = option.cloneNode(true);
+            if (![...solutionLifecycleReadinessSolution.options].some((existing) => existing.value === readinessOption.value)) {
+              solutionLifecycleReadinessSolution.append(readinessOption);
+            }
           }
           solutionLifecycleAdoptionTargetsOffset = Number.isInteger(result.next_offset)
             && result.next_offset > offset && result.next_offset <= 10000
@@ -6305,6 +6361,280 @@
             : error.message;
         } finally {
           solutionLifecycleAdoptionCreateSubmit.disabled = false;
+        }
+      }
+
+      async function submitSolutionLifecycleReadinessAssessment(event) {
+        event.preventDefault();
+        const locationId = solutionLifecycleLocation.value;
+        const solutionId = solutionLifecycleReadinessSolution.value;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleCreateLocations.has(locationId)
+            || !solutionId) {
+          solutionLifecycleReadinessAssessmentStatus.textContent = "Choose an eligible solution with exact location read and create grants.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleReadinessAssessmentStatus.textContent = "Refresh the operator session before submitting a readiness assessment.";
+          return;
+        }
+        const payload = {
+          solution_id: solutionId,
+          current_level: document.querySelector("#solution-lifecycle-readiness-current").value,
+          required_level: document.querySelector("#solution-lifecycle-readiness-required").value,
+          remediation_plan: document.querySelector("#solution-lifecycle-readiness-remediation").value.trim() || null,
+          acknowledged: document.querySelector("#solution-lifecycle-readiness-acknowledgement").checked,
+        };
+        const fingerprint = JSON.stringify({ location_id: locationId, ...payload });
+        if (solutionLifecyclePendingReadinessAssessment
+            && solutionLifecyclePendingReadinessAssessment.fingerprint !== fingerprint) {
+          solutionLifecycleReadinessAssessmentStatus.textContent = "The prior result may be uncertain. Retry the unchanged assessment before starting another.";
+          return;
+        }
+        if (!solutionLifecyclePendingReadinessAssessment) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            solutionLifecycleReadinessAssessmentStatus.textContent = "A secure browser context is required to submit this assessment.";
+            return;
+          }
+          solutionLifecyclePendingReadinessAssessment = { fingerprint, request_id: requestId, location_id: locationId };
+        }
+        solutionLifecycleReadinessAssessmentSubmit.disabled = true;
+        solutionLifecycleReadinessAssessmentStatus.textContent = "Submitting the readiness assessment for independent review…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/readiness`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: solutionLifecyclePendingReadinessAssessment.request_id })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingReadinessAssessment = null;
+            throw new Error("Your session or exact location create grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingReadinessAssessment = null;
+            throw new Error(result.error || "The readiness assessment could not be submitted.");
+          }
+          solutionLifecyclePendingReadinessAssessment = null;
+          solutionLifecycleReadinessAssessmentForm.reset();
+          solutionLifecycleReadinessAssessmentStatus.textContent = result.replayed === true
+            ? "The original readiness submission was confirmed. Any independent review remains a separate lifecycle action."
+            : "Readiness assessment submitted. A different active operator must review it before the solution can be marked ready.";
+          await loadSolutionLifecycleSummary();
+          if (solutionLifecycleProjection.value === "adoption") await loadSolutionLifecycleProjection();
+        } catch (error) {
+          solutionLifecycleReadinessAssessmentStatus.textContent = solutionLifecyclePendingReadinessAssessment
+            ? `${error.message} Retry these unchanged values to reuse the request ID.`
+            : error.message;
+        } finally {
+          solutionLifecycleReadinessAssessmentSubmit.disabled = false;
+        }
+      }
+
+      function appendSolutionLifecycleReadinessReview(assessment) {
+        const validId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!assessment || !validId.test(assessment.assessment_id || "")) return;
+        const article = document.createElement("article");
+        article.className = "review-card";
+        const heading = document.createElement("h5");
+        heading.textContent = `Readiness assessment · ${assessment.assessment_id.slice(0, 8)}`;
+        article.append(heading);
+        const details = document.createElement("dl");
+        for (const [label, value] of [
+          ["Solution", typeof assessment.solution_id === "string" ? assessment.solution_id : "Unavailable"],
+          ["Current level", assessment.current_level],
+          ["Required level", assessment.required_level],
+          ["Assessed", assessment.assessed_at],
+        ]) {
+          const term = document.createElement("dt");
+          term.textContent = label;
+          const description = document.createElement("dd");
+          description.textContent = String(value ?? "Unavailable");
+          details.append(term, description);
+        }
+        article.append(details);
+        if (typeof assessment.remediation_plan === "string" && assessment.remediation_plan) {
+          const plan = document.createElement("p");
+          plan.textContent = `Submitted remediation plan: ${assessment.remediation_plan}`;
+          article.append(plan);
+        }
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        const decisionLabel = document.createElement("label");
+        decisionLabel.textContent = "Decision";
+        const decision = document.createElement("select");
+        decision.required = true;
+        for (const [value, label] of [["ready", "Mark ready"], ["remediating", "Request remediation"], ["rejected", "Reject"]]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          decision.append(option);
+        }
+        const hasRemediationPlan = typeof assessment.remediation_plan === "string"
+          && assessment.remediation_plan.trim().length > 0;
+        if (!hasRemediationPlan) decision.options[1].disabled = true;
+        if (Number(assessment.current_level) < Number(assessment.required_level)) {
+          decision.options[0].disabled = true;
+          if (hasRemediationPlan) {
+            decision.value = "remediating";
+          } else {
+            decision.value = "rejected";
+          }
+        }
+        decisionLabel.append(decision);
+        const noteLabel = document.createElement("label");
+        noteLabel.textContent = "Review note";
+        const note = document.createElement("textarea");
+        note.required = true;
+        note.maxLength = 2000;
+        note.rows = 3;
+        noteLabel.append(note);
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(acknowledgement, document.createTextNode(" I independently reviewed this assessment and am not its assessor."));
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Record independent review";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(decisionLabel, noteLabel, acknowledgementLabel, submit, status);
+        article.append(form);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          if (!solutionLifecycleReviewLocations.has(locationId)) {
+            status.textContent = "An exact location review grant is required.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before recording this review.";
+            return;
+          }
+          const payload = {
+            decision: decision.value,
+            review_note: note.value.trim(),
+            acknowledged: acknowledgement.checked,
+          };
+          const fingerprint = JSON.stringify({ location_id: locationId, assessment_id: assessment.assessment_id, ...payload });
+          let pending = solutionLifecyclePendingReadinessReviews.get(assessment.assessment_id);
+          if (pending && pending.fingerprint !== fingerprint) {
+            status.textContent = "The prior result may be uncertain. Retry the unchanged decision before changing it.";
+            return;
+          }
+          if (!pending) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to record this review.";
+              return;
+            }
+            pending = { fingerprint, request_id: requestId, location_id: locationId };
+            solutionLifecyclePendingReadinessReviews.set(assessment.assessment_id, pending);
+          }
+          submit.disabled = true;
+          status.textContent = "Recording independent review…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/readiness/${encodeURIComponent(assessment.assessment_id)}/review`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+                body: JSON.stringify({ ...payload, request_id: pending.request_id })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              solutionLifecyclePendingReadinessReviews.delete(assessment.assessment_id);
+              throw new Error("Your session or independent location review grant is no longer valid.");
+            }
+            if (!response.ok) {
+              if (response.status < 500) solutionLifecyclePendingReadinessReviews.delete(assessment.assessment_id);
+              throw new Error(result.error || "The readiness decision could not be recorded.");
+            }
+            solutionLifecyclePendingReadinessReviews.delete(assessment.assessment_id);
+            status.textContent = result.replayed === true
+              ? "The original independent review was confirmed."
+              : result.readiness_status === "ready"
+                ? "Readiness was approved by an independent reviewer."
+                : `Review recorded; readiness is ${result.readiness_status}.`;
+            await loadSolutionLifecycleReadinessReviewQueue();
+            await loadSolutionLifecycleSummary();
+            if (solutionLifecycleProjection.value === "adoption") await loadSolutionLifecycleProjection();
+          } catch (error) {
+            status.textContent = solutionLifecyclePendingReadinessReviews.has(assessment.assessment_id)
+              ? `${error.message} Retry the unchanged decision to reuse the request ID.`
+              : error.message;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        solutionLifecycleReadinessReviewRows.append(article);
+      }
+
+      async function loadSolutionLifecycleReadinessReviewQueue(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleReadinessReviewRequestVersion;
+        if (!append && [...solutionLifecyclePendingReadinessReviews.values()].some(
+          (pending) => pending.location_id === locationId,
+        )) {
+          solutionLifecycleReadinessReviewStatus.textContent = "Resolve the pending review with its original assessment form before reloading the queue.";
+          return;
+        }
+        if (!solutionLifecycleReviewLocations.has(locationId)) {
+          solutionLifecycleReadinessReviewRows.replaceChildren();
+          solutionLifecycleReadinessReviewStatus.textContent = "An exact location review grant is required.";
+          solutionLifecycleReadinessReviewMore.hidden = true;
+          return;
+        }
+        const offset = append ? solutionLifecycleReadinessReviewOffset : 0;
+        if (!append) {
+          solutionLifecycleReadinessReviewRows.replaceChildren();
+          solutionLifecycleReadinessReviewOffset = 0;
+        }
+        solutionLifecycleReadinessReviewLoad.disabled = true;
+        solutionLifecycleReadinessReviewMore.disabled = true;
+        solutionLifecycleReadinessReviewStatus.textContent = "Loading readiness assessments for independent review…";
+        try {
+          const params = new URLSearchParams({ limit: String(solutionLifecycleReadinessReviewPageSize), offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/adoption/readiness/review-queue?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || "Readiness review queue could not be loaded.");
+          if (requestVersion !== solutionLifecycleReadinessReviewRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          const assessments = Array.isArray(result.assessments) ? result.assessments : [];
+          for (const assessment of assessments) appendSolutionLifecycleReadinessReview(assessment);
+          solutionLifecycleReadinessReviewOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset : offset;
+          solutionLifecycleReadinessReviewMore.hidden = result.has_more !== true
+            || solutionLifecycleReadinessReviewOffset <= offset;
+          solutionLifecycleReadinessReviewStatus.textContent = assessments.length
+            ? `${assessments.length} readiness assessment${assessments.length === 1 ? "" : "s"} loaded. Your own assessments are excluded.`
+            : "No eligible assessments are waiting for your independent review.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleReadinessReviewRequestVersion) return;
+          solutionLifecycleReadinessReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleReadinessReviewRequestVersion) {
+            solutionLifecycleReadinessReviewLoad.disabled = false;
+            solutionLifecycleReadinessReviewMore.disabled = false;
+          }
         }
       }
 
@@ -9928,8 +10258,13 @@
             solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
-            solutionLifecycleAdoptionCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
-              || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+            const hasSolutionLifecycleCreate = solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+              && solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+            const hasSolutionLifecycleReview = solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate && !hasSolutionLifecycleReview;
+            solutionLifecycleAdoptionProgramCreate.hidden = !hasSolutionLifecycleCreate;
+            solutionLifecycleReadinessAssessment.hidden = !hasSolutionLifecycleCreate;
+            solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview;
             solutionLifecycleGateCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleExperimentCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
@@ -13204,6 +13539,20 @@
       sequentialEvidenceTimelineMore.addEventListener("click", () => loadSequentialEvidenceTimeline(true));
       document.querySelector("#solution-lifecycle-refresh").addEventListener("click", loadSolutionLifecycleSummary);
       solutionLifecycleLocation.addEventListener("change", () => {
+        if (solutionLifecyclePendingReadinessAssessment
+            && solutionLifecycleLocation.value !== solutionLifecyclePendingReadinessAssessment.location_id) {
+          solutionLifecycleLocation.value = solutionLifecyclePendingReadinessAssessment.location_id;
+          solutionLifecycleReadinessAssessmentStatus.textContent = "Retry the unchanged readiness assessment before changing locations.";
+          return;
+        }
+        const pendingReadinessReview = [...solutionLifecyclePendingReadinessReviews.values()].find(
+          (pending) => pending.location_id !== solutionLifecycleLocation.value,
+        );
+        if (pendingReadinessReview) {
+          solutionLifecycleLocation.value = pendingReadinessReview.location_id;
+          solutionLifecycleReadinessReviewStatus.textContent = "Retry the unchanged readiness review before changing locations.";
+          return;
+        }
         if (solutionLifecyclePendingAdoptionCreate
             && solutionLifecycleLocation.value !== solutionLifecyclePendingAdoptionCreate.locationId) {
           solutionLifecycleLocation.value = solutionLifecyclePendingAdoptionCreate.locationId;
@@ -13271,6 +13620,18 @@
         solutionLifecycleAdoptionTargetsMore.disabled = false;
         solutionLifecycleAdoptionCreateForm.reset();
         solutionLifecycleAdoptionCreateStatus.textContent = "";
+        solutionLifecycleReadinessAssessmentForm.reset();
+        solutionLifecycleReadinessSolution.replaceChildren(new Option(
+          "Load eligible solutions, then choose one", "",
+        ));
+        solutionLifecycleReadinessAssessmentStatus.textContent = "";
+        solutionLifecycleReadinessReviewRequestVersion += 1;
+        solutionLifecycleReadinessReviewOffset = 0;
+        solutionLifecycleReadinessReviewRows.replaceChildren();
+        solutionLifecycleReadinessReviewStatus.textContent = "";
+        solutionLifecycleReadinessReviewMore.hidden = true;
+        solutionLifecycleReadinessReviewLoad.disabled = false;
+        solutionLifecycleReadinessReviewMore.disabled = false;
         resetSolutionLifecycleGateCreate();
         solutionLifecycleGatesRequestVersion += 1;
         solutionLifecycleGatesOffset = 0;
@@ -13441,8 +13802,13 @@
         solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
-        solutionLifecycleAdoptionCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
-          || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+        const hasSolutionLifecycleCreate = solutionLifecycleLocations.has(solutionLifecycleLocation.value)
+          && solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
+        const hasSolutionLifecycleReview = solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleAdoptionCreate.hidden = !hasSolutionLifecycleCreate && !hasSolutionLifecycleReview;
+        solutionLifecycleAdoptionProgramCreate.hidden = !hasSolutionLifecycleCreate;
+        solutionLifecycleReadinessAssessment.hidden = !hasSolutionLifecycleCreate;
+        solutionLifecycleReadinessReview.hidden = !hasSolutionLifecycleReview;
         solutionLifecycleExperimentCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleGateCreate.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
@@ -13548,6 +13914,9 @@
       solutionLifecycleAdoptionTargetsLoad.addEventListener("click", () => loadSolutionLifecycleAdoptionTargets());
       solutionLifecycleAdoptionTargetsMore.addEventListener("click", () => loadSolutionLifecycleAdoptionTargets(true));
       solutionLifecycleAdoptionCreateForm.addEventListener("submit", submitSolutionLifecycleAdoptionProgram);
+      solutionLifecycleReadinessAssessmentForm.addEventListener("submit", submitSolutionLifecycleReadinessAssessment);
+      solutionLifecycleReadinessReviewLoad.addEventListener("click", () => loadSolutionLifecycleReadinessReviewQueue());
+      solutionLifecycleReadinessReviewMore.addEventListener("click", () => loadSolutionLifecycleReadinessReviewQueue(true));
       solutionLifecycleScaleAssessmentLoad.addEventListener("click", () => loadSolutionLifecycleScaleGateAssessmentTargets());
       solutionLifecycleScaleAssessmentMore.addEventListener("click", () => loadSolutionLifecycleScaleGateAssessmentTargets(true));
       solutionLifecycleScaleReviewLoad.addEventListener("click", () => loadSolutionLifecycleScaleGateReviewQueue());

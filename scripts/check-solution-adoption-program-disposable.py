@@ -13,7 +13,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "schemas/postgres/513_location_solution_adoption_program_create.sql"
+WRITE_BOUNDARY_MIGRATION = ROOT / "schemas/postgres/514_location_solution_adoption_write_boundary.sql"
 PREPARATION_MIGRATION = ROOT / "schemas/postgres/515_location_solution_adoption_preparation.sql"
+READINESS_MIGRATION = ROOT / "schemas/postgres/516_location_solution_adoption_readiness_review.sql"
 OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-adoption-program-disposable.json"
 
 LOCATION_ID = "b0000000-0000-4000-8000-000000000001"
@@ -101,8 +103,42 @@ CREATE TABLE public.solution_adoption_program (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE TABLE public.solution_adopter_readiness (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    solution_id UUID NOT NULL,
+    adopter_scope_type TEXT NOT NULL,
+    adopter_scope_id UUID NOT NULL,
+    current_level NUMERIC(6,3) NOT NULL DEFAULT 0,
+    required_level NUMERIC(6,3) NOT NULL,
+    gap NUMERIC(6,3) GENERATED ALWAYS AS (required_level - current_level) STORED,
+    remediation_plan TEXT,
+    readiness_status TEXT NOT NULL DEFAULT 'not_ready',
+    assessed_by_party_id UUID,
+    assessed_at TIMESTAMPTZ,
+    UNIQUE (solution_id, adopter_scope_type, adopter_scope_id)
+);
+CREATE TABLE public.solution_configuration (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    solution_id UUID NOT NULL,
+    scope_type TEXT NOT NULL,
+    scope_id UUID NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    invariant_components JSONB NOT NULL DEFAULT '{}'::JSONB,
+    configurable_components JSONB NOT NULL DEFAULT '{}'::JSONB,
+    prohibited_components JSONB NOT NULL DEFAULT '{}'::JSONB,
+    local_assumptions JSONB NOT NULL DEFAULT '{}'::JSONB,
+    adaptation_owner_party_id UUID,
+    comparability_class TEXT NOT NULL DEFAULT 'comparable',
+    evidence_impact TEXT,
+    approval_status TEXT NOT NULL DEFAULT 'draft',
+    approved_by_party_id UUID,
+    approved_at TIMESTAMPTZ
+);
 GRANT INSERT, UPDATE, DELETE ON public.solution_adoption_program
     TO kokonut_runtime, kokonut_directus_runtime;
+GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE
+    ON public.solution_adopter_readiness, public.solution_configuration
+    TO PUBLIC, kokonut_runtime, kokonut_directus_runtime;
 
 CREATE FUNCTION kokonut_security.current_tenant_context()
 RETURNS TABLE(actor_id UUID, location_id UUID, actor_type TEXT)
@@ -131,18 +167,26 @@ INSERT INTO public.location (id) VALUES
     ('b0000000-0000-4000-8000-000000000002');
 INSERT INTO public.operator_identity (id, enabled) VALUES
     ('a0000000-0000-4000-8000-000000000041', TRUE),
-    ('a0000000-0000-4000-8000-000000000042', TRUE);
+    ('a0000000-0000-4000-8000-000000000042', TRUE),
+    ('a0000000-0000-4000-8000-000000000043', TRUE);
 INSERT INTO public.party (id, party_type, status) VALUES
-    ('c1000000-0000-4000-8000-000000000041', 'person', 'active');
+    ('c1000000-0000-4000-8000-000000000041', 'person', 'active'),
+    ('c1000000-0000-4000-8000-000000000043', 'person', 'active');
 INSERT INTO public.operator_governance_party_binding
     (operator_id, party_id, revoked_at)
 VALUES
     ('a0000000-0000-4000-8000-000000000041',
-     'c1000000-0000-4000-8000-000000000041', NULL);
+     'c1000000-0000-4000-8000-000000000041', NULL),
+    ('a0000000-0000-4000-8000-000000000043',
+     'c1000000-0000-4000-8000-000000000043', NULL);
 INSERT INTO public.operator_scope_grant
     (operator_id, resource, action, location_id)
 VALUES
     ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'create',
+     'b0000000-0000-4000-8000-000000000001'),
+    ('a0000000-0000-4000-8000-000000000041', 'solution_lifecycle', 'review',
+     'b0000000-0000-4000-8000-000000000001'),
+    ('a0000000-0000-4000-8000-000000000043', 'solution_lifecycle', 'review',
      'b0000000-0000-4000-8000-000000000001');
 INSERT INTO public.solution
     (id, canonical_key, originating_scope_type, originating_scope_id, current_stage, status)
@@ -153,6 +197,15 @@ VALUES
      'location', 'b0000000-0000-4000-8000-000000000002', 'adoption_ready', 'active'),
     ('c0000000-0000-4000-8000-000000000043', 'synthetic:adoption:pilot-active',
      'location', 'b0000000-0000-4000-8000-000000000001', 'pilot_active', 'active');
+INSERT INTO public.solution_adopter_readiness (
+    id, solution_id, adopter_scope_type, adopter_scope_id, current_level,
+    required_level, readiness_status, assessed_by_party_id, assessed_at
+) VALUES (
+    'd0000000-0000-4000-8000-000000000041',
+    'c0000000-0000-4000-8000-000000000041', 'location',
+    'b0000000-0000-4000-8000-000000000001', 5, 5, 'ready',
+    'c1000000-0000-4000-8000-000000000041', now()
+);
 """
 
 ACCEPTANCE = f"""
@@ -275,6 +328,177 @@ BEGIN
 END $$;
 """
 
+READINESS_ACCEPTANCE = r"""
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE first_assessment RECORD; replayed_assessment RECORD; queue_count BIGINT;
+        caught BOOLEAN := FALSE;
+BEGIN
+    SELECT * INTO first_assessment FROM kokonut_security.submit_location_solution_adopter_readiness(
+        'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000043',
+        'ab000000-0000-4000-8000-000000000061', 2, 3, 'Complete operator training', TRUE
+    );
+    IF first_assessment.readiness_status <> 'submitted' OR first_assessment.replayed THEN
+        RAISE EXCEPTION 'assessment submission did not remain pending independent review';
+    END IF;
+    SELECT * INTO replayed_assessment FROM kokonut_security.submit_location_solution_adopter_readiness(
+        'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000043',
+        'ab000000-0000-4000-8000-000000000061', 2, 3, 'Complete operator training', TRUE
+    );
+    IF replayed_assessment.assessment_id <> first_assessment.assessment_id
+       OR NOT replayed_assessment.replayed THEN
+        RAISE EXCEPTION 'exact readiness assessment retry did not replay';
+    END IF;
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.submit_location_solution_adopter_readiness(
+            'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000043',
+            'ab000000-0000-4000-8000-000000000061', 3, 3, 'Changed payload', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '22023' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'changed assessment request reuse was accepted'; END IF;
+
+    SELECT count(*) INTO queue_count
+      FROM kokonut_security.location_solution_adopter_readiness_review_queue(
+          'b0000000-0000-4000-8000-000000000001', 25, 0
+      );
+    IF queue_count <> 0 THEN RAISE EXCEPTION 'assessor was allowed to review their own assessment'; END IF;
+    caught := FALSE;
+    BEGIN
+        PERFORM * FROM kokonut_security.review_location_solution_adopter_readiness(
+            'b0000000-0000-4000-8000-000000000001', first_assessment.assessment_id,
+            'ab000000-0000-4000-8000-000000000062', 'remediating', 'Self review', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '42501' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'self-review was accepted'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000043', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE queue_row RECORD; caught BOOLEAN := FALSE;
+        next_assessment RECORD;
+BEGIN
+    SELECT * INTO queue_row FROM kokonut_security.location_solution_adopter_readiness_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 25, 0
+    );
+    IF queue_row.assessment_id IS NULL THEN
+        RAISE EXCEPTION 'independent reviewer did not receive the pending assessment';
+    END IF;
+    BEGIN
+        PERFORM * FROM kokonut_security.review_location_solution_adopter_readiness(
+            'b0000000-0000-4000-8000-000000000001', queue_row.assessment_id,
+            'ab000000-0000-4000-8000-000000000063', 'ready', 'Level is below target', TRUE
+        );
+    EXCEPTION WHEN SQLSTATE '55000' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'below-target readiness was approved'; END IF;
+    PERFORM * FROM kokonut_security.review_location_solution_adopter_readiness(
+        'b0000000-0000-4000-8000-000000000001', queue_row.assessment_id,
+        'ab000000-0000-4000-8000-000000000064', 'remediating', 'Training gap remains', TRUE
+    );
+    SELECT * INTO next_assessment FROM kokonut_security.review_location_solution_adopter_readiness(
+        'b0000000-0000-4000-8000-000000000001', queue_row.assessment_id,
+        'ab000000-0000-4000-8000-000000000064', 'remediating', 'Training gap remains', TRUE
+    );
+    IF NOT next_assessment.replayed OR next_assessment.readiness_status <> 'remediating' THEN
+        RAISE EXCEPTION 'exact independent remediation review retry did not replay';
+    END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000041', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+BEGIN
+    PERFORM * FROM kokonut_security.submit_location_solution_adopter_readiness(
+        'b0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000043',
+        'ab000000-0000-4000-8000-000000000065', 4, 3, NULL, TRUE
+    );
+END $$;
+COMMIT;
+RESET ROLE;
+
+SET ROLE kokonut_solution_adoption_readiness_manager;
+DO $$
+DECLARE readiness_id UUID; caught BOOLEAN := FALSE;
+BEGIN
+    SELECT id INTO readiness_id FROM public.solution_adopter_readiness
+     WHERE solution_id = 'c0000000-0000-4000-8000-000000000043';
+    BEGIN
+        UPDATE public.solution_adopter_readiness
+           SET readiness_status = 'ready'
+         WHERE id = readiness_id;
+    EXCEPTION WHEN SQLSTATE '23514' THEN caught := TRUE;
+    END;
+    IF NOT caught THEN RAISE EXCEPTION 'unreviewed assessment was set ready directly'; END IF;
+END $$;
+RESET ROLE;
+
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000043', TRUE);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', TRUE);
+SELECT set_config('kokonut.actor_type', 'operator', TRUE);
+DO $$
+DECLARE queue_row RECORD; review RECORD; readiness_status TEXT;
+BEGIN
+    SELECT * INTO queue_row FROM kokonut_security.location_solution_adopter_readiness_review_queue(
+        'b0000000-0000-4000-8000-000000000001', 25, 0
+    );
+    IF queue_row.assessment_id IS NULL THEN RAISE EXCEPTION 'review queue unexpectedly empty'; END IF;
+    SELECT * INTO review FROM kokonut_security.review_location_solution_adopter_readiness(
+        'b0000000-0000-4000-8000-000000000001', queue_row.assessment_id,
+        'ab000000-0000-4000-8000-000000000066', 'ready', 'Required level is met', TRUE
+    );
+    IF review.readiness_status <> 'ready' OR review.replayed THEN
+        RAISE EXCEPTION 'independent human review did not set readiness ready';
+    END IF;
+    SELECT r.readiness_status INTO readiness_status
+      FROM public.solution_adopter_readiness AS r
+     WHERE r.id = review.readiness_id;
+    IF readiness_status <> 'ready' THEN RAISE EXCEPTION 'ready projection was not persisted'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+BEGIN
+    IF (SELECT readiness_status FROM public.solution_adopter_readiness
+         WHERE solution_id = 'c0000000-0000-4000-8000-000000000041') <> 'expired' THEN
+        RAISE EXCEPTION 'historical unreviewed ready state was not expired';
+    END IF;
+    IF pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_adopter_readiness_assessment', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_runtime',
+        'public.solution_adopter_readiness_review', 'SELECT')
+       OR pg_catalog.has_table_privilege('kokonut_directus_runtime',
+        'public.solution_adopter_readiness_review', 'INSERT') THEN
+        RAISE EXCEPTION 'shared runtime or Directus can access private readiness records';
+    END IF;
+    IF pg_catalog.has_function_privilege('kokonut_directus_runtime',
+        'kokonut_security.review_location_solution_adopter_readiness(UUID,UUID,UUID,TEXT,TEXT,BOOLEAN)',
+        'EXECUTE') THEN
+        RAISE EXCEPTION 'Directus can execute the independent readiness reviewer';
+    END IF;
+END $$;
+"""
+
 
 def psql(docker: str, container: str, sql: str) -> str:
     result = subprocess.run(
@@ -307,18 +531,26 @@ def main() -> int:
     container = f"kokonut-solution-adoption-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migrations": [MIGRATION.name, PREPARATION_MIGRATION.name],
+        "migrations": [MIGRATION.name, WRITE_BOUNDARY_MIGRATION.name, PREPARATION_MIGRATION.name, READINESS_MIGRATION.name],
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
-            "migration 513 applies and replays idempotently",
+            "migrations 513 through 516 apply and replay idempotently in order",
             "migration 515 allows draft preparation from pilot_active before the adoption-ready gate",
+            "migration 516 expires historical unreviewed ready rows while preserving their audit records",
             "draft creation requires signed exact-location create context and an active human identity",
             "only active pilot_active, adoption_ready, or adopting solutions with exact location origin are eligible",
             "program scope, creator attribution, draft status, and empty target population are server controlled",
             "exact retries replay; changed request reuse fails closed",
             "runtime direct insert/update/delete and receipt access are denied",
             "Directus cannot write programs or execute the creator function",
+            "readiness submission requires signed exact-location create context and creates an immutable pending assessment",
+            "exact readiness retries replay; changed payload reuse fails closed",
+            "assessors are excluded from their own review queue and cannot self-review",
+            "below-target ready decisions and remediating decisions without a plan are rejected",
+            "an independent review updates only the current assessment and exact retries replay",
+            "the database trigger rejects direct ready status without an independent receipt",
+            "runtime and Directus cannot read or forge private readiness records",
         ],
     }
     try:
@@ -334,13 +566,20 @@ def main() -> int:
         migration_text = MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, migration_text)
         psql(docker, container, migration_text)
+        boundary_text = WRITE_BOUNDARY_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, boundary_text)
+        psql(docker, container, boundary_text)
         preparation_text = PREPARATION_MIGRATION.read_text(encoding="utf-8")
         psql(docker, container, preparation_text)
         psql(docker, container, preparation_text)
+        readiness_text = READINESS_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, readiness_text)
+        psql(docker, container, readiness_text)
         psql(docker, container, ACCEPTANCE)
+        psql(docker, container, READINESS_ACCEPTANCE)
         evidence["result"] = "passed"
-        evidence["acceptance_groups_passed"] = 8
-        print("PASS: migrations 513/515 apply/replay, pilot preparation, exact-location draft creation, retry, lifecycle, and privilege checks passed")
+        evidence["acceptance_groups_passed"] = 16
+        print("PASS: migrations 513/514/515/516 apply/replay, adoption preparation, readiness review, retries, lifecycle, and privilege checks passed")
         return 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"

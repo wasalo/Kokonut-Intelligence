@@ -447,6 +447,206 @@ def create_location_solution_adoption_program(
         connection.close()
 
 
+def submit_location_solution_adopter_readiness(
+    operator_id: str,
+    location_id: str,
+    solution_id: str,
+    request_id: str,
+    current_level,
+    required_level,
+    *,
+    remediation_plan: str | None = None,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Submit an exact-location readiness assessment for independent review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    solution_id = _normalize_uuid(solution_id, "solution")
+    request_id = _normalize_uuid(request_id, "request")
+    normalized_levels: list[str] = []
+    for value, field in (
+        (current_level, "Current readiness level"),
+        (required_level, "Required readiness level"),
+    ):
+        if isinstance(value, bool):
+            raise SolutionLifecycleActionInvalid(f"{field} must be a finite number")
+        try:
+            level = Decimal(str(value))
+        except (InvalidOperation, TypeError, ValueError) as exc:
+            raise SolutionLifecycleActionInvalid(f"{field} must be a finite number") from exc
+        if not level.is_finite() or level < 0 or level > Decimal("999.999"):
+            raise SolutionLifecycleActionInvalid(f"{field} is outside the supported range")
+        if level != level.quantize(Decimal("0.001")):
+            raise SolutionLifecycleActionInvalid(f"{field} must use no more than three decimal places")
+        normalized_levels.append(format(level, ".3f"))
+    if remediation_plan is not None:
+        if not isinstance(remediation_plan, str) or len(remediation_plan) > 4000:
+            raise SolutionLifecycleActionInvalid("Remediation plan must be at most 4,000 characters")
+        if "\x00" in remediation_plan:
+            raise SolutionLifecycleActionInvalid("Remediation plan cannot contain a null character")
+        try:
+            if len(remediation_plan.encode("utf-8")) > 8000:
+                raise SolutionLifecycleActionInvalid("Remediation plan must fit within 8 KiB")
+        except UnicodeEncodeError as exc:
+            raise SolutionLifecycleActionInvalid("Remediation plan must be valid UTF-8 text") from exc
+        remediation_plan = remediation_plan.strip() or None
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Readiness submission requires acknowledgement that an independent review is required"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.submit_location_solution_adopter_readiness(
+                           %s::uuid, %s::uuid, %s::uuid, %s::numeric, %s::numeric, %s::text, %s::boolean
+                       )""",
+                (
+                    location_id, solution_id, request_id, normalized_levels[0],
+                    normalized_levels[1], remediation_plan, acknowledged,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Readiness assessment returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def get_location_solution_adopter_readiness_review_queue(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int = 25,
+    offset: int = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Read a bounded queue of assessments this human can independently review."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 100:
+        raise SolutionLifecycleActionInvalid("Readiness review page size must be between 1 and 100")
+    if isinstance(offset, bool) or not isinstance(offset, int) or not 0 <= offset <= 10000:
+        raise SolutionLifecycleActionInvalid("Readiness review page offset is invalid")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.location_solution_adopter_readiness_review_queue(
+                           %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, limit + 1, offset),
+            )
+            rows = cursor.fetchall()
+            columns = [description[0] for description in cursor.description]
+        assessments = [dict(zip(columns, row, strict=False)) for row in rows[:limit]]
+        has_more = len(rows) > limit
+        connection.commit()
+        return {
+            "assessments": assessments,
+            "has_more": has_more,
+            "next_offset": offset + len(assessments) if has_more else None,
+        }
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
+def review_location_solution_adopter_readiness(
+    operator_id: str,
+    location_id: str,
+    assessment_id: str,
+    request_id: str,
+    decision: str,
+    review_note: str,
+    *,
+    acknowledged: bool = False,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Independently decide whether a current readiness assessment is accepted."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    assessment_id = _normalize_uuid(assessment_id, "assessment")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(decision, str) or decision not in {"ready", "remediating", "rejected"}:
+        raise SolutionLifecycleActionInvalid("Readiness review decision is invalid")
+    if not isinstance(review_note, str) or not 1 <= len(review_note.strip()) <= 2000:
+        raise SolutionLifecycleActionInvalid("Readiness review note must contain 1 to 2,000 characters")
+    if "\x00" in review_note:
+        raise SolutionLifecycleActionInvalid("Readiness review note cannot contain a null character")
+    try:
+        if len(review_note.encode("utf-8")) > 4000:
+            raise SolutionLifecycleActionInvalid("Readiness review note must fit within 4 KiB")
+    except UnicodeEncodeError as exc:
+        raise SolutionLifecycleActionInvalid("Readiness review note must be valid UTF-8 text") from exc
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Readiness review requires acknowledgement that this decision is independent"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="review",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.review_location_solution_adopter_readiness(
+                           %s::uuid, %s::uuid, %s::uuid, %s::text, %s::text, %s::boolean
+                       )""",
+                (location_id, assessment_id, request_id, decision, review_note.strip(), acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Readiness review returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def create_location_solution_gate(
     operator_id: str,
     location_id: str,
