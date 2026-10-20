@@ -12105,3 +12105,20 @@ comparison, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 owner
 review. Checklist: 721 complete / 24 open; matrix: 31 baseline-retained, 7
 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
 [console tests](../tests/test_operator_console_solution_lifecycle.py).
+
+### CAP-035 experiment status console read — 20 October 2026
+
+Added a paged location-linked experiment view to the solution-lifecycle
+console. It shows fixed solution labels, protocol version, experiment state and
+duration, primary/secondary metric-key counts, lifecycle timestamps, and only
+an explicitly reviewed outcome. It omits protocol narratives, metric names or
+values, observations, adverse-event details, evidence, identifiers, and
+reviewer identities; the panel has no approval or result-review controls.
+
+The combined CAP-025/CAP-035 console, Gateway read/action, and exact route-policy
+selection passes 134 tests with Ruff and Node.js syntax validation. Matrix
+validation, repository inventory, and diff checks pass. No migration, database,
+candidate, or legacy environment was touched. Remaining CAP-035 code and owner
+gates remain open. Checklist: 722 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
+[tests](../tests/test_operator_console_solution_lifecycle.py).

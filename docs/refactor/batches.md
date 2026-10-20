@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (20 October 2026):** 721 checklist items complete and 24
-open (745 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (20 October 2026):** 722 checklist items complete and 24
+open (746 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1551,6 +1551,7 @@ Schema inventory matches; empty workloads do not close complete recovery accepta
 
   - [x] (20 October 2026) Add a read-only CAP-035 console overview under exact `solution_lifecycle:read` location grants. It renders the solution total and fixed aggregate stage, gate, experiment, funding, adoption, replication, learning, and retirement counts as collapsed groups; no row details or mutation controls are present. The focused console/Gateway/route-policy selection passes 89 tests, including inline JavaScript syntax validation; Ruff passes. Candidate and legacy databases remain untouched. CAP-035 remains prepared pending detail/workflow parity, populated fixture comparison, live OIDC/browser, broader ACL/RLS, recovery, and owner acceptance ([contract](solution-lifecycle-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [tests](../../tests/test_operator_console_solution_lifecycle.py)). Checklist: 711 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.
   - [x] Extend the CAP-035 console with bounded stage-gate status from the existing exact-grant `/gates` read. The page shows fixed solution labels, transition, structural requirement thresholds, gate status, and latest evaluation result/time; it omits evidence payloads and reviewer identities, and adds no approval or mutation controls. The focused console, Gateway read/action, and route-policy selection passes 99 tests, including Node.js syntax; Ruff passes. Candidate and legacy databases were not accessed and no migration was needed. Other lifecycle detail/write parity, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_operator_console_solution_lifecycle.py)).
+  - [x] Add the CAP-035 experiment status console using the existing exact-grant `/experiments` read. It pages location-linked experiments and displays fixed lifecycle metadata plus only the latest reviewed outcome; protocol narratives, metric names/values, observations, adverse-event details, evidence, and reviewer identities remain excluded. The combined CAP-025/CAP-035 console, Gateway read/action, and route-policy selection passes 134 tests with Ruff and inline JavaScript syntax. No database or migration was needed; candidate and legacy remain untouched. Experiment evidence/review workflows, other lifecycle details and writes, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 remain open ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../../tests/test_operator_console_solution_lifecycle.py)).
 
 ### CAP-036 first sequential evidence Kernel summary — 19 October 2026
 

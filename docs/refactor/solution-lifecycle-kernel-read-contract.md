@@ -185,10 +185,14 @@ The same panel can load a bounded page of location-linked stage gates through
 the existing `/gates` route. It shows fixed solution labels, stage transition,
 structural requirement thresholds, gate status, and latest evaluation result/time;
 it omits evidence payloads and reviewer identities. The evaluation is
-informational and the panel cannot approve or change a gate. Requests use the
-same-origin session, disable caching, and discard stale responses after a
-location change. No lifecycle mutation is available, and source checks do not
-constitute live OIDC/browser acceptance.
+informational and the panel cannot approve or change a gate. It can also load a
+bounded experiment page showing lifecycle metadata and the latest explicitly
+reviewed outcome only. Protocol narratives, metric names/values, observations,
+adverse-event details, evidence, and reviewer identities remain excluded; the
+panel cannot approve or review results. Requests use the same-origin session,
+disable caching, and discard stale responses after a location change. No
+lifecycle mutation is available, and source checks do not constitute live
+OIDC/browser acceptance.
 
 ## Verification and remaining parity
 

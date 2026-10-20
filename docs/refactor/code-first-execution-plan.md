@@ -3,20 +3,27 @@
 **Updated:** 20 October 2026
 **Branch/PR:** `feat/mobile-offline-acceptance`, PR #68
 
-**Latest implementation slice — 20 October 2026:** CAP-026 now has a
-grant-gated operator-console view for location-scoped advisory backcasts and
-milestone evidence. Keyset-paged list/detail reads use same-origin no-store
-requests, stale-response guards, fixed text rendering, and no mutation or
-approval actions. A new 1 MiB detail-response ceiling returns HTTP 413 for
-oversized plans while retaining the 500-milestone limit. The focused
-console/Gateway/route-policy selection passes 23 tests, including size-bound
-and JavaScript syntax checks; Ruff passes. No database or provider was used.
-CAP-026 remains prepared pending live OIDC/browser, populated output/evidence
-parity, broader ACL/RLS, and MAN-CAP-026 review. Checklist: 719 complete / 24
-open; matrix: 31 baseline-retained, 7 deployed, 28 prepared. Evidence: [read
-contract](threatcasting-kernel-read-contract.md),
-[console](../apps/operator-console/index.html), and
-[console checks](../tests/test_operator_console_threatcasting.py).
+**Latest implementation slice — 20 October 2026:** CAP-025 now has a
+location-scoped reviewer console under the exact `stakeholder_identity:review`
+grant. It uses the consent-aware pending queue, withholds source identifiers and
+raw feedback, disables decisions when names are unavailable, and submits fixed
+reason-code decisions with confirmation, CSRF, and retry-stable request IDs;
+independent review remains database-enforced. CAP-035 now exposes bounded gate
+and experiment status pages in the lifecycle console. The gate page shows
+structural thresholds and latest evaluation state without evidence or reviewer
+identity; the experiment page shows fixed lifecycle metadata and only the latest
+explicitly reviewed outcome, without protocol narratives, metrics/values,
+observations, adverse-event details, or evidence. The combined CAP-025/CAP-035
+console, Gateway read/action, and route-policy selection passes 134 tests; Ruff,
+inline JavaScript parsing, capability validation, inventory refresh, and diff
+checks pass. No database, migration, candidate, or legacy system was used.
+CAP-025 and CAP-035 remain prepared pending their remaining source/workflow
+parity, populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and
+owner acceptance. Checklist: 722 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared across 66 rows. Evidence:
+[CAP-025 contract](stakeholder-identity-kernel-contract.md),
+[CAP-035 contract](solution-lifecycle-kernel-read-contract.md), [console](../apps/operator-console/index.html), and
+[CAP-035 console tests](../tests/test_operator_console_solution_lifecycle.py).
 
 **Previous implementation slice — 20 October 2026:** CAP-035 now has a
 read-only operator-console overview for its location-scoped lifecycle summary,
@@ -1969,4 +1976,25 @@ prepared pending remaining item-level workflows and write/review parity,
 populated fixtures, live OIDC/browser, broader ACL/RLS, recovery, and owner
 acceptance. Checklist: 721 complete / 24 open; matrix remains 66 rows (31
 baseline-retained, 7 deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
+[tests](../tests/test_operator_console_solution_lifecycle.py).
+
+### CAP-035 experiment status console read — 20 October 2026
+
+Added a bounded experiment-status list to the existing location-scoped
+solution-lifecycle console. It uses the existing exact-grant
+`/operator/api/solution-lifecycle/{location_id}/experiments` route, same-origin
+no-store requests, 25-row offset pages, and location stale-response guards.
+Cards show solution labels, protocol version, experiment status/duration,
+metric-key counts, lifecycle timestamps, and only an explicitly reviewed
+outcome. They do not display IDs, protocol narratives, metric names/values,
+observations, adverse-event details, evidence, or reviewer identities. No
+approval, review, or mutation controls are present.
+
+The combined CAP-025/CAP-035 console, Gateway read/action, and route-policy
+selection passes 134 tests; Ruff and inline JavaScript parsing pass. No
+migration or database was used; candidate and legacy state remain untouched.
+CAP-035 remains prepared pending experiment evidence/review and other item-level
+read/write workflows, populated fixture parity, live OIDC/browser, broader
+ACL/RLS, recovery, and owner acceptance. Checklist: 722 complete / 24 open;
+matrix: 66 rows (31 baseline-retained, 7 deployed, 28 prepared). [Contract](solution-lifecycle-kernel-read-contract.md);
 [tests](../tests/test_operator_console_solution_lifecycle.py).
