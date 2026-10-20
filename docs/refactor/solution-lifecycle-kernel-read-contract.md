@@ -2,8 +2,8 @@
 
 **Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
 scale-gate, replication, reviewed-replication learning, exact-origin retirement
-reads, independently reviewed retirement and learning proposal actions, and
-the operator-console status, proposal, and private retirement-review views are
+reads, independently reviewed retirement and learning proposal actions, the
+private retirement-review view, and append-only gate-evaluation submission are
 prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
@@ -19,7 +19,8 @@ prepared; not owner-accepted.
 `476_location_solution_retirement_proposal.sql`, and
 `477_location_solution_learning_proposal.sql`,
 `481_location_solution_retirement_candidates.sql`, and
-`482_location_solution_retirement_review_queue.sql`.
+`482_location_solution_retirement_review_queue.sql`, and
+`483_location_solution_gate_evaluation.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -34,12 +35,13 @@ prepared; not owner-accepted.
 `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements`, and
 `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/learning`,
 `GET /operator/api/solution-lifecycle/{location_id}/retirements/review`, and
-`GET /operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}`.
-**Authorization:** reads require exact `solution_lifecycle:read`; retirement
-and learning proposals require exact `solution_lifecycle:create`; approval
-requires exact `solution_lifecycle:review`; retirement review reads also require
-an active human party binding. Mutations use signed operator tenant context
-checked in Gateway and PostgreSQL.
+`GET /operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}`, and
+`POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations`.
+**Authorization:** reads require exact `solution_lifecycle:read`; retirement,
+learning proposals, and gate evaluations require exact `solution_lifecycle:create`;
+approval requires exact `solution_lifecycle:review`; retirement review reads and
+gate evaluations also require an active human party binding. Mutations use signed
+operator tenant context checked in Gateway and PostgreSQL.
 
 ## Purpose and boundary
 
@@ -60,7 +62,10 @@ linked to a solution originated in or explicitly associated with that location.
 The receipt attributes the OIDC proposer separately from the learning record's
 optional owner identity; it does not accept, reject, or apply the lesson.
 These routes do not replace the domain services, change stage-transition rules,
-approve gates, release funding, or activate adoption.
+approve gates, release funding, or activate adoption. A gate evaluation appends
+a pass/fail observation and evidence references for an exact location-origin
+gate; it does not change the gate status or approve a stage transition. Gate
+approval remains a separate human review.
 
 Canonical `solution` records can be network-wide. The projection includes a
 solution only when it is explicitly originated in the requested location or
@@ -256,6 +261,33 @@ an unchanged retry. A success message states that approval does not schedule or
 execute the retirement. Review reads and approval remain separate from the
 ordinary location-read views.
 
+## Gate evaluation submission (migration 483)
+
+`POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations`
+accepts exactly `request_id`, `passed`, `observed`, and `evidence`. It requires an
+active signed operator session and exact location `solution_lifecycle:create`
+grant, plus an active OIDC-to-person binding. The target must be a `draft` or
+`ready` gate on a solution whose canonical origin is the exact requested
+location; a network-wide or merely location-linked solution is not writable by
+this action. Observations must be a JSON object and evidence a nonempty JSON array,
+with each encoded payload capped at 64 KiB and evidence capped at 100 entries.
+
+The dedicated non-login `kokonut_solution_gate_evaluator` owns a SECURITY
+DEFINER function and receives narrow column privileges, including append-only
+receipt insert/select. Runtime receives function execution only; Directus cannot
+execute it and neither runtime nor Directus can read the idempotency receipt. A
+receipt binds operator, human party, location, gate, evaluation, and request ID.
+An identical retry returns the original evaluation; reuse with a different
+location or payload fails. The route is no-store and protected by the operator
+CSRF policy. The console requires both read and create grants, offers only draft
+or ready gates, and clearly separates evaluation from approval.
+
+Migration 483 is additive and has not been rolled out to candidate or legacy.
+The disposable PostgreSQL 16 runner applies and replays it and checks exact
+context/grant enforcement, human attribution, origin lineage, payload bounds,
+append-only/idempotent behavior, runtime/Directus boundaries, and approval
+separation.
+
 ## Verification and remaining parity
 
 The retirement-candidate/proposal slice passes 176 focused tests; disposable PostgreSQL 16 applies/replays migration 481 and passes nine scope, grant, pagination, privacy, and role-boundary groups. Evidence is recorded in `builds/2026-10-20-recovery/cap-035-solution-retirement-candidates-disposable.json`. The review inbox/detail/approval-console slice passes 122 focused tests including Node.js syntax, with Ruff, compilation, and diff checks. Disposable PostgreSQL 16 applies/replays migration 482 after the ordered predecessors and passes seven grouped review, grant, privacy, privilege, and replacement-scope checks. Evidence is recorded in `builds/2026-10-20-recovery/cap-035-solution-retirement-review-disposable.json`. Both disposable containers are removed after their runs; candidate and legacy databases are untouched and migrations 481–482 are not rolled out.
@@ -311,7 +343,9 @@ are untouched; migration 477 is not rolled out. Evidence is in
 ## Rollback
 
 Before migration rollout, remove a route registration, route-policy entry, read
-service, migration source, and tests together. After migration application,
+or action service, migration source, and tests together. If migration 483 has been
+applied, disable the evaluation route but retain the ordered migration, role, and
+ACL until a separately reviewed forward migration removes them. After migration application,
 disable the route but retain its ordered migration and ACL. Do not edit or
 reverse an applied migration; any schema rollback requires a separately
 reviewed forward migration after checking for location links and dependent data

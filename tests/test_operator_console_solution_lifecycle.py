@@ -68,10 +68,31 @@ def test_gate_panel_displays_only_fixed_non_mutating_status_fields():
         "gate_status", "gate_created_at", "latest_evaluation_passed", "latest_evaluated_at",
     ):
         assert f"gate.{field}" in renderer
-    for private_field in ("gate_id", "solution_id", "evidence", "reviewer", "raw"):
-        assert f"gate.{private_field}" not in renderer
+    assert "gate.solution_id" not in renderer
+    assert "gate.evidence" not in renderer
+    assert "gate.reviewer" not in renderer
+    assert "gate.raw" not in renderer
     assert "textContent" in renderer
     assert "innerHTML" not in renderer
+
+
+def test_gate_evaluation_form_requires_create_scope_and_preserves_exact_retry():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(source, "function appendSolutionLifecycleGate(", "async function loadSolutionLifecycleGates(")
+    form = _function(source, "function createSolutionLifecycleGateEvaluationForm(", "async function loadSolutionLifecycleGates(")
+    assert 'solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)' in renderer
+    assert '["draft", "ready"].includes(gate.gate_status)' in renderer
+    assert "createSolutionLifecycleGateEvaluationForm(gate.gate_id)" in renderer
+    assert "JSON.parse(observed.value)" in form and "JSON.parse(evidence.value)" in form
+    assert "Array.isArray(observedValue)" in form
+    assert "Array.isArray(evidenceValue)" in form
+    assert "form.pendingEvaluation.fingerprint !== fingerprint" in form
+    assert "form.pendingEvaluation.request_id" in form
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/evaluations`' in form
+    assert 'method: "POST"' in form and 'cache: "no-store"' in form
+    assert '"X-CSRF-Token": csrf' in form
+    assert "does not approve" in source or "Gate approval remains a separate human review." in form
+    assert "innerHTML" not in form
 
 
 def test_experiment_reader_uses_location_scope_no_store_paging_and_stale_guards():

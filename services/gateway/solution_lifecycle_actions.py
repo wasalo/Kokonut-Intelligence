@@ -57,6 +57,81 @@ def _mapping(cursor, row) -> dict:
     return dict(zip((column.name for column in (cursor.description or ())), row))
 
 
+def record_location_solution_gate_evaluation(
+    operator_id: str,
+    location_id: str,
+    gate_id: str,
+    request_id: str,
+    passed: bool,
+    observed: dict,
+    evidence: list,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Append an attributed evaluation for an exact location-origin gate."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    gate_id = _normalize_uuid(gate_id, "gate")
+    request_id = _normalize_uuid(request_id, "request")
+    if not isinstance(passed, bool):
+        raise SolutionLifecycleActionInvalid("Gate evaluation result must be true or false")
+    if not isinstance(observed, dict):
+        raise SolutionLifecycleActionInvalid("Gate observed values must be a JSON object")
+    if not isinstance(evidence, list) or not evidence or len(evidence) > 100:
+        raise SolutionLifecycleActionInvalid("Gate evidence must be a nonempty list of at most 100 items")
+    try:
+        encoded_observed = json.dumps(
+            observed, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+        encoded_evidence = json.dumps(
+            evidence, ensure_ascii=False, allow_nan=False, separators=(",", ":")
+        )
+    except (TypeError, ValueError) as exc:
+        raise SolutionLifecycleActionInvalid("Gate evaluation values must contain JSON data") from exc
+    if len(encoded_observed.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Gate observed values exceed the 64 KiB limit")
+    if len(encoded_evidence.encode("utf-8")) > 65536:
+        raise SolutionLifecycleActionInvalid("Gate evidence exceeds the 64 KiB limit")
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="create",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.record_location_solution_gate_evaluation(
+                           %s::uuid, %s::uuid, %s::uuid, %s::boolean, %s::jsonb, %s::jsonb
+                       )""",
+                (
+                    location_id,
+                    gate_id,
+                    request_id,
+                    passed,
+                    encoded_observed,
+                    encoded_evidence,
+                ),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Solution gate evaluation returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def approve_location_solution_retirement(
     operator_id: str,
     location_id: str,

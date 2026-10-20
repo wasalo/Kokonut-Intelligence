@@ -596,7 +596,7 @@
           <dl id="solution-lifecycle-overview"></dl>
           <div id="solution-lifecycle-count-groups"></div>
           <h3>Location-linked stage gates</h3>
-          <p class="muted">Gate requirements are shown only as bounded structural threshold values. Evaluation state is informational and does not approve a transition. Evidence payloads and reviewer identities are excluded.</p>
+          <p class="muted">Gate requirements are shown only as bounded structural threshold values. A location create grant can append a pass/fail evaluation with observed values and evidence references. Evaluation does not approve a transition; approval remains a separate human review. Evidence payloads and reviewer identities are excluded from this read.</p>
           <div class="toolbar">
             <button id="solution-lifecycle-gates-load" type="button">Load gate status</button>
           </div>
@@ -1899,7 +1899,138 @@
           details.append(term, description);
         }
         article.append(heading, details);
+        if (solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value)
+            && ["draft", "ready"].includes(gate.gate_status)
+            && typeof gate.gate_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(gate.gate_id)) {
+          article.append(createSolutionLifecycleGateEvaluationForm(gate.gate_id));
+        }
         solutionLifecycleGateRows.append(article);
+      }
+
+      function createSolutionLifecycleGateEvaluationForm(gateId) {
+        const form = document.createElement("form");
+        form.className = "form-grid";
+        const heading = document.createElement("h5");
+        heading.textContent = "Submit a gate evaluation";
+        const outcomeLabel = document.createElement("label");
+        outcomeLabel.textContent = "Evaluation result";
+        const outcome = document.createElement("select");
+        outcome.required = true;
+        for (const [value, label] of [["true", "Passed"], ["false", "Failed"]]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          outcome.append(option);
+        }
+        outcomeLabel.append(outcome);
+        const observedLabel = document.createElement("label");
+        observedLabel.textContent = "Observed values (JSON object)";
+        const observed = document.createElement("textarea");
+        observed.required = true;
+        observed.maxLength = 65536;
+        observed.spellcheck = false;
+        observed.value = "{}";
+        observedLabel.append(observed);
+        const evidenceLabel = document.createElement("label");
+        evidenceLabel.textContent = "Evidence references (JSON array)";
+        const evidence = document.createElement("textarea");
+        evidence.required = true;
+        evidence.maxLength = 65536;
+        evidence.spellcheck = false;
+        evidence.placeholder = '[{"uri":"https://…","description":"Reviewed source"}]';
+        evidenceLabel.append(evidence);
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Record evaluation";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(heading, outcomeLabel, observedLabel, evidenceLabel, submit, status);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          if (!solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleCreateLocations.has(locationId)) {
+            status.textContent = "A current read and create grant for this location is required.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before submitting an evaluation.";
+            return;
+          }
+          let payload;
+          try {
+            const observedValue = JSON.parse(observed.value);
+            const evidenceValue = JSON.parse(evidence.value);
+            if (!observedValue || Array.isArray(observedValue) || typeof observedValue !== "object") {
+              throw new Error("Observed values must be a JSON object.");
+            }
+            if (!Array.isArray(evidenceValue) || !evidenceValue.length || evidenceValue.length > 100) {
+              throw new Error("Provide 1 to 100 evidence references as a JSON array.");
+            }
+            payload = {
+              passed: outcome.value === "true",
+              observed: observedValue,
+              evidence: evidenceValue
+            };
+            if (new TextEncoder().encode(JSON.stringify(payload)).length > 65536) {
+              throw new Error("Evaluation values and evidence must fit within 64 KiB.");
+            }
+          } catch (error) {
+            status.textContent = error instanceof SyntaxError
+              ? "Observed values and evidence must be valid JSON."
+              : error.message;
+            return;
+          }
+          const fingerprint = JSON.stringify(payload);
+          if (!form.pendingEvaluation || form.pendingEvaluation.fingerprint !== fingerprint) {
+            const requestId = globalThis.crypto?.randomUUID?.();
+            if (!requestId) {
+              status.textContent = "A secure browser context is required to submit an evaluation.";
+              return;
+            }
+            form.pendingEvaluation = { fingerprint, request_id: requestId };
+          }
+          const requestId = form.pendingEvaluation.request_id;
+          submit.disabled = true;
+          status.textContent = "Recording the attributed evaluation…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/gates/${encodeURIComponent(gateId)}/evaluations`,
+              {
+                method: "POST",
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                  "Accept": "application/json",
+                  "Content-Type": "application/json",
+                  "X-CSRF-Token": csrf
+                },
+                body: JSON.stringify({ ...payload, request_id: requestId })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location create grant is no longer valid.");
+            }
+            if (!response.ok) {
+              if (response.status < 500) form.pendingEvaluation = null;
+              throw new Error(result.error || "The gate evaluation could not be recorded.");
+            }
+            status.textContent = result.replayed === true
+              ? "This evaluation was already recorded. Gate approval remains a separate human review."
+              : "Evaluation recorded. Gate approval remains a separate human review.";
+            await loadSolutionLifecycleGates();
+          } catch (error) {
+            status.textContent = error.message;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
       }
 
       async function loadSolutionLifecycleGates(append = false) {

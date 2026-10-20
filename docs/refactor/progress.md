@@ -12227,3 +12227,10 @@ OIDC/browser, broader ACL/RLS, recovery, and MAN-CAP-035 review remain open.
 Checklist: 723 complete / 24 open; matrix: 31 baseline-retained, 7 deployed,
 28 prepared across 66 rows. [Contract](solution-lifecycle-kernel-read-contract.md);
 [tests](../tests/test_operator_console_solution_lifecycle.py).
+
+
+### CAP-035 exact-location gate evaluation submission — 20 October 2026
+
+Added `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations` under exact signed `solution_lifecycle:create` scope and active OIDC-to-person attribution. Migration 483 installs a dedicated non-login function owner and an append-only idempotency receipt; it accepts bounded pass/fail observations and evidence only for draft/ready gates on solutions originated at the exact location. Same-request retries return the original evaluation; different-location or changed-payload reuse fails. The create-grant-gated console form uses CSRF and no-store requests and explicitly preserves the independent gate-approval boundary.
+
+The focused Gateway, exact route-policy, and console selection passes 38 tests; Ruff, Python compilation, and inline JavaScript syntax checks pass. Disposable PostgreSQL 16 applies/replays migration 483 and passes eight grouped evaluation, scope, attribution, retry, and role-boundary checks. Candidate and legacy databases remain untouched; migration 483 is not rolled out. Checklist: 728 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. CAP-035 remains prepared pending broader workflow parity, populated fixture comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and MAN-CAP-035 owner review ([contract](solution-lifecycle-kernel-read-contract.md); [migration](../schemas/postgres/483_location_solution_gate_evaluation.sql); [tests](../tests/test_gateway_solution_lifecycle_gate_evaluations.py); [disposable check](../../scripts/check-solution-gate-evaluation-disposable.py); [evidence](builds/2026-10-20-recovery/cap-035-solution-gate-evaluation-disposable.json)).
