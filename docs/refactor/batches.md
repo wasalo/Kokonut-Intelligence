@@ -19,8 +19,8 @@ pending.
 
 Remaining work is ordered in [the code-first execution plan](code-first-execution-plan.md): finish repository-owned implementation and reproducible software checks before collecting owner decisions and production inputs. Raspberry Pi hardware is unavailable, so Batch 6 uses ARM64 emulation and constrained software checks; it does not claim physical-device acceptance.
 
-**Current snapshot (20 October 2026):** 716 checklist items complete and 24
-open (740 total). The [capability matrix](capability-matrix.md) has 66 validated
+**Current snapshot (20 October 2026):** 717 checklist items complete and 24
+open (741 total). The [capability matrix](capability-matrix.md) has 66 validated
 rows: 31 baseline-retained, 7 deployed, and 28 prepared. Named MAN-CAP
 acceptance remains separate; none is marked accepted.
 
@@ -1590,3 +1590,7 @@ Schema inventory matches; empty workloads do not close complete recovery accepta
 ### CAP-030 management summary operator-console read — 20 October 2026
 
 - [x] Surface the location management-work summary in the operator console under exact `management_workflow:read` grants. The panel renders a fixed 17-field allowlist of workload, status, urgency, due/SLA, claim, escalation, and latest-event aggregates; task content and actor identities remain out of view. Same-origin no-store reads and stale-location guards are used; no assignment or lifecycle actions are exposed. The focused console, Gateway, and route-policy selection passes 15 tests, including inline JavaScript syntax; Ruff and matrix validation pass. No candidate or legacy database was contacted and migration 454 is not rolled out. CAP-030 remains prepared pending workflow parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and MAN-CAP-030 review ([read contract](management-work-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [checks](../../tests/test_operator_console_management_work.py)). Checklist: 716 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.
+
+### CAP-029 competitive landscape operator-console read — 20 October 2026
+
+- [x] Surface bounded competitive landscape summaries in the operator console under exact `competitive_landscape:read` grants. The view renders only location metadata and aggregate actor/threat, force-pressure, signal, verified-advantage, and outcome measures; it hides entity IDs, names, narratives, evidence, source references, and individual values. Same-origin no-store reads, stale-location guards, and 25-row paging are in place. The focused console, Gateway, and route-policy selection passes 22 tests, including inline JavaScript syntax; Ruff and matrix validation pass. Candidate and legacy databases remain untouched; migration 453 is not rolled out. CAP-029 remains prepared pending workflow/report/dashboard parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and MAN-CAP-029 review ([read contract](competitive-landscape-kernel-read-contract.md); [console](../../apps/operator-console/index.html); [checks](../../tests/test_operator_console_competitive_landscape.py)). Checklist: 717 complete / 24 open; matrix classifications: 31 baseline-retained, 7 deployed, 28 prepared.

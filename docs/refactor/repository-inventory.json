@@ -1,5 +1,5 @@
 {
-  "baseline_commit": "c0b83f827d3a06c506b45583e4c872815ea451a3",
+  "baseline_commit": "38ef3f917449c203f1df9f34fd5c0a1d225e83b9",
   "capabilities": [
     {
       "category": "Farm Operations",
@@ -5105,6 +5105,7 @@
     "tests/test_operator_auth_session_db_boundary.py",
     "tests/test_operator_console_business_architecture.py",
     "tests/test_operator_console_business_planning.py",
+    "tests/test_operator_console_competitive_landscape.py",
     "tests/test_operator_console_coordination.py",
     "tests/test_operator_console_delphi_recommendation_drafts.py",
     "tests/test_operator_console_delphi_recommendation_review.py",

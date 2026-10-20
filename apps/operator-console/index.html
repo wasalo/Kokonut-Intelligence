@@ -672,6 +672,23 @@
           <p id="management-work-status" class="muted" role="status" aria-live="polite"></p>
           <dl id="management-work-counts"></dl>
         </section>
+        <section id="competitive-landscape-summary" hidden aria-labelledby="competitive-landscape-summary-heading">
+          <h2 id="competitive-landscape-summary-heading">Competitive landscape summaries</h2>
+          <p class="muted">Read-only location landscape metadata and aggregate actor, pressure, signal, advantage, and outcome measures. Names, narratives, source references, evidence, individual values, and party identities are excluded. This view does not change landscape state.</p>
+          <div class="toolbar">
+            <label for="competitive-landscape-location">Granted location</label>
+            <select id="competitive-landscape-location"></select>
+            <button id="competitive-landscape-refresh" type="button">Refresh landscapes</button>
+          </div>
+          <p id="competitive-landscape-status" class="muted" role="status" aria-live="polite"></p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Industry</th><th>Geography</th><th>Period</th><th>State</th><th>Confidence</th><th>Updated</th><th>Actors</th><th>High/critical actors</th><th>Force observations</th><th>Average pressure</th><th>Worsening forces</th><th>Signals</th><th>Unreviewed critical signals</th><th>Verified advantages</th><th>Average defensibility</th><th>Verified outcomes</th><th>Latest outcome period</th></tr></thead>
+              <tbody id="competitive-landscape-rows"></tbody>
+            </table>
+          </div>
+          <button id="competitive-landscape-more" class="secondary" type="button" hidden>Load more summaries</button>
+        </section>
         <section id="mobile-review" hidden aria-labelledby="mobile-review-heading">
           <h2 id="mobile-review-heading">Field Collector review queue</h2>
           <p class="muted">Synced records that need form review or are blocked by consent eligibility. List rows omit participant and collector identity. Eligibility cannot be overridden here; private payload details require a separate grant.</p>
@@ -720,7 +737,7 @@
             <p id="mobile-disposition-inventory-status" class="muted" role="status"></p>
           </section>
         </section>
-        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
+        <div id="no-grants" class="notice" hidden>No report, governance, collection review, coordination, business architecture, business-planning, planning budget, management workflow, competitive landscape, operating pilot, sequential evidence, solution lifecycle, farm activity, enrollment, Delphi, or role-assignment locations are assigned to this account.</div>
         <button id="logout" class="secondary" type="button">Sign out</button>
       </section>
       <p id="status" class="muted" role="status">Checking operator session…</p>
@@ -929,6 +946,14 @@
       const managementWorkCounts = document.querySelector("#management-work-counts");
       let managementWorkLocations = new Set();
       let managementWorkRequestVersion = 0;
+      const competitiveLandscapeSummary = document.querySelector("#competitive-landscape-summary");
+      const competitiveLandscapeLocation = document.querySelector("#competitive-landscape-location");
+      const competitiveLandscapeStatus = document.querySelector("#competitive-landscape-status");
+      const competitiveLandscapeRows = document.querySelector("#competitive-landscape-rows");
+      const competitiveLandscapeMore = document.querySelector("#competitive-landscape-more");
+      let competitiveLandscapeLocations = new Set();
+      let competitiveLandscapeRequestVersion = 0;
+      let competitiveLandscapeOffset = 0;
       const mobileEnrollment = document.querySelector("#mobile-enrollment");
       const mobileLocation = document.querySelector("#mobile-location");
       const mobileEnrollmentForm = document.querySelector("#mobile-enrollment-form");
@@ -1877,6 +1902,77 @@
         }
       }
 
+      async function loadCompetitiveLandscapeSummaries(append = false) {
+        const locationId = competitiveLandscapeLocation.value;
+        const requestVersion = ++competitiveLandscapeRequestVersion;
+        if (!competitiveLandscapeLocations.has(locationId)) return;
+        const offset = append ? competitiveLandscapeOffset : 0;
+        competitiveLandscapeStatus.textContent = "Loading competitive landscape summaries…";
+        competitiveLandscapeMore.disabled = true;
+        if (!append) competitiveLandscapeRows.replaceChildren();
+        try {
+          const params = new URLSearchParams({ limit: "25", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/competitive-landscape/${encodeURIComponent(locationId)}/summaries?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session or location read grant is no longer valid. Reload the console to refresh access.");
+            }
+            if (response.status === 404) throw new Error("Competitive landscape summaries are unavailable for this location.");
+            throw new Error("The competitive landscape summaries could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== competitiveLandscapeRequestVersion
+              || locationId !== competitiveLandscapeLocation.value) return;
+          const landscapes = Array.isArray(result.landscapes) ? result.landscapes : [];
+          for (const landscape of landscapes) {
+            const row = document.createElement("tr");
+            const period = [landscape.period_start, landscape.period_end]
+              .map((value) => value === null || value === undefined ? "—" : String(value))
+              .join(" – ");
+            for (const value of [
+              landscape.industry,
+              landscape.geography,
+              period,
+              landscape.landscape_status,
+              landscape.confidence,
+              landscape.updated_at,
+              landscape.actor_count,
+              landscape.high_or_critical_actor_count,
+              landscape.force_observation_count,
+              landscape.average_force_pressure,
+              landscape.worsening_force_count,
+              landscape.signal_count,
+              landscape.unreviewed_critical_signal_count,
+              landscape.verified_advantage_count,
+              landscape.average_verified_defensibility,
+              landscape.verified_advantage_outcome_count,
+              landscape.latest_verified_outcome_period_end
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = value === null || value === undefined ? "—" : String(value);
+              row.append(cell);
+            }
+            competitiveLandscapeRows.append(row);
+          }
+          const nextOffset = result.next_offset;
+          competitiveLandscapeOffset = Number.isInteger(nextOffset) && nextOffset > offset && nextOffset <= 10000
+            ? nextOffset
+            : offset;
+          competitiveLandscapeMore.hidden = result.has_more !== true || competitiveLandscapeOffset <= offset;
+          competitiveLandscapeStatus.textContent = competitiveLandscapeRows.children.length
+            ? `${competitiveLandscapeRows.children.length} location landscape summaries shown. Individual records and outcomes remain hidden.`
+            : "No eligible competitive landscapes are recorded for this location.";
+        } catch (error) {
+          if (requestVersion !== competitiveLandscapeRequestVersion) return;
+          competitiveLandscapeStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === competitiveLandscapeRequestVersion) competitiveLandscapeMore.disabled = false;
+        }
+      }
+
       async function loadSession() {
         try {
           const response = await fetch("/operator/auth/session", {
@@ -1944,6 +2040,12 @@
             .filter((locationId) => typeof locationId === "string"
               && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
           managementWorkLocations = new Set(managementWorkLocationIds);
+          const competitiveLandscapeLocationIds = [...new Set((data.scopes || [])
+            .filter((scope) => scope.resource === "competitive_landscape" && scope.action === "read")
+            .map((scope) => scope.location_id)
+            .filter((locationId) => typeof locationId === "string"
+              && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId)))];
+          competitiveLandscapeLocations = new Set(competitiveLandscapeLocationIds);
           const validDelphiReviewLocation = (locationId) => typeof locationId === "string"
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(locationId);
           const delphiReviewLocationIds = [...new Set((data.scopes || [])
@@ -2226,6 +2328,17 @@
             }
             managementWorkSummary.hidden = false;
             await loadManagementWorkSummary();
+            hasAuthorizedSurface = true;
+          }
+          if (competitiveLandscapeLocationIds.length) {
+            for (const locationId of competitiveLandscapeLocationIds) {
+              const option = document.createElement("option");
+              option.value = locationId;
+              option.textContent = locationId;
+              competitiveLandscapeLocation.append(option);
+            }
+            competitiveLandscapeSummary.hidden = false;
+            await loadCompetitiveLandscapeSummaries();
             hasAuthorizedSurface = true;
           }
           if (reviewLocations.length) {
@@ -5390,6 +5503,9 @@
       planningBudgetMore.addEventListener("click", () => loadPlanningBudgetSummaries(true));
       document.querySelector("#management-work-refresh").addEventListener("click", loadManagementWorkSummary);
       managementWorkLocation.addEventListener("change", loadManagementWorkSummary);
+      document.querySelector("#competitive-landscape-refresh").addEventListener("click", () => loadCompetitiveLandscapeSummaries());
+      competitiveLandscapeLocation.addEventListener("change", () => loadCompetitiveLandscapeSummaries());
+      competitiveLandscapeMore.addEventListener("click", () => loadCompetitiveLandscapeSummaries(true));
       mobileReviewEventForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const csrf = csrfToken();

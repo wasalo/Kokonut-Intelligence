@@ -1,3 +1,20 @@
+### CAP-029 competitive landscape operator-console read — 20 October 2026
+
+The operator console now surfaces CAP-029's location landscape summaries for
+operators with an exact `competitive_landscape:read` grant. The table renders
+location metadata and allowlisted aggregate actor/threat, force-pressure,
+signal, verified advantage, and outcome fields. It does not display landscape
+IDs, names, narratives, evidence, source references, or individual values.
+Same-origin no-store reads, stale-location guards, and bounded 25-row pages are
+in place. The focused console, Gateway, and route-policy selection passes 22
+tests, including JavaScript syntax validation; Ruff and capability-matrix
+validation pass. Candidate and legacy databases remain untouched; migration 453
+is not rolled out. CAP-029 remains prepared pending full workflow/report/
+dashboard parity, populated fixtures, live OIDC/browser, broader ACL/RLS, and
+MAN-CAP-029 owner review. Checklist: 717 complete / 24 open; matrix: 31
+baseline-retained, 7 deployed, 28 prepared. [Read contract](competitive-landscape-kernel-read-contract.md);
+[console checks](../tests/test_operator_console_competitive_landscape.py).
+
 ### CAP-030 management summary operator-console read — 20 October 2026
 
 The operator console now renders CAP-030's location workload summary for
