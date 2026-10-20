@@ -34,6 +34,7 @@ _PARAMETER_SAMPLES = {
     "plan_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
     "case_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
     "retirement_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "solution_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "party_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
     "source_profile_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
     "recommendation_id": "99999999-9999-4999-8999-999999999997",
@@ -209,6 +210,10 @@ _EXPECTED_OPERATOR_POLICIES = {
         "POST",
         "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/retirements/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb/approve",
     ): _expected("solution_lifecycle", "review", scoped=True, location_id=_LOCATION_ID),
+    (
+        "POST",
+        "/operator/api/solution-lifecycle/11111111-1111-4111-8111-111111111111/solutions/dddddddd-dddd-4ddd-8ddd-dddddddddddd/retirements",
+    ): _expected("solution_lifecycle", "create", scoped=True, location_id=_LOCATION_ID),
     (
         "GET",
         "/operator/api/sequential-evidence/11111111-1111-4111-8111-111111111111/summary",

@@ -1,3 +1,31 @@
+### CAP-035 location-scoped retirement proposals — 19 October 2026
+
+Added `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements`
+under exact `solution_lifecycle:create` and signed tenant context. Migration 476
+requires the exact location-origin solution, an active OIDC-to-person proposer
+binding, bounded evidence and migration plan, and a location-visible replacement
+for superseded proposals. It atomically writes a proposed retirement and an
+append-only idempotent receipt. IDs, status, and timestamps are supplied
+explicitly because legacy retirement tables do not consistently define those
+defaults. A separate non-login proposal owner has no retirement update or
+approval-attribution privileges; approval remains an independent action. The
+focused Gateway, route-policy, and migration-metadata selection passes 137
+tests. Disposable PostgreSQL 16 applies and replays migrations 459 and
+466–476, passing five groups for authorization, lineage, input validation,
+idempotency/atomicity, and privilege boundaries. Ruff, compilation, capability
+validation, runtime SQL inventory, dependency/provider boundaries, and diff
+checks pass. Candidate and legacy databases remain untouched;
+migration 476 is not rolled out. CAP-035 remains prepared pending the other
+lifecycle write/review workflows, populated fixtures, live OIDC/browser,
+broader ACL/RLS, recovery, and MAN-CAP-035 owner acceptance. Checklist: 704
+complete / 24 open; matrix classifications remain 31 baseline-retained,
+7 deployed, and 28 prepared ([contract](solution-lifecycle-kernel-read-contract.md);
+[action](../../services/gateway/solution_lifecycle_actions.py);
+[migration](../../schemas/postgres/476_location_solution_retirement_proposal.sql);
+[tests](../../tests/test_gateway_solution_lifecycle_proposals.py);
+[disposable checker](../../scripts/check-solution-retirement-proposal-disposable.py);
+[evidence](builds/2026-10-19-recovery/solution-retirement-proposal-disposable.json)).
+
 ### CAP-035 funding and tranche status read — 19 October 2026
 
 Added `GET /operator/api/solution-lifecycle/{location_id}/funding` as a

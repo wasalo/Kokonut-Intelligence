@@ -2,8 +2,8 @@
 
 **Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
 scale-gate, replication, reviewed-replication learning, exact-origin retirement
-reads, and the first independently reviewed retirement action are prepared; not
-owner-accepted.
+reads, and independently reviewed retirement proposal/approval actions are
+prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -14,7 +14,8 @@ owner-accepted.
 `472_location_scoped_solution_learning.sql`, and
 `473_location_scoped_solution_retirements.sql` plus
 `474_solution_retirement_independent_review.sql` and
-`475_location_solution_retirement_review.sql`.
+`475_location_solution_retirement_review.sql` and
+`476_location_solution_retirement_proposal.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -24,10 +25,12 @@ owner-accepted.
 `GET /operator/api/solution-lifecycle/{location_id}/replications`,
 `GET /operator/api/solution-lifecycle/{location_id}/learning`,
 `GET /operator/api/solution-lifecycle/{location_id}/retirements`, and
-`POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve`.
+`POST /operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve`,
+and `POST /operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement
-approval requires exact `solution_lifecycle:review`. Both use signed operator
-tenant context checked in Gateway and PostgreSQL.
+proposals require `solution_lifecycle:create`; approval requires exact
+`solution_lifecycle:review`. Mutations use signed operator tenant context
+checked in Gateway and PostgreSQL.
 
 ## Purpose and boundary
 
@@ -37,6 +40,9 @@ learning, and retirement. This slice adds optional-Kernel-compatible,
 location-scoped Gateway reads and a limited retirement-review action. The reads
 do not mutate lifecycle state. The action records an independent retirement
 approval but does not execute migration, sunset, or retirement of a solution.
+The proposal action creates a `proposed` record only for an exact location-origin
+solution and an active OIDC-to-person binding; an independent reviewer must
+approve it separately before later lifecycle execution.
 These routes do not replace the domain services, change stage-transition rules,
 approve gates, release funding, or activate adoption.
 
@@ -161,8 +167,19 @@ disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/solution-retirement-approval-disposable.json` records
 migration 475 apply/replay and five PostgreSQL 16 acceptance groups. The 125-test
 Gateway, route-policy, and migration-metadata selection passes. Candidate and
-legacy databases are untouched; migrations 459 and 466–475 have not been rolled
-out. This is not parity acceptance. Remaining work includes
+legacy databases are untouched. Migration 476 adds an exact-location proposal
+action with bounded evidence and plan input, active human proposer attribution,
+location-visible replacement validation, and atomic append-only idempotent
+receipt. The function explicitly supplies retirement ID, `proposed` status, and
+timestamp for legacy schemas that do not have column defaults. A separate
+non-login proposal owner has no retirement update or approval-attribution
+privileges. The focused
+Gateway, route-policy, and migration-metadata selection passes 137 tests.
+Disposable PostgreSQL 16 applies/replays migrations 459 and 466–476 and passes
+five proposal acceptance groups. Evidence is in
+`builds/2026-10-19-recovery/solution-retirement-proposal-disposable.json`.
+Candidate and legacy databases are untouched; migrations 459 and 466–476 have
+not been rolled out. This is not parity acceptance. Remaining work includes
 item-level read and write workflows beyond status projections, gate and
 experiment evidence detail under reviewed grants,
 funding/tranche and adoption event detail, populated legacy-to-Kernel fixture

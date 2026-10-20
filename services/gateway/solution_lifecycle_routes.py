@@ -10,6 +10,7 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
     from services.gateway.solution_lifecycle_actions import (
         SolutionLifecycleActionInvalid,
         approve_location_solution_retirement,
+        propose_location_solution_retirement,
     )
     from services.gateway.solution_lifecycle_reads import (
         SolutionLifecycleReadInvalid,
@@ -317,6 +318,85 @@ def register_solution_lifecycle_routes(router, provider, run_in_threadpool, psyc
                 headers={**headers, "Retry-After": "30"},
             )
         return JSONResponse(jsonable_encoder(result), headers=headers)
+
+    @router.post(
+        "/operator/api/solution-lifecycle/{location_id}/solutions/{solution_id}/retirements"
+    )
+    async def propose_solution_retirement(
+        request: Request, location_id: str, solution_id: str
+    ):
+        if provider is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "Operator OIDC is disabled"},
+                headers=headers,
+            )
+        try:
+            payload = await request.json()
+        except Exception:
+            return JSONResponse(status_code=400, content={"error": "Invalid JSON body"}, headers=headers)
+        required_fields = {
+            "request_id", "retirement_type", "trigger_reason", "evidence_refs", "migration_plan"
+        }
+        allowed_fields = required_fields | {"replacement_solution_id"}
+        if (
+            not isinstance(payload, dict)
+            or not required_fields.issubset(payload)
+            or not set(payload).issubset(allowed_fields)
+        ):
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Retirement proposal fields are invalid"},
+                headers=headers,
+            )
+        try:
+            result = await run_in_threadpool(
+                propose_location_solution_retirement,
+                request.state.operator_session.operator.operator_id,
+                location_id,
+                solution_id,
+                payload["request_id"],
+                payload["retirement_type"],
+                payload["trigger_reason"],
+                payload["evidence_refs"],
+                payload["migration_plan"],
+                payload.get("replacement_solution_id"),
+            )
+        except TenantContextDenied:
+            return JSONResponse(
+                status_code=403,
+                content={"error": "Tenant-qualified solution lifecycle create access is required"},
+                headers=headers,
+            )
+        except SolutionLifecycleActionInvalid as exc:
+            return JSONResponse(status_code=400, content={"error": str(exc)}, headers=headers)
+        except psycopg2.Error as exc:
+            code = getattr(exc, "pgcode", None)
+            if code == "42501":
+                return JSONResponse(
+                    status_code=403,
+                    content={"error": "A current location solution lifecycle create grant is required"},
+                    headers=headers,
+                )
+            if code == "P0002":
+                return JSONResponse(status_code=404, content={"error": "Location solution not found"}, headers=headers)
+            if code == "22023":
+                return JSONResponse(status_code=400, content={"error": "Retirement proposal input is invalid"}, headers=headers)
+            if code in {"23505", "23514", "55000", "40001"}:
+                return JSONResponse(status_code=409, content={"error": "Retirement proposal conflicts with current state"}, headers=headers)
+            from services.common.logging import get_logger
+
+            get_logger("gateway.solution_lifecycle").warning(
+                "Solution retirement proposal unavailable (%s)", type(exc).__name__
+            )
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Solution retirement proposal unavailable"},
+                headers={**headers, "Retry-After": "30"},
+            )
+        return JSONResponse(
+            jsonable_encoder(result), status_code=200 if result.get("replayed") else 201, headers=headers
+        )
 
     @router.post(
         "/operator/api/solution-lifecycle/{location_id}/retirements/{retirement_id}/approve"
