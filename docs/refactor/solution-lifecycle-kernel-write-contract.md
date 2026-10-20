@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–490 are additive and are
+**Status:** prepared implementation contract; migrations 488–491 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -119,23 +119,49 @@ for these projections. The runtime can execute the bounded functions but cannot
 read funding cases, tranches, or submission receipts directly; Directus cannot
 execute either review function. Legacy submitted cases without recorded
 submitter attribution remain visible as unattributed, with no inferred identity.
-The review surface is read-only: it has no funding or tranche approval,
-disbursement, or stage-transition action. Any later approval path must remain
-separate, require an independent active human, and fail closed for self-authored
-or unattributed submissions.
+The review reads themselves do not mutate funding state. Case approval is a
+separate action described below; the read/detail surface does not approve
+tranches, disburse funds, or transition a solution stage.
+
+## Independent funding case approval
+
+`POST /operator/api/solution-lifecycle/{location_id}/funding/{funding_case_id}/approve`
+requires the exact `solution_lifecycle:review` grant, signed tenant context, and
+an active human operator-to-party binding. The body contains only a UUID
+`request_id` and literal `acknowledged: true`. PostgreSQL rechecks the exact
+location-origin solution, submitted state, review grant, current human binding,
+and that the reviewer differs from the attributed submitter. Cases without
+submitter attribution remain visible for review but cannot be approved.
+
+The transaction changes only `solution_funding_case.decision_status` to
+`approved` and records reviewer party/time. It appends an immutable receipt in
+the same transaction. Exact retries return the receipt; changed request reuse,
+duplicate decisions, self-approval, stale or missing grants, wrong-location
+cases, and unattributed legacy submissions fail closed. Proposed tranches remain
+proposed. Approval does not approve a tranche, create a release, disburse funds,
+or change the solution stage.
+
+The dedicated non-login approver owner receives only the case decision columns,
+the checks needed for tenant/human identity validation, and append-only receipt
+access. Runtime can invoke only the bounded function and cannot read cases or
+receipts directly; Directus cannot invoke it. The console shows the acknowledged
+action only for a submitted case with a recorded submitter that is not
+self-authored. CSRF, same-origin/no-store requests, stale-case guards, and a
+stable request ID cover uncertain retries.
 
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration tests cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
-state boundary, separately authorized submission, and private reviewer reads.
-Disposable PostgreSQL 16 applies and replays migrations 488–490 and checks
-location-origin targeting, create/submit/review authorization, private receipts,
-tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
-read-only state boundaries, and unchanged solution stage. The checker uses
-synthetic rows only; candidate and legacy databases are not involved.
+state boundary, separately authorized submission, private reviewer reads, and
+independent funding case approval. Disposable PostgreSQL 16 applies and replays
+migrations 488–491 and checks location-origin targeting, create/submit/review
+authorization, private receipts, tranche ceilings, atomic writes,+self-authorship, legacy unattributed records, approval retries and collisions,
+role boundaries, unchanged proposed tranche states, and unchanged solution
+stage. The checker uses synthetic rows only; candidate and legacy databases are
+not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–490. After application, do not edit or reverse them; disable the routes and
+488–491. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

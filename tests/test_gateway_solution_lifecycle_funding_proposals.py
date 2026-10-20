@@ -33,6 +33,12 @@ SUBMISSION_RESULT = {
     "submitted_at": "2026-10-20T12:00:00+00:00",
     "replayed": False,
 }
+APPROVAL_RESULT = {
+    "funding_case_id": str(uuid4()),
+    "decision_status": "approved",
+    "approved_at": "2026-10-20T12:00:00+00:00",
+    "replayed": False,
+}
 PROPOSAL = {
     "capital_stage": "pilot",
     "funding_instrument": "community_fund",
@@ -213,6 +219,50 @@ def test_funding_submission_requires_literal_acknowledgement_before_database(ack
         )
 
 
+def test_funding_approval_sets_exact_review_context_and_commits_case_decision_only():
+    connection = _Connection(APPROVAL_RESULT)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(actions, "set_operator_tenant_context", set_context):
+        result = actions.approve_location_solution_funding(
+            OPERATOR_ID,
+            LOCATION_ID,
+            RESULT["funding_case_id"],
+            REQUEST_ID,
+            True,
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "review",
+    }]
+    query, params = connection.operations[-1]
+    assert "kokonut_security.approve_location_solution_funding" in query
+    assert params == (LOCATION_ID, RESULT["funding_case_id"], REQUEST_ID, True)
+    assert result == APPROVAL_RESULT
+    assert connection.committed and connection.closed and not connection.rolled_back
+
+
+@pytest.mark.parametrize("acknowledged", [False, None, 1, "true"])
+def test_funding_approval_requires_literal_acknowledgement_before_database(acknowledged):
+    with pytest.raises(actions.SolutionLifecycleActionInvalid, match="acknowledgement"):
+        actions.approve_location_solution_funding(
+            OPERATOR_ID,
+            LOCATION_ID,
+            RESULT["funding_case_id"],
+            REQUEST_ID,
+            acknowledged,
+            connection_factory=lambda: pytest.fail("missing acknowledgement must fail before DB"),
+        )
+
+
 def test_funding_target_read_uses_same_connection_and_signed_read_context():
     row = {
         "solution_id": SOLUTION_ID,
@@ -332,6 +382,10 @@ def test_funding_routes_have_exact_read_and_create_location_policies():
         f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
         f"{RESULT['funding_case_id']}/review"
     )
+    approval_path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/approve"
+    )
     assert auth_route_policy("GET", target_path, enabled=True) == {
         "resource": "solution_lifecycle", "action": "read", "public": False,
         "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
@@ -352,11 +406,16 @@ def test_funding_routes_have_exact_read_and_create_location_policies():
             "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
         }
         assert auth_route_policy("POST", review_path, enabled=True) is None
+    assert auth_route_policy("POST", approval_path, enabled=True) == {
+        "resource": "solution_lifecycle", "action": "review", "public": False,
+        "location_id": LOCATION_ID, "scope_required": True, "operator_auth": True,
+    }
+    assert auth_route_policy("GET", approval_path, enabled=True) is None
 
 
 def _app(
     provider, monkeypatch, proposal_action, submission_action=None,
-    review_queue_action=None, review_detail_action=None,
+    review_queue_action=None, review_detail_action=None, approval_action=None,
 ):
     from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
 
@@ -376,6 +435,11 @@ def _app(
         actions,
         "submit_location_solution_funding",
         submission_action or (lambda *_args, **_kwargs: SUBMISSION_RESULT),
+    )
+    monkeypatch.setattr(
+        actions,
+        "approve_location_solution_funding",
+        approval_action or (lambda *_args, **_kwargs: APPROVAL_RESULT),
     )
     app = FastAPI()
     router = APIRouter()
@@ -452,6 +516,59 @@ def test_funding_submission_route_requires_exact_body_and_returns_no_store(monke
         OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"], REQUEST_ID, True
     )]
     assert malformed.status_code == 400
+
+
+def test_funding_approval_route_requires_exact_body_and_returns_created_or_replayed(monkeypatch):
+    approved = []
+    app = _app(
+        object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+        approval_action=lambda *args: approved.append(args) or APPROVAL_RESULT,
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/approve"
+    )
+    with TestClient(app) as client:
+        response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
+        malformed = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True, "release": True})
+    assert response.status_code == 201
+    assert response.json() == APPROVAL_RESULT
+    assert response.headers["cache-control"] == "no-store"
+    assert approved == [(
+        OPERATOR_ID, LOCATION_ID, RESULT["funding_case_id"], REQUEST_ID, True
+    )]
+    assert malformed.status_code == 400
+
+
+def test_funding_approval_route_maps_tenant_denial_to_forbidden(monkeypatch):
+    app = _app(
+        object(), monkeypatch, lambda *_args, **_kwargs: RESULT,
+        approval_action=lambda *_a, **_k: (_ for _ in ()).throw(TenantContextDenied("denied")),
+    )
+
+    @app.middleware("http")
+    async def operator_context(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = (
+        f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding/"
+        f"{RESULT['funding_case_id']}/approve"
+    )
+    with TestClient(app) as client:
+        response = client.post(path, json={"request_id": REQUEST_ID, "acknowledged": True})
+    assert response.status_code == 403
+    assert response.headers["cache-control"] == "no-store"
 
 
 def test_funding_review_routes_are_private_no_store_and_call_review_readers(monkeypatch):

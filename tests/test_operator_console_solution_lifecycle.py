@@ -286,7 +286,7 @@ def test_funding_submission_is_separately_grant_gated_acknowledged_and_retry_sta
     assert "innerHTML" not in submit
 
 
-def test_funding_review_inbox_is_separately_review_grant_gated_and_read_only():
+def test_funding_review_inbox_offers_only_independent_case_approval():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(
         r'<section id="solution-lifecycle-funding-review".*?</section>\s*</section>',
@@ -296,7 +296,12 @@ def test_funding_review_inbox_is_separately_review_grant_gated_and_read_only():
     assert panel is not None
     assert 'solutionLifecycleFundingReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)' in source
     assert "Submitted request amounts, rationale, evidence, and tranche terms are private" in panel.group()
-    assert "cannot approve a funding case" in panel.group()
+    assert "independent case decision" in panel.group()
+    assert "Proposed tranches remain proposed" in panel.group()
+    assert "no funds are released" in panel.group()
+    assert 'id="solution-lifecycle-funding-review-approval-acknowledgement"' in panel.group()
+    assert 'id="solution-lifecycle-funding-review-approval-submit"' in panel.group()
+    assert "Approve tranche" not in panel.group() and "Release funds" not in panel.group()
     assert 'id="solution-lifecycle-funding-review-queue"' in panel.group()
     assert 'id="solution-lifecycle-funding-review-detail"' in panel.group()
     assert 'scope.resource === "solution_lifecycle" && scope.action === "review"' in source
@@ -312,7 +317,7 @@ def test_funding_review_reader_and_detail_use_review_scope_no_store_and_stale_gu
     detail = _function(
         source,
         "async function loadSolutionLifecycleFundingReviewDetail(",
-        "function appendSolutionLifecycleSupplementalRecord(",
+        "async function approveSolutionLifecycleFundingCase(",
     )
     renderer = _function(
         source,
@@ -338,9 +343,36 @@ def test_funding_review_reader_and_detail_use_review_scope_no_store_and_stale_gu
     assert 'method: "POST"' not in queue + detail
 
 
+def test_funding_case_approval_is_acknowledged_review_granted_and_retry_stable():
+    source = CONSOLE.read_text(encoding="utf-8")
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleFundingReviewDetail(",
+        "async function approveSolutionLifecycleFundingCase(",
+    )
+    approval = _function(
+        source,
+        "async function approveSolutionLifecycleFundingCase(",
+        "function appendSolutionLifecycleSupplementalRecord(",
+    )
+    assert 'result.decision_status === "submitted"' in detail
+    assert "result.submitter_attributed === true" in detail
+    assert "result.is_self_authored === false" in detail
+    assert "pending.requestId" in approval
+    assert "solutionLifecycleReviewLocations.has(pending.locationId)" in approval
+    assert "solutionLifecycleFundingReviewApprovalAcknowledge.checked" in approval
+    assert "/funding/${encodeURIComponent(pending.fundingCaseId)}/approve" in approval
+    assert '"X-CSRF-Token": csrf' in approval
+    assert 'method: "POST"' in approval
+    assert 'credentials: "same-origin"' in approval and 'cache: "no-store"' in approval
+    assert "no funds were released" in approval
+    assert "solutionLifecycleFundingReviewApprovalSubmit.addEventListener(\"click\", approveSolutionLifecycleFundingCase)" in source
+    assert "innerHTML" not in detail + approval
+
+
 def test_funding_reader_uses_location_scope_no_store_paging_and_stale_guards():
     source = CONSOLE.read_text(encoding="utf-8")
-    reader = _function(source, "async function loadSolutionLifecycleFunding(", "function appendSolutionLifecycleSupplementalRecord(")
+    reader = _function(source, "async function loadSolutionLifecycleFunding(", "function appendSolutionLifecycleFundingReviewCase(")
     assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/funding?${params}`' in reader
     assert 'new URLSearchParams({ limit: "25", offset: String(offset) })' in reader
     assert 'credentials: "same-origin"' in reader

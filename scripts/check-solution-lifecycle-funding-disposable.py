@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise location-scoped solution funding projections, drafts, and submission."""
+"""Exercise location-scoped solution funding reads, drafts, submission, and approval."""
 
 from __future__ import annotations
 
@@ -17,7 +17,8 @@ MIGRATION = ROOT / "schemas/postgres/468_location_scoped_solution_funding.sql"
 PROPOSAL_MIGRATION = ROOT / "schemas/postgres/488_location_solution_funding_proposals.sql"
 SUBMISSION_MIGRATION = ROOT / "schemas/postgres/489_location_solution_funding_submission.sql"
 REVIEW_MIGRATION = ROOT / "schemas/postgres/490_location_solution_funding_review.sql"
-OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-review-disposable.json"
+APPROVAL_MIGRATION = ROOT / "schemas/postgres/491_location_solution_funding_approval.sql"
+OUTPUT = ROOT / "docs/refactor/builds/2026-10-20-recovery/cap-035-solution-funding-approval-disposable.json"
 spec = importlib.util.spec_from_file_location("solution_experiments_disposable", EXPERIMENT_CHECK)
 if spec is None or spec.loader is None:
     raise RuntimeError("could not load disposable solution lifecycle fixtures")
@@ -734,13 +735,191 @@ BEGIN
 END $$;
 """
 
+FUNDING_APPROVAL_ACCEPTANCE = r"""
+SELECT funding_case_id AS approval_case_id
+  FROM public.solution_funding_submission_receipt
+ WHERE request_id = 'ab000000-0000-4000-8000-000000000301' \gset
+SET ROLE kokonut_runtime;
+BEGIN;
+SELECT set_config('kokonut.tenant_id', 'f0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.location_id', 'b0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000001', true);
+SELECT set_config('kokonut.actor_type', 'operator', true);
+SELECT set_config('kokonut.approval_case_id', :'approval_case_id', true);
+DO $$
+DECLARE
+    approval_case_id uuid := current_setting('kokonut.approval_case_id')::uuid;
+    first_approval record;
+    replay record;
+    denied boolean := false;
+BEGIN
+    -- The submitter has a review grant, but cannot approve their own submission.
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001', approval_case_id,
+            'ab000000-0000-4000-8000-000000000401', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'funding submitter approved their own case'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    SELECT * INTO first_approval FROM kokonut_security.approve_location_solution_funding(
+        'b0000000-0000-4000-8000-000000000001', approval_case_id,
+        'ab000000-0000-4000-8000-000000000402', TRUE
+    );
+    IF first_approval.funding_case_id <> approval_case_id
+       OR first_approval.decision_status <> 'approved'
+       OR first_approval.approved_at IS NULL OR first_approval.replayed THEN
+        RAISE EXCEPTION 'independent funding approval result is invalid';
+    END IF;
+    SELECT * INTO replay FROM kokonut_security.approve_location_solution_funding(
+        'b0000000-0000-4000-8000-000000000001', approval_case_id,
+        'ab000000-0000-4000-8000-000000000402', TRUE
+    );
+    IF NOT replay.replayed OR replay.approved_at <> first_approval.approved_at THEN
+        RAISE EXCEPTION 'exact funding approval retry did not return its original receipt';
+    END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001',
+            'f3000000-0000-4000-8000-000000000001',
+            'ab000000-0000-4000-8000-000000000402', TRUE
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'approval request ID collision was accepted'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001', approval_case_id,
+            'ab000000-0000-4000-8000-000000000403', TRUE
+        );
+    EXCEPTION WHEN object_not_in_prerequisite_state THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'already approved funding case accepted a second decision'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001',
+            'f3000000-0000-4000-8000-000000000001',
+            'ab000000-0000-4000-8000-000000000404', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'unattributed legacy funding case was approved'; END IF;
+
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000002', approval_case_id,
+            'ab000000-0000-4000-8000-000000000405', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'funding approval accepted a mismatched location grant'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000003', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001', approval_case_id,
+            'ab000000-0000-4000-8000-000000000406', TRUE
+        );
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'operator without a review grant approved funding'; END IF;
+
+    PERFORM set_config('kokonut.actor_id', 'a0000000-0000-4000-8000-000000000002', true);
+    denied := false;
+    BEGIN
+        PERFORM * FROM kokonut_security.approve_location_solution_funding(
+            'b0000000-0000-4000-8000-000000000001', approval_case_id,
+            'ab000000-0000-4000-8000-000000000407', FALSE
+        );
+    EXCEPTION WHEN invalid_parameter_value THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'funding approval without acknowledgement succeeded'; END IF;
+
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_funding_case;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read funding cases'; END IF;
+    denied := false;
+    BEGIN PERFORM 1 FROM public.solution_funding_approval_receipt;
+    EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
+    IF NOT denied THEN RAISE EXCEPTION 'runtime can directly read funding approval receipts'; END IF;
+END $$;
+COMMIT;
+RESET ROLE;
+
+DO $$
+DECLARE
+    approval_case_id uuid;
+    case_status text;
+    approved_by uuid;
+    case_approved_at timestamptz;
+    approved_tranche_count integer;
+    proposed_tranche_count integer;
+    current_stage text;
+BEGIN
+    SELECT funding_case_id INTO approval_case_id
+      FROM public.solution_funding_submission_receipt
+     WHERE request_id = 'ab000000-0000-4000-8000-000000000301';
+    SELECT decision_status, approved_by_party_id, approved_at
+      INTO case_status, approved_by, case_approved_at
+      FROM public.solution_funding_case WHERE id = approval_case_id;
+    SELECT count(*) FILTER (WHERE status = 'approved')::INTEGER,
+           count(*) FILTER (WHERE status = 'proposed')::INTEGER
+      INTO approved_tranche_count, proposed_tranche_count
+      FROM public.solution_funding_tranche WHERE funding_case_id = approval_case_id;
+    SELECT solution.current_stage INTO current_stage FROM public.solution AS solution
+     WHERE solution.id = 'c0000000-0000-4000-8000-000000000001';
+    IF case_status <> 'approved'
+       OR approved_by <> 'cccccccc-cccc-4ccc-8ccc-ccccccccccc1'
+       OR case_approved_at IS NULL
+       OR approved_tranche_count <> 0 OR proposed_tranche_count <> 2
+       OR current_stage <> 'testing'
+       OR (SELECT count(*) FROM public.solution_funding_approval_receipt
+           WHERE funding_case_id = approval_case_id) <> 1
+       OR has_table_privilege('kokonut_runtime',
+          'public.solution_funding_approval_receipt', 'SELECT')
+       OR NOT has_column_privilege('kokonut_solution_funding_approver',
+          'public.solution_funding_case', 'decision_status', 'UPDATE')
+       OR NOT has_column_privilege('kokonut_solution_funding_approver',
+          'public.solution_funding_case', 'approved_by_party_id', 'UPDATE')
+       OR has_column_privilege('kokonut_solution_funding_approver',
+          'public.solution_funding_case', 'rationale', 'UPDATE')
+       OR has_column_privilege('kokonut_solution_funding_approver',
+          'public.solution_funding_tranche', 'status', 'UPDATE')
+       OR has_table_privilege('kokonut_solution_funding_approver',
+          'public.solution_funding_approval_receipt', 'UPDATE')
+       OR has_table_privilege('kokonut_solution_funding_approver',
+          'public.solution_funding_approval_receipt', 'DELETE')
+       OR NOT has_function_privilege('kokonut_runtime',
+          'kokonut_security.approve_location_solution_funding(uuid,uuid,uuid,boolean)', 'EXECUTE')
+       OR has_function_privilege('kokonut_directus_runtime',
+          'kokonut_security.approve_location_solution_funding(uuid,uuid,uuid,boolean)', 'EXECUTE')
+       OR pg_catalog.pg_get_function_result(
+          'kokonut_security.approve_location_solution_funding(uuid,uuid,uuid,boolean)'::regprocedure
+       ) ~* 'approved_by_party_id'
+       OR (SELECT count(*)
+             FROM public.solution_funding_case AS funding
+             JOIN public.solution AS solution ON solution.id = funding.solution_id
+            WHERE solution.originating_scope_type = 'location'
+              AND solution.originating_scope_id = 'b0000000-0000-4000-8000-000000000001'
+              AND funding.decision_status = 'submitted'
+              AND funding.approved_by_party_id IS NULL
+              AND funding.approved_at IS NULL) <> 1 THEN
+        RAISE EXCEPTION 'approval effects, preserved tranche/stage state, or role boundary failed';
+    END IF;
+END $$;
+"""
+
 
 def main() -> int:
     docker = shutil.which("docker") or "/Applications/Docker.app/Contents/Resources/bin/docker"
     container = f"kokonut-solution-funding-{uuid.uuid4().hex[:8]}"
     evidence: dict[str, object] = {
         "result": "failed",
-        "migration": REVIEW_MIGRATION.name,
+        "migration": APPROVAL_MIGRATION.name,
         "database_target": "new disposable PostgreSQL 16 container",
         "candidate_or_legacy_modified": False,
         "checks": [
@@ -769,6 +948,11 @@ def main() -> int:
             "self-authored cases are identified and remain read-only; no case/tranche approval, release, or lifecycle stage transition is present",
             "runtime can call the bounded reads but cannot directly read private funding tables or receipts; Directus cannot call the functions",
             "review page bounds and missing exact review grants fail closed",
+        "migration 491 provisions a non-login approver with case-decision columns and immutable approval receipts only",
+        "approval requires a submitted attributed case, exact signed review scope, active reviewer, explicit acknowledgement, and a reviewer distinct from submitter",
+        "approval retries replay exact receipts; request collisions, legacy unattributed cases, duplicate decisions, and mismatched grants fail closed",
+        "only the funding case decision and reviewer attribution change; proposed tranches and solution stage remain unchanged",
+        "runtime can call the bounded approval function but cannot read cases or receipts directly; Directus cannot execute; approver cannot update tranche state or receipts",
         ],
     }
     try:
@@ -804,12 +988,18 @@ def main() -> int:
         psql(docker, container, migration_490)
         psql(docker, container, migration_490)
         psql(docker, container, FUNDING_REVIEW_ACCEPTANCE)
+        migration_491 = APPROVAL_MIGRATION.read_text(encoding="utf-8")
+        psql(docker, container, migration_491)
+        psql(docker, container, migration_491)
+        psql(docker, container, FUNDING_APPROVAL_ACCEPTANCE)
         evidence["result"] = "passed"
         evidence["assertions_passed"] = 9
         evidence["proposal_assertions_passed"] = 7
         evidence["submission_assertions_passed"] = 7
         evidence["review_assertions_passed"] = 7
-        print("PASS: migrations 459/466/467/468/488/489/490 apply, migrations 468/488/489/490 replay, funding projections, draft proposals, submission, and private review acceptances passed")
+        evidence["approval_assertions_passed"] = 8
+        evidence["approval_migration"] = APPROVAL_MIGRATION.name
+        print("PASS: migrations 459/466/467/468/488/489/490/491 apply, migrations 468/488/489/490/491 replay, funding projections, draft proposals, submission, private review, and independent approval acceptances passed")
         result = 0
     except Exception as exc:
         evidence["error"] = f"{type(exc).__name__}: {exc}"
