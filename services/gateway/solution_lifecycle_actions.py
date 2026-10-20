@@ -574,6 +574,57 @@ def approve_location_solution_experiment_protocol(
         connection.close()
 
 
+def start_location_solution_experiment(
+    operator_id: str,
+    location_id: str,
+    experiment_id: str,
+    request_id: str,
+    acknowledged: bool,
+    *,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Start an independently approved experiment without asserting consent."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    experiment_id = _normalize_uuid(experiment_id, "experiment")
+    request_id = _normalize_uuid(request_id, "request")
+    if acknowledged is not True:
+        raise SolutionLifecycleActionInvalid(
+            "Experiment start requires explicit acknowledgement"
+        )
+
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="transition",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.start_location_solution_experiment(
+                           %s::uuid, %s::uuid, %s::uuid, %s::boolean
+                       )""",
+                (location_id, experiment_id, request_id, acknowledged),
+            )
+            row = cursor.fetchone()
+            if row is None:
+                raise RuntimeError("Experiment start returned no result")
+            result = _mapping(cursor, row)
+        connection.commit()
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+
 def _mapping(cursor, row) -> dict:
     return dict(zip((column.name for column in (cursor.description or ())), row))
 

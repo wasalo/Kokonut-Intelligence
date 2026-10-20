@@ -3744,6 +3744,12 @@
             && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
           article.append(createSolutionLifecycleExperimentProtocolReviewPanel(experiment.experiment_id));
         }
+        if (experiment.experiment_status === "protocol_approved"
+            && solutionLifecycleTransitionLocations.has(solutionLifecycleLocation.value)
+            && typeof experiment.experiment_id === "string"
+            && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(experiment.experiment_id)) {
+          article.append(createSolutionLifecycleExperimentStartForm(experiment.experiment_id));
+        }
         if (solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value)
             && experiment.experiment_status === "completed"
             && !experiment.latest_result_reviewed_at
@@ -3965,6 +3971,92 @@
           }
         });
         return panel;
+      }
+
+      function createSolutionLifecycleExperimentStartForm(experimentId) {
+        const form = document.createElement("form");
+        form.className = "stacked-form";
+        form.startLocationId = solutionLifecycleLocation.value;
+        const heading = document.createElement("h5");
+        heading.textContent = "Start approved experiment";
+        const explanation = document.createElement("p");
+        explanation.className = "muted";
+        explanation.textContent = "This marks the approved experiment active. It does not confirm participant consent, collect observations, analyze results, or change the solution stage.";
+        const acknowledgementLabel = document.createElement("label");
+        const acknowledgement = document.createElement("input");
+        acknowledgement.type = "checkbox";
+        acknowledgement.required = true;
+        acknowledgementLabel.append(
+          acknowledgement,
+          document.createTextNode(" I confirm the approved experiment is ready to start under its protocol.")
+        );
+        const submit = document.createElement("button");
+        submit.type = "submit";
+        submit.textContent = "Start experiment";
+        const status = document.createElement("p");
+        status.className = "muted";
+        status.setAttribute("role", "status");
+        status.setAttribute("aria-live", "polite");
+        form.append(heading, explanation, acknowledgementLabel, submit, status);
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const locationId = solutionLifecycleLocation.value;
+          if (form.startLocationId !== locationId
+              || !solutionLifecycleLocations.has(locationId)
+              || !solutionLifecycleTransitionLocations.has(locationId)) {
+            status.textContent = "Current exact location read and transition grants are required.";
+            return;
+          }
+          if (!acknowledgement.checked) {
+            status.textContent = "Confirm the experiment start acknowledgement to continue.";
+            return;
+          }
+          const csrf = csrfToken();
+          if (!csrf) {
+            status.textContent = "Refresh the operator session before starting this experiment.";
+            return;
+          }
+          if (!form.pendingExperimentStartRequestId) {
+            form.pendingExperimentStartRequestId = globalThis.crypto?.randomUUID?.();
+          }
+          if (!form.pendingExperimentStartRequestId) {
+            status.textContent = "A secure browser context is required to start this experiment.";
+            return;
+          }
+          submit.disabled = true;
+          status.textContent = "Starting the approved experiment…";
+          try {
+            const response = await fetch(
+              `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/start`,
+              {
+                method: "POST", credentials: "same-origin", cache: "no-store",
+                headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
+                body: JSON.stringify({
+                  request_id: form.pendingExperimentStartRequestId,
+                  acknowledged: true
+                })
+              }
+            );
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session, transition grant, or human identity is no longer valid.");
+            }
+            if (response.status === 409) {
+              throw new Error("The protocol is no longer eligible to start. Refresh the experiment list.");
+            }
+            if (!response.ok) throw new Error(result.error || "The experiment could not be started.");
+            form.pendingExperimentStartRequestId = null;
+            status.textContent = result.replayed === true
+              ? "The original start was confirmed after retry. Consent and observations remain separate."
+              : "Experiment started. This did not confirm participant consent, collect observations, or change the solution stage.";
+            await Promise.all([loadSolutionLifecycleExperiments(), loadSolutionLifecycleSummary()]);
+          } catch (error) {
+            status.textContent = `${error.message} Retrying reuses the same request ID.`;
+          } finally {
+            submit.disabled = false;
+          }
+        });
+        return form;
       }
 
       function createSolutionLifecycleExperimentReviewPanel(experimentId) {

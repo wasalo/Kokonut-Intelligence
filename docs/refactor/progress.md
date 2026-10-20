@@ -1,3 +1,28 @@
+### CAP-035 retirement of legacy experiment writers — 20 October 2026
+
+The existing direct experiment observation, analysis, completion, result-review,
+and replication helpers now fail before cursor, commit, or rollback access.
+Migration 509 also revokes every direct update on `solution_experiment` from
+`kokonut_runtime` and `kokonut_directus_runtime`; the non-login security
+function owners retain their scoped column updates. This closes shared-role
+bypasses while keeping participant consent separate from protocol approval and
+experiment start. Consent-aware observation collection, location-scoped
+analysis, and completion remain implementation work.
+
+The focused Gateway, route-policy, console, legacy-helper, and migration
+selection passes 118 tests. Ruff, Python compilation, JavaScript syntax,
+capability-matrix validation, requirement-group alignment, runtime SQL
+inventory, and diff checks pass. Disposable PostgreSQL 16 applies/replays
+migration 509 and passes seven acceptance groups, including a direct runtime
+status-update denial and checks that starting creates neither consent nor
+observations and leaves the solution stage unchanged ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. Checklist: 762 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Audit](solution-lifecycle-source-route-audit.md); [write contract](solution-lifecycle-kernel-write-contract.md); [tests](../tests/test_solution_experiments.py).
+
+### CAP-035 exact-location approved experiment start — 20 October 2026
+
+Migration 509 adds `POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/start` under signed exact-location `solution_lifecycle:transition` scope. PostgreSQL requires an active human binding, a current active exact-origin solution at `experiment_ready` or `testing`, `protocol_approved` state, and a private approval receipt whose reviewer matches the experiment attribution. It atomically marks the experiment active and appends an immutable idempotency receipt; it does not assert participant consent, collect observations, or change the solution stage. The console offers this only for approved experiments to operators with the exact read and transition grants. Migration 509 revokes direct experiment lifecycle updates from runtime and Directus. The legacy direct start, observation, analysis, completion, result-review, and replication helpers now fail before database access.
+
+The focused Gateway, route-policy, console, legacy, and migration selection passes 118 tests. Ruff, Python compilation, inline JavaScript syntax, capability-matrix validation, runtime SQL inventory, dependency-group alignment, and diff checks pass. Disposable PostgreSQL 16 applies/replays migration 509 after the ordered experiment review chain and passes seven grouped checks for exact scope, approval-receipt validation, retries/collisions, consent and observation separation, unchanged solution stage, and role boundaries ([evidence](builds/2026-10-20-recovery/cap-035-solution-experiment-start-disposable.json)). Candidate and legacy databases remain untouched; migration 509 is not rolled out. CAP-035 remains prepared pending consent-aware observations, analysis/completion, populated comparison, live OIDC/browser acceptance, broader ACL/RLS, recovery, and owner review. Checklist: 761 complete / 24 open; matrix: 31 baseline-retained, 7 deployed, 28 prepared across 66 rows. [Write contract](solution-lifecycle-kernel-write-contract.md); [source-to-route audit](solution-lifecycle-source-route-audit.md); [migration](../schemas/postgres/509_location_solution_experiment_start.sql); [Gateway tests](../tests/test_gateway_solution_lifecycle_experiment_start.py); [disposable checker](../../scripts/check-solution-experiment-start-disposable.py).
+
 ### CAP-035 independent experiment protocol review — 20 October 2026
 
 Migration 508 adds private submitted-protocol review at `GET /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/protocol-review` and independent approval at the matching `POST`. Both require exact signed location review scope. Detail returns bounded protocol content and conflict booleans without owner or submitter identities. Approval requires an active human distinct from both protocol owner and submitter, an attributable Kernel submission, and an active exact-origin solution still at `experiment_ready` or `testing`. It records an immutable retry receipt and changes only protocol status and reviewer attribution; consent, experiment start, and solution-stage changes remain separate. The console displays protocol text safely, blocks self-review, binds the form to its loaded location, and uses acknowledgement, CSRF/no-store requests, and stable retries. The legacy direct `approve_protocol` helper now fails before database access.

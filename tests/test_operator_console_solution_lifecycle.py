@@ -344,6 +344,32 @@ def test_experiment_protocol_review_is_separately_grant_gated_and_independent():
     assert "innerHTML" not in review
 
 
+def test_experiment_start_requires_transition_scope_and_keeps_consent_separate():
+    source = CONSOLE.read_text(encoding="utf-8")
+    renderer = _function(
+        source,
+        "function appendSolutionLifecycleExperiment(experiment)",
+        "function createSolutionLifecycleExperimentSubmissionForm(",
+    )
+    form = _function(
+        source,
+        "function createSolutionLifecycleExperimentStartForm(",
+        "function createSolutionLifecycleExperimentReviewPanel(",
+    )
+    assert 'experiment.experiment_status === "protocol_approved"' in renderer
+    assert "solutionLifecycleTransitionLocations.has(solutionLifecycleLocation.value)" in renderer
+    assert "createSolutionLifecycleExperimentStartForm(experiment.experiment_id)" in renderer
+    assert "solutionLifecycleTransitionLocations.has(locationId)" in form
+    assert "form.startLocationId !== locationId" in form
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/experiments/${encodeURIComponent(experimentId)}/start`' in form
+    assert "form.pendingExperimentStartRequestId" in form
+    assert 'method: "POST"' in form and '"X-CSRF-Token": csrf' in form
+    assert 'cache: "no-store"' in form and 'credentials: "same-origin"' in form
+    assert "does not confirm participant consent" in form
+    assert "does not confirm participant consent, collect observations" in form
+    assert "innerHTML" not in form
+
+
 def test_experiment_result_review_uses_private_text_detail_csrf_and_stable_retry():
     source = CONSOLE.read_text(encoding="utf-8")
     review = _function(

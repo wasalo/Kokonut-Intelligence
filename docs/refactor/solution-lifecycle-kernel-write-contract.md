@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–508 are additive and are
+**Status:** prepared implementation contract; migrations 488–509 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -178,6 +178,39 @@ a stable retry ID. Disposable PostgreSQL 16 applies/replays migration 508 and
 checks exact scope, reviewer independence, identity privacy, retries and
 collisions, lifecycle isolation, and role boundaries. Candidate and legacy
 databases remain untouched; migration 508 has not been rolled out.
+
+## Exact-location experiment start
+
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/start`
+requires signed exact-location `solution_lifecycle:transition` context and
+explicit acknowledgement. PostgreSQL rechecks an enabled operator's active
+human binding, current transition grant, exact solution origin, active solution
+at `experiment_ready` or `testing`, `protocol_approved` status, and the
+immutable protocol-approval receipt. The receipt reviewer must match the
+experiment's approval attribution. The transition records `active` and
+`started_at` atomically with a private retry receipt; exact retries return the
+original start and changed request reuse is rejected.
+
+Starting does not assert or grant participant consent, collect observations,
+run analysis, or change the solution stage. Consent-aware observation
+collection remains a separate required Kernel action. Runtime cannot update
+experiment lifecycle columns directly or access the private receipt; Directus
+cannot execute the function, update experiment rows, or access the receipt.
+Migration 509 removes the lifecycle-column updates previously granted to the
+shared runtime role. Legacy direct creation, submission, approval, start,
+observation, analysis, completion, result-review, and replication helpers all
+fail before database access. Scoped observation collection, analysis, and
+completion remain unimplemented and must retain consent, location, and retry
+checks when added.
+
+The console offers start only for a `protocol_approved` experiment to an
+operator with exact location read and transition grants. It binds the pending
+request to the loaded location and uses acknowledgement, CSRF/no-store, and a
+stable retry ID. Disposable PostgreSQL 16 applies/replays migration 509 and
+checks scope, approval lineage, request retries/collisions, consent and
+observation separation, unchanged solution stage, and role boundaries.
+Candidate and legacy databases remain untouched; migration 509 has not been
+rolled out.
 
 ## Funding draft proposal
 
@@ -776,7 +809,7 @@ state boundary, separately authorized submission, private protocol review and
 independent approval, funding, tranche, replication review, replication activation,
 completion-report proposal/review, learning proposal/review, accepted learning
 application, scale-gate assessment/review, and retirement execution. Disposable
-PostgreSQL 16 applies and replays migrations 488–508 and checks location-origin
+PostgreSQL 16 applies and replays migrations 488–509 and checks location-origin
 targeting, create/submit/review/transition authorization, private receipts,
 tranche ceilings, atomic writes, self-authorship, legacy unattributed records,
 approval retries and collisions, role boundaries, unchanged proposed tranche
@@ -787,6 +820,6 @@ timing, sunset, and separate post-retirement review. The checker uses synthetic
 rows only; candidate and legacy databases are not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–508. After application, do not edit or reverse them; disable the routes and
+488–509. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.
