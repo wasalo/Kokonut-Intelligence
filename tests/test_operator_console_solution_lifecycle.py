@@ -631,6 +631,44 @@ def test_retirement_proposal_submit_is_bounded_csrf_idempotent_and_draft_only():
     assert "innerHTML" not in submit
 
 
+def test_replication_review_console_is_grant_gated_private_independent_and_retry_safe():
+    source = CONSOLE.read_text(encoding="utf-8")
+    panel = re.search(r'<section id="solution-lifecycle-replication-review".*?</section>', source, re.DOTALL)
+    assert panel is not None
+    assert "exact location review grant" in panel.group(0)
+    queue = _function(
+        source,
+        "async function loadSolutionLifecycleReplicationReviewQueue(",
+        "async function loadSolutionLifecycleReplicationReviewDetail(",
+    )
+    assert 'solutionLifecycleReviewLocations.has(locationId)' in queue
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/review?${params}`' in queue
+    assert 'credentials: "same-origin"' in queue and 'cache: "no-store"' in queue
+    detail = _function(
+        source,
+        "async function loadSolutionLifecycleReplicationReviewDetail(",
+        "function lockSolutionLifecycleReplicationReview(",
+    )
+    assert "result.is_self_authored === true" in detail
+    assert "solutionLifecycleReplicationReviewForm.hidden = selfAuthored" in detail
+    assert "description.textContent =" in detail
+    assert "innerHTML" not in detail
+    review = _function(
+        source,
+        "async function reviewSolutionLifecycleReplication(",
+        "async function loadSolutionLifecycleLearningSources(",
+    )
+    assert 'decision === "rejected" && reason.length < 10' in review
+    assert "solutionLifecyclePendingReplicationReview.fingerprint !== fingerprint" in review
+    assert "solutionLifecyclePendingReplicationReview.request_id" in review
+    assert '`/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/${encodeURIComponent(detail.replication_id)}/review`' in review
+    assert 'method: "POST"' in review and 'cache: "no-store"' in review
+    assert '"X-CSRF-Token": csrf' in review
+    assert "Approval does not start or complete the replication" in review
+    assert "lockSolutionLifecycleReplicationReview(solutionLifecycleReplicationReviewSubmitting)" in review
+    assert "innerHTML" not in review
+
+
 def test_retirement_review_console_uses_review_grants_and_private_text_rendering():
     source = CONSOLE.read_text(encoding="utf-8")
     panel = re.search(r'<section id="solution-lifecycle-retirement-review".*?</section>', source, re.DOTALL)

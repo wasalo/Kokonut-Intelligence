@@ -1,6 +1,6 @@
 # Solution lifecycle Kernel write contract
 
-**Status:** prepared implementation contract; migrations 488–494 are additive and are
+**Status:** prepared implementation contract; migrations 488–495 are additive and are
 not applied to the local candidate or legacy database.
 
 This document specifies the operator Gateway's bounded write boundary for the
@@ -199,18 +199,62 @@ It uses synthetic rows only; candidate and legacy databases are untouched.
 Before rollout, disable the route and console panel while retaining migration
 494. After application, use a reviewed forward migration for any schema change.
 
+## Independent replication review
+
+Migration 495 adds a separate review queue, private detail, and decision action:
+
+- `GET /operator/api/solution-lifecycle/{location_id}/replications/review`
+- `GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`
+- `POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`
+
+All three require signed exact-location `solution_lifecycle:review` context and
+an active human identity. The queue and detail include only pending proposals
+created by the location-scoped proposal flow and recheck target location plus
+solution origin or explicit location link. Queue rows expose bounded solution
+labels/stage, source-validation indicators, creation time, and proposer/self-
+authorship booleans. Detail adds bounded target context, adaptation notes,
+protocol, and source experiment/result status; neither projection returns
+proposer or reviewer identities.
+
+The POST body requires a UUID `request_id`, `decision` (`approved` or
+`rejected`), and literal `acknowledged: true`; `review_reason` is optional for
+approval and required for rejection. Rejection
+requires a reason of 10–4,000 non-whitespace characters; an optional approval
+reason is bounded to 4,000 characters. PostgreSQL rechecks the active exact
+grant and human binding, proposal/source lineage and review state, and requires
+the reviewer to differ from the attributed proposer. It atomically updates the
+proposal decision, reviewer/time/reason, and append-only receipt. Exact retries
+replay; changed request reuse, duplicate decisions, stale source eligibility,
+missing attribution, and self-review fail closed.
+
+Approval or rejection does not start or complete replication, add an outcome,
+evidence, or maturity, or advance solution stage. A dedicated non-login reviewer
+owner has bounded source access and may update only the decision fields. Runtime
+can invoke the bounded functions but cannot read replication or review receipts
+directly; Directus cannot execute them. The console gates the queue and action on
+the exact review grant, suppresses the decision form for self-authored
+proposals, and uses text rendering, no-store requests, CSRF, and stable retry
+IDs.
+
+Disposable PostgreSQL 16 applies and replays migration 495 and verifies nine
+grouped acceptance areas, including independent approve/reject, retry and
+collision behavior, exact location scope, direct-table denial, and unchanged
+replication/solution lifecycle state. The 97-test focused Gateway, proposal,
+console, route-policy, and migration selection passes. Candidate and legacy
+databases are untouched; migration 495 is not rolled out.
+
 ### Acceptance and rollback
 
 Focused Gateway, route-policy, console, and migration tests cover exact grants,
 active human context, strict request bounds, stable retries, the draft-only
 state boundary, separately authorized submission, private reviewer reads, and
-independent funding case and tranche approval. Disposable PostgreSQL 16 applies and replays
-migrations 488–492 and checks location-origin targeting, create/submit/review
+independent funding, tranche, and replication review. Disposable PostgreSQL 16 applies and replays
+migrations 488–495 and checks location-origin targeting, create/submit/review
 authorization, private receipts, tranche ceilings, atomic writes, self-authorship, legacy unattributed records, approval retries and collisions,
-role boundaries, unchanged proposed tranche states, independent tranche-reviewer separation, immutable tranche receipts, unchanged release state, and unchanged solution stage. The checker uses synthetic rows only; candidate and legacy databases are
+role boundaries, unchanged proposed tranche states, independent tranche-reviewer separation, immutable tranche receipts, unchanged release state, independent replication review, immutable review receipts, and unchanged solution/replication lifecycle stage. The checker uses synthetic rows only; candidate and legacy databases are
 not involved.
 
 Before rollout, the routes and UI can be disabled while retaining migrations
-488–492. After application, do not edit or reverse them; disable the routes and
+488–495. After application, do not edit or reverse them; disable the routes and
 use a separately reviewed forward migration if their schema objects must be
 removed.

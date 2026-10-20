@@ -1,11 +1,8 @@
 # Solution lifecycle Kernel read contract
 
-**Status:** CAP-035 location-scoped summary, gate, experiment, funding, adoption,
-scale-gate, replication, reviewed-replication learning, exact-origin retirement
-reads, independently reviewed retirement and learning proposal actions, the
-private retirement-review view, and append-only gate-evaluation submission are
-prepared; migration 487 now adds private experiment result review; not
-owner-accepted.
+**Status:** CAP-035 location-scoped reads and gated actions are prepared,
+including migration 494 replication proposals and migration 495 independent
+review. They have not been owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`,
 `467_location_scoped_solution_experiments.sql`,
@@ -23,7 +20,9 @@ owner-accepted.
 `482_location_solution_retirement_review_queue.sql`, and
 `483_location_solution_gate_evaluation.sql`, and
 `487_location_solution_experiment_review.sql`, and
-`493_location_solution_adoption_event_summary.sql`.
+`493_location_solution_adoption_event_summary.sql`,
+`494_location_solution_replication_proposal.sql`, and
+`495_location_solution_replication_review.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments`,
@@ -42,7 +41,10 @@ owner-accepted.
 `GET /operator/api/solution-lifecycle/{location_id}/retirements/review/{retirement_id}`, and
 `POST /operator/api/solution-lifecycle/{location_id}/gates/{gate_id}/evaluations`,
 `GET /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`, and
-`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`.
+`POST /operator/api/solution-lifecycle/{location_id}/experiments/{experiment_id}/review`,
+`GET /operator/api/solution-lifecycle/{location_id}/replications/review`,
+`GET /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`, and
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`.
 **Authorization:** reads require exact `solution_lifecycle:read`; retirement,
 learning proposals, and gate evaluations require exact `solution_lifecycle:create`;
 approval requires exact `solution_lifecycle:review`; retirement review reads and
@@ -51,6 +53,9 @@ operator tenant context checked in Gateway and PostgreSQL.
 Experiment review detail and result submission require exact
 `solution_lifecycle:review` scope and an active human binding; the result
 reviewer must differ from both the experiment owner and protocol approver.
+Replication review queue/detail and decisions require that same exact review
+scope and active human binding; the reviewer must differ from the attributed
+proposal author.
 
 ## Purpose and boundary
 
@@ -141,6 +146,30 @@ The adoption event route accepts one program ID and rechecks the exact location 
 The scale-gates route returns a bounded page of gates whose scope is exactly the requested location and whose solution originates there or has an explicit location link. It includes solution/gate IDs and labels, gate type/status, a boolean indicating whether an approver reference exists, and the nullable approval timestamp. It omits free-text requirements, configured thresholds, measured values, metric keys, units, evidence, and approver identity. The non-login reader has column access to `approved_by_party_id` only to derive the boolean; neither that value nor party details are returned. Pages follow the same bounds and response cap. This read does not evaluate, waive, approve, or mutate a scale gate.
 
 The replications route returns a bounded page only when both the solution lineage and replication target match the exact requested location. It shows solution/replication IDs and labels, replication state/result, evidence-maturity level, whether a reviewer reference exists, and creation/completion timestamps. It omits the source experiment ID, target context, similarity, adaptation plan, replication protocol, raw evidence, and reviewer identity. The non-login reader has column access to the reviewer reference solely to derive the boolean. Pages use the shared limits and response cap. The route does not approve, start, complete, or otherwise change a replication.
+
+## Independent replication review
+
+Migration 495 adds a pending-proposal review queue and private detail under
+exact signed location `solution_lifecycle:review`. Both reads require an active
+human binding and recheck the proposal receipt, target location, active solution,
+and exact origin or explicit location link. The queue exposes bounded solution
+labels/stage, source validation/review booleans, creation time, and only
+proposer-attributed and self-authored flags. Detail additionally returns bounded
+target context, adaptation notes, protocol, and source experiment/result state;
+neither read returns proposer or reviewer identities.
+
+`POST /operator/api/solution-lifecycle/{location_id}/replications/{replication_id}/review`
+accepts an idempotency UUID, `approved` or `rejected`, explicit acknowledgement,
+and an optional bounded reason (a rejection reason must contain at least 10
+non-whitespace characters). PostgreSQL rechecks exact signed context, active
+review grant and human identity, source eligibility, and proposer attribution;
+the reviewer must differ from the proposer. Decision fields and an immutable
+receipt are written atomically. Exact retries replay, while request collisions,
+stale proposals, duplicate decisions, and self-review fail closed. Approval does
+not start or complete replication, add an outcome/evidence/maturity, or advance
+the solution stage. Runtime has function-only access; Directus cannot execute
+the review functions. The console uses grant gating, text rendering, CSRF,
+same-origin/no-store requests, and stable retry IDs.
 
 The learning route returns a bounded page only for records linked to a human-reviewed replication whose target scope is exactly the requested location and whose solution is originated in or explicitly linked to that location. It shows solution/learning IDs and labels, lesson type, confidence/transferability bands, decision state, and creation time. It omits learning text, recommendations, affected assumptions or metrics, evidence, source IDs, version details, and party identities. Records without a linked reviewed location replication are omitted, including experiment-only, network-wide, unreviewed, cross-location, and unlinked-solution records. This read does not accept, reject, or apply learning.
 

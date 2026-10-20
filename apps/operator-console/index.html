@@ -725,6 +725,39 @@
               <p id="solution-lifecycle-replication-proposal-status" class="muted" role="status" aria-live="polite"></p>
             </form>
           </section>
+          <section id="solution-lifecycle-replication-review" hidden aria-labelledby="solution-lifecycle-replication-review-heading">
+            <h3 id="solution-lifecycle-replication-review-heading">Independent replication review</h3>
+            <p class="muted">Requires an exact location review grant and an active human identity different from the proposer. Approval permits a separate future activation decision; it does not start or complete replication work.</p>
+            <button id="solution-lifecycle-replication-review-load" type="button">Load pending proposals</button>
+            <p id="solution-lifecycle-replication-review-status" class="muted" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Solution</th><th>Stage</th><th>Source checks</th><th>Submitted</th><th></th></tr></thead>
+                <tbody id="solution-lifecycle-replication-review-queue"></tbody>
+              </table>
+            </div>
+            <button id="solution-lifecycle-replication-review-more" class="secondary" type="button" hidden>Load more proposals</button>
+            <section id="solution-lifecycle-replication-review-detail" hidden aria-labelledby="solution-lifecycle-replication-review-detail-heading">
+              <h4 id="solution-lifecycle-replication-review-detail-heading">Private proposal detail</h4>
+              <dl id="solution-lifecycle-replication-review-metadata"></dl>
+              <h5>Adaptation required</h5>
+              <pre id="solution-lifecycle-replication-review-adaptation"></pre>
+              <h5>Replication protocol</h5>
+              <pre id="solution-lifecycle-replication-review-protocol"></pre>
+              <form id="solution-lifecycle-replication-review-form" class="stacked-form">
+                <label for="solution-lifecycle-replication-review-decision">Decision</label>
+                <select id="solution-lifecycle-replication-review-decision" required>
+                  <option value="approved">Approve proposal</option>
+                  <option value="rejected">Reject proposal</option>
+                </select>
+                <label for="solution-lifecycle-replication-review-reason">Review note (required for rejection)</label>
+                <textarea id="solution-lifecycle-replication-review-reason" maxlength="4000"></textarea>
+                <label><input id="solution-lifecycle-replication-review-confirm" type="checkbox" required> I reviewed this proposal and confirm this decision does not start or complete replication.</label>
+                <button id="solution-lifecycle-replication-review-submit" type="submit">Record independent decision</button>
+                <p id="solution-lifecycle-replication-review-detail-status" class="muted" role="status" aria-live="polite"></p>
+              </form>
+            </section>
+          </section>
           <section id="solution-lifecycle-learning-proposal" hidden aria-labelledby="solution-lifecycle-learning-proposal-heading">
             <h3 id="solution-lifecycle-learning-proposal-heading">Propose learning from a reviewed replication</h3>
             <p class="muted">Requires both location read and create grants. This submits a learning record in proposed status for independent review; it does not accept, reject, or apply learning.</p>
@@ -1325,6 +1358,21 @@
       const solutionLifecycleReplicationReset = document.querySelector("#solution-lifecycle-replication-reset");
       const solutionLifecycleReplicationProposalStatus = document.querySelector("#solution-lifecycle-replication-proposal-status");
       const solutionLifecycleReplicationConfirm = document.querySelector("#solution-lifecycle-replication-confirm");
+      const solutionLifecycleReplicationReview = document.querySelector("#solution-lifecycle-replication-review");
+      const solutionLifecycleReplicationReviewLoad = document.querySelector("#solution-lifecycle-replication-review-load");
+      const solutionLifecycleReplicationReviewMore = document.querySelector("#solution-lifecycle-replication-review-more");
+      const solutionLifecycleReplicationReviewStatus = document.querySelector("#solution-lifecycle-replication-review-status");
+      const solutionLifecycleReplicationReviewQueue = document.querySelector("#solution-lifecycle-replication-review-queue");
+      const solutionLifecycleReplicationReviewDetail = document.querySelector("#solution-lifecycle-replication-review-detail");
+      const solutionLifecycleReplicationReviewMetadata = document.querySelector("#solution-lifecycle-replication-review-metadata");
+      const solutionLifecycleReplicationReviewAdaptation = document.querySelector("#solution-lifecycle-replication-review-adaptation");
+      const solutionLifecycleReplicationReviewProtocol = document.querySelector("#solution-lifecycle-replication-review-protocol");
+      const solutionLifecycleReplicationReviewForm = document.querySelector("#solution-lifecycle-replication-review-form");
+      const solutionLifecycleReplicationReviewDecision = document.querySelector("#solution-lifecycle-replication-review-decision");
+      const solutionLifecycleReplicationReviewReason = document.querySelector("#solution-lifecycle-replication-review-reason");
+      const solutionLifecycleReplicationReviewConfirm = document.querySelector("#solution-lifecycle-replication-review-confirm");
+      const solutionLifecycleReplicationReviewSubmit = document.querySelector("#solution-lifecycle-replication-review-submit");
+      const solutionLifecycleReplicationReviewDetailStatus = document.querySelector("#solution-lifecycle-replication-review-detail-status");
       const solutionLifecycleRetirementProposal = document.querySelector("#solution-lifecycle-retirement-proposal");
       const solutionLifecycleRetirementSourcesLoad = document.querySelector("#solution-lifecycle-retirement-sources-load");
       const solutionLifecycleRetirementSourcesMore = document.querySelector("#solution-lifecycle-retirement-sources-more");
@@ -1382,6 +1430,12 @@
       let solutionLifecycleReplicationSourcesRequestVersion = 0;
       let solutionLifecycleReplicationSourcesOffset = 0;
       let solutionLifecyclePendingReplicationProposal = null;
+      let solutionLifecycleReplicationReviewOffset = 0;
+      let solutionLifecycleReplicationReviewRequestVersion = 0;
+      let solutionLifecycleReplicationReviewDetailVersion = 0;
+      let solutionLifecycleReplicationReviewDetailRecord = null;
+      let solutionLifecyclePendingReplicationReview = null;
+      let solutionLifecycleReplicationReviewSubmitting = false;
       let solutionLifecycleRetirementSourcesRequestVersion = 0;
       let solutionLifecycleRetirementSourcesOffset = 0;
       let solutionLifecyclePendingRetirementProposal = null;
@@ -4457,6 +4511,257 @@
         }
       }
 
+      function resetSolutionLifecycleReplicationReviewQueue() {
+        solutionLifecycleReplicationReviewQueue.replaceChildren();
+        solutionLifecycleReplicationReviewMore.hidden = true;
+        solutionLifecycleReplicationReviewDetail.hidden = true;
+        solutionLifecycleReplicationReviewDetailRecord = null;
+      }
+
+      async function loadSolutionLifecycleReplicationReviewQueue(append = false) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleReplicationReviewRequestVersion;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleReviewLocations.has(locationId)) {
+          resetSolutionLifecycleReplicationReviewQueue();
+          solutionLifecycleReplicationReviewStatus.textContent = "An exact location review grant is required.";
+          return;
+        }
+        const offset = append ? solutionLifecycleReplicationReviewOffset : 0;
+        solutionLifecycleReplicationReviewLoad.disabled = true;
+        solutionLifecycleReplicationReviewMore.disabled = true;
+        if (!append) resetSolutionLifecycleReplicationReviewQueue();
+        solutionLifecycleReplicationReviewStatus.textContent = "Loading pending replication proposals…";
+        try {
+          const params = new URLSearchParams({ limit: "50", offset: String(offset) });
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/review?${params}`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session, human identity, or location review grant is no longer valid.");
+            }
+            throw new Error("Replication proposals could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleReplicationReviewRequestVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          for (const item of Array.isArray(result.items) ? result.items : []) {
+            const row = document.createElement("tr");
+            for (const value of [
+              item.solution_name || "Location solution",
+              item.solution_stage || "Stage unavailable",
+              `Experiment ${item.source_experiment_validated === true ? "validated" : "not current"}; result ${item.source_result_reviewed === true ? "reviewed" : "not reviewed"}`,
+              item.created_at ? new Date(item.created_at).toLocaleString() : "—"
+            ]) {
+              const cell = document.createElement("td");
+              cell.textContent = String(value);
+              row.append(cell);
+            }
+            const actionCell = document.createElement("td");
+            const open = document.createElement("button");
+            open.type = "button";
+            open.textContent = item.is_self_authored === true ? "View own proposal" : "Review";
+            open.disabled = typeof item.replication_id !== "string";
+            open.addEventListener("click", () => loadSolutionLifecycleReplicationReviewDetail(item.replication_id));
+            actionCell.append(open);
+            row.append(actionCell);
+            solutionLifecycleReplicationReviewQueue.append(row);
+          }
+          solutionLifecycleReplicationReviewOffset = Number.isInteger(result.next_offset)
+            && result.next_offset > offset && result.next_offset <= 10000
+            ? result.next_offset
+            : offset;
+          solutionLifecycleReplicationReviewMore.hidden = result.has_more !== true
+            || solutionLifecycleReplicationReviewOffset <= offset;
+          const count = solutionLifecycleReplicationReviewQueue.children.length;
+          solutionLifecycleReplicationReviewStatus.textContent = count
+            ? `${count} pending proposal${count === 1 ? "" : "s"} shown. Proposal details are available only to location reviewers.`
+            : "No pending replication proposals are available for this location.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleReplicationReviewRequestVersion) return;
+          solutionLifecycleReplicationReviewStatus.textContent = error.message;
+        } finally {
+          if (requestVersion === solutionLifecycleReplicationReviewRequestVersion) {
+            solutionLifecycleReplicationReviewLoad.disabled = false;
+            solutionLifecycleReplicationReviewMore.disabled = false;
+          }
+        }
+      }
+
+      async function loadSolutionLifecycleReplicationReviewDetail(replicationId) {
+        const locationId = solutionLifecycleLocation.value;
+        const requestVersion = ++solutionLifecycleReplicationReviewDetailVersion;
+        if (!solutionLifecycleLocations.has(locationId)
+            || !solutionLifecycleReviewLocations.has(locationId)) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = "An exact location review grant is required.";
+          return;
+        }
+        solutionLifecycleReplicationReviewDetail.hidden = false;
+        solutionLifecycleReplicationReviewForm.hidden = true;
+        solutionLifecycleReplicationReviewMetadata.replaceChildren();
+        solutionLifecycleReplicationReviewAdaptation.textContent = "";
+        solutionLifecycleReplicationReviewProtocol.textContent = "";
+        solutionLifecycleReplicationReviewConfirm.checked = false;
+        solutionLifecycleReplicationReviewDetailRecord = null;
+        solutionLifecycleReplicationReviewDetailStatus.textContent = "Loading private proposal detail…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/${encodeURIComponent(replicationId)}/review`,
+            { credentials: "same-origin", cache: "no-store", headers: { "Accept": "application/json" } }
+          );
+          if (!response.ok) {
+            if (response.status === 401 || response.status === 403) {
+              throw new Error("Your session, human identity, or location review grant is no longer valid.");
+            }
+            if (response.status === 404) throw new Error("This proposal is no longer pending or is outside the selected location.");
+            throw new Error("Proposal detail could not be loaded. Retry when the service is available.");
+          }
+          const result = await response.json();
+          if (requestVersion !== solutionLifecycleReplicationReviewDetailVersion
+              || locationId !== solutionLifecycleLocation.value) return;
+          solutionLifecycleReplicationReviewDetailRecord = result;
+          for (const [label, value] of [
+            ["Solution", result.solution_name],
+            ["Solution type", result.solution_type],
+            ["Current stage", result.solution_stage],
+            ["Proposal status", result.replication_status],
+            ["Target context", result.target_context],
+            ["Source experiment status", result.source_experiment_status],
+            ["Source result", result.source_result_outcome],
+            ["Source result reviewed", result.source_result_reviewed_at],
+            ["Submitted", result.created_at],
+            ["Proposer attribution", result.proposer_attributed === true ? "Present" : "Missing"],
+            ["Authored by current reviewer", result.is_self_authored === true ? "Yes" : "No"]
+          ]) {
+            const term = document.createElement("dt");
+            const description = document.createElement("dd");
+            term.textContent = label;
+            description.textContent = value === null || value === undefined ? "—" : String(value);
+            solutionLifecycleReplicationReviewMetadata.append(term, description);
+          }
+          solutionLifecycleReplicationReviewAdaptation.textContent = result.adaptation_required || "—";
+          solutionLifecycleReplicationReviewProtocol.textContent = JSON.stringify(result.replication_protocol ?? {}, null, 2);
+          const selfAuthored = result.is_self_authored === true || result.proposer_attributed !== true;
+          solutionLifecycleReplicationReviewForm.hidden = selfAuthored;
+          solutionLifecycleReplicationReviewDetailStatus.textContent = result.is_self_authored === true
+            ? "You submitted this proposal. Independent review by another active human is required."
+            : result.proposer_attributed !== true
+              ? "This proposal has no recorded proposer and cannot be reviewed."
+              : "Review the source status, target context, adaptation, and protocol before deciding.";
+        } catch (error) {
+          if (requestVersion !== solutionLifecycleReplicationReviewDetailVersion) return;
+          solutionLifecycleReplicationReviewDetailStatus.textContent = error.message;
+          solutionLifecycleReplicationReviewDetailRecord = null;
+        }
+      }
+
+      function lockSolutionLifecycleReplicationReview(submitting = false) {
+        const pending = Boolean(solutionLifecyclePendingReplicationReview);
+        solutionLifecycleReplicationReviewSubmit.disabled = submitting;
+        solutionLifecycleReplicationReviewDecision.disabled = pending;
+        solutionLifecycleReplicationReviewReason.disabled = pending;
+        solutionLifecycleReplicationReviewConfirm.disabled = pending;
+        solutionLifecycleReplicationReviewLoad.disabled = pending;
+        solutionLifecycleReplicationReviewMore.disabled = pending;
+        for (const button of solutionLifecycleReplicationReviewQueue.querySelectorAll("button")) {
+          button.disabled = pending;
+        }
+        solutionLifecycleLocation.disabled = pending
+          || Boolean(solutionLifecyclePendingReplicationProposal)
+          || Boolean(solutionLifecyclePendingLearningProposal)
+          || Boolean(solutionLifecyclePendingFundingProposal)
+          || Boolean(solutionLifecyclePendingFundingApproval)
+          || Boolean(solutionLifecyclePendingFundingTrancheApproval)
+          || Boolean(solutionLifecyclePendingRetirementProposal)
+          || Boolean(solutionLifecyclePendingRetirementApproval);
+      }
+
+      async function reviewSolutionLifecycleReplication(event) {
+        event.preventDefault();
+        const detail = solutionLifecycleReplicationReviewDetailRecord;
+        const locationId = solutionLifecycleLocation.value;
+        if (!detail || detail.is_self_authored === true || detail.proposer_attributed !== true
+            || !solutionLifecycleReviewLocations.has(locationId)) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = "A pending attributed proposal and a different human with an exact location review grant are required.";
+          return;
+        }
+        if (!solutionLifecycleReplicationReviewConfirm.checked) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = "Confirm that you reviewed the proposal and understand approval does not start replication.";
+          return;
+        }
+        const decision = solutionLifecycleReplicationReviewDecision.value;
+        const reason = solutionLifecycleReplicationReviewReason.value.trim();
+        if (decision === "rejected" && reason.length < 10) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = "A rejection reason of at least 10 characters is required.";
+          return;
+        }
+        if (reason.length > 4000) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = "Review note is limited to 4,000 characters.";
+          return;
+        }
+        const csrf = csrfToken();
+        if (!csrf) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = "Refresh the operator session before recording a decision.";
+          return;
+        }
+        const payload = { decision, acknowledged: true, review_reason: reason || null };
+        const fingerprint = JSON.stringify({ replication_id: detail.replication_id, ...payload });
+        if (solutionLifecyclePendingReplicationReview
+            && solutionLifecyclePendingReplicationReview.fingerprint !== fingerprint) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = "The prior response may be uncertain. Retry the same decision before changing it.";
+          return;
+        }
+        if (!solutionLifecyclePendingReplicationReview) {
+          const requestId = globalThis.crypto?.randomUUID?.();
+          if (!requestId) {
+            solutionLifecycleReplicationReviewDetailStatus.textContent = "A secure browser context is required to record the decision.";
+            return;
+          }
+          solutionLifecyclePendingReplicationReview = { fingerprint, request_id: requestId };
+        }
+        const requestId = solutionLifecyclePendingReplicationReview.request_id;
+        solutionLifecycleReplicationReviewSubmitting = true;
+        lockSolutionLifecycleReplicationReview(true);
+        solutionLifecycleReplicationReviewDetailStatus.textContent = "Recording independent review…";
+        try {
+          const response = await fetch(
+            `/operator/api/solution-lifecycle/${encodeURIComponent(locationId)}/replications/${encodeURIComponent(detail.replication_id)}/review`,
+            {
+              method: "POST",
+              credentials: "same-origin",
+              cache: "no-store",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-CSRF-Token": csrf },
+              body: JSON.stringify({ ...payload, request_id: requestId })
+            }
+          );
+          const result = await response.json().catch(() => ({}));
+          if (response.status === 401 || response.status === 403) {
+            solutionLifecyclePendingReplicationReview = null;
+            throw new Error("Your session or independent location review grant is no longer valid.");
+          }
+          if (!response.ok) {
+            if (response.status < 500) solutionLifecyclePendingReplicationReview = null;
+            throw new Error(result.error || "Replication review could not be recorded.");
+          }
+          solutionLifecyclePendingReplicationReview = null;
+          solutionLifecycleReplicationReviewDetailStatus.textContent = result.replayed === true
+            ? `The same ${result.decision} decision was already recorded.`
+            : `Replication proposal ${result.decision}. Approval does not start or complete the replication.`;
+          solutionLifecycleReplicationReviewDetailRecord = null;
+          solutionLifecycleReplicationReviewForm.hidden = true;
+          await loadSolutionLifecycleReplicationReviewQueue();
+        } catch (error) {
+          solutionLifecycleReplicationReviewDetailStatus.textContent = solutionLifecyclePendingReplicationReview
+            ? `${error.message} The result may be uncertain; retry the same decision to reuse its request ID.`
+            : error.message;
+        } finally {
+          solutionLifecycleReplicationReviewSubmitting = false;
+          lockSolutionLifecycleReplicationReview(solutionLifecycleReplicationReviewSubmitting);
+        }
+      }
+
       async function loadSolutionLifecycleLearningSources(append = false) {
         const locationId = solutionLifecycleLocation.value;
         const requestVersion = ++solutionLifecycleLearningSourcesRequestVersion;
@@ -5931,6 +6236,7 @@
               || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleRetirementReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycleFundingReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+            solutionLifecycleReplicationReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
             solutionLifecycle.hidden = false;
             await loadSolutionLifecycleSummary();
             hasAuthorizedSurface = true;
@@ -9282,6 +9588,16 @@
         solutionLifecyclePendingReplicationProposal = null;
         solutionLifecycleReplicationProposalForm.reset();
         solutionLifecycleReplicationProposalStatus.textContent = "";
+        solutionLifecycleReplicationReviewRequestVersion += 1;
+        solutionLifecycleReplicationReviewDetailVersion += 1;
+        solutionLifecycleReplicationReviewOffset = 0;
+        resetSolutionLifecycleReplicationReviewQueue();
+        solutionLifecycleReplicationReviewStatus.textContent = "";
+        solutionLifecycleReplicationReviewDetailStatus.textContent = "";
+        solutionLifecycleReplicationReviewForm.reset();
+        solutionLifecycleReplicationReviewReason.required = false;
+        solutionLifecyclePendingReplicationReview = null;
+        solutionLifecycleReplicationReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleReadSurfaces.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleLearningProposal.hidden = !solutionLifecycleLocations.has(solutionLifecycleLocation.value)
           || !solutionLifecycleCreateLocations.has(solutionLifecycleLocation.value);
@@ -9308,6 +9624,7 @@
         solutionLifecycleRetirementReviewMore.hidden = true;
         solutionLifecycleRetirementReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         solutionLifecycleFundingReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
+        solutionLifecycleReplicationReview.hidden = !solutionLifecycleReviewLocations.has(solutionLifecycleLocation.value);
         loadSolutionLifecycleSummary();
       });
       solutionLifecycleGatesLoad.addEventListener("click", () => loadSolutionLifecycleGates());
@@ -9343,6 +9660,13 @@
       solutionLifecycleReplicationSourcesLoad.addEventListener("click", () => loadSolutionLifecycleReplicationSources());
       solutionLifecycleReplicationSourcesMore.addEventListener("click", () => loadSolutionLifecycleReplicationSources(true));
       solutionLifecycleReplicationProposalForm.addEventListener("submit", submitSolutionLifecycleReplicationProposal);
+      solutionLifecycleReplicationReviewLoad.addEventListener("click", () => loadSolutionLifecycleReplicationReviewQueue());
+      solutionLifecycleReplicationReviewMore.addEventListener("click", () => loadSolutionLifecycleReplicationReviewQueue(true));
+      solutionLifecycleReplicationReviewForm.addEventListener("submit", reviewSolutionLifecycleReplication);
+      solutionLifecycleReplicationReviewDecision.addEventListener("change", () => {
+        solutionLifecycleReplicationReviewReason.required =
+          solutionLifecycleReplicationReviewDecision.value === "rejected";
+      });
       solutionLifecycleReplicationReset.addEventListener("click", () => {
         if (solutionLifecyclePendingReplicationProposal) {
           solutionLifecycleReplicationProposalStatus.textContent = "A request may already have reached the server. Retry the unchanged proposal before clearing it.";
@@ -9380,6 +9704,7 @@
       });
       window.addEventListener("beforeunload", (event) => {
         if (solutionLifecyclePendingLearningProposal || solutionLifecyclePendingReplicationProposal
+            || solutionLifecyclePendingReplicationReview
             || solutionLifecyclePendingRetirementProposal
             || solutionLifecyclePendingRetirementApproval) {
           event.preventDefault();
