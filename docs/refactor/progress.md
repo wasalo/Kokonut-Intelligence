@@ -11857,3 +11857,29 @@ broader ACL/RLS, recovery, and MAN-CAP-037 owner acceptance. Checklist:
 [migration](../schemas/postgres/479_location_operating_pilot_demand_signals.sql);
 [tests](../tests/test_gateway_operating_pilot_reads.py);
 [disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-demand-disposable.json).
+
+### CAP-037 aggregate capacity-period page — 19 October 2026
+
+Added `GET /operator/api/operating-pilot/{location_id}/capacity-periods`
+under the existing exact `operating_pilot:read` grant and signed location
+context. Migration 480 groups submitted/approved capacity profiles by period
+for active Adelphi farm scopes mapped to the exact requested location. It
+returns period boundaries and aggregate available, committed, and protected
+hours; all hours are suppressed when fewer than three distinct people
+contribute. Profile IDs, participant IDs, notes, source labels, draft and
+superseded rows, and internal scope remain private. The page is bounded to 50
+periods and offset 10,000; it does not approve or mutate profiles.
+
+The focused Gateway, route-policy, and migration selection passes 64 tests.
+Disposable PostgreSQL 16 applies/replays migrations 461, 479, and 480 and
+passes 13 grouped assertions for scope, pagination, small-cohort suppression,
+redaction, tenant denial, and runtime/Directus/reader privilege boundaries.
+Candidate and legacy databases remain untouched; migration 480 is not rolled
+out. CAP-037 remains prepared pending item-level capacity/claim/competency and
+learning/coaching/resource workflows, populated mapping and legacy parity,
+audience review, live OIDC/browser, broader ACL/RLS, recovery, and
+MAN-CAP-037 owner acceptance. Checklist: 708 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, 28 prepared. [Contract](operating-pilot-kernel-read-contract.md);
+[migration](../schemas/postgres/480_location_operating_pilot_capacity_periods.sql);
+[tests](../tests/test_gateway_operating_pilot_reads.py);
+[disposable acceptance](builds/2026-10-19-recovery/cap-037-operating-pilot-capacity-disposable.json).

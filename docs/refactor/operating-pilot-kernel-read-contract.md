@@ -1,8 +1,8 @@
 # CAP-037 Operating Pilot Kernel Read Contract
 
 **Status:** Prepared (`P`), not MAN-CAP-037 accepted
-**Current slices:** Location-scoped operating-pilot summary and redacted demand page
-**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`
+**Current slices:** Location-scoped operating-pilot summary, redacted demand page, and aggregate capacity-period page
+**Migrations:** `schemas/postgres/461_location_scoped_operating_pilot_summary.sql`; `schemas/postgres/479_location_operating_pilot_demand_signals.sql`; `schemas/postgres/480_location_operating_pilot_capacity_periods.sql`
 
 ## Route and authorization
 
@@ -68,6 +68,24 @@ The non-login reader receives only the additional `work_type` and `priority`
 columns needed to render this projection. The Gateway keeps the route disabled when
 OIDC is unavailable and sends `no-store` responses.
 
+## Capacity-period page
+
+`GET /operator/api/operating-pilot/{location_id}/capacity-periods` uses the
+same exact location read grant, signed tenant context, read-only transaction,
+and no-store response. Migration 480 groups submitted and approved capacity
+profiles by their exact start/end period under active Adelphi farms mapped to
+the requested location. It returns period boundaries and aggregate
+available/committed/protected hours. Draft and superseded profiles are omitted.
+When fewer than three distinct people contribute to a period, all three hour
+totals are null and `suppressed` is true; the exact participant count is never
+returned. Pages default to 25 periods and cap at 50 rows and offset 10,000.
+
+Profile IDs, participant IDs, notes, source labels, and individual hours remain
+inside PostgreSQL. Migration 461 already grants the reader the period, status,
+participant-key, and capacity columns needed by the summary and this aggregate;
+it does not grant profile notes. The route cannot verify, approve, or mutate a
+capacity profile.
+
 ## Database boundary
 
 The non-login `kokonut_operating_pilot_reader` role can select only the source
@@ -85,14 +103,14 @@ grants; it does not represent the deployed role ACL state.
 The Gateway contract and exact route policy are covered by
 `tests/test_gateway_operating_pilot_reads.py` and
 `tests/test_operator_route_policy_inventory.py`. The disposable PostgreSQL 16
-acceptance runner applies/replays migrations 461 and 479, exercises active and
-internal scopes, checks aggregate values, demand paging and small-cohort
-suppression, verifies tenant/grant denials and data redaction, and inspects
-runtime, Directus, and reader privileges:
+acceptance runner applies/replays migrations 461, 479, and 480, exercises active
+and internal scopes, checks aggregate values, demand and capacity paging,
+capacity small-cohort suppression, tenant/grant denials and data redaction,
+and inspects runtime, Directus, and reader privileges:
 `scripts/check-operating-pilot-summary-disposable.py`.
 
 Before migration rollout, disable the capability by removing the route/service
-registration and route policy. If migrations 461 or 479 are applied, retain
+registration and route policy. If migrations 461, 479, or 480 are applied, retain
 their ordered reader role/functions and ACLs; disable only the affected route.
 Do not edit or reverse an applied migration.
 
