@@ -418,6 +418,88 @@ def test_offline_operator_role_templates_output_matches_standalone() -> None:
     assert unified.stderr == standalone.stderr == ""
 
 
+def test_operator_grant_revocation_cli_matches_and_persists_audit_fields(
+    monkeypatch,
+    capsys,
+) -> None:
+    from typer.testing import CliRunner
+
+    import services.cli as unified_cli
+    from services.gateway import operator_cli
+
+    grant_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+    report = {
+        "id": grant_id,
+        "operator_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "resource": "farm_activity",
+        "action": "read",
+        "location_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+        "revoked_by": "local-admin",
+        "revocation_reason": "operator access ended",
+    }
+    connections = []
+
+    class FakeResult:
+        def first(self):
+            return report
+
+    class FakeConnection:
+        closed = False
+        query = ""
+        parameters = None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            self.closed = True
+            return False
+
+        def execute(self, query, parameters):
+            self.query = " ".join(query.lower().split())
+            self.parameters = parameters
+            return FakeResult()
+
+    def make_connection():
+        connection = FakeConnection()
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(operator_cli, "get_connection", make_connection)
+    arguments = [
+        "revoke-grant",
+        "--grant-id", grant_id,
+        "--revoked-by", "local-admin",
+        "--reason", "operator access ended",
+    ]
+    original_argv = list(sys.argv)
+    try:
+        sys.argv = ["services.gateway.operator_cli", *arguments]
+        operator_cli.main()
+        standalone_output = capsys.readouterr().out
+    finally:
+        sys.argv = original_argv
+
+    unified = CliRunner().invoke(unified_cli.app, ["operator", "--", *arguments])
+
+    assert unified.exit_code == 0, unified.output
+    assert unified.output == standalone_output
+    assert json.loads(unified.output) == report
+    assert len(connections) == 2
+    assert all(connection.closed for connection in connections)
+    assert all("revoked_by = :revoked_by" in connection.query for connection in connections)
+    assert all("revocation_reason = :reason" in connection.query for connection in connections)
+    assert all(
+        connection.parameters == {
+            "grant_id": grant_id,
+            "revoked_by": "local-admin",
+            "reason": "operator access ended",
+        }
+        for connection in connections
+    )
+    assert unified.stderr == ""
+
+
 def test_database_backed_metrics_catalogue_output_matches_with_stubbed_cursor(
     monkeypatch,
     capsys,

@@ -274,11 +274,16 @@ create the organization membership, and grant the specific resource/action:
 ```sh
 python3 -m services.cli operator identity provision --issuer ISSUER --subject SUBJECT --display-name NAME
 python3 -m services.cli operator grant --operator-id UUID --resource RESOURCE --action read --location-id LOCATION_UUID --granted-by OPERATOR
+python3 -m services.cli operator revoke-grant --grant-id UUID --revoked-by OPERATOR --reason "Access ended"
 python3 -m services.cli operator list
 ```
 
 The OIDC login does not auto-provision identities or grants. Disabled identities
 cannot create sessions, and disabling an identity revokes its current sessions.
+Scope-grant revocation requires an actor and reason. Revoking an organization
+membership or location share records the same actor/reason on every associated
+grant revoked by that cascade. These are local database-administration
+commands; the submitted actor string is audit attribution, not authentication.
 
 For the implemented farm-activity Gateway surface, legacy Directus role names
 are available as explicit scope templates. Each template expands into ordinary

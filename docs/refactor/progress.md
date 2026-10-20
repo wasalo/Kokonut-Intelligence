@@ -5,8 +5,11 @@ offline invocations, twenty-eight database-backed reads with stubbed query
 results, and one tenant-preflight invocation with a synthetic aggregate report.
 Field Collector media cleanup and reconciliation now have dry-run parity using
 synthetic database/provider inventories; neither path deletes media.
-Operator farm-activity role templates match offline from their local registry;
-identity and tenant administration commands remain open for boundary review.
+Operator farm-activity role templates match offline from their local registry.
+Scope-grant revocation now requires actor/reason attribution, and membership or
+share revocation propagates that attribution to cascaded grants. Focused fake-
+connection tests cover those SQL writes; identity and remaining tenant
+administration commands stay open for boundary review.
 Exit status, parsed filters, and JSON/text output match. No database or provider
 is contacted. The governance proposal, role,
 link, tactical, and tension read CLIs close owned connections after successful
@@ -22,15 +25,15 @@ aggregate-only service report; the real dedicated-role and SQL checks remain
 separate evidence. Cleanup does not initialize object storage, and reconciliation
 uses only fake object-store and database results.
 Forecast, CRISP, and Threatcasting close resources if queries fail; Delphi
-closes its cursor and connection on either outcome. The selection passes 134
-tests across CLI parity, CLI contracts, Delphi, and media service coverage, including
-38 successful-output invocations and the
+closes its cursor and connection on either outcome. The selection passes 140
+tests across CLI parity, CLI contracts, operator revocation audit, Delphi, and
+media service coverage, including 39 successful-output invocations and the
 native Typer tree comparison. Standalone/unified command trees and leaf
 parameters match for `kernel`, `dao`, and `treasury`; shell-completion toggles
 remain intentionally disabled under the unified root. CAP-039 remains
-deployed, not accepted: operator identity/list and tenant grant/share/transfer
-commands still need successful-path/dependency classification and privileged
-action-boundary review. MAN-CAP-039 review remains open. Checklist: 801 complete /
+deployed, not accepted: operator identity/list, grant provisioning, membership,
+share, and transfer commands still need dependency and privileged-action
+boundary review. MAN-CAP-039 review remains open. Checklist: 802 complete /
 24 open; matrix:
 31 baseline-retained, 7 deployed, and 28 prepared across 66 rows. See the
 [CLI contract](unified-cli-kernel-contract.md),

@@ -361,11 +361,17 @@ def revoke_organization_membership(args) -> None:
         if row is not None:
             conn.execute(
                 """UPDATE operator_scope_grant
-                      SET revoked_at = NOW()
+                      SET revoked_at = NOW(), revoked_by = :revoked_by,
+                          revocation_reason = :reason
                     WHERE operator_id = :operator_id
                       AND organization_id = :organization_id
                       AND revoked_at IS NULL""",
-                {"operator_id": row["operator_id"], "organization_id": row["organization_id"]},
+                {
+                    "operator_id": row["operator_id"],
+                    "organization_id": row["organization_id"],
+                    "revoked_by": args.revoked_by.strip(),
+                    "reason": args.reason.strip(),
+                },
             )
     if row is None:
         raise ValueError("active organization membership was not found")
@@ -496,23 +502,38 @@ def revoke_location_share(args) -> None:
         ).first()
         conn.execute(
             """UPDATE operator_scope_grant
-                  SET revoked_at = NOW()
+                  SET revoked_at = NOW(), revoked_by = :revoked_by,
+                      revocation_reason = :reason
                 WHERE location_id = :location_id
                   AND organization_id = :organization_id
                   AND revoked_at IS NULL""",
-            {"location_id": share["location_id"], "organization_id": share["organization_id"]},
+            {
+                "location_id": share["location_id"],
+                "organization_id": share["organization_id"],
+                "revoked_by": revoked_by_operator_id,
+                "reason": args.reason.strip(),
+            },
         )
     print_json(row)
 
 
 def revoke_scope(args) -> None:
     grant_id = _uuid(args.grant_id, "grant-id")
+    revoked_by = args.revoked_by.strip()
+    reason = args.reason.strip()
+    if not revoked_by or not reason:
+        raise ValueError("revoked-by and reason are required")
+    if len(revoked_by) > 200 or len(reason) > 2000:
+        raise ValueError("revoked-by or reason exceeds the supported length")
     with get_connection() as conn:
         row = conn.execute(
-            """UPDATE operator_scope_grant SET revoked_at = NOW()
+            """UPDATE operator_scope_grant
+                  SET revoked_at = NOW(), revoked_by = :revoked_by,
+                      revocation_reason = :reason
                  WHERE id = :grant_id AND revoked_at IS NULL
-               RETURNING id, operator_id, resource, action, location_id, revoked_at""",
-            {"grant_id": grant_id},
+               RETURNING id, operator_id, resource, action, location_id,
+                         revoked_at, revoked_by, revocation_reason""",
+            {"grant_id": grant_id, "revoked_by": revoked_by, "reason": reason},
         ).first()
     if row is None:
         raise ValueError("active scope grant was not found")
@@ -838,6 +859,8 @@ def main() -> None:
 
     revoke = commands.add_parser("revoke-grant", help="Revoke one operator scope grant")
     revoke.add_argument("--grant-id", required=True)
+    revoke.add_argument("--revoked-by", required=True, help="Local operator performing the revocation")
+    revoke.add_argument("--reason", required=True, help="Reason for revoking the grant")
     revoke.set_defaults(func=revoke_scope)
 
     role = commands.add_parser("farm-activity-role", help="Provision a legacy farm-activity role as scoped grants")
