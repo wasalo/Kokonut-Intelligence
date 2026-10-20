@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "capability": "CAP-038",
+  "area": "agent_draft_output_validation",
+  "runners": [
+    "services/agents/base.py:SynthesisAgent.run",
+    "services/agents/ai_summary.py:run_ai_summary"
+  ],
+  "behavior": "Generated output is validated before optional draft persistence; invalid output raises before INSERT/COMMIT and connections close in finally blocks.",
+  "verification": {
+    "focused_tests": "8 passed",
+    "python_files": [
+      "tests/test_agents_base.py",
+      "tests/test_ai_summary_safety.py"
+    ],
+    "database_or_model_provider_contacted": false
+  },
+  "acceptance_limits": [
+    "Task output validation remains lightweight and does not constitute semantic review.",
+    "Does not establish authenticated agent identity or database least privilege.",
+    "Does not replace independent human verification, publication, attestation, or execution approval."
+  ]
+}

@@ -91,14 +91,13 @@ class SynthesisAgent:
         try:
             summary = self.synthesize(conn, location_id)
             output: dict[str, Any] = {"summary": summary}
+            errors = validate_output(self.task_key, output)
+            if errors:
+                raise ValueError("; ".join(errors))
             if store:
                 output["ai_summary_id"] = self.store_summary(conn, summary)
         finally:
             conn.close()
-
-        errors = validate_output(self.task_key, output)
-        if errors:
-            raise ValueError("; ".join(errors))
         return output
 
 

@@ -31,6 +31,10 @@ run without decrypting `.env.sops`.
 ## Existing safety behavior retained
 
 - Draft creation continues for the write targets declared by the task catalogue.
+- Shared synthesis runners validate the generated output before inserting a
+  draft. Invalid output now fails before `INSERT`/`COMMIT`, and the connection
+  still closes; validation remains intentionally lightweight and does not
+  replace the human review lifecycle.
 - Existing output validation, EBF maturity limits, human-governed collection
   restrictions, and read behavior remain in place.
 - Optional Directus hooks keep their role and lifecycle checks. The action-log

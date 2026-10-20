@@ -312,6 +312,9 @@ def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool
                 "location_id": location_id,
             },
         }
+        errors = validate_output("ai_summary_synthesis", output)
+        if errors:
+            raise ValueError("; ".join(errors))
         if store:
             output["ai_summary_id"] = store_summary(
                 conn, location_id, result["summary_type"],
@@ -319,10 +322,6 @@ def run_ai_summary(location_id: str, summary_type: str = "combined", store: bool
             )
     finally:
         conn.close()
-
-    errors = validate_output("ai_summary_synthesis", output)
-    if errors:
-        raise ValueError("; ".join(errors))
     return output
 
 

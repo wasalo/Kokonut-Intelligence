@@ -97,6 +97,22 @@ def test_run_raises_on_validation_errors():
     assert conn.closed is True
 
 
+def test_run_does_not_store_invalid_draft_output():
+    conn = _FakeConn()
+    with mock.patch("services.agents.base.get_db", return_value=conn):
+        with mock.patch("services.agents.base.assert_agent_action_allowed"):
+            with mock.patch("services.agents.base.validate_output", return_value=["bad field"]):
+                try:
+                    _DummyAgent().run("loc-1", store=True)
+                except ValueError as exc:
+                    assert "bad field" in str(exc)
+                else:
+                    raise AssertionError("expected ValueError")
+    assert conn.cursor_obj.executed is None
+    assert conn.committed is False
+    assert conn.closed is True
+
+
 def test_run_fetch_validates_and_closes():
     conn = _FakeConn()
 
