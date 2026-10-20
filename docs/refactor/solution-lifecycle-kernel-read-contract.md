@@ -3,10 +3,12 @@
 **Status:** CAP-035 location-scoped summary, gate-item read, and experiment-status read slices prepared; not owner-accepted.
 **Migrations:** `459_location_scoped_solution_lifecycle_summary.sql`,
 `466_location_scoped_solution_gates.sql`, and
-`467_location_scoped_solution_experiments.sql`.
+`467_location_scoped_solution_experiments.sql`,
+`468_location_scoped_solution_funding.sql`.
 **Routes:** `GET /operator/api/solution-lifecycle/{location_id}/summary`,
 `GET /operator/api/solution-lifecycle/{location_id}/gates`, and
-`GET /operator/api/solution-lifecycle/{location_id}/experiments`.
+`GET /operator/api/solution-lifecycle/{location_id}/experiments`,
+`GET /operator/api/solution-lifecycle/{location_id}/funding`.
 **Authorization:** exact `solution_lifecycle:read` location grant plus signed
 operator tenant context, checked in both Gateway and PostgreSQL.
 
@@ -63,6 +65,20 @@ an offset up to 10,000; SQL fetches at most 51 to determine `has_more`, and the
 Gateway applies the same 256 KiB response limit. This is status visibility,
 not experiment approval, result review, or a mutation path.
 
+The funding route returns a bounded flat page of location-scoped funding cases
+and tranche lifecycle states. Cases without tranches remain visible. Rows
+contain solution and funding-case IDs, solution labels/state, capital stage,
+instrument, currency, case decision state and timestamps, plus nullable tranche
+ID/number/status and approval/release timestamps. It never returns requested,
+authorized, tranche, or released amounts; milestone conditions; case rationale;
+funding or release evidence; or submitter, approver, and releaser identities.
+The `kokonut_solution_reader` role receives column-level SELECT only for the
+case and tranche fields needed by this projection and the existing aggregate
+summary. It cannot select monetary, narrative, evidence, or party columns. Pages
+accept 1–50 rows with an offset up to 10,000, use stable case/tranche ordering,
+and share the 256 KiB response cap. The route does not approve funding cases,
+approve or release tranches, or expose release execution.
+
 ## Database boundary
 
 The stable read function is owned by `kokonut_solution_reader`, a non-login,
@@ -71,8 +87,8 @@ the projection. The function rechecks actor type, signed location context, and
 the exact `solution_lifecycle:read` grant. Runtime can execute the bounded
 function but cannot select the solution tables directly; Directus has neither
 function nor table access. The reader has no identity-table access and no write
-privileges. Migrations 466 and 467 add bounded gate and experiment functions
-under the same reader role and exact signed-location grant checks.
+privileges. Migrations 466–468 add bounded gate, experiment, and funding
+functions under the same reader role and exact signed-location grant checks.
 
 ## Verification and remaining parity
 
@@ -80,9 +96,10 @@ The summary, gate-read, and experiment-read source checks and their separate
 disposable PostgreSQL 16 apply/replay acceptance are recorded in
 `builds/2026-10-19-recovery/cap-035-solution-lifecycle-disposable.json` and
 `builds/2026-10-19-recovery/cap-035-solution-gates-disposable.json` and
-`builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json`.
-Candidate and legacy databases are untouched; migrations 459, 466, and 467 have
-not been rolled out. This is not parity acceptance. Remaining work includes
+`builds/2026-10-19-recovery/cap-035-solution-experiments-disposable.json` and
+`builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json`. Candidate
+and legacy databases are untouched; migrations 459 and 466–468 have not been
+rolled out. This is not parity acceptance. Remaining work includes
 item-level read and write workflows beyond status projections, gate and
 experiment evidence detail under reviewed grants,
 funding/tranche and adoption event detail, populated legacy-to-Kernel fixture

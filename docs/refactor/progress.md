@@ -1,3 +1,23 @@
+### CAP-035 funding and tranche status read — 19 October 2026
+
+Added `GET /operator/api/solution-lifecycle/{location_id}/funding` as a
+bounded, read-only case/tranche projection under exact location
+`solution_lifecycle:read` and signed tenant context. It includes case decision
+labels, stage/instrument/currency and timestamps plus tranche number/status and
+approval/release timestamps; cases without tranches remain visible. Amounts,
+terms, rationale, evidence, and submitter/approver/releaser identities are
+omitted. Migration 468 narrows the non-login solution reader to column-level
+SELECT on case and tranche metadata, while keeping the runtime route behind the
+bounded security-definer function. The focused Gateway, route-policy, and
+migration metadata selection passes 72 tests with Ruff and compilation.
+Disposable PostgreSQL 16 applies/replays migrations 459 and 466–468 and passes
+nine grouped scope, paging, privacy, grant, privilege, and existing-summary compatibility checks. Candidate and
+legacy databases remain untouched; migration 468 is not rolled out. Funding
+workflow writes, monetary detail policy, evidence review, other lifecycle item
+workflows, populated parity, live OIDC/browser, broader ACL/RLS, recovery, and
+MAN-CAP-035 review remain open. Checklist: 696 complete / 24 open; matrix:
+31 baseline-retained, 7 deployed, 28 prepared ([contract](solution-lifecycle-kernel-read-contract.md); [tests](../tests/test_gateway_solution_lifecycle_reads.py); [migration](../schemas/postgres/468_location_scoped_solution_funding.sql); [disposable check](../scripts/check-solution-lifecycle-funding-disposable.py); [evidence](builds/2026-10-19-recovery/cap-035-solution-funding-disposable.json)).
+
 ### CAP-035 solution experiment status read — 19 October 2026
 
 Added `GET /operator/api/solution-lifecycle/{location_id}/experiments` as a

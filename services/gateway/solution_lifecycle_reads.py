@@ -11,15 +11,15 @@ from services.common.tenant_context import set_operator_tenant_context
 
 
 class SolutionLifecycleReadInvalid(ValueError):
-    """A solution lifecycle summary identifier is invalid."""
+    """A solution lifecycle read identifier or page value is invalid."""
 
 
 class SolutionLifecycleResponseTooLarge(ValueError):
     """A bounded solution lifecycle page exceeds the response budget."""
 
 
-_MAX_GATE_PAGE_SIZE = 50
-_MAX_GATE_RESPONSE_BYTES = 262_144
+_MAX_READ_PAGE_SIZE = 50
+_MAX_READ_RESPONSE_BYTES = 262_144
 
 
 def _connection_factory() -> Callable:
@@ -114,7 +114,7 @@ def list_location_solution_gates(
     """Return bounded gate items for solutions explicitly scoped to a location."""
     operator_id = _normalize_uuid(operator_id, "operator")
     location_id = _normalize_uuid(location_id, "location")
-    page_size = _page_value(limit, "Limit", 1, _MAX_GATE_PAGE_SIZE)
+    page_size = _page_value(limit, "Limit", 1, _MAX_READ_PAGE_SIZE)
     page_offset = _page_value(offset, "Offset", 0, 10000)
     connection = (connection_factory or _connection_factory())()
     try:
@@ -146,7 +146,7 @@ def list_location_solution_gates(
             "next_offset": page_offset + page_size if has_more else None,
         }
         size = len(json.dumps(result, default=str, separators=(",", ":")).encode("utf-8"))
-        if size > _MAX_GATE_RESPONSE_BYTES:
+        if size > _MAX_READ_RESPONSE_BYTES:
             raise SolutionLifecycleResponseTooLarge(
                 "Solution lifecycle gate page exceeds 256 KiB"
             )
@@ -172,7 +172,7 @@ def list_location_solution_experiments(
     """Return bounded experiment status for solutions explicitly scoped to a location."""
     operator_id = _normalize_uuid(operator_id, "operator")
     location_id = _normalize_uuid(location_id, "location")
-    page_size = _page_value(limit, "Limit", 1, _MAX_GATE_PAGE_SIZE)
+    page_size = _page_value(limit, "Limit", 1, _MAX_READ_PAGE_SIZE)
     page_offset = _page_value(offset, "Offset", 0, 10000)
     connection = (connection_factory or _connection_factory())()
     try:
@@ -204,9 +204,67 @@ def list_location_solution_experiments(
             "next_offset": page_offset + page_size if has_more else None,
         }
         size = len(json.dumps(result, default=str, separators=(",", ":")).encode("utf-8"))
-        if size > _MAX_GATE_RESPONSE_BYTES:
+        if size > _MAX_READ_RESPONSE_BYTES:
             raise SolutionLifecycleResponseTooLarge(
                 "Solution lifecycle experiment page exceeds 256 KiB"
+            )
+        return result
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
+
+
+def list_location_solution_funding(
+    operator_id: str,
+    location_id: str,
+    *,
+    limit: int | str = 25,
+    offset: int | str = 0,
+    connection_factory: Callable | None = None,
+) -> dict:
+    """Return bounded funding and tranche lifecycle labels for location solutions."""
+    operator_id = _normalize_uuid(operator_id, "operator")
+    location_id = _normalize_uuid(location_id, "location")
+    page_size = _page_value(limit, "Limit", 1, _MAX_READ_PAGE_SIZE)
+    page_offset = _page_value(offset, "Offset", 0, 10000)
+    connection = (connection_factory or _connection_factory())()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SET TRANSACTION READ ONLY")
+            cursor.execute("SET LOCAL statement_timeout = '8s'")
+            cursor.execute("SET LOCAL lock_timeout = '2s'")
+        set_operator_tenant_context(
+            connection,
+            operator_id=operator_id,
+            location_id=location_id,
+            resource="solution_lifecycle",
+            action="read",
+        )
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT * FROM kokonut_security.list_location_solution_funding(
+                           %s::uuid, %s::integer, %s::integer
+                       )""",
+                (location_id, page_size + 1, page_offset),
+            )
+            rows = [_mapping(cursor, row) for row in cursor.fetchall()]
+        has_more = len(rows) > page_size
+        result = {
+            "location_id": location_id,
+            "offset": page_offset,
+            "funding": rows[:page_size],
+            "has_more": has_more,
+            "next_offset": page_offset + page_size if has_more else None,
+        }
+        size = len(json.dumps(result, default=str, separators=(",", ":")).encode("utf-8"))
+        if size > _MAX_READ_RESPONSE_BYTES:
+            raise SolutionLifecycleResponseTooLarge(
+                "Solution lifecycle funding page exceeds 256 KiB"
             )
         return result
     except Exception:

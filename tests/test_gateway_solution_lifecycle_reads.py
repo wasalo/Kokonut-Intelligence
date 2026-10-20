@@ -398,6 +398,84 @@ def test_experiment_list_context_denial_rolls_back_without_projection_call():
     assert connection.rolled_back and connection.closed
 
 
+def test_funding_list_uses_signed_context_bounded_page_and_omits_financial_details():
+    columns = (
+        "solution_id", "solution_name", "solution_type", "current_stage",
+        "solution_status", "funding_case_id", "capital_stage", "funding_instrument",
+        "currency", "decision_status", "case_created_at", "case_approved_at",
+        "tranche_id", "tranche_number", "tranche_status", "tranche_approved_at",
+        "tranche_released_at",
+    )
+    row = (
+        "c0000000-0000-4000-8000-000000000001", "Soil cover", "practice",
+        "funded", "active", "f3000000-0000-4000-8000-000000000001",
+        "pilot", "grant", "USD", "approved", "2026-10-18T00:00:00Z",
+        "2026-10-19T00:00:00Z", "f3100000-0000-4000-8000-000000000001",
+        1, "released", "2026-10-19T00:00:00Z", "2026-10-20T00:00:00Z",
+    )
+    connection = _Connection(rows=[row, row, row], columns=columns)
+    contexts = []
+
+    def set_context(conn, **kwargs):
+        assert conn is connection
+        contexts.append(kwargs)
+
+    with patch.object(reads, "set_operator_tenant_context", set_context):
+        result = reads.list_location_solution_funding(
+            OPERATOR_ID, LOCATION_ID, limit="2", offset="5",
+            connection_factory=lambda: connection,
+        )
+
+    assert contexts == [{
+        "operator_id": OPERATOR_ID,
+        "location_id": LOCATION_ID,
+        "resource": "solution_lifecycle",
+        "action": "read",
+    }]
+    assert [query for query, _ in connection.operations[:3]] == [
+        "SET TRANSACTION READ ONLY",
+        "SET LOCAL statement_timeout = '8s'",
+        "SET LOCAL lock_timeout = '2s'",
+    ]
+    assert "list_location_solution_funding" in connection.operations[-1][0]
+    assert connection.operations[-1][1] == (LOCATION_ID, 3, 5)
+    assert len(result["funding"]) == 2
+    assert result["has_more"] is True
+    assert result["next_offset"] == 7
+    assert result["funding"][0]["tranche_status"] == "released"
+    assert not {
+        "amount", "requested_amount", "rationale", "evidence", "milestone_conditions",
+        "approved_by_party_id", "released_by_party_id", "released_amount",
+    }.intersection(result["funding"][0])
+    assert connection.rolled_back and connection.closed
+
+
+@pytest.mark.parametrize("limit,offset", [(0, 0), (51, 0), ("2.0", 0), (2, -1), (2, 10001)])
+def test_funding_list_rejects_invalid_page_before_database_access(limit, offset):
+    with pytest.raises(reads.SolutionLifecycleReadInvalid):
+        reads.list_location_solution_funding(
+            OPERATOR_ID, LOCATION_ID, limit=limit, offset=offset,
+            connection_factory=lambda: pytest.fail("invalid page opened a connection"),
+        )
+
+
+def test_funding_list_context_denial_rolls_back_without_projection_call():
+    connection = _Connection()
+
+    def deny(*_args, **_kwargs):
+        raise TenantContextDenied("denied")
+
+    with patch.object(reads, "set_operator_tenant_context", deny):
+        with pytest.raises(TenantContextDenied):
+            reads.list_location_solution_funding(
+                OPERATOR_ID, LOCATION_ID, connection_factory=lambda: connection,
+            )
+
+    assert not any("list_location_solution_funding" in query
+                   for query, _ in connection.operations)
+    assert connection.rolled_back and connection.closed
+
+
 def test_gate_route_policy_uses_the_exact_solution_location_read_grant():
     path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/gates"
     assert auth_route_policy("GET", path, enabled=True) == {
@@ -414,6 +492,20 @@ def test_gate_route_policy_uses_the_exact_solution_location_read_grant():
 
 def test_experiment_route_policy_uses_the_exact_solution_location_read_grant():
     path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/experiments"
+    assert auth_route_policy("GET", path, enabled=True) == {
+        "resource": "solution_lifecycle",
+        "action": "read",
+        "public": False,
+        "location_id": LOCATION_ID,
+        "scope_required": True,
+        "operator_auth": True,
+    }
+    assert auth_route_policy("POST", path, enabled=True) is None
+    assert auth_route_policy("GET", path + "/extra", enabled=True) is None
+
+
+def test_funding_route_policy_uses_the_exact_solution_location_read_grant():
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding"
     assert auth_route_policy("GET", path, enabled=True) == {
         "resource": "solution_lifecycle",
         "action": "read",
@@ -518,6 +610,58 @@ def test_experiment_http_route_is_no_store_and_oidc_disabled_fails_closed(monkey
     assert response.headers["cache-control"] == "no-store"
     assert response.headers["vary"] == "Cookie"
     assert response.json()["experiments"][0]["latest_result_outcome"] == "validated"
+
+    disabled = FastAPI()
+    disabled_router = APIRouter()
+    register_solution_lifecycle_routes(disabled_router, None, run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    disabled.include_router(disabled_router)
+    with TestClient(disabled) as client:
+        no_oidc = client.get(path)
+    assert no_oidc.status_code == 404
+    assert no_oidc.headers["cache-control"] == "no-store"
+
+
+def test_funding_http_route_is_no_store_and_oidc_disabled_fails_closed(monkeypatch):
+    from services.gateway.solution_lifecycle_routes import register_solution_lifecycle_routes
+
+    funding_row = {
+        "solution_id": "c0000000-0000-4000-8000-000000000001",
+        "funding_case_id": "f3000000-0000-4000-8000-000000000001",
+        "decision_status": "approved",
+        "tranche_status": "released",
+    }
+    monkeypatch.setattr(
+        "services.gateway.solution_lifecycle_reads.list_location_solution_funding",
+        lambda *_args, **_kwargs: {
+            "location_id": LOCATION_ID, "offset": 0, "funding": [funding_row],
+            "has_more": False, "next_offset": None,
+        },
+    )
+    app = FastAPI()
+    router = APIRouter()
+
+    async def run_in_threadpool(function, *args, **kwargs):
+        return function(*args, **kwargs)
+
+    register_solution_lifecycle_routes(router, object(), run_in_threadpool,
+                                        SimpleNamespace(Error=Exception))
+    app.include_router(router)
+
+    @app.middleware("http")
+    async def add_operator(request, call_next):
+        request.state.operator_session = SimpleNamespace(
+            operator=SimpleNamespace(operator_id=OPERATOR_ID)
+        )
+        return await call_next(request)
+
+    path = f"/operator/api/solution-lifecycle/{LOCATION_ID}/funding"
+    with TestClient(app) as client:
+        response = client.get(path, params={"limit": "10"})
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["vary"] == "Cookie"
+    assert response.json()["funding"][0]["tranche_status"] == "released"
 
     disabled = FastAPI()
     disabled_router = APIRouter()
